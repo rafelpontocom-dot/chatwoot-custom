@@ -20,7 +20,8 @@ class AsyncDispatcher < BaseDispatcher
       Conversations::UnreadCounts::Listener.instance,
       ReportingEventListener.instance,
       WebhookListener.instance,
-      KanbanCardListener.instance
+      KanbanCardListener.instance,
+      Whatsapp::AssignmentGreetingListener.instance
     ]
   end
 end

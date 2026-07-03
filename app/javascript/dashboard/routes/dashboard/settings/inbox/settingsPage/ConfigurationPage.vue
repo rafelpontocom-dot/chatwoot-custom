@@ -44,6 +44,10 @@ export default {
       allowedDomains: '',
       isUpdatingAllowedDomains: false,
       isSettingDefaults: false,
+      agentNameSignatureEnabled: false,
+      markAsReadEnabled: false,
+      assignmentGreetingEnabled: false,
+      assignmentGreetingTemplate: '',
     };
   },
   validations: {
@@ -71,6 +75,15 @@ export default {
       if (!this.isSettingDefaults && this.isAWebWidgetInbox)
         this.handleHmacFlag();
     },
+    agentNameSignatureEnabled() {
+      if (!this.isSettingDefaults) this.handleWhatsappBehaviorFlags();
+    },
+    markAsReadEnabled() {
+      if (!this.isSettingDefaults) this.handleWhatsappBehaviorFlags();
+    },
+    assignmentGreetingEnabled() {
+      if (!this.isSettingDefaults) this.handleWhatsappBehaviorFlags();
+    },
   },
   mounted() {
     this.setDefaults();
@@ -83,9 +96,38 @@ export default {
         this.inbox.selected_feature_flags || []
       ).includes('allow_mobile_webview');
       this.allowedDomains = this.inbox.allowed_domains || '';
+      this.agentNameSignatureEnabled =
+        this.inbox.provider_config?.agent_name_signature_enabled || false;
+      this.markAsReadEnabled =
+        this.inbox.provider_config?.mark_as_read_enabled || false;
+      this.assignmentGreetingEnabled =
+        this.inbox.provider_config?.assignment_greeting_enabled || false;
+      this.assignmentGreetingTemplate =
+        this.inbox.provider_config?.assignment_greeting_template || '';
       this.$nextTick(() => {
         this.isSettingDefaults = false;
       });
+    },
+    async handleWhatsappBehaviorFlags() {
+      try {
+        const payload = {
+          id: this.inbox.id,
+          formData: false,
+          channel: {
+            provider_config: {
+              ...this.inbox.provider_config,
+              agent_name_signature_enabled: this.agentNameSignatureEnabled,
+              mark_as_read_enabled: this.markAsReadEnabled,
+              assignment_greeting_enabled: this.assignmentGreetingEnabled,
+              assignment_greeting_template: this.assignmentGreetingTemplate,
+            },
+          },
+        };
+        await this.$store.dispatch('inboxes/updateInbox', payload);
+        useAlert(this.$t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
+      } catch (error) {
+        useAlert(this.$t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE'));
+      }
     },
     handleHmacFlag() {
       this.updateInbox();
@@ -434,6 +476,53 @@ export default {
           {{ $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_TEMPLATES_SYNC_BUTTON') }}
         </NextButton>
       </SettingsFieldSection>
+      <template v-if="isAWhatsAppCloudChannel">
+        <SettingsToggleSection
+          v-model="agentNameSignatureEnabled"
+          class="mt-4"
+          :header="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_AGENT_SIGNATURE.TITLE')"
+          :description="
+            $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_AGENT_SIGNATURE.SUBTITLE')
+          "
+        />
+        <SettingsToggleSection
+          v-model="markAsReadEnabled"
+          class="mt-4"
+          :header="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_MARK_AS_READ.TITLE')"
+          :description="
+            $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_MARK_AS_READ.SUBTITLE')
+          "
+        />
+        <SettingsToggleSection
+          v-model="assignmentGreetingEnabled"
+          class="mt-4"
+          :header="
+            $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.TITLE')
+          "
+          :description="
+            $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.SUBTITLE')
+          "
+        >
+          <template v-if="assignmentGreetingEnabled" #editor>
+            <woot-input
+              v-model="assignmentGreetingTemplate"
+              type="text"
+              class="[&>input]:!mb-0"
+              :placeholder="
+                $t(
+                  'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.PLACEHOLDER'
+                )
+              "
+              @blur="handleWhatsappBehaviorFlags"
+            />
+            <p class="mt-1 mb-0 text-body-main text-n-slate-11">
+              {{
+                $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.HINT')
+              }}
+            </p>
+          </template>
+        </SettingsToggleSection>
+      </template>
     </div>
     <WhatsappReauthorize
       v-if="isEmbeddedSignupWhatsApp"

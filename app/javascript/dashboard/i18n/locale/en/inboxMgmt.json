@@ -836,6 +836,20 @@
         "LABEL": "Enable voice calling",
         "DESCRIPTION": "Allow agents to start and receive WhatsApp voice calls on this inbox. Available only on embedded-signup WhatsApp Cloud channels with calling permission granted by Meta."
       },
+      "WHATSAPP_AGENT_SIGNATURE": {
+        "TITLE": "Show agent name on messages",
+        "SUBTITLE": "Prefix outgoing replies with the sending agent's name so customers know who they are talking to. Only applies to messages sent by agents, not bots or templates."
+      },
+      "WHATSAPP_MARK_AS_READ": {
+        "TITLE": "Mark messages as read",
+        "SUBTITLE": "Send a read receipt (blue ticks) to the customer when an agent opens the conversation."
+      },
+      "WHATSAPP_ASSIGNMENT_GREETING": {
+        "TITLE": "Announce agent on assignment",
+        "SUBTITLE": "Send an automatic message to the customer whenever a human agent takes over the conversation.",
+        "PLACEHOLDER": "You are talking to {{agent}}",
+        "HINT": "Use {{agent}} as a placeholder for the agent's name."
+      },
       "UPDATE_PRE_CHAT_FORM_SETTINGS": "Update Pre Chat Form Settings"
     },
     "HELP_CENTER": {

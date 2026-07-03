@@ -118,6 +118,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     # Always update immediately if there are unread messages to maintain accurate read/unread state.
     # Visiting a conversation should clear any unread inbox notifications for this conversation.
     Notification::MarkConversationReadService.new(user: Current.user, account: Current.account, conversation: @conversation).perform
+    send_whatsapp_read_receipt
     return update_last_seen_on_conversation(DateTime.now.utc, true) if assignee? && @conversation.assignee_unread_messages.any?
     return update_last_seen_on_conversation(DateTime.now.utc, false) if !assignee? && @conversation.unread_messages.any?
 
@@ -153,6 +154,16 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
 
   def attachment_params
     params.permit(:page)
+  end
+
+  # Sends a WhatsApp read receipt when the agent opens a conversation with unread inbound
+  # messages. The channel type and per-inbox toggle are re-checked inside the job.
+  def send_whatsapp_read_receipt
+    channel = @conversation.inbox.channel
+    return unless channel.is_a?(Channel::Whatsapp) && channel.mark_as_read_enabled?
+    return if @conversation.unread_incoming_messages.blank?
+
+    Whatsapp::MarkMessagesReadJob.perform_later(@conversation.id)
   end
 
   def update_last_seen_on_conversation(last_seen_at, update_assignee)

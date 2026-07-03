@@ -31,6 +31,25 @@ class Whatsapp::Providers::BaseService
     raise 'Overwrite this method in child class'
   end
 
+  # Content delivered to WhatsApp, optionally prefixed with the sending agent's name.
+  # Only human-agent outgoing session messages are signed; templates, bot and system
+  # messages pass through untouched. The signature is applied at send time only, so the
+  # stored message content, dashboard bubble and webhooks are not affected.
+  def outgoing_content_for_whatsapp(message)
+    content = message.outgoing_content
+    return content unless whatsapp_channel.agent_name_signature_enabled?
+    return content unless message.outgoing?
+    return content if message.content_attributes['skip_agent_signature']
+
+    sender = message.sender
+    return content unless sender.is_a?(User)
+
+    agent_name = sender.available_name
+    return content if agent_name.blank?
+
+    "*#{agent_name}*:\n#{content}"
+  end
+
   def process_response(response, message)
     parsed_response = response.parsed_response
     if response.success? && parsed_response['error'].blank?

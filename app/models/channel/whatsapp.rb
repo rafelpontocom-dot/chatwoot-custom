@@ -61,6 +61,33 @@ class Channel::Whatsapp < ApplicationRecord
     provider == 'whatsapp_cloud'
   end
 
+  # Whether outgoing agent replies should be prefixed with the sending agent's name
+  # before being delivered to WhatsApp. Applies only to human-agent session messages;
+  # the stored content and dashboard bubble stay untouched (signature is added at send time).
+  def agent_name_signature_enabled?
+    ActiveModel::Type::Boolean.new.cast(provider_config['agent_name_signature_enabled'])
+  end
+
+  # Whether opening a conversation should send a WhatsApp read receipt for the
+  # customer's last incoming message. Only whatsapp_cloud exposes the read-status endpoint.
+  def mark_as_read_enabled?
+    provider == 'whatsapp_cloud' && ActiveModel::Type::Boolean.new.cast(provider_config['mark_as_read_enabled'])
+  end
+
+  DEFAULT_ASSIGNMENT_GREETING = 'Você está falando com {{agent}}'.freeze
+
+  # Whether a greeting ("You are talking to <agent>") should be sent to the customer
+  # every time a human agent takes over (assignee changes) on this inbox.
+  def assignment_greeting_enabled?
+    ActiveModel::Type::Boolean.new.cast(provider_config['assignment_greeting_enabled'])
+  end
+
+  # Resolves the greeting text for the given agent, replacing the {{agent}} placeholder.
+  def assignment_greeting_for(agent)
+    template = provider_config['assignment_greeting_template'].presence || DEFAULT_ASSIGNMENT_GREETING
+    template.gsub('{{agent}}', agent.available_name.to_s).strip
+  end
+
   def provider_service
     if provider == 'whatsapp_cloud'
       Whatsapp::Providers::WhatsappCloudService.new(whatsapp_channel: self)
