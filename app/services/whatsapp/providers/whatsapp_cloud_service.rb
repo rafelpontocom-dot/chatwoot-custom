@@ -79,6 +79,20 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     "#{api_base_path}/v13.0/#{media_id}"
   end
 
+  # Sends a read receipt (blue ticks) for a customer's inbound message.
+  # https://developers.facebook.com/docs/whatsapp/cloud-api/guides/mark-message-as-read
+  def mark_message_as_read(source_id)
+    HTTParty.post(
+      "#{phone_id_path}/messages",
+      headers: api_headers,
+      body: {
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id: source_id
+      }.to_json
+    )
+  end
+
   private
 
   def csat_template_service
@@ -106,7 +120,7 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
         messaging_product: 'whatsapp',
         context: whatsapp_reply_context(message),
         to: phone_number,
-        text: { body: message.outgoing_content },
+        text: { body: outgoing_content_for_whatsapp(message) },
         type: 'text'
       }.to_json
     )
@@ -160,7 +174,7 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
 
   def build_attachment_content(type, attachment, message)
     type_content = { 'link' => attachment.download_url }
-    type_content['caption'] = message.outgoing_content unless %w[audio sticker].include?(type)
+    type_content['caption'] = outgoing_content_for_whatsapp(message) unless %w[audio sticker].include?(type)
     type_content['filename'] = attachment.file.filename if type == 'document'
     type_content['voice'] = true if voice_message?(type, attachment)
     type_content
