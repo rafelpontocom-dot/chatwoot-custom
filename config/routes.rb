@@ -115,6 +115,26 @@ Rails.application.routes.draw do
             end
           end
           resources :canned_responses, only: [:index, :create, :update, :destroy]
+          resources :kanban_boards, only: [:index, :create, :show, :destroy], constraints: { id: /\d+/ } do
+            patch '', on: :member, action: :update
+
+            scope module: :kanban_boards do
+              resource :settings, only: [:show, :update]
+              post 'settings/import_existing_conversations', to: 'settings#import_existing_conversations'
+              resources :stages, only: [:create, :destroy] do
+                patch '', on: :member, action: :update
+                patch :reorder, on: :member
+                resources :cards, only: [:index], module: :stages
+              end
+              post 'cards/manual', to: 'cards#create_manual'
+              get 'cards/by_id/:id', to: 'cards#show'
+              patch 'cards/by_id/:id', to: 'cards#update'
+              delete 'cards/by_id/:id', to: 'cards#destroy'
+              patch 'cards/by_id/:id/reorder', to: 'cards#reorder'
+              get 'cards/by_id/:id/labels', to: 'cards/labels#index'
+              put 'cards/by_id/:id/labels', to: 'cards/labels#update'
+            end
+          end
           resources :automation_rules, only: [:index, :create, :show, :update, :destroy] do
             post :clone
           end
@@ -153,6 +173,7 @@ Rails.application.routes.draw do
               resource :participants, only: [:show, :create, :update, :destroy]
               resource :direct_uploads, only: [:create]
               resource :draft_messages, only: [:show, :update, :destroy]
+              resources :kanban_cards, only: [:index, :create]
             end
             member do
               post :mute

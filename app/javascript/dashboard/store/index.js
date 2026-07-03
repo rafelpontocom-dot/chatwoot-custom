@@ -37,6 +37,7 @@ import inboxAssignableAgents from './modules/inboxAssignableAgents';
 import inboxes from './modules/inboxes';
 import inboxMembers from './modules/inboxMembers';
 import integrations from './modules/integrations';
+import kanbanBoards from './modules/kanbanBoards';
 import labels from './modules/labels';
 import macros from './modules/macros';
 import notifications from './modules/notifications';
@@ -102,6 +103,7 @@ export default createStore({
     inboxes,
     inboxMembers,
     integrations,
+    kanbanBoards,
     labels,
     macros,
     notifications,

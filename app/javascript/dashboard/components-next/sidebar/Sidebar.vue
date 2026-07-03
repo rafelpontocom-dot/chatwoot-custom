@@ -326,6 +326,13 @@ const menuItems = computed(() => {
       },
     },
     {
+      name: 'Kanban',
+      label: t('SIDEBAR.KANBAN'),
+      icon: 'i-lucide-columns-3',
+      to: accountScopedRoute('kanban_boards'),
+      activeOn: ['kanban_boards', 'kanban_board_show', 'kanban_board_settings'],
+    },
+    {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',
