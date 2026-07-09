@@ -4,6 +4,7 @@ class Labels::DestroyService
   def perform
     remove_conversation_labels
     remove_contact_labels
+    remove_kanban_card_labels
   end
 
   private
@@ -39,6 +40,16 @@ class Labels::DestroyService
 
   def contact_label_taggings
     label_taggings_for('Contact').where(taggable_id: account.contacts.select(:id))
+  end
+
+  def remove_kanban_card_labels
+    kanban_card_label_taggings.in_batches do |tagging_batch|
+      ActsAsTaggableOn::Tagging.where(id: tagging_batch.select(:id)).delete_all
+    end
+  end
+
+  def kanban_card_label_taggings
+    label_taggings_for('KanbanCard').where(taggable_id: KanbanCard.where(account_id: account.id).select(:id))
   end
 
   def delete_label_taggings(taggable_type, taggable_ids)

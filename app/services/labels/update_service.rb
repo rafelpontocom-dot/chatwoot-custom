@@ -17,6 +17,14 @@ class Labels::UpdateService
         contact.save!
       end
     end
+
+    tagged_kanban_cards.find_in_batches do |card_batch|
+      card_batch.each do |card|
+        card.label_list.remove(old_label_title)
+        card.label_list.add(new_label_title)
+        card.save!
+      end
+    end
   end
 
   private
@@ -27,6 +35,10 @@ class Labels::UpdateService
 
   def tagged_contacts
     account.contacts.tagged_with(old_label_title)
+  end
+
+  def tagged_kanban_cards
+    KanbanCard.where(account_id: account_id).tagged_with(old_label_title)
   end
 
   def account
