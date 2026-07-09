@@ -109,10 +109,13 @@ jobs:
         run: |
           rm -rf enterprise
           rm -rf spec/enterprise
-      - name: Prepare database (base schema + kanban migrations)
+      - name: Prepare database (full migrate so all tables incl. kanban are created)
+        # NOTE: db:schema:load cannot be used here. The kanban migrations are dated
+        # (May/Jun 2026) earlier than schema.rb's version, so schema:load would mark
+        # them as already-applied and db:migrate would skip them, leaving the tables
+        # missing. Running db:migrate from an empty DB applies every migration in order.
         run: |
           bundle exec rake db:create
-          bundle exec rake db:schema:load
           bundle exec rake db:migrate
       - name: Run kanban + whatsapp specs
         run: |

@@ -480,7 +480,9 @@ export default {
         <SettingsToggleSection
           v-model="agentNameSignatureEnabled"
           class="mt-4"
-          :header="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_AGENT_SIGNATURE.TITLE')"
+          :header="
+            $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_AGENT_SIGNATURE.TITLE')
+          "
           :description="
             $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_AGENT_SIGNATURE.SUBTITLE')
           "
@@ -500,7 +502,9 @@ export default {
             $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.TITLE')
           "
           :description="
-            $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.SUBTITLE')
+            $t(
+              'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.SUBTITLE'
+            )
           "
         >
           <template v-if="assignmentGreetingEnabled" #editor>
@@ -517,7 +521,9 @@ export default {
             />
             <p class="mt-1 mb-0 text-body-main text-n-slate-11">
               {{
-                $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.HINT')
+                $t(
+                  'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.HINT'
+                )
               }}
             </p>
           </template>
