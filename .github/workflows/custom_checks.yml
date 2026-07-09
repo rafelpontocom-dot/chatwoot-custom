@@ -109,13 +109,24 @@ jobs:
         run: |
           rm -rf enterprise
           rm -rf spec/enterprise
-      - name: Prepare database (full migrate so all tables incl. kanban are created)
-        # NOTE: db:schema:load cannot be used here. The kanban migrations are dated
-        # (May/Jun 2026) earlier than schema.rb's version, so schema:load would mark
-        # them as already-applied and db:migrate would skip them, leaving the tables
-        # missing. Running db:migrate from an empty DB applies every migration in order.
+      - name: Prepare test database (base schema + kanban migrations only)
+        # A full `db:migrate` from scratch breaks on an old upstream migration
+        # (acts-as-taggable-on API removed), which is why Chatwoot uses schema:load.
+        # But schema.rb predates the kanban migrations, so schema:load records them as
+        # already-applied. Fix: load the base schema, clear only the kanban migration
+        # markers, then migrate — which applies just the kanban migrations.
+        env:
+          RAILS_ENV: test
         run: |
           bundle exec rake db:create
+          bundle exec rake db:schema:load
+          bundle exec rails runner '
+            versions = Dir["db/migrate/*kanban*"].map { |f| File.basename(f)[/\A\d+/] }.compact
+            conn = ActiveRecord::Base.connection
+            quoted = versions.map { |v| conn.quote(v) }.join(",")
+            conn.execute("DELETE FROM schema_migrations WHERE version IN (#{quoted})")
+            puts "Cleared #{versions.size} kanban migration markers"
+          '
           bundle exec rake db:migrate
       - name: Run kanban + whatsapp specs
         run: |
