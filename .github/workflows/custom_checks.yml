@@ -1,0 +1,125 @@
+name: Custom checks (WhatsApp + Kanban)
+
+permissions:
+  contents: read
+
+# Focused CI for the customizations in this fork (WhatsApp agent signature /
+# read receipts / assignment greeting, and the Kanban/CRM port). Runs only the
+# specs and lint relevant to our changes so feedback is fast.
+on:
+  push:
+    branches:
+      - 'deploy/**'
+      - 'feat/**'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Rubocop (custom files only)
+        run: |
+          bundle exec rubocop --force-exclusion \
+            app/models/kanban_board.rb \
+            app/models/kanban_board_inbox.rb \
+            app/models/kanban_board_member.rb \
+            app/models/kanban_card.rb \
+            app/models/kanban_stage.rb \
+            app/models/conversation_kanban_state.rb \
+            app/controllers/api/v1/accounts/kanban_boards_controller.rb \
+            app/controllers/api/v1/accounts/kanban_boards \
+            app/controllers/api/v1/accounts/conversations/kanban_cards_controller.rb \
+            app/services/kanban_cards \
+            app/jobs/kanban_cards \
+            app/policies/kanban_board_policy.rb \
+            app/policies/kanban_card_policy.rb \
+            app/listeners/kanban_card_listener.rb \
+            app/listeners/whatsapp \
+            app/jobs/whatsapp \
+            lib/tasks/kanban_cards.rake \
+            app/models/channel/whatsapp.rb \
+            app/services/whatsapp/providers/base_service.rb \
+            app/services/whatsapp/providers/whatsapp_cloud_service.rb \
+            app/dispatchers/async_dispatcher.rb \
+            app/models/conversation.rb \
+            config/routes.rb
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - name: Install pnpm dependencies
+        run: pnpm i
+      - name: ESLint
+        run: pnpm run eslint
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - name: Install pnpm dependencies
+        run: pnpm i
+      - name: Kanban frontend tests
+        run: TZ=UTC pnpm exec vitest run --no-coverage kanban
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ''
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Strip enterprise code
+        run: |
+          rm -rf enterprise
+          rm -rf spec/enterprise
+      - name: Prepare database (base schema + kanban migrations)
+        run: |
+          bundle exec rake db:create
+          bundle exec rake db:schema:load
+          bundle exec rake db:migrate
+      - name: Run kanban + whatsapp specs
+        run: |
+          SPECS=$(find spec -path '*kanban*' -name '*_spec.rb' | sort)
+          [ -f spec/models/channel/whatsapp_spec.rb ] && SPECS="$SPECS spec/models/channel/whatsapp_spec.rb"
+          [ -d spec/services/whatsapp ] && SPECS="$SPECS spec/services/whatsapp"
+          echo "Running:"; echo "$SPECS" | tr ' ' '\n'
+          bundle exec rspec --profile=10 --format progress $SPECS
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
