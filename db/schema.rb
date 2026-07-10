@@ -960,7 +960,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
     t.datetime "moved_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["account_id", "kanban_board_id"], name: "index_conversation_kanban_states_on_account_id_and_kanban_board_id"
+    t.index ["account_id", "kanban_board_id"], name: "idx_conversation_kanban_states_on_account_board"
     t.index ["account_id"], name: "index_conversation_kanban_states_on_account_id"
     t.index ["conversation_id", "kanban_board_id"], name: "index_conversation_kanban_states_on_conversation_and_board", unique: true
     t.index ["conversation_id"], name: "index_conversation_kanban_states_on_conversation_id"
