@@ -109,25 +109,15 @@ jobs:
         run: |
           rm -rf enterprise
           rm -rf spec/enterprise
-      - name: Prepare test database (base schema + kanban migrations only)
+      - name: Prepare test database
         # A full `db:migrate` from scratch breaks on an old upstream migration
         # (acts-as-taggable-on API removed), which is why Chatwoot uses schema:load.
-        # But schema.rb predates the kanban migrations, so schema:load records them as
-        # already-applied. Fix: load the base schema, clear only the kanban migration
-        # markers, then migrate — which applies just the kanban migrations.
+        # Keep db/schema.rb complete so fresh test databases include the Kanban tables.
         env:
           RAILS_ENV: test
         run: |
           bundle exec rake db:create
           bundle exec rake db:schema:load
-          bundle exec rails runner '
-            versions = Dir["db/migrate/*kanban*"].map { |f| File.basename(f)[/\A\d+/] }.compact
-            conn = ActiveRecord::Base.connection
-            quoted = versions.map { |v| conn.quote(v) }.join(",")
-            conn.execute("DELETE FROM schema_migrations WHERE version IN (#{quoted})")
-            puts "Cleared #{versions.size} kanban migration markers"
-          '
-          bundle exec rake db:migrate
       - name: Run kanban + whatsapp specs
         run: |
           # Exclude the legacy backfill/parity rake spec (spec/lib/tasks/kanban_cards_spec.rb):
