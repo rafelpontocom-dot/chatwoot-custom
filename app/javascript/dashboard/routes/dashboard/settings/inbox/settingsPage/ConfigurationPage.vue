@@ -82,7 +82,17 @@ export default {
       if (!this.isSettingDefaults) this.handleWhatsappBehaviorFlags();
     },
     assignmentGreetingEnabled() {
-      if (!this.isSettingDefaults) this.handleWhatsappBehaviorFlags();
+      if (!this.isSettingDefaults) {
+        if (
+          this.assignmentGreetingEnabled &&
+          !this.assignmentGreetingTemplate
+        ) {
+          this.assignmentGreetingTemplate = this.$t(
+            'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.PLACEHOLDER'
+          );
+        }
+        this.handleWhatsappBehaviorFlags();
+      }
     },
   },
   mounted() {
@@ -498,6 +508,7 @@ export default {
         <SettingsToggleSection
           v-model="assignmentGreetingEnabled"
           class="mt-4"
+          :show-editor="assignmentGreetingEnabled"
           :header="
             $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.TITLE')
           "
@@ -507,7 +518,7 @@ export default {
             )
           "
         >
-          <template v-if="assignmentGreetingEnabled" #editor>
+          <template #editor>
             <woot-input
               v-model="assignmentGreetingTemplate"
               type="text"
