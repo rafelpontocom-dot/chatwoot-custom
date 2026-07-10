@@ -845,10 +845,10 @@
         "SUBTITLE": "Send a read receipt (blue ticks) to the customer when an agent opens the conversation."
       },
       "WHATSAPP_ASSIGNMENT_GREETING": {
-        "TITLE": "Announce agent on assignment",
-        "SUBTITLE": "Send an automatic message to the customer whenever a human agent takes over the conversation.",
-        "PLACEHOLDER": "You are talking to {{agent}}",
-        "HINT": "Use {{agent}} as a placeholder for the agent's name."
+        "TITLE": "Enviar mensagem quando agente assumir",
+        "SUBTITLE": "Envia uma mensagem automática ao cliente quando um agente humano assumir a conversa.",
+        "PLACEHOLDER": "Você está falando com {{agent}}",
+        "HINT": "Use {{agent}} para inserir o nome do agente."
       },
       "UPDATE_PRE_CHAT_FORM_SETTINGS": "Update Pre Chat Form Settings"
     },
