@@ -40,6 +40,7 @@ const inboxCapacityLimitsNew = ref([
   { id: 1, inboxId: 1, conversationLimit: 5 },
   { inboxId: null, conversationLimit: null },
 ]);
+const currentLimitsLabel = 'Current Limits:';
 
 const handleDelete = id => {
   console.log('Delete capacity limit:', id);
@@ -97,7 +98,7 @@ const handleDelete = id => {
           @delete="handleDelete"
         />
         <div class="mt-4 p-4 bg-n-alpha-2 rounded-lg">
-          <h4 class="text-sm font-medium mb-2">Current Limits:</h4>
+          <h4 class="text-sm font-medium mb-2">{{ currentLimitsLabel }}</h4>
           <pre class="text-xs">{{
             JSON.stringify(inboxCapacityLimitsEmpty, null, 2)
           }}</pre>
