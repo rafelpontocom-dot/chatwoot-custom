@@ -950,6 +950,111 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
     t.jsonb "settings", default: {}
   end
 
+  create_table "conversation_kanban_states", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "kanban_stage_id", null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "moved_by_id"
+    t.datetime "moved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "kanban_board_id"], name: "index_conversation_kanban_states_on_account_id_and_kanban_board_id"
+    t.index ["account_id"], name: "index_conversation_kanban_states_on_account_id"
+    t.index ["conversation_id", "kanban_board_id"], name: "index_conversation_kanban_states_on_conversation_and_board", unique: true
+    t.index ["conversation_id"], name: "index_conversation_kanban_states_on_conversation_id"
+    t.index ["kanban_board_id", "kanban_stage_id", "position"], name: "index_conversation_kanban_states_on_board_stage_position"
+    t.index ["kanban_board_id"], name: "index_conversation_kanban_states_on_kanban_board_id"
+    t.index ["kanban_stage_id"], name: "index_conversation_kanban_states_on_kanban_stage_id"
+    t.index ["moved_by_id"], name: "index_conversation_kanban_states_on_moved_by_id"
+  end
+
+  create_table "kanban_board_inboxes", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "inbox_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "inbox_id", "kanban_board_id"], name: "index_kanban_board_inboxes_on_account_inbox_board"
+    t.index ["inbox_id"], name: "index_kanban_board_inboxes_on_inbox_id"
+    t.index ["kanban_board_id", "inbox_id"], name: "index_kanban_board_inboxes_on_kanban_board_id_and_inbox_id", unique: true
+  end
+
+  create_table "kanban_board_members", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "user_id", "kanban_board_id"], name: "index_kanban_board_members_on_account_user_board"
+    t.index ["kanban_board_id", "user_id"], name: "index_kanban_board_members_on_kanban_board_id_and_user_id", unique: true
+    t.index ["user_id"], name: "index_kanban_board_members_on_user_id"
+  end
+
+  create_table "kanban_boards", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "auto_create_cards_from_conversations", default: false, null: false
+    t.boolean "use_opportunity_card_reads", default: true, null: false
+    t.string "visibility_mode", default: "all_agents", null: false
+    t.string "inbox_scope_mode", default: "all_inboxes", null: false
+    t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
+    t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
+    t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"
+    t.index ["account_id"], name: "index_kanban_boards_on_account_id"
+  end
+
+  create_table "kanban_cards", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "kanban_stage_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "inbox_id", null: false
+    t.bigint "conversation_id"
+    t.string "subject"
+    t.string "normalized_subject"
+    t.string "origin", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "starts_at"
+    t.datetime "due_at"
+    t.datetime "stage_entered_at", null: false
+    t.text "description"
+    t.index ["account_id", "active"], name: "index_kanban_cards_on_account_id_and_active"
+    t.index ["account_id", "contact_id"], name: "index_kanban_cards_on_account_id_and_contact_id"
+    t.index ["account_id", "inbox_id"], name: "index_kanban_cards_on_account_id_and_inbox_id"
+    t.index ["conversation_id"], name: "index_kanban_cards_on_conversation_id"
+    t.index ["kanban_board_id", "active"], name: "index_kanban_cards_on_kanban_board_id_and_active"
+    t.index ["kanban_board_id", "contact_id", "inbox_id", "normalized_subject"], name: "index_active_manual_kanban_cards_unique_subject", unique: true, where: "((active = true) AND ((origin)::text = 'manual'::text) AND (normalized_subject IS NOT NULL))"
+    t.index ["kanban_board_id", "conversation_id", "inbox_id", "normalized_subject"], name: "index_kanban_cards_on_conversation_subject_unique", unique: true, where: "(((origin)::text = 'conversation'::text) AND (conversation_id IS NOT NULL) AND (normalized_subject IS NOT NULL))"
+    t.index ["kanban_board_id", "kanban_stage_id", "position", "created_at", "id"], name: "index_active_kanban_cards_on_board_stage_order", where: "(active = true)"
+    t.index ["kanban_board_id", "kanban_stage_id", "position"], name: "index_kanban_cards_on_board_stage_position"
+  end
+
+  create_table "kanban_stages", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "color", default: "slate", null: false
+    t.index ["account_id", "active"], name: "index_kanban_stages_on_account_id_and_active"
+    t.index ["account_id"], name: "index_kanban_stages_on_account_id"
+    t.index ["kanban_board_id", "name"], name: "index_active_kanban_stages_on_board_id_and_name", unique: true, where: "(active = true)"
+    t.index ["kanban_board_id", "position"], name: "index_kanban_stages_on_kanban_board_id_and_position"
+    t.index ["kanban_board_id"], name: "index_kanban_stages_on_kanban_board_id"
+  end
+
   create_table "labels", force: :cascade do |t|
     t.string "title"
     t.text "description"
@@ -1364,6 +1469,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "kanban_board_inboxes", "accounts"
+  add_foreign_key "kanban_board_inboxes", "inboxes"
+  add_foreign_key "kanban_board_inboxes", "kanban_boards"
+  add_foreign_key "kanban_board_members", "accounts"
+  add_foreign_key "kanban_board_members", "kanban_boards"
+  add_foreign_key "kanban_board_members", "users"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
