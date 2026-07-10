@@ -31,10 +31,16 @@ const attributeConfig = {
 const config = computed(
   () => attributeConfig[props.type] || attributeConfig.resolution
 );
+
+const label = computed(() =>
+  props.type === 'pre-chat'
+    ? t('ATTRIBUTES_MGMT.BADGES.PRE_CHAT')
+    : t('ATTRIBUTES_MGMT.BADGES.RESOLUTION')
+);
 </script>
 
 <template>
-  <Label :label="t(config.labelKey)" :color="config.color" compact>
+  <Label :label="label" :color="config.color" compact>
     <template #icon>
       <Icon :icon="config.icon" class="size-3.5 text-n-slate-12" />
     </template>

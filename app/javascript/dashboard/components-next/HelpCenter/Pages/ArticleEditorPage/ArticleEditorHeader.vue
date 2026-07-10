@@ -49,12 +49,35 @@ const { ARTICLE_STATUS_TYPES } = wootConstants;
 
 const showArticleActionMenu = ref(false);
 
+function getArticleMenuItemLabel(option) {
+  switch (option) {
+    case 'publish':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.PUBLISH'
+      );
+    case 'draft':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.DRAFT'
+      );
+    case 'archive':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.ARCHIVE'
+      );
+    case 'translate':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.TRANSLATE'
+      );
+    default:
+      return '';
+  }
+}
+
 const articleMenuItems = computed(() => {
   const statusOptions = ARTICLE_EDITOR_STATUS_OPTIONS[props.status] ?? [];
   return statusOptions.map(option => {
-    const { label, value, icon } = ARTICLE_MENU_ITEMS[option];
+    const { value, icon } = ARTICLE_MENU_ITEMS[option];
     return {
-      label: t(label),
+      label: getArticleMenuItemLabel(option),
       value,
       action: 'update-status',
       icon,
@@ -63,9 +86,9 @@ const articleMenuItems = computed(() => {
 });
 
 const statusText = computed(() =>
-  t(
-    `HELP_CENTER.EDIT_ARTICLE_PAGE.HEADER.STATUS.${props.isUpdating ? 'SAVING' : 'SAVED'}`
-  )
+  props.isUpdating
+    ? t('HELP_CENTER.EDIT_ARTICLE_PAGE.HEADER.STATUS.SAVING')
+    : t('HELP_CENTER.EDIT_ARTICLE_PAGE.HEADER.STATUS.SAVED')
 );
 
 const onClickGoBack = () => emit('goBack');
@@ -73,16 +96,22 @@ const onClickGoBack = () => emit('goBack');
 const previewArticle = () => emit('previewArticle');
 
 const getStatusMessage = (status, isSuccess) => {
-  const messageType = isSuccess ? 'SUCCESS' : 'ERROR';
-  const statusMap = {
-    [ARTICLE_STATUS_TYPES.PUBLISH]: 'PUBLISH_ARTICLE',
-    [ARTICLE_STATUS_TYPES.ARCHIVE]: 'ARCHIVE_ARTICLE',
-    [ARTICLE_STATUS_TYPES.DRAFT]: 'DRAFT_ARTICLE',
-  };
-
-  return statusMap[status]
-    ? t(`HELP_CENTER.${statusMap[status]}.API.${messageType}`)
-    : '';
+  if (status === ARTICLE_STATUS_TYPES.PUBLISH) {
+    return isSuccess
+      ? t('HELP_CENTER.PUBLISH_ARTICLE.API.SUCCESS')
+      : t('HELP_CENTER.PUBLISH_ARTICLE.API.ERROR');
+  }
+  if (status === ARTICLE_STATUS_TYPES.ARCHIVE) {
+    return isSuccess
+      ? t('HELP_CENTER.ARCHIVE_ARTICLE.API.SUCCESS')
+      : t('HELP_CENTER.ARCHIVE_ARTICLE.API.ERROR');
+  }
+  if (status === ARTICLE_STATUS_TYPES.DRAFT) {
+    return isSuccess
+      ? t('HELP_CENTER.DRAFT_ARTICLE.API.SUCCESS')
+      : t('HELP_CENTER.DRAFT_ARTICLE.API.ERROR');
+  }
+  return '';
 };
 
 const updateArticleStatus = async ({ value }) => {

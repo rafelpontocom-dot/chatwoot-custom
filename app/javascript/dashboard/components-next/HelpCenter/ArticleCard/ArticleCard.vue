@@ -89,10 +89,37 @@ const isTranslationAvailable = computed(
     )
 );
 
+function getArticleMenuItemLabel(key) {
+  switch (key) {
+    case 'publish':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.PUBLISH'
+      );
+    case 'draft':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.DRAFT'
+      );
+    case 'archive':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.ARCHIVE'
+      );
+    case 'translate':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.TRANSLATE'
+      );
+    case 'delete':
+      return t(
+        'HELP_CENTER.ARTICLES_PAGE.ARTICLE_CARD.CARD.DROPDOWN_MENU.DELETE'
+      );
+    default:
+      return '';
+  }
+}
+
 const articleMenuItems = computed(() => {
   const commonItems = Object.entries(ARTICLE_MENU_ITEMS).reduce(
     (acc, [key, item]) => {
-      acc[key] = { ...item, label: t(item.label) };
+      acc[key] = { ...item, label: getArticleMenuItemLabel(key) };
       return acc;
     },
     {}

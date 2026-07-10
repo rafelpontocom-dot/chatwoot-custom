@@ -24,13 +24,6 @@ const icons = {
   [CONVERSATION_PRIORITY.LOW]: 'i-woot-priority-low',
 };
 
-const priorityLabels = {
-  [CONVERSATION_PRIORITY.URGENT]: 'CONVERSATION.PRIORITY.OPTIONS.URGENT',
-  [CONVERSATION_PRIORITY.HIGH]: 'CONVERSATION.PRIORITY.OPTIONS.HIGH',
-  [CONVERSATION_PRIORITY.MEDIUM]: 'CONVERSATION.PRIORITY.OPTIONS.MEDIUM',
-  [CONVERSATION_PRIORITY.LOW]: 'CONVERSATION.PRIORITY.OPTIONS.LOW',
-};
-
 const iconName = computed(() => {
   if (props.priority && icons[props.priority]) {
     return icons[props.priority];
@@ -39,8 +32,20 @@ const iconName = computed(() => {
 });
 
 const tooltipContent = computed(() => {
-  if (props.priority && priorityLabels[props.priority]) {
-    return t(priorityLabels[props.priority]);
+  if (props.priority === CONVERSATION_PRIORITY.URGENT) {
+    return t('CONVERSATION.PRIORITY.OPTIONS.URGENT');
+  }
+
+  if (props.priority === CONVERSATION_PRIORITY.HIGH) {
+    return t('CONVERSATION.PRIORITY.OPTIONS.HIGH');
+  }
+
+  if (props.priority === CONVERSATION_PRIORITY.MEDIUM) {
+    return t('CONVERSATION.PRIORITY.OPTIONS.MEDIUM');
+  }
+
+  if (props.priority === CONVERSATION_PRIORITY.LOW) {
+    return t('CONVERSATION.PRIORITY.OPTIONS.LOW');
   }
 
   if (props.showEmpty) {

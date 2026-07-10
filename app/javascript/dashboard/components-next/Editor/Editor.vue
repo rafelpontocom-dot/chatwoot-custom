@@ -34,6 +34,8 @@ const slots = useSlots();
 
 const isFocused = ref(false);
 
+const characterCountSeparator = ' / ';
+
 const characterCount = computed(() => props.modelValue.length);
 
 const messageClass = computed(() => {
@@ -125,7 +127,7 @@ watch(
           v-if="showCharacterCount && !slots.actions"
           class="text-xs tabular-nums text-n-slate-10"
         >
-          {{ characterCount }} / {{ maxLength }}
+          {{ characterCount }}{{ characterCountSeparator }}{{ maxLength }}
         </span>
         <slot v-else name="actions" />
       </div>
