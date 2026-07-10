@@ -64,17 +64,20 @@ const inboxOptions = computed(() =>
   mapToOptions(formState.inboxes.value, 'id', 'name')
 );
 
-const getErrorMessage = (field, errorKey) => {
-  const baseKey = 'CAMPAIGN.SMS.CREATE.FORM';
-  return v$.value[field].$error ? t(`${baseKey}.${errorKey}.ERROR`) : '';
-};
-
 const formErrors = computed(() => ({
-  title: getErrorMessage('title', 'TITLE'),
-  message: getErrorMessage('message', 'MESSAGE'),
-  inbox: getErrorMessage('inboxId', 'INBOX'),
-  scheduledAt: getErrorMessage('scheduledAt', 'SCHEDULED_AT'),
-  audience: getErrorMessage('selectedAudience', 'AUDIENCE'),
+  title: v$.value.title.$error ? t('CAMPAIGN.SMS.CREATE.FORM.TITLE.ERROR') : '',
+  message: v$.value.message.$error
+    ? t('CAMPAIGN.SMS.CREATE.FORM.MESSAGE.ERROR')
+    : '',
+  inbox: v$.value.inboxId.$error
+    ? t('CAMPAIGN.SMS.CREATE.FORM.INBOX.ERROR')
+    : '',
+  scheduledAt: v$.value.scheduledAt.$error
+    ? t('CAMPAIGN.SMS.CREATE.FORM.SCHEDULED_AT.ERROR')
+    : '',
+  audience: v$.value.selectedAudience.$error
+    ? t('CAMPAIGN.SMS.CREATE.FORM.AUDIENCE.ERROR')
+    : '',
 }));
 
 const isSubmitDisabled = computed(() => v$.value.$invalid);

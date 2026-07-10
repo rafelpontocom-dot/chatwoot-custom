@@ -91,17 +91,22 @@ const selectedTemplate = computed(() => {
     ?.template;
 });
 
-const getErrorMessage = (field, errorKey) => {
-  const baseKey = 'CAMPAIGN.WHATSAPP.CREATE.FORM';
-  return v$.value[field].$error ? t(`${baseKey}.${errorKey}.ERROR`) : '';
-};
-
 const formErrors = computed(() => ({
-  title: getErrorMessage('title', 'TITLE'),
-  inbox: getErrorMessage('inboxId', 'INBOX'),
-  template: getErrorMessage('templateId', 'TEMPLATE'),
-  scheduledAt: getErrorMessage('scheduledAt', 'SCHEDULED_AT'),
-  audience: getErrorMessage('selectedAudience', 'AUDIENCE'),
+  title: v$.value.title.$error
+    ? t('CAMPAIGN.WHATSAPP.CREATE.FORM.TITLE.ERROR')
+    : '',
+  inbox: v$.value.inboxId.$error
+    ? t('CAMPAIGN.WHATSAPP.CREATE.FORM.INBOX.ERROR')
+    : '',
+  template: v$.value.templateId.$error
+    ? t('CAMPAIGN.WHATSAPP.CREATE.FORM.TEMPLATE.ERROR')
+    : '',
+  scheduledAt: v$.value.scheduledAt.$error
+    ? t('CAMPAIGN.WHATSAPP.CREATE.FORM.SCHEDULED_AT.ERROR')
+    : '',
+  audience: v$.value.selectedAudience.$error
+    ? t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.ERROR')
+    : '',
 }));
 
 const hasRequiredTemplateParams = computed(() => {
