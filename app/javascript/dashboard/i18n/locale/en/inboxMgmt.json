@@ -846,9 +846,7 @@
       },
       "WHATSAPP_ASSIGNMENT_GREETING": {
         "TITLE": "Enviar mensagem quando agente assumir",
-        "SUBTITLE": "Envia uma mensagem automática ao cliente quando um agente humano assumir a conversa.",
-        "PLACEHOLDER": "Você está falando com {{agent}}",
-        "HINT": "Use {{agent}} para inserir o nome do agente."
+        "SUBTITLE": "Envia uma mensagem automática ao cliente quando um agente humano assumir a conversa."
       },
       "UPDATE_PRE_CHAT_FORM_SETTINGS": "Update Pre Chat Form Settings"
     },

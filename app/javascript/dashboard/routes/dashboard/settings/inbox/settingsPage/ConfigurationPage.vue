@@ -13,6 +13,9 @@ import TextArea from 'next/textarea/TextArea.vue';
 import WhatsappReauthorize from '../channels/whatsapp/Reauthorize.vue';
 import { sanitizeAllowedDomains } from 'dashboard/helper/URLHelper';
 
+const ASSIGNMENT_GREETING_PLACEHOLDER = 'Você está falando com {{agent}}';
+const ASSIGNMENT_GREETING_HINT = 'Use {{agent}} para inserir o nome do agente.';
+
 export default {
   components: {
     SettingsFieldSection,
@@ -32,7 +35,11 @@ export default {
     },
   },
   setup() {
-    return { v$: useVuelidate() };
+    return {
+      v$: useVuelidate(),
+      ASSIGNMENT_GREETING_HINT,
+      ASSIGNMENT_GREETING_PLACEHOLDER,
+    };
   },
   data() {
     return {
@@ -87,9 +94,7 @@ export default {
           this.assignmentGreetingEnabled &&
           !this.assignmentGreetingTemplate
         ) {
-          this.assignmentGreetingTemplate = this.$t(
-            'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.PLACEHOLDER'
-          );
+          this.assignmentGreetingTemplate = ASSIGNMENT_GREETING_PLACEHOLDER;
         }
         this.handleWhatsappBehaviorFlags();
       }
@@ -525,17 +530,11 @@ export default {
             v-model="assignmentGreetingTemplate"
             type="text"
             class="[&>input]:!mb-0"
-            :placeholder="
-              $t(
-                'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.PLACEHOLDER'
-              )
-            "
+            :placeholder="ASSIGNMENT_GREETING_PLACEHOLDER"
             @blur="handleWhatsappBehaviorFlags"
           />
           <p class="mt-1 mb-0 text-body-main text-n-slate-11">
-            {{
-              $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.HINT')
-            }}
+            {{ ASSIGNMENT_GREETING_HINT }}
           </p>
         </div>
       </template>
