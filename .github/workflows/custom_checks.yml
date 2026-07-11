@@ -60,6 +60,8 @@ jobs:
           cache: 'pnpm'
       - name: Install pnpm dependencies
         run: pnpm i
+      - name: Frontend i18n placeholder syntax
+        run: node scripts/check_frontend_i18n_placeholders.mjs
       - name: ESLint
         run: pnpm run eslint
 
