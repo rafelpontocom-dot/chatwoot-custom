@@ -508,7 +508,6 @@ export default {
         <SettingsToggleSection
           v-model="assignmentGreetingEnabled"
           class="mt-4"
-          :show-editor="assignmentGreetingEnabled"
           :header="
             $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.TITLE')
           "
@@ -517,28 +516,28 @@ export default {
               'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.SUBTITLE'
             )
           "
+        />
+        <div
+          v-if="assignmentGreetingEnabled"
+          class="mt-2 rounded-xl outline outline-1 -outline-offset-1 outline-n-weak px-4 pb-4 pt-3"
         >
-          <template #editor>
-            <woot-input
-              v-model="assignmentGreetingTemplate"
-              type="text"
-              class="[&>input]:!mb-0"
-              :placeholder="
-                $t(
-                  'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.PLACEHOLDER'
-                )
-              "
-              @blur="handleWhatsappBehaviorFlags"
-            />
-            <p class="mt-1 mb-0 text-body-main text-n-slate-11">
-              {{
-                $t(
-                  'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.HINT'
-                )
-              }}
-            </p>
-          </template>
-        </SettingsToggleSection>
+          <woot-input
+            v-model="assignmentGreetingTemplate"
+            type="text"
+            class="[&>input]:!mb-0"
+            :placeholder="
+              $t(
+                'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.PLACEHOLDER'
+              )
+            "
+            @blur="handleWhatsappBehaviorFlags"
+          />
+          <p class="mt-1 mb-0 text-body-main text-n-slate-11">
+            {{
+              $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_ASSIGNMENT_GREETING.HINT')
+            }}
+          </p>
+        </div>
       </template>
     </div>
     <WhatsappReauthorize

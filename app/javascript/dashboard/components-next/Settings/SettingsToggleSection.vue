@@ -18,10 +18,6 @@ defineProps({
     type: Boolean,
     default: false,
   },
-  showEditor: {
-    type: Boolean,
-    default: true,
-  },
 });
 
 const modelValue = defineModel({ type: Boolean, default: false });
@@ -48,7 +44,7 @@ const modelValue = defineModel({ type: Boolean, default: false });
       </span>
     </div>
     <div
-      v-if="$slots.editor && showEditor"
+      v-if="$slots.editor"
       class="w-full border-t border-n-weak"
       :class="{ 'p-0': compact, 'px-4 pb-4 pt-2': !compact }"
     >
