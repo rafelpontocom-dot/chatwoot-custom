@@ -8,20 +8,28 @@
 #  active             :boolean          default(TRUE), not null
 #  description        :text
 #  due_at             :datetime
+#  lost_at            :datetime
+#  lost_reason        :string
+#  next_action_at     :datetime
+#  next_action_note   :text
+#  next_action_type   :string
 #  normalized_subject :string
 #  origin             :string           not null
 #  position           :integer          default(0), not null
 #  stage_entered_at   :datetime         not null
 #  starts_at          :datetime
+#  won_at             :datetime
 #  subject            :string
 #  created_at         :datetime         not null
 #  updated_at         :datetime         not null
 #  account_id         :bigint           not null
+#  closed_by_id       :bigint
 #  contact_id         :bigint           not null
 #  conversation_id    :bigint
 #  inbox_id           :bigint           not null
 #  kanban_board_id    :bigint           not null
 #  kanban_stage_id    :bigint           not null
+#  owner_id           :bigint
 #
 # Indexes
 #
@@ -39,12 +47,20 @@
 class KanbanCard < ApplicationRecord
   include Labelable
 
+  NEXT_ACTION_STATUS_CLOSED = 'closed'.freeze
+  NEXT_ACTION_STATUS_DUE_TODAY = 'due_today'.freeze
+  NEXT_ACTION_STATUS_FUTURE = 'future'.freeze
+  NEXT_ACTION_STATUS_MISSING = 'missing'.freeze
+  NEXT_ACTION_STATUS_OVERDUE = 'overdue'.freeze
+
   belongs_to :account
   belongs_to :kanban_board
   belongs_to :kanban_stage
   belongs_to :contact
   belongs_to :inbox
   belongs_to :conversation, optional: true
+  belongs_to :owner, class_name: 'User', optional: true
+  belongs_to :closed_by, class_name: 'User', optional: true
 
   enum :origin, {
     conversation: 'conversation',
@@ -53,6 +69,7 @@ class KanbanCard < ApplicationRecord
 
   before_validation :normalize_subject
   before_validation :normalize_blank_description
+  before_validation :normalize_blank_sales_fields
   before_validation :set_stage_entered_at, if: :stage_entry_timestamp_required?
 
   validates :origin, presence: true
@@ -74,10 +91,13 @@ class KanbanCard < ApplicationRecord
             },
             if: :validate_conversation_uniqueness?
   validate :due_at_after_starts_at
+  validate :lost_reason_present_when_lost
+  validate :won_and_lost_are_mutually_exclusive
   validate :validate_account_consistency
 
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(position: :asc, created_at: :asc, id: :asc) }
+  scope :open_opportunities, -> { active.where(won_at: nil, lost_at: nil) }
 
   def self.normalize_positions_for_stage!(kanban_board:, kanban_stage:)
     transaction do
@@ -125,6 +145,23 @@ class KanbanCard < ApplicationRecord
 
   def self.stage_active_cards(kanban_board, kanban_stage)
     where(kanban_board: kanban_board, kanban_stage: kanban_stage).active.ordered
+  end
+
+  def open_opportunity?
+    active? && won_at.blank? && lost_at.blank?
+  end
+
+  def next_action_status(now: Time.current)
+    return NEXT_ACTION_STATUS_CLOSED unless open_opportunity?
+    return NEXT_ACTION_STATUS_MISSING if next_action_at.blank?
+
+    next_action_date = next_action_at.in_time_zone.to_date
+    current_date = now.in_time_zone.to_date
+
+    return NEXT_ACTION_STATUS_OVERDUE if next_action_date < current_date
+    return NEXT_ACTION_STATUS_DUE_TODAY if next_action_date == current_date
+
+    NEXT_ACTION_STATUS_FUTURE
   end
 
   def self.lock_reorder_stages!(stage_ids)
@@ -238,6 +275,12 @@ class KanbanCard < ApplicationRecord
     self.description = nil if description.blank?
   end
 
+  def normalize_blank_sales_fields
+    self.next_action_type = nil if next_action_type.blank?
+    self.next_action_note = nil if next_action_note.blank?
+    self.lost_reason = nil if lost_reason.blank?
+  end
+
   def stage_entry_timestamp_required?
     new_record? || will_save_change_to_kanban_stage_id?
   end
@@ -258,6 +301,18 @@ class KanbanCard < ApplicationRecord
     return if starts_at.blank? || due_at.blank? || due_at >= starts_at
 
     errors.add(:due_at, 'must be greater than or equal to starts at')
+  end
+
+  def lost_reason_present_when_lost
+    return if lost_at.blank? || lost_reason.present?
+
+    errors.add(:lost_reason, :blank)
+  end
+
+  def won_and_lost_are_mutually_exclusive
+    return if won_at.blank? || lost_at.blank?
+
+    errors.add(:base, 'cannot be marked as won and lost at the same time')
   end
 
   def validate_account_consistency

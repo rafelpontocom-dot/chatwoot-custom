@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_20_190000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1028,15 +1028,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
     t.datetime "due_at"
     t.datetime "stage_entered_at", null: false
     t.text "description"
+    t.bigint "owner_id"
+    t.string "next_action_type"
+    t.datetime "next_action_at"
+    t.text "next_action_note"
+    t.datetime "next_action_completed_at"
+    t.datetime "won_at"
+    t.datetime "lost_at"
+    t.string "lost_reason"
+    t.bigint "closed_by_id"
     t.index ["account_id", "active"], name: "index_kanban_cards_on_account_id_and_active"
     t.index ["account_id", "contact_id"], name: "index_kanban_cards_on_account_id_and_contact_id"
     t.index ["account_id", "inbox_id"], name: "index_kanban_cards_on_account_id_and_inbox_id"
+    t.index ["account_id", "next_action_at"], name: "index_kanban_cards_on_account_id_and_next_action_at"
     t.index ["conversation_id"], name: "index_kanban_cards_on_conversation_id"
     t.index ["kanban_board_id", "active"], name: "index_kanban_cards_on_kanban_board_id_and_active"
     t.index ["kanban_board_id", "contact_id", "inbox_id", "normalized_subject"], name: "index_active_manual_kanban_cards_unique_subject", unique: true, where: "((active = true) AND ((origin)::text = 'manual'::text) AND (normalized_subject IS NOT NULL))"
     t.index ["kanban_board_id", "conversation_id", "inbox_id", "normalized_subject"], name: "index_kanban_cards_on_conversation_subject_unique", unique: true, where: "(((origin)::text = 'conversation'::text) AND (conversation_id IS NOT NULL) AND (normalized_subject IS NOT NULL))"
+    t.index ["kanban_board_id", "lost_at"], name: "index_kanban_cards_on_kanban_board_id_and_lost_at"
+    t.index ["kanban_board_id", "next_action_at"], name: "index_kanban_cards_on_kanban_board_id_and_next_action_at"
     t.index ["kanban_board_id", "kanban_stage_id", "position", "created_at", "id"], name: "index_active_kanban_cards_on_board_stage_order", where: "(active = true)"
     t.index ["kanban_board_id", "kanban_stage_id", "position"], name: "index_kanban_cards_on_board_stage_position"
+    t.index ["kanban_board_id", "won_at"], name: "index_kanban_cards_on_kanban_board_id_and_won_at"
+    t.index ["owner_id", "next_action_at"], name: "index_kanban_cards_on_owner_id_and_next_action_at"
   end
 
   create_table "kanban_stages", force: :cascade do |t|

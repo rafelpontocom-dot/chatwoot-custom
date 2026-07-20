@@ -465,6 +465,72 @@ RSpec.describe KanbanCard do
     end
   end
 
+  describe 'sales opportunity status' do
+    it 'treats active cards without close timestamps as open opportunities' do
+      card = build(:kanban_card)
+
+      expect(card).to be_open_opportunity
+    end
+
+    it 'does not treat won cards as open opportunities' do
+      card = build(:kanban_card, won_at: Time.current)
+
+      expect(card).not_to be_open_opportunity
+    end
+
+    it 'does not treat lost cards as open opportunities' do
+      card = build(:kanban_card, lost_at: Time.current, lost_reason: 'Sem resposta')
+
+      expect(card).not_to be_open_opportunity
+    end
+
+    it 'rejects cards marked as won and lost at the same time' do
+      card = build(:kanban_card, won_at: Time.current, lost_at: Time.current, lost_reason: 'Preço')
+
+      expect(card).not_to be_valid
+      expect(card.errors[:base]).to include('cannot be marked as won and lost at the same time')
+    end
+
+    it 'requires a lost reason when marked as lost' do
+      card = build(:kanban_card, lost_at: Time.current, lost_reason: nil)
+
+      expect(card).not_to be_valid
+      expect(card.errors[:lost_reason]).to include("can't be blank")
+    end
+  end
+
+  describe '#next_action_status' do
+    it 'returns missing for open cards without a next action' do
+      card = build(:kanban_card, next_action_at: nil)
+
+      expect(card.next_action_status(now: Time.zone.parse('2026-07-20 12:00:00'))).to eq('missing')
+    end
+
+    it 'returns overdue for open cards with next action before today' do
+      card = build(:kanban_card, next_action_at: Time.zone.parse('2026-07-19 23:59:00'))
+
+      expect(card.next_action_status(now: Time.zone.parse('2026-07-20 12:00:00'))).to eq('overdue')
+    end
+
+    it 'returns due_today for open cards with next action today' do
+      card = build(:kanban_card, next_action_at: Time.zone.parse('2026-07-20 08:00:00'))
+
+      expect(card.next_action_status(now: Time.zone.parse('2026-07-20 12:00:00'))).to eq('due_today')
+    end
+
+    it 'returns future for open cards with next action after today' do
+      card = build(:kanban_card, next_action_at: Time.zone.parse('2026-07-21 08:00:00'))
+
+      expect(card.next_action_status(now: Time.zone.parse('2026-07-20 12:00:00'))).to eq('future')
+    end
+
+    it 'returns closed for won cards' do
+      card = build(:kanban_card, won_at: Time.zone.parse('2026-07-20 09:00:00'), next_action_at: nil)
+
+      expect(card.next_action_status(now: Time.zone.parse('2026-07-20 12:00:00'))).to eq('closed')
+    end
+  end
+
   describe '#reorder_to_position!' do
     it 'reorders cards within the same stage' do
       board = create(:kanban_board)
