@@ -33,6 +33,10 @@ const subject = ref('');
 const description = ref('');
 const startsAt = ref('');
 const dueAt = ref('');
+const nextActionType = ref('');
+const nextActionAt = ref('');
+const nextActionNote = ref('');
+const lostReason = ref('');
 const isLoading = ref(false);
 const isSaving = ref(false);
 const isLoadingLabels = ref(false);
@@ -42,6 +46,7 @@ const saveError = ref('');
 const labelsLoadError = ref('');
 const labelsSaveError = ref('');
 const subjectError = ref('');
+const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
 
 const modalTitle = computed(() =>
@@ -74,6 +79,40 @@ const contactName = computed(
 const selectedLabelTitleSet = computed(
   () => new Set(selectedLabelTitles.value)
 );
+const nextActionTypeOptions = computed(() => [
+  {
+    value: '',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.NONE'),
+  },
+  {
+    value: 'call_back',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CALL_BACK'),
+  },
+  {
+    value: 'send_proposal',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PROPOSAL'),
+  },
+  {
+    value: 'send_payment_link',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PAYMENT_LINK'),
+  },
+  {
+    value: 'follow_up',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.FOLLOW_UP'),
+  },
+  {
+    value: 'confirm_payment',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CONFIRM_PAYMENT'),
+  },
+  {
+    value: 'send_contract',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_CONTRACT'),
+  },
+  {
+    value: 'other',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.OTHER'),
+  },
+]);
 
 const normalizeCard = payload => ({
   ...payload,
@@ -83,6 +122,10 @@ const normalizeCard = payload => ({
   conversationId: payload.conversationId ?? payload.conversation_id,
   startsAt: payload.startsAt ?? payload.starts_at,
   dueAt: payload.dueAt ?? payload.due_at,
+  nextActionType: payload.nextActionType ?? payload.next_action_type,
+  nextActionAt: payload.nextActionAt ?? payload.next_action_at,
+  nextActionNote: payload.nextActionNote ?? payload.next_action_note,
+  lostReason: payload.lostReason ?? payload.lost_reason,
 });
 
 const formatDateTimeInput = value => {
@@ -116,6 +159,10 @@ const setFormState = payload => {
   description.value = card.value.description || '';
   startsAt.value = formatDateTimeInput(card.value.startsAt);
   dueAt.value = formatDateTimeInput(card.value.dueAt);
+  nextActionType.value = card.value.nextActionType || '';
+  nextActionAt.value = formatDateTimeInput(card.value.nextActionAt);
+  nextActionNote.value = card.value.nextActionNote || '';
+  lostReason.value = card.value.lostReason || '';
 };
 
 const getLabelsPayload = response =>
@@ -163,7 +210,18 @@ const loadCard = async () => {
   }
 };
 
-const saveCard = async () => {
+const buildCardPayload = extraPayload => ({
+  subject: subject.value.trim(),
+  description: description.value.trim() ? description.value : null,
+  starts_at: toIso8601(startsAt.value),
+  due_at: toIso8601(dueAt.value),
+  next_action_type: nextActionType.value || null,
+  next_action_at: toIso8601(nextActionAt.value),
+  next_action_note: nextActionNote.value.trim() ? nextActionNote.value : null,
+  ...extraPayload,
+});
+
+const saveCardWith = async (extraPayload = {}) => {
   if (isSaving.value) return;
 
   const trimmedSubject = subject.value.trim();
@@ -178,16 +236,10 @@ const saveCard = async () => {
   isSaving.value = true;
 
   try {
-    const payload = {
-      subject: trimmedSubject,
-      description: description.value.trim() ? description.value : null,
-      starts_at: toIso8601(startsAt.value),
-      due_at: toIso8601(dueAt.value),
-    };
     const response = await KanbanBoardsAPI.updateCardDetailsById(
       props.boardId,
       props.cardId,
-      payload
+      buildCardPayload({ subject: trimmedSubject, ...extraPayload })
     );
     const updatedCard = normalizeCard(response.data || {});
     setFormState(updatedCard);
@@ -200,6 +252,30 @@ const saveCard = async () => {
   } finally {
     isSaving.value = false;
   }
+};
+
+const saveCard = () => saveCardWith();
+
+const markWon = () =>
+  saveCardWith({
+    won_at: new Date().toISOString(),
+  });
+
+const markLost = () => {
+  const trimmedReason = lostReason.value.trim();
+  lostReasonError.value = '';
+
+  if (!trimmedReason) {
+    lostReasonError.value = t(
+      'KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_REQUIRED'
+    );
+    return;
+  }
+
+  saveCardWith({
+    lost_at: new Date().toISOString(),
+    lost_reason: trimmedReason,
+  });
 };
 
 const toggleLabel = title => {
@@ -488,6 +564,91 @@ onMounted(() => {
                   :label="t('KANBAN.OPPORTUNITY_DETAILS.DUE_DATE')"
                 />
               </div>
+            </section>
+
+            <section class="grid gap-3 rounded-lg border border-n-weak p-3">
+              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION') }}
+              </h3>
+              <label class="grid gap-1.5">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE') }}
+                </span>
+                <select
+                  v-model="nextActionType"
+                  data-testid="kanban-opportunity-next-action-type"
+                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option
+                    v-for="option in nextActionTypeOptions"
+                    :key="option.value || 'none'"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </label>
+              <NextInput
+                v-model="nextActionAt"
+                type="datetime-local"
+                data-testid="kanban-opportunity-next-action-at"
+                :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')"
+              />
+              <label class="grid gap-1.5">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE') }}
+                </span>
+                <textarea
+                  v-model="nextActionNote"
+                  rows="3"
+                  data-testid="kanban-opportunity-next-action-note"
+                  class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                  :placeholder="
+                    t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER')
+                  "
+                />
+              </label>
+            </section>
+
+            <section class="grid gap-3 rounded-lg border border-n-weak p-3">
+              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.CLOSE_STATUS') }}
+              </h3>
+              <NextButton
+                type="button"
+                xs
+                emerald
+                data-testid="kanban-opportunity-mark-won"
+                icon="i-lucide-circle-check"
+                :label="t('KANBAN.OPPORTUNITY_DETAILS.MARK_WON')"
+                :disabled="isSaving"
+                @click="markWon"
+              />
+              <label class="grid gap-1.5">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON') }}
+                </span>
+                <input
+                  v-model="lostReason"
+                  type="text"
+                  data-testid="kanban-opportunity-lost-reason"
+                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                  @input="lostReasonError = ''"
+                />
+                <span v-if="lostReasonError" class="text-xs text-n-ruby-11">
+                  {{ lostReasonError }}
+                </span>
+              </label>
+              <NextButton
+                type="button"
+                xs
+                ruby
+                data-testid="kanban-opportunity-mark-lost"
+                icon="i-lucide-circle-x"
+                :label="t('KANBAN.OPPORTUNITY_DETAILS.MARK_LOST')"
+                :disabled="isSaving"
+                @click="markLost"
+              />
             </section>
           </aside>
         </div>

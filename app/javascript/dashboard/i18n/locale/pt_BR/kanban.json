@@ -173,6 +173,26 @@
       "DATES": "Datas",
       "START_DATE": "Data de início",
       "DUE_DATE": "Data de vencimento",
+      "NEXT_ACTION": "Próxima ação",
+      "NEXT_ACTION_TYPE": "Tipo de ação",
+      "NEXT_ACTION_AT": "Data da ação",
+      "NEXT_ACTION_NOTE": "Observação da ação",
+      "NEXT_ACTION_NOTE_PLACEHOLDER": "O que precisa acontecer agora?",
+      "ACTION_TYPES": {
+        "NONE": "Selecionar ação",
+        "CALL_BACK": "Chamar novamente",
+        "SEND_PROPOSAL": "Enviar proposta",
+        "SEND_PAYMENT_LINK": "Enviar link de pagamento",
+        "FOLLOW_UP": "Cobrar retorno",
+        "CONFIRM_PAYMENT": "Confirmar pagamento",
+        "SEND_CONTRACT": "Enviar contrato",
+        "OTHER": "Outro"
+      },
+      "CLOSE_STATUS": "Fechamento",
+      "MARK_WON": "Marcar como ganho",
+      "MARK_LOST": "Marcar como perdido",
+      "LOST_REASON": "Motivo da perda",
+      "LOST_REASON_REQUIRED": "Informe o motivo da perda.",
       "CANCEL": "Cancelar",
       "SAVE": "Salvar",
       "SAVING": "Salvando...",
@@ -223,7 +243,14 @@
       "INBOX": "Caixa de entrada: {inbox}",
       "ASSIGNEE": "Responsável: {assignee}",
       "PRIORITY": "Prioridade: {priority}",
-      "LAST_ACTIVITY": "Última atividade: {time}"
+      "LAST_ACTIVITY": "Última atividade: {time}",
+      "NEXT_ACTION": {
+        "MISSING": "Sem próxima ação",
+        "OVERDUE": "Atrasado",
+        "DUE_TODAY": "Hoje",
+        "FUTURE": "Próxima ação",
+        "CLOSED": "Fechado"
+      }
     },
     "NOTES": {
       "TITLE": "Notas do contato",

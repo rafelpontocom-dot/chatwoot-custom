@@ -28,6 +28,30 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.DATES': 'Dates',
         'KANBAN.OPPORTUNITY_DETAILS.START_DATE': 'Start date',
         'KANBAN.OPPORTUNITY_DETAILS.DUE_DATE': 'Due date',
+        'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION': 'Next action',
+        'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE': 'Action type',
+        'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT': 'Action date',
+        'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE': 'Action note',
+        'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER':
+          'What should happen next?',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.NONE': 'Select action',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CALL_BACK': 'Call back',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PROPOSAL':
+          'Send proposal',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PAYMENT_LINK':
+          'Send payment link',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.FOLLOW_UP': 'Follow up',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CONFIRM_PAYMENT':
+          'Confirm payment',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_CONTRACT':
+          'Send contract',
+        'KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.OTHER': 'Other',
+        'KANBAN.OPPORTUNITY_DETAILS.CLOSE_STATUS': 'Close status',
+        'KANBAN.OPPORTUNITY_DETAILS.MARK_WON': 'Mark won',
+        'KANBAN.OPPORTUNITY_DETAILS.MARK_LOST': 'Mark lost',
+        'KANBAN.OPPORTUNITY_DETAILS.LOST_REASON': 'Lost reason',
+        'KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_REQUIRED':
+          'Enter a lost reason.',
         'KANBAN.OPPORTUNITY_DETAILS.CANCEL': 'Cancel',
         'KANBAN.OPPORTUNITY_DETAILS.SAVE': 'Save',
         'KANBAN.OPPORTUNITY_DETAILS.SAVING': 'Saving...',
@@ -118,6 +142,10 @@ const buildCard = overrides => ({
   description: 'Follow up with procurement next week.',
   startsAt: '2026-06-01T09:00',
   dueAt: '2026-06-05T18:00',
+  nextActionType: 'send_proposal',
+  nextActionAt: '2026-07-20T15:00',
+  nextActionNote: 'Send proposal by WhatsApp',
+  lostReason: '',
   conversationId: 42,
   conversation: {
     id: 42,
@@ -179,6 +207,14 @@ const startsAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-starts-at"]');
 const dueAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-due-at"]');
+const nextActionTypeInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-next-action-type"]');
+const nextActionAtInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-next-action-at"]');
+const nextActionNoteInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-next-action-note"]');
+const lostReasonInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-lost-reason"]');
 const saveButton = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-save"]');
 const labelButtons = wrapper =>
@@ -292,6 +328,16 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(dueAtInput(wrapper).element.value).toBe('2026-06-05T18:00');
   });
 
+  it('loads next action fields', async () => {
+    const wrapper = await mountModal();
+
+    expect(nextActionTypeInput(wrapper).element.value).toBe('send_proposal');
+    expect(nextActionAtInput(wrapper).element.value).toBe('2026-07-20T15:00');
+    expect(nextActionNoteInput(wrapper).element.value).toBe(
+      'Send proposal by WhatsApp'
+    );
+  });
+
   it('saves description with existing scalar fields', async () => {
     KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
       data: buildCard({ description: 'Updated card note' }),
@@ -366,6 +412,89 @@ describe('KanbanOpportunityDetailsModal', () => {
       expect.objectContaining({
         starts_at: new Date('2026-06-02T10:30').toISOString(),
         due_at: new Date('2026-06-04T15:45').toISOString(),
+      })
+    );
+  });
+
+  it('saves next action fields', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        nextActionType: 'send_payment_link',
+        nextActionNote: 'Send checkout link',
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await nextActionTypeInput(wrapper).setValue('send_payment_link');
+    await nextActionAtInput(wrapper).setValue('2026-07-22T11:30');
+    await nextActionNoteInput(wrapper).setValue('Send checkout link');
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({
+        next_action_type: 'send_payment_link',
+        next_action_at: new Date('2026-07-22T11:30').toISOString(),
+        next_action_note: 'Send checkout link',
+      })
+    );
+  });
+
+  it('marks opportunity as won', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({ wonAt: '2026-07-23T12:00:00.000Z' }),
+    });
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-mark-won"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({
+        won_at: expect.any(String),
+      })
+    );
+  });
+
+  it('requires a reason before marking opportunity as lost', async () => {
+    const wrapper = await mountModal();
+
+    await lostReasonInput(wrapper).setValue('   ');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-mark-lost"]')
+      .trigger('click');
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('Enter a lost reason.');
+  });
+
+  it('marks opportunity as lost with reason', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        lostAt: '2026-07-23T12:00:00.000Z',
+        lostReason: 'Price',
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await lostReasonInput(wrapper).setValue('Price');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-mark-lost"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({
+        lost_at: expect.any(String),
+        lost_reason: 'Price',
       })
     );
   });

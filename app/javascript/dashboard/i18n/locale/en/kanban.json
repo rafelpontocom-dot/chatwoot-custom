@@ -177,6 +177,26 @@
       "DATES": "Dates",
       "START_DATE": "Start date",
       "DUE_DATE": "Due date",
+      "NEXT_ACTION": "Next action",
+      "NEXT_ACTION_TYPE": "Action type",
+      "NEXT_ACTION_AT": "Action date",
+      "NEXT_ACTION_NOTE": "Action note",
+      "NEXT_ACTION_NOTE_PLACEHOLDER": "What should happen next?",
+      "ACTION_TYPES": {
+        "NONE": "Select action",
+        "CALL_BACK": "Call back",
+        "SEND_PROPOSAL": "Send proposal",
+        "SEND_PAYMENT_LINK": "Send payment link",
+        "FOLLOW_UP": "Follow up",
+        "CONFIRM_PAYMENT": "Confirm payment",
+        "SEND_CONTRACT": "Send contract",
+        "OTHER": "Other"
+      },
+      "CLOSE_STATUS": "Close status",
+      "MARK_WON": "Mark won",
+      "MARK_LOST": "Mark lost",
+      "LOST_REASON": "Lost reason",
+      "LOST_REASON_REQUIRED": "Enter a lost reason.",
       "CANCEL": "Cancel",
       "SAVE": "Save",
       "SAVING": "Saving...",
@@ -229,7 +249,14 @@
       "INBOX": "Inbox: {inbox}",
       "ASSIGNEE": "Assignee: {assignee}",
       "PRIORITY": "Priority: {priority}",
-      "LAST_ACTIVITY": "Last activity: {time}"
+      "LAST_ACTIVITY": "Last activity: {time}",
+      "NEXT_ACTION": {
+        "MISSING": "No next action",
+        "OVERDUE": "Overdue",
+        "DUE_TODAY": "Today",
+        "FUTURE": "Next action",
+        "CLOSED": "Closed"
+      }
     },
     "NOTES": {
       "TITLE": "Contact notes",

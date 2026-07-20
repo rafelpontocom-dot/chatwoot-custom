@@ -60,6 +60,43 @@ const assigneeThumbnail = computed(
   () => assignee.value?.thumbnail || assignee.value?.avatarUrl || ''
 );
 const subject = computed(() => props.card.subject || '');
+const nextActionStatus = computed(
+  () => props.card.nextActionStatus || props.card.next_action_status || ''
+);
+const nextActionAt = computed(
+  () => props.card.nextActionAt || props.card.next_action_at || ''
+);
+const nextActionStatusConfig = computed(() => {
+  const configs = {
+    missing: {
+      label: t('KANBAN.CARD.NEXT_ACTION.MISSING'),
+      icon: 'i-lucide-calendar-x',
+      class: 'border-n-amber-5 bg-n-amber-2 text-n-amber-11',
+    },
+    overdue: {
+      label: t('KANBAN.CARD.NEXT_ACTION.OVERDUE'),
+      icon: 'i-lucide-clock-alert',
+      class: 'border-n-ruby-5 bg-n-ruby-2 text-n-ruby-11',
+    },
+    due_today: {
+      label: t('KANBAN.CARD.NEXT_ACTION.DUE_TODAY'),
+      icon: 'i-lucide-calendar-clock',
+      class: 'border-n-blue-5 bg-n-blue-2 text-n-blue-11',
+    },
+    future: {
+      label: t('KANBAN.CARD.NEXT_ACTION.FUTURE'),
+      icon: 'i-lucide-calendar',
+      class: 'border-n-teal-5 bg-n-teal-2 text-n-teal-11',
+    },
+    closed: {
+      label: t('KANBAN.CARD.NEXT_ACTION.CLOSED'),
+      icon: 'i-lucide-circle-check',
+      class: 'border-n-green-5 bg-n-green-2 text-n-green-11',
+    },
+  };
+
+  return configs[nextActionStatus.value] || null;
+});
 
 const toUnixTimestamp = value => {
   if (!value) return null;
@@ -83,6 +120,12 @@ const dueAtLabel = computed(() => {
 
   const dueDate = new Date(dueAt.value);
   return Number.isNaN(dueDate.getTime()) ? '' : format(dueDate, 'MMM d');
+});
+const nextActionAtLabel = computed(() => {
+  if (!nextActionAt.value) return '';
+
+  const actionDate = new Date(nextActionAt.value);
+  return Number.isNaN(actionDate.getTime()) ? '' : format(actionDate, 'MMM d');
 });
 
 const openDetails = event => {
@@ -171,6 +214,22 @@ const openConversation = event => {
             class="max-w-full"
           />
         </div>
+      </div>
+
+      <div
+        v-if="nextActionStatusConfig"
+        data-testid="kanban-card-next-action"
+        class="mt-1 inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs leading-4"
+        :class="nextActionStatusConfig.class"
+      >
+        <i
+          class="size-3.5 flex-shrink-0"
+          :class="nextActionStatusConfig.icon"
+        />
+        <span class="truncate">{{ nextActionStatusConfig.label }}</span>
+        <span v-if="nextActionAtLabel" class="flex-shrink-0">
+          {{ nextActionAtLabel }}
+        </span>
       </div>
 
       <div

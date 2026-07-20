@@ -12,6 +12,11 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.CARD.UNKNOWN_CONTACT': 'Unknown Contact',
         'KANBAN.CARD.UNKNOWN_INBOX': 'Unknown Inbox',
         'KANBAN.CARD.NO_LINKED_CONVERSATION': 'No linked conversation',
+        'KANBAN.CARD.NEXT_ACTION.MISSING': 'No next action',
+        'KANBAN.CARD.NEXT_ACTION.OVERDUE': 'Overdue',
+        'KANBAN.CARD.NEXT_ACTION.DUE_TODAY': 'Today',
+        'KANBAN.CARD.NEXT_ACTION.FUTURE': 'Next action',
+        'KANBAN.CARD.NEXT_ACTION.CLOSED': 'Closed',
         'KANBAN.ACTIONS.REMOVE_CARD': 'Remove',
       };
 
@@ -206,6 +211,21 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.findComponent({ name: 'CardPriorityIcon' }).exists()).toBe(
       false
     );
+  });
+
+  it('renders next action status badge', () => {
+    const wrapper = mountCard({
+      card: buildManualCard({
+        nextActionStatus: 'overdue',
+        nextActionAt: '2026-07-20T15:00:00-03:00',
+      }),
+    });
+
+    const badge = wrapper.find('[data-testid="kanban-card-next-action"]');
+
+    expect(badge.exists()).toBe(true);
+    expect(badge.text()).toContain('Overdue');
+    expect(badge.text()).toContain('Jul 20');
   });
 
   it('emits openDetails even when conversationId is null', async () => {
