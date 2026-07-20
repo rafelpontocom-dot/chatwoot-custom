@@ -29,7 +29,15 @@
     },
     "FILTERS": {
       "INBOXES": "Inboxes",
-      "AGENTS": "Agents"
+      "AGENTS": "Agents",
+      "ALL_ACTIONS": "All actions",
+      "MISSING_NEXT_ACTION": "No action",
+      "OVERDUE": "Overdue",
+      "DUE_TODAY": "Today",
+      "ALL_STATUSES": "All statuses",
+      "OPEN": "Open",
+      "WON": "Won",
+      "LOST": "Lost"
     },
     "ACTIONS": {
       "CREATE_BOARD": "Add",

@@ -384,6 +384,10 @@ const findInboxFilterWrapper = wrapper =>
   wrapper.find('[data-testid="kanban-inbox-filter"]');
 const findAgentFilterWrapper = wrapper =>
   wrapper.find('[data-testid="kanban-agent-filter"]');
+const findNextActionFilterButton = (wrapper, value) =>
+  wrapper.find(`[data-testid="kanban-next-action-filter-${value || 'all'}"]`);
+const findStatusFilterButton = (wrapper, value) =>
+  wrapper.find(`[data-testid="kanban-status-filter-${value || 'all'}"]`);
 
 const getStageCardIds = wrapper =>
   findCardDraggables(wrapper).map(draggable =>
@@ -2383,5 +2387,112 @@ describe('KanbanView assignee filter', () => {
     expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
       params: { inbox_ids: [2], assignee_ids: [7] },
     });
+  });
+});
+
+describe('KanbanView sales filters', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockT.mockImplementation(key => key);
+    vi.useRealTimers();
+    mockRoute.params.boardId = '10';
+  });
+
+  it('refetches the board with next_action when a next action filter is selected', async () => {
+    const wrapper = await mountView();
+
+    KanbanBoardsAPI.show.mockClear();
+    await findNextActionFilterButton(wrapper, 'overdue').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
+      params: { next_action: 'overdue' },
+    });
+  });
+
+  it('refetches the board with status when an opportunity status filter is selected', async () => {
+    const wrapper = await mountView();
+
+    KanbanBoardsAPI.show.mockClear();
+    await findStatusFilterButton(wrapper, 'won').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
+      params: { status: 'won' },
+    });
+  });
+
+  it('preserves sales filters on load more requests', async () => {
+    const wrapper = await mountView(
+      buildBoardResponse([buildCard()], {
+        stages: [
+          buildBoardResponse().stages[0],
+          {
+            id: 200,
+            name: 'Stage B',
+            active: true,
+            position: 2,
+            cards: [buildCard()],
+            cards_count: 2,
+            pagination: buildPagination({
+              has_more: true,
+              next_cursor: { after_id: 502 },
+            }),
+          },
+        ],
+      })
+    );
+
+    await findNextActionFilterButton(wrapper, 'due_today').trigger('click');
+    await flushPromises();
+    KanbanBoardsAPI.getStageCards.mockClear();
+
+    await findLoadMoreButtonByStageId(wrapper, 200).trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.getStageCards).toHaveBeenCalledWith(10, 200, {
+      limit: 20,
+      cursor: { after_id: 502 },
+      next_action: 'due_today',
+    });
+  });
+
+  it('combines inbox assignee and sales filters', async () => {
+    const wrapper = await mountView();
+
+    await findInboxFilter(wrapper).vm.$emit('update:modelValue', [2]);
+    await flushPromises();
+    await findAgentFilter(wrapper).vm.$emit('update:modelValue', [7]);
+    await flushPromises();
+    KanbanBoardsAPI.show.mockClear();
+
+    await findNextActionFilterButton(wrapper, 'missing').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
+      params: {
+        inbox_ids: [2],
+        assignee_ids: [7],
+        next_action: 'missing',
+      },
+    });
+  });
+
+  it('clears sales filters when switching boards', async () => {
+    const wrapper = await mountView();
+
+    await findNextActionFilterButton(wrapper, 'overdue').trigger('click');
+    await flushPromises();
+    KanbanBoardsAPI.show.mockResolvedValueOnce({
+      data: buildBoardResponse([], { id: 11, name: 'Renewals Board' }),
+    });
+    KanbanBoardsAPI.show.mockClear();
+    mockRoute.params.boardId = '11';
+    await flushPromises();
+
+    expect(findNextActionFilterButton(wrapper, 'all').classes()).toContain(
+      'bg-n-brand'
+    );
+    expect(KanbanBoardsAPI.show).toHaveBeenLastCalledWith(11, undefined);
   });
 });

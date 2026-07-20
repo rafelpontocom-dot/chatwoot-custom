@@ -29,7 +29,15 @@
     },
     "FILTERS": {
       "INBOXES": "Caixas de entrada",
-      "AGENTS": "Agentes"
+      "AGENTS": "Agentes",
+      "ALL_ACTIONS": "Todas as ações",
+      "MISSING_NEXT_ACTION": "Sem ação",
+      "OVERDUE": "Atrasados",
+      "DUE_TODAY": "Hoje",
+      "ALL_STATUSES": "Todos os status",
+      "OPEN": "Abertos",
+      "WON": "Ganhos",
+      "LOST": "Perdidos"
     },
     "ACTIONS": {
       "CREATE_BOARD": "Adicionar",

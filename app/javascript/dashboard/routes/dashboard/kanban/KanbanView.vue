@@ -41,6 +41,8 @@ const activeActionKey = ref('');
 const hasError = ref(false);
 const selectedInboxIds = ref([]);
 const selectedAssigneeIds = ref([]);
+const selectedNextActionFilter = ref('');
+const selectedStatusFilter = ref('');
 const isBoardDropdownOpen = ref(false);
 const editingStageId = ref(null);
 const stageNames = ref({});
@@ -111,6 +113,18 @@ const agentFilterOptions = computed(() =>
 const hasAgentFilterOptions = computed(
   () => agentFilterOptions.value.length > 0
 );
+const nextActionFilterOptions = computed(() => [
+  { value: '', label: t('KANBAN.FILTERS.ALL_ACTIONS') },
+  { value: 'missing', label: t('KANBAN.FILTERS.MISSING_NEXT_ACTION') },
+  { value: 'overdue', label: t('KANBAN.FILTERS.OVERDUE') },
+  { value: 'due_today', label: t('KANBAN.FILTERS.DUE_TODAY') },
+]);
+const statusFilterOptions = computed(() => [
+  { value: '', label: t('KANBAN.FILTERS.ALL_STATUSES') },
+  { value: 'open', label: t('KANBAN.FILTERS.OPEN') },
+  { value: 'won', label: t('KANBAN.FILTERS.WON') },
+  { value: 'lost', label: t('KANBAN.FILTERS.LOST') },
+]);
 const stageListModel = computed({
   get: () => selectedBoard.value?.stages || [],
   set: nextStages => {
@@ -157,12 +171,20 @@ const currentAssigneeFilterParams = () =>
   selectedAssigneeIds.value.length > 0
     ? { assignee_ids: selectedAssigneeIds.value }
     : {};
+const currentNextActionFilterParams = () =>
+  selectedNextActionFilter.value
+    ? { next_action: selectedNextActionFilter.value }
+    : {};
+const currentStatusFilterParams = () =>
+  selectedStatusFilter.value ? { status: selectedStatusFilter.value } : {};
 const currentFilterParams = () => ({
   ...currentInboxFilterParams(),
   ...currentAssigneeFilterParams(),
+  ...currentNextActionFilterParams(),
+  ...currentStatusFilterParams(),
 });
 const currentBoardRequestConfig = () =>
-  selectedInboxIds.value.length > 0 || selectedAssigneeIds.value.length > 0
+  Object.keys(currentFilterParams()).length > 0
     ? { params: currentFilterParams() }
     : undefined;
 
@@ -414,6 +436,18 @@ const updateInboxFilter = async inboxIds => {
 
 const updateAssigneeFilter = async assigneeIds => {
   selectedAssigneeIds.value = [...new Set(assigneeIds)];
+  await refreshSelectedBoard();
+};
+
+const updateNextActionFilter = async value => {
+  selectedNextActionFilter.value =
+    selectedNextActionFilter.value === value ? '' : value;
+  await refreshSelectedBoard();
+};
+
+const updateStatusFilter = async value => {
+  selectedStatusFilter.value =
+    selectedStatusFilter.value === value ? '' : value;
   await refreshSelectedBoard();
 };
 
@@ -885,6 +919,8 @@ watch(activeBoardId, (boardId, previousBoardId) => {
   if (previousBoardId && previousBoardId !== boardId) {
     selectedInboxIds.value = [];
     selectedAssigneeIds.value = [];
+    selectedNextActionFilter.value = '';
+    selectedStatusFilter.value = '';
   }
 
   isBoardDropdownOpen.value = false;
@@ -1000,6 +1036,40 @@ onUnmounted(() => {
                 :disabled="!hasAgentFilterOptions"
                 @update:model-value="updateAssigneeFilter"
               />
+            </div>
+            <div class="flex flex-wrap items-center gap-1">
+              <button
+                v-for="option in nextActionFilterOptions"
+                :key="option.value || 'all'"
+                type="button"
+                :data-testid="`kanban-next-action-filter-${option.value || 'all'}`"
+                class="rounded-md border px-2.5 py-1.5 text-xs font-medium transition"
+                :class="
+                  selectedNextActionFilter === option.value
+                    ? 'border-n-brand bg-n-brand text-white'
+                    : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
+                "
+                @click="updateNextActionFilter(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <div class="flex flex-wrap items-center gap-1">
+              <button
+                v-for="option in statusFilterOptions"
+                :key="option.value || 'all'"
+                type="button"
+                :data-testid="`kanban-status-filter-${option.value || 'all'}`"
+                class="rounded-md border px-2.5 py-1.5 text-xs font-medium transition"
+                :class="
+                  selectedStatusFilter === option.value
+                    ? 'border-n-brand bg-n-brand text-white'
+                    : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
+                "
+                @click="updateStatusFilter(option.value)"
+              >
+                {{ option.label }}
+              </button>
             </div>
           </template>
         </div>
