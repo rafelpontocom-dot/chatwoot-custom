@@ -1,5 +1,7 @@
 conversation = card.conversation
 assignee = conversation&.assignee
+owner = card.owner
+closed_by = card.closed_by
 
 json.id card.id
 json.kanban_stage_id card.kanban_stage_id
@@ -9,6 +11,16 @@ json.subject card.subject
 json.active card.active
 json.due_at card.due_at&.iso8601
 json.stage_entered_at card.stage_entered_at&.iso8601
+json.owner_id card.owner_id
+json.next_action_type card.next_action_type
+json.next_action_at card.next_action_at&.iso8601
+json.next_action_note card.next_action_note
+json.next_action_completed_at card.next_action_completed_at&.iso8601
+json.next_action_status card.next_action_status
+json.won_at card.won_at&.iso8601
+json.lost_at card.lost_at&.iso8601
+json.lost_reason card.lost_reason
+json.closed_by_id card.closed_by_id
 json.contact do
   json.partial! 'api/v1/models/contact', formats: [:json], resource: card.contact
 end
@@ -30,6 +42,24 @@ json.assignee do
     json.id assignee.id
     json.name assignee.name
     json.avatar_url assignee.avatar_url
+  else
+    json.nil!
+  end
+end
+json.owner do
+  if owner
+    json.id owner.id
+    json.name owner.name
+    json.avatar_url owner.avatar_url
+  else
+    json.nil!
+  end
+end
+json.closed_by do
+  if closed_by
+    json.id closed_by.id
+    json.name closed_by.name
+    json.avatar_url closed_by.avatar_url
   else
     json.nil!
   end

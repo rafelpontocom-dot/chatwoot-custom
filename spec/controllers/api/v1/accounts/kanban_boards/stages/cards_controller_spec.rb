@@ -191,9 +191,19 @@ RSpec.describe 'Kanban stage cards API', type: :request do
       expect(response.parsed_body['pagination']['total_count']).to eq(1)
     end
 
-    it 'uses the compact card payload' do
+    it 'uses the compact card payload', :aggregate_failures do
+      owner = create(:user, account: account, role: :agent, name: 'Ana Paula')
       due_at = 2.days.from_now.change(usec: 0)
-      card = create_visible_card(position: 1, subject: 'Expansion opportunity', due_at: due_at)
+      next_action_at = Time.zone.parse('2026-07-20T15:00:00-03:00')
+      card = create_visible_card(
+        position: 1,
+        subject: 'Expansion opportunity',
+        due_at: due_at,
+        owner: owner,
+        next_action_type: 'send_proposal',
+        next_action_at: next_action_at,
+        next_action_note: 'Enviar proposta pelo WhatsApp'
+      )
 
       get stage_cards_path, headers: agent.create_new_auth_token, as: :json
 
@@ -209,6 +219,16 @@ RSpec.describe 'Kanban stage cards API', type: :request do
         'active' => true,
         'due_at' => due_at.iso8601,
         'stage_entered_at' => card.stage_entered_at.iso8601,
+        'owner_id' => owner.id,
+        'next_action_type' => 'send_proposal',
+        'next_action_at' => next_action_at.iso8601,
+        'next_action_note' => 'Enviar proposta pelo WhatsApp',
+        'next_action_completed_at' => nil,
+        'next_action_status' => card.next_action_status,
+        'won_at' => nil,
+        'lost_at' => nil,
+        'lost_reason' => nil,
+        'closed_by_id' => nil,
         'conversation_id' => nil,
         'conversation' => nil,
         'assignee' => nil,
@@ -219,6 +239,48 @@ RSpec.describe 'Kanban stage cards API', type: :request do
       expect(response_card).not_to include('messages', 'unread_count')
       expect(response_card['contact']).to include('id' => card.contact_id)
       expect(response_card['inbox']).to include('id' => inbox.id)
+      expect(response_card['owner']).to include('id' => owner.id, 'name' => 'Ana Paula')
+      expect(response_card['closed_by']).to be_nil
+    end
+
+    it 'filters cards by next action status', :aggregate_failures do
+      travel_to(Time.zone.parse('2026-07-20 12:00:00 UTC')) do
+        missing_card = create_visible_card(position: 1, next_action_at: nil)
+        overdue_card = create_visible_card(position: 2, next_action_at: Time.zone.parse('2026-07-19 23:59:00 UTC'))
+        today_card = create_visible_card(position: 3, next_action_at: Time.zone.parse('2026-07-20 08:00:00 UTC'))
+        create_visible_card(position: 4, next_action_at: Time.zone.parse('2026-07-21 08:00:00 UTC'))
+        create_visible_card(position: 5, next_action_at: nil, won_at: Time.current)
+
+        {
+          'missing' => missing_card.id,
+          'overdue' => overdue_card.id,
+          'due_today' => today_card.id
+        }.each do |next_action_status, expected_card_id|
+          get stage_cards_path,
+              headers: agent.create_new_auth_token,
+              params: { next_action: next_action_status },
+              as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(response.parsed_body['cards'].pluck('id')).to eq([expected_card_id])
+        end
+      end
+    end
+
+    it 'filters cards by opportunity status' do
+      open_card = create_visible_card(position: 1)
+      won_card = create_visible_card(position: 2, won_at: Time.current)
+      lost_card = create_visible_card(position: 3, lost_at: Time.current, lost_reason: 'Sem resposta')
+
+      get stage_cards_path,
+          headers: agent.create_new_auth_token,
+          params: { status: 'won' },
+          as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['cards'].pluck('id')).to eq([won_card.id])
+      expect(response.parsed_body['cards'].pluck('id')).not_to include(open_card.id, lost_card.id)
+      expect(response.parsed_body['pagination']['total_count']).to eq(1)
     end
 
     it 'uses the compact conversation payload' do
@@ -415,6 +477,8 @@ RSpec.describe 'Kanban stage cards API', type: :request do
   def compact_card_keys
     %w[
       id kanban_stage_id position origin subject active due_at stage_entered_at contact inbox conversation_id priority conversation assignee
+      owner_id owner next_action_type next_action_at next_action_note next_action_completed_at next_action_status won_at lost_at lost_reason
+      closed_by_id closed_by
       moved_by_id moved_at
     ]
   end

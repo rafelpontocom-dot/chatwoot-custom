@@ -240,6 +240,41 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(response.parsed_body['due_at']).to eq(due_at.iso8601)
     end
 
+    it 'returns stable sales fields' do
+      owner = create(:user, account: account, role: :agent, name: 'Ana Paula')
+      closed_by = create(:user, account: account, role: :administrator, name: 'Rafael')
+      next_action_at = Time.zone.parse('2026-07-20T15:00:00-03:00')
+      next_action_completed_at = Time.zone.parse('2026-07-20T16:00:00-03:00')
+      won_at = Time.zone.parse('2026-07-21T10:00:00-03:00')
+      card = create_manual_card(
+        owner: owner,
+        next_action_type: 'send_proposal',
+        next_action_at: next_action_at,
+        next_action_note: 'Enviar proposta pelo WhatsApp',
+        next_action_completed_at: next_action_completed_at,
+        won_at: won_at,
+        closed_by: closed_by
+      )
+
+      get stable_card_url(card), headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include(
+        'owner_id' => owner.id,
+        'next_action_type' => 'send_proposal',
+        'next_action_at' => next_action_at.iso8601,
+        'next_action_note' => 'Enviar proposta pelo WhatsApp',
+        'next_action_completed_at' => next_action_completed_at.iso8601,
+        'next_action_status' => 'closed',
+        'won_at' => won_at.iso8601,
+        'lost_at' => nil,
+        'lost_reason' => nil,
+        'closed_by_id' => closed_by.id
+      )
+      expect(response.parsed_body['owner']).to include('id' => owner.id, 'name' => 'Ana Paula')
+      expect(response.parsed_body['closed_by']).to include('id' => closed_by.id, 'name' => 'Rafael')
+    end
+
     it 'returns linked conversation display ID in stable detail' do
       create(
         :conversation_kanban_state,
@@ -388,6 +423,102 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(response.parsed_body['description']).to eq('Anotação única do card')
       expect(response.parsed_body['starts_at']).to eq(card.starts_at.iso8601)
       expect(response.parsed_body['due_at']).to eq(card.due_at.iso8601)
+    end
+
+    it 'updates stable sales card details' do
+      owner = create(:user, account: account, role: :agent)
+      card = create_manual_card(subject: 'Old opportunity')
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                owner_id: owner.id,
+                next_action_type: 'send_payment_link',
+                next_action_at: '2026-07-20T15:00:00-03:00',
+                next_action_note: 'Enviar link de pagamento',
+                next_action_completed_at: '2026-07-20T16:00:00-03:00'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(
+        owner_id: owner.id,
+        next_action_type: 'send_payment_link',
+        next_action_at: Time.zone.parse('2026-07-20T15:00:00-03:00'),
+        next_action_note: 'Enviar link de pagamento',
+        next_action_completed_at: Time.zone.parse('2026-07-20T16:00:00-03:00')
+      )
+      expect(response.parsed_body).to include(
+        'owner_id' => owner.id,
+        'next_action_type' => 'send_payment_link',
+        'next_action_at' => card.next_action_at.iso8601,
+        'next_action_note' => 'Enviar link de pagamento',
+        'next_action_completed_at' => card.next_action_completed_at.iso8601
+      )
+    end
+
+    it 'marks a stable card as won and records the closing user' do
+      card = create_manual_card(subject: 'Old opportunity')
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { won_at: '2026-07-21T10:00:00-03:00' } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(
+        won_at: Time.zone.parse('2026-07-21T10:00:00-03:00'),
+        lost_at: nil,
+        lost_reason: nil,
+        closed_by_id: agent.id
+      )
+      expect(response.parsed_body).to include(
+        'won_at' => card.won_at.iso8601,
+        'lost_at' => nil,
+        'lost_reason' => nil,
+        'closed_by_id' => agent.id,
+        'next_action_status' => 'closed'
+      )
+    end
+
+    it 'marks a stable card as lost with a reason and records the closing user' do
+      card = create_manual_card(subject: 'Old opportunity')
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { lost_at: '2026-07-21T10:00:00-03:00', lost_reason: 'Preço' } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(
+        won_at: nil,
+        lost_at: Time.zone.parse('2026-07-21T10:00:00-03:00'),
+        lost_reason: 'Preço',
+        closed_by_id: agent.id
+      )
+      expect(response.parsed_body).to include(
+        'won_at' => nil,
+        'lost_at' => card.lost_at.iso8601,
+        'lost_reason' => 'Preço',
+        'closed_by_id' => agent.id,
+        'next_action_status' => 'closed'
+      )
+    end
+
+    it 'rejects stable sales owner from another account' do
+      other_owner = create(:user, account: create(:account), role: :agent)
+      card = create_manual_card(subject: 'Old opportunity')
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { owner_id: other_owner.id } },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['message']).to include('Owner is invalid')
+      expect(card.reload.owner_id).to be_nil
     end
 
     it 'clears stable card description with blank strings' do

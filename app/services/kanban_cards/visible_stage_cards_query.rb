@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength
 class KanbanCards::VisibleStageCardsQuery
   Result = Struct.new(:cards, :has_more, :next_cursor, :total_count, keyword_init: true)
   RefreshRequiredError = Class.new(StandardError)
@@ -7,7 +8,8 @@ class KanbanCards::VisibleStageCardsQuery
 
   # rubocop:disable Metrics/ParameterLists
   def initialize(account:, user:, kanban_board:, kanban_stage:, limit: DEFAULT_LIMIT, cursor: nil, visible_inbox_ids: nil,
-                 visible_team_ids: nil, account_user: nil, filtered_inbox_ids: nil, filtered_assignee_ids: nil)
+                 visible_team_ids: nil, account_user: nil, filtered_inbox_ids: nil, filtered_assignee_ids: nil,
+                 filtered_next_action_status: nil, filtered_opportunity_status: nil)
     @account = account
     @user = user
     @kanban_board = kanban_board
@@ -21,6 +23,8 @@ class KanbanCards::VisibleStageCardsQuery
       filtered_inbox_ids.nil? ? nil : Array(filtered_inbox_ids).uniq
     @filtered_assignee_ids =
       filtered_assignee_ids.nil? ? nil : Array(filtered_assignee_ids).uniq
+    @filtered_next_action_status = filtered_next_action_status.presence
+    @filtered_opportunity_status = filtered_opportunity_status.presence
   end
   # rubocop:enable Metrics/ParameterLists
 
@@ -44,7 +48,7 @@ class KanbanCards::VisibleStageCardsQuery
   private
 
   attr_reader :account, :user, :kanban_board, :kanban_stage, :limit, :cursor,
-              :filtered_inbox_ids, :filtered_assignee_ids
+              :filtered_inbox_ids, :filtered_assignee_ids, :filtered_next_action_status, :filtered_opportunity_status
 
   def empty_result
     Result.new(cards: [], has_more: false, next_cursor: nil, total_count: 0)
@@ -66,6 +70,8 @@ class KanbanCards::VisibleStageCardsQuery
                        .where(visibility_condition)
                        .then { |scope| filtered_inbox_ids.nil? ? scope : scope.where(inbox_id: filtered_inbox_ids) }
                        .then { |scope| filtered_assignee_ids.nil? ? scope : scope.where(conversations: { assignee_id: filtered_assignee_ids }) }
+                       .then { |scope| apply_opportunity_status_filter(scope) }
+                       .then { |scope| apply_next_action_filter(scope) }
   end
 
   def paginated_card_ids(anchor)
@@ -82,6 +88,8 @@ class KanbanCards::VisibleStageCardsQuery
                   .where(id: ids)
                   .includes(
                     conversation: { assignee: { avatar_attachment: :blob } },
+                    owner: { avatar_attachment: :blob },
+                    closed_by: { avatar_attachment: :blob },
                     contact: { avatar_attachment: :blob },
                     inbox: [:channel, { avatar_attachment: :blob }]
                   ).index_by(&:id)
@@ -122,6 +130,34 @@ class KanbanCards::VisibleStageCardsQuery
 
   def clamped_limit
     @clamped_limit ||= (limit || DEFAULT_LIMIT).to_i.clamp(1, MAX_LIMIT)
+  end
+
+  def apply_opportunity_status_filter(scope)
+    case filtered_opportunity_status
+    when 'open'
+      scope.where(won_at: nil, lost_at: nil)
+    when 'won'
+      scope.where.not(won_at: nil)
+    when 'lost'
+      scope.where.not(lost_at: nil)
+    else
+      scope
+    end
+  end
+
+  def apply_next_action_filter(scope)
+    case filtered_next_action_status
+    when KanbanCard::NEXT_ACTION_STATUS_MISSING
+      scope.where(won_at: nil, lost_at: nil, next_action_at: nil)
+    when KanbanCard::NEXT_ACTION_STATUS_OVERDUE
+      scope.where(won_at: nil, lost_at: nil).where(next_action_at: ...Time.current.beginning_of_day)
+    when KanbanCard::NEXT_ACTION_STATUS_DUE_TODAY
+      scope.where(won_at: nil, lost_at: nil, next_action_at: Time.current.all_day)
+    when KanbanCard::NEXT_ACTION_STATUS_FUTURE
+      scope.where(won_at: nil, lost_at: nil).where(next_action_at: Time.current.end_of_day..)
+    else
+      scope
+    end
   end
 
   def cursor_after_id
@@ -205,3 +241,4 @@ class KanbanCards::VisibleStageCardsQuery
     Conversation.arel_table
   end
 end
+# rubocop:enable Metrics/ClassLength

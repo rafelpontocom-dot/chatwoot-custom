@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength
 class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::BaseController
   before_action :fetch_kanban_board
   before_action :authorize_kanban_board_show
@@ -68,7 +69,23 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def card_params
-    params.require(:card).permit(:kanban_stage_id, :position, :subject, :description, :starts_at, :due_at, labels: [])
+    params.require(:card).permit(
+      :kanban_stage_id,
+      :position,
+      :subject,
+      :description,
+      :starts_at,
+      :due_at,
+      :owner_id,
+      :next_action_type,
+      :next_action_at,
+      :next_action_note,
+      :next_action_completed_at,
+      :won_at,
+      :lost_at,
+      :lost_reason,
+      labels: []
+    )
   end
 
   def manual_card_params
@@ -137,7 +154,56 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def stable_card_update_params
-    card_params.slice(:subject, :description, :starts_at, :due_at)
+    card_params
+      .slice(
+        :subject,
+        :description,
+        :starts_at,
+        :due_at,
+        :owner_id,
+        :next_action_type,
+        :next_action_at,
+        :next_action_note,
+        :next_action_completed_at,
+        :won_at,
+        :lost_at,
+        :lost_reason
+      )
+      .tap { |permitted_params| normalize_sales_update_params!(permitted_params) }
+  end
+
+  def normalize_sales_update_params!(permitted_params)
+    validate_account_user_id!(:owner, permitted_params[:owner_id]) if permitted_params.key?(:owner_id)
+    return unless close_status_update?(permitted_params)
+
+    permitted_params[:closed_by_id] = Current.user.id
+    normalize_won_update_params!(permitted_params)
+    normalize_lost_update_params!(permitted_params)
+  end
+
+  def close_status_update?(permitted_params)
+    permitted_params[:won_at].present? || permitted_params[:lost_at].present?
+  end
+
+  def normalize_won_update_params!(permitted_params)
+    return unless permitted_params.key?(:won_at) && !permitted_params.key?(:lost_at)
+
+    permitted_params[:lost_at] = nil
+    permitted_params[:lost_reason] = nil unless permitted_params.key?(:lost_reason)
+  end
+
+  def normalize_lost_update_params!(permitted_params)
+    return unless permitted_params.key?(:lost_at) && !permitted_params.key?(:won_at)
+
+    permitted_params[:won_at] = nil
+  end
+
+  def validate_account_user_id!(field_name, user_id)
+    return if user_id.blank?
+    return if Current.account.account_users.exists?(user_id: user_id)
+
+    @kanban_card.errors.add(field_name, :invalid)
+    raise ActiveRecord::RecordInvalid, @kanban_card
   end
 
   def labels_param_present?
@@ -203,3 +269,4 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     }
   end
 end
+# rubocop:enable Metrics/ClassLength

@@ -19,6 +19,34 @@ if stable_card
   json.description card.description
   json.starts_at card.starts_at&.iso8601
   json.due_at card.due_at&.iso8601
+  json.owner_id card.owner_id
+  json.next_action_type card.next_action_type
+  json.next_action_at card.next_action_at&.iso8601
+  json.next_action_note card.next_action_note
+  json.next_action_completed_at card.next_action_completed_at&.iso8601
+  json.next_action_status card.next_action_status
+  json.won_at card.won_at&.iso8601
+  json.lost_at card.lost_at&.iso8601
+  json.lost_reason card.lost_reason
+  json.closed_by_id card.closed_by_id
+  json.owner do
+    if card.owner
+      json.id card.owner.id
+      json.name card.owner.name
+      json.avatar_url card.owner.avatar_url
+    else
+      json.nil!
+    end
+  end
+  json.closed_by do
+    if card.closed_by
+      json.id card.closed_by.id
+      json.name card.closed_by.name
+      json.avatar_url card.closed_by.avatar_url
+    else
+      json.nil!
+    end
+  end
 end
 json.active card.active if card.respond_to?(:active)
 if card.respond_to?(:origin)
