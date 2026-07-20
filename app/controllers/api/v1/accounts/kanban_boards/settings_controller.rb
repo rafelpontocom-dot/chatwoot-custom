@@ -50,7 +50,9 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
       :inbox_scope_mode,
       :auto_create_cards_from_conversations,
       visible_user_ids: [],
-      allowed_inbox_ids: []
+      allowed_inbox_ids: [],
+      next_action_types: [],
+      lost_reason_options: []
     )
   end
 

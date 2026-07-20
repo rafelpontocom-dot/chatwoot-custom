@@ -19,6 +19,13 @@ RSpec.describe KanbanBoard do
 
       expect(board.visibility_mode).to eq('all_agents')
     end
+
+    it 'uses default sales options when none are configured' do
+      board = described_class.new
+
+      expect(board.configured_next_action_types).to include('Enviar proposta')
+      expect(board.configured_lost_reason_options).to include('Sem resposta')
+    end
   end
 
   describe 'validations' do
@@ -94,6 +101,19 @@ RSpec.describe KanbanBoard do
 
       expect(board).not_to be_valid
       expect(board.errors[:inbox_scope_mode]).to be_present
+    end
+
+    it 'normalizes sales option lists' do
+      board = build(
+        :kanban_board,
+        next_action_types: [' Enviar proposta ', '', 'Enviar proposta', 'Cobrar retorno'],
+        lost_reason_options: [' Preço ', nil, 'Preço', 'Sem resposta']
+      )
+
+      board.valid?
+
+      expect(board.next_action_types).to eq(['Enviar proposta', 'Cobrar retorno'])
+      expect(board.lost_reason_options).to eq(['Preço', 'Sem resposta'])
     end
   end
 

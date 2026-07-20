@@ -53,6 +53,8 @@ const form = reactive({
   visibleUserIds: [],
   inboxScopeMode: 'all_inboxes',
   allowedInboxIds: [],
+  nextActionTypesText: '',
+  lostReasonOptionsText: '',
 });
 
 const boardId = computed(() => Number(route.params.boardId));
@@ -94,6 +96,8 @@ const applySettings = payload => {
   form.visibleUserIds = settings.visibleUserIds || [];
   form.inboxScopeMode = settings.inboxScopeMode || 'all_inboxes';
   form.allowedInboxIds = settings.allowedInboxIds || [];
+  form.nextActionTypesText = (settings.nextActionTypes || []).join('\n');
+  form.lostReasonOptionsText = (settings.lostReasonOptions || []).join('\n');
 };
 
 const applyBoard = payload => {
@@ -126,6 +130,12 @@ const refreshBoard = async () => {
   applyBoard(response.data);
 };
 
+const linesFromText = value =>
+  String(value || '')
+    .split('\n')
+    .map(item => item.trim())
+    .filter(Boolean);
+
 const buildPayload = () => ({
   kanban_board: {
     name: form.name.trim(),
@@ -137,6 +147,8 @@ const buildPayload = () => ({
     inbox_scope_mode: form.inboxScopeMode,
     allowed_inbox_ids:
       form.inboxScopeMode === 'selected_inboxes' ? form.allowedInboxIds : [],
+    next_action_types: linesFromText(form.nextActionTypesText),
+    lost_reason_options: linesFromText(form.lostReasonOptionsText),
   },
 });
 
@@ -599,6 +611,36 @@ onMounted(fetchSettings);
             :search-placeholder="t('KANBAN.SETTINGS.INBOXES.SEARCH')"
             :empty-state="t('KANBAN.SETTINGS.INBOXES.EMPTY')"
           />
+        </section>
+
+        <section class="grid gap-4 border-b border-n-weak pb-6">
+          <h2 class="text-base font-medium text-n-slate-12">
+            {{ t('KANBAN.SETTINGS.SALES.TITLE') }}
+          </h2>
+          <label class="grid gap-1 text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES') }}
+            <textarea
+              v-model="form.nextActionTypesText"
+              data-testid="kanban-settings-next-action-types"
+              rows="5"
+              class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+              :placeholder="
+                t('KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES_PLACEHOLDER')
+              "
+            />
+          </label>
+          <label class="grid gap-1 text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.SETTINGS.SALES.LOST_REASON_OPTIONS') }}
+            <textarea
+              v-model="form.lostReasonOptionsText"
+              data-testid="kanban-settings-lost-reason-options"
+              rows="5"
+              class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+              :placeholder="
+                t('KANBAN.SETTINGS.SALES.LOST_REASON_OPTIONS_PLACEHOLDER')
+              "
+            />
+          </label>
         </section>
 
         <section class="grid gap-4 border-b border-n-weak pb-6">

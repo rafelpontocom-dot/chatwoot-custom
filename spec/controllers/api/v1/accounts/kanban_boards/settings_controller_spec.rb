@@ -6,6 +6,67 @@ RSpec.describe 'Kanban board settings API', type: :request do
   let(:agent) { create(:user, account: account, role: :agent) }
   let(:board) { create(:kanban_board, account: account) }
 
+  describe 'GET /api/v1/accounts/{account.id}/kanban_boards/{board.id}/settings' do
+    it 'returns commercial configuration options' do
+      board.update!(
+        next_action_types: ['Cobrar retorno', 'Enviar link de pagamento'],
+        lost_reason_options: ['Preço', 'Sem resposta']
+      )
+
+      get settings_url(board), headers: administrator.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include(
+        'next_action_types' => ['Cobrar retorno', 'Enviar link de pagamento'],
+        'lost_reason_options' => ['Preço', 'Sem resposta']
+      )
+    end
+  end
+
+  describe 'PATCH /api/v1/accounts/{account.id}/kanban_boards/{board.id}/settings' do
+    it 'updates commercial configuration options' do
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                name: board.name,
+                next_action_types: ['Enviar proposta', 'Enviar contrato', 'Outro'],
+                lost_reason_options: ['Preço', 'Fechou com outro', 'Outro']
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload).to have_attributes(
+        next_action_types: ['Enviar proposta', 'Enviar contrato', 'Outro'],
+        lost_reason_options: ['Preço', 'Fechou com outro', 'Outro']
+      )
+      expect(response.parsed_body).to include(
+        'next_action_types' => ['Enviar proposta', 'Enviar contrato', 'Outro'],
+        'lost_reason_options' => ['Preço', 'Fechou com outro', 'Outro']
+      )
+    end
+
+    it 'normalizes blank and duplicate commercial configuration values' do
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                name: board.name,
+                next_action_types: ['Enviar proposta', ' ', 'Enviar proposta'],
+                lost_reason_options: ['', 'Preço', 'Preço']
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload).to have_attributes(
+        next_action_types: ['Enviar proposta'],
+        lost_reason_options: ['Preço']
+      )
+    end
+  end
+
   describe 'POST /api/v1/accounts/{account.id}/kanban_boards/{board.id}/settings/import_existing_conversations' do
     it 'enqueues the import job and returns accepted metadata' do
       create(:kanban_stage, account: account, kanban_board: board)
@@ -63,5 +124,9 @@ RSpec.describe 'Kanban board settings API', type: :request do
 
   def import_url(target_board)
     "/api/v1/accounts/#{account.id}/kanban_boards/#{target_board.id}/settings/import_existing_conversations"
+  end
+
+  def settings_url(target_board)
+    "/api/v1/accounts/#{account.id}/kanban_boards/#{target_board.id}/settings"
   end
 end

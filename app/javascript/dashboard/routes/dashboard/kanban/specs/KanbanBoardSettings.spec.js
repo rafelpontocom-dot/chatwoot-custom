@@ -53,6 +53,8 @@ const settingsPayload = {
   inbox_scope_mode: 'selected_inboxes',
   allowed_inbox_ids: [5, 6],
   auto_create_cards_from_conversations: true,
+  next_action_types: ['Enviar proposta', 'Cobrar retorno'],
+  lost_reason_options: ['Preço', 'Sem resposta'],
 };
 
 const boardPayload = {
@@ -283,6 +285,14 @@ describe('KanbanBoardSettings', () => {
     expect(
       wrapper.find('[data-testid="kanban-settings-inbox-select"]').exists()
     ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-settings-next-action-types"]').element
+        .value
+    ).toBe('Enviar proposta\nCobrar retorno');
+    expect(
+      wrapper.find('[data-testid="kanban-settings-lost-reason-options"]')
+        .element.value
+    ).toBe('Preço\nSem resposta');
   });
 
   it('toggles all_agents and selected_agents controls', async () => {
@@ -470,19 +480,22 @@ describe('KanbanBoardSettings', () => {
   it('saves the expected payload', async () => {
     const { wrapper } = await mountSettings();
 
-    await wrapper.find('[data-testid="kanban-settings-name"]').setValue('Novo');
-    await wrapper
-      .find('[data-testid="kanban-settings-description"]')
-      .setValue('Funil novo');
-    await wrapper
-      .find('[data-testid="kanban-settings-auto-create"]')
-      .setValue(false);
     await wrapper
       .findAll('[data-testid="tag-select-update"]')[0]
       .trigger('click');
     await wrapper
       .findAll('[data-testid="tag-select-update"]')[1]
       .trigger('click');
+    await wrapper.find('[data-testid="kanban-settings-name"]').setValue('Novo');
+    await wrapper
+      .find('[data-testid="kanban-settings-description"]')
+      .setValue('Funil novo');
+    await wrapper
+      .find('[data-testid="kanban-settings-next-action-types"]')
+      .setValue('Enviar proposta\nEnviar link de pagamento\nEnviar proposta');
+    await wrapper
+      .find('[data-testid="kanban-settings-lost-reason-options"]')
+      .setValue('Preço\n\nFechou com outro');
     await wrapper
       .find('[data-testid="kanban-settings-form"]')
       .trigger('submit');
@@ -491,11 +504,17 @@ describe('KanbanBoardSettings', () => {
       kanban_board: {
         name: 'Novo',
         description: 'Funil novo',
-        auto_create_cards_from_conversations: false,
+        auto_create_cards_from_conversations: true,
         visibility_mode: 'selected_agents',
         visible_user_ids: [1, 2],
         inbox_scope_mode: 'selected_inboxes',
         allowed_inbox_ids: [5, 6],
+        next_action_types: [
+          'Enviar proposta',
+          'Enviar link de pagamento',
+          'Enviar proposta',
+        ],
+        lost_reason_options: ['Preço', 'Fechou com outro'],
       },
     });
   });

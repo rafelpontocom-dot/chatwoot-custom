@@ -7,7 +7,9 @@
 #  auto_create_cards_from_conversations :boolean          default(FALSE), not null
 #  description                          :text
 #  inbox_scope_mode                     :string           default("all_inboxes"), not null
+#  lost_reason_options                  :jsonb            not null
 #  name                                 :string           not null
+#  next_action_types                    :jsonb            not null
 #  position                             :integer          default(0), not null
 #  use_opportunity_card_reads           :boolean          default(TRUE), not null
 #  visibility_mode                      :string           default("all_agents"), not null
@@ -25,6 +27,23 @@
 class KanbanBoard < ApplicationRecord
   INBOX_SCOPE_MODES = %w[all_inboxes selected_inboxes].freeze
   VISIBILITY_MODES = %w[all_agents selected_agents].freeze
+  DEFAULT_NEXT_ACTION_TYPES = [
+    'Chamar novamente',
+    'Enviar proposta',
+    'Enviar link de pagamento',
+    'Cobrar retorno',
+    'Confirmar pagamento',
+    'Enviar contrato',
+    'Outro'
+  ].freeze
+  DEFAULT_LOST_REASON_OPTIONS = [
+    'Sem resposta',
+    'Preço',
+    'Sem interesse',
+    'Fora do perfil',
+    'Fechou com outro',
+    'Outro'
+  ].freeze
 
   belongs_to :account
 
@@ -41,6 +60,8 @@ class KanbanBoard < ApplicationRecord
 
   attribute :inbox_scope_mode, :string, default: 'all_inboxes'
   enum :inbox_scope_mode, INBOX_SCOPE_MODES.index_by(&:itself), validate: true
+
+  before_validation :normalize_sales_configuration
 
   validates :account_id, presence: true
   validates :name, presence: true, uniqueness: { scope: :account_id, conditions: -> { active } }, if: :active?
@@ -65,5 +86,27 @@ class KanbanBoard < ApplicationRecord
     else
       kanban_board_inboxes.exists?(inbox_id: inbox_id)
     end
+  end
+
+  def configured_next_action_types
+    next_action_types.presence || DEFAULT_NEXT_ACTION_TYPES
+  end
+
+  def configured_lost_reason_options
+    lost_reason_options.presence || DEFAULT_LOST_REASON_OPTIONS
+  end
+
+  private
+
+  def normalize_sales_configuration
+    self.next_action_types = normalize_string_list(next_action_types)
+    self.lost_reason_options = normalize_string_list(lost_reason_options)
+  end
+
+  def normalize_string_list(values)
+    Array(values).filter_map do |value|
+      normalized_value = value.to_s.strip
+      normalized_value.presence
+    end.uniq
   end
 end

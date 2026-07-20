@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_20_190000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_20_203000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1004,6 +1004,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_20_190000) do
     t.boolean "use_opportunity_card_reads", default: true, null: false
     t.string "visibility_mode", default: "all_agents", null: false
     t.string "inbox_scope_mode", default: "all_inboxes", null: false
+    t.jsonb "next_action_types", default: [], null: false
+    t.jsonb "lost_reason_options", default: [], null: false
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
     t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"

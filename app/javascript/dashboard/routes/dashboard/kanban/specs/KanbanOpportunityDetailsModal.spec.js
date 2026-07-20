@@ -142,7 +142,8 @@ const buildCard = overrides => ({
   description: 'Follow up with procurement next week.',
   startsAt: '2026-06-01T09:00',
   dueAt: '2026-06-05T18:00',
-  nextActionType: 'send_proposal',
+  ownerId: 7,
+  nextActionType: 'Enviar proposta',
   nextActionAt: '2026-07-20T15:00',
   nextActionNote: 'Send proposal by WhatsApp',
   lostReason: '',
@@ -185,6 +186,12 @@ const mountModal = async ({
       boardId: 10,
       boardName: 'Sales funnel',
       cardId: 501,
+      nextActionTypes: ['Enviar proposta', 'Enviar link de pagamento'],
+      lostReasonOptions: ['Preço', 'Sem resposta'],
+      ownerOptions: [
+        { value: 7, label: 'Jane Agent' },
+        { value: 8, label: 'Ana Paula' },
+      ],
     },
     global: {
       stubs: {
@@ -209,6 +216,8 @@ const dueAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-due-at"]');
 const nextActionTypeInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-next-action-type"]');
+const ownerInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-owner"]');
 const nextActionAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-next-action-at"]');
 const nextActionNoteInput = wrapper =>
@@ -278,6 +287,12 @@ describe('KanbanOpportunityDetailsModal', () => {
         boardId: 10,
         boardName: 'Sales funnel',
         cardId: 501,
+        nextActionTypes: ['Enviar proposta', 'Enviar link de pagamento'],
+        lostReasonOptions: ['Preço', 'Sem resposta'],
+        ownerOptions: [
+          { value: 7, label: 'Jane Agent' },
+          { value: 8, label: 'Ana Paula' },
+        ],
       },
       global: {
         stubs: {
@@ -331,11 +346,18 @@ describe('KanbanOpportunityDetailsModal', () => {
   it('loads next action fields', async () => {
     const wrapper = await mountModal();
 
-    expect(nextActionTypeInput(wrapper).element.value).toBe('send_proposal');
+    expect(nextActionTypeInput(wrapper).element.value).toBe('Enviar proposta');
     expect(nextActionAtInput(wrapper).element.value).toBe('2026-07-20T15:00');
     expect(nextActionNoteInput(wrapper).element.value).toBe(
       'Send proposal by WhatsApp'
     );
+  });
+
+  it('loads owner field', async () => {
+    const wrapper = await mountModal();
+
+    expect(ownerInput(wrapper).element.value).toBe('7');
+    expect(ownerInput(wrapper).text()).toContain('Ana Paula');
   });
 
   it('saves description with existing scalar fields', async () => {
@@ -425,7 +447,8 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
     const wrapper = await mountModal();
 
-    await nextActionTypeInput(wrapper).setValue('send_payment_link');
+    await ownerInput(wrapper).setValue('8');
+    await nextActionTypeInput(wrapper).setValue('Enviar link de pagamento');
     await nextActionAtInput(wrapper).setValue('2026-07-22T11:30');
     await nextActionNoteInput(wrapper).setValue('Send checkout link');
     await wrapper.find('form').trigger('submit');
@@ -435,7 +458,8 @@ describe('KanbanOpportunityDetailsModal', () => {
       10,
       501,
       expect.objectContaining({
-        next_action_type: 'send_payment_link',
+        owner_id: 8,
+        next_action_type: 'Enviar link de pagamento',
         next_action_at: new Date('2026-07-22T11:30').toISOString(),
         next_action_note: 'Send checkout link',
       })
@@ -478,12 +502,13 @@ describe('KanbanOpportunityDetailsModal', () => {
     KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
       data: buildCard({
         lostAt: '2026-07-23T12:00:00.000Z',
-        lostReason: 'Price',
+        lostReason: 'Preço',
       }),
     });
     const wrapper = await mountModal();
 
-    await lostReasonInput(wrapper).setValue('Price');
+    expect(lostReasonInput(wrapper).text()).toContain('Sem resposta');
+    await lostReasonInput(wrapper).setValue('Preço');
     await wrapper
       .find('[data-testid="kanban-opportunity-mark-lost"]')
       .trigger('click');
@@ -494,7 +519,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       501,
       expect.objectContaining({
         lost_at: expect.any(String),
-        lost_reason: 'Price',
+        lost_reason: 'Preço',
       })
     );
   });

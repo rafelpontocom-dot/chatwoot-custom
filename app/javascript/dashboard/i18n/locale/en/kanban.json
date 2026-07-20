@@ -134,6 +134,13 @@
         "SEARCH": "Search inboxes",
         "EMPTY": "No inboxes found"
       },
+      "SALES": {
+        "TITLE": "Sales fields",
+        "NEXT_ACTION_TYPES": "Next action types",
+        "NEXT_ACTION_TYPES_PLACEHOLDER": "One action type per line",
+        "LOST_REASON_OPTIONS": "Lost reasons",
+        "LOST_REASON_OPTIONS_PLACEHOLDER": "One lost reason per line"
+      },
       "AUTOMATIONS": {
         "TITLE": "Automations",
         "AUTO_CREATE": "Create cards automatically for new conversations",
@@ -176,6 +183,7 @@
       "FIELD_TITLE": "Title",
       "FIELD_DESCRIPTION": "Description",
       "DESCRIPTION_PLACEHOLDER": "Add a single note for this card",
+      "OWNER": "Sales owner",
       "ASSIGNEE": "Agent",
       "UNASSIGNED": "Unassigned",
       "CONVERSATION": "Conversation",
@@ -204,6 +212,7 @@
       "MARK_WON": "Mark won",
       "MARK_LOST": "Mark lost",
       "LOST_REASON": "Lost reason",
+      "LOST_REASON_PLACEHOLDER": "Select reason",
       "LOST_REASON_REQUIRED": "Enter a lost reason.",
       "CANCEL": "Cancel",
       "SAVE": "Save",

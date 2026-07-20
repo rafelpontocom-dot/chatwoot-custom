@@ -20,6 +20,18 @@ const props = defineProps({
     type: [Number, String],
     required: true,
   },
+  nextActionTypes: {
+    type: Array,
+    default: () => [],
+  },
+  lostReasonOptions: {
+    type: Array,
+    default: () => [],
+  },
+  ownerOptions: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['close', 'updated', 'openConversation']);
@@ -31,6 +43,7 @@ const accountLabels = useMapGetter('labels/getLabels');
 const card = ref(null);
 const subject = ref('');
 const description = ref('');
+const ownerId = ref('');
 const startsAt = ref('');
 const dueAt = ref('');
 const nextActionType = ref('');
@@ -79,40 +92,46 @@ const contactName = computed(
 const selectedLabelTitleSet = computed(
   () => new Set(selectedLabelTitles.value)
 );
+const defaultNextActionTypes = computed(() => [
+  t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CALL_BACK'),
+  t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PROPOSAL'),
+  t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PAYMENT_LINK'),
+  t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.FOLLOW_UP'),
+  t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CONFIRM_PAYMENT'),
+  t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_CONTRACT'),
+  t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.OTHER'),
+]);
+const selectableNextActionTypes = computed(() => {
+  const configuredOptions = props.nextActionTypes.length
+    ? props.nextActionTypes
+    : defaultNextActionTypes.value;
+  const options = [...configuredOptions];
+
+  if (nextActionType.value && !options.includes(nextActionType.value)) {
+    options.unshift(nextActionType.value);
+  }
+
+  return options;
+});
 const nextActionTypeOptions = computed(() => [
   {
     value: '',
     label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.NONE'),
   },
-  {
-    value: 'call_back',
-    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CALL_BACK'),
-  },
-  {
-    value: 'send_proposal',
-    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PROPOSAL'),
-  },
-  {
-    value: 'send_payment_link',
-    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_PAYMENT_LINK'),
-  },
-  {
-    value: 'follow_up',
-    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.FOLLOW_UP'),
-  },
-  {
-    value: 'confirm_payment',
-    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.CONFIRM_PAYMENT'),
-  },
-  {
-    value: 'send_contract',
-    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.SEND_CONTRACT'),
-  },
-  {
-    value: 'other',
-    label: t('KANBAN.OPPORTUNITY_DETAILS.ACTION_TYPES.OTHER'),
-  },
+  ...selectableNextActionTypes.value.map(option => ({
+    value: option,
+    label: option,
+  })),
 ]);
+const selectableLostReasonOptions = computed(() => {
+  const options = [...props.lostReasonOptions];
+
+  if (lostReason.value && !options.includes(lostReason.value)) {
+    options.unshift(lostReason.value);
+  }
+
+  return options;
+});
 
 const normalizeCard = payload => ({
   ...payload,
@@ -120,6 +139,7 @@ const normalizeCard = payload => ({
   kanbanBoardId: payload.kanbanBoardId ?? payload.kanban_board_id,
   kanbanStageId: payload.kanbanStageId ?? payload.kanban_stage_id,
   conversationId: payload.conversationId ?? payload.conversation_id,
+  ownerId: payload.ownerId ?? payload.owner_id,
   startsAt: payload.startsAt ?? payload.starts_at,
   dueAt: payload.dueAt ?? payload.due_at,
   nextActionType: payload.nextActionType ?? payload.next_action_type,
@@ -157,6 +177,7 @@ const setFormState = payload => {
   card.value = normalizeCard(payload);
   subject.value = card.value.subject || '';
   description.value = card.value.description || '';
+  ownerId.value = card.value.ownerId ? String(card.value.ownerId) : '';
   startsAt.value = formatDateTimeInput(card.value.startsAt);
   dueAt.value = formatDateTimeInput(card.value.dueAt);
   nextActionType.value = card.value.nextActionType || '';
@@ -213,6 +234,7 @@ const loadCard = async () => {
 const buildCardPayload = extraPayload => ({
   subject: subject.value.trim(),
   description: description.value.trim() ? description.value : null,
+  owner_id: ownerId.value ? Number(ownerId.value) : null,
   starts_at: toIso8601(startsAt.value),
   due_at: toIso8601(dueAt.value),
   next_action_type: nextActionType.value || null,
@@ -262,7 +284,7 @@ const markWon = () =>
   });
 
 const markLost = () => {
-  const trimmedReason = lostReason.value.trim();
+  const trimmedReason = String(lostReason.value || '').trim();
   lostReasonError.value = '';
 
   if (!trimmedReason) {
@@ -409,6 +431,28 @@ onMounted(() => {
           </section>
 
           <aside class="grid min-w-0 content-start gap-4">
+            <section class="grid gap-3 rounded-lg border border-n-weak p-3">
+              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER') }}
+              </h3>
+              <select
+                v-model="ownerId"
+                data-testid="kanban-opportunity-owner"
+                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              >
+                <option value="">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.UNASSIGNED') }}
+                </option>
+                <option
+                  v-for="option in ownerOptions"
+                  :key="option.value"
+                  :value="String(option.value)"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </section>
+
             <section class="grid gap-2 rounded-lg border border-n-weak p-3">
               <h3 class="mb-0 text-sm font-medium text-n-slate-12">
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE') }}
@@ -628,13 +672,25 @@ onMounted(() => {
                 <span class="text-sm font-medium text-n-slate-12">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON') }}
                 </span>
-                <input
+                <select
                   v-model="lostReason"
-                  type="text"
                   data-testid="kanban-opportunity-lost-reason"
                   class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                  @input="lostReasonError = ''"
-                />
+                  @change="lostReasonError = ''"
+                >
+                  <option value="">
+                    {{
+                      t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_PLACEHOLDER')
+                    }}
+                  </option>
+                  <option
+                    v-for="option in selectableLostReasonOptions"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
                 <span v-if="lostReasonError" class="text-xs text-n-ruby-11">
                   {{ lostReasonError }}
                 </span>

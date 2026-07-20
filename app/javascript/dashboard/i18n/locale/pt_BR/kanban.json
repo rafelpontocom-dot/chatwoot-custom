@@ -130,6 +130,13 @@
         "SEARCH": "Buscar caixas",
         "EMPTY": "Nenhuma caixa encontrada"
       },
+      "SALES": {
+        "TITLE": "Campos comerciais",
+        "NEXT_ACTION_TYPES": "Tipos de próxima ação",
+        "NEXT_ACTION_TYPES_PLACEHOLDER": "Um tipo de ação por linha",
+        "LOST_REASON_OPTIONS": "Motivos de perda",
+        "LOST_REASON_OPTIONS_PLACEHOLDER": "Um motivo de perda por linha"
+      },
       "AUTOMATIONS": {
         "TITLE": "Automações",
         "AUTO_CREATE": "Criar cartões automaticamente para novas conversas",
@@ -172,6 +179,7 @@
       "FIELD_TITLE": "Título",
       "FIELD_DESCRIPTION": "Descrição",
       "DESCRIPTION_PLACEHOLDER": "Adicione uma anotação única para este card",
+      "OWNER": "Responsável comercial",
       "ASSIGNEE": "Agente",
       "UNASSIGNED": "Sem responsável",
       "CONVERSATION": "Conversa",
@@ -200,6 +208,7 @@
       "MARK_WON": "Marcar como ganho",
       "MARK_LOST": "Marcar como perdido",
       "LOST_REASON": "Motivo da perda",
+      "LOST_REASON_PLACEHOLDER": "Selecionar motivo",
       "LOST_REASON_REQUIRED": "Informe o motivo da perda.",
       "CANCEL": "Cancelar",
       "SAVE": "Salvar",

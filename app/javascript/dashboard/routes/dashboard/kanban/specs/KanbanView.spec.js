@@ -145,6 +145,8 @@ const buildBoardResponse = (stageBCards = [], overrides = {}) => ({
   auto_create_cards_from_conversations: true,
   inbox_scope_mode: 'all_inboxes',
   allowed_inbox_ids: [],
+  next_action_types: ['Enviar proposta', 'Enviar link de pagamento'],
+  lost_reason_options: ['Preço', 'Sem resposta'],
   stages: [
     {
       id: 100,
@@ -274,7 +276,14 @@ const mountView = async (
         },
         KanbanOpportunityDetailsModal: {
           name: 'KanbanOpportunityDetailsModal',
-          props: ['boardId', 'cardId'],
+          props: [
+            'boardId',
+            'boardName',
+            'cardId',
+            'nextActionTypes',
+            'lostReasonOptions',
+            'ownerOptions',
+          ],
           template:
             '<div class="kanban-opportunity-modal-stub" data-board-id="{{ boardId }}" data-card-id="{{ cardId }}" />',
         },
@@ -1484,6 +1493,15 @@ describe('KanbanView drag and drop', () => {
     });
     expect(modal.props('boardId')).toBe(10);
     expect(modal.props('cardId')).toBe(501);
+    expect(modal.props('nextActionTypes')).toEqual([
+      'Enviar proposta',
+      'Enviar link de pagamento',
+    ]);
+    expect(modal.props('lostReasonOptions')).toEqual(['Preço', 'Sem resposta']);
+    expect(modal.props('ownerOptions')).toEqual([
+      { value: 7, label: 'Ada Lovelace' },
+      { value: 8, label: 'Grace Hopper' },
+    ]);
   });
 
   it('hides the outer opportunity modal close button', async () => {
