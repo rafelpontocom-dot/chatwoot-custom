@@ -49,6 +49,168 @@ RSpec.describe KanbanCard do
       expect(card.custom_field_values).to eq('aceitou' => false)
     end
 
+    it 'applies required field conditions using the opportunity value' do
+      board = create(:kanban_board)
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      board.update!(
+        custom_field_definitions: [
+          {
+            key: 'desconto_aprovado',
+            label: 'Desconto aprovado?',
+            field_type: 'boolean',
+            required_stage_ids: [stage.id],
+            condition: { field_key: 'system_amount', equals: '1500' }
+          }
+        ]
+      )
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        amount_cents: 150_000,
+        custom_field_values: {}
+      )
+
+      expect(card).not_to be_valid
+      expect(card.errors[:custom_field_values]).to include('desconto_aprovado is required')
+
+      card.amount_cents = 100_000
+      expect(card).to be_valid
+    end
+
+    it 'applies required field conditions using the conversation agent' do
+      conversation = create(:conversation)
+      agent = create(:user, account: conversation.account)
+      conversation.update!(assignee: agent)
+      board = create(:kanban_board, account: conversation.account)
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      board.update!(
+        custom_field_definitions: [
+          {
+            key: 'aprovacao_comercial',
+            label: 'Aprovação comercial',
+            field_type: 'text',
+            required_stage_ids: [stage.id],
+            condition: {
+              field_key: 'system_assignee_id',
+              equals: agent.id.to_s
+            }
+          }
+        ]
+      )
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        conversation: conversation,
+        contact: conversation.contact,
+        inbox: conversation.inbox,
+        custom_field_values: {}
+      )
+
+      expect(card).not_to be_valid
+      expect(card.errors[:custom_field_values]).to include('aprovacao_comercial is required')
+    end
+
+    it 'uses the opportunity value in custom field formulas' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'taxa', label: 'Taxa', field_type: 'currency' },
+          {
+            key: 'valor_total',
+            label: 'Valor total',
+            field_type: 'formula',
+            formula: 'system_amount + taxa'
+          }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        amount_cents: 150_000,
+        custom_field_values: { taxa: 100 }
+      )
+
+      expect(card).to be_valid
+      expect(card.custom_field_values).to include('valor_total' => 1600.0)
+    end
+
+    it 'resolves native opportunity identity and commercial fields for conditions' do
+      conversation = create(:conversation)
+      agent = create(:user, account: conversation.account)
+      conversation.update!(assignee: agent)
+      board = create(:kanban_board, account: conversation.account)
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        conversation: conversation,
+        contact: conversation.contact,
+        inbox: conversation.inbox,
+        owner: agent,
+        subject: 'Plano empresarial',
+        description: 'Venda pelo WhatsApp',
+        amount_cents: 150_000,
+        won_at: Time.zone.parse('2026-07-25 12:00:00')
+      )
+
+      expect(
+        %w[
+          system_subject system_description system_amount system_owner_id
+          system_assignee_id system_stage_id system_inbox_id system_status
+          system_contact_id system_conversation_id
+        ].index_with { |key| card.send(:condition_field_value, key) }
+      ).to eq(
+        'system_subject' => 'Plano empresarial',
+        'system_description' => 'Venda pelo WhatsApp',
+        'system_amount' => BigDecimal(1500),
+        'system_owner_id' => agent.id,
+        'system_assignee_id' => agent.id,
+        'system_stage_id' => stage.id,
+        'system_inbox_id' => conversation.inbox_id,
+        'system_status' => 'won',
+        'system_contact_id' => conversation.contact_id,
+        'system_conversation_id' => conversation.id
+      )
+    end
+
+    it 'resolves native opportunity scheduling fields for conditions' do
+      card = build(
+        :kanban_card,
+        starts_at: Time.zone.parse('2026-07-22 09:00:00'),
+        due_at: Time.zone.parse('2026-07-23 17:00:00'),
+        next_action_type: 'Enviar proposta',
+        next_action_at: Time.zone.parse('2026-07-24 10:00:00'),
+        next_action_note: 'Confirmar quantidade',
+        next_action_completed_at: Time.zone.parse('2026-07-24 11:00:00'),
+        lost_reason: 'Preço'
+      )
+
+      expect(
+        %w[
+          system_starts_at system_due_at system_next_action_type
+          system_next_action_at system_next_action_note
+          system_next_action_completed system_lost_reason
+        ].index_with { |key| card.send(:condition_field_value, key) }
+      ).to eq(
+        'system_starts_at' => '2026-07-22',
+        'system_due_at' => '2026-07-23',
+        'system_next_action_type' => 'Enviar proposta',
+        'system_next_action_at' => '2026-07-24',
+        'system_next_action_note' => 'Confirmar quantidade',
+        'system_next_action_completed' => true,
+        'system_lost_reason' => 'Preço'
+      )
+    end
+
     it 'records a snapshot when the next action is completed' do
       card = create(
         :kanban_card,

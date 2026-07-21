@@ -66,6 +66,26 @@ class KanbanCard < ApplicationRecord
   FORMULA_FIELD_PATTERN = /[a-zA-Z_][a-zA-Z0-9_]*/
   FORMULA_TOKEN_PATTERN = %r{\d+(?:\.\d+)?|[+\-*/()]}
   NUMERIC_CUSTOM_FIELD_TYPES = %w[integer decimal currency].freeze
+  SYSTEM_AMOUNT_FIELD_KEY = 'system_amount'.freeze
+  SYSTEM_CONDITION_VALUE_METHODS = {
+    'system_subject' => :subject,
+    'system_description' => :description,
+    SYSTEM_AMOUNT_FIELD_KEY => :opportunity_amount,
+    'system_owner_id' => :owner_id,
+    'system_assignee_id' => :conversation_assignee_id,
+    'system_stage_id' => :kanban_stage_id,
+    'system_inbox_id' => :inbox_id,
+    'system_status' => :opportunity_status,
+    'system_starts_at' => :condition_starts_on,
+    'system_due_at' => :condition_due_on,
+    'system_next_action_type' => :next_action_type,
+    'system_next_action_at' => :condition_next_action_on,
+    'system_next_action_note' => :next_action_note,
+    'system_next_action_completed' => :next_action_completed_for_condition?,
+    'system_lost_reason' => :lost_reason,
+    'system_contact_id' => :contact_id,
+    'system_conversation_id' => :conversation_id
+  }.freeze
 
   belongs_to :account
   belongs_to :kanban_board
@@ -395,7 +415,66 @@ class KanbanCard < ApplicationRecord
     condition = definition['condition'].to_h
     return true if condition.blank?
 
-    custom_field_values.to_h[condition['field_key']].to_s == condition['equals'].to_s
+    condition_field_value_matches?(condition['field_key'], condition['equals'])
+  end
+
+  def condition_field_value_matches?(field_key, expected_value)
+    actual_value = condition_field_value(field_key)
+    return false if actual_value.nil?
+
+    return BigDecimal(actual_value.to_s) == BigDecimal(expected_value.to_s) if numeric_condition_field?(field_key)
+
+    actual_value.to_s == expected_value.to_s
+  rescue ArgumentError
+    false
+  end
+
+  def condition_field_value(field_key)
+    values = custom_field_values.to_h
+    return values[field_key] if values.key?(field_key)
+
+    value_method = SYSTEM_CONDITION_VALUE_METHODS[field_key]
+    send(value_method) if value_method
+  end
+
+  def numeric_condition_field?(field_key)
+    return true if field_key == SYSTEM_AMOUNT_FIELD_KEY
+
+    definition = custom_field_definitions.find { |item| item['key'] == field_key }
+    definition && NUMERIC_CUSTOM_FIELD_TYPES.include?(definition['field_type'])
+  end
+
+  def opportunity_amount
+    return if amount_cents.nil?
+
+    amount_cents.to_d / 100
+  end
+
+  def opportunity_status
+    return 'won' if won_at.present?
+    return 'lost' if lost_at.present?
+
+    'open'
+  end
+
+  def conversation_assignee_id
+    conversation&.assignee_id
+  end
+
+  def condition_starts_on
+    starts_at&.in_time_zone&.to_date&.iso8601
+  end
+
+  def condition_due_on
+    due_at&.in_time_zone&.to_date&.iso8601
+  end
+
+  def condition_next_action_on
+    next_action_at&.in_time_zone&.to_date&.iso8601
+  end
+
+  def next_action_completed_for_condition?
+    next_action_completed_at.present?
   end
 
   def normalize_custom_field_value(definition, value)
@@ -513,6 +592,8 @@ class KanbanCard < ApplicationRecord
     invalid_formula = false
 
     expression = formula.gsub(FORMULA_FIELD_PATTERN) do |field_key|
+      next (opportunity_amount || 0).to_d.to_s('F') if field_key == SYSTEM_AMOUNT_FIELD_KEY
+
       field_definition = definitions_by_key[field_key]
       unless field_definition && NUMERIC_CUSTOM_FIELD_TYPES.include?(field_definition['field_type'])
         errors.add(:custom_field_values, "#{definition['key']} formula is invalid")

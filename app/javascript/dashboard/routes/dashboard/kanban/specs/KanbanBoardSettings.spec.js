@@ -460,6 +460,65 @@ describe('KanbanBoardSettings', () => {
     expect(conditionValue.text()).toContain('Não');
   });
 
+  it('offers native opportunity fields as condition sources', async () => {
+    const { wrapper } = await mountSettings();
+    const conditionField = wrapper.find(
+      '[data-testid="kanban-settings-condition-field"]'
+    );
+
+    [
+      'SUBJECT',
+      'DESCRIPTION',
+      'AMOUNT',
+      'OWNER',
+      'ASSIGNEE',
+      'STAGE',
+      'INBOX',
+      'STATUS',
+      'STARTS_AT',
+      'DUE_AT',
+      'NEXT_ACTION_TYPE',
+      'NEXT_ACTION_AT',
+      'NEXT_ACTION_NOTE',
+      'NEXT_ACTION_COMPLETED',
+      'LOST_REASON',
+      'CONTACT',
+      'CONVERSATION',
+    ].forEach(field => {
+      expect(conditionField.text()).toContain(
+        `KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.${field}`
+      );
+    });
+  });
+
+  it('uses account agents as values for native agent conditions', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            {
+              key: 'aprovacao',
+              label: 'Aprovação',
+              field_type: 'text',
+              condition: {
+                field_key: 'system_assignee_id',
+                equals: '2',
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const conditionValue = wrapper.find(
+      '[data-testid="kanban-settings-condition-value-select"]'
+    );
+    expect(conditionValue.text()).toContain('Alice');
+    expect(conditionValue.text()).toContain('Bob');
+    expect(conditionValue.element.value).toBe('2');
+  });
+
   it('opens import modal when enabling auto-create', async () => {
     const { wrapper } = await mountSettings({
       getSettingsResponse: {
@@ -701,6 +760,11 @@ describe('KanbanBoardSettings', () => {
       CONDITION_VALUE: 'For igual a',
       FORMULA: 'Fórmula',
       STALE_ALERTS: 'Alertas de oportunidade parada',
+      SYSTEM_FIELDS: {
+        AMOUNT: 'Valor da oportunidade',
+        OWNER: 'Responsável comercial',
+        ASSIGNEE: 'Agente da conversa',
+      },
     });
   });
 

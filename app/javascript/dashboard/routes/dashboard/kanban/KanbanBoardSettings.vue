@@ -89,6 +89,129 @@ const inboxOptions = computed(() =>
   }))
 );
 
+const linesFromText = value =>
+  String(value || '')
+    .split('\n')
+    .map(item => item.trim())
+    .filter(Boolean);
+
+const systemConditionFields = computed(() => [
+  {
+    key: 'system_subject',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.SUBJECT'),
+    fieldType: 'text',
+  },
+  {
+    key: 'system_description',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.DESCRIPTION'),
+    fieldType: 'textarea',
+  },
+  {
+    key: 'system_amount',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT'),
+    fieldType: 'currency',
+  },
+  {
+    key: 'system_owner_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.OWNER'),
+    fieldType: 'select',
+    conditionOptions: agentOptions.value,
+  },
+  {
+    key: 'system_assignee_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.ASSIGNEE'),
+    fieldType: 'select',
+    conditionOptions: agentOptions.value,
+  },
+  {
+    key: 'system_stage_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STAGE'),
+    fieldType: 'select',
+    conditionOptions: stages.value.map(stage => ({
+      value: stage.id,
+      label: stage.name,
+    })),
+  },
+  {
+    key: 'system_inbox_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.INBOX'),
+    fieldType: 'select',
+    conditionOptions: inboxOptions.value,
+  },
+  {
+    key: 'system_status',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STATUS'),
+    fieldType: 'select',
+    conditionOptions: [
+      {
+        value: 'open',
+        label: t('KANBAN.SETTINGS.SALES.SYSTEM_STATUS.OPEN'),
+      },
+      {
+        value: 'won',
+        label: t('KANBAN.SETTINGS.SALES.SYSTEM_STATUS.WON'),
+      },
+      {
+        value: 'lost',
+        label: t('KANBAN.SETTINGS.SALES.SYSTEM_STATUS.LOST'),
+      },
+    ],
+  },
+  {
+    key: 'system_starts_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STARTS_AT'),
+    fieldType: 'date',
+  },
+  {
+    key: 'system_due_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.DUE_AT'),
+    fieldType: 'date',
+  },
+  {
+    key: 'system_next_action_type',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE'),
+    fieldType: 'select',
+    conditionOptions: linesFromText(form.nextActionTypesText).map(value => ({
+      value,
+      label: value,
+    })),
+  },
+  {
+    key: 'system_next_action_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_AT'),
+    fieldType: 'date',
+  },
+  {
+    key: 'system_next_action_note',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_NOTE'),
+    fieldType: 'text',
+  },
+  {
+    key: 'system_next_action_completed',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_COMPLETED'),
+    fieldType: 'boolean',
+  },
+  {
+    key: 'system_lost_reason',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.LOST_REASON'),
+    fieldType: 'select',
+    conditionOptions: linesFromText(form.lostReasonOptionsText).map(value => ({
+      value,
+      label: value,
+    })),
+  },
+  {
+    key: 'system_contact_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.CONTACT'),
+    fieldType: 'integer',
+  },
+  {
+    key: 'system_conversation_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.CONVERSATION'),
+    fieldType: 'integer',
+  },
+]);
+
 const customFieldTypeOptions = computed(() => [
   { value: 'text', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.TEXT') },
   {
@@ -198,11 +321,6 @@ const refreshBoard = async () => {
   applyBoard(response.data);
 };
 
-const linesFromText = value =>
-  String(value || '')
-    .split('\n')
-    .map(item => item.trim())
-    .filter(Boolean);
 const customFieldDefinitionsFromText = value => {
   const trimmedValue = String(value || '').trim();
   if (!trimmedValue) return [];
@@ -278,19 +396,28 @@ const updateCustomFieldLabel = definition => {
   syncCustomFieldDefinitionsText();
 };
 
-const customFieldConditionCandidates = definition =>
-  form.customFieldDefinitions.filter(
+const customFieldConditionCandidates = definition => [
+  ...systemConditionFields.value,
+  ...form.customFieldDefinitions.filter(
     field => field !== definition && field.key
-  );
+  ),
+];
 
 const conditionSourceField = definition =>
-  form.customFieldDefinitions.find(
+  customFieldConditionCandidates(definition).find(
     field => field.key === definition.conditionFieldKey
   );
 
 const conditionValueOptions = definition => {
   const sourceField = conditionSourceField(definition);
   if (!sourceField) return [];
+
+  if (sourceField.conditionOptions) {
+    return sourceField.conditionOptions.map(option => ({
+      ...option,
+      value: String(option.value),
+    }));
+  }
 
   if (['select', 'multiselect'].includes(sourceField.fieldType)) {
     return linesFromText(sourceField.optionsText).map(value => ({
@@ -313,6 +440,19 @@ const conditionValueOptions = definition => {
   }
 
   return [];
+};
+
+const conditionValueInputType = definition => {
+  const fieldType = conditionSourceField(definition)?.fieldType;
+
+  if (['integer', 'decimal', 'currency', 'formula'].includes(fieldType)) {
+    return 'number';
+  }
+  if (fieldType === 'date') return 'date';
+  if (fieldType === 'datetime') return 'datetime-local';
+  if (fieldType === 'url') return 'url';
+
+  return 'text';
 };
 
 const updateConditionField = definition => {
@@ -1034,6 +1174,12 @@ onMounted(fetchSettings);
                     v-else
                     v-model="definition.conditionEquals"
                     data-testid="kanban-settings-condition-value-input"
+                    :type="conditionValueInputType(definition)"
+                    :step="
+                      conditionValueInputType(definition) === 'number'
+                        ? 'any'
+                        : undefined
+                    "
                     :disabled="!definition.conditionFieldKey"
                     :placeholder="
                       definition.conditionFieldKey
