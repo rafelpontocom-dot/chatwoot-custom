@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_21_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_21_143000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1007,6 +1007,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_100000) do
     t.jsonb "next_action_types", default: [], null: false
     t.jsonb "lost_reason_options", default: [], null: false
     t.jsonb "custom_field_definitions", default: [], null: false
+    t.jsonb "compact_card_field_keys", default: [], null: false
+    t.jsonb "stale_stage_thresholds", default: {}, null: false
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
     t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"
@@ -1043,6 +1045,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_100000) do
     t.bigint "amount_cents"
     t.string "amount_currency", default: "BRL", null: false
     t.jsonb "custom_field_values", default: {}, null: false
+    t.jsonb "next_action_history", default: [], null: false
     t.index ["account_id", "active"], name: "index_kanban_cards_on_account_id_and_active"
     t.index ["account_id", "contact_id"], name: "index_kanban_cards_on_account_id_and_contact_id"
     t.index ["account_id", "inbox_id"], name: "index_kanban_cards_on_account_id_and_inbox_id"

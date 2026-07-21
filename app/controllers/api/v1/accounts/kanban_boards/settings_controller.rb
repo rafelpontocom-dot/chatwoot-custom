@@ -54,6 +54,8 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
       allowed_inbox_ids: [],
       next_action_types: [],
       lost_reason_options: [],
+      compact_card_field_keys: [],
+      stale_stage_thresholds: {},
       custom_field_definitions: [
         :key,
         :label,

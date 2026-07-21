@@ -154,23 +154,33 @@ const normalizedCustomFieldDefinitions = computed(() =>
     )
 );
 
-const normalizeCard = payload => ({
-  ...payload,
-  accountId: payload.accountId ?? payload.account_id,
-  kanbanBoardId: payload.kanbanBoardId ?? payload.kanban_board_id,
-  kanbanStageId: payload.kanbanStageId ?? payload.kanban_stage_id,
-  conversationId: payload.conversationId ?? payload.conversation_id,
-  ownerId: payload.ownerId ?? payload.owner_id,
-  amountCents: payload.amountCents ?? payload.amount_cents,
-  amountCurrency: payload.amountCurrency ?? payload.amount_currency,
-  customFieldValues: payload.customFieldValues ?? payload.custom_field_values,
-  startsAt: payload.startsAt ?? payload.starts_at,
-  dueAt: payload.dueAt ?? payload.due_at,
-  nextActionType: payload.nextActionType ?? payload.next_action_type,
-  nextActionAt: payload.nextActionAt ?? payload.next_action_at,
-  nextActionNote: payload.nextActionNote ?? payload.next_action_note,
-  lostReason: payload.lostReason ?? payload.lost_reason,
-});
+const normalizeCard = payload =>
+  Object.fromEntries(
+    Object.entries({
+      ...payload,
+      accountId: payload.accountId ?? payload.account_id,
+      kanbanBoardId: payload.kanbanBoardId ?? payload.kanban_board_id,
+      kanbanStageId: payload.kanbanStageId ?? payload.kanban_stage_id,
+      conversationId: payload.conversationId ?? payload.conversation_id,
+      ownerId: payload.ownerId ?? payload.owner_id,
+      amountCents: payload.amountCents ?? payload.amount_cents,
+      amountCurrency: payload.amountCurrency ?? payload.amount_currency,
+      customFieldValues:
+        payload.customFieldValues ?? payload.custom_field_values,
+      startsAt: payload.startsAt ?? payload.starts_at,
+      dueAt: payload.dueAt ?? payload.due_at,
+      nextActionType: payload.nextActionType ?? payload.next_action_type,
+      nextActionAt: payload.nextActionAt ?? payload.next_action_at,
+      nextActionNote: payload.nextActionNote ?? payload.next_action_note,
+      nextActionCompletedAt:
+        payload.nextActionCompletedAt ??
+        payload.next_action_completed_at ??
+        null,
+      nextActionHistory:
+        payload.nextActionHistory ?? payload.next_action_history ?? [],
+      lostReason: payload.lostReason ?? payload.lost_reason,
+    }).filter(([, value]) => value !== undefined)
+  );
 
 const formatDateTimeInput = value => {
   if (!value) return '';
@@ -203,7 +213,7 @@ function isCustomFieldVisible(definition) {
 
   const fieldKey = condition.fieldKey || condition.field_key;
   return (
-    String(customFieldValues.value[fieldKey] || '') === String(condition.equals)
+    String(customFieldValues.value[fieldKey] ?? '') === String(condition.equals)
   );
 }
 const visibleCustomFieldDefinitions = computed(() =>
@@ -222,6 +232,16 @@ const setCustomFieldValue = (definition, value) => {
     [definition.key]: value,
   };
 };
+const customFieldLayoutClass = definition => {
+  const width = definition.layout?.width || 'full';
+  return {
+    full: 'md:col-span-6',
+    half: 'md:col-span-3',
+    third: 'md:col-span-2',
+  }[width];
+};
+const selectedMultiselectValues = event =>
+  Array.from(event.target.selectedOptions).map(option => option.value);
 
 const getErrorMessage = (error, fallback) => {
   const errors = error?.response?.data?.errors;
@@ -349,6 +369,11 @@ const saveCard = () => saveCardWith();
 const markWon = () =>
   saveCardWith({
     won_at: new Date().toISOString(),
+  });
+
+const completeNextAction = () =>
+  saveCardWith({
+    next_action_completed_at: new Date().toISOString(),
   });
 
 const markLost = () => {
@@ -516,11 +541,12 @@ onMounted(() => {
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS') }}
               </h3>
 
-              <div class="grid gap-3 md:grid-cols-2">
+              <div class="grid gap-3 md:grid-cols-6">
                 <label
                   v-for="definition in visibleCustomFieldDefinitions"
                   :key="definition.key"
                   class="grid gap-1.5"
+                  :class="customFieldLayoutClass(definition)"
                 >
                   <span class="text-sm font-medium text-n-slate-12">
                     {{ definition.label }}
@@ -545,19 +571,66 @@ onMounted(() => {
                     </option>
                   </select>
 
+                  <select
+                    v-else-if="definition.fieldType === 'multiselect'"
+                    multiple
+                    :value="getCustomFieldValue(definition)"
+                    :data-testid="`kanban-custom-field-${definition.key}`"
+                    class="min-h-24 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="
+                      setCustomFieldValue(
+                        definition,
+                        selectedMultiselectValues($event)
+                      )
+                    "
+                  >
+                    <option
+                      v-for="option in definition.options || []"
+                      :key="option"
+                      :value="option"
+                    >
+                      {{ option }}
+                    </option>
+                  </select>
+
+                  <textarea
+                    v-else-if="definition.fieldType === 'textarea'"
+                    :value="getCustomFieldValue(definition)"
+                    rows="3"
+                    :data-testid="`kanban-custom-field-${definition.key}`"
+                    class="min-h-20 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    @input="
+                      setCustomFieldValue(definition, $event.target.value)
+                    "
+                  />
+
+                  <input
+                    v-else-if="definition.fieldType === 'boolean'"
+                    type="checkbox"
+                    :checked="Boolean(getCustomFieldValue(definition))"
+                    :data-testid="`kanban-custom-field-${definition.key}`"
+                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                    @change="
+                      setCustomFieldValue(definition, $event.target.checked)
+                    "
+                  />
+
                   <input
                     v-else
                     :value="getCustomFieldValue(definition)"
                     :type="
                       definition.fieldType === 'integer' ||
                       definition.fieldType === 'decimal' ||
+                      definition.fieldType === 'currency' ||
                       definition.fieldType === 'formula'
                         ? 'number'
                         : definition.fieldType === 'date'
                           ? 'date'
                           : definition.fieldType === 'datetime'
                             ? 'datetime-local'
-                            : 'text'
+                            : definition.fieldType === 'url'
+                              ? 'url'
+                              : 'text'
                     "
                     :step="
                       definition.fieldType === 'decimal' ? '0.01' : undefined
@@ -796,6 +869,39 @@ onMounted(() => {
                   "
                 />
               </label>
+              <NextButton
+                v-if="nextActionAt && !card.nextActionCompletedAt"
+                type="button"
+                xs
+                outline
+                emerald
+                data-testid="kanban-opportunity-complete-next-action"
+                icon="i-lucide-check-check"
+                :label="t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')"
+                :disabled="isSaving"
+                @click="completeNextAction"
+              />
+              <div
+                v-if="card.nextActionHistory?.length"
+                data-testid="kanban-opportunity-next-action-history"
+                class="grid gap-2 border-t border-n-weak pt-3"
+              >
+                <h4 class="mb-0 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_HISTORY') }}
+                </h4>
+                <div
+                  v-for="(historyItem, index) in card.nextActionHistory
+                    .slice()
+                    .reverse()"
+                  :key="`${historyItem.completedAt || historyItem.completed_at}-${index}`"
+                  class="grid gap-0.5 text-xs text-n-slate-11"
+                >
+                  <span class="font-medium text-n-slate-12">
+                    {{ historyItem.type }}
+                  </span>
+                  <span v-if="historyItem.note">{{ historyItem.note }}</span>
+                </div>
+              </div>
             </section>
 
             <section class="grid gap-3 rounded-lg border border-n-weak p-3">

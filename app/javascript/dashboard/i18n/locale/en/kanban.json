@@ -27,6 +27,13 @@
       "AUTO_CREATE_CARDS": "Create cards automatically for new conversations",
       "NO_STAGES_HELP": "Add a stage before enabling automatic card creation."
     },
+    "BOARD_TEMPLATES": {
+      "LABEL": "Funnel template",
+      "WHATSAPP_SALES": "WhatsApp sales",
+      "CLINIC": "Clinic or appointment",
+      "B2B": "B2B services",
+      "BLANK": "Blank funnel"
+    },
     "FILTERS": {
       "INBOXES": "Inboxes",
       "AGENTS": "Agents",
@@ -44,7 +51,14 @@
       "WON": "Won",
       "LOST": "Lost",
       "OVERDUE": "Overdue",
-      "WON_AMOUNT": "Won value"
+      "WON_AMOUNT": "Won value",
+      "STALE": "Stale",
+      "DETAILS": "Sales reports and agenda",
+      "VALUES": "Values",
+      "BY_STAGE": "By stage",
+      "BY_OWNER": "By owner",
+      "LOST_REASONS": "Lost reasons",
+      "AGENDA": "Today's agenda"
     },
     "ACTIONS": {
       "CREATE_BOARD": "Add",
@@ -147,8 +161,44 @@
         "NEXT_ACTION_TYPES_PLACEHOLDER": "One action type per line",
         "LOST_REASON_OPTIONS": "Lost reasons",
         "LOST_REASON_OPTIONS_PLACEHOLDER": "One lost reason per line",
-        "CUSTOM_FIELDS": "Custom field definitions",
-        "CUSTOM_FIELDS_PLACEHOLDER": "JSON array with key, label, field_type, options, required_stage_ids, condition, formula and layout"
+        "CUSTOM_FIELDS": "Custom fields",
+        "CUSTOM_FIELDS_PLACEHOLDER": "JSON array with key, label, field_type, options, required_stage_ids, condition, formula and layout",
+        "ADD_CUSTOM_FIELD": "Add field",
+        "REMOVE_CUSTOM_FIELD": "Remove field",
+        "FIELD_LABEL": "Label",
+        "FIELD_KEY": "Stable key",
+        "FIELD_TYPE": "Type",
+        "FIELD_OPTIONS": "Options, one per line",
+        "FIELD_WIDTH": "Width",
+        "FIELD_SECTION": "Section",
+        "FIELD_POSITION": "Position",
+        "REQUIRED_STAGES": "Required in stages",
+        "CONDITION_FIELD": "Show when field",
+        "CONDITION_VALUE": "Equals",
+        "FORMULA": "Formula",
+        "SHOW_ON_CARD": "Show on compact card",
+        "ADVANCED_JSON": "Advanced JSON",
+        "STALE_ALERTS": "Stale card alerts",
+        "STALE_DAYS": "Days in stage before alert",
+        "FIELD_WIDTHS": {
+          "FULL": "Full width",
+          "HALF": "Half width",
+          "THIRD": "One third"
+        },
+        "FIELD_TYPES": {
+          "TEXT": "Text",
+          "TEXTAREA": "Long text",
+          "SELECT": "Single select",
+          "MULTISELECT": "Multiple select",
+          "INTEGER": "Integer",
+          "DECIMAL": "Decimal",
+          "CURRENCY": "Currency",
+          "DATE": "Date",
+          "DATETIME": "Date and time",
+          "BOOLEAN": "Checkbox",
+          "URL": "URL",
+          "FORMULA": "Formula"
+        }
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",
@@ -209,6 +259,8 @@
       "NEXT_ACTION_AT": "Action date",
       "NEXT_ACTION_NOTE": "Action note",
       "NEXT_ACTION_NOTE_PLACEHOLDER": "What should happen next?",
+      "COMPLETE_NEXT_ACTION": "Complete next action",
+      "NEXT_ACTION_HISTORY": "Completed actions",
       "ACTION_TYPES": {
         "NONE": "Select action",
         "CALL_BACK": "Call back",
@@ -278,13 +330,15 @@
       "ASSIGNEE": "Assignee: {assignee}",
       "PRIORITY": "Priority: {priority}",
       "LAST_ACTIVITY": "Last activity: {time}",
+      "CUSTOM_FIELD": "{label}: {value}",
       "NEXT_ACTION": {
         "MISSING": "No next action",
         "OVERDUE": "Overdue",
         "DUE_TODAY": "Today",
         "FUTURE": "Next action",
         "CLOSED": "Closed"
-      }
+      },
+      "STALE_IN_STAGE": "Stale in stage"
     },
     "NOTES": {
       "TITLE": "Contact notes",

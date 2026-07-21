@@ -10,6 +10,11 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.ACTIONS.BOARD_NAME_PLACEHOLDER': 'Nome do quadro',
         'KANBAN.ACTIONS.CONFIRM_CREATE_BOARD': 'Criar funil',
         'KANBAN.ACTIONS.CANCEL_CREATE_BOARD': 'Cancelar criação do funil',
+        'KANBAN.BOARD_TEMPLATES.LABEL': 'Modelo do funil',
+        'KANBAN.BOARD_TEMPLATES.WHATSAPP_SALES': 'Venda por WhatsApp',
+        'KANBAN.BOARD_TEMPLATES.CLINIC': 'Clínica ou consulta',
+        'KANBAN.BOARD_TEMPLATES.B2B': 'Serviço B2B',
+        'KANBAN.BOARD_TEMPLATES.BLANK': 'Funil em branco',
       };
 
       return translations[key] || key;
@@ -26,16 +31,21 @@ const mountDialog = props =>
   });
 
 describe('KanbanCreateBoardDialog', () => {
-  it('confirms with Enter using only the typed board name', async () => {
+  it('confirms with Enter using the typed board name and selected template', async () => {
     const wrapper = mountDialog();
 
     const input = wrapper.find(
       '[data-testid="kanban-create-board-name-input"]'
     );
     await input.setValue(' New Funnel ');
+    await wrapper
+      .find('[data-testid="kanban-create-board-template"]')
+      .setValue('b2b');
     await input.trigger('keydown', { key: 'Enter' });
 
-    expect(wrapper.emitted('create')).toEqual([['New Funnel']]);
+    expect(wrapper.emitted('create')).toEqual([
+      [{ name: 'New Funnel', templateKey: 'b2b' }],
+    ]);
   });
 
   it('cancels with Escape and clears the typed board name', async () => {

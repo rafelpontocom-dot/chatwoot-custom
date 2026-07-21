@@ -59,7 +59,7 @@ Interação ou atendimento. Pode originar uma oportunidade, mas não deve ser tr
 
 Oportunidade comercial. Representa a venda em andamento.
 
-Um contato pode ter mais de uma conversa e, no futuro, pode ter mais de uma oportunidade. A conversa é canal/contexto; o card é a oportunidade.
+Um contato pode ter mais de uma conversa e mais de uma oportunidade. A conversa é canal/contexto; o card é a oportunidade.
 
 ### Board
 
@@ -137,7 +137,8 @@ Cada board deve permitir ao administrador configurar:
 
 - tipos de próxima ação;
 - motivos de perda;
-- futuramente, campos personalizados e campos visíveis no card compacto.
+- campos personalizados e campos visíveis no card compacto;
+- limite de dias parado em cada etapa.
 
 As listas de tipos de próxima ação e motivos de perda fazem parte do MVP. Elas devem ser editáveis em configurações do board, com uma opção por linha, e o sistema deve ignorar opções vazias ou duplicadas.
 
@@ -245,7 +246,7 @@ Tipos necessários:
 - data e hora;
 - checkbox/sim ou não;
 - fórmula;
-- URL, em fase posterior.
+- URL.
 
 Cada campo deve ter:
 
@@ -438,9 +439,9 @@ Auto criação deve ser configurável por board/inbox. Não deve criar cards aut
 - A criação automática de oportunidades deve ser configurável por board/inbox, não global.
 - A criação manual deve continuar disponível mesmo quando a automação estiver ligada.
 
-## MVP
+## Entregue
 
-Primeira versão após estabilizar o Kanban atual:
+O Kanban comercial entregue inclui:
 
 - adicionar próximo passo no card;
 - permitir tipos de próximo passo configuráveis por board;
@@ -454,10 +455,7 @@ Primeira versão após estabilizar o Kanban atual:
 - registrar ganho/perda;
 - adicionar valor da oportunidade;
 - melhorar card compacto para venda;
-- manter abertura rápida da conversa.
-
-## Fase 2
-
+- manter abertura rápida da conversa;
 - campos personalizados por board;
 - layout configurável de campos;
 - campos condicionais;
@@ -468,9 +466,10 @@ Primeira versão após estabilizar o Kanban atual:
 - relatórios simples de vendas por valor, etapa e responsável;
 - templates de board;
 - regras simples de alerta por etapa;
-- histórico/timeline comercial no card.
+- histórico das próximas ações concluídas;
+- agenda diária de ações atrasadas e de hoje.
 
-## Fase 3
+## Proximas Fases
 
 - notificações internas;
 - nota privada automática no Chatwoot;

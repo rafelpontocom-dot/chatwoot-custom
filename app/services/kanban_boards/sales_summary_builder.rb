@@ -14,12 +14,14 @@ class KanbanBoards::SalesSummaryBuilder
       won_count: won_cards.count,
       lost_count: lost_cards.count,
       overdue_count: overdue_sales_cards(cards).count,
+      stale_count: cards.count(&:stale_in_stage?),
       open_amount_cents: sales_amount_cents(open_cards),
       won_amount_cents: sales_amount_cents(won_cards),
       lost_amount_cents: sales_amount_cents(lost_cards),
       by_stage: sales_summary_by_stage(cards),
       by_owner: sales_summary_by_owner(cards),
-      lost_reasons: sales_summary_lost_reasons(cards)
+      lost_reasons: sales_summary_lost_reasons(cards),
+      agenda: sales_action_agenda(cards)
     }
   end
 
@@ -72,6 +74,25 @@ class KanbanBoards::SalesSummaryBuilder
     end
   end
 
+  def sales_action_agenda(cards)
+    agenda_items = cards.filter_map do |card|
+      status = card.next_action_status
+      next unless [KanbanCard::NEXT_ACTION_STATUS_OVERDUE, KanbanCard::NEXT_ACTION_STATUS_DUE_TODAY].include?(status)
+
+      {
+        id: card.id,
+        subject: card.subject.presence || card.contact.name,
+        next_action_type: card.next_action_type,
+        next_action_at: card.next_action_at&.iso8601,
+        status: status,
+        owner_id: card.owner_id,
+        owner_name: card.owner&.name
+      }
+    end
+
+    agenda_items.sort_by { |item| item[:next_action_at].to_s }
+  end
+
   def sales_summary_bucket(id:, name:, cards:)
     {
       id: id,
@@ -79,7 +100,9 @@ class KanbanBoards::SalesSummaryBuilder
       open_count: cards.count(&:open_opportunity?),
       won_count: cards.count { |card| card.won_at.present? },
       lost_count: cards.count { |card| card.lost_at.present? },
-      amount_cents: sales_amount_cents(cards)
+      amount_cents: sales_amount_cents(cards),
+      overdue_count: overdue_sales_cards(cards).count,
+      stale_count: cards.count(&:stale_in_stage?)
     }
   end
 end

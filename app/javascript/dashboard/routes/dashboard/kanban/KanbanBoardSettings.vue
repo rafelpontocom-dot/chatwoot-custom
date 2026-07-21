@@ -56,6 +56,9 @@ const form = reactive({
   nextActionTypesText: '',
   lostReasonOptionsText: '',
   customFieldDefinitionsText: '',
+  customFieldDefinitions: [],
+  compactCardFieldKeys: [],
+  staleStageThresholds: {},
 });
 
 const boardId = computed(() => Number(route.params.boardId));
@@ -79,6 +82,39 @@ const inboxOptions = computed(() =>
     label: inbox.name,
   }))
 );
+
+const customFieldTypeOptions = computed(() => [
+  { value: 'text', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.TEXT') },
+  {
+    value: 'textarea',
+    label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.TEXTAREA'),
+  },
+  { value: 'select', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.SELECT') },
+  {
+    value: 'multiselect',
+    label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.MULTISELECT'),
+  },
+  { value: 'integer', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.INTEGER') },
+  { value: 'decimal', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.DECIMAL') },
+  {
+    value: 'currency',
+    label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.CURRENCY'),
+  },
+  { value: 'date', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.DATE') },
+  {
+    value: 'datetime',
+    label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.DATETIME'),
+  },
+  { value: 'boolean', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.BOOLEAN') },
+  { value: 'url', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.URL') },
+  { value: 'formula', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.FORMULA') },
+]);
+
+const customFieldWidthOptions = computed(() => [
+  { value: 'full', label: t('KANBAN.SETTINGS.SALES.FIELD_WIDTHS.FULL') },
+  { value: 'half', label: t('KANBAN.SETTINGS.SALES.FIELD_WIDTHS.HALF') },
+  { value: 'third', label: t('KANBAN.SETTINGS.SALES.FIELD_WIDTHS.THIRD') },
+]);
 
 const getErrorMessage = (error, fallbackMessage) =>
   error?.response?.data?.error ||
@@ -104,6 +140,25 @@ const applySettings = payload => {
     null,
     2
   );
+  form.customFieldDefinitions = (settings.customFieldDefinitions || []).map(
+    definition => ({
+      key: definition.key || '',
+      label: definition.label || '',
+      fieldType: definition.fieldType || 'text',
+      optionsText: (definition.options || []).join('\n'),
+      requiredStageIds: definition.requiredStageIds || [],
+      conditionFieldKey:
+        definition.condition?.fieldKey || definition.condition?.field_key || '',
+      conditionEquals: definition.condition?.equals || '',
+      formula: definition.formula || '',
+      layoutSection: definition.layout?.section || 'details',
+      layoutPosition: definition.layout?.position || 1,
+      layoutWidth: definition.layout?.width || 'full',
+      autoKey: false,
+    })
+  );
+  form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
+  form.staleStageThresholds = settings.staleStageThresholds || {};
 };
 
 const applyBoard = payload => {
@@ -149,6 +204,88 @@ const customFieldDefinitionsFromText = value => {
   return Array.isArray(parsedValue) ? parsedValue : [];
 };
 
+const customFieldKeyFromLabel = label =>
+  String(label || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+const customFieldPayload = definition => ({
+  key: definition.key,
+  label: definition.label,
+  field_type: definition.fieldType,
+  options: linesFromText(definition.optionsText),
+  required_stage_ids: (definition.requiredStageIds || []).map(Number),
+  condition: definition.conditionFieldKey
+    ? {
+        field_key: definition.conditionFieldKey,
+        equals: definition.conditionEquals,
+      }
+    : {},
+  formula: definition.fieldType === 'formula' ? definition.formula : null,
+  layout: {
+    section: definition.layoutSection || 'details',
+    position: Number(definition.layoutPosition) || 1,
+    width: definition.layoutWidth || 'full',
+  },
+});
+
+const syncCustomFieldDefinitionsText = () => {
+  form.customFieldDefinitionsText = JSON.stringify(
+    form.customFieldDefinitions.map(customFieldPayload),
+    null,
+    2
+  );
+};
+
+const addCustomField = () => {
+  form.customFieldDefinitions.push({
+    key: '',
+    label: '',
+    fieldType: 'text',
+    optionsText: '',
+    requiredStageIds: [],
+    conditionFieldKey: '',
+    conditionEquals: '',
+    formula: '',
+    layoutSection: 'details',
+    layoutPosition: form.customFieldDefinitions.length + 1,
+    layoutWidth: 'full',
+    autoKey: true,
+  });
+  syncCustomFieldDefinitionsText();
+};
+
+const updateCustomFieldLabel = definition => {
+  if (definition.autoKey) {
+    definition.key = customFieldKeyFromLabel(definition.label);
+  }
+  syncCustomFieldDefinitionsText();
+};
+
+const removeCustomField = index => {
+  const [removedField] = form.customFieldDefinitions.splice(index, 1);
+  form.compactCardFieldKeys = form.compactCardFieldKeys.filter(
+    key => key !== removedField.key
+  );
+  syncCustomFieldDefinitionsText();
+};
+
+const toggleCompactCardField = (fieldKey, checked) => {
+  form.compactCardFieldKeys = checked
+    ? [...new Set([...form.compactCardFieldKeys, fieldKey])]
+    : form.compactCardFieldKeys.filter(key => key !== fieldKey);
+};
+
+const normalizedStaleStageThresholds = () =>
+  Object.fromEntries(
+    Object.entries(form.staleStageThresholds)
+      .map(([stageId, days]) => [stageId, Number(days)])
+      .filter(([, days]) => days > 0)
+  );
+
 const buildPayload = () => ({
   kanban_board: {
     name: form.name.trim(),
@@ -165,6 +302,8 @@ const buildPayload = () => ({
     custom_field_definitions: customFieldDefinitionsFromText(
       form.customFieldDefinitionsText
     ),
+    compact_card_field_keys: form.compactCardFieldKeys,
+    stale_stage_thresholds: normalizedStaleStageThresholds(),
   },
 });
 
@@ -657,18 +796,243 @@ onMounted(fetchSettings);
               "
             />
           </label>
-          <label class="grid gap-1 text-sm font-medium text-n-slate-12">
-            {{ t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS') }}
-            <textarea
-              v-model="form.customFieldDefinitionsText"
-              data-testid="kanban-settings-custom-fields"
-              rows="10"
-              class="font-mono rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-              :placeholder="
-                t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS_PLACEHOLDER')
-              "
-            />
-          </label>
+          <div class="grid gap-3">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS') }}
+              </h3>
+              <Button
+                type="button"
+                data-testid="kanban-settings-add-custom-field"
+                icon="i-lucide-plus"
+                :label="t('KANBAN.SETTINGS.SALES.ADD_CUSTOM_FIELD')"
+                color="slate"
+                size="sm"
+                @click="addCustomField"
+              />
+            </div>
+
+            <article
+              v-for="(definition, index) in form.customFieldDefinitions"
+              :key="`${definition.key}-${index}`"
+              data-testid="kanban-settings-custom-field-row"
+              class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+            >
+              <div class="grid gap-3 md:grid-cols-3">
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.FIELD_LABEL') }}
+                  <input
+                    v-model="definition.label"
+                    data-testid="kanban-settings-custom-field-label"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @input="updateCustomFieldLabel(definition)"
+                  />
+                </label>
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.FIELD_KEY') }}
+                  <input
+                    v-model="definition.key"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @input="
+                      definition.autoKey = false;
+                      syncCustomFieldDefinitionsText();
+                    "
+                  />
+                </label>
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.FIELD_TYPE') }}
+                  <select
+                    v-model="definition.fieldType"
+                    data-testid="kanban-settings-custom-field-type"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="syncCustomFieldDefinitionsText"
+                  >
+                    <option
+                      v-for="option in customFieldTypeOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <label
+                v-if="['select', 'multiselect'].includes(definition.fieldType)"
+                class="grid gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.SALES.FIELD_OPTIONS') }}
+                <textarea
+                  v-model="definition.optionsText"
+                  rows="3"
+                  class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                  @input="syncCustomFieldDefinitionsText"
+                />
+              </label>
+
+              <div class="grid gap-3 md:grid-cols-3">
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.FIELD_WIDTH') }}
+                  <select
+                    v-model="definition.layoutWidth"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="syncCustomFieldDefinitionsText"
+                  >
+                    <option
+                      v-for="option in customFieldWidthOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </label>
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.FIELD_SECTION') }}
+                  <input
+                    v-model="definition.layoutSection"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @input="syncCustomFieldDefinitionsText"
+                  />
+                </label>
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.FIELD_POSITION') }}
+                  <input
+                    v-model="definition.layoutPosition"
+                    type="number"
+                    min="1"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @input="syncCustomFieldDefinitionsText"
+                  />
+                </label>
+              </div>
+
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES') }}
+                <select
+                  v-model="definition.requiredStageIds"
+                  multiple
+                  class="min-h-20 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="syncCustomFieldDefinitionsText"
+                >
+                  <option
+                    v-for="stage in stages"
+                    :key="stage.id"
+                    :value="stage.id"
+                  >
+                    {{ stage.name }}
+                  </option>
+                </select>
+              </label>
+
+              <div class="grid gap-3 md:grid-cols-2">
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.CONDITION_FIELD') }}
+                  <select
+                    v-model="definition.conditionFieldKey"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="syncCustomFieldDefinitionsText"
+                  >
+                    <option value="" />
+                    <option
+                      v-for="candidate in form.customFieldDefinitions.filter(
+                        field => field !== definition
+                      )"
+                      :key="candidate.key"
+                      :value="candidate.key"
+                    >
+                      {{ candidate.label || candidate.key }}
+                    </option>
+                  </select>
+                </label>
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.CONDITION_VALUE') }}
+                  <input
+                    v-model="definition.conditionEquals"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @input="syncCustomFieldDefinitionsText"
+                  />
+                </label>
+              </div>
+
+              <label
+                v-if="definition.fieldType === 'formula'"
+                class="grid gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.SALES.FORMULA') }}
+                <input
+                  v-model="definition.formula"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 font-mono text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                  @input="syncCustomFieldDefinitionsText"
+                />
+              </label>
+
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <label class="flex items-center gap-2 text-sm text-n-slate-12">
+                  <input
+                    type="checkbox"
+                    data-testid="kanban-settings-custom-field-show-on-card"
+                    :checked="
+                      form.compactCardFieldKeys.includes(definition.key)
+                    "
+                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                    @change="
+                      toggleCompactCardField(
+                        definition.key,
+                        $event.target.checked
+                      )
+                    "
+                  />
+                  {{ t('KANBAN.SETTINGS.SALES.SHOW_ON_CARD') }}
+                </label>
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2"
+                  :aria-label="t('KANBAN.SETTINGS.SALES.REMOVE_CUSTOM_FIELD')"
+                  @click="removeCustomField(index)"
+                >
+                  <i class="i-lucide-trash size-4" />
+                </button>
+              </div>
+            </article>
+
+            <details class="text-sm text-n-slate-11">
+              <summary class="cursor-pointer font-medium">
+                {{ t('KANBAN.SETTINGS.SALES.ADVANCED_JSON') }}
+              </summary>
+              <textarea
+                v-model="form.customFieldDefinitionsText"
+                data-testid="kanban-settings-custom-fields"
+                rows="10"
+                class="font-mono mt-2 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                :placeholder="
+                  t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS_PLACEHOLDER')
+                "
+              />
+            </details>
+          </div>
+
+          <div class="grid gap-2">
+            <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+              {{ t('KANBAN.SETTINGS.SALES.STALE_ALERTS') }}
+            </h3>
+            <label
+              v-for="stage in stages"
+              :key="stage.id"
+              class="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 text-sm text-n-slate-12"
+            >
+              <span class="truncate">{{ stage.name }}</span>
+              <input
+                v-model="form.staleStageThresholds[stage.id]"
+                :data-testid="`kanban-settings-stale-stage-${stage.id}`"
+                type="number"
+                min="1"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :aria-label="t('KANBAN.SETTINGS.SALES.STALE_DAYS')"
+              />
+            </label>
+          </div>
         </section>
 
         <section class="grid gap-4 border-b border-n-weak pb-6">

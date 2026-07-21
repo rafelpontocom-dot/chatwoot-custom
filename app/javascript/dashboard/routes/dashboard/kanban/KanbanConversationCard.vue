@@ -60,6 +60,28 @@ const assigneeThumbnail = computed(
   () => assignee.value?.thumbnail || assignee.value?.avatarUrl || ''
 );
 const subject = computed(() => props.card.subject || '');
+const amountCents = computed(
+  () => props.card.amountCents ?? props.card.amount_cents
+);
+const amountCurrency = computed(
+  () => props.card.amountCurrency || props.card.amount_currency || 'BRL'
+);
+const amountLabel = computed(() => {
+  if (amountCents.value === null || amountCents.value === undefined) return '';
+
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: amountCurrency.value,
+  }).format(Number(amountCents.value) / 100);
+});
+const compactCustomFields = computed(
+  () => props.card.compactCustomFields || props.card.compact_custom_fields || []
+);
+const compactFieldValue = field =>
+  Array.isArray(field.value) ? field.value.join(', ') : String(field.value);
+const staleInStage = computed(
+  () => props.card.staleInStage || props.card.stale_in_stage
+);
 const nextActionStatus = computed(
   () => props.card.nextActionStatus || props.card.next_action_status || ''
 );
@@ -230,6 +252,43 @@ const openConversation = event => {
         <span v-if="nextActionAtLabel" class="flex-shrink-0">
           {{ nextActionAtLabel }}
         </span>
+      </div>
+
+      <div
+        v-if="amountLabel"
+        data-testid="kanban-card-amount"
+        class="mt-1 text-sm font-semibold text-n-slate-12"
+      >
+        {{ amountLabel }}
+      </div>
+
+      <div
+        v-if="compactCustomFields.length"
+        data-testid="kanban-card-custom-fields"
+        class="mt-1 grid gap-0.5 text-xs leading-4 text-n-slate-11"
+      >
+        <p
+          v-for="field in compactCustomFields"
+          :key="field.key"
+          class="mb-0 truncate"
+          :title="`${field.label}: ${compactFieldValue(field)}`"
+        >
+          {{
+            t('KANBAN.CARD.CUSTOM_FIELD', {
+              label: field.label,
+              value: compactFieldValue(field),
+            })
+          }}
+        </p>
+      </div>
+
+      <div
+        v-if="staleInStage"
+        data-testid="kanban-card-stale"
+        class="mt-1 inline-flex items-center gap-1 rounded-md border border-n-amber-5 bg-n-amber-2 px-1.5 py-0.5 text-xs text-n-amber-11"
+      >
+        <i class="i-lucide-hourglass size-3.5" />
+        {{ t('KANBAN.CARD.STALE_IN_STAGE') }}
       </div>
 
       <div

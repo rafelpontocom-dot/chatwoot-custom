@@ -9,6 +9,7 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.CARD.INBOX': `Inbox: ${values.inbox}`,
         'KANBAN.CARD.ASSIGNEE': `Assignee: ${values.assignee}`,
         'KANBAN.CARD.LAST_ACTIVITY': `Last activity: ${values.time}`,
+        'KANBAN.CARD.CUSTOM_FIELD': `${values.label}: ${values.value}`,
         'KANBAN.CARD.UNKNOWN_CONTACT': 'Unknown Contact',
         'KANBAN.CARD.UNKNOWN_INBOX': 'Unknown Inbox',
         'KANBAN.CARD.NO_LINKED_CONVERSATION': 'No linked conversation',
@@ -226,6 +227,30 @@ describe('KanbanConversationCard', () => {
     expect(badge.exists()).toBe(true);
     expect(badge.text()).toContain('Overdue');
     expect(badge.text()).toContain('Jul 20');
+  });
+
+  it('renders opportunity value and configured compact custom fields', () => {
+    const wrapper = mountCard({
+      card: buildManualCard({
+        amountCents: 125050,
+        amountCurrency: 'BRL',
+        customFieldValues: {
+          origem: 'Instagram',
+          interno: 'Não exibir',
+        },
+        compactCustomFields: [
+          { key: 'origem', label: 'Origem', value: 'Instagram' },
+        ],
+      }),
+    });
+
+    expect(wrapper.find('[data-testid="kanban-card-amount"]').text()).toContain(
+      'R$ 1.250,50'
+    );
+    expect(
+      wrapper.find('[data-testid="kanban-card-custom-fields"]').text()
+    ).toContain('Origem: Instagram');
+    expect(wrapper.text()).not.toContain('Não exibir');
   });
 
   it('emits openDetails even when conversationId is null', async () => {

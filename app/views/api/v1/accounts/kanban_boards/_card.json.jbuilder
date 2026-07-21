@@ -32,6 +32,9 @@ if stable_card
   json.amount_cents card.amount_cents
   json.amount_currency card.amount_currency
   json.custom_field_values card.custom_field_values
+  json.next_action_history card.next_action_history
+  json.compact_custom_fields card.compact_custom_fields
+  json.stale_in_stage card.stale_in_stage?
   json.owner do
     if card.owner
       json.id card.owner.id

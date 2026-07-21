@@ -160,7 +160,41 @@ const buildBoardResponse = (stageBCards = [], overrides = {}) => ({
     won_count: 2,
     lost_count: 1,
     overdue_count: 4,
+    stale_count: 2,
+    open_amount_cents: 500000,
     won_amount_cents: 125500,
+    lost_amount_cents: 75000,
+    by_stage: [
+      {
+        id: 100,
+        name: 'Stage A',
+        open_count: 3,
+        won_count: 2,
+        lost_count: 1,
+        amount_cents: 500000,
+      },
+    ],
+    by_owner: [
+      {
+        id: 7,
+        name: 'Ada Lovelace',
+        open_count: 2,
+        won_count: 1,
+        lost_count: 1,
+        overdue_count: 1,
+        amount_cents: 300000,
+      },
+    ],
+    lost_reasons: [{ reason: 'Preço', count: 1, amount_cents: 75000 }],
+    agenda: [
+      {
+        id: 501,
+        subject: 'Enterprise expansion',
+        owner_name: 'Ada Lovelace',
+        status: 'overdue',
+        next_action_at: '2026-07-20T15:00:00Z',
+      },
+    ],
   },
   stages: [
     {
@@ -1684,6 +1718,19 @@ describe('KanbanView header navigation', () => {
     expect(summary.text()).toContain('KANBAN.REPORTS.WON');
     expect(summary.text()).toContain('2');
     expect(summary.text()).toContain('R$ 1.255,00');
+  });
+
+  it('renders detailed sales reports and the daily agenda', async () => {
+    const wrapper = await mountView();
+
+    const details = wrapper.find('[data-testid="kanban-sales-details"]');
+    expect(details.text()).toContain('Stage A');
+    expect(details.text()).toContain('Ada Lovelace');
+    expect(details.text()).toContain('Preço');
+    expect(details.text()).toContain('Enterprise expansion');
+    expect(details.text()).toContain('R$ 5.000,00');
+    expect(details.text()).toContain('R$ 3.000,00');
+    expect(details.text()).toContain('R$ 750,00');
   });
 
   it('lists visible boards in the dropdown', async () => {

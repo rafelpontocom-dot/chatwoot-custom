@@ -239,11 +239,14 @@ RSpec.describe 'Kanban Boards API', type: :request do
         'won_amount_cents' => 250_00
       )
       expect(response.parsed_body['sales_summary']['by_stage']).to include(
-        { 'id' => first_stage.id, 'name' => 'Lead', 'open_count' => 1, 'won_count' => 0, 'lost_count' => 0, 'amount_cents' => 0 },
-        { 'id' => second_stage.id, 'name' => 'Fechamento', 'open_count' => 0, 'won_count' => 1, 'lost_count' => 1, 'amount_cents' => 250_00 }
+        hash_including('id' => first_stage.id, 'name' => 'Lead', 'open_count' => 1, 'won_count' => 0, 'lost_count' => 0,
+                       'amount_cents' => 0, 'overdue_count' => 0, 'stale_count' => 0),
+        hash_including('id' => second_stage.id, 'name' => 'Fechamento', 'open_count' => 0, 'won_count' => 1, 'lost_count' => 1,
+                       'amount_cents' => 250_00, 'overdue_count' => 0, 'stale_count' => 0)
       )
       expect(response.parsed_body['sales_summary']['by_owner']).to include(
-        { 'id' => owner.id, 'name' => 'Ana Paula', 'open_count' => 0, 'won_count' => 1, 'lost_count' => 0, 'amount_cents' => 250_00 }
+        hash_including('id' => owner.id, 'name' => 'Ana Paula', 'open_count' => 0, 'won_count' => 1, 'lost_count' => 0,
+                       'amount_cents' => 250_00, 'overdue_count' => 0, 'stale_count' => 0)
       )
     end
 
@@ -1115,6 +1118,36 @@ RSpec.describe 'Kanban Boards API', type: :request do
       expect(response.parsed_body['auto_create_cards_from_conversations']).to be(true)
     end
 
+    it 'creates stages from the WhatsApp sales template' do
+      post "/api/v1/accounts/#{account.id}/kanban_boards",
+           headers: administrator.create_new_auth_token,
+           params: { kanban_board: payload[:kanban_board].merge(template_key: 'whatsapp_sales') },
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(KanbanBoard.last.kanban_stages.active.ordered.pluck(:name)).to eq(
+        ['Novo lead', 'Em conversa', 'Interesse identificado', 'Proposta enviada', 'Follow-up', 'Fechado', 'Perdido']
+      )
+    end
+
+    it 'creates stages from the clinic and B2B templates and keeps blank funnels empty' do
+      expected_stages = {
+        'clinic' => ['Novo lead', 'Qualificado', 'Consulta agendada', 'Confirmado', 'Compareceu', 'Fechado', 'Perdido'],
+        'b2b' => ['Novo lead', 'Diagnóstico', 'Proposta', 'Negociação', 'Contrato enviado', 'Fechado', 'Perdido'],
+        'blank' => []
+      }
+
+      expected_stages.each do |template_key, stage_names|
+        post "/api/v1/accounts/#{account.id}/kanban_boards",
+             headers: administrator.create_new_auth_token,
+             params: { kanban_board: payload[:kanban_board].merge(name: "Support #{template_key}", template_key: template_key) },
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(KanbanBoard.last.kanban_stages.active.ordered.pluck(:name)).to eq(stage_names)
+      end
+    end
+
     it 'returns unauthorized for users outside the account' do
       other_user = create(:user)
 
@@ -1695,7 +1728,7 @@ RSpec.describe 'Kanban Boards API', type: :request do
     %w[
       id kanban_stage_id position origin subject active due_at stage_entered_at contact inbox conversation_id priority conversation assignee
       moved_by_id moved_at owner_id owner next_action_type next_action_at next_action_note next_action_status next_action_completed_at
-      won_at lost_at lost_reason closed_by_id closed_by amount_cents amount_currency custom_field_values
+      won_at lost_at lost_reason closed_by_id closed_by amount_cents amount_currency custom_field_values compact_custom_fields stale_in_stage
     ]
   end
 

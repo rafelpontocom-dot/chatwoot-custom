@@ -115,6 +115,34 @@ RSpec.describe KanbanBoard do
       expect(board.next_action_types).to eq(['Enviar proposta', 'Cobrar retorno'])
       expect(board.lost_reason_options).to eq(['Preço', 'Sem resposta'])
     end
+
+    it 'normalizes configurable compact fields and stale stage thresholds' do
+      stage = create(:kanban_stage)
+      board = stage.kanban_board
+      board.compact_card_field_keys = [' valor_estimado ', '', 'valor_estimado', 'origem']
+      board.stale_stage_thresholds = { stage.id.to_s => '3', 'invalid' => '10' }
+
+      board.valid?
+
+      expect(board.compact_card_field_keys).to eq(%w[valor_estimado origem])
+      expect(board.stale_stage_thresholds).to eq(stage.id.to_s => 3)
+    end
+
+    it 'supports the custom field types required by commercial boards' do
+      board = create(:kanban_board)
+      board.custom_field_definitions = %w[textarea currency multiselect url].map do |field_type|
+        {
+          key: field_type,
+          label: field_type.titleize,
+          field_type: field_type,
+          options: field_type == 'multiselect' ? %w[A B] : []
+        }
+      end
+
+      board.valid?
+
+      expect(board.custom_field_definitions.pluck('field_type')).to eq(%w[textarea currency multiselect url])
+    end
   end
 
   describe 'associations' do

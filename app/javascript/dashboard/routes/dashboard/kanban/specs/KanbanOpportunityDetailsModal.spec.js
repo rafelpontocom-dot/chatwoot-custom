@@ -154,6 +154,8 @@ const buildCard = overrides => ({
   nextActionType: 'Enviar proposta',
   nextActionAt: '2026-07-20T15:00',
   nextActionNote: 'Send proposal by WhatsApp',
+  nextActionCompletedAt: null,
+  nextActionHistory: [],
   lostReason: '',
   conversationId: 42,
   conversation: {
@@ -538,6 +540,86 @@ describe('KanbanOpportunityDetailsModal', () => {
         next_action_note: 'Send checkout link',
       })
     );
+  });
+
+  it('marks the current next action as completed', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({ nextActionCompletedAt: '2026-07-21T16:00:00.000Z' }),
+    });
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-complete-next-action"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({ next_action_completed_at: expect.any(String) })
+    );
+  });
+
+  it('renders checkbox and multiselect custom fields', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        customFieldValues: { prioridade: true, produtos: ['Plano'] },
+      }),
+      customFieldDefinitions: [
+        { key: 'prioridade', label: 'Prioridade', fieldType: 'boolean' },
+        {
+          key: 'produtos',
+          label: 'Produtos',
+          fieldType: 'multiselect',
+          options: ['Plano', 'Curso'],
+        },
+      ],
+    });
+
+    expect(customFieldInput(wrapper, 'prioridade').attributes('type')).toBe(
+      'checkbox'
+    );
+    expect(customFieldInput(wrapper, 'prioridade').element.checked).toBe(true);
+    expect(customFieldInput(wrapper, 'produtos').element.multiple).toBe(true);
+  });
+
+  it('shows a conditional field when a boolean source is false', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({ customFieldValues: { aceitou: false } }),
+      customFieldDefinitions: [
+        { key: 'aceitou', label: 'Aceitou?', fieldType: 'boolean' },
+        {
+          key: 'motivo',
+          label: 'Motivo',
+          fieldType: 'text',
+          condition: { fieldKey: 'aceitou', equals: false },
+        },
+      ],
+    });
+
+    expect(customFieldInput(wrapper, 'aceitou').element.checked).toBe(false);
+    expect(customFieldInput(wrapper, 'motivo').exists()).toBe(true);
+  });
+
+  it('renders the recent next action history', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+        nextActionHistory: [
+          {
+            type: 'Enviar proposta',
+            note: 'Enviar no WhatsApp',
+            completed_at: '2026-07-21T16:00:00.000Z',
+          },
+        ],
+      }),
+    });
+
+    const history = wrapper.find(
+      '[data-testid="kanban-opportunity-next-action-history"]'
+    );
+    expect(history.text()).toContain('Enviar proposta');
+    expect(history.text()).toContain('Enviar no WhatsApp');
   });
 
   it('marks opportunity as won', async () => {

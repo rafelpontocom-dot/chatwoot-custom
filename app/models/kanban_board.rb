@@ -5,12 +5,15 @@
 #  id                                   :bigint           not null, primary key
 #  active                               :boolean          default(TRUE), not null
 #  auto_create_cards_from_conversations :boolean          default(FALSE), not null
+#  compact_card_field_keys              :jsonb            not null
+#  custom_field_definitions             :jsonb            not null
 #  description                          :text
 #  inbox_scope_mode                     :string           default("all_inboxes"), not null
 #  lost_reason_options                  :jsonb            not null
 #  name                                 :string           not null
 #  next_action_types                    :jsonb            not null
 #  position                             :integer          default(0), not null
+#  stale_stage_thresholds               :jsonb            not null
 #  use_opportunity_card_reads           :boolean          default(TRUE), not null
 #  visibility_mode                      :string           default("all_agents"), not null
 #  created_at                           :datetime         not null
@@ -27,7 +30,7 @@
 class KanbanBoard < ApplicationRecord
   INBOX_SCOPE_MODES = %w[all_inboxes selected_inboxes].freeze
   VISIBILITY_MODES = %w[all_agents selected_agents].freeze
-  CUSTOM_FIELD_TYPES = %w[text select integer decimal date datetime boolean formula].freeze
+  CUSTOM_FIELD_TYPES = %w[text textarea select multiselect integer decimal currency date datetime boolean url formula].freeze
   CUSTOM_FIELD_LAYOUT_WIDTHS = %w[full half third].freeze
   DEFAULT_NEXT_ACTION_TYPES = [
     'Chamar novamente',
@@ -102,6 +105,16 @@ class KanbanBoard < ApplicationRecord
     custom_field_definitions.presence || []
   end
 
+  def compact_custom_field_definitions
+    definitions_by_key = configured_custom_field_definitions.index_by { |definition| definition['key'] }
+    Array(compact_card_field_keys).filter_map { |key| definitions_by_key[key] }
+  end
+
+  def stale_days_for_stage(stage_id)
+    days = stale_stage_thresholds.to_h[stage_id.to_s].to_i
+    days if days.positive?
+  end
+
   def sales_summary
     KanbanBoards::SalesSummaryBuilder.new(self).call
   end
@@ -112,6 +125,8 @@ class KanbanBoard < ApplicationRecord
     self.next_action_types = normalize_string_list(next_action_types)
     self.lost_reason_options = normalize_string_list(lost_reason_options)
     self.custom_field_definitions = normalize_custom_field_definitions(custom_field_definitions)
+    self.compact_card_field_keys = normalize_compact_card_field_keys(compact_card_field_keys)
+    self.stale_stage_thresholds = normalize_stale_stage_thresholds(stale_stage_thresholds)
   end
 
   def normalize_string_list(values)
@@ -142,7 +157,7 @@ class KanbanBoard < ApplicationRecord
       'key' => key,
       'label' => label,
       'field_type' => field_type,
-      'options' => field_type == 'select' ? normalize_string_list(source[:options]) : [],
+      'options' => %w[select multiselect].include?(field_type) ? normalize_string_list(source[:options]) : [],
       'required_stage_ids' => normalize_stage_ids(source[:required_stage_ids]),
       'condition' => normalize_custom_field_condition(source[:condition]),
       'formula' => field_type == 'formula' ? source[:formula].to_s.strip.presence : nil,
@@ -182,5 +197,20 @@ class KanbanBoard < ApplicationRecord
       'position' => source[:position].to_i.positive? ? source[:position].to_i : 1,
       'width' => CUSTOM_FIELD_LAYOUT_WIDTHS.include?(width) ? width : 'full'
     }
+  end
+
+  def normalize_compact_card_field_keys(field_keys)
+    normalize_string_list(field_keys).map { |key| key.parameterize(separator: '_') }
+  end
+
+  def normalize_stale_stage_thresholds(thresholds)
+    board_stage_ids = kanban_stages.pluck(:id).map(&:to_s)
+
+    thresholds.to_h.each_with_object({}) do |(stage_id, days), normalized_thresholds|
+      normalized_days = days.to_i
+      next unless board_stage_ids.include?(stage_id.to_s) && normalized_days.positive?
+
+      normalized_thresholds[stage_id.to_s] = normalized_days
+    end
   end
 end

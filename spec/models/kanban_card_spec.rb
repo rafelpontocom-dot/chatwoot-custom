@@ -1,6 +1,100 @@
 require 'rails_helper'
 
 RSpec.describe KanbanCard do
+  describe 'commercial custom fields' do
+    it 'normalizes currency and multiselect values' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'orcamento', label: 'Orçamento', field_type: 'currency' },
+          { key: 'produtos', label: 'Produtos', field_type: 'multiselect', options: %w[Plano Curso Consultoria] }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        custom_field_values: { orcamento: '1250.50', produtos: ['Plano', '', 'Curso', 'Plano'] }
+      )
+
+      card.valid?
+
+      expect(card.custom_field_values).to eq('orcamento' => 1250.5, 'produtos' => %w[Plano Curso])
+    end
+
+    it 'preserves false as a filled boolean value' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'aceitou', label: 'Aceitou?', field_type: 'boolean', required_stage_ids: [] }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      board.update!(
+        custom_field_definitions: [
+          { key: 'aceitou', label: 'Aceitou?', field_type: 'boolean', required_stage_ids: [stage.id] }
+        ]
+      )
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        custom_field_values: { aceitou: false }
+      )
+
+      expect(card).to be_valid
+      expect(card.custom_field_values).to eq('aceitou' => false)
+    end
+
+    it 'records a snapshot when the next action is completed' do
+      card = create(
+        :kanban_card,
+        next_action_type: 'Enviar proposta',
+        next_action_at: Time.zone.parse('2026-07-21 15:00:00 UTC'),
+        next_action_note: 'Enviar no WhatsApp'
+      )
+      completed_at = Time.zone.parse('2026-07-21 16:00:00 UTC')
+
+      card.update!(next_action_completed_at: completed_at)
+
+      expect(card.next_action_history).to contain_exactly(
+        {
+          'type' => 'Enviar proposta',
+          'scheduled_at' => '2026-07-21T15:00:00.000Z',
+          'note' => 'Enviar no WhatsApp',
+          'completed_at' => '2026-07-21T16:00:00.000Z'
+        }
+      )
+    end
+
+    it 'treats a completed next action as missing until another action is scheduled' do
+      card = create(
+        :kanban_card,
+        next_action_at: 1.day.ago,
+        next_action_completed_at: Time.current
+      )
+
+      expect(card.next_action_status).to eq(KanbanCard::NEXT_ACTION_STATUS_MISSING)
+    end
+
+    it 'clears completion when the next action is rescheduled' do
+      card = create(
+        :kanban_card,
+        next_action_type: 'Cobrar retorno',
+        next_action_at: 1.day.ago,
+        next_action_completed_at: Time.current
+      )
+
+      card.update!(next_action_at: 2.days.from_now)
+
+      expect(card.next_action_completed_at).to be_nil
+      expect(card.next_action_status).to eq(KanbanCard::NEXT_ACTION_STATUS_FUTURE)
+    end
+  end
+
   describe 'labels' do
     it 'can receive labels through Labelable' do
       card = create(:kanban_card)

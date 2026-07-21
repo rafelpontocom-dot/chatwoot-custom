@@ -15,7 +15,11 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
   end
 
   def create
-    @kanban_board = KanbanBoard.create!(kanban_board_params.merge(account: Current.account))
+    @kanban_board = KanbanBoards::CreateFromTemplateService.new(
+      account: Current.account,
+      attributes: kanban_board_params.except(:template_key),
+      template_key: kanban_board_params[:template_key]
+    ).perform!
   end
 
   def update
@@ -84,7 +88,7 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
   end
 
   def kanban_board_params
-    params.require(:kanban_board).permit(:name, :description, :position, :active, :auto_create_cards_from_conversations)
+    params.require(:kanban_board).permit(:name, :description, :position, :active, :auto_create_cards_from_conversations, :template_key)
   end
 
   def fetch_stage_card_results

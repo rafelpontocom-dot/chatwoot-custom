@@ -63,6 +63,8 @@ const settingsPayload = {
       options: ['Sim', 'Não'],
     },
   ],
+  compact_card_field_keys: [],
+  stale_stage_thresholds: { 100: 3 },
 };
 
 const boardPayload = {
@@ -347,6 +349,53 @@ describe('KanbanBoardSettings', () => {
     ).toBe(true);
   });
 
+  it('configures custom fields visually and selects fields for compact cards', async () => {
+    const { wrapper } = await mountSettings();
+
+    expect(
+      wrapper.findAll('[data-testid="kanban-settings-custom-field-row"]')
+    ).toHaveLength(1);
+    await wrapper
+      .find('[data-testid="kanban-settings-add-custom-field"]')
+      .trigger('click');
+
+    const rows = wrapper.findAll(
+      '[data-testid="kanban-settings-custom-field-row"]'
+    );
+    await rows[1]
+      .find('[data-testid="kanban-settings-custom-field-label"]')
+      .setValue('Valor estimado');
+    await rows[1]
+      .find('[data-testid="kanban-settings-custom-field-type"]')
+      .setValue('currency');
+    await rows[1]
+      .find('[data-testid="kanban-settings-custom-field-show-on-card"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-settings-stale-stage-100"]')
+      .setValue('5');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    expect(KanbanBoardsAPI.updateSettings).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_board: expect.objectContaining({
+          custom_field_definitions: expect.arrayContaining([
+            expect.objectContaining({
+              key: 'valor_estimado',
+              label: 'Valor estimado',
+              field_type: 'currency',
+            }),
+          ]),
+          compact_card_field_keys: ['valor_estimado'],
+          stale_stage_thresholds: { 100: 5 },
+        }),
+      })
+    );
+  });
+
   it('opens import modal when enabling auto-create', async () => {
     const { wrapper } = await mountSettings({
       getSettingsResponse: {
@@ -541,6 +590,8 @@ describe('KanbanBoardSettings', () => {
             field_type: 'decimal',
           },
         ],
+        compact_card_field_keys: [],
+        stale_stage_thresholds: { 100: 3 },
       },
     });
   });

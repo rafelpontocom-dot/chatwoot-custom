@@ -2,7 +2,7 @@
 
 Baseado em: [PRD: Kanban Comercial no Chatwoot](./kanban-sales-prd.md)
 
-Status: especificação inicial, atualizada com configuração comercial por board
+Status: especificação implementada e coberta por testes automatizados
 
 ## Objetivo Da Spec
 
@@ -26,7 +26,7 @@ Campos existentes relevantes:
 - `next_action_types`: lista configurável de tipos de próxima ação;
 - `lost_reason_options`: lista configurável de motivos de perda;
 
-Campos futuros sugeridos:
+Campos comerciais implementados:
 
 - `custom_field_definitions`: definição dos campos personalizados do board;
 - `compact_card_field_keys`: campos customizados exibidos no card compacto;
@@ -70,7 +70,7 @@ Campos existentes relevantes:
 - `position`
 - `active`
 
-Campos comerciais sugeridos para MVP:
+Campos comerciais implementados:
 
 - `owner_id`: responsável comercial, quando diferente do responsável da conversa;
 - `next_action_type`;
@@ -84,6 +84,7 @@ Campos comerciais sugeridos para MVP:
 - `amount_cents`;
 - `amount_currency`;
 - `custom_field_values`;
+- `next_action_history`: últimas ações concluídas, limitado a 100 registros;
 
 Campos futuros:
 
@@ -371,7 +372,7 @@ MVP:
 
 ### Board Settings
 
-MVP:
+Implementado:
 
 - etapas;
 - visibilidade;
@@ -379,15 +380,15 @@ MVP:
 - auto criação por conversas;
 - tipos de próxima ação;
 - motivos de perda;
-
-Fase 2:
-
 - campos personalizados;
 - layout de campos;
 - regras condicionais;
 - fórmulas;
 - obrigatoriedade por etapa;
-- templates de board.
+- campos visíveis no card compacto;
+- alerta de tempo parado por etapa.
+
+Os templates são escolhidos na criação do board: venda por WhatsApp, clínica/consulta, serviço B2B e funil em branco.
 
 ### Navegacao E Contexto
 
@@ -413,7 +414,9 @@ MVP de relatórios deve expor:
 - quantidade por etapa;
 - quantidade por responsável;
 - atrasados por responsável;
-- motivos de perda.
+- motivos de perda;
+- cards parados por etapa e responsável;
+- agenda de ações atrasadas e de hoje.
 
 ## API
 
@@ -451,7 +454,8 @@ Endpoint de settings deve aceitar no MVP:
 - `next_action_types`;
 - `lost_reason_options`;
 - `custom_field_definitions`;
-- `compact_card_field_keys`.
+- `compact_card_field_keys`;
+- `stale_stage_thresholds`.
 
 ### Relatorios
 
@@ -469,20 +473,26 @@ Resposta sugerida:
   "open_amount_cents": 500000,
   "won_amount_cents": 250000,
   "lost_amount_cents": 120000,
+  "overdue_count": 3,
+  "stale_count": 2,
   "by_stage": [],
   "by_owner": [],
-  "lost_reasons": []
+  "lost_reasons": [],
+  "agenda": []
 }
 ```
 
 ## Banco De Dados
 
-### MVP Migration Sugerida
+### Campos Persistidos
 
 Adicionar em `kanban_boards`:
 
 - `next_action_types jsonb`;
 - `lost_reason_options jsonb`;
+- `custom_field_definitions jsonb`;
+- `compact_card_field_keys jsonb`;
+- `stale_stage_thresholds jsonb`;
 
 Adicionar em `kanban_cards`:
 
@@ -495,6 +505,10 @@ Adicionar em `kanban_cards`:
 - `lost_at datetime`;
 - `lost_reason string`;
 - `closed_by_id bigint`;
+- `amount_cents bigint`;
+- `amount_currency string`;
+- `custom_field_values jsonb`;
+- `next_action_history jsonb`.
 
 Indices sugeridos:
 
@@ -503,19 +517,6 @@ Indices sugeridos:
 - `owner_id, next_action_at`;
 - `kanban_board_id, lost_at`;
 - `kanban_board_id, won_at`.
-
-### Fase 2 Migration Sugerida
-
-Adicionar em `kanban_boards`:
-
-- `custom_field_definitions jsonb`;
-- `compact_card_field_keys jsonb`;
-
-Adicionar em `kanban_cards`:
-
-- `amount_cents bigint`;
-- `amount_currency string`;
-- `custom_field_values jsonb`.
 
 ## Permissoes
 
@@ -580,7 +581,7 @@ Futuro:
 - Nada no fluxo exige consulta ou reunião.
 - Venda 100% via WhatsApp é suportada.
 
-## Testes Recomendados
+## Cobertura Automatizada
 
 ### Backend
 
@@ -605,7 +606,7 @@ Futuro:
 - card sem consulta/reunião;
 - abertura de conversa.
 
-### E2E Futuro
+### Validacao E2E Recomendada
 
 Fluxo:
 
@@ -620,12 +621,11 @@ Fluxo:
 
 - Não usar i18n frontend para tokens literais como `{{agent}}`; manter tokens em constantes JS ou backend config.
 - Não adicionar dependências sem necessidade.
-- Não criar custom fields antes de estabilizar próximo passo.
 - Não misturar suporte pós-venda com pipeline comercial.
 - Não criar etapa sem critério claro.
 - Não permitir que "consulta" vire regra global.
 
-## Sequencia De Implementacao Recomendada
+## Sequencia Implementada
 
 1. Modelar campos de próximo passo e fechamento.
 2. Expor campos na API de card.
@@ -634,4 +634,4 @@ Fluxo:
 5. Adicionar filtros no Kanban.
 6. Adicionar ganho/perda com motivo.
 7. Rodar testes backend e frontend.
-8. Só depois evoluir custom fields.
+8. Evoluir campos personalizados, templates, alertas, agenda e relatórios.

@@ -113,6 +113,28 @@ RSpec.describe 'Kanban board settings API', type: :request do
       )
       expect(response.parsed_body['custom_field_definitions']).to eq(definitions)
     end
+
+    it 'updates compact card fields and stale stage thresholds' do
+      stage = create(:kanban_stage, account: account, kanban_board: board)
+
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                compact_card_field_keys: %w[valor origem],
+                stale_stage_thresholds: { stage.id.to_s => 4 }
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload.compact_card_field_keys).to eq(%w[valor origem])
+      expect(board.stale_stage_thresholds).to eq(stage.id.to_s => 4)
+      expect(response.parsed_body).to include(
+        'compact_card_field_keys' => %w[valor origem],
+        'stale_stage_thresholds' => { stage.id.to_s => 4 }
+      )
+    end
   end
 
   describe 'POST /api/v1/accounts/{account.id}/kanban_boards/{board.id}/settings/import_existing_conversations' do

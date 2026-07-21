@@ -25,7 +25,7 @@ export function useKanbanBoardCreation({ boards, t }) {
     createBoardError.value = '';
   };
 
-  const createBoard = async name => {
+  const createBoard = async ({ name, templateKey = 'blank' }) => {
     const trimmedName = name.trim();
     if (!trimmedName || isCreatingBoard.value) return;
 
@@ -37,6 +37,7 @@ export function useKanbanBoardCreation({ boards, t }) {
         kanban_board: {
           name: trimmedName,
           position: boards.value.length,
+          template_key: templateKey,
         },
       });
       const board = camelcaseKeys(response.data || {}, { deep: true });

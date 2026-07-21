@@ -22,10 +22,12 @@ const emit = defineEmits(['update:modelValue', 'create', 'close']);
 const { t } = useI18n();
 
 const boardName = ref('');
+const templateKey = ref('whatsapp_sales');
 const boardNameInput = ref(null);
 
 const closeDialog = () => {
   boardName.value = '';
+  templateKey.value = 'whatsapp_sales';
   emit('update:modelValue', false);
   emit('close');
 };
@@ -34,7 +36,7 @@ const createBoard = () => {
   const name = boardName.value.trim();
   if (!name || props.isCreating) return;
 
-  emit('create', name);
+  emit('create', { name, templateKey: templateKey.value });
 };
 
 watch(
@@ -46,6 +48,7 @@ watch(
     }
 
     boardName.value = '';
+    templateKey.value = 'whatsapp_sales';
   }
 );
 </script>
@@ -81,6 +84,27 @@ watch(
           data-testid="kanban-create-board-name-input"
           @keydown.enter.prevent="createBoard"
         />
+        <label class="mt-3 grid gap-1 text-sm font-medium text-n-slate-12">
+          {{ t('KANBAN.BOARD_TEMPLATES.LABEL') }}
+          <select
+            v-model="templateKey"
+            data-testid="kanban-create-board-template"
+            class="h-10 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+          >
+            <option value="whatsapp_sales">
+              {{ t('KANBAN.BOARD_TEMPLATES.WHATSAPP_SALES') }}
+            </option>
+            <option value="clinic">
+              {{ t('KANBAN.BOARD_TEMPLATES.CLINIC') }}
+            </option>
+            <option value="b2b">
+              {{ t('KANBAN.BOARD_TEMPLATES.B2B') }}
+            </option>
+            <option value="blank">
+              {{ t('KANBAN.BOARD_TEMPLATES.BLANK') }}
+            </option>
+          </select>
+        </label>
         <p
           v-if="error"
           class="mt-2 text-sm text-n-ruby-11"
