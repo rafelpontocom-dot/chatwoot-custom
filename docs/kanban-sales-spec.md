@@ -2,7 +2,7 @@
 
 Baseado em: [PRD: Kanban Comercial no Chatwoot](./kanban-sales-prd.md)
 
-Status: especificação inicial
+Status: especificação inicial, atualizada com configuração comercial por board
 
 ## Objetivo Da Spec
 
@@ -23,12 +23,12 @@ Campos existentes relevantes:
 - `visibility_mode`
 - `inbox_scope_mode`
 - `auto_create_cards_from_conversations`
+- `next_action_types`: lista configurável de tipos de próxima ação;
+- `lost_reason_options`: lista configurável de motivos de perda;
 
 Campos futuros sugeridos:
 
-- `next_action_types`: lista configurável de tipos de próxima ação;
-- `lost_reason_options`: lista configurável de motivos de perda;
-- `card_field_schema`: definição dos campos personalizados do board;
+- `custom_field_definitions`: definição dos campos personalizados do board;
 - `compact_card_field_keys`: campos customizados exibidos no card compacto;
 - `stale_stage_thresholds`: limites por etapa para alerta de card parado.
 
@@ -81,12 +81,15 @@ Campos comerciais sugeridos para MVP:
 - `lost_at`;
 - `lost_reason`;
 - `closed_by_id`;
+- `amount_cents`;
+- `amount_currency`;
+- `custom_field_values`;
 
 Campos futuros:
 
-- `custom_attributes`: JSONB com campos personalizados do board;
-- `estimated_value_cents`;
-- `estimated_value_currency`;
+- `custom_field_audit_events`: histórico de alterações dos campos comerciais;
+- `last_next_action_completed_by_id`;
+- `last_next_action_completed_at`.
 
 ## Estados Do Card
 
@@ -114,7 +117,7 @@ Um card aberto é qualquer card ativo que não está ganho nem perdido.
 
 Regra:
 
-- card aberto deve ter etapa e responsável;
+- card aberto deve ter etapa e responsável comercial;
 - card aberto deve poder ter próximo passo;
 - se o board exigir próximo passo, card aberto sem `next_action_at` fica destacado.
 
@@ -122,7 +125,9 @@ Regra:
 
 `next_action_at` define quando o vendedor precisa agir.
 
-`next_action_type` deve vir das opções configuradas no board, quando houver opções.
+`next_action_type` deve vir das opções configuradas no board. Se o board não tiver opções salvas, o backend expõe a lista padrão.
+
+Ao salvar a configuração do board, valores vazios devem ser ignorados e valores duplicados devem ser removidos.
 
 Se `next_action_at` for anterior ao início do dia atual, o card é atrasado.
 
@@ -186,7 +191,7 @@ Exemplos:
 - Enviar contrato
 - Outro
 
-MVP pode iniciar com lista padrão editável posteriormente.
+MVP deve expor a lista padrão e permitir edição por board em configurações.
 
 ### Motivos De Perda
 
@@ -202,20 +207,27 @@ Lista padrão:
 - Fechou com outro
 - Outro
 
+MVP deve expor a lista padrão e permitir edição por board em configurações.
+
+Ao marcar uma oportunidade como perdida, o modal deve usar a lista configurada no board. Se o card já tiver um motivo salvo que não está mais na lista, o motivo salvo deve continuar visível para evitar perda de contexto.
+
 ### Campos Personalizados
 
-Fase 2.
+Campos personalizados são definidos por board e preenchidos por card.
 
 Tipos permitidos:
 
 - texto;
-- número;
+- texto longo;
+- inteiro;
+- decimal;
 - moeda;
 - data;
 - data/hora;
 - seleção única;
 - seleção múltipla;
 - checkbox;
+- fórmula;
 - URL.
 
 Cada campo deve ter:
@@ -225,7 +237,96 @@ Cada campo deve ter:
 - tipo;
 - opções, quando aplicável;
 - visibilidade no card compacto;
-- obrigatoriedade opcional por etapa, futuramente.
+- layout/seção;
+- posição;
+- largura;
+- obrigatoriedade opcional por etapa;
+- condição opcional de exibição;
+- fórmula opcional quando o tipo for fórmula.
+
+Formato sugerido de `custom_field_definitions`:
+
+```json
+[
+  {
+    "key": "consulta_realizada",
+    "label": "Consulta realizada?",
+    "field_type": "select",
+    "options": ["Sim", "Não"],
+    "required_stage_ids": [],
+    "condition": {},
+    "formula": null,
+    "layout": {
+      "section": "qualification",
+      "position": 1,
+      "width": "half"
+    }
+  },
+  {
+    "key": "valor_total",
+    "label": "Valor total",
+    "field_type": "formula",
+    "options": [],
+    "required_stage_ids": [3],
+    "condition": {
+      "field_key": "consulta_realizada",
+      "equals": "Sim"
+    },
+    "formula": "procedimento + exames",
+    "layout": {
+      "section": "commercial",
+      "position": 2,
+      "width": "half"
+    }
+  }
+]
+```
+
+Formato sugerido de `custom_field_values`:
+
+```json
+{
+  "consulta_realizada": "Sim",
+  "procedimento": 100.5,
+  "exames": 25,
+  "valor_total": 125.5
+}
+```
+
+### Condicionais
+
+Condição MVP:
+
+- `field_key`;
+- `equals`.
+
+Regra:
+
+- se a condição estiver vazia, o campo aparece sempre;
+- se `custom_field_values[field_key] == equals`, o campo aparece;
+- se o campo não aparecer, ele não deve bloquear obrigatoriedade.
+
+### Formulas
+
+Campos `formula` são somente leitura no card e calculados no backend ao salvar.
+
+Regras MVP:
+
+- aceitar operações `+`, `-`, `*`, `/` e parênteses;
+- aceitar apenas referências a chaves de campos numéricos;
+- valores vazios contam como `0`;
+- fórmula inválida deve gerar erro de validação;
+- não executar código arbitrário.
+
+### Obrigatoriedade Por Etapa
+
+`required_stage_ids` define em quais etapas o campo é obrigatório.
+
+Regra:
+
+- ao criar/atualizar/mover card para uma etapa listada, validar o preenchimento;
+- se o campo tiver condição e a condição não for satisfeita, ele não é obrigatório;
+- retornar erro claro para o frontend exibir qual campo falta.
 
 ## UI
 
@@ -235,8 +336,9 @@ Deve mostrar:
 
 - contato;
 - inbox/canal;
-- responsável;
+- responsável comercial;
 - assunto ou contexto;
+- valor, quando existir;
 - próximo passo;
 - badge de status do próximo passo;
 - indicador de ganho/perda quando fechado.
@@ -246,11 +348,13 @@ Deve mostrar:
 Deve permitir:
 
 - editar assunto;
-- editar descrição/observação comercial;
-- editar próximo passo;
+- editar descrição/observação comercial em campo compacto;
+- editar valor;
+- editar responsável comercial por select de agente;
+- editar próximo passo usando tipos configurados no board;
 - marcar próximo passo como concluído;
 - marcar ganho;
-- marcar perdido com motivo;
+- marcar perdido com motivo configurado no board;
 - abrir conversa;
 - editar campos personalizados quando existirem.
 
@@ -258,7 +362,7 @@ Deve permitir:
 
 MVP:
 
-- responsável;
+- responsável comercial;
 - inbox;
 - próximo passo hoje;
 - atrasados;
@@ -272,14 +376,44 @@ MVP:
 - etapas;
 - visibilidade;
 - inboxes;
-- auto criação por conversas.
+- auto criação por conversas;
+- tipos de próxima ação;
+- motivos de perda;
 
 Fase 2:
 
-- tipos de próxima ação;
-- motivos de perda;
 - campos personalizados;
+- layout de campos;
+- regras condicionais;
+- fórmulas;
+- obrigatoriedade por etapa;
 - templates de board.
+
+### Navegacao E Contexto
+
+Kanban deve aparecer como item próprio no sidebar usando ícone consistente com o Chatwoot.
+
+Além da tela principal do funil:
+
+- conversa deve expor oportunidades vinculadas ao contato/conversa;
+- contato deve ter grupo/aba Kanban com oportunidades;
+- criar oportunidade a partir da conversa deve preencher contato, inbox e conversa quando possível;
+- abrir card deve permitir voltar para a conversa.
+
+### Relatorios Simples
+
+MVP de relatórios deve expor:
+
+- total aberto;
+- total ganho;
+- total perdido;
+- valor aberto;
+- valor ganho;
+- valor perdido;
+- quantidade por etapa;
+- quantidade por responsável;
+- atrasados por responsável;
+- motivos de perda.
 
 ## API
 
@@ -294,7 +428,10 @@ Endpoint existente de atualização de card deve aceitar novos campos comerciais
 - `next_action_completed_at`;
 - `lost_reason`;
 - `won_at`;
-- `lost_at`.
+- `lost_at`;
+- `amount_cents`;
+- `amount_currency`;
+- `custom_field_values`.
 
 ### Filtros De Cards
 
@@ -309,16 +446,43 @@ Adicionar filtros:
 
 ### Configuracao Do Board
 
-Endpoint de settings deve futuramente aceitar:
+Endpoint de settings deve aceitar no MVP:
 
 - `next_action_types`;
 - `lost_reason_options`;
-- `card_field_schema`;
+- `custom_field_definitions`;
 - `compact_card_field_keys`.
+
+### Relatorios
+
+Endpoint sugerido:
+
+- `GET /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/reports/sales_summary`
+
+Resposta sugerida:
+
+```json
+{
+  "open_count": 10,
+  "won_count": 4,
+  "lost_count": 2,
+  "open_amount_cents": 500000,
+  "won_amount_cents": 250000,
+  "lost_amount_cents": 120000,
+  "by_stage": [],
+  "by_owner": [],
+  "lost_reasons": []
+}
+```
 
 ## Banco De Dados
 
 ### MVP Migration Sugerida
+
+Adicionar em `kanban_boards`:
+
+- `next_action_types jsonb`;
+- `lost_reason_options jsonb`;
 
 Adicionar em `kanban_cards`:
 
@@ -344,14 +508,14 @@ Indices sugeridos:
 
 Adicionar em `kanban_boards`:
 
-- `next_action_types jsonb`;
-- `lost_reason_options jsonb`;
-- `card_field_schema jsonb`;
+- `custom_field_definitions jsonb`;
 - `compact_card_field_keys jsonb`;
 
 Adicionar em `kanban_cards`:
 
-- `custom_attributes jsonb`.
+- `amount_cents bigint`;
+- `amount_currency string`;
+- `custom_field_values jsonb`.
 
 ## Permissoes
 
@@ -379,6 +543,8 @@ Permitido no MVP:
 
 - destaque visual;
 - filtros;
+- criação automática configurável por board/inbox;
+- criação manual a partir da conversa ou contato;
 - opcionalmente nota privada manual ou futura.
 
 Futuro:
@@ -392,13 +558,25 @@ Futuro:
 
 - Vendedor consegue criar ou abrir uma oportunidade no Kanban.
 - Vendedor consegue definir próximo passo com tipo, data/hora e observação.
+- Vendedor consegue editar o responsável comercial da oportunidade.
+- Vendedor escolhe o tipo de próxima ação a partir da lista configurada no board.
 - Card sem próximo passo aparece destacado quando aberto.
 - Card com próximo passo hoje aparece destacado.
 - Card com próximo passo atrasado aparece destacado.
 - Filtros de hoje, atrasado e sem próximo passo funcionam.
 - Vendedor consegue marcar card como ganho.
 - Vendedor consegue marcar card como perdido informando motivo.
+- Vendedor escolhe o motivo de perda a partir da lista configurada no board.
+- Vendedor consegue preencher valor da oportunidade.
+- Administrador consegue configurar tipos de próxima ação por board.
+- Administrador consegue configurar motivos de perda por board.
+- Administrador consegue configurar campos personalizados por board.
+- Campo obrigatório por etapa bloqueia avanço sem preenchimento.
+- Campo condicional aparece somente quando a condição é satisfeita.
+- Campo fórmula calcula valor a partir de outros campos.
 - Card continua abrindo a conversa do Chatwoot.
+- Conversa/contato permitem criar ou acessar oportunidade vinculada.
+- Relatório simples mostra ganhos, perdidos, atrasados, etapas e responsáveis.
 - Nada no fluxo exige consulta ou reunião.
 - Venda 100% via WhatsApp é suportada.
 
@@ -412,11 +590,16 @@ Futuro:
 - consistência entre board, stage, contact, inbox e card;
 - motivo de perda obrigatório ao perder;
 - next action não obrigatório para cards fechados.
+- settings do board retornam tipos de próxima ação e motivos de perda;
+- settings do board salvam tipos de próxima ação e motivos de perda;
+- normalização remove opções vazias e duplicadas.
 
 ### Frontend
 
 - renderização de badges: hoje, atrasado, sem próximo passo;
 - edição de próximo passo;
+- edição de responsável comercial;
+- listas configuradas aparecem no modal de card;
 - filtros;
 - marcar ganho/perda;
 - card sem consulta/reunião;
