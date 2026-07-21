@@ -52,6 +52,8 @@ const activeFormulaSuggestionIndex = ref(0);
 const formulaPreviewValues = ref({});
 const showCustomFieldManager = ref(false);
 const selectedCustomFieldId = ref(null);
+const activeFieldSectionKey = ref('details');
+const draggedCustomFieldId = ref(null);
 const newCustomFieldOption = ref('');
 const showNewFieldSectionForm = ref(false);
 const newFieldSectionName = ref('');
@@ -400,6 +402,114 @@ const marketingFieldDefinitions = computed(() => {
   ];
 });
 
+const marketingFieldAliases = Object.freeze({
+  campaign_name: 'campaign',
+  adset_name: 'adset',
+  ad_name: 'ad',
+  google_client_id: 'gclientid',
+  tiktok_ad_id: 'ttad_id',
+  tiktok_ad_name: 'ttad_name',
+  fbclid: 'fvclid',
+});
+const obsoleteMarketingFieldKeys = new Set([
+  'utm_id',
+  'gbraid',
+  'wbraid',
+  'dclid',
+  'msclkid',
+]);
+
+const normalizeMarketingFieldDefinitions = definitions => {
+  const canonicalDefinitions = marketingFieldDefinitions.value;
+  const canonicalKeys = new Set(
+    canonicalDefinitions.map(definition => definition.key)
+  );
+  const hasMarketingPreset = definitions.some(definition => {
+    const key = definition.key || '';
+    const section = definition.layout?.section || definition.layoutSection;
+    return (
+      section === 'marketing' &&
+      (canonicalKeys.has(key) ||
+        Object.prototype.hasOwnProperty.call(marketingFieldAliases, key) ||
+        obsoleteMarketingFieldKeys.has(key))
+    );
+  });
+
+  if (!hasMarketingPreset) return definitions;
+
+  const normalized = [];
+  const seenCanonicalKeys = new Set();
+  let marketingPosition = 1;
+
+  definitions.forEach(definition => {
+    const key = definition.key || '';
+    const section = definition.layout?.section || definition.layoutSection;
+    const canonicalKey = marketingFieldAliases[key] || key;
+    const isMarketingDefinition =
+      section === 'marketing' &&
+      (canonicalKeys.has(canonicalKey) ||
+        Object.prototype.hasOwnProperty.call(marketingFieldAliases, key) ||
+        obsoleteMarketingFieldKeys.has(key));
+
+    if (!isMarketingDefinition) {
+      normalized.push(definition);
+      return;
+    }
+
+    if (
+      obsoleteMarketingFieldKeys.has(key) ||
+      seenCanonicalKeys.has(canonicalKey)
+    ) {
+      return;
+    }
+
+    const preset = canonicalDefinitions.find(item => item.key === canonicalKey);
+    if (!preset) return;
+
+    normalized.push({
+      ...definition,
+      key: canonicalKey,
+      label: preset.label,
+      fieldType: preset.fieldType,
+      options: preset.options || [],
+      optionsText: (preset.options || []).join('\n'),
+      layout: {
+        ...(definition.layout || {}),
+        section: 'marketing',
+        position: marketingPosition,
+        width: preset.layoutWidth || 'half',
+      },
+    });
+    seenCanonicalKeys.add(canonicalKey);
+    marketingPosition += 1;
+  });
+
+  canonicalDefinitions.forEach(preset => {
+    if (seenCanonicalKeys.has(preset.key)) return;
+
+    normalized.push({
+      key: preset.key,
+      label: preset.label,
+      fieldType: preset.fieldType,
+      options: preset.options || [],
+      optionsText: (preset.options || []).join('\n'),
+      requiredStageIds: [],
+      condition: {},
+      formula: null,
+      formulaResultType: null,
+      important: false,
+      layout: {
+        section: 'marketing',
+        position: marketingPosition,
+        width: preset.layoutWidth || 'half',
+      },
+    });
+    marketingPosition += 1;
+  });
+
+  return normalized;
+};
+
 const getErrorMessage = (error, fallbackMessage) =>
   error?.response?.data?.error ||
   error?.response?.data?.message ||
@@ -575,30 +685,30 @@ const applySettings = payload => {
     null,
     2
   );
-  form.customFieldDefinitions = (settings.customFieldDefinitions || []).map(
-    definition => ({
-      clientId: nextCustomFieldRowId(),
-      key: definition.key || '',
-      label: definition.label || '',
-      fieldType: definition.fieldType || 'text',
-      optionsText: (definition.options || []).join('\n'),
-      requiredStageIds: definition.requiredStageIds || [],
-      conditionFieldKey:
-        definition.condition?.fieldKey || definition.condition?.field_key || '',
-      conditionEquals: definition.condition?.equals ?? '',
-      formula: definition.formula || '',
-      formulaDisplay: definition.formula || '',
-      formulaResultType:
-        definition.formulaResultType ||
-        definition.formula_result_type ||
-        'number',
-      layoutSection: definition.layout?.section || 'details',
-      layoutPosition: definition.layout?.position || 1,
-      layoutWidth: definition.layout?.width || 'full',
-      important: Boolean(definition.important),
-      autoKey: false,
-    })
-  );
+  form.customFieldDefinitions = normalizeMarketingFieldDefinitions(
+    settings.customFieldDefinitions || []
+  ).map(definition => ({
+    clientId: nextCustomFieldRowId(),
+    key: definition.key || '',
+    label: definition.label || '',
+    fieldType: definition.fieldType || 'text',
+    optionsText: (definition.options || []).join('\n'),
+    requiredStageIds: definition.requiredStageIds || [],
+    conditionFieldKey:
+      definition.condition?.fieldKey || definition.condition?.field_key || '',
+    conditionEquals: definition.condition?.equals ?? '',
+    formula: definition.formula || '',
+    formulaDisplay: definition.formula || '',
+    formulaResultType:
+      definition.formulaResultType ||
+      definition.formula_result_type ||
+      'number',
+    layoutSection: definition.layout?.section || 'details',
+    layoutPosition: definition.layout?.position || 1,
+    layoutWidth: definition.layout?.width || 'full',
+    important: Boolean(definition.important),
+    autoKey: false,
+  }));
   form.customFieldDefinitions.forEach(definition => {
     definition.formulaDisplay = formulaDisplayValue(definition);
   });
@@ -718,7 +828,14 @@ const syncCustomFieldDefinitionsText = () => {
 };
 
 const addCustomField = () => {
-  const definition = createCustomFieldRow();
+  const definition = createCustomFieldRow({
+    layoutSection: activeFieldSectionKey.value,
+    layoutPosition:
+      form.customFieldDefinitions.filter(
+        item =>
+          (item.layoutSection || 'details') === activeFieldSectionKey.value
+      ).length + 1,
+  });
   form.customFieldDefinitions.push(definition);
   selectedCustomFieldId.value = definition.clientId;
   showCustomFieldManager.value = true;
@@ -728,6 +845,10 @@ const addCustomField = () => {
 const openCustomFieldManager = clientId => {
   selectedCustomFieldId.value =
     clientId || form.customFieldDefinitions[0]?.clientId || null;
+  const selected = form.customFieldDefinitions.find(
+    definition => definition.clientId === selectedCustomFieldId.value
+  );
+  activeFieldSectionKey.value = selected?.layoutSection || 'details';
   showCustomFieldManager.value = true;
 };
 
@@ -837,6 +958,7 @@ const createCustomFieldSection = () => {
   }
 
   form.customFieldSections.push({ key, label });
+  activeFieldSectionKey.value = key;
   newFieldSectionName.value = '';
   showNewFieldSectionForm.value = false;
 };
@@ -884,6 +1006,9 @@ const removeCustomFieldSection = () => {
   form.customFieldSections = form.customFieldSections.filter(
     item => item.key !== section.key
   );
+  if (activeFieldSectionKey.value === section.key) {
+    activeFieldSectionKey.value = sectionRemovalDestination.value;
+  }
   sectionPendingRemoval.value = null;
   showRemoveFieldSectionConfirmation.value = false;
   syncCustomFieldDefinitionsText();
@@ -903,18 +1028,22 @@ const renumberCustomFieldSection = sectionKey => {
     definition.layoutPosition = index + 1;
   });
 };
-const moveCustomFieldInLayout = (sectionKey, event) => {
-  const change = event.added || event.moved;
-  if (!change) return;
-
-  const definition = change.element;
+const selectCustomField = definition => {
+  selectedCustomFieldId.value = definition.clientId;
+  activeFieldSectionKey.value = definition.layoutSection || 'details';
+};
+const moveCustomFieldToSection = (sectionKey, definition, newIndex) => {
   const previousSectionKey = definition.layoutSection || 'details';
   definition.layoutSection = sectionKey;
 
   const sectionFields = customFieldsForLayoutSection(sectionKey).filter(
     field => field !== definition
   );
-  sectionFields.splice(change.newIndex, 0, definition);
+  const targetIndex = Math.max(
+    0,
+    Math.min(Number(newIndex) || sectionFields.length, sectionFields.length)
+  );
+  sectionFields.splice(targetIndex, 0, definition);
   sectionFields.forEach((field, index) => {
     field.layoutPosition = index + 1;
   });
@@ -922,7 +1051,41 @@ const moveCustomFieldInLayout = (sectionKey, event) => {
   if (previousSectionKey !== sectionKey) {
     renumberCustomFieldSection(previousSectionKey);
   }
+  activeFieldSectionKey.value = sectionKey;
+  selectedCustomFieldId.value = definition.clientId;
   syncCustomFieldDefinitionsText();
+};
+const moveCustomFieldInLayout = (sectionKey, event) => {
+  const change = event.added || event.moved;
+  if (!change) return;
+
+  moveCustomFieldToSection(sectionKey, change.element, change.newIndex);
+};
+const onCustomFieldDragStart = (event, definition) => {
+  draggedCustomFieldId.value = definition.clientId;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', definition.clientId);
+  }
+};
+const onCustomFieldDragEnd = () => {
+  draggedCustomFieldId.value = null;
+};
+const onCustomFieldDrop = (sectionKey, event) => {
+  event.preventDefault();
+  const clientId =
+    event.dataTransfer?.getData('text/plain') || draggedCustomFieldId.value;
+  const definition = form.customFieldDefinitions.find(
+    item => item.clientId === clientId
+  );
+  if (definition) {
+    moveCustomFieldToSection(
+      sectionKey,
+      definition,
+      customFieldsForLayoutSection(sectionKey).length
+    );
+  }
+  draggedCustomFieldId.value = null;
 };
 const addMarketingFields = () => {
   const presetKeys = new Set(
@@ -935,6 +1098,9 @@ const addMarketingFields = () => {
     'dclid',
     'fbclid',
     'msclkid',
+    'google_client_id',
+    'tiktok_ad_id',
+    'tiktok_ad_name',
     'campaign_name',
     'adset_name',
     'ad_name',
@@ -1832,20 +1998,33 @@ onMounted(async () => {
                   class="grid min-h-0 flex-1 overflow-auto p-5 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-5"
                 >
                   <aside
-                    class="grid content-start gap-1 border-b border-n-weak pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4"
+                    class="grid max-h-[calc(94vh-9rem)] content-start gap-1 overflow-y-auto border-b border-n-weak pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4"
                   >
+                    <div class="mb-1 px-3">
+                      <h4 class="mb-0 text-sm font-medium text-n-slate-12">
+                        {{ t('KANBAN.SETTINGS.SALES.FIELD_PALETTE_TITLE') }}
+                      </h4>
+                      <p class="mb-0 mt-1 text-xs text-n-slate-10">
+                        {{
+                          t('KANBAN.SETTINGS.SALES.FIELD_PALETTE_DESCRIPTION')
+                        }}
+                      </p>
+                    </div>
                     <button
                       v-for="definition in form.customFieldDefinitions"
                       :key="definition.clientId"
                       type="button"
                       :data-testid="`kanban-settings-field-list-item-${definition.key}`"
-                      class="flex min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm"
+                      draggable="true"
+                      class="flex min-w-0 cursor-grab items-center gap-2 rounded-md px-3 py-2 text-left text-sm active:cursor-grabbing"
                       :class="
                         selectedCustomFieldId === definition.clientId
                           ? 'bg-n-alpha-2 text-n-slate-12'
                           : 'text-n-slate-11 hover:bg-n-alpha-1'
                       "
-                      @click="selectedCustomFieldId = definition.clientId"
+                      @click="selectCustomField(definition)"
+                      @dragstart="onCustomFieldDragStart($event, definition)"
+                      @dragend="onCustomFieldDragEnd"
                     >
                       <i class="i-lucide-grip-vertical size-4 shrink-0" />
                       <span class="min-w-0 flex-1 truncate">
@@ -1886,7 +2065,23 @@ onMounted(async () => {
                             section, sectionIndex
                           ) in customFieldLayoutSections"
                           :key="section.key"
-                          class="inline-flex h-8 items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12"
+                          class="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs font-medium text-n-slate-12"
+                          :class="
+                            activeFieldSectionKey === section.key
+                              ? 'border-n-brand bg-n-brand/10'
+                              : 'border-n-weak bg-n-surface-1'
+                          "
+                          role="tab"
+                          tabindex="0"
+                          :aria-selected="activeFieldSectionKey === section.key"
+                          :data-testid="`kanban-settings-section-tab-${section.key}`"
+                          @click="activeFieldSectionKey = section.key"
+                          @keydown.enter.prevent="
+                            activeFieldSectionKey = section.key
+                          "
+                          @keydown.space.prevent="
+                            activeFieldSectionKey = section.key
+                          "
                         >
                           <input
                             v-if="!section.builtIn"
@@ -2031,15 +2226,32 @@ onMounted(async () => {
                         </div>
                       </div>
 
-                      <div class="grid gap-3 xl:grid-cols-2">
+                      <div class="grid gap-3">
                         <article
-                          v-for="section in customFieldLayoutSections"
+                          v-for="section in customFieldLayoutSections.filter(
+                            item => item.key === activeFieldSectionKey
+                          )"
                           :key="section.key"
                           class="grid min-w-0 content-start gap-2 rounded-md bg-n-surface-2 p-2"
                         >
-                          <h5 class="mb-0 text-xs font-medium text-n-slate-12">
-                            {{ section.label }}
-                          </h5>
+                          <div class="flex items-center justify-between gap-2">
+                            <h5
+                              class="mb-0 text-xs font-medium text-n-slate-12"
+                            >
+                              {{ section.label }}
+                            </h5>
+                            <Button
+                              type="button"
+                              data-testid="kanban-settings-add-field-to-active-section"
+                              icon="i-lucide-plus"
+                              :label="
+                                t('KANBAN.SETTINGS.SALES.ADD_FIELD_TO_SECTION')
+                              "
+                              color="slate"
+                              size="xs"
+                              @click="addCustomField"
+                            />
+                          </div>
                           <Draggable
                             :model-value="
                               customFieldsForLayoutSection(section.key)
@@ -2048,6 +2260,8 @@ onMounted(async () => {
                             group="kanban-custom-field-layout"
                             :data-section-key="section.key"
                             class="grid min-h-16 content-start gap-1.5 rounded-md border border-dashed border-n-weak p-2"
+                            @dragover.prevent
+                            @drop="onCustomFieldDrop(section.key, $event)"
                             @change="
                               moveCustomFieldInLayout(section.key, $event)
                             "
@@ -2056,9 +2270,7 @@ onMounted(async () => {
                               <button
                                 type="button"
                                 class="flex min-w-0 cursor-grab items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2 py-1.5 text-left text-xs text-n-slate-12"
-                                @click="
-                                  selectedCustomFieldId = element.clientId
-                                "
+                                @click="selectCustomField(element)"
                               >
                                 <i
                                   class="i-lucide-grip-vertical size-3.5 shrink-0"
@@ -2493,42 +2705,54 @@ onMounted(async () => {
                       </label>
 
                       <div
-                        class="flex flex-wrap items-center justify-between gap-3"
+                        class="flex flex-wrap items-start justify-between gap-3"
                       >
                         <div class="flex flex-wrap items-center gap-4">
-                          <label
-                            class="flex items-center gap-2 text-sm text-n-slate-12"
-                          >
-                            <input
-                              type="checkbox"
-                              data-testid="kanban-settings-custom-field-show-on-card"
-                              :checked="
-                                form.compactCardFieldKeys.includes(
-                                  selectedCustomField.key
-                                )
-                              "
-                              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                              @change="
-                                toggleCompactCardField(
-                                  selectedCustomField.key,
-                                  $event.target.checked
-                                )
-                              "
-                            />
-                            {{ t('KANBAN.SETTINGS.SALES.SHOW_ON_CARD') }}
-                          </label>
-                          <label
-                            class="flex items-center gap-2 text-sm text-n-slate-12"
-                          >
-                            <input
-                              v-model="selectedCustomField.important"
-                              type="checkbox"
-                              data-testid="kanban-settings-custom-field-important"
-                              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                              @change="syncCustomFieldDefinitionsText"
-                            />
-                            {{ t('KANBAN.SETTINGS.SALES.IMPORTANT_FIELD') }}
-                          </label>
+                          <div class="grid max-w-64 gap-1">
+                            <label
+                              class="flex items-center gap-2 text-sm text-n-slate-12"
+                            >
+                              <input
+                                type="checkbox"
+                                data-testid="kanban-settings-custom-field-show-on-card"
+                                :checked="
+                                  form.compactCardFieldKeys.includes(
+                                    selectedCustomField.key
+                                  )
+                                "
+                                class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                                @change="
+                                  toggleCompactCardField(
+                                    selectedCustomField.key,
+                                    $event.target.checked
+                                  )
+                                "
+                              />
+                              {{ t('KANBAN.SETTINGS.SALES.SHOW_ON_CARD') }}
+                            </label>
+                            <span class="pl-6 text-xs text-n-slate-10">
+                              {{ t('KANBAN.SETTINGS.SALES.SHOW_ON_CARD_HELP') }}
+                            </span>
+                          </div>
+                          <div class="grid max-w-64 gap-1">
+                            <label
+                              class="flex items-center gap-2 text-sm text-n-slate-12"
+                            >
+                              <input
+                                v-model="selectedCustomField.important"
+                                type="checkbox"
+                                data-testid="kanban-settings-custom-field-important"
+                                class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                                @change="syncCustomFieldDefinitionsText"
+                              />
+                              {{ t('KANBAN.SETTINGS.SALES.IMPORTANT_FIELD') }}
+                            </label>
+                            <span class="pl-6 text-xs text-n-slate-10">
+                              {{
+                                t('KANBAN.SETTINGS.SALES.IMPORTANT_FIELD_HELP')
+                              }}
+                            </span>
+                          </div>
                         </div>
                         <button
                           type="button"

@@ -516,6 +516,71 @@ describe('KanbanBoardSettings', () => {
     ]);
   });
 
+  it('normalizes legacy marketing fields to the final preset when loaded', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            {
+              key: 'gbraid',
+              label: 'Google GBRAID',
+              field_type: 'text',
+              layout: { section: 'marketing', position: 1 },
+            },
+            {
+              key: 'campaign_name',
+              label: 'Campanha antiga',
+              field_type: 'text',
+              layout: { section: 'marketing', position: 2 },
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-field-list-item-gbraid"]')
+        .exists()
+    ).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-field-list-item-campaign"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-field-list-item-utm_source"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('exposes a draggable field palette and a tab-local add action', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find(
+          '[data-testid="kanban-settings-field-list-item-consulta_realizada"]'
+        )
+        .attributes('draggable')
+    ).toBe('true');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-add-field-to-active-section"]')
+        .exists()
+    ).toBe(true);
+  });
+
   it('uses compact stage checkboxes for field requirements', async () => {
     const { wrapper } = await mountSettings();
 
@@ -678,18 +743,17 @@ describe('KanbanBoardSettings', () => {
     await wrapper
       .find('[data-testid="kanban-settings-manage-custom-fields"]')
       .trigger('click');
-    const draggableSections = wrapper.findAllComponents({ name: 'Draggable' });
-    const detailsSection = draggableSections.find(
-      component => component.attributes('data-section-key') === 'details'
-    );
-    const marketingSection = draggableSections.find(
-      component => component.attributes('data-section-key') === 'marketing'
-    );
+    const detailsSection = wrapper
+      .findAllComponents({ name: 'Draggable' })
+      .find(
+        component => component.attributes('data-section-key') === 'details'
+      );
     const [field] = detailsSection.props('modelValue');
 
-    marketingSection.vm.$emit('change', {
-      added: { element: field, newIndex: 0 },
-    });
+    await wrapper
+      .find('[data-testid="kanban-settings-section-tab-marketing"]')
+      .trigger('click');
+    wrapper.vm.moveCustomFieldToSection('marketing', field, 0);
     await nextTick();
     await wrapper
       .find('[data-testid="kanban-settings-form"]')
