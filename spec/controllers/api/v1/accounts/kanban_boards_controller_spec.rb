@@ -316,6 +316,63 @@ RSpec.describe 'Kanban Boards API', type: :request do
       expect(response_stage['cards'].pluck('id')).not_to include(manual_card.id)
     end
 
+    it 'filters embedded cards and counts by next action status' do
+      travel_to(Time.zone.parse('2026-07-20 12:00:00 UTC')) do
+        stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+        inbox = create(:inbox, account: account)
+        create(:inbox_member, user: agent, inbox: inbox)
+        missing_card = create_board_listing_manual_cards(stage, inbox, 1).first
+        create(
+          :kanban_card,
+          account: account,
+          kanban_board: kanban_board,
+          kanban_stage: stage,
+          contact: create(:contact, account: account),
+          inbox: inbox,
+          position: 2,
+          next_action_at: Time.zone.parse('2026-07-20 08:00:00 UTC')
+        )
+
+        get "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}",
+            headers: agent.create_new_auth_token,
+            params: { next_action: 'missing' },
+            as: :json
+
+        response_stage = response.parsed_body['stages'].first
+        expect(response).to have_http_status(:success)
+        expect(response_stage['cards'].pluck('id')).to eq([missing_card.id])
+        expect(response_stage['cards_count']).to eq(1)
+      end
+    end
+
+    it 'filters embedded cards and counts by opportunity status' do
+      stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      inbox = create(:inbox, account: account)
+      create(:inbox_member, user: agent, inbox: inbox)
+      create_board_listing_manual_cards(stage, inbox, 1)
+      lost_card = create(
+        :kanban_card,
+        account: account,
+        kanban_board: kanban_board,
+        kanban_stage: stage,
+        contact: create(:contact, account: account),
+        inbox: inbox,
+        position: 2,
+        lost_at: Time.current,
+        lost_reason: 'Sem resposta'
+      )
+
+      get "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}",
+          headers: agent.create_new_auth_token,
+          params: { status: 'lost' },
+          as: :json
+
+      response_stage = response.parsed_body['stages'].first
+      expect(response).to have_http_status(:success)
+      expect(response_stage['cards'].pluck('id')).to eq([lost_card.id])
+      expect(response_stage['cards_count']).to eq(1)
+    end
+
     it 'returns has_more false for stages with at most 20 cards' do
       stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
       inbox = create(:inbox, account: account)
