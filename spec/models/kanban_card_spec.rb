@@ -251,6 +251,55 @@ RSpec.describe KanbanCard do
       expect(card.custom_field_values).to include('subtotal' => 200.0, 'total' => 250.0)
     end
 
+    it 'adds calendar days to a date formula in the account timezone' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'inicio', label: 'Início', field_type: 'date' },
+          {
+            key: 'retorno', label: 'Retorno', field_type: 'formula',
+            formula: 'add_days(inicio, 5)', formula_result_type: 'date'
+          }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        custom_field_values: { inicio: '2026-10-30' }
+      )
+
+      expect(card).to be_valid
+      expect(card.custom_field_values['retorno']).to eq('2026-11-04')
+    end
+
+    it 'calculates whole calendar days between two dates' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'inicio', label: 'Início', field_type: 'date' },
+          { key: 'fim', label: 'Fim', field_type: 'date' },
+          {
+            key: 'duracao', label: 'Duração', field_type: 'formula',
+            formula: 'days_between(inicio, fim)', formula_result_type: 'number'
+          }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        custom_field_values: { inicio: '2026-07-20', fim: '2026-07-25' }
+      )
+
+      expect(card).to be_valid
+      expect(card.custom_field_values['duracao']).to eq(5.0)
+    end
+
     it 'rejects a formula that references a later calculated field' do
       board = create(
         :kanban_board,

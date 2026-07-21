@@ -12,6 +12,7 @@
 # Indexes
 #
 #  index_kanban_board_inboxes_on_account_inbox_board           (account_id,inbox_id,kanban_board_id)
+#  index_kanban_board_inboxes_on_inbox_id                      (inbox_id)
 #  index_kanban_board_inboxes_on_kanban_board_id_and_inbox_id  (kanban_board_id,inbox_id) UNIQUE
 #
 # Foreign Keys

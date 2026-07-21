@@ -1500,7 +1500,10 @@ RSpec.describe 'Kanban Boards API', type: :request do
   end
 
   describe 'DELETE /api/v1/accounts/{account.id}/kanban_boards/{id}' do
-    it 'deactivates a board for administrators' do
+    it 'archives a board for administrators while preserving its data' do
+      stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      card = create(:kanban_card, account: account, kanban_board: kanban_board, kanban_stage: stage)
+
       expect do
         delete "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}",
                headers: administrator.create_new_auth_token,
@@ -1508,7 +1511,9 @@ RSpec.describe 'Kanban Boards API', type: :request do
       end.not_to change(KanbanBoard, :count)
 
       expect(response).to have_http_status(:no_content)
-      expect(kanban_board.reload).not_to be_active
+      expect(kanban_board.reload).to have_attributes(active: false, archived_by: administrator)
+      expect(kanban_board.archived_at).to be_present
+      expect(card.reload).to be_active
     end
 
     it 'rejects agents' do
@@ -1518,6 +1523,53 @@ RSpec.describe 'Kanban Boards API', type: :request do
 
       expect(response).to have_http_status(:unauthorized)
       expect(kanban_board.reload).to be_active
+    end
+  end
+
+  describe 'archived boards' do
+    it 'lists archived boards only for administrators' do
+      kanban_board.update!(active: false, archived_at: Time.current, archived_by: administrator)
+
+      get "/api/v1/accounts/#{account.id}/kanban_boards/archived",
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to contain_exactly(
+        hash_including(
+          'id' => kanban_board.id,
+          'name' => 'Sales',
+          'archived_by' => hash_including('id' => administrator.id),
+          'cards_count' => 0
+        )
+      )
+
+      get "/api/v1/accounts/#{account.id}/kanban_boards/archived",
+          headers: agent.create_new_auth_token,
+          as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'restores a board without losing stages, cards, history or settings' do
+      stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      card = create(:kanban_card, account: account, kanban_board: kanban_board, kanban_stage: stage)
+      kanban_board.update!(
+        active: false,
+        archived_at: Time.current,
+        archived_by: administrator,
+        next_action_types: ['Retornar']
+      )
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/restore",
+            headers: administrator.create_new_auth_token,
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(kanban_board.reload).to have_attributes(active: true, archived_at: nil, archived_by: nil)
+      expect(kanban_board.kanban_stages).to contain_exactly(stage)
+      expect(kanban_board.kanban_cards).to contain_exactly(card)
+      expect(kanban_board.next_action_types).to eq(['Retornar'])
+      expect(card.kanban_card_events.pluck(:event_type)).to include('card_created')
     end
   end
 
@@ -1728,7 +1780,8 @@ RSpec.describe 'Kanban Boards API', type: :request do
     %w[
       id kanban_stage_id position origin subject active due_at stage_entered_at contact inbox conversation_id priority conversation assignee
       moved_by_id moved_at owner_id owner next_action_type next_action_at next_action_note next_action_status next_action_completed_at
-      won_at lost_at lost_reason closed_by_id closed_by amount_cents amount_currency custom_field_values compact_custom_fields stale_in_stage
+      won_at lost_at lost_reason closed_by_id closed_by amount_cents amount_currency expected_close_date lock_version custom_field_values
+      compact_custom_fields stale_in_stage
     ]
   end
 

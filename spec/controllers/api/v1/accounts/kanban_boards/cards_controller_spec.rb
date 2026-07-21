@@ -1232,6 +1232,49 @@ RSpec.describe 'Kanban Cards API', type: :request do
 
       expect(response).to have_http_status(:success)
       expect([first_card.reload.owner, second_card.reload.owner]).to all(eq(owner))
+      expect(response.parsed_body).to include('updated_count' => 2, 'failed_count' => 0, 'errors' => [])
+    end
+
+    it 'marks multiple opportunities as lost with a reason' do
+      cards = [create_manual_card(subject: 'Primeira'), create_manual_card(subject: 'Segunda')]
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/cards/bulk",
+            headers: agent.create_new_auth_token,
+            params: { card_ids: cards.map(&:id), operation: 'mark_lost', lost_reason: 'Preço' },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(cards.map { |card| card.reload.lost_reason }).to eq(%w[Preço Preço])
+      expect(cards.map(&:lost_at)).to all(be_present)
+    end
+
+    it 'restores multiple archived opportunities' do
+      cards = [create_manual_card(subject: 'Primeira'), create_manual_card(subject: 'Segunda')]
+      cards.each { |card| card.archive!(actor: agent) }
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/cards/bulk",
+            headers: agent.create_new_auth_token,
+            params: { card_ids: cards.map(&:id), operation: 'restore' },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(cards.map { |card| card.reload.active? }).to all(be(true))
+    end
+
+    it 'rejects a stale edit from a second agent with the current card payload' do
+      card = create_manual_card(subject: 'Versão inicial')
+      stale_version = card.lock_version
+      card.update!(subject: 'Alterada pela Ana')
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { subject: 'Alterada pelo Bruno', lock_version: stale_version } },
+            as: :json
+
+      expect(response).to have_http_status(:conflict)
+      expect(response.parsed_body).to include('code' => 'stale_object')
+      expect(response.parsed_body.dig('card', 'subject')).to eq('Alterada pela Ana')
+      expect(card.reload.subject).to eq('Alterada pela Ana')
     end
 
     it 'emits kanban.card.deleted with a compact payload' do

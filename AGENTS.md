@@ -1,4 +1,34 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+(Note: `CLAUDE.md` is a symlink to `AGENTS.md` — edit this file to update both.)
+
 # Chatwoot Development Guidelines
+
+## Architecture Overview
+
+Chatwoot is a Ruby on Rails (Ruby `3.4.4`) monolith with a Vue 3 frontend bundled by Vite. It is an omnichannel customer support platform: many inbound channels (web widget, email, Facebook, Instagram, WhatsApp, Telegram, SMS, etc.) funnel into a shared conversation/inbox model that agents work from a dashboard.
+
+**Backend (`app/`)** follows a domain-object layering beyond stock Rails MVC — understand these before adding logic:
+- `services/` — most business logic lives here (e.g. channel integrations, message processing). Prefer service objects over fat models/controllers.
+- `builders/` — construct complex objects (conversations, messages, contacts) from channel payloads.
+- `finders/` — encapsulate complex query/filtering logic used by controllers.
+- `listeners/` + `dispatchers/` — event-driven side effects. Actions emit events via `Rails.configuration.dispatcher`; listeners react (webhooks, notifications, automation). Trace a feature's side effects through here, not through inline controller code.
+- `jobs/` — Sidekiq background jobs (async work; most listeners enqueue jobs).
+- `policies/` — Pundit authorization.
+- `drops/` — Liquid template variables (canned responses, campaigns, portal).
+- `controllers/` — thin; namespaced heavily: `api/v1/`, `api/v2/`, `public/`, `platform/`, `widget/`, `super_admin/`.
+
+**Frontend (`app/javascript/`)** is several separate Vite apps, one per entrypoint (`app/javascript/entrypoints/`), not a single SPA:
+- `dashboard/` — the main agent app (Vue 3, Vuex in `store/` migrating to Pinia in `stores/`, routes in `routes/`, API clients in `api/`).
+- `widget/` — the embeddable live-chat widget shown to end users.
+- `sdk/` — the JS SDK loaded on customer sites that boots the widget.
+- `portal/` — public help center. `survey/` — CSAT survey page. `superadmin_pages/` — super admin UI. `v3/` — next-gen app shell.
+- `components-next/` — the current component library; the older `components/` tree is being deprecated.
+
+**Enterprise overlay (`enterprise/`)** mirrors `app/` and extends/overrides OSS code via `prepend_mod_with`/`include_mod_with` rather than editing OSS files. See the Enterprise Edition Notes below — any change to core services, controllers, policies, or public API contracts must be checked against the corresponding `enterprise/` files.
+
+**Async & data:** PostgreSQL is the primary store; Redis backs Sidekiq (background jobs, `config/sidekiq.yml`) and Action Cable (real-time websocket updates to the dashboard/widget). The dev process set (`Procfile.dev`) runs `backend` (Rails), `worker` (Sidekiq), and `vite` together.
 
 ## Build / Test / Lint
 

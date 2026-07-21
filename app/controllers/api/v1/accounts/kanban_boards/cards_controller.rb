@@ -51,15 +51,28 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       options: bulk_params.slice(:owner_id, :stage_id, :lost_reason)
     ).perform!
 
-    render json: { updated_count: updated_count }
+    render json: { updated_count: updated_count, failed_count: 0, errors: [] }
+  rescue ActiveRecord::RecordInvalid => e
+    render json: {
+      updated_count: 0,
+      failed_count: cards&.length || 0,
+      errors: Array(cards).map do |card|
+        { card_id: card.id, messages: e.record.errors.full_messages }
+      end,
+      message: e.record.errors.full_messages.to_sentence
+    }, status: :unprocessable_entity
   end
 
   def update
     update_kanban_card
+  rescue ActiveRecord::StaleObjectError
+    render_stale_card
   end
 
   def reorder
     reorder_kanban_card
+  rescue ActiveRecord::StaleObjectError
+    render_stale_card
   end
 
   def restore
@@ -130,6 +143,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       :amount_cents,
       :amount_currency,
       :expected_close_date,
+      :lock_version,
       custom_field_values: {},
       labels: []
     )
@@ -148,14 +162,22 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     card_ids = Array(bulk_params[:card_ids]).map(&:to_i).uniq
     raise ActiveRecord::RecordNotFound if card_ids.blank? || card_ids.length > KanbanCards::BulkUpdateService::MAX_CARDS
 
-    cards = @kanban_board.kanban_cards.active.where(id: card_ids).includes(:kanban_stage, :contact, :inbox, :conversation).to_a
+    cards = bulk_cards_scope.where(id: card_ids).includes(:kanban_stage, :contact, :inbox, :conversation).to_a
     raise ActiveRecord::RecordNotFound unless cards.length == card_ids.length
 
     cards.sort_by { |card| card_ids.index(card.id) }
   end
 
+  def bulk_cards_scope
+    bulk_params[:operation] == 'restore' ? @kanban_board.kanban_cards.where(active: false) : @kanban_board.kanban_cards.active
+  end
+
   def authorize_bulk_cards!(cards)
-    policy_action = bulk_params[:operation] == 'archive' ? :destroy? : :update?
+    policy_action = case bulk_params[:operation]
+                    when 'archive' then :destroy?
+                    when 'restore' then :restore?
+                    else :update?
+                    end
     cards.each { |card| authorize card, policy_action }
   end
 
@@ -190,6 +212,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def update_kanban_card
+    return render_stale_card unless card_version_current?(card_params[:lock_version])
+
     invalid_label_titles = []
 
     KanbanCard.transaction do
@@ -215,6 +239,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def reorder_kanban_card
+    return render_stale_card unless card_version_current?(reorder_card_params[:lock_version])
+
     source_stage_id = @kanban_card.kanban_stage_id
     target_stage = target_card_stage_for_reorder
     return render_missing_lost_reason if target_stage.category == 'lost' && reorder_card_params[:lost_reason].blank?
@@ -353,7 +379,27 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def reorder_card_params
-    @reorder_card_params ||= params.require(:card).permit(:kanban_stage_id, :position, :lost_reason, custom_field_values: {})
+    @reorder_card_params ||= params.require(:card).permit(:kanban_stage_id, :position, :lost_reason, :lock_version, custom_field_values: {})
+  end
+
+  def card_version_current?(client_version)
+    client_version.blank? || client_version.to_i == @kanban_card.lock_version
+  end
+
+  def render_stale_card
+    @kanban_card.reload
+    card_payload = JSON.parse(
+      render_to_string(
+        partial: 'api/v1/accounts/kanban_boards/card',
+        formats: [:json],
+        locals: { card: @kanban_card, stable_card: true }
+      )
+    )
+    render json: {
+      code: 'stale_object',
+      message: 'This opportunity was changed by another user. Review the current data before saving again.',
+      card: card_payload
+    }, status: :conflict
   end
 
   def apply_target_stage_category!(permitted_params)

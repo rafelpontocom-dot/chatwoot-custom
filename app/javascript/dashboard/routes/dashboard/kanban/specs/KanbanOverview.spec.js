@@ -44,6 +44,8 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
   default: {
     get: vi.fn(),
     create: vi.fn(),
+    getArchivedBoards: vi.fn(),
+    restoreBoard: vi.fn(),
   },
 }));
 
@@ -106,6 +108,8 @@ describe('KanbanOverview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     KanbanBoardsAPI.get.mockResolvedValue({ data: [] });
+    KanbanBoardsAPI.getArchivedBoards.mockResolvedValue({ data: [] });
+    KanbanBoardsAPI.restoreBoard.mockResolvedValue({ data: {} });
   });
 
   it('renders the overview page without redirecting', async () => {
@@ -202,6 +206,36 @@ describe('KanbanOverview', () => {
     );
     expect(createButton.exists()).toBe(true);
     expect(createButton.text()).toContain('Adicionar Funil');
+  });
+
+  it('lists and restores archived boards for administrators', async () => {
+    KanbanBoardsAPI.getArchivedBoards.mockResolvedValue({
+      data: [
+        {
+          id: 19,
+          name: 'Funil antigo',
+          cards_count: 8,
+          stages_count: 4,
+        },
+      ],
+    });
+    const wrapper = await mountOverview('administrator');
+
+    await wrapper
+      .find('[data-testid="overview-open-archived-boards"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Funil antigo');
+    await wrapper
+      .find('[data-testid="overview-restore-board-19"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.restoreBoard).toHaveBeenCalledWith(19);
+    expect(wrapper.dispatchSpy).toHaveBeenCalledWith(
+      'kanbanBoards/refreshBoards'
+    );
   });
 
   it('renders only one create button in the overview', async () => {

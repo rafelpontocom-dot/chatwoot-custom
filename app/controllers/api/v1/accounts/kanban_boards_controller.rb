@@ -1,10 +1,18 @@
 class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseController
   before_action :check_authorization
   before_action :fetch_kanban_board, only: [:show, :update, :destroy]
+  before_action :fetch_archived_kanban_board, only: [:restore]
 
   def index
     @kanban_boards = policy_scope(KanbanBoard).ordered.to_a
     fetch_overview_data
+  end
+
+  def archived
+    authorize KanbanBoard.new(account: Current.account), :archived?
+    boards = KanbanBoard.archived.where(account_id: Current.account.id).includes(:archived_by).order(archived_at: :desc, id: :desc)
+
+    render json: boards.map { |board| archived_board_payload(board) }
   end
 
   def show
@@ -28,14 +36,36 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
   end
 
   def destroy
-    @kanban_board.update!(active: false)
+    @kanban_board.archive!(actor: Current.user)
     head :no_content
+  end
+
+  def restore
+    authorize @kanban_board, :restore?
+    @kanban_board.restore!
+    render json: archived_board_payload(@kanban_board)
   end
 
   private
 
   def fetch_kanban_board
     @kanban_board = policy_scope(KanbanBoard).find(params[:id])
+  end
+
+  def fetch_archived_kanban_board
+    @kanban_board = KanbanBoard.archived.where(account_id: Current.account.id).find(params[:id])
+  end
+
+  def archived_board_payload(board)
+    {
+      id: board.id,
+      name: board.name,
+      description: board.description,
+      archived_at: board.archived_at&.iso8601,
+      archived_by: board.archived_by && { id: board.archived_by_id, name: board.archived_by.name },
+      cards_count: board.kanban_cards.count,
+      stages_count: board.kanban_stages.count
+    }
   end
 
   def fetch_overview_data

@@ -4,12 +4,14 @@
 #
 #  id                                   :bigint           not null, primary key
 #  active                               :boolean          default(TRUE), not null
+#  archived_at                          :datetime
 #  auto_create_cards_from_conversations :boolean          default(FALSE), not null
 #  compact_card_field_keys              :jsonb            not null
 #  custom_field_definitions             :jsonb            not null
 #  custom_field_sections                :jsonb            not null
 #  description                          :text
 #  inbox_scope_mode                     :string           default("all_inboxes"), not null
+#  lock_version                         :integer          default(0), not null
 #  lost_reason_options                  :jsonb            not null
 #  name                                 :string           not null
 #  next_action_types                    :jsonb            not null
@@ -20,19 +22,27 @@
 #  created_at                           :datetime         not null
 #  updated_at                           :datetime         not null
 #  account_id                           :bigint           not null
+#  archived_by_id                       :bigint
 #
 # Indexes
 #
 #  index_active_kanban_boards_on_account_id_and_name  (account_id,name) UNIQUE WHERE (active = true)
 #  index_kanban_boards_on_account_id                  (account_id)
 #  index_kanban_boards_on_account_id_and_active       (account_id,active)
+#  index_kanban_boards_on_account_id_and_archived_at  (account_id,archived_at)
 #  index_kanban_boards_on_account_id_and_position     (account_id,position)
+#  index_kanban_boards_on_archived_by_id              (archived_by_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (archived_by_id => users.id)
 #
 class KanbanBoard < ApplicationRecord
   INBOX_SCOPE_MODES = %w[all_inboxes selected_inboxes].freeze
   VISIBILITY_MODES = %w[all_agents selected_agents].freeze
   CUSTOM_FIELD_TYPES = %w[text textarea select multiselect integer decimal currency date datetime boolean url formula].freeze
   CUSTOM_FIELD_LAYOUT_WIDTHS = %w[full half third].freeze
+  FORMULA_RESULT_TYPES = %w[number date datetime].freeze
   RESERVED_CUSTOM_FIELD_SECTION_KEYS = %w[details marketing timeline].freeze
   DEFAULT_NEXT_ACTION_TYPES = [
     'Chamar novamente',
@@ -53,6 +63,7 @@ class KanbanBoard < ApplicationRecord
   ].freeze
 
   belongs_to :account
+  belongs_to :archived_by, class_name: 'User', optional: true
 
   has_many :kanban_stages, dependent: :destroy_async
   has_many :conversation_kanban_states, dependent: :destroy_async
@@ -76,6 +87,7 @@ class KanbanBoard < ApplicationRecord
   validates :position, presence: true, numericality: { only_integer: true }
 
   scope :active, -> { where(active: true) }
+  scope :archived, -> { where(active: false).where.not(archived_at: nil) }
   scope :ordered, -> { order(position: :asc, id: :asc) }
   scope :accepting_inbox, lambda { |inbox_id|
     joins_sql = KanbanBoardInbox.where('kanban_board_inboxes.kanban_board_id = kanban_boards.id')
@@ -126,6 +138,24 @@ class KanbanBoard < ApplicationRecord
     KanbanBoards::SalesSummaryBuilder.new(self).call
   end
 
+  def archive!(actor:)
+    update!(active: false, archived_at: Time.current, archived_by: actor)
+  end
+
+  def restore!
+    update!(active: true, archived_at: nil, archived_by: nil)
+  end
+
+  def custom_field_usage(field_keys = nil)
+    keys = Array(field_keys.presence || configured_custom_field_definitions.pluck('key'))
+    keys.index_with do |key|
+      kanban_cards.where(
+        "custom_field_values ? :key AND custom_field_values -> :key NOT IN ('null'::jsonb, '\"\"'::jsonb, '[]'::jsonb)",
+        key: key
+      ).count
+    end
+  end
+
   private
 
   def normalize_sales_configuration
@@ -170,8 +200,15 @@ class KanbanBoard < ApplicationRecord
       'important' => ActiveModel::Type::Boolean.new.cast(source[:important]),
       'condition' => normalize_custom_field_condition(source[:condition]),
       'formula' => field_type == 'formula' ? source[:formula].to_s.strip.presence : nil,
+      'formula_result_type' => normalize_formula_result_type(field_type, source[:formula_result_type]),
       'layout' => normalize_custom_field_layout(source[:layout])
     }
+  end
+
+  def normalize_formula_result_type(field_type, result_type)
+    return nil unless field_type == 'formula'
+
+    FORMULA_RESULT_TYPES.include?(result_type.to_s) ? result_type.to_s : 'number'
   end
 
   def normalize_custom_field_sections(sections)

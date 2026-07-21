@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_21_200000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_22_100000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1010,10 +1010,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_200000) do
     t.jsonb "compact_card_field_keys", default: [], null: false
     t.jsonb "stale_stage_thresholds", default: {}, null: false
     t.jsonb "custom_field_sections", default: [], null: false
+    t.datetime "archived_at"
+    t.bigint "archived_by_id"
+    t.integer "lock_version", default: 0, null: false
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
+    t.index ["account_id", "archived_at"], name: "index_kanban_boards_on_account_id_and_archived_at"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
     t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"
     t.index ["account_id"], name: "index_kanban_boards_on_account_id"
+    t.index ["archived_by_id"], name: "index_kanban_boards_on_archived_by_id"
   end
 
   create_table "kanban_card_events", force: :cascade do |t|
@@ -1070,6 +1075,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_200000) do
     t.date "expected_close_date"
     t.datetime "archived_at"
     t.bigint "archived_by_id"
+    t.integer "lock_version", default: 0, null: false
     t.index ["account_id", "active"], name: "index_kanban_cards_on_account_id_and_active"
     t.index ["account_id", "contact_id"], name: "index_kanban_cards_on_account_id_and_contact_id"
     t.index ["account_id", "inbox_id"], name: "index_kanban_cards_on_account_id_and_inbox_id"
@@ -1121,7 +1127,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_200000) do
     t.index ["kanban_board_id", "name"], name: "index_active_kanban_stages_on_board_id_and_name", unique: true, where: "(active = true)"
     t.index ["kanban_board_id", "position"], name: "index_kanban_stages_on_kanban_board_id_and_position"
     t.index ["kanban_board_id"], name: "index_kanban_stages_on_kanban_board_id"
-    t.check_constraint "category::text = ANY (ARRAY['open'::character varying, 'won'::character varying, 'lost'::character varying]::text[])", name: "kanban_stages_category_check"
+    t.check_constraint "category::text = ANY (ARRAY['open'::character varying::text, 'won'::character varying::text, 'lost'::character varying::text])", name: "kanban_stages_category_check"
     t.check_constraint "wip_limit IS NULL OR wip_limit > 0", name: "kanban_stages_wip_limit_check"
   end
 
@@ -1545,6 +1551,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_200000) do
   add_foreign_key "kanban_board_members", "accounts"
   add_foreign_key "kanban_board_members", "kanban_boards"
   add_foreign_key "kanban_board_members", "users"
+  add_foreign_key "kanban_boards", "users", column: "archived_by_id"
   add_foreign_key "kanban_card_events", "accounts"
   add_foreign_key "kanban_card_events", "kanban_boards"
   add_foreign_key "kanban_card_events", "kanban_cards"

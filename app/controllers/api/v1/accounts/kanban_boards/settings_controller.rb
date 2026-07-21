@@ -5,6 +5,22 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
   def show; end
 
   def update
+    if settings_params[:lock_version].present? && settings_params[:lock_version].to_i != @kanban_board.lock_version
+      return render json: {
+        code: 'stale_settings',
+        message: 'These funnel settings changed in another session. Reload before saving.',
+        lock_version: @kanban_board.lock_version
+      }, status: :conflict
+    end
+
+    affected_fields = removed_field_usage
+    if affected_fields.present? && !ActiveModel::Type::Boolean.new.cast(params[:confirm_data_loss])
+      return render json: {
+        code: 'custom_field_data_loss_confirmation_required',
+        affected_fields: affected_fields
+      }, status: :unprocessable_entity
+    end
+
     ActiveRecord::Base.transaction do
       @kanban_board.update!(settings_params.except(:visible_user_ids, :allowed_inbox_ids))
       replace_memberships!
@@ -50,6 +66,7 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
       :visibility_mode,
       :inbox_scope_mode,
       :auto_create_cards_from_conversations,
+      :lock_version,
       visible_user_ids: [],
       allowed_inbox_ids: [],
       next_action_types: [],
@@ -62,6 +79,7 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
         :label,
         :field_type,
         :formula,
+        :formula_result_type,
         :important,
         {
           options: [],
@@ -73,6 +91,16 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
     )
   end
   # rubocop:enable Metrics/MethodLength
+
+  def removed_field_usage
+    return [] unless settings_params.key?(:custom_field_definitions)
+
+    current_keys = @kanban_board.configured_custom_field_definitions.pluck('key')
+    incoming_keys = Array(settings_params[:custom_field_definitions]).pluck(:key).map(&:to_s)
+    @kanban_board.custom_field_usage(current_keys - incoming_keys).filter_map do |key, count|
+      { key: key, count: count } if count.positive?
+    end
+  end
 
   def replace_memberships!
     return unless settings_params.key?(:visible_user_ids) || @kanban_board.all_agents?

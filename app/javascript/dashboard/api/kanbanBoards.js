@@ -33,6 +33,14 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.get(this.url, config);
   }
 
+  getArchivedBoards() {
+    return axios.get(`${this.url}/archived`);
+  }
+
+  restoreBoard(boardId) {
+    return axios.patch(`${this.url}/${boardId}/restore`);
+  }
+
   showBoard(boardId, config = {}) {
     return axios.get(`${this.url}/${boardId}`, config);
   }
@@ -55,6 +63,17 @@ class KanbanBoardsAPI extends ApiClient {
 
   createSavedFilter(boardId, payload) {
     return axios.post(`${this.url}/${boardId}/saved_filters`, payload);
+  }
+
+  updateSavedFilter(boardId, filterId, payload) {
+    return axios.patch(
+      `${this.url}/${boardId}/saved_filters/${filterId}`,
+      payload
+    );
+  }
+
+  deleteSavedFilter(boardId, filterId) {
+    return axios.delete(`${this.url}/${boardId}/saved_filters/${filterId}`);
   }
 
   importExistingConversations(boardId, payload) {

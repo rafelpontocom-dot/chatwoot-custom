@@ -15,7 +15,7 @@
 #
 # Indexes
 #
-#  idx_on_account_id_kanban_board_id_f57807836f                (account_id,kanban_board_id)
+#  idx_conversation_kanban_states_on_account_board             (account_id,kanban_board_id)
 #  index_conversation_kanban_states_on_account_id              (account_id)
 #  index_conversation_kanban_states_on_board_stage_position    (kanban_board_id,kanban_stage_id,position)
 #  index_conversation_kanban_states_on_conversation_and_board  (conversation_id,kanban_board_id) UNIQUE

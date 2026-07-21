@@ -19,6 +19,14 @@ class KanbanBoardPolicy < ApplicationPolicy
     administrator?
   end
 
+  def archived?
+    administrator?
+  end
+
+  def restore?
+    administrator?
+  end
+
   def visible?
     return false unless record.is_a?(KanbanBoard)
     return false unless record.active?

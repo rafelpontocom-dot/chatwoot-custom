@@ -117,6 +117,8 @@ Rails.application.routes.draw do
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           resources :kanban_boards, only: [:index, :create, :show, :destroy], constraints: { id: /\d+/ } do
             patch '', on: :member, action: :update
+            get :archived, on: :collection
+            patch :restore, on: :member
 
             scope module: :kanban_boards do
               resource :settings, only: [:show, :update]

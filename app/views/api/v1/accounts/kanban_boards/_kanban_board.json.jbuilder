@@ -4,6 +4,8 @@ json.name kanban_board.name
 json.description kanban_board.description
 json.position kanban_board.position
 json.active kanban_board.active
+json.archived_at kanban_board.archived_at&.iso8601
+json.lock_version kanban_board.lock_version
 json.auto_create_cards_from_conversations kanban_board.auto_create_cards_from_conversations
 json.next_action_types kanban_board.configured_next_action_types
 json.lost_reason_options kanban_board.configured_lost_reason_options

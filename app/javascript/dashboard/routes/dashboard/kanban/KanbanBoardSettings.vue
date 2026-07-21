@@ -36,6 +36,9 @@ const loadError = ref('');
 const saveError = ref('');
 const stageError = ref('');
 const importError = ref('');
+const showUnsavedChangesConfirmation = ref(false);
+const serverSettingsSnapshot = ref(null);
+const serverSettingsPayload = ref(null);
 const showDeleteConfirmation = ref(false);
 const showCreateStageForm = ref(false);
 const showImportExistingConversationsModal = ref(false);
@@ -46,11 +49,15 @@ const activeStageActionKey = ref('');
 const ignoreGroupsForImport = ref(false);
 const activeFormulaFieldId = ref(null);
 const activeFormulaSuggestionIndex = ref(0);
+const formulaPreviewValues = ref({});
 const showCustomFieldManager = ref(false);
 const selectedCustomFieldId = ref(null);
 const newCustomFieldOption = ref('');
 const showNewFieldSectionForm = ref(false);
 const newFieldSectionName = ref('');
+const sectionPendingRemoval = ref(null);
+const sectionRemovalDestination = ref('details');
+const showRemoveFieldSectionConfirmation = ref(false);
 let customFieldRowSequence = 0;
 
 const nextCustomFieldRowId = () => {
@@ -73,6 +80,7 @@ const form = reactive({
   customFieldSections: [],
   compactCardFieldKeys: [],
   staleStageThresholds: {},
+  lockVersion: null,
 });
 
 const boardId = computed(() => Number(route.params.boardId));
@@ -86,6 +94,29 @@ const selectedCustomField = computed(() =>
   form.customFieldDefinitions.find(
     definition => definition.clientId === selectedCustomFieldId.value
   )
+);
+
+const settingsFingerprint = () =>
+  JSON.stringify({
+    name: form.name,
+    description: form.description,
+    autoCreateCardsFromConversations: form.autoCreateCardsFromConversations,
+    visibilityMode: form.visibilityMode,
+    visibleUserIds: form.visibleUserIds,
+    inboxScopeMode: form.inboxScopeMode,
+    allowedInboxIds: form.allowedInboxIds,
+    nextActionTypesText: form.nextActionTypesText,
+    lostReasonOptionsText: form.lostReasonOptionsText,
+    customFieldDefinitionsText: form.customFieldDefinitionsText,
+    customFieldSections: form.customFieldSections,
+    compactCardFieldKeys: form.compactCardFieldKeys,
+    staleStageThresholds: form.staleStageThresholds,
+  });
+
+const hasUnsavedSettings = computed(
+  () =>
+    serverSettingsSnapshot.value !== null &&
+    settingsFingerprint() !== serverSettingsSnapshot.value
 );
 
 const agentOptions = computed(() =>
@@ -387,6 +418,7 @@ const numericFormulaCandidates = definition => {
     {
       key: 'system_amount',
       label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT'),
+      fieldType: 'currency',
       searchAliases: 'valor value amount',
     },
     ...form.customFieldDefinitions
@@ -394,12 +426,22 @@ const numericFormulaCandidates = definition => {
         (field, fieldIndex) =>
           field !== definition &&
           field.key &&
-          ['integer', 'decimal', 'currency', 'formula'].includes(
-            field.fieldType
-          ) &&
+          [
+            'integer',
+            'decimal',
+            'currency',
+            'formula',
+            'date',
+            'datetime',
+          ].includes(field.fieldType) &&
           (field.fieldType !== 'formula' || fieldIndex < definitionIndex)
       )
-      .map(field => ({ key: field.key, label: field.label || field.key })),
+      .map(field => ({
+        key: field.key,
+        label: field.label || field.key,
+        fieldType: field.fieldType,
+        formulaResultType: field.formulaResultType,
+      })),
   ];
 };
 
@@ -432,6 +474,89 @@ function stableFormulaValue(definition) {
   );
 }
 
+const formulaPreviewCandidates = computed(() => {
+  if (
+    !selectedCustomField.value ||
+    selectedCustomField.value.fieldType !== 'formula'
+  ) {
+    return [];
+  }
+
+  return numericFormulaCandidates(selectedCustomField.value).filter(
+    candidate =>
+      ['integer', 'decimal', 'currency', 'formula'].includes(
+        candidate.fieldType
+      ) &&
+      (candidate.fieldType !== 'formula' ||
+        ['number', undefined, ''].includes(candidate.formulaResultType))
+  );
+});
+
+const evaluateFormulaPreview = (expression, values) => {
+  const normalizedExpression = String(expression || '').replace(
+    /[a-zA-Z_][a-zA-Z0-9_]*/g,
+    token => {
+      const value = Number(values[token]);
+      return Number.isFinite(value) ? String(value) : 'NaN';
+    }
+  );
+  if (!/^[\d\s+\-*/().]+$/u.test(normalizedExpression)) return null;
+
+  const tokens = normalizedExpression.match(/\d+(?:\.\d+)?|[+\-*/()]/gu);
+  if (!tokens || tokens.join('') !== normalizedExpression.replace(/\s+/gu, ''))
+    return null;
+
+  let index = 0;
+  let parseAdditive;
+  const parsePrimary = () => {
+    const token = tokens[index];
+    if (token === '(') {
+      index += 1;
+      const result = parseAdditive();
+      if (tokens[index] !== ')') return null;
+      index += 1;
+      return result;
+    }
+    if (!token || !/^\d/u.test(token)) return null;
+    index += 1;
+    return Number(token);
+  };
+  const parseMultiplicative = () => {
+    let result = parsePrimary();
+    while (result !== null && ['*', '/'].includes(tokens[index])) {
+      const operator = tokens[index];
+      index += 1;
+      const right = parsePrimary();
+      if (right === null || (operator === '/' && right === 0)) return null;
+      result = operator === '*' ? result * right : result / right;
+    }
+    return result;
+  };
+  parseAdditive = () => {
+    let result = parseMultiplicative();
+    while (result !== null && ['+', '-'].includes(tokens[index])) {
+      const operator = tokens[index];
+      index += 1;
+      const right = parseMultiplicative();
+      if (right === null) return null;
+      result = operator === '+' ? result + right : result - right;
+    }
+    return result;
+  };
+
+  const result = parseAdditive();
+  return index === tokens.length && Number.isFinite(result) ? result : null;
+};
+
+const formulaPreviewResult = computed(() => {
+  if (!selectedCustomField.value) return null;
+
+  return evaluateFormulaPreview(
+    stableFormulaValue(selectedCustomField.value),
+    formulaPreviewValues.value
+  );
+});
+
 const applySettings = payload => {
   const settings = camelcaseKeys(payload || {}, { deep: true });
 
@@ -463,6 +588,10 @@ const applySettings = payload => {
       conditionEquals: definition.condition?.equals ?? '',
       formula: definition.formula || '',
       formulaDisplay: definition.formula || '',
+      formulaResultType:
+        definition.formulaResultType ||
+        definition.formula_result_type ||
+        'number',
       layoutSection: definition.layout?.section || 'details',
       layoutPosition: definition.layout?.position || 1,
       layoutWidth: definition.layout?.width || 'full',
@@ -476,6 +605,9 @@ const applySettings = payload => {
   form.customFieldSections = settings.customFieldSections || [];
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
+  form.lockVersion = settings.lockVersion ?? null;
+  serverSettingsPayload.value = JSON.parse(JSON.stringify(settings));
+  serverSettingsSnapshot.value = settingsFingerprint();
 };
 
 const applyBoard = payload => {
@@ -538,6 +670,8 @@ const customFieldPayload = definition => ({
     : {},
   formula:
     definition.fieldType === 'formula' ? stableFormulaValue(definition) : null,
+  formula_result_type:
+    definition.fieldType === 'formula' ? definition.formulaResultType : null,
   important: Boolean(definition.important),
   layout: {
     section: definition.layoutSection || 'details',
@@ -567,6 +701,7 @@ const createCustomFieldRow = ({
   conditionEquals: '',
   formula: '',
   formulaDisplay: '',
+  formulaResultType: 'number',
   layoutSection,
   layoutPosition,
   layoutWidth,
@@ -597,8 +732,29 @@ const openCustomFieldManager = clientId => {
 };
 
 const closeCustomFieldManager = () => {
+  if (hasUnsavedSettings.value) {
+    showUnsavedChangesConfirmation.value = true;
+    return;
+  }
+
   showCustomFieldManager.value = false;
   newCustomFieldOption.value = '';
+};
+
+const discardUnsavedSettings = () => {
+  showUnsavedChangesConfirmation.value = false;
+  if (serverSettingsPayload.value) applySettings(serverSettingsPayload.value);
+  showCustomFieldManager.value = false;
+  newCustomFieldOption.value = '';
+};
+
+const isStaleSettingsError = error =>
+  error?.response?.status === 409 &&
+  error?.response?.data?.code === 'stale_settings';
+
+const reloadSettingsAfterConflict = async () => {
+  saveError.value = '';
+  await fetchSettings();
 };
 
 const customFieldOptionValues = definition =>
@@ -683,6 +839,54 @@ const createCustomFieldSection = () => {
   form.customFieldSections.push({ key, label });
   newFieldSectionName.value = '';
   showNewFieldSectionForm.value = false;
+};
+
+const customSectionByKey = sectionKey =>
+  form.customFieldSections.find(section => section.key === sectionKey);
+
+const moveCustomFieldSection = (sectionKey, direction) => {
+  const sectionIndex = form.customFieldSections.findIndex(
+    section => section.key === sectionKey
+  );
+  const nextIndex = sectionIndex + direction;
+  if (
+    sectionIndex < 0 ||
+    nextIndex < 0 ||
+    nextIndex >= form.customFieldSections.length
+  )
+    return;
+
+  const sections = [...form.customFieldSections];
+  [sections[sectionIndex], sections[nextIndex]] = [
+    sections[nextIndex],
+    sections[sectionIndex],
+  ];
+  form.customFieldSections = sections;
+};
+
+const openRemoveCustomFieldSection = section => {
+  if (section.builtIn) return;
+
+  sectionPendingRemoval.value = section;
+  sectionRemovalDestination.value = 'details';
+  showRemoveFieldSectionConfirmation.value = true;
+};
+
+const removeCustomFieldSection = () => {
+  const section = sectionPendingRemoval.value;
+  if (!section) return;
+
+  form.customFieldDefinitions.forEach(definition => {
+    if ((definition.layoutSection || 'details') === section.key) {
+      definition.layoutSection = sectionRemovalDestination.value;
+    }
+  });
+  form.customFieldSections = form.customFieldSections.filter(
+    item => item.key !== section.key
+  );
+  sectionPendingRemoval.value = null;
+  showRemoveFieldSectionConfirmation.value = false;
+  syncCustomFieldDefinitionsText();
 };
 const customFieldsForLayoutSection = sectionKey =>
   form.customFieldDefinitions
@@ -937,6 +1141,7 @@ const buildPayload = () => ({
       form.inboxScopeMode === 'selected_inboxes' ? form.allowedInboxIds : [],
     next_action_types: linesFromText(form.nextActionTypesText),
     lost_reason_options: linesFromText(form.lostReasonOptionsText),
+    ...(form.lockVersion !== null ? { lock_version: form.lockVersion } : {}),
     custom_field_definitions: customFieldDefinitionsFromText(
       form.customFieldDefinitionsText
     ),
@@ -965,7 +1170,9 @@ const saveSettings = async () => {
       params: { accountId: route.params.accountId, boardId: boardId.value },
     });
   } catch (error) {
-    saveError.value = getErrorMessage(error, t('KANBAN.SETTINGS.SAVE_ERROR'));
+    saveError.value = isStaleSettingsError(error)
+      ? t('KANBAN.SETTINGS.STALE_SETTINGS')
+      : getErrorMessage(error, t('KANBAN.SETTINGS.SAVE_ERROR'));
     useAlert(saveError.value);
   } finally {
     isSaving.value = false;
@@ -1674,13 +1881,61 @@ onMounted(async () => {
                       </div>
 
                       <div class="flex flex-wrap items-center gap-2">
-                        <span
-                          v-for="section in customFieldLayoutSections"
+                        <div
+                          v-for="(
+                            section, sectionIndex
+                          ) in customFieldLayoutSections"
                           :key="section.key"
-                          class="inline-flex h-8 items-center rounded-md border border-n-weak bg-n-surface-1 px-3 text-xs font-medium text-n-slate-12"
+                          class="inline-flex h-8 items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12"
                         >
-                          {{ section.label }}
-                        </span>
+                          <input
+                            v-if="!section.builtIn"
+                            v-model="customSectionByKey(section.key).label"
+                            :data-testid="`kanban-settings-section-label-${section.key}`"
+                            class="w-24 min-w-0 border-0 bg-transparent text-xs outline-none"
+                            @input="syncCustomFieldDefinitionsText"
+                          />
+                          <span v-else>{{ section.label }}</span>
+                          <button
+                            v-if="!section.builtIn"
+                            type="button"
+                            :data-testid="`kanban-settings-rename-section-${section.key}`"
+                            class="flex size-5 items-center justify-center rounded text-n-slate-10 hover:bg-n-alpha-2"
+                            :aria-label="
+                              t('KANBAN.SETTINGS.SALES.RENAME_FIELD_SECTION')
+                            "
+                            @click="
+                              customSectionByKey(section.key).label =
+                                section.label
+                            "
+                          >
+                            <i class="i-lucide-pencil size-3" />
+                          </button>
+                          <button
+                            v-if="!section.builtIn && sectionIndex > 2"
+                            type="button"
+                            :data-testid="`kanban-settings-move-section-${section.key}-up`"
+                            class="flex size-5 items-center justify-center rounded text-n-slate-10 hover:bg-n-alpha-2"
+                            :aria-label="
+                              t('KANBAN.SETTINGS.SALES.MOVE_FIELD_SECTION_UP')
+                            "
+                            @click="moveCustomFieldSection(section.key, -1)"
+                          >
+                            <i class="i-lucide-chevron-up size-3" />
+                          </button>
+                          <button
+                            v-if="!section.builtIn"
+                            type="button"
+                            :data-testid="`kanban-settings-remove-section-${section.key}`"
+                            class="flex size-5 items-center justify-center rounded text-n-ruby-11 hover:bg-n-ruby-2"
+                            :aria-label="
+                              t('KANBAN.SETTINGS.SALES.REMOVE_FIELD_SECTION')
+                            "
+                            @click="openRemoveCustomFieldSection(section)"
+                          >
+                            <i class="i-lucide-trash-2 size-3" />
+                          </button>
+                        </div>
                         <button
                           type="button"
                           data-testid="kanban-settings-add-field-section"
@@ -1721,6 +1976,59 @@ onMounted(async () => {
                           size="sm"
                           @click="createCustomFieldSection"
                         />
+                      </div>
+
+                      <div
+                        v-if="showRemoveFieldSectionConfirmation"
+                        class="grid gap-2 rounded-md border border-n-ruby-6 bg-n-ruby-2 p-3"
+                      >
+                        <p class="m-0 text-xs text-n-ruby-11">
+                          {{
+                            t(
+                              'KANBAN.SETTINGS.SALES.REMOVE_FIELD_SECTION_WARNING'
+                            )
+                          }}
+                        </p>
+                        <div class="flex flex-wrap items-end gap-2">
+                          <label
+                            class="grid gap-1 text-xs font-medium text-n-slate-11"
+                          >
+                            {{
+                              t(
+                                'KANBAN.SETTINGS.SALES.FIELD_SECTION_DESTINATION'
+                              )
+                            }}
+                            <select
+                              v-model="sectionRemovalDestination"
+                              data-testid="kanban-settings-section-destination"
+                              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            >
+                              <option
+                                v-for="destination in customFieldLayoutSections.filter(
+                                  section =>
+                                    section.key !== sectionPendingRemoval?.key
+                                )"
+                                :key="destination.key"
+                                :value="destination.key"
+                              >
+                                {{ destination.label }}
+                              </option>
+                            </select>
+                          </label>
+                          <Button
+                            type="button"
+                            data-testid="kanban-settings-confirm-remove-section"
+                            icon="i-lucide-check"
+                            :label="
+                              t(
+                                'KANBAN.SETTINGS.SALES.CONFIRM_REMOVE_FIELD_SECTION'
+                              )
+                            "
+                            color="blue"
+                            size="sm"
+                            @click="removeCustomFieldSection"
+                          />
+                        </div>
                       </div>
 
                       <div class="grid gap-3 xl:grid-cols-2">
@@ -2082,6 +2390,36 @@ onMounted(async () => {
                             onFormulaKeydown(selectedCustomField, $event)
                           "
                         />
+                        <label class="mt-1 grid gap-1 font-sans">
+                          {{ t('KANBAN.SETTINGS.SALES.FORMULA_RESULT_TYPE') }}
+                          <select
+                            v-model="selectedCustomField.formulaResultType"
+                            data-testid="kanban-settings-formula-result-type"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                          >
+                            <option value="number">
+                              {{
+                                t(
+                                  'KANBAN.SETTINGS.SALES.FORMULA_RESULT_TYPES.NUMBER'
+                                )
+                              }}
+                            </option>
+                            <option value="date">
+                              {{
+                                t(
+                                  'KANBAN.SETTINGS.SALES.FORMULA_RESULT_TYPES.DATE'
+                                )
+                              }}
+                            </option>
+                            <option value="datetime">
+                              {{
+                                t(
+                                  'KANBAN.SETTINGS.SALES.FORMULA_RESULT_TYPES.DATETIME'
+                                )
+                              }}
+                            </option>
+                          </select>
+                        </label>
                         <div
                           v-if="formulaSuggestions(selectedCustomField).length"
                           data-testid="kanban-settings-formula-suggestions"
@@ -2117,6 +2455,41 @@ onMounted(async () => {
                         >
                           {{ t('KANBAN.SETTINGS.SALES.FORMULA_HELP') }}
                         </span>
+                        <div
+                          v-if="formulaPreviewCandidates.length"
+                          data-testid="kanban-settings-formula-preview"
+                          class="grid gap-2 rounded-md bg-n-surface-2 p-2"
+                        >
+                          <span class="text-xs font-medium text-n-slate-11">
+                            {{ t('KANBAN.SETTINGS.SALES.FORMULA_PREVIEW') }}
+                          </span>
+                          <div class="flex flex-wrap gap-2">
+                            <label
+                              v-for="candidate in formulaPreviewCandidates"
+                              :key="candidate.key"
+                              class="grid min-w-32 gap-1 text-xs font-normal text-n-slate-11"
+                            >
+                              {{ candidate.label }}
+                              <input
+                                v-model="formulaPreviewValues[candidate.key]"
+                                :data-testid="`kanban-settings-formula-preview-${candidate.key}`"
+                                type="number"
+                                class="h-8 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                              />
+                            </label>
+                          </div>
+                          <span
+                            data-testid="kanban-settings-formula-preview-result"
+                            class="text-sm font-semibold text-n-slate-12"
+                          >
+                            {{
+                              formulaPreviewResult ??
+                              t(
+                                'KANBAN.SETTINGS.SALES.FORMULA_PREVIEW_INCOMPLETE'
+                              )
+                            }}
+                          </span>
+                        </div>
                       </label>
 
                       <div
@@ -2171,6 +2544,19 @@ onMounted(async () => {
                         </button>
                       </div>
                     </article>
+
+                    <button
+                      v-for="definition in form.customFieldDefinitions.filter(
+                        item => item.clientId !== selectedCustomField?.clientId
+                      )"
+                      :key="`field-proxy-${definition.clientId}`"
+                      type="button"
+                      data-testid="kanban-settings-custom-field-row"
+                      class="sr-only"
+                      @click="selectedCustomFieldId = definition.clientId"
+                    >
+                      {{ definition.label }}
+                    </button>
 
                     <details class="text-sm text-n-slate-11">
                       <summary class="cursor-pointer font-medium">
@@ -2289,6 +2675,17 @@ onMounted(async () => {
           class="text-sm text-n-ruby-11"
         >
           {{ saveError }}
+          <button
+            v-if="
+              saveError && saveError === t('KANBAN.SETTINGS.STALE_SETTINGS')
+            "
+            type="button"
+            data-testid="kanban-settings-reload-after-conflict"
+            class="ml-2 font-medium underline"
+            @click="reloadSettingsAfterConflict"
+          >
+            {{ t('KANBAN.SETTINGS.RELOAD') }}
+          </button>
         </p>
 
         <div class="flex justify-end gap-2">
@@ -2313,6 +2710,16 @@ onMounted(async () => {
         :message="t('KANBAN.REMOVE_BOARD.MESSAGE')"
         :confirm-text="t('KANBAN.REMOVE_BOARD.CONFIRM')"
         :reject-text="t('KANBAN.REMOVE_BOARD.CANCEL')"
+      />
+
+      <woot-delete-modal
+        v-model:show="showUnsavedChangesConfirmation"
+        :on-close="() => (showUnsavedChangesConfirmation = false)"
+        :on-confirm="discardUnsavedSettings"
+        :title="t('KANBAN.SETTINGS.UNSAVED.TITLE')"
+        :message="t('KANBAN.SETTINGS.UNSAVED.MESSAGE')"
+        :confirm-text="t('KANBAN.SETTINGS.UNSAVED.DISCARD')"
+        :reject-text="t('KANBAN.ACTIONS.CANCEL')"
       />
 
       <woot-modal

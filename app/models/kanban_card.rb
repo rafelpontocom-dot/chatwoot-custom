@@ -13,6 +13,7 @@
 #  description              :text
 #  due_at                   :datetime
 #  expected_close_date      :date
+#  lock_version             :integer          default(0), not null
 #  lost_at                  :datetime
 #  lost_reason              :string
 #  next_action_at           :datetime
@@ -75,6 +76,7 @@ class KanbanCard < ApplicationRecord
   NEXT_ACTION_STATUS_OVERDUE = 'overdue'.freeze
   FORMULA_FIELD_PATTERN = /[a-zA-Z_][a-zA-Z0-9_]*/
   FORMULA_TOKEN_PATTERN = %r{\d+(?:\.\d+)?|[+\-*/()]}
+  DATE_FORMULA_PATTERN = /\A(?<function>add_days|days_between)\(\s*(?<left>[a-zA-Z_][a-zA-Z0-9_]*)\s*,\s*(?<right>-?\d+(?:\.\d+)?|[a-zA-Z_][a-zA-Z0-9_]*)\s*\)\z/
   NUMERIC_CUSTOM_FIELD_TYPES = %w[integer decimal currency formula].freeze
   SYSTEM_AMOUNT_FIELD_KEY = 'system_amount'.freeze
   SYSTEM_CONDITION_VALUE_METHODS = {
@@ -685,6 +687,10 @@ class KanbanCard < ApplicationRecord
     formula = definition['formula'].to_s
     return if formula.blank?
 
+    return calculate_date_formula_value(definition, formula, values) if formula.match?(DATE_FORMULA_PATTERN)
+
+    raise ArgumentError unless definition['formula_result_type'].to_s.in?(['', 'number'])
+
     expression = formula_expression_with_values(formula, values)
     return if expression.blank?
 
@@ -692,6 +698,61 @@ class KanbanCard < ApplicationRecord
   rescue ArgumentError, ZeroDivisionError, SyntaxError
     errors.add(:custom_field_values, "#{definition['key']} formula is invalid")
     nil
+  end
+
+  def calculate_date_formula_value(definition, formula, values)
+    match = DATE_FORMULA_PATTERN.match(formula)
+    raise ArgumentError unless match
+
+    case match[:function]
+    when 'add_days'
+      calculate_add_days_formula(definition, match[:left], match[:right], values)
+    when 'days_between'
+      raise ArgumentError unless definition['formula_result_type'].to_s.in?(['', 'number'])
+
+      (formula_date_value(match[:right], values) - formula_date_value(match[:left], values)).to_i.to_f
+    end
+  end
+
+  def calculate_add_days_formula(definition, field_key, days_token, values)
+    result_type = definition['formula_result_type'].presence || 'date'
+    raise ArgumentError unless %w[date datetime].include?(result_type)
+
+    days = formula_numeric_token_value(days_token, values).to_i
+    source_definition = formula_field_definition(field_key)
+    raise ArgumentError unless %w[date datetime].include?(source_definition&.dig('field_type'))
+
+    if result_type == 'datetime' || source_definition['field_type'] == 'datetime'
+      formula_datetime_value(field_key, values).advance(days: days).iso8601
+    else
+      (formula_date_value(field_key, values) + days).iso8601
+    end
+  end
+
+  def formula_numeric_token_value(token, values)
+    return Float(token) if token.match?(/\A-?\d+(?:\.\d+)?\z/)
+
+    definition = numeric_formula_field_definition!(formula_field_definition(token))
+    ensure_calculated_formula_value!(definition, token, values)
+    Float(values[token] || 0)
+  end
+
+  def formula_date_value(field_key, values)
+    definition = formula_field_definition(field_key)
+    raise ArgumentError unless %w[date datetime].include?(definition&.dig('field_type'))
+
+    return Date.iso8601(values.fetch(field_key).to_s) if definition['field_type'] == 'date'
+
+    formula_datetime_value(field_key, values).to_date
+  end
+
+  def formula_datetime_value(field_key, values)
+    zone = ActiveSupport::TimeZone[account&.reporting_timezone] || Time.zone
+    zone.parse(values.fetch(field_key).to_s)&.in_time_zone(zone) || raise(ArgumentError)
+  end
+
+  def formula_field_definition(field_key)
+    custom_field_definitions.find { |field_definition| field_definition['key'] == field_key }
   end
 
   def formula_expression_with_values(formula, values)

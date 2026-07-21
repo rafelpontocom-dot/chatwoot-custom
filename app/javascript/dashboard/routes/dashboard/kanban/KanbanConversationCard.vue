@@ -201,6 +201,16 @@ const openConversation = event => {
     />
     <button
       type="button"
+      data-testid="kanban-card-open-details"
+      class="no-drag pointer-events-auto absolute right-10 top-1.5 flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 opacity-0 shadow-sm transition-opacity hover:bg-n-alpha-2 hover:text-n-slate-12 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-n-brand group-hover:opacity-100"
+      :aria-label="t('KANBAN.ACTIONS.OPEN_CARD_DETAILS')"
+      :title="t('KANBAN.ACTIONS.OPEN_CARD_DETAILS')"
+      @click.stop="openDetails"
+    >
+      <i class="i-lucide-square-pen size-4" />
+    </button>
+    <button
+      type="button"
       data-testid="kanban-card-remove"
       class="no-drag pointer-events-auto absolute top-1.5 ltr:right-1.5 rtl:left-1.5 flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-ruby-11 opacity-0 shadow-sm transition-opacity hover:bg-n-ruby-2 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-n-ruby-8 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
       :aria-label="t('KANBAN.ACTIONS.REMOVE_CARD')"

@@ -16,6 +16,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  stages: {
+    type: Array,
+    default: () => [],
+  },
   cardId: {
     type: [Number, String],
     required: true,
@@ -61,6 +65,7 @@ const card = ref(null);
 const subject = ref('');
 const description = ref('');
 const ownerId = ref('');
+const stageId = ref('');
 const amountValue = ref('');
 const amountCurrency = ref('BRL');
 const expectedCloseDate = ref('');
@@ -327,6 +332,9 @@ const setFormState = payload => {
   subject.value = card.value.subject || '';
   description.value = card.value.description || '';
   ownerId.value = card.value.ownerId ? String(card.value.ownerId) : '';
+  stageId.value = card.value.kanbanStageId
+    ? String(card.value.kanbanStageId)
+    : '';
   amountValue.value = formatAmountInput(card.value.amountCents);
   amountCurrency.value = card.value.amountCurrency || 'BRL';
   expectedCloseDate.value = card.value.expectedCloseDate || '';
@@ -418,6 +426,7 @@ const buildCardPayload = extraPayload => ({
   subject: subject.value.trim(),
   description: description.value.trim() ? description.value : null,
   owner_id: ownerId.value ? Number(ownerId.value) : null,
+  kanban_stage_id: stageId.value ? Number(stageId.value) : null,
   amount_cents: toAmountCents(amountValue.value),
   amount_currency: amountCurrency.value || 'BRL',
   expected_close_date: expectedCloseDate.value || null,
@@ -854,6 +863,30 @@ onMounted(() => {
           </section>
 
           <aside class="grid min-w-0 content-start gap-4">
+            <section class="grid gap-3 rounded-lg border border-n-weak p-3">
+              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.STAGE') }}
+              </h3>
+              <label class="grid gap-1.5">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.STAGE') }}
+                </span>
+                <select
+                  v-model="stageId"
+                  data-testid="kanban-opportunity-stage"
+                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option
+                    v-for="stage in stages"
+                    :key="stage.id"
+                    :value="String(stage.id)"
+                  >
+                    {{ stage.name }}
+                  </option>
+                </select>
+              </label>
+            </section>
+
             <section class="grid gap-3 rounded-lg border border-n-weak p-3">
               <h3 class="mb-0 text-sm font-medium text-n-slate-12">
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER') }}

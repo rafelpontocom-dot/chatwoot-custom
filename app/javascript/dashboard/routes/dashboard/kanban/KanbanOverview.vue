@@ -7,6 +7,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { getKanbanStageColorClass } from 'dashboard/helper/kanbanStageColors';
+import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import KanbanCreateBoardDialog from './KanbanCreateBoardDialog.vue';
 import { useKanbanBoardCreation } from './useKanbanBoardCreation';
 
@@ -23,6 +24,10 @@ const isLoading = useMapGetter('kanbanBoards/kanbanBoardsLoading');
 const error = useMapGetter('kanbanBoards/kanbanBoardsError');
 
 const hasFetched = ref(false);
+const showArchivedBoards = ref(false);
+const archivedBoards = ref([]);
+const isLoadingArchivedBoards = ref(false);
+const restoringBoardId = ref(null);
 
 const hasBoards = computed(() => boards.value.length > 0);
 const {
@@ -68,6 +73,35 @@ const retryFetch = () => {
   store.dispatch('kanbanBoards/fetchBoards');
 };
 
+const openArchivedBoards = async () => {
+  if (!isAdmin.value || isLoadingArchivedBoards.value) return;
+
+  showArchivedBoards.value = true;
+  isLoadingArchivedBoards.value = true;
+
+  try {
+    const response = await KanbanBoardsAPI.getArchivedBoards();
+    archivedBoards.value = response.data || [];
+  } finally {
+    isLoadingArchivedBoards.value = false;
+  }
+};
+
+const restoreBoard = async board => {
+  if (!isAdmin.value || restoringBoardId.value) return;
+
+  restoringBoardId.value = board.id;
+  try {
+    await KanbanBoardsAPI.restoreBoard(board.id);
+    archivedBoards.value = archivedBoards.value.filter(
+      archivedBoard => archivedBoard.id !== board.id
+    );
+    await store.dispatch('kanbanBoards/refreshBoards');
+  } finally {
+    restoringBoardId.value = null;
+  }
+};
+
 onMounted(async () => {
   hasFetched.value = true;
 
@@ -91,6 +125,17 @@ onMounted(async () => {
           </h1>
         </div>
         <div class="flex flex-shrink-0 items-center gap-4">
+          <button
+            v-if="isAdmin"
+            type="button"
+            data-testid="overview-open-archived-boards"
+            class="flex size-9 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+            :aria-label="t('KANBAN.OVERVIEW.ARCHIVED_BOARDS')"
+            :title="t('KANBAN.OVERVIEW.ARCHIVED_BOARDS')"
+            @click="openArchivedBoards"
+          >
+            <i class="i-lucide-archive size-4" />
+          </button>
           <Button
             icon="i-lucide-plus"
             data-testid="overview-create-board-button"
@@ -101,6 +146,74 @@ onMounted(async () => {
           />
         </div>
       </header>
+
+      <woot-modal
+        :show="showArchivedBoards"
+        :show-close-button="false"
+        size="modal-medium"
+        :on-close="() => (showArchivedBoards = false)"
+      >
+        <div class="grid gap-4 p-6">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="mb-0 text-base font-medium text-n-slate-12">
+              {{ t('KANBAN.OVERVIEW.ARCHIVED_BOARDS') }}
+            </h2>
+            <button
+              type="button"
+              class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+              :aria-label="t('KANBAN.ACTIONS.CLOSE')"
+              @click="showArchivedBoards = false"
+            >
+              <i class="i-lucide-x size-4" />
+            </button>
+          </div>
+          <p
+            v-if="isLoadingArchivedBoards"
+            class="mb-0 text-sm text-n-slate-11"
+          >
+            {{ t('KANBAN.OVERVIEW.LOADING_ARCHIVED_BOARDS') }}
+          </p>
+          <p
+            v-else-if="!archivedBoards.length"
+            class="mb-0 rounded-md border border-dashed border-n-weak p-4 text-sm text-n-slate-11"
+          >
+            {{ t('KANBAN.OVERVIEW.EMPTY_ARCHIVED_BOARDS') }}
+          </p>
+          <div v-else class="grid max-h-96 gap-2 overflow-y-auto">
+            <article
+              v-for="board in archivedBoards"
+              :key="board.id"
+              class="flex items-center justify-between gap-3 rounded-md border border-n-weak p-3"
+            >
+              <div class="min-w-0">
+                <p class="mb-0 truncate text-sm font-medium text-n-slate-12">
+                  {{ board.name }}
+                </p>
+                <p class="mb-0 text-xs text-n-slate-11">
+                  {{ board.cards_count || 0 }}
+                  {{ t('KANBAN.OVERVIEW.OPPORTUNITIES') }}
+                  <span aria-hidden="true">
+                    {{ t('KANBAN.OVERVIEW.SEPARATOR') }}
+                  </span>
+                  {{ board.stages_count || 0 }}
+                  {{ t('KANBAN.OVERVIEW.STAGES') }}
+                </p>
+              </div>
+              <button
+                type="button"
+                :data-testid="`overview-restore-board-${board.id}`"
+                class="flex size-9 flex-none items-center justify-center rounded-md text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+                :disabled="Boolean(restoringBoardId)"
+                :aria-label="t('KANBAN.OVERVIEW.RESTORE_BOARD')"
+                :title="t('KANBAN.OVERVIEW.RESTORE_BOARD')"
+                @click="restoreBoard(board)"
+              >
+                <i class="i-lucide-archive-restore size-4" />
+              </button>
+            </article>
+          </div>
+        </div>
+      </woot-modal>
 
       <KanbanCreateBoardDialog
         v-model="showCreateBoardDialog"

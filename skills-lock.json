@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "chatwoot-cli": {
+      "source": "chatwoot/cli",
+      "sourceType": "github",
+      "skillPath": "skills/chatwoot-cli/SKILL.md",
+      "computedHash": "59c31a0af46bcca0d2cb267c489358b8fc57568ef47f95ce34f4f395ab5af414"
+    }
+  }
+}

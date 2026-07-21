@@ -9,6 +9,7 @@ json.position card.position
 json.origin card.origin
 json.subject card.subject
 json.active card.active
+json.lock_version card.lock_version
 json.due_at card.due_at&.iso8601
 json.stage_entered_at card.stage_entered_at&.iso8601
 json.owner_id card.owner_id

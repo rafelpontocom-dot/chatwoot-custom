@@ -1,6 +1,6 @@
 class KanbanCards::BulkUpdateService
   MAX_CARDS = 100
-  OPERATIONS = %w[archive assign_owner move_stage].freeze
+  OPERATIONS = %w[archive assign_owner mark_lost mark_won move_stage restore].freeze
 
   def initialize(board:, cards:, user:, operation:, options: {})
     @board = board
@@ -38,8 +38,16 @@ class KanbanCards::BulkUpdateService
     case operation
     when 'archive' then card.archive!(actor: user)
     when 'assign_owner' then card.update!(owner: owner)
+    when 'mark_won' then card.update!(won_at: Time.current, lost_at: nil, lost_reason: nil, closed_by: user)
+    when 'mark_lost' then mark_lost!(card)
     when 'move_stage' then move_card!(card)
+    when 'restore' then card.restore!(actor: user)
     end
+  end
+
+  def mark_lost!(card)
+    add_board_error!('Lost reason is required') if lost_reason.blank?
+    card.update!(won_at: nil, lost_at: Time.current, lost_reason: lost_reason, closed_by: user)
   end
 
   def move_card!(card)

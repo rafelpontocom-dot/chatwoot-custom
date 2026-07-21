@@ -13,6 +13,7 @@
 #
 #  index_kanban_board_members_on_account_user_board           (account_id,user_id,kanban_board_id)
 #  index_kanban_board_members_on_kanban_board_id_and_user_id  (kanban_board_id,user_id) UNIQUE
+#  index_kanban_board_members_on_user_id                      (user_id)
 #
 # Foreign Keys
 #

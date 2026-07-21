@@ -158,6 +158,67 @@ RSpec.describe 'Kanban board settings API', type: :request do
         'stale_stage_thresholds' => { stage.id.to_s => 4 }
       )
     end
+
+    it 'returns usage counts for configured fields' do
+      stage = create(:kanban_stage, account: account, kanban_board: board)
+      board.update!(custom_field_definitions: [{ key: 'plano', label: 'Plano', field_type: 'text' }])
+      create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage, custom_field_values: { plano: 'Premium' })
+      create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage, custom_field_values: {})
+
+      get settings_url(board), headers: administrator.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['custom_field_usage']).to eq('plano' => 1)
+    end
+
+    it 'requires explicit confirmation before removing fields that contain values' do
+      stage = create(:kanban_stage, account: account, kanban_board: board)
+      board.update!(custom_field_definitions: [{ key: 'plano', label: 'Plano', field_type: 'text' }])
+      create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage, custom_field_values: { plano: 'Premium' })
+
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: { kanban_board: { custom_field_definitions: [] } },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include(
+        'code' => 'custom_field_data_loss_confirmation_required',
+        'affected_fields' => [{ 'key' => 'plano', 'count' => 1 }]
+      )
+      expect(board.reload.custom_field_definitions.pluck('key')).to eq(['plano'])
+
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: { confirm_data_loss: true, kanban_board: { custom_field_definitions: [] } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload.custom_field_definitions).to eq([])
+    end
+
+    it 'rejects a stale settings update without overwriting the newer configuration' do
+      stale_version = board.lock_version
+      board.update!(description: 'Atualizada em outra sessão')
+
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                name: board.name,
+                description: 'Alteração antiga',
+                lock_version: stale_version
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:conflict)
+      expect(response.parsed_body).to include(
+        'code' => 'stale_settings',
+        'lock_version' => board.lock_version
+      )
+      expect(board.reload.description).to eq('Atualizada em outra sessão')
+    end
   end
 
   describe 'POST /api/v1/accounts/{account.id}/kanban_boards/{board.id}/settings/import_existing_conversations' do

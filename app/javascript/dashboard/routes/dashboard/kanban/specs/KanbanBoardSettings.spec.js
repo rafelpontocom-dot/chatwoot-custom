@@ -582,6 +582,97 @@ describe('KanbanBoardSettings', () => {
     ]);
   });
 
+  it('renames, reorders and removes a custom tab while moving its fields', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_sections: [
+            { key: 'consulta', label: 'Consulta' },
+            { key: 'financeiro', label: 'Financeiro' },
+          ],
+          custom_field_definitions: [
+            {
+              key: 'procedimento',
+              label: 'Procedimento',
+              field_type: 'text',
+              layout: { section: 'consulta', position: 1, width: 'full' },
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-rename-section-consulta"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-section-label-consulta"]')
+      .setValue('Atendimento');
+    await wrapper
+      .find('[data-testid="kanban-settings-move-section-financeiro-up"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-remove-section-consulta"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-section-destination"]')
+      .setValue('details');
+    await wrapper
+      .find('[data-testid="kanban-settings-confirm-remove-section"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    expect(payload.kanban_board.custom_field_sections).toEqual([
+      { key: 'financeiro', label: 'Financeiro' },
+    ]);
+    expect(
+      payload.kanban_board.custom_field_definitions[0].layout.section
+    ).toBe('details');
+  });
+
+  it('shows a numeric preview for a valid formula before saving', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            { key: 'base', label: 'Base', field_type: 'decimal' },
+            {
+              key: 'total',
+              label: 'Total',
+              field_type: 'formula',
+              formula: 'base * 2',
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    const rows = wrapper.findAll(
+      '[data-testid="kanban-settings-custom-field-row"]'
+    );
+    await rows[1].trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-formula-preview-base"]')
+      .setValue('150');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-formula-preview-result"]')
+        .text()
+    ).toContain('300');
+  });
+
   it('moves custom fields between tabs with the visual layout editor', async () => {
     const { wrapper } = await mountSettings();
     await wrapper

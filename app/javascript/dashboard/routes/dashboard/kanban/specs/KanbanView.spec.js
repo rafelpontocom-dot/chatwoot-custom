@@ -73,6 +73,8 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     showCardById: vi.fn(),
     getSavedFilters: vi.fn(),
     createSavedFilter: vi.fn(),
+    updateSavedFilter: vi.fn(),
+    deleteSavedFilter: vi.fn(),
     getArchivedCards: vi.fn(),
     restoreCardById: vi.fn(),
     bulkUpdateCards: vi.fn(),
@@ -294,6 +296,8 @@ const mountView = async (
     KanbanBoardsAPI.getSavedFilters.mockResolvedValue({ data: [] });
   }
   KanbanBoardsAPI.createSavedFilter.mockResolvedValue({ data: {} });
+  KanbanBoardsAPI.updateSavedFilter.mockResolvedValue({ data: {} });
+  KanbanBoardsAPI.deleteSavedFilter.mockResolvedValue({ data: {} });
   if (!KanbanBoardsAPI.getArchivedCards.getMockImplementation()) {
     KanbanBoardsAPI.getArchivedCards.mockResolvedValue({ data: [] });
   }
@@ -1585,6 +1589,72 @@ describe('KanbanView drag and drop', () => {
       card_ids: [501],
       operation: 'archive',
     });
+  });
+
+  it('asks for confirmation before moving selected opportunities', async () => {
+    const wrapper = await mountView();
+    const cardComponent = wrapper.findComponent({
+      name: 'KanbanConversationCard',
+    });
+    cardComponent.vm.$emit(
+      'toggleSelection',
+      buildCard({ id: 501, kanban_stage_id: 100 }),
+      true
+    );
+    await nextTick();
+
+    await wrapper
+      .find('[data-testid="kanban-bulk-stage-select"]')
+      .setValue('200');
+
+    expect(KanbanBoardsAPI.bulkUpdateCards).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('KANBAN.BULK.IMPACT');
+
+    await wrapper.find('[data-testid="confirm-delete"]').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.bulkUpdateCards).toHaveBeenCalledWith(10, {
+      card_ids: [501],
+      operation: 'move_stage',
+      stage_id: 200,
+    });
+  });
+
+  it('renames and deletes a selected saved filter', async () => {
+    KanbanBoardsAPI.getSavedFilters.mockResolvedValue({
+      data: [{ id: 9, name: 'Atrasadas', filters: { status: 'open' } }],
+    });
+    const wrapper = await mountView();
+
+    await wrapper
+      .find('[data-testid="kanban-saved-filter-select"]')
+      .setValue('9');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-rename-saved-filter"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-saved-filter-rename-input"]')
+      .setValue('Leads abertos');
+    await wrapper
+      .find('[data-testid="kanban-confirm-rename-saved-filter"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateSavedFilter).toHaveBeenCalledWith(10, 9, {
+      saved_filter: {
+        name: 'Leads abertos',
+        filters: { status: 'open' },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-delete-saved-filter"]')
+      .trigger('click');
+    await wrapper.find('[data-testid="confirm-delete"]').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.deleteSavedFilter).toHaveBeenCalledWith(10, 9);
   });
 
   it('opens opportunity modal on card click', async () => {

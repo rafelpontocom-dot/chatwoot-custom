@@ -19,6 +19,7 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.CARD.NEXT_ACTION.FUTURE': 'Next action',
         'KANBAN.CARD.NEXT_ACTION.CLOSED': 'Closed',
         'KANBAN.ACTIONS.REMOVE_CARD': 'Remove',
+        'KANBAN.ACTIONS.OPEN_CARD_DETAILS': 'Open opportunity details',
       };
 
       return translations[key] || key;
@@ -131,6 +132,16 @@ describe('KanbanConversationCard', () => {
 
     expect(wrapper.emitted('toggleSelection')[0]).toEqual([buildCard(), true]);
     expect(wrapper.emitted('openDetails')).toBeUndefined();
+  });
+
+  it('provides a keyboard-accessible action to open opportunity details', async () => {
+    const wrapper = mountCard();
+
+    await wrapper
+      .find('[data-testid="kanban-card-open-details"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('openDetails')).toHaveLength(1);
   });
 
   it('shows the native priority indicator when priority is present', () => {

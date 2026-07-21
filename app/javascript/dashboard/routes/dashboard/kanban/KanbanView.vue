@@ -50,12 +50,20 @@ const savedFilters = ref([]);
 const selectedSavedFilterId = ref('');
 const showSaveFilterForm = ref(false);
 const savedFilterName = ref('');
+const showRenameSavedFilterForm = ref(false);
+const savedFilterRename = ref('');
+const showDeleteSavedFilterConfirmation = ref(false);
 const archivedCards = ref([]);
 const showArchivedCards = ref(false);
 const isLoadingArchivedCards = ref(false);
 const restoringCardId = ref(null);
+const selectedArchivedCardIds = ref([]);
+const showBulkRestoreConfirmation = ref(false);
 const selectedCardIds = ref([]);
 const showBulkArchiveConfirmation = ref(false);
+const showBulkImpactConfirmation = ref(false);
+const pendingBulkOperation = ref(null);
+const bulkLostReason = ref('');
 const isBulkUpdating = ref(false);
 const isBoardDropdownOpen = ref(false);
 const editingStageId = ref(null);
@@ -553,7 +561,59 @@ const applySavedFilter = async event => {
   searchInput.value = filters.search || '';
   selectedSearch.value = filters.search || '';
   selectedSort.value = filters.sort || '';
+  savedFilterRename.value = savedFilter.name;
   await refreshSelectedBoard();
+};
+
+const selectedSavedFilter = computed(() =>
+  savedFilters.value.find(
+    filter => String(filter.id) === String(selectedSavedFilterId.value)
+  )
+);
+
+const openRenameSavedFilter = () => {
+  if (!selectedSavedFilter.value) return;
+
+  savedFilterRename.value = selectedSavedFilter.value.name;
+  showRenameSavedFilterForm.value = true;
+};
+
+const renameSavedFilter = async () => {
+  const filter = selectedSavedFilter.value;
+  const name = savedFilterRename.value.trim();
+  if (!filter || !name) return;
+
+  try {
+    const response = await KanbanBoardsAPI.updateSavedFilter(
+      selectedBoard.value.id,
+      filter.id,
+      { saved_filter: { name, filters: filter.filters } }
+    );
+    savedFilters.value = savedFilters.value.map(item =>
+      item.id === filter.id ? { ...item, ...(response.data || {}), name } : item
+    );
+    showRenameSavedFilterForm.value = false;
+    useAlert(t('KANBAN.FILTERS.RENAMED_SUCCESS'));
+  } catch (error) {
+    showActionError(error, t('KANBAN.FILTERS.RENAME_ERROR'));
+  }
+};
+
+const deleteSavedFilter = async () => {
+  const filter = selectedSavedFilter.value;
+  if (!filter) return;
+
+  try {
+    await KanbanBoardsAPI.deleteSavedFilter(selectedBoard.value.id, filter.id);
+    savedFilters.value = savedFilters.value.filter(
+      item => item.id !== filter.id
+    );
+    selectedSavedFilterId.value = '';
+    showDeleteSavedFilterConfirmation.value = false;
+    useAlert(t('KANBAN.FILTERS.DELETED_SUCCESS'));
+  } catch (error) {
+    showActionError(error, t('KANBAN.FILTERS.DELETE_ERROR'));
+  }
 };
 
 const saveCurrentFilter = async () => {
@@ -599,6 +659,7 @@ const openArchivedCards = async () => {
 const closeArchivedCards = () => {
   if (restoringCardId.value) return;
   showArchivedCards.value = false;
+  selectedArchivedCardIds.value = [];
 };
 
 const restoreArchivedCard = async card => {
@@ -612,6 +673,46 @@ const restoreArchivedCard = async card => {
     );
     await refreshSelectedBoard();
     useAlert(t('KANBAN.ARCHIVE.RESTORE_SUCCESS'));
+  } catch (error) {
+    showActionError(error, t('KANBAN.ARCHIVE.RESTORE_ERROR'));
+  } finally {
+    restoringCardId.value = null;
+  }
+};
+
+const toggleArchivedCardSelection = (card, selected) => {
+  selectedArchivedCardIds.value = selected
+    ? [...new Set([...selectedArchivedCardIds.value, card.id])]
+    : selectedArchivedCardIds.value.filter(cardId => cardId !== card.id);
+};
+
+const bulkRestoreArchivedCards = async () => {
+  if (!selectedBoard.value?.id || !selectedArchivedCardIds.value.length) return;
+
+  restoringCardId.value = 'bulk';
+  try {
+    const response = await KanbanBoardsAPI.bulkUpdateCards(
+      selectedBoard.value.id,
+      {
+        card_ids: selectedArchivedCardIds.value,
+        operation: 'restore',
+      }
+    );
+    const restoredIds = new Set(
+      selectedArchivedCardIds.value.slice(0, response.data?.updated_count || 0)
+    );
+    archivedCards.value = archivedCards.value.filter(
+      card => !restoredIds.has(card.id)
+    );
+    selectedArchivedCardIds.value = [];
+    showBulkRestoreConfirmation.value = false;
+    await refreshSelectedBoard();
+    useAlert(
+      t('KANBAN.BULK.SUCCESS_WITH_COUNT', {
+        count: response.data?.updated_count || 0,
+        errors: response.data?.failed_count || 0,
+      })
+    );
   } catch (error) {
     showActionError(error, t('KANBAN.ARCHIVE.RESTORE_ERROR'));
   } finally {
@@ -638,16 +739,27 @@ const performBulkOperation = async (operation, attributes = {}) => {
     return;
 
   isBulkUpdating.value = true;
+  const selectedCount = selectedCardsCount.value;
   try {
-    await KanbanBoardsAPI.bulkUpdateCards(selectedBoard.value.id, {
-      card_ids: selectedCardIds.value,
-      operation,
-      ...attributes,
-    });
+    const response = await KanbanBoardsAPI.bulkUpdateCards(
+      selectedBoard.value.id,
+      {
+        card_ids: selectedCardIds.value,
+        operation,
+        ...attributes,
+      }
+    );
     clearCardSelection();
     showBulkArchiveConfirmation.value = false;
+    showBulkImpactConfirmation.value = false;
+    pendingBulkOperation.value = null;
     await refreshSelectedBoard();
-    useAlert(t('KANBAN.BULK.SUCCESS'));
+    useAlert(
+      t('KANBAN.BULK.SUCCESS_WITH_COUNT', {
+        count: response.data?.updated_count ?? selectedCount,
+        errors: response.data?.failed_count || 0,
+      })
+    );
   } catch (error) {
     showActionError(error, t('KANBAN.BULK.ERROR'));
   } finally {
@@ -657,12 +769,57 @@ const performBulkOperation = async (operation, attributes = {}) => {
 
 const updateBulkOwner = event => {
   const ownerId = Number(event.target.value);
-  if (ownerId) performBulkOperation('assign_owner', { owner_id: ownerId });
+  if (!ownerId) return;
+
+  pendingBulkOperation.value = {
+    operation: 'assign_owner',
+    attributes: { owner_id: ownerId },
+    label: t('KANBAN.BULK.ASSIGN'),
+  };
+  showBulkImpactConfirmation.value = true;
 };
 
 const updateBulkStage = event => {
   const stageId = Number(event.target.value);
-  if (stageId) performBulkOperation('move_stage', { stage_id: stageId });
+  if (!stageId) return;
+
+  pendingBulkOperation.value = {
+    operation: 'move_stage',
+    attributes: { stage_id: stageId },
+    label: t('KANBAN.BULK.MOVE'),
+  };
+  showBulkImpactConfirmation.value = true;
+};
+
+const prepareBulkOperation = (operation, label, attributes = {}) => {
+  pendingBulkOperation.value = { operation, attributes, label };
+  showBulkImpactConfirmation.value = true;
+};
+
+const prepareBulkWon = () =>
+  prepareBulkOperation('mark_won', t('KANBAN.BULK.MARK_WON'));
+
+const prepareBulkLost = () => {
+  if (!bulkLostReason.value) return;
+  prepareBulkOperation('mark_lost', t('KANBAN.BULK.MARK_LOST'), {
+    lost_reason: bulkLostReason.value,
+  });
+};
+
+const confirmBulkImpact = async () => {
+  if (!pendingBulkOperation.value) return;
+
+  await performBulkOperation(
+    pendingBulkOperation.value.operation,
+    pendingBulkOperation.value.attributes
+  );
+};
+
+const closeBulkImpactConfirmation = () => {
+  if (isBulkUpdating.value) return;
+
+  showBulkImpactConfirmation.value = false;
+  pendingBulkOperation.value = null;
 };
 
 const openBoardSettings = () => {
@@ -1323,6 +1480,55 @@ onUnmounted(() => {
                 {{ option.label }}
               </option>
             </select>
+            <template v-if="selectedSavedFilter">
+              <button
+                type="button"
+                data-testid="kanban-rename-saved-filter"
+                class="flex size-10 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+                :aria-label="t('KANBAN.FILTERS.RENAME_FILTER')"
+                :title="t('KANBAN.FILTERS.RENAME_FILTER')"
+                @click="openRenameSavedFilter"
+              >
+                <i class="i-lucide-pencil size-4" />
+              </button>
+              <button
+                type="button"
+                data-testid="kanban-delete-saved-filter"
+                class="flex size-10 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2"
+                :aria-label="t('KANBAN.FILTERS.DELETE_FILTER')"
+                :title="t('KANBAN.FILTERS.DELETE_FILTER')"
+                @click="showDeleteSavedFilterConfirmation = true"
+              >
+                <i class="i-lucide-trash-2 size-4" />
+              </button>
+            </template>
+            <div
+              v-if="showRenameSavedFilterForm"
+              data-testid="kanban-rename-saved-filter-form"
+              class="flex h-10 items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1"
+            >
+              <label class="sr-only" for="kanban-saved-filter-rename-input">
+                {{ t('KANBAN.FILTERS.RENAME_FILTER') }}
+              </label>
+              <input
+                id="kanban-saved-filter-rename-input"
+                v-model="savedFilterRename"
+                data-testid="kanban-saved-filter-rename-input"
+                type="text"
+                class="h-8 w-40 border-0 bg-transparent px-2 text-sm text-n-slate-12 outline-none"
+                @keyup.enter="renameSavedFilter"
+              />
+              <button
+                type="button"
+                data-testid="kanban-confirm-rename-saved-filter"
+                class="flex size-8 items-center justify-center rounded-md text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+                :disabled="!savedFilterRename.trim()"
+                :aria-label="t('KANBAN.FILTERS.RENAME_FILTER')"
+                @click="renameSavedFilter"
+              >
+                <i class="i-lucide-check size-4" />
+              </button>
+            </div>
             <select
               :value="selectedSavedFilterId"
               data-testid="kanban-saved-filter-select"
@@ -1549,6 +1755,7 @@ onUnmounted(() => {
           {{ t('KANBAN.BULK.SELECTED', { count: selectedCardsCount }) }}
         </strong>
         <select
+          data-testid="kanban-bulk-stage-select"
           class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12"
           :aria-label="t('KANBAN.BULK.MOVE')"
           :disabled="isBulkUpdating"
@@ -1560,6 +1767,7 @@ onUnmounted(() => {
           </option>
         </select>
         <select
+          data-testid="kanban-bulk-owner-select"
           class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12"
           :aria-label="t('KANBAN.BULK.ASSIGN')"
           :disabled="isBulkUpdating"
@@ -1574,6 +1782,44 @@ onUnmounted(() => {
             {{ option.label }}
           </option>
         </select>
+        <button
+          type="button"
+          data-testid="kanban-bulk-won"
+          class="flex size-9 items-center justify-center rounded-md text-n-teal-11 hover:bg-n-teal-2"
+          :disabled="isBulkUpdating"
+          :aria-label="t('KANBAN.BULK.MARK_WON')"
+          :title="t('KANBAN.BULK.MARK_WON')"
+          @click="prepareBulkWon"
+        >
+          <i class="i-lucide-trophy size-4" />
+        </button>
+        <select
+          v-model="bulkLostReason"
+          data-testid="kanban-bulk-lost-reason"
+          class="h-9 max-w-44 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12"
+          :aria-label="t('KANBAN.BULK.LOST_REASON')"
+          :disabled="isBulkUpdating"
+        >
+          <option value="">{{ t('KANBAN.BULK.LOST_REASON') }}</option>
+          <option
+            v-for="reason in selectedBoard.lostReasonOptions || []"
+            :key="reason"
+            :value="reason"
+          >
+            {{ reason }}
+          </option>
+        </select>
+        <button
+          type="button"
+          data-testid="kanban-bulk-lost"
+          class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2 disabled:opacity-50"
+          :disabled="isBulkUpdating || !bulkLostReason"
+          :aria-label="t('KANBAN.BULK.MARK_LOST')"
+          :title="t('KANBAN.BULK.MARK_LOST')"
+          @click="prepareBulkLost"
+        >
+          <i class="i-lucide-circle-x size-4" />
+        </button>
         <button
           type="button"
           data-testid="kanban-bulk-archive"
@@ -1594,6 +1840,13 @@ onUnmounted(() => {
           <i class="i-lucide-x size-4" />
         </button>
       </section>
+      <p
+        v-if="showBulkImpactConfirmation"
+        data-testid="kanban-bulk-impact-summary"
+        class="mb-0 border-b border-n-weak bg-n-surface-2 px-6 py-2 text-sm text-n-slate-11"
+      >
+        {{ t('KANBAN.BULK.IMPACT', { count: selectedCardsCount }) }}
+      </p>
 
       <div
         v-if="hasError"
@@ -1861,6 +2114,26 @@ onUnmounted(() => {
       :reject-text="t('KANBAN.ACTIONS.CANCEL')"
     />
     <woot-delete-modal
+      v-model:show="showBulkImpactConfirmation"
+      :on-close="closeBulkImpactConfirmation"
+      :on-confirm="confirmBulkImpact"
+      :title="t('KANBAN.BULK.IMPACT_TITLE')"
+      :message="t('KANBAN.BULK.IMPACT')"
+      :message-value="selectedCardsCount"
+      :confirm-text="t('KANBAN.BULK.CONFIRM_IMPACT')"
+      :reject-text="t('KANBAN.ACTIONS.CANCEL')"
+    />
+    <woot-delete-modal
+      v-model:show="showBulkRestoreConfirmation"
+      :on-close="() => (showBulkRestoreConfirmation = false)"
+      :on-confirm="bulkRestoreArchivedCards"
+      :title="t('KANBAN.BULK.RESTORE_TITLE')"
+      :message="t('KANBAN.BULK.RESTORE_MESSAGE')"
+      :message-value="selectedArchivedCardIds.length"
+      :confirm-text="t('KANBAN.BULK.RESTORE')"
+      :reject-text="t('KANBAN.ACTIONS.CANCEL')"
+    />
+    <woot-delete-modal
       v-model:show="showRemoveCardConfirmation"
       :on-close="closeRemoveCardConfirmation"
       :on-confirm="confirmRemoveCard"
@@ -1869,6 +2142,15 @@ onUnmounted(() => {
       :message-value="removeCardMessageValue"
       :confirm-text="t('KANBAN.REMOVE_CARD.CONFIRM')"
       :reject-text="t('KANBAN.REMOVE_CARD.CANCEL')"
+    />
+    <woot-delete-modal
+      v-model:show="showDeleteSavedFilterConfirmation"
+      :on-close="() => (showDeleteSavedFilterConfirmation = false)"
+      :on-confirm="deleteSavedFilter"
+      :title="t('KANBAN.FILTERS.DELETE_FILTER')"
+      :message="t('KANBAN.FILTERS.DELETE_CONFIRMATION')"
+      :confirm-text="t('KANBAN.FILTERS.DELETE_FILTER')"
+      :reject-text="t('KANBAN.ACTIONS.CANCEL')"
     />
     <woot-delete-modal
       v-model:show="showRemoveStageConfirmation"
@@ -1893,9 +2175,32 @@ onUnmounted(() => {
         class="grid gap-4 p-6"
       >
         <div class="flex items-center justify-between gap-3">
-          <h2 class="mb-0 text-base font-medium text-n-slate-12">
-            {{ t('KANBAN.ARCHIVE.TITLE') }}
-          </h2>
+          <div>
+            <h2 class="mb-0 text-base font-medium text-n-slate-12">
+              {{ t('KANBAN.ARCHIVE.TITLE') }}
+            </h2>
+            <p
+              v-if="selectedArchivedCardIds.length"
+              class="mb-0 text-xs text-n-slate-11"
+            >
+              {{
+                t('KANBAN.BULK.SELECTED', {
+                  count: selectedArchivedCardIds.length,
+                })
+              }}
+            </p>
+          </div>
+          <button
+            v-if="selectedArchivedCardIds.length"
+            type="button"
+            data-testid="kanban-bulk-restore"
+            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+            :disabled="Boolean(restoringCardId)"
+            @click="showBulkRestoreConfirmation = true"
+          >
+            <i class="i-lucide-archive-restore size-4" />
+            {{ t('KANBAN.BULK.RESTORE') }}
+          </button>
           <button
             type="button"
             class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
@@ -1920,6 +2225,13 @@ onUnmounted(() => {
             :key="card.id"
             class="flex items-center justify-between gap-3 rounded-md border border-n-weak p-3"
           >
+            <input
+              type="checkbox"
+              :checked="selectedArchivedCardIds.includes(card.id)"
+              :aria-label="card.subject"
+              class="size-4 flex-none rounded border-n-weak text-n-brand focus:ring-n-brand"
+              @change="toggleArchivedCardSelection(card, $event.target.checked)"
+            />
             <div class="min-w-0">
               <p class="mb-0 truncate text-sm font-medium text-n-slate-12">
                 {{ card.subject }}
@@ -2033,6 +2345,7 @@ onUnmounted(() => {
       <KanbanOpportunityDetailsModal
         :board-id="selectedBoard.id"
         :board-name="selectedBoard.name"
+        :stages="stages"
         :card-id="selectedOpportunityCardId"
         :next-action-types="selectedBoard.nextActionTypes || []"
         :lost-reason-options="selectedBoard.lostReasonOptions || []"
