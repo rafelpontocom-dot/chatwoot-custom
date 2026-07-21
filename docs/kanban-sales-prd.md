@@ -45,11 +45,32 @@ Toda oportunidade aberta precisa ter:
 
 O próximo passo deve ser configurável por funil. Consulta, reunião, proposta, cobrança, pagamento e follow-up são apenas tipos possíveis de próxima ação.
 
+## Principios De Experiencia
+
+O Kanban deve ser intuitivo para quem vende e interativo para quem configura.
+
+Regras de UX:
+
+- ações frequentes devem acontecer no contexto atual, sem obrigar o usuário a sair da conversa ou do card;
+- arrastar um card ou campo deve produzir feedback imediato e deixar claro onde ele será colocado;
+- configurações avançadas devem usar divulgação progressiva: primeiro o essencial, depois condições, fórmulas e JSON;
+- a interface deve explicar o resultado da regra em linguagem natural antes de salvar;
+- erros devem indicar o campo e a correção necessária, preservando tudo que já foi preenchido;
+- operações destrutivas ou de grande impacto devem pedir confirmação e informar quantos registros serão afetados;
+- estados de carregamento, vazio, sucesso, falha e ausência de permissão devem ser explícitos;
+- desktop e mobile devem preservar as mesmas tarefas essenciais;
+- nenhuma configuração comum deve exigir edição de JSON;
+- o sistema deve favorecer prevenção, desfazer quando viável e recuperação quando desfazer não for possível.
+
 ## Modelo Conceitual
 
 ### Contact
 
 Pessoa ou lead. Deve continuar sendo o registro principal da pessoa no Chatwoot.
+
+Dados que pertencem à pessoa, como data de nascimento, consentimento de comunicação, idioma e fuso horário, não devem ser duplicados em cada oportunidade.
+
+`date_of_birth` deve ser um campo canônico do contato para o nosso produto. Na primeira versão, pode ser provisionado como atributo personalizado de contato do Chatwoot, com tipo data, chave estável e presença garantida na ficha do contato. Ele não é campo do board.
 
 ### Conversation
 
@@ -309,6 +330,14 @@ Exemplos:
 
 Fórmulas devem ser simples e seguras no MVP: operações matemáticas básicas e referência a outros campos numéricos. Não deve existir execução arbitrária de código.
 
+Na configuração de um campo:
+
+- `Mostrar quando` e `For igual a` configuram somente uma condição de visibilidade;
+- a expressão matemática é preenchida no editor `Fórmula`, visível somente quando o tipo do campo for `Fórmula`;
+- a expressão contém apenas o cálculo, por exemplo `procedimento + exames`, sem escrever `valor_total =`;
+- o editor deve permitir inserir campos por seleção, mostrar as chaves estáveis disponíveis, validar a expressão e apresentar uma prévia do cálculo;
+- o texto `For igual a` nunca deve ser usado para digitar fórmula.
+
 ### Obrigatoriedade Por Etapa
 
 Campos podem ser obrigatórios somente ao chegar em determinada etapa.
@@ -384,6 +413,13 @@ Filtros futuros:
 - valor;
 - tempo parado na etapa.
 
+Para concluir a estrutura do Kanban, também são necessários:
+
+- busca por oportunidade, contato, telefone e assunto;
+- combinação clara de filtros ativos com ação `Limpar filtros`;
+- filtros salvos por usuário para rotinas recorrentes;
+- ordenação por próxima ação, valor, criação e tempo na etapa.
+
 ## Ganho e Perda
 
 Ao marcar como perdido, o sistema deve pedir motivo de perda.
@@ -455,6 +491,64 @@ Auto criação deve ser configurável por board/inbox. Não deve criar cards aut
 - A criação automática de oportunidades deve ser configurável por board/inbox, não global.
 - A criação manual deve continuar disponível mesmo quando a automação estiver ligada.
 
+## Fronteira Com Automacoes
+
+O Kanban não deve hospedar o construtor completo de automações dentro do board ou do card.
+
+Responsabilidade do Kanban:
+
+- manter oportunidades, etapas, responsáveis, datas e próximos passos confiáveis;
+- publicar eventos de domínio, como card criado, etapa alterada, oportunidade ganha/perdida e próxima ação concluída;
+- expor campos do card, contato e conversa como dados selecionáveis por regras;
+- mostrar, no card, quais automações estão ativas e permitir interromper uma execução quando autorizado.
+
+Responsabilidade de um módulo próprio de `Automações`:
+
+- configurar gatilho, condições e ações;
+- executar ações imediatamente ou em relação a uma data;
+- criar tarefas e notificações;
+- enviar mensagens aprovadas;
+- controlar cadências, espera, pausa, retomada e saída;
+- registrar execuções, erros, tentativas e cancelamentos.
+
+Classificação dos casos levantados:
+
+1. **Lembrete de agendamento:** automação relativa a um campo de data/hora do card ou evento de agenda. O board fornece a data e o contexto; a automação agenda e envia o lembrete.
+2. **Mensagem de aniversário:** automação recorrente anual baseada em `contact.date_of_birth`. Não depende de existir oportunidade no Kanban.
+3. **Cadência de follow-up:** módulo de sequências/cadências, com passos de mensagem, espera e tarefa manual. O card pode inscrever ou retirar o contato da cadência, mas não deve ser o editor da sequência.
+
+Uma cadência precisa parar ou pausar quando houver resposta do cliente, opt-out, oportunidade ganha/perdida, contato inválido ou intervenção manual configurada. Mensagens de WhatsApp devem respeitar consentimento, templates aprovados, janela de atendimento, fuso horário e limites de frequência.
+
+## Fechamento Estrutural Do Kanban
+
+Antes de iniciar o módulo de automações, o Kanban precisa fechar estas lacunas, em ordem:
+
+### Prioridade P0
+
+- **Histórico completo da oportunidade:** linha do tempo de criação, mudanças de etapa, responsável, valor, campos, próximas ações e fechamento, com ator e horário.
+- **Semântica das etapas:** categoria configurável `aberta`, `ganha` ou `perdida`; movimentar para etapa terminal deve usar o mesmo fluxo validado de fechamento.
+- **Movimentação assistida:** ao arrastar para uma etapa com campos obrigatórios, abrir um formulário curto com os dados faltantes; se cancelar ou falhar, devolver visualmente o card à origem.
+- **Busca e produtividade:** busca global no board, filtros ativos claros, limpar filtros, ordenação e filtros salvos.
+- **Construtor de campos intuitivo:** separar dados básicos, condição e fórmula; usar selects e prévia em linguagem natural; esconder JSON na área avançada.
+- **Migração do Kommo:** importação CSV com mapeamento de etapas, responsáveis, contatos, oportunidades, valores e campos personalizados; prévia, relatório de erros e idempotência.
+- **Qualidade de dados:** aviso compreensível para possível oportunidade duplicada, sem impedir múltiplas oportunidades legítimas do mesmo contato.
+- **Confiabilidade e acessibilidade:** feedback de salvamento, estados de erro recuperáveis, navegação por teclado e comportamento responsivo do board e modal.
+
+### Prioridade P1
+
+- arquivar/restaurar boards e oportunidades sem apagar histórico;
+- ações em massa com confirmação e resumo de impacto;
+- data prevista de fechamento opcional;
+- destaque de campos importantes, sem torná-los obrigatórios;
+- limites de trabalho por etapa apenas como alerta de capacidade, nunca bloqueio rígido de entrada de leads.
+
+### Fora Do Fechamento Atual
+
+- previsão de receita por probabilidade;
+- catálogo de produtos, propostas, contratos e faturamento;
+- BI avançado;
+- editor de automações e cadências.
+
 ## Entregue
 
 O Kanban comercial entregue inclui:
@@ -489,11 +583,13 @@ O Kanban comercial entregue inclui:
 
 ## Proximas Fases
 
-- notificações internas;
-- nota privada automática no Chatwoot;
-- automações leves por mudança de etapa;
-- mensagens automáticas opcionais e controladas;
-- relatórios avançados.
+1. concluir os itens P0 de fechamento estrutural;
+2. validar o fluxo manual completo com secretária e vendedor;
+3. criar a fundação de dados do contato, incluindo `date_of_birth`, consentimento e fuso horário;
+4. especificar o módulo próprio de automações;
+5. entregar lembretes de agendamento;
+6. entregar cadências de follow-up;
+7. entregar automações recorrentes, incluindo aniversário.
 
 ## Riscos
 
@@ -514,3 +610,17 @@ O Kanban comercial entregue inclui:
 - A próxima ação é obrigatória para oportunidade aberta.
 - Consulta é apenas um tipo configurável de próxima ação.
 - O produto deve ser útil para venda 100% WhatsApp.
+- Lembretes, aniversários e cadências usam dados do Kanban, mas pertencem a um módulo próprio de automações.
+- Data de nascimento pertence ao contato, não à oportunidade.
+- `For igual a` é condição; fórmula possui editor próprio.
+
+## Referencias De Produto
+
+- [Pipedrive: campos personalizados e regras de qualidade](https://support.pipedrive.com/en/article/custom-fields)
+- [Pipedrive: campos obrigatórios por pipeline e etapa](https://support.pipedrive.com/en/article/required-fields)
+- [Kommo: gatilhos do pipeline digital](https://support.kommo.com/docs/set-up-digital-pipeline-triggers)
+- [HubSpot: criação e edição de sequências](https://knowledge.hubspot.com/sequences/create-and-edit-sequences)
+- [monday CRM: sequências](https://support.monday.com/hc/en-us/articles/20666311273874-Sequences)
+- [Atlassian: limites de trabalho em progresso no Kanban](https://www.atlassian.com/agile/kanban/wip-limits)
+- [Chatwoot: atributos personalizados de contato](https://www.chatwoot.com/hc/user-guide/articles/1677502327-how-to-create-and-use-custom-attributes)
+- [WhatsApp Business Messaging Policy](https://business.whatsapp.com/policy)
