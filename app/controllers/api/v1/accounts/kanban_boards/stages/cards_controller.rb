@@ -15,7 +15,9 @@ class Api::V1::Accounts::KanbanBoards::Stages::CardsController < Api::V1::Accoun
       filtered_inbox_ids: sanitized_inbox_filter_ids,
       filtered_assignee_ids: sanitized_assignee_filter_ids,
       filtered_next_action_status: params[:next_action].presence,
-      filtered_opportunity_status: params[:status].presence
+      filtered_opportunity_status: params[:status].presence,
+      search: params[:search],
+      sort: params[:sort]
     ).call
   rescue KanbanCards::VisibleStageCardsQuery::RefreshRequiredError
     render json: { error: 'refresh_required' }, status: :conflict

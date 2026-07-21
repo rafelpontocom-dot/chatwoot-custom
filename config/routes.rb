@@ -120,6 +120,7 @@ Rails.application.routes.draw do
 
             scope module: :kanban_boards do
               resource :settings, only: [:show, :update]
+              resources :saved_filters, only: [:index, :create, :update, :destroy]
               post 'settings/import_existing_conversations', to: 'settings#import_existing_conversations'
               resources :stages, only: [:create, :destroy] do
                 patch '', on: :member, action: :update
@@ -127,10 +128,14 @@ Rails.application.routes.draw do
                 resources :cards, only: [:index], module: :stages
               end
               post 'cards/manual', to: 'cards#create_manual'
+              get 'cards/archived', to: 'cards#archived'
+              patch 'cards/bulk', to: 'cards#bulk'
               get 'cards/by_id/:id', to: 'cards#show'
               patch 'cards/by_id/:id', to: 'cards#update'
               delete 'cards/by_id/:id', to: 'cards#destroy'
               patch 'cards/by_id/:id/reorder', to: 'cards#reorder'
+              patch 'cards/by_id/:id/restore', to: 'cards#restore'
+              get 'cards/by_id/:id/timeline', to: 'cards#timeline'
               get 'cards/by_id/:id/labels', to: 'cards/labels#index'
               put 'cards/by_id/:id/labels', to: 'cards/labels#update'
               get 'reports/sales_summary', to: 'reports#sales_summary'

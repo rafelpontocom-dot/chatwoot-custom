@@ -31,6 +31,9 @@ if stable_card
   json.closed_by_id card.closed_by_id
   json.amount_cents card.amount_cents
   json.amount_currency card.amount_currency
+  json.expected_close_date card.expected_close_date&.iso8601
+  json.archived_at card.archived_at&.iso8601
+  json.archived_by_id card.archived_by_id
   json.custom_field_values card.custom_field_values
   json.next_action_history card.next_action_history
   json.compact_custom_fields card.compact_custom_fields

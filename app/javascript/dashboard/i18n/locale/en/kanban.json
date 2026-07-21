@@ -1,5 +1,36 @@
 {
   "KANBAN": {
+    "ARCHIVE": {
+      "OPEN": "Archived opportunities",
+      "TITLE": "Archived opportunities",
+      "LOADING": "Loading archived opportunities...",
+      "EMPTY": "There are no archived opportunities.",
+      "RESTORE": "Restore opportunity",
+      "RESTORE_SUCCESS": "Opportunity restored.",
+      "RESTORE_ERROR": "Could not restore the opportunity.",
+      "LOAD_ERROR": "Could not load archived opportunities.",
+      "STAGE_SEPARATOR": "in"
+    },
+    "STAGE": {
+      "CAPACITY_ALERT": "This stage is above its card alert limit."
+    },
+    "BULK": {
+      "SELECTED": "{count} selected",
+      "MOVE": "Move to stage",
+      "ASSIGN": "Assign owner",
+      "ARCHIVE": "Archive selected",
+      "CLEAR": "Clear selection",
+      "ARCHIVE_TITLE": "Archive opportunities",
+      "ARCHIVE_MESSAGE": "Archive the selected opportunities? They can be restored later.",
+      "SUCCESS": "Opportunities updated.",
+      "ERROR": "Could not update the selected opportunities."
+    },
+    "ASSISTED_MOVE": {
+      "TITLE": "Complete the opportunity",
+      "DESCRIPTION": "Fill in the required information to move this opportunity.",
+      "SELECT_VALUE": "Select a value",
+      "CONFIRM": "Complete and move"
+    },
     "HEADER": "Kanban",
     "LOADING_BOARDS": "Loading boards...",
     "LOADING_BOARD": "Loading board...",
@@ -35,6 +66,18 @@
       "BLANK": "Blank funnel"
     },
     "FILTERS": {
+      "SEARCH_PLACEHOLDER": "Search opportunities",
+      "DEFAULT_ORDER": "Board order",
+      "NEXT_ACTION_FIRST": "Next action first",
+      "NEWEST_FIRST": "Newest first",
+      "HIGHEST_VALUE": "Highest value",
+      "LONGEST_IN_STAGE": "Longest in stage",
+      "SAVED_FILTERS": "Saved filters",
+      "SAVE_FILTER": "Save current filters",
+      "SAVED_NAME_PROMPT": "Name this filter",
+      "SAVED_SUCCESS": "Filter saved",
+      "ACTIVE_COUNT": "Active filter groups",
+      "CLEAR": "Clear filters",
       "INBOXES": "Inboxes",
       "AGENTS": "Agents",
       "ALL_ACTIONS": "All actions",
@@ -133,6 +176,16 @@
       "ACCESS_DENIED": "You are not authorized to manage this funnel.",
       "SAVE": "Save settings",
       "SAVE_SUCCESS": "Funnel settings saved.",
+      "STAGES": {
+        "CATEGORY": "Commercial category",
+        "CATEGORY_OPEN": "Open",
+        "CATEGORY_WON": "Won",
+        "CATEGORY_LOST": "Lost",
+        "WIP_LIMIT": "Card alert limit",
+        "SAVE": "Save stage rules",
+        "SAVE_SUCCESS": "Stage rules saved.",
+        "SAVE_ERROR": "Could not save the stage rules."
+      },
       "SAVE_ERROR": "Could not save funnel settings.",
       "GENERAL": {
         "TITLE": "General",
@@ -162,9 +215,20 @@
         "LOST_REASON_OPTIONS": "Lost reasons",
         "LOST_REASON_OPTIONS_PLACEHOLDER": "One lost reason per line",
         "CUSTOM_FIELDS": "Custom fields",
+        "IMPORTANT_FIELD": "Important field",
         "CUSTOM_FIELDS_PLACEHOLDER": "JSON array with key, label, field_type, options, required_stage_ids, condition, formula and layout",
         "ADD_CUSTOM_FIELD": "Add field",
         "ADD_MARKETING_FIELDS": "Add marketing fields",
+        "MANAGE_CUSTOM_FIELDS": "Manage fields",
+        "FIELD_MANAGER_TITLE": "Opportunity field manager",
+        "FIELD_MANAGER_DESCRIPTION": "Create fields and drag them to define the tab and display order for every opportunity in this funnel.",
+        "ADD_FIELD_SECTION": "Add opportunity tab",
+        "FIELD_SECTION_NAME": "Tab name",
+        "CREATE_FIELD_SECTION": "Create tab",
+        "NO_CUSTOM_FIELDS": "No custom fields yet.",
+        "FIELD_OPTION_PLACEHOLDER": "Enter an option",
+        "ADD_FIELD_OPTION": "Add option",
+        "REMOVE_FIELD_OPTION": "Remove option {option}",
         "REMOVE_CUSTOM_FIELD": "Remove field",
         "TAB_LAYOUT": "Opportunity tabs",
         "TAB_LAYOUT_DESCRIPTION": "Drag fields between tabs and reorder them inside each tab.",
@@ -210,7 +274,7 @@
         "FIELD_LABEL": "Label",
         "FIELD_KEY": "Stable key",
         "FIELD_TYPE": "Type",
-        "FIELD_OPTIONS": "Options, one per line",
+        "FIELD_OPTIONS": "Options",
         "FIELD_WIDTH": "Width",
         "FIELD_SECTION": "Section",
         "FIELD_POSITION": "Position",
@@ -224,8 +288,8 @@
         "CONDITION_BOOLEAN_TRUE": "Yes",
         "CONDITION_BOOLEAN_FALSE": "No",
         "FORMULA": "Formula",
-        "FORMULA_PLACEHOLDER": "Example: field_z + field_w",
-        "FORMULA_HELP": "Use the stable keys of numeric fields or system_amount (opportunity value) with +, -, * or /.",
+        "FORMULA_PLACEHOLDER": "Type [ to insert a field",
+        "FORMULA_HELP": "Use [Field] with +, -, * or /. Example: [Opportunity value] * 0.2.",
         "SYSTEM_FIELDS": {
           "SUBJECT": "Opportunity title",
           "DESCRIPTION": "Description",
@@ -312,6 +376,12 @@
       "CANCEL": "Cancel"
     },
     "OPPORTUNITY_DETAILS": {
+      "EXPECTED_CLOSE_DATE": "Expected close date",
+      "TIMELINE": {
+        "EMPTY": "No changes yet.",
+        "LOAD_ERROR": "Could not load the opportunity timeline.",
+        "SYSTEM": "System"
+      },
       "TITLE": "Opportunity details",
       "TITLE_WITH_BOARD": "Edit opportunity in {boardName}",
       "CARD_ID": "Card #{id}",
@@ -319,10 +389,12 @@
       "FIELD_DESCRIPTION": "Description",
       "FIELD_AMOUNT": "Value",
       "CUSTOM_FIELDS": "Custom fields",
+      "IMPORTANT_FIELD": "Important, but not required",
       "TABS": {
         "LABEL": "Opportunity sections",
         "GENERAL": "General",
-        "MARKETING": "Marketing"
+        "MARKETING": "Marketing",
+        "TIMELINE": "Timeline"
       },
       "DESCRIPTION_PLACEHOLDER": "Add a single note for this card",
       "OWNER": "Sales owner",
@@ -373,9 +445,13 @@
       "LOAD_ERROR": "Could not load opportunity details.",
       "SAVE_ERROR": "Could not save opportunity details.",
       "REQUIRED_TITLE": "Title is required.",
-      "CLOSE": "Close opportunity details"
+      "CLOSE": "Close opportunity details",
+      "MANAGE_FIELDS": "Manage opportunity fields",
+      "ADD_TAB": "Create opportunity tab"
     },
     "ADD_ITEM": {
+      "POSSIBLE_DUPLICATE": "A similar opportunity already exists for this contact in this inbox.",
+      "DUPLICATE_STAGE_SEPARATOR": "in",
       "PLACEHOLDER": "Search by name, email, or phone",
       "SEARCH_LABEL": "Search contacts",
       "SEARCHING": "Searching contacts...",
@@ -396,6 +472,7 @@
       "CLOSE": "Close add item picker"
     },
     "CARD": {
+      "SELECT": "Select opportunity",
       "UNKNOWN_CONTACT": "Unknown contact",
       "UNKNOWN_INBOX": "Unknown inbox",
       "NO_LINKED_CONVERSATION": "No linked conversation",

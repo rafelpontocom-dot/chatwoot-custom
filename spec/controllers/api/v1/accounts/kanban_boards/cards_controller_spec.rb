@@ -115,7 +115,7 @@ RSpec.describe 'Kanban Cards API', type: :request do
     end
 
     it 'rejects normalized duplicate subject' do
-      create(
+      existing_card = create(
         :kanban_card,
         account: account,
         kanban_board: kanban_board,
@@ -128,6 +128,14 @@ RSpec.describe 'Kanban Cards API', type: :request do
       post_manual_card
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.parsed_body['message']).to include('Manual opportunity with this subject already exists')
+      expect(response.parsed_body).to include(
+        'code' => 'possible_duplicate',
+        'duplicate_card' => include(
+          'id' => existing_card.id,
+          'subject' => existing_card.subject,
+          'stage_name' => stage.name
+        )
+      )
     end
 
     it 'rejects stage from another board' do
@@ -238,6 +246,22 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(response).to have_http_status(:success)
       expect(response.parsed_body['starts_at']).to eq(starts_at.iso8601)
       expect(response.parsed_body['due_at']).to eq(due_at.iso8601)
+    end
+
+    it 'returns the expected close date and commercial timeline' do
+      card = create_manual_card(expected_close_date: Date.new(2026, 8, 15))
+      card.update!(amount_cents: 250_000)
+
+      get stable_card_url(card), headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['expected_close_date']).to eq('2026-08-15')
+
+      get stable_card_url(card, suffix: 'timeline'), headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body.pluck('event_type')).to include('card_created', 'amount_changed')
+      expect(response.parsed_body.last).to include('occurred_at', 'changes', 'actor')
     end
 
     it 'returns stable sales fields' do
@@ -459,6 +483,19 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    it 'updates the expected close date' do
+      card = create_manual_card
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { expected_close_date: '2026-09-01' } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload.expected_close_date).to eq(Date.new(2026, 9, 1))
+      expect(response.parsed_body['expected_close_date']).to eq('2026-09-01')
+    end
+
     it 'updates monetary value and board-specific custom field values' do
       kanban_board.update!(
         custom_field_definitions: [
@@ -543,6 +580,93 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.parsed_body['message']).to include('Custom field values procedimento is required')
       expect(card.reload.kanban_stage_id).to eq(stage.id)
+    end
+
+    it 'marks a card as won when it reaches a won stage' do
+      won_stage = create(:kanban_stage, account: account, kanban_board: kanban_board, category: 'won')
+      card = create_manual_card
+
+      patch stable_card_url(card, suffix: 'reorder'),
+            headers: agent.create_new_auth_token,
+            params: { card: { kanban_stage_id: won_stage.id, position: 1 } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(kanban_stage: won_stage, closed_by: agent)
+      expect(card.won_at).to be_present
+      expect(card.kanban_card_events.pluck(:event_type)).to include('stage_changed', 'card_won')
+    end
+
+    it 'requires a reason before moving a card to a lost stage' do
+      lost_stage = create(:kanban_stage, account: account, kanban_board: kanban_board, category: 'lost')
+      card = create_manual_card
+
+      patch stable_card_url(card, suffix: 'reorder'),
+            headers: agent.create_new_auth_token,
+            params: { card: { kanban_stage_id: lost_stage.id, position: 1 } },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['missing_fields']).to include('lost_reason')
+      expect(card.reload.kanban_stage).to eq(stage)
+    end
+
+    it 'returns the required custom fields when a stage move needs completion' do
+      required_stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: %w[Consulta Cirurgia],
+            required_stage_ids: [required_stage.id]
+          }
+        ]
+      )
+      card = create_manual_card
+
+      patch stable_card_url(card, suffix: 'reorder'),
+            headers: agent.create_new_auth_token,
+            params: { card: { kanban_stage_id: required_stage.id, position: 1 } },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['missing_fields']).to eq(['procedimento'])
+      expect(response.parsed_body['field_definitions']).to contain_exactly(
+        include('key' => 'procedimento', 'label' => 'Procedimento', 'field_type' => 'select')
+      )
+      expect(card.reload.kanban_stage).to eq(stage)
+    end
+
+    it 'completes required custom fields while moving the card' do
+      required_stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'text',
+            required_stage_ids: [required_stage.id]
+          }
+        ]
+      )
+      card = create_manual_card
+
+      patch stable_card_url(card, suffix: 'reorder'),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                kanban_stage_id: required_stage.id,
+                position: 1,
+                custom_field_values: { procedimento: 'Consulta inicial' }
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(kanban_stage: required_stage)
+      expect(card.custom_field_values).to include('procedimento' => 'Consulta inicial')
     end
 
     it 'marks a stable card as won and records the closing user' do
@@ -1039,6 +1163,75 @@ RSpec.describe 'Kanban Cards API', type: :request do
 
       expect(response).to have_http_status(:no_content)
       expect(card.reload).not_to be_active
+      expect(card.archived_at).to be_present
+      expect(card.archived_by).to eq(agent)
+    end
+
+    it 'restores an archived card by stable ID' do
+      card = create_manual_card
+      card.archive!(actor: agent)
+
+      patch stable_card_url(card, suffix: 'restore'),
+            headers: agent.create_new_auth_token,
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(active: true, archived_at: nil, archived_by: nil)
+      expect(response.parsed_body['active']).to be(true)
+    end
+
+    it 'lists only archived cards that the agent can access' do
+      visible_card = create_manual_card(subject: 'Arquivada visível')
+      hidden_inbox = create(:inbox, account: account)
+      hidden_card = create_manual_card(subject: 'Arquivada oculta', inbox: hidden_inbox)
+      visible_card.archive!(actor: agent)
+      hidden_card.archive!(actor: administrator)
+
+      get "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/cards/archived",
+          headers: agent.create_new_auth_token,
+          as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body.pluck('id')).to eq([visible_card.id])
+      expect(response.parsed_body.first).to include(
+        'subject' => 'Arquivada visível',
+        'archived_at' => visible_card.archived_at.iso8601
+      )
+    end
+
+    it 'archives multiple authorized opportunities in one transaction' do
+      first_card = create_manual_card(subject: 'Primeira')
+      second_card = create_manual_card(subject: 'Segunda')
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/cards/bulk",
+            headers: agent.create_new_auth_token,
+            params: {
+              card_ids: [first_card.id, second_card.id],
+              operation: 'archive'
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('updated_count' => 2)
+      expect([first_card.reload.active?, second_card.reload.active?]).to eq([false, false])
+    end
+
+    it 'assigns an owner to multiple opportunities' do
+      owner = create(:user, account: account, role: :agent)
+      first_card = create_manual_card(subject: 'Primeira')
+      second_card = create_manual_card(subject: 'Segunda')
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/cards/bulk",
+            headers: agent.create_new_auth_token,
+            params: {
+              card_ids: [first_card.id, second_card.id],
+              operation: 'assign_owner',
+              owner_id: owner.id
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect([first_card.reload.owner, second_card.reload.owner]).to all(eq(owner))
     end
 
     it 'emits kanban.card.deleted with a compact payload' do

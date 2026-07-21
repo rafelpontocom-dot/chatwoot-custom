@@ -15,6 +15,32 @@ RSpec.describe KanbanStage do
   end
 
   describe 'validations' do
+    it 'accepts the commercial stage categories' do
+      board = create(:kanban_board)
+
+      stages = described_class::CATEGORIES.map do |category|
+        build(:kanban_stage, account: board.account, kanban_board: board, category: category)
+      end
+
+      expect(stages).to all(be_valid)
+    end
+
+    it 'rejects an unknown commercial stage category' do
+      stage = build(:kanban_stage, category: 'waiting')
+
+      expect(stage).not_to be_valid
+      expect(stage.errors[:category]).to be_present
+    end
+
+    it 'accepts a positive optional work in progress limit' do
+      board = create(:kanban_board)
+      stage_attributes = { account: board.account, kanban_board: board }
+
+      expect(build(:kanban_stage, **stage_attributes, wip_limit: nil)).to be_valid
+      expect(build(:kanban_stage, **stage_attributes, wip_limit: 10)).to be_valid
+      expect(build(:kanban_stage, **stage_attributes, wip_limit: 0)).not_to be_valid
+    end
+
     it 'prevents duplicate active names inside a board' do
       board = create(:kanban_board)
       create(:kanban_stage, account: board.account, kanban_board: board, name: 'New')

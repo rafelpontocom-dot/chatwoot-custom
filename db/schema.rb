@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_21_143000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_21_200000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1009,10 +1009,31 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_143000) do
     t.jsonb "custom_field_definitions", default: [], null: false
     t.jsonb "compact_card_field_keys", default: [], null: false
     t.jsonb "stale_stage_thresholds", default: {}, null: false
+    t.jsonb "custom_field_sections", default: [], null: false
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
     t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"
     t.index ["account_id"], name: "index_kanban_boards_on_account_id"
+  end
+
+  create_table "kanban_card_events", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "kanban_card_id", null: false
+    t.string "event_type", null: false
+    t.string "actor_type"
+    t.bigint "actor_id"
+    t.datetime "occurred_at", null: false
+    t.jsonb "change_set", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "event_type", "occurred_at"], name: "idx_on_account_id_event_type_occurred_at_0adaf08708"
+    t.index ["account_id"], name: "index_kanban_card_events_on_account_id"
+    t.index ["actor_type", "actor_id"], name: "index_kanban_card_events_on_actor_type_and_actor_id"
+    t.index ["kanban_board_id"], name: "index_kanban_card_events_on_kanban_board_id"
+    t.index ["kanban_card_id", "occurred_at", "id"], name: "index_kanban_card_events_timeline"
+    t.index ["kanban_card_id"], name: "index_kanban_card_events_on_kanban_card_id"
   end
 
   create_table "kanban_cards", force: :cascade do |t|
@@ -1046,21 +1067,41 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_143000) do
     t.string "amount_currency", default: "BRL", null: false
     t.jsonb "custom_field_values", default: {}, null: false
     t.jsonb "next_action_history", default: [], null: false
+    t.date "expected_close_date"
+    t.datetime "archived_at"
+    t.bigint "archived_by_id"
     t.index ["account_id", "active"], name: "index_kanban_cards_on_account_id_and_active"
     t.index ["account_id", "contact_id"], name: "index_kanban_cards_on_account_id_and_contact_id"
     t.index ["account_id", "inbox_id"], name: "index_kanban_cards_on_account_id_and_inbox_id"
     t.index ["account_id", "next_action_at"], name: "index_kanban_cards_on_account_id_and_next_action_at"
+    t.index ["archived_by_id"], name: "index_kanban_cards_on_archived_by_id"
     t.index ["conversation_id"], name: "index_kanban_cards_on_conversation_id"
     t.index ["kanban_board_id", "active"], name: "index_kanban_cards_on_kanban_board_id_and_active"
     t.index ["kanban_board_id", "amount_cents"], name: "index_kanban_cards_on_kanban_board_id_and_amount_cents"
+    t.index ["kanban_board_id", "archived_at"], name: "index_kanban_cards_on_kanban_board_id_and_archived_at"
     t.index ["kanban_board_id", "contact_id", "inbox_id", "normalized_subject"], name: "index_active_manual_kanban_cards_unique_subject", unique: true, where: "((active = true) AND ((origin)::text = 'manual'::text) AND (normalized_subject IS NOT NULL))"
     t.index ["kanban_board_id", "conversation_id", "inbox_id", "normalized_subject"], name: "index_kanban_cards_on_conversation_subject_unique", unique: true, where: "(((origin)::text = 'conversation'::text) AND (conversation_id IS NOT NULL) AND (normalized_subject IS NOT NULL))"
+    t.index ["kanban_board_id", "expected_close_date"], name: "index_kanban_cards_on_kanban_board_id_and_expected_close_date"
     t.index ["kanban_board_id", "kanban_stage_id", "position", "created_at", "id"], name: "index_active_kanban_cards_on_board_stage_order", where: "(active = true)"
     t.index ["kanban_board_id", "kanban_stage_id", "position"], name: "index_kanban_cards_on_board_stage_position"
     t.index ["kanban_board_id", "lost_at"], name: "index_kanban_cards_on_kanban_board_id_and_lost_at"
     t.index ["kanban_board_id", "next_action_at"], name: "index_kanban_cards_on_kanban_board_id_and_next_action_at"
     t.index ["kanban_board_id", "won_at"], name: "index_kanban_cards_on_kanban_board_id_and_won_at"
     t.index ["owner_id", "next_action_at"], name: "index_kanban_cards_on_owner_id_and_next_action_at"
+  end
+
+  create_table "kanban_saved_filters", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.jsonb "filters", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_saved_filters_on_account_id"
+    t.index ["kanban_board_id", "user_id", "name"], name: "index_kanban_saved_filters_unique_name", unique: true
+    t.index ["kanban_board_id"], name: "index_kanban_saved_filters_on_kanban_board_id"
+    t.index ["user_id"], name: "index_kanban_saved_filters_on_user_id"
   end
 
   create_table "kanban_stages", force: :cascade do |t|
@@ -1072,11 +1113,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_143000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "color", default: "slate", null: false
+    t.string "category", default: "open", null: false
+    t.integer "wip_limit"
     t.index ["account_id", "active"], name: "index_kanban_stages_on_account_id_and_active"
     t.index ["account_id"], name: "index_kanban_stages_on_account_id"
+    t.index ["kanban_board_id", "category"], name: "index_kanban_stages_on_kanban_board_id_and_category"
     t.index ["kanban_board_id", "name"], name: "index_active_kanban_stages_on_board_id_and_name", unique: true, where: "(active = true)"
     t.index ["kanban_board_id", "position"], name: "index_kanban_stages_on_kanban_board_id_and_position"
     t.index ["kanban_board_id"], name: "index_kanban_stages_on_kanban_board_id"
+    t.check_constraint "category::text = ANY (ARRAY['open'::character varying, 'won'::character varying, 'lost'::character varying]::text[])", name: "kanban_stages_category_check"
+    t.check_constraint "wip_limit IS NULL OR wip_limit > 0", name: "kanban_stages_wip_limit_check"
   end
 
   create_table "labels", force: :cascade do |t|
@@ -1499,6 +1545,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_21_143000) do
   add_foreign_key "kanban_board_members", "accounts"
   add_foreign_key "kanban_board_members", "kanban_boards"
   add_foreign_key "kanban_board_members", "users"
+  add_foreign_key "kanban_card_events", "accounts"
+  add_foreign_key "kanban_card_events", "kanban_boards"
+  add_foreign_key "kanban_card_events", "kanban_cards"
+  add_foreign_key "kanban_cards", "users", column: "archived_by_id"
+  add_foreign_key "kanban_saved_filters", "accounts"
+  add_foreign_key "kanban_saved_filters", "kanban_boards"
+  add_foreign_key "kanban_saved_filters", "users"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").

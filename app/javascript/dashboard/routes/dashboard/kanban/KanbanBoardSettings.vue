@@ -44,6 +44,13 @@ const newStageName = ref('');
 const newStageColor = ref(DEFAULT_KANBAN_STAGE_COLOR);
 const activeStageActionKey = ref('');
 const ignoreGroupsForImport = ref(false);
+const activeFormulaFieldId = ref(null);
+const activeFormulaSuggestionIndex = ref(0);
+const showCustomFieldManager = ref(false);
+const selectedCustomFieldId = ref(null);
+const newCustomFieldOption = ref('');
+const showNewFieldSectionForm = ref(false);
+const newFieldSectionName = ref('');
 let customFieldRowSequence = 0;
 
 const nextCustomFieldRowId = () => {
@@ -63,6 +70,7 @@ const form = reactive({
   lostReasonOptionsText: '',
   customFieldDefinitionsText: '',
   customFieldDefinitions: [],
+  customFieldSections: [],
   compactCardFieldKeys: [],
   staleStageThresholds: {},
 });
@@ -74,6 +82,11 @@ const stageListModel = computed({
     stages.value = nextStages;
   },
 });
+const selectedCustomField = computed(() =>
+  form.customFieldDefinitions.find(
+    definition => definition.clientId === selectedCustomFieldId.value
+  )
+);
 
 const agentOptions = computed(() =>
   agents.value.map(agent => ({
@@ -326,38 +339,33 @@ const marketingFieldDefinitions = computed(() => {
       fieldType: 'select',
       options: leadSubOriginOptions,
     }),
-    field('utm_source', 'UTM_SOURCE'),
+    field('campaign', 'CAMPAIGN_NAME'),
+    field('adset', 'ADSET_NAME'),
+    field('ad', 'AD_NAME'),
+    field('utm_content', 'UTM_CONTENT'),
     field('utm_medium', 'UTM_MEDIUM'),
     field('utm_campaign', 'UTM_CAMPAIGN'),
+    field('utm_source', 'UTM_SOURCE'),
     field('utm_term', 'UTM_TERM'),
-    field('utm_content', 'UTM_CONTENT'),
-    field('utm_id', 'UTM_ID'),
     field('utm_referrer', 'UTM_REFERRER'),
     field('referrer', 'REFERRER'),
     field('gclientid', 'GOOGLE_CLIENT_ID'),
     field('gclid', 'GCLID'),
-    field('gbraid', 'GBRAID'),
-    field('wbraid', 'WBRAID'),
-    field('dclid', 'DCLID'),
-    field('fbclid', 'FBCLID'),
+    field('fvclid', 'FBCLID'),
+    field('ttad_name', 'TIKTOK_AD_NAME'),
+    field('ttad_id', 'TIKTOK_AD_ID'),
     field('fbc', 'FBC'),
     field('fbp', 'FBP'),
     field('ttclid', 'TTCLID'),
-    field('ttad_id', 'TIKTOK_AD_ID'),
-    field('ttad_name', 'TIKTOK_AD_NAME'),
-    field('msclkid', 'MSCLKID'),
-    field('campaign_name', 'CAMPAIGN_NAME'),
-    field('adset_name', 'ADSET_NAME'),
-    field('ad_name', 'AD_NAME'),
     field('campaign_id', 'CAMPAIGN_ID'),
     field('adset_id', 'ADSET_ID'),
     field('ad_id', 'AD_ID'),
     field('landing_page', 'LANDING_PAGE', { fieldType: 'url' }),
+    field('event_id', 'EVENT_ID'),
     field('landing_page_full', 'LANDING_PAGE_FULL', {
       fieldType: 'textarea',
       layoutWidth: 'full',
     }),
-    field('event_id', 'EVENT_ID'),
   ];
 });
 
@@ -366,6 +374,63 @@ const getErrorMessage = (error, fallbackMessage) =>
   error?.response?.data?.message ||
   error?.message ||
   fallbackMessage;
+
+const normalizeFormulaSearch = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+const numericFormulaCandidates = definition => {
+  const definitionIndex = form.customFieldDefinitions.indexOf(definition);
+  return [
+    {
+      key: 'system_amount',
+      label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT'),
+      searchAliases: 'valor value amount',
+    },
+    ...form.customFieldDefinitions
+      .filter(
+        (field, fieldIndex) =>
+          field !== definition &&
+          field.key &&
+          ['integer', 'decimal', 'currency', 'formula'].includes(
+            field.fieldType
+          ) &&
+          (field.fieldType !== 'formula' || fieldIndex < definitionIndex)
+      )
+      .map(field => ({ key: field.key, label: field.label || field.key })),
+  ];
+};
+
+function formulaDisplayValue(definition) {
+  let formula = String(definition.formula || '');
+  numericFormulaCandidates(definition)
+    .sort((first, second) => second.key.length - first.key.length)
+    .forEach(candidate => {
+      formula = formula.replace(
+        new RegExp(`\\b${candidate.key}\\b`, 'g'),
+        `[${candidate.label}]`
+      );
+    });
+  return formula;
+}
+
+function stableFormulaValue(definition) {
+  const candidates = numericFormulaCandidates(definition);
+  return String(definition.formulaDisplay || '').replace(
+    /\[([^\]]+)\]/gu,
+    (match, token) => {
+      const normalizedToken = normalizeFormulaSearch(token);
+      const candidate = candidates.find(
+        item =>
+          normalizeFormulaSearch(item.label) === normalizedToken ||
+          normalizeFormulaSearch(item.key) === normalizedToken
+      );
+      return candidate?.key || match;
+    }
+  );
+}
 
 const applySettings = payload => {
   const settings = camelcaseKeys(payload || {}, { deep: true });
@@ -397,12 +462,18 @@ const applySettings = payload => {
         definition.condition?.fieldKey || definition.condition?.field_key || '',
       conditionEquals: definition.condition?.equals ?? '',
       formula: definition.formula || '',
+      formulaDisplay: definition.formula || '',
       layoutSection: definition.layout?.section || 'details',
       layoutPosition: definition.layout?.position || 1,
       layoutWidth: definition.layout?.width || 'full',
+      important: Boolean(definition.important),
       autoKey: false,
     })
   );
+  form.customFieldDefinitions.forEach(definition => {
+    definition.formulaDisplay = formulaDisplayValue(definition);
+  });
+  form.customFieldSections = settings.customFieldSections || [];
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
 };
@@ -465,7 +536,9 @@ const customFieldPayload = definition => ({
         equals: definition.conditionEquals,
       }
     : {},
-  formula: definition.fieldType === 'formula' ? definition.formula : null,
+  formula:
+    definition.fieldType === 'formula' ? stableFormulaValue(definition) : null,
+  important: Boolean(definition.important),
   layout: {
     section: definition.layoutSection || 'details',
     position: Number(definition.layoutPosition) || 1,
@@ -482,6 +555,7 @@ const createCustomFieldRow = ({
   layoutPosition = form.customFieldDefinitions.length + 1,
   layoutWidth = 'full',
   autoKey = true,
+  important = false,
 } = {}) => ({
   clientId: nextCustomFieldRowId(),
   key,
@@ -492,9 +566,11 @@ const createCustomFieldRow = ({
   conditionFieldKey: '',
   conditionEquals: '',
   formula: '',
+  formulaDisplay: '',
   layoutSection,
   layoutPosition,
   layoutWidth,
+  important,
   autoKey,
 });
 
@@ -507,7 +583,42 @@ const syncCustomFieldDefinitionsText = () => {
 };
 
 const addCustomField = () => {
-  form.customFieldDefinitions.push(createCustomFieldRow());
+  const definition = createCustomFieldRow();
+  form.customFieldDefinitions.push(definition);
+  selectedCustomFieldId.value = definition.clientId;
+  showCustomFieldManager.value = true;
+  syncCustomFieldDefinitionsText();
+};
+
+const openCustomFieldManager = clientId => {
+  selectedCustomFieldId.value =
+    clientId || form.customFieldDefinitions[0]?.clientId || null;
+  showCustomFieldManager.value = true;
+};
+
+const closeCustomFieldManager = () => {
+  showCustomFieldManager.value = false;
+  newCustomFieldOption.value = '';
+};
+
+const customFieldOptionValues = definition =>
+  linesFromText(definition.optionsText);
+
+const addCustomFieldOption = definition => {
+  const option = newCustomFieldOption.value.trim();
+  if (!option) return;
+
+  definition.optionsText = [
+    ...new Set([...customFieldOptionValues(definition), option]),
+  ].join('\n');
+  newCustomFieldOption.value = '';
+  syncCustomFieldDefinitionsText();
+};
+
+const removeCustomFieldOption = (definition, option) => {
+  definition.optionsText = customFieldOptionValues(definition)
+    .filter(value => value !== option)
+    .join('\n');
   syncCustomFieldDefinitionsText();
 };
 
@@ -524,19 +635,55 @@ const customFieldSectionLabel = sectionKey => {
     .replace(/^./, character => character.toUpperCase());
 };
 const customFieldLayoutSections = computed(() => {
-  const sectionKeys = [
-    'details',
-    'marketing',
-    ...form.customFieldDefinitions.map(
-      definition => definition.layoutSection || 'details'
-    ),
+  const configuredSections = [
+    {
+      key: 'details',
+      label: t('KANBAN.SETTINGS.SALES.TABS.GENERAL'),
+      builtIn: true,
+    },
+    {
+      key: 'marketing',
+      label: t('KANBAN.SETTINGS.SALES.TABS.MARKETING'),
+      builtIn: true,
+    },
+    ...form.customFieldSections,
   ];
+  const knownKeys = new Set(configuredSections.map(section => section.key));
 
-  return [...new Set(sectionKeys)].map(key => ({
-    key,
-    label: customFieldSectionLabel(key),
-  }));
+  form.customFieldDefinitions.forEach(definition => {
+    const key = definition.layoutSection || 'details';
+    if (knownKeys.has(key)) return;
+
+    knownKeys.add(key);
+    configuredSections.push({ key, label: customFieldSectionLabel(key) });
+  });
+
+  return configuredSections;
 });
+
+const openNewFieldSectionForm = () => {
+  showNewFieldSectionForm.value = true;
+};
+
+const createCustomFieldSection = () => {
+  const label = newFieldSectionName.value.trim();
+  if (!label) return;
+
+  const usedKeys = new Set(
+    customFieldLayoutSections.value.map(section => section.key)
+  );
+  const baseKey = customFieldKeyFromLabel(label) || 'nova_aba';
+  let key = baseKey;
+  let suffix = 2;
+  while (usedKeys.has(key)) {
+    key = `${baseKey}_${suffix}`;
+    suffix += 1;
+  }
+
+  form.customFieldSections.push({ key, label });
+  newFieldSectionName.value = '';
+  showNewFieldSectionForm.value = false;
+};
 const customFieldsForLayoutSection = sectionKey =>
   form.customFieldDefinitions
     .filter(
@@ -574,14 +721,31 @@ const moveCustomFieldInLayout = (sectionKey, event) => {
   syncCustomFieldDefinitionsText();
 };
 const addMarketingFields = () => {
-  const existingKeys = new Set(
-    form.customFieldDefinitions.map(definition => definition.key)
+  const presetKeys = new Set(
+    marketingFieldDefinitions.value.map(definition => definition.key)
+  );
+  const obsoletePresetKeys = new Set([
+    'utm_id',
+    'gbraid',
+    'wbraid',
+    'dclid',
+    'fbclid',
+    'msclkid',
+    'campaign_name',
+    'adset_name',
+    'ad_name',
+  ]);
+  form.customFieldDefinitions = form.customFieldDefinitions.filter(
+    definition =>
+      !(
+        definition.layoutSection === 'marketing' &&
+        (presetKeys.has(definition.key) ||
+          obsoletePresetKeys.has(definition.key))
+      )
   );
   let position = customFieldsForLayoutSection('marketing').length + 1;
 
   marketingFieldDefinitions.value.forEach(definition => {
-    if (existingKeys.has(definition.key)) return;
-
     form.customFieldDefinitions.push(
       createCustomFieldRow({
         ...definition,
@@ -590,7 +754,6 @@ const addMarketingFields = () => {
         autoKey: false,
       })
     );
-    existingKeys.add(definition.key);
     position += 1;
   });
   syncCustomFieldDefinitionsText();
@@ -672,12 +835,80 @@ const updateConditionField = definition => {
   syncCustomFieldDefinitionsText();
 };
 
+const currentFormulaToken = definition =>
+  String(definition.formulaDisplay || '').match(/\[([^\]]*)$/u)?.[1] ?? null;
+
+const formulaSuggestions = definition => {
+  if (activeFormulaFieldId.value !== definition.clientId) return [];
+
+  const token = currentFormulaToken(definition);
+  if (token === null) return [];
+  const query = normalizeFormulaSearch(token);
+
+  return numericFormulaCandidates(definition).filter(candidate =>
+    normalizeFormulaSearch(
+      `${candidate.label} ${candidate.key} ${candidate.searchAliases || ''}`
+    ).includes(query)
+  );
+};
+
+const insertFormulaCandidate = (definition, candidate) => {
+  const formula = String(definition.formulaDisplay || '');
+  const markerStart = formula.lastIndexOf('[');
+  definition.formulaDisplay = `${formula.slice(0, markerStart)}[${candidate.label}] `;
+  definition.formula = stableFormulaValue(definition);
+  activeFormulaFieldId.value = null;
+  activeFormulaSuggestionIndex.value = 0;
+  syncCustomFieldDefinitionsText();
+};
+
+const onFormulaInput = definition => {
+  definition.formula = stableFormulaValue(definition);
+  activeFormulaFieldId.value = definition.clientId;
+  activeFormulaSuggestionIndex.value = 0;
+  syncCustomFieldDefinitionsText();
+};
+
+const onFormulaKeydown = (definition, event) => {
+  const suggestions = formulaSuggestions(definition);
+  if (!suggestions.length) return;
+
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    activeFormulaSuggestionIndex.value =
+      (activeFormulaSuggestionIndex.value + direction + suggestions.length) %
+      suggestions.length;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    insertFormulaCandidate(
+      definition,
+      suggestions[activeFormulaSuggestionIndex.value]
+    );
+  }
+  if (event.key === 'Escape') activeFormulaFieldId.value = null;
+};
+
 const removeCustomField = index => {
   const [removedField] = form.customFieldDefinitions.splice(index, 1);
   form.compactCardFieldKeys = form.compactCardFieldKeys.filter(
     key => key !== removedField.key
   );
   syncCustomFieldDefinitionsText();
+};
+
+const removeCustomFieldById = clientId => {
+  const index = form.customFieldDefinitions.findIndex(
+    definition => definition.clientId === clientId
+  );
+  if (index < 0) return;
+
+  removeCustomField(index);
+  selectedCustomFieldId.value =
+    form.customFieldDefinitions[index]?.clientId ||
+    form.customFieldDefinitions[index - 1]?.clientId ||
+    null;
 };
 
 const toggleCompactCardField = (fieldKey, checked) => {
@@ -709,6 +940,7 @@ const buildPayload = () => ({
     custom_field_definitions: customFieldDefinitionsFromText(
       form.customFieldDefinitionsText
     ),
+    custom_field_sections: form.customFieldSections,
     compact_card_field_keys: form.compactCardFieldKeys,
     stale_stage_thresholds: normalizedStaleStageThresholds(),
   },
@@ -845,6 +1077,32 @@ const createStage = async () => {
   }
 };
 
+const saveStageRules = async stage => {
+  if (!stage?.id || activeStageActionKey.value || !isAdmin.value) return;
+
+  activeStageActionKey.value = `update-stage-${stage.id}`;
+  stageError.value = '';
+
+  try {
+    await KanbanBoardsAPI.updateStage(boardId.value, stage.id, {
+      stage: {
+        category: stage.category || 'open',
+        wip_limit: Number(stage.wipLimit) || null,
+      },
+    });
+    await refreshBoard();
+    useAlert(t('KANBAN.SETTINGS.STAGES.SAVE_SUCCESS'));
+  } catch (error) {
+    stageError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.STAGES.SAVE_ERROR')
+    );
+    useAlert(stageError.value);
+  } finally {
+    activeStageActionKey.value = '';
+  }
+};
+
 const reorderStageByPosition = async (stage, position) => {
   if (!stage?.id || activeStageActionKey.value || !isAdmin.value) return;
 
@@ -913,7 +1171,13 @@ const deleteBoard = async () => {
   }
 };
 
-onMounted(fetchSettings);
+onMounted(async () => {
+  await fetchSettings();
+  if (route.query?.section === 'fields') {
+    openCustomFieldManager();
+    if (route.query?.action === 'new-tab') openNewFieldSectionForm();
+  }
+});
 </script>
 
 <template>
@@ -1087,22 +1351,67 @@ onMounted(fetchSettings);
                 <div
                   :data-stage-id="stage.id"
                   data-testid="kanban-settings-stage-row"
-                  class="stage-drag-handle flex cursor-grab items-center gap-3 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2"
+                  class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 px-3 py-3 lg:grid-cols-[minmax(10rem,1fr)_minmax(9rem,0.55fr)_minmax(9rem,0.45fr)_auto] lg:items-end"
                 >
-                  <span class="i-lucide-grip-vertical size-4 text-n-slate-10" />
-                  <span
-                    class="size-4 flex-none rounded-full"
-                    :class="getStageColorClass(stage)"
-                  />
-                  <span class="min-w-0 truncate text-sm text-n-slate-12">
-                    {{ stage.name }}
-                  </span>
-                  <span
-                    data-testid="kanban-settings-stage-card-count"
-                    class="ml-auto flex-none rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs font-medium text-n-slate-11"
+                  <div
+                    class="stage-drag-handle flex min-w-0 cursor-grab items-center gap-3 self-center"
                   >
-                    {{ getStageCardsCount(stage) }}
-                  </span>
+                    <span
+                      class="i-lucide-grip-vertical size-4 text-n-slate-10"
+                    />
+                    <span
+                      class="size-4 flex-none rounded-full"
+                      :class="getStageColorClass(stage)"
+                    />
+                    <span class="min-w-0 truncate text-sm text-n-slate-12">
+                      {{ stage.name }}
+                    </span>
+                    <span
+                      data-testid="kanban-settings-stage-card-count"
+                      class="flex-none rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs font-medium text-n-slate-11"
+                    >
+                      {{ getStageCardsCount(stage) }}
+                    </span>
+                  </div>
+                  <label class="grid gap-1 text-xs text-n-slate-11">
+                    {{ t('KANBAN.SETTINGS.STAGES.CATEGORY') }}
+                    <select
+                      v-model="stage.category"
+                      data-testid="kanban-settings-stage-category"
+                      class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    >
+                      <option value="open">
+                        {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_OPEN') }}
+                      </option>
+                      <option value="won">
+                        {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_WON') }}
+                      </option>
+                      <option value="lost">
+                        {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_LOST') }}
+                      </option>
+                    </select>
+                  </label>
+                  <label class="grid gap-1 text-xs text-n-slate-11">
+                    {{ t('KANBAN.SETTINGS.STAGES.WIP_LIMIT') }}
+                    <input
+                      v-model="stage.wipLimit"
+                      data-testid="kanban-settings-stage-wip-limit"
+                      type="number"
+                      min="1"
+                      class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    data-testid="kanban-settings-save-stage-rules"
+                    class="flex size-9 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="Boolean(activeStageActionKey)"
+                    :aria-label="t('KANBAN.SETTINGS.STAGES.SAVE')"
+                    :title="t('KANBAN.SETTINGS.STAGES.SAVE')"
+                    @click="saveStageRules(stage)"
+                  >
+                    <span class="i-lucide-save size-4" />
+                  </button>
                 </div>
               </template>
             </Draggable>
@@ -1231,309 +1540,677 @@ onMounted(fetchSettings);
                   size="sm"
                   @click="addCustomField"
                 />
+                <Button
+                  type="button"
+                  data-testid="kanban-settings-manage-custom-fields"
+                  icon="i-lucide-settings-2"
+                  :label="t('KANBAN.SETTINGS.SALES.MANAGE_CUSTOM_FIELDS')"
+                  color="slate"
+                  size="sm"
+                  @click="openCustomFieldManager()"
+                />
               </div>
             </div>
 
-            <section class="grid gap-3 rounded-md border border-n-weak p-3">
-              <div class="grid gap-1">
-                <h4 class="mb-0 text-sm font-medium text-n-slate-12">
-                  {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT') }}
-                </h4>
-                <p class="mb-0 text-xs text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT_DESCRIPTION') }}
-                </p>
-              </div>
-
-              <div class="grid gap-3 lg:grid-cols-2">
-                <article
-                  v-for="section in customFieldLayoutSections"
-                  :key="section.key"
-                  class="grid min-w-0 content-start gap-2 rounded-md bg-n-surface-2 p-2"
-                >
-                  <h5 class="mb-0 text-xs font-medium text-n-slate-12">
-                    {{ section.label }}
-                  </h5>
-                  <Draggable
-                    :model-value="customFieldsForLayoutSection(section.key)"
-                    item-key="clientId"
-                    group="kanban-custom-field-layout"
-                    :data-section-key="section.key"
-                    class="grid min-h-16 content-start gap-2 rounded-md border border-dashed border-n-weak p-2"
-                    @change="moveCustomFieldInLayout(section.key, $event)"
-                  >
-                    <template #item="{ element }">
-                      <div
-                        class="flex min-w-0 cursor-grab items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2 py-1.5 text-xs text-n-slate-12"
-                      >
-                        <i class="i-lucide-grip-vertical size-3.5 shrink-0" />
-                        <span class="truncate">
-                          {{
-                            element.label ||
-                            element.key ||
-                            t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
-                          }}
-                        </span>
-                      </div>
-                    </template>
-                    <template #footer>
-                      <p
-                        v-if="!customFieldsForLayoutSection(section.key).length"
-                        class="m-0 self-center text-center text-xs text-n-slate-10"
-                      >
-                        {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
-                      </p>
-                    </template>
-                  </Draggable>
-                </article>
-              </div>
-            </section>
-
-            <article
-              v-for="(definition, index) in form.customFieldDefinitions"
-              :key="definition.clientId"
-              data-testid="kanban-settings-custom-field-row"
-              class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+            <div
+              class="flex flex-wrap gap-2 rounded-md border border-n-weak bg-n-surface-2 p-3"
             >
-              <div class="grid gap-3 md:grid-cols-3">
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_LABEL') }}
-                  <input
-                    v-model="definition.label"
-                    data-testid="kanban-settings-custom-field-label"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @input="updateCustomFieldLabel(definition)"
-                  />
-                </label>
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_KEY') }}
-                  <input
-                    v-model="definition.key"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @input="
-                      definition.autoKey = false;
-                      syncCustomFieldDefinitionsText();
-                    "
-                  />
-                </label>
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_TYPE') }}
-                  <select
-                    v-model="definition.fieldType"
-                    data-testid="kanban-settings-custom-field-type"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="syncCustomFieldDefinitionsText"
-                  >
-                    <option
-                      v-for="option in customFieldTypeOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
-              </div>
-
-              <label
-                v-if="['select', 'multiselect'].includes(definition.fieldType)"
-                class="grid gap-1 text-xs font-medium text-n-slate-11"
+              <button
+                v-for="definition in form.customFieldDefinitions.slice(0, 8)"
+                :key="definition.clientId"
+                type="button"
+                class="inline-flex max-w-48 items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 py-1 text-xs text-n-slate-11 hover:border-n-brand hover:text-n-slate-12"
+                @click="openCustomFieldManager(definition.clientId)"
               >
-                {{ t('KANBAN.SETTINGS.SALES.FIELD_OPTIONS') }}
-                <textarea
-                  v-model="definition.optionsText"
-                  rows="3"
-                  class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                  @input="syncCustomFieldDefinitionsText"
-                />
-              </label>
+                <i class="i-lucide-grip-vertical size-3" />
+                <span class="truncate">{{ definition.label }}</span>
+              </button>
+              <span
+                v-if="form.customFieldDefinitions.length > 8"
+                class="px-2 py-1 text-xs text-n-slate-10"
+              >
+                {{ `+${form.customFieldDefinitions.length - 8}` }}
+              </span>
+              <span
+                v-if="!form.customFieldDefinitions.length"
+                class="text-sm text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.SALES.NO_CUSTOM_FIELDS') }}
+              </span>
+            </div>
 
-              <div class="grid gap-3 md:grid-cols-3">
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_WIDTH') }}
-                  <select
-                    v-model="definition.layoutWidth"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="syncCustomFieldDefinitionsText"
-                  >
-                    <option
-                      v-for="option in customFieldWidthOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_SECTION') }}
-                  <input
-                    v-model="definition.layoutSection"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @input="syncCustomFieldDefinitionsText"
-                  />
-                </label>
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_POSITION') }}
-                  <input
-                    v-model="definition.layoutPosition"
-                    type="number"
-                    min="1"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @input="syncCustomFieldDefinitionsText"
-                  />
-                </label>
-              </div>
-
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES') }}
-                <select
-                  v-model="definition.requiredStageIds"
-                  multiple
-                  class="min-h-20 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="syncCustomFieldDefinitionsText"
+            <woot-modal
+              :show="showCustomFieldManager"
+              :show-close-button="false"
+              full-width
+              size="modal-big"
+              :on-close="closeCustomFieldManager"
+            >
+              <div
+                v-if="showCustomFieldManager"
+                data-testid="kanban-settings-custom-field-manager"
+                class="mx-auto flex max-h-[94vh] w-full max-w-[90rem] flex-col overflow-hidden bg-n-background"
+              >
+                <header
+                  class="flex items-center justify-between gap-4 border-b border-n-weak px-6 py-4"
                 >
-                  <option
-                    v-for="stage in stages"
-                    :key="stage.id"
-                    :value="stage.id"
+                  <div>
+                    <h3 class="mb-0 text-base font-medium text-n-slate-12">
+                      {{ t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_TITLE') }}
+                    </h3>
+                    <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                      {{ t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_DESCRIPTION') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      icon="i-lucide-plus"
+                      :label="t('KANBAN.SETTINGS.SALES.ADD_CUSTOM_FIELD')"
+                      color="slate"
+                      size="sm"
+                      @click="addCustomField"
+                    />
+                    <button
+                      type="button"
+                      class="flex size-9 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+                      :aria-label="t('KANBAN.ACTIONS.CLOSE')"
+                      @click="closeCustomFieldManager"
+                    >
+                      <i class="i-lucide-x size-4" />
+                    </button>
+                  </div>
+                </header>
+                <div
+                  class="grid min-h-0 flex-1 overflow-auto p-5 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-5"
+                >
+                  <aside
+                    class="grid content-start gap-1 border-b border-n-weak pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4"
                   >
-                    {{ stage.name }}
-                  </option>
-                </select>
-              </label>
+                    <button
+                      v-for="definition in form.customFieldDefinitions"
+                      :key="definition.clientId"
+                      type="button"
+                      :data-testid="`kanban-settings-field-list-item-${definition.key}`"
+                      class="flex min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm"
+                      :class="
+                        selectedCustomFieldId === definition.clientId
+                          ? 'bg-n-alpha-2 text-n-slate-12'
+                          : 'text-n-slate-11 hover:bg-n-alpha-1'
+                      "
+                      @click="selectedCustomFieldId = definition.clientId"
+                    >
+                      <i class="i-lucide-grip-vertical size-4 shrink-0" />
+                      <span class="min-w-0 flex-1 truncate">
+                        {{
+                          definition.label ||
+                          t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
+                        }}
+                      </span>
+                      <span class="text-xs text-n-slate-10">
+                        {{ definition.fieldType }}
+                      </span>
+                    </button>
+                    <p
+                      v-if="!form.customFieldDefinitions.length"
+                      class="m-0 px-3 py-6 text-center text-sm text-n-slate-10"
+                    >
+                      {{ t('KANBAN.SETTINGS.SALES.NO_CUSTOM_FIELDS') }}
+                    </p>
+                  </aside>
+                  <main class="grid min-w-0 content-start gap-4">
+                    <section
+                      class="grid gap-3 rounded-md border border-n-weak p-3"
+                    >
+                      <div class="grid gap-1">
+                        <h4 class="mb-0 text-sm font-medium text-n-slate-12">
+                          {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT') }}
+                        </h4>
+                        <p class="mb-0 text-xs text-n-slate-11">
+                          {{
+                            t('KANBAN.SETTINGS.SALES.TAB_LAYOUT_DESCRIPTION')
+                          }}
+                        </p>
+                      </div>
 
-              <div class="grid gap-3 md:grid-cols-2">
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.CONDITION_FIELD') }}
-                  <select
-                    v-model="definition.conditionFieldKey"
-                    data-testid="kanban-settings-condition-field"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="updateConditionField(definition)"
-                  >
-                    <option value="">
-                      {{ t('KANBAN.SETTINGS.SALES.CONDITION_NONE') }}
-                    </option>
-                    <option
-                      v-for="candidate in customFieldConditionCandidates(
-                        definition
-                      )"
-                      :key="candidate.key"
-                      :value="candidate.key"
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span
+                          v-for="section in customFieldLayoutSections"
+                          :key="section.key"
+                          class="inline-flex h-8 items-center rounded-md border border-n-weak bg-n-surface-1 px-3 text-xs font-medium text-n-slate-12"
+                        >
+                          {{ section.label }}
+                        </span>
+                        <button
+                          type="button"
+                          data-testid="kanban-settings-add-field-section"
+                          class="flex size-8 items-center justify-center rounded-md border border-dashed border-n-weak text-n-slate-11 hover:border-n-brand hover:text-n-brand"
+                          :aria-label="
+                            t('KANBAN.SETTINGS.SALES.ADD_FIELD_SECTION')
+                          "
+                          @click="openNewFieldSectionForm"
+                        >
+                          <i class="i-lucide-plus size-4" />
+                        </button>
+                      </div>
+
+                      <div
+                        v-if="showNewFieldSectionForm"
+                        class="flex max-w-lg items-end gap-2 rounded-md bg-n-surface-2 p-3"
+                      >
+                        <label
+                          class="grid min-w-0 flex-1 gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_SECTION_NAME') }}
+                          <input
+                            v-model="newFieldSectionName"
+                            data-testid="kanban-settings-new-field-section-name"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            autofocus
+                            @keydown.enter.prevent="createCustomFieldSection"
+                          />
+                        </label>
+                        <Button
+                          type="button"
+                          data-testid="kanban-settings-create-field-section"
+                          icon="i-lucide-check"
+                          :label="
+                            t('KANBAN.SETTINGS.SALES.CREATE_FIELD_SECTION')
+                          "
+                          color="blue"
+                          size="sm"
+                          @click="createCustomFieldSection"
+                        />
+                      </div>
+
+                      <div class="grid gap-3 xl:grid-cols-2">
+                        <article
+                          v-for="section in customFieldLayoutSections"
+                          :key="section.key"
+                          class="grid min-w-0 content-start gap-2 rounded-md bg-n-surface-2 p-2"
+                        >
+                          <h5 class="mb-0 text-xs font-medium text-n-slate-12">
+                            {{ section.label }}
+                          </h5>
+                          <Draggable
+                            :model-value="
+                              customFieldsForLayoutSection(section.key)
+                            "
+                            item-key="clientId"
+                            group="kanban-custom-field-layout"
+                            :data-section-key="section.key"
+                            class="grid min-h-16 content-start gap-1.5 rounded-md border border-dashed border-n-weak p-2"
+                            @change="
+                              moveCustomFieldInLayout(section.key, $event)
+                            "
+                          >
+                            <template #item="{ element }">
+                              <button
+                                type="button"
+                                class="flex min-w-0 cursor-grab items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2 py-1.5 text-left text-xs text-n-slate-12"
+                                @click="
+                                  selectedCustomFieldId = element.clientId
+                                "
+                              >
+                                <i
+                                  class="i-lucide-grip-vertical size-3.5 shrink-0"
+                                />
+                                <span class="truncate">
+                                  {{
+                                    element.label ||
+                                    element.key ||
+                                    t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
+                                  }}
+                                </span>
+                              </button>
+                            </template>
+                            <template #footer>
+                              <p
+                                v-if="
+                                  !customFieldsForLayoutSection(section.key)
+                                    .length
+                                "
+                                class="m-0 self-center text-center text-xs text-n-slate-10"
+                              >
+                                {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
+                              </p>
+                            </template>
+                          </Draggable>
+                        </article>
+                      </div>
+                    </section>
+
+                    <article
+                      v-if="selectedCustomField"
+                      :key="selectedCustomField.clientId"
+                      data-testid="kanban-settings-custom-field-row"
+                      class="grid gap-4 rounded-md border border-n-weak bg-n-surface-2 p-4"
                     >
-                      {{ candidate.label || candidate.key }}
-                    </option>
-                  </select>
-                </label>
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.CONDITION_VALUE') }}
-                  <select
-                    v-if="conditionValueOptions(definition).length"
-                    v-model="definition.conditionEquals"
-                    data-testid="kanban-settings-condition-value-select"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="syncCustomFieldDefinitionsText"
-                  >
-                    <option value="">
-                      {{
-                        t('KANBAN.SETTINGS.SALES.CONDITION_VALUE_PLACEHOLDER')
-                      }}
-                    </option>
-                    <option
-                      v-for="option in conditionValueOptions(definition)"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                  <input
-                    v-else
-                    v-model="definition.conditionEquals"
-                    data-testid="kanban-settings-condition-value-input"
-                    :type="conditionValueInputType(definition)"
-                    :step="
-                      conditionValueInputType(definition) === 'number'
-                        ? 'any'
-                        : undefined
-                    "
-                    :disabled="!definition.conditionFieldKey"
-                    :placeholder="
-                      definition.conditionFieldKey
-                        ? t('KANBAN.SETTINGS.SALES.CONDITION_VALUE_PLACEHOLDER')
-                        : t(
-                            'KANBAN.SETTINGS.SALES.CONDITION_SELECT_FIELD_FIRST'
+                      <div class="grid gap-3 md:grid-cols-3">
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_LABEL') }}
+                          <input
+                            v-model="selectedCustomField.label"
+                            data-testid="kanban-settings-custom-field-label"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @input="updateCustomFieldLabel(selectedCustomField)"
+                          />
+                        </label>
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_KEY') }}
+                          <input
+                            v-model="selectedCustomField.key"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @input="
+                              selectedCustomField.autoKey = false;
+                              syncCustomFieldDefinitionsText();
+                            "
+                          />
+                        </label>
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_TYPE') }}
+                          <select
+                            v-model="selectedCustomField.fieldType"
+                            data-testid="kanban-settings-custom-field-type"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @change="syncCustomFieldDefinitionsText"
+                          >
+                            <option
+                              v-for="option in customFieldTypeOptions"
+                              :key="option.value"
+                              :value="option.value"
+                            >
+                              {{ option.label }}
+                            </option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <fieldset
+                        v-if="
+                          ['select', 'multiselect'].includes(
+                            selectedCustomField.fieldType
                           )
-                    "
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:bg-n-surface-3"
-                    @input="syncCustomFieldDefinitionsText"
-                  />
-                </label>
-              </div>
+                        "
+                        class="grid gap-2"
+                      >
+                        <legend
+                          class="mb-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_OPTIONS') }}
+                        </legend>
+                        <div class="flex max-w-2xl gap-2">
+                          <input
+                            v-model="newCustomFieldOption"
+                            data-testid="kanban-settings-custom-field-option-input"
+                            class="h-9 min-w-0 flex-1 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            :placeholder="
+                              t(
+                                'KANBAN.SETTINGS.SALES.FIELD_OPTION_PLACEHOLDER'
+                              )
+                            "
+                            @keydown.enter.prevent="
+                              addCustomFieldOption(selectedCustomField)
+                            "
+                          />
+                          <button
+                            type="button"
+                            data-testid="kanban-settings-add-field-option"
+                            class="flex size-9 shrink-0 items-center justify-center rounded-md border border-n-weak text-n-slate-11 hover:bg-n-alpha-2"
+                            :aria-label="
+                              t('KANBAN.SETTINGS.SALES.ADD_FIELD_OPTION')
+                            "
+                            @click="addCustomFieldOption(selectedCustomField)"
+                          >
+                            <i class="i-lucide-plus size-4" />
+                          </button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                          <span
+                            v-for="option in customFieldOptionValues(
+                              selectedCustomField
+                            )"
+                            :key="option"
+                            class="inline-flex items-center gap-1 rounded-md bg-n-alpha-2 px-2 py-1 text-xs text-n-slate-12"
+                          >
+                            {{ option }}
+                            <button
+                              type="button"
+                              class="flex size-4 items-center justify-center text-n-slate-10 hover:text-n-ruby-11"
+                              :aria-label="
+                                t('KANBAN.SETTINGS.SALES.REMOVE_FIELD_OPTION', {
+                                  option,
+                                })
+                              "
+                              @click="
+                                removeCustomFieldOption(
+                                  selectedCustomField,
+                                  option
+                                )
+                              "
+                            >
+                              <i class="i-lucide-x size-3" />
+                            </button>
+                          </span>
+                        </div>
+                      </fieldset>
 
-              <p class="text-xs text-n-slate-10">
-                {{ t('KANBAN.SETTINGS.SALES.CONDITION_HELP') }}
-              </p>
+                      <div class="grid gap-3 md:grid-cols-3">
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_WIDTH') }}
+                          <select
+                            v-model="selectedCustomField.layoutWidth"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @change="syncCustomFieldDefinitionsText"
+                          >
+                            <option
+                              v-for="option in customFieldWidthOptions"
+                              :key="option.value"
+                              :value="option.value"
+                            >
+                              {{ option.label }}
+                            </option>
+                          </select>
+                        </label>
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_SECTION') }}
+                          <select
+                            v-model="selectedCustomField.layoutSection"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @change="syncCustomFieldDefinitionsText"
+                          >
+                            <option
+                              v-for="section in customFieldLayoutSections"
+                              :key="section.key"
+                              :value="section.key"
+                            >
+                              {{ section.label }}
+                            </option>
+                          </select>
+                        </label>
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_POSITION') }}
+                          <input
+                            v-model="selectedCustomField.layoutPosition"
+                            type="number"
+                            min="1"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @input="syncCustomFieldDefinitionsText"
+                          />
+                        </label>
+                      </div>
 
-              <label
-                v-if="definition.fieldType === 'formula'"
-                class="grid gap-1 text-xs font-medium text-n-slate-11"
-              >
-                {{ t('KANBAN.SETTINGS.SALES.FORMULA') }}
-                <input
-                  v-model="definition.formula"
-                  :placeholder="t('KANBAN.SETTINGS.SALES.FORMULA_PLACEHOLDER')"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 font-mono text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                  @input="syncCustomFieldDefinitionsText"
-                />
-                <span class="font-sans text-xs font-normal text-n-slate-10">
-                  {{ t('KANBAN.SETTINGS.SALES.FORMULA_HELP') }}
-                </span>
-              </label>
+                      <fieldset
+                        data-testid="kanban-settings-required-stage-list"
+                        class="grid grid-cols-2 gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 md:grid-cols-3"
+                      >
+                        <legend
+                          class="px-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES') }}
+                        </legend>
+                        <label
+                          v-for="stage in stages"
+                          :key="stage.id"
+                          class="flex min-w-0 items-center gap-2 text-sm text-n-slate-12"
+                        >
+                          <input
+                            v-model="selectedCustomField.requiredStageIds"
+                            data-testid="kanban-settings-required-stage"
+                            type="checkbox"
+                            :value="stage.id"
+                            class="size-4 shrink-0 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                            @change="syncCustomFieldDefinitionsText"
+                          />
+                          <span class="truncate">{{ stage.name }}</span>
+                        </label>
+                      </fieldset>
 
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <label class="flex items-center gap-2 text-sm text-n-slate-12">
-                  <input
-                    type="checkbox"
-                    data-testid="kanban-settings-custom-field-show-on-card"
-                    :checked="
-                      form.compactCardFieldKeys.includes(definition.key)
-                    "
-                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                    @change="
-                      toggleCompactCardField(
-                        definition.key,
-                        $event.target.checked
-                      )
-                    "
-                  />
-                  {{ t('KANBAN.SETTINGS.SALES.SHOW_ON_CARD') }}
-                </label>
-                <button
-                  type="button"
-                  class="flex size-8 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2"
-                  :aria-label="t('KANBAN.SETTINGS.SALES.REMOVE_CUSTOM_FIELD')"
-                  @click="removeCustomField(index)"
+                      <div class="grid gap-3 md:grid-cols-2">
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.CONDITION_FIELD') }}
+                          <select
+                            v-model="selectedCustomField.conditionFieldKey"
+                            data-testid="kanban-settings-condition-field"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @change="updateConditionField(selectedCustomField)"
+                          >
+                            <option value="">
+                              {{ t('KANBAN.SETTINGS.SALES.CONDITION_NONE') }}
+                            </option>
+                            <option
+                              v-for="candidate in customFieldConditionCandidates(
+                                selectedCustomField
+                              )"
+                              :key="candidate.key"
+                              :value="candidate.key"
+                            >
+                              {{ candidate.label || candidate.key }}
+                            </option>
+                          </select>
+                        </label>
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.CONDITION_VALUE') }}
+                          <select
+                            v-if="
+                              conditionValueOptions(selectedCustomField).length
+                            "
+                            v-model="selectedCustomField.conditionEquals"
+                            data-testid="kanban-settings-condition-value-select"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @change="syncCustomFieldDefinitionsText"
+                          >
+                            <option value="">
+                              {{
+                                t(
+                                  'KANBAN.SETTINGS.SALES.CONDITION_VALUE_PLACEHOLDER'
+                                )
+                              }}
+                            </option>
+                            <option
+                              v-for="option in conditionValueOptions(
+                                selectedCustomField
+                              )"
+                              :key="option.value"
+                              :value="option.value"
+                            >
+                              {{ option.label }}
+                            </option>
+                          </select>
+                          <input
+                            v-else
+                            v-model="selectedCustomField.conditionEquals"
+                            data-testid="kanban-settings-condition-value-input"
+                            :type="conditionValueInputType(selectedCustomField)"
+                            :step="
+                              conditionValueInputType(selectedCustomField) ===
+                              'number'
+                                ? 'any'
+                                : undefined
+                            "
+                            :disabled="!selectedCustomField.conditionFieldKey"
+                            :placeholder="
+                              selectedCustomField.conditionFieldKey
+                                ? t(
+                                    'KANBAN.SETTINGS.SALES.CONDITION_VALUE_PLACEHOLDER'
+                                  )
+                                : t(
+                                    'KANBAN.SETTINGS.SALES.CONDITION_SELECT_FIELD_FIRST'
+                                  )
+                            "
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:bg-n-surface-3"
+                            @input="syncCustomFieldDefinitionsText"
+                          />
+                        </label>
+                      </div>
+
+                      <p class="m-0 text-xs text-n-slate-10">
+                        {{ t('KANBAN.SETTINGS.SALES.CONDITION_HELP') }}
+                      </p>
+
+                      <label
+                        v-if="selectedCustomField.fieldType === 'formula'"
+                        class="relative grid gap-1 text-xs font-medium text-n-slate-11"
+                      >
+                        {{ t('KANBAN.SETTINGS.SALES.FORMULA') }}
+                        <input
+                          v-model="selectedCustomField.formulaDisplay"
+                          data-testid="kanban-settings-formula-input"
+                          :placeholder="
+                            t('KANBAN.SETTINGS.SALES.FORMULA_PLACEHOLDER')
+                          "
+                          class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 font-mono text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                          @focus="onFormulaInput(selectedCustomField)"
+                          @input="onFormulaInput(selectedCustomField)"
+                          @keydown="
+                            onFormulaKeydown(selectedCustomField, $event)
+                          "
+                        />
+                        <div
+                          v-if="formulaSuggestions(selectedCustomField).length"
+                          data-testid="kanban-settings-formula-suggestions"
+                          class="absolute left-0 right-0 top-[3.75rem] z-20 max-h-48 overflow-auto rounded-md border border-n-weak bg-n-solid-1 p-1 shadow-lg"
+                        >
+                          <button
+                            v-for="(
+                              candidate, candidateIndex
+                            ) in formulaSuggestions(selectedCustomField)"
+                            :key="candidate.key"
+                            type="button"
+                            class="flex w-full items-center justify-between gap-3 rounded px-2 py-2 text-left text-sm font-normal"
+                            :class="
+                              activeFormulaSuggestionIndex === candidateIndex
+                                ? 'bg-n-alpha-2 text-n-slate-12'
+                                : 'text-n-slate-11 hover:bg-n-alpha-1'
+                            "
+                            @mousedown.prevent="
+                              insertFormulaCandidate(
+                                selectedCustomField,
+                                candidate
+                              )
+                            "
+                          >
+                            <span>{{ candidate.label }}</span>
+                            <code class="text-xs text-n-slate-10">
+                              {{ candidate.key }}
+                            </code>
+                          </button>
+                        </div>
+                        <span
+                          class="font-sans text-xs font-normal text-n-slate-10"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FORMULA_HELP') }}
+                        </span>
+                      </label>
+
+                      <div
+                        class="flex flex-wrap items-center justify-between gap-3"
+                      >
+                        <div class="flex flex-wrap items-center gap-4">
+                          <label
+                            class="flex items-center gap-2 text-sm text-n-slate-12"
+                          >
+                            <input
+                              type="checkbox"
+                              data-testid="kanban-settings-custom-field-show-on-card"
+                              :checked="
+                                form.compactCardFieldKeys.includes(
+                                  selectedCustomField.key
+                                )
+                              "
+                              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                              @change="
+                                toggleCompactCardField(
+                                  selectedCustomField.key,
+                                  $event.target.checked
+                                )
+                              "
+                            />
+                            {{ t('KANBAN.SETTINGS.SALES.SHOW_ON_CARD') }}
+                          </label>
+                          <label
+                            class="flex items-center gap-2 text-sm text-n-slate-12"
+                          >
+                            <input
+                              v-model="selectedCustomField.important"
+                              type="checkbox"
+                              data-testid="kanban-settings-custom-field-important"
+                              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                              @change="syncCustomFieldDefinitionsText"
+                            />
+                            {{ t('KANBAN.SETTINGS.SALES.IMPORTANT_FIELD') }}
+                          </label>
+                        </div>
+                        <button
+                          type="button"
+                          class="flex size-8 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2"
+                          :aria-label="
+                            t('KANBAN.SETTINGS.SALES.REMOVE_CUSTOM_FIELD')
+                          "
+                          @click="
+                            removeCustomFieldById(selectedCustomField.clientId)
+                          "
+                        >
+                          <i class="i-lucide-trash size-4" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <details class="text-sm text-n-slate-11">
+                      <summary class="cursor-pointer font-medium">
+                        {{ t('KANBAN.SETTINGS.SALES.ADVANCED_JSON') }}
+                      </summary>
+                      <textarea
+                        v-model="form.customFieldDefinitionsText"
+                        data-testid="kanban-settings-custom-fields"
+                        rows="8"
+                        class="font-mono mt-2 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                        :placeholder="
+                          t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS_PLACEHOLDER')
+                        "
+                      />
+                    </details>
+                  </main>
+                </div>
+                <footer
+                  class="flex justify-end gap-2 border-t border-n-weak px-6 py-4"
                 >
-                  <i class="i-lucide-trash size-4" />
-                </button>
+                  <Button
+                    type="button"
+                    :label="t('KANBAN.ACTIONS.CLOSE')"
+                    color="slate"
+                    size="sm"
+                    @click="closeCustomFieldManager"
+                  />
+                  <Button
+                    type="button"
+                    data-testid="kanban-settings-save-fields"
+                    icon="i-lucide-save"
+                    :label="t('KANBAN.SETTINGS.SAVE')"
+                    color="blue"
+                    size="sm"
+                    :is-loading="isSaving"
+                    @click="saveSettings"
+                  />
+                </footer>
               </div>
-            </article>
-
-            <details class="text-sm text-n-slate-11">
-              <summary class="cursor-pointer font-medium">
-                {{ t('KANBAN.SETTINGS.SALES.ADVANCED_JSON') }}
-              </summary>
-              <textarea
-                v-model="form.customFieldDefinitionsText"
-                data-testid="kanban-settings-custom-fields"
-                rows="10"
-                class="font-mono mt-2 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                :placeholder="
-                  t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS_PLACEHOLDER')
-                "
-              />
-            </details>
+            </woot-modal>
           </div>
 
           <div class="grid gap-2">

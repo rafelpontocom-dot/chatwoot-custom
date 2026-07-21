@@ -55,12 +55,14 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
       next_action_types: [],
       lost_reason_options: [],
       compact_card_field_keys: [],
+      custom_field_sections: [:key, :label],
       stale_stage_thresholds: {},
       custom_field_definitions: [
         :key,
         :label,
         :field_type,
         :formula,
+        :important,
         {
           options: [],
           required_stage_ids: [],

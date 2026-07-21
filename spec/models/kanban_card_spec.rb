@@ -1,6 +1,69 @@
 require 'rails_helper'
 
 RSpec.describe KanbanCard do
+  describe 'commercial lifecycle' do
+    it 'records immutable events for creation and relevant commercial changes' do
+      card = create(:kanban_card, amount_cents: 100_00)
+
+      expect(card.kanban_card_events.pluck(:event_type)).to eq(['card_created'])
+
+      card.update!(amount_cents: 150_00, owner: create(:user, account: card.account))
+
+      expect(card.kanban_card_events.order(:id).pluck(:event_type)).to eq(
+        %w[card_created owner_changed amount_changed]
+      )
+      amount_event = card.kanban_card_events.find_by!(event_type: 'amount_changed')
+      expect(amount_event.change_set).to eq('amount_cents' => [100_00, 150_00])
+    end
+
+    it 'archives and restores a card without losing its history' do
+      card = create(:kanban_card)
+      actor = create(:user, account: card.account)
+
+      card.archive!(actor: actor)
+
+      expect(card).to have_attributes(active: false, archived_by: actor)
+      expect(card.archived_at).to be_present
+      expect(card.kanban_card_events.order(:id).last.event_type).to eq('card_archived')
+
+      card.restore!(actor: actor)
+
+      expect(card).to have_attributes(active: true, archived_at: nil, archived_by: nil)
+      expect(card.kanban_card_events.order(:id).pluck(:event_type)).to eq(
+        %w[card_created card_archived card_restored]
+      )
+    end
+
+    it 'records reopening without duplicating the previous terminal event' do
+      card = create(:kanban_card)
+
+      card.update!(won_at: Time.current)
+      card.update!(won_at: nil)
+
+      expect(card.kanban_card_events.order(:id).pluck(:event_type)).to eq(
+        %w[card_created card_won card_reopened]
+      )
+    end
+
+    it 'records a terminal status change without treating it as reopened' do
+      card = create(:kanban_card)
+
+      card.update!(won_at: Time.current)
+      card.update!(won_at: nil, lost_at: Time.current, lost_reason: 'Preço')
+
+      expect(card.kanban_card_events.order(:id).pluck(:event_type)).to eq(
+        %w[card_created card_won card_lost]
+      )
+    end
+
+    it 'stores an optional expected close date' do
+      card = build(:kanban_card, expected_close_date: Date.new(2026, 8, 15))
+
+      expect(card).to be_valid
+      expect(card.expected_close_date).to eq(Date.new(2026, 8, 15))
+    end
+  end
+
   describe 'commercial custom fields' do
     it 'normalizes currency and multiselect values' do
       board = create(
@@ -139,6 +202,73 @@ RSpec.describe KanbanCard do
 
       expect(card).to be_valid
       expect(card.custom_field_values).to include('valor_total' => 1600.0)
+    end
+
+    it 'accepts a comma as the decimal separator in formulas' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          {
+            key: 'comissao',
+            label: 'Comissão',
+            field_type: 'formula',
+            formula: 'system_amount * 0,2'
+          }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        amount_cents: 150_000
+      )
+
+      expect(card).to be_valid
+      expect(card.custom_field_values).to include('comissao' => 300.0)
+    end
+
+    it 'calculates formulas that reference an earlier calculated field' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'base', label: 'Base', field_type: 'decimal' },
+          { key: 'subtotal', label: 'Subtotal', field_type: 'formula', formula: 'base * 2' },
+          { key: 'total', label: 'Total', field_type: 'formula', formula: 'subtotal + 50' }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage,
+        custom_field_values: { base: 100 }
+      )
+
+      expect(card).to be_valid
+      expect(card.custom_field_values).to include('subtotal' => 200.0, 'total' => 250.0)
+    end
+
+    it 'rejects a formula that references a later calculated field' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'total', label: 'Total', field_type: 'formula', formula: 'subtotal + 50' },
+          { key: 'subtotal', label: 'Subtotal', field_type: 'formula', formula: '100 * 2' }
+        ]
+      )
+      stage = create(:kanban_stage, account: board.account, kanban_board: board)
+      card = build(
+        :kanban_card,
+        account: board.account,
+        kanban_board: board,
+        kanban_stage: stage
+      )
+
+      expect(card).not_to be_valid
+      expect(card.errors[:custom_field_values]).to include('total formula is invalid')
     end
 
     it 'resolves native opportunity identity and commercial fields for conditions' do

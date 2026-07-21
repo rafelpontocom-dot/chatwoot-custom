@@ -20,9 +20,18 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  selected: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['openDetails', 'openConversation', 'removeCard']);
+const emit = defineEmits([
+  'openDetails',
+  'openConversation',
+  'removeCard',
+  'toggleSelection',
+]);
 
 const { t } = useI18n();
 const store = useStore();
@@ -76,6 +85,9 @@ const amountLabel = computed(() => {
 });
 const compactCustomFields = computed(
   () => props.card.compactCustomFields || props.card.compact_custom_fields || []
+);
+const compactCustomFieldsToDisplay = computed(() =>
+  compactCustomFields.value.slice(0, 2)
 );
 const compactFieldValue = field =>
   Array.isArray(field.value) ? field.value.join(', ') : String(field.value);
@@ -149,6 +161,15 @@ const nextActionAtLabel = computed(() => {
   const actionDate = new Date(nextActionAt.value);
   return Number.isNaN(actionDate.getTime()) ? '' : format(actionDate, 'MMM d');
 });
+const expectedCloseDate = computed(
+  () => props.card.expectedCloseDate || props.card.expected_close_date
+);
+const expectedCloseDateLabel = computed(() => {
+  if (!expectedCloseDate.value) return '';
+
+  const closeDate = new Date(`${expectedCloseDate.value}T00:00:00`);
+  return Number.isNaN(closeDate.getTime()) ? '' : format(closeDate, 'MMM d');
+});
 
 const openDetails = event => {
   emit('openDetails', props.card, event);
@@ -163,11 +184,21 @@ const openConversation = event => {
 
 <template>
   <article
-    class="card-drag-handle group relative cursor-grab rounded-lg border border-n-weak bg-n-surface-1 p-2"
+    class="card-drag-handle group relative cursor-grab rounded-md border border-n-weak bg-n-surface-1 p-2"
     :data-card-id="card.id"
     :data-conversation-id="card.conversationId"
     @click="openDetails"
   >
+    <input
+      type="checkbox"
+      data-testid="kanban-card-select"
+      class="no-drag absolute left-2 top-2 size-4 rounded border-n-weak text-n-brand opacity-0 focus:opacity-100 focus:ring-n-brand group-hover:opacity-100"
+      :class="selected ? 'opacity-100' : ''"
+      :checked="selected"
+      :aria-label="t('KANBAN.CARD.SELECT')"
+      @click.stop
+      @change="emit('toggleSelection', card, $event.target.checked)"
+    />
     <button
       type="button"
       data-testid="kanban-card-remove"
@@ -180,7 +211,7 @@ const openConversation = event => {
       <i class="i-lucide-trash size-5" />
     </button>
 
-    <div class="min-w-0 text-left">
+    <div class="min-w-0 pl-6 text-left">
       <p
         v-if="subject"
         class="truncate text-sm font-medium leading-4 text-n-slate-12"
@@ -200,7 +231,7 @@ const openConversation = event => {
           <Avatar
             :name="contactName"
             :src="contactThumbnail"
-            :size="28"
+            :size="24"
             rounded-full
           />
           <span
@@ -217,6 +248,16 @@ const openConversation = event => {
           {{ contactName }}
         </h4>
 
+        <span
+          class="inline-flex max-w-24 items-center rounded-md bg-n-alpha-2 px-1.5 py-0.5 text-xs leading-4"
+        >
+          <InboxName
+            :inbox="{ ...inbox, name: inboxName }"
+            :show-icon="false"
+            class="max-w-full truncate"
+          />
+        </span>
+
         <Avatar
           v-if="assigneeName"
           :name="assigneeName"
@@ -226,40 +267,33 @@ const openConversation = event => {
         />
       </div>
 
-      <div class="mt-1 flex min-w-0">
+      <div
+        v-if="nextActionStatusConfig || amountLabel"
+        class="mt-1 flex min-w-0 items-center justify-between gap-2"
+      >
         <div
-          class="inline-flex max-w-full items-center rounded-md bg-n-alpha-2 px-1.5 py-0.5 text-xs leading-4"
+          v-if="nextActionStatusConfig"
+          data-testid="kanban-card-next-action"
+          class="inline-flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs leading-4"
+          :class="nextActionStatusConfig.class"
         >
-          <InboxName
-            :inbox="{ ...inbox, name: inboxName }"
-            :show-icon="false"
-            class="max-w-full"
+          <i
+            class="size-3.5 flex-shrink-0"
+            :class="nextActionStatusConfig.icon"
           />
+          <span class="truncate">{{ nextActionStatusConfig.label }}</span>
+          <span v-if="nextActionAtLabel" class="flex-shrink-0">
+            {{ nextActionAtLabel }}
+          </span>
         </div>
-      </div>
 
-      <div
-        v-if="nextActionStatusConfig"
-        data-testid="kanban-card-next-action"
-        class="mt-1 inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs leading-4"
-        :class="nextActionStatusConfig.class"
-      >
-        <i
-          class="size-3.5 flex-shrink-0"
-          :class="nextActionStatusConfig.icon"
-        />
-        <span class="truncate">{{ nextActionStatusConfig.label }}</span>
-        <span v-if="nextActionAtLabel" class="flex-shrink-0">
-          {{ nextActionAtLabel }}
-        </span>
-      </div>
-
-      <div
-        v-if="amountLabel"
-        data-testid="kanban-card-amount"
-        class="mt-1 text-sm font-semibold text-n-slate-12"
-      >
-        {{ amountLabel }}
+        <strong
+          v-if="amountLabel"
+          data-testid="kanban-card-amount"
+          class="shrink-0 text-xs font-semibold text-n-slate-12"
+        >
+          {{ amountLabel }}
+        </strong>
       </div>
 
       <div
@@ -268,7 +302,7 @@ const openConversation = event => {
         class="mt-1 grid gap-0.5 text-xs leading-4 text-n-slate-11"
       >
         <p
-          v-for="field in compactCustomFields"
+          v-for="field in compactCustomFieldsToDisplay"
           :key="field.key"
           class="mb-0 truncate"
           :title="`${field.label}: ${compactFieldValue(field)}`"
@@ -289,6 +323,16 @@ const openConversation = event => {
       >
         <i class="i-lucide-hourglass size-3.5" />
         {{ t('KANBAN.CARD.STALE_IN_STAGE') }}
+      </div>
+
+      <div
+        v-if="expectedCloseDateLabel"
+        data-testid="kanban-card-expected-close-date"
+        class="mt-1 inline-flex items-center gap-1 text-xs text-n-slate-11"
+        :title="expectedCloseDate"
+      >
+        <i class="i-lucide-calendar-check size-3.5" />
+        {{ expectedCloseDateLabel }}
       </div>
 
       <div

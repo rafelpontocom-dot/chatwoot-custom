@@ -39,6 +39,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     updateSettings: vi.fn(),
     delete: vi.fn(),
     createStage: vi.fn(),
+    updateStage: vi.fn(),
     reorderStage: vi.fn(),
     importExistingConversations: vi.fn(),
   },
@@ -64,6 +65,7 @@ const settingsPayload = {
     },
   ],
   compact_card_field_keys: [],
+  custom_field_sections: [],
   stale_stage_thresholds: { 100: 3 },
 };
 
@@ -197,6 +199,7 @@ describe('KanbanBoardSettings', () => {
     KanbanBoardsAPI.createStage.mockResolvedValue({
       data: { id: 300, name: 'Follow up', color: 'slate', position: 3 },
     });
+    KanbanBoardsAPI.updateStage.mockResolvedValue({ data: {} });
     KanbanBoardsAPI.reorderStage.mockResolvedValue({ data: {} });
     KanbanBoardsAPI.importExistingConversations.mockResolvedValue({
       data: { status: 'accepted', enqueued: true, estimated_count: 3 },
@@ -233,6 +236,27 @@ describe('KanbanBoardSettings', () => {
     expect(counts).toHaveLength(2);
     expect(counts[0].text()).toBe('3');
     expect(counts[1].text()).toBe('0');
+  });
+
+  it('configures the commercial category and capacity alert for a stage', async () => {
+    KanbanBoardsAPI.updateStage.mockResolvedValue({ data: {} });
+    const { wrapper } = await mountSettings();
+    const row = wrapper.find('[data-testid="kanban-settings-stage-row"]');
+
+    await row
+      .find('[data-testid="kanban-settings-stage-category"]')
+      .setValue('won');
+    await row
+      .find('[data-testid="kanban-settings-stage-wip-limit"]')
+      .setValue('8');
+    await row
+      .find('[data-testid="kanban-settings-save-stage-rules"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateStage).toHaveBeenCalledWith(10, 100, {
+      stage: { category: 'won', wip_limit: 8 },
+    });
   });
 
   it('creates a new stage from settings', async () => {
@@ -354,22 +378,25 @@ describe('KanbanBoardSettings', () => {
 
     expect(
       wrapper.findAll('[data-testid="kanban-settings-custom-field-row"]')
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     await wrapper
       .find('[data-testid="kanban-settings-add-custom-field"]')
       .trigger('click');
 
-    const rows = wrapper.findAll(
+    const row = wrapper.find(
       '[data-testid="kanban-settings-custom-field-row"]'
     );
-    await rows[1]
+    await row
       .find('[data-testid="kanban-settings-custom-field-label"]')
       .setValue('Valor estimado');
-    await rows[1]
+    await row
       .find('[data-testid="kanban-settings-custom-field-type"]')
       .setValue('currency');
-    await rows[1]
+    await row
       .find('[data-testid="kanban-settings-custom-field-show-on-card"]')
+      .setValue(true);
+    await row
+      .find('[data-testid="kanban-settings-custom-field-important"]')
       .setValue(true);
     await wrapper
       .find('[data-testid="kanban-settings-stale-stage-100"]')
@@ -387,6 +414,7 @@ describe('KanbanBoardSettings', () => {
               key: 'valor_estimado',
               label: 'Valor estimado',
               field_type: 'currency',
+              important: true,
             }),
           ]),
           compact_card_field_keys: ['valor_estimado'],
@@ -403,18 +431,16 @@ describe('KanbanBoardSettings', () => {
       .find('[data-testid="kanban-settings-add-custom-field"]')
       .trigger('click');
 
-    const labelInput = wrapper
-      .findAll('[data-testid="kanban-settings-custom-field-label"]')
-      .at(1);
+    const labelInput = wrapper.find(
+      '[data-testid="kanban-settings-custom-field-label"]'
+    );
     const originalInputElement = labelInput.element;
 
     await labelInput.setValue('O');
     await nextTick();
 
     expect(
-      wrapper
-        .findAll('[data-testid="kanban-settings-custom-field-label"]')
-        .at(1).element
+      wrapper.find('[data-testid="kanban-settings-custom-field-label"]').element
     ).toBe(originalInputElement);
   });
 
@@ -445,18 +471,122 @@ describe('KanbanBoardSettings', () => {
             }),
             expect.objectContaining({ key: 'utm_source' }),
             expect.objectContaining({ key: 'gclid' }),
-            expect.objectContaining({ key: 'fbclid' }),
+            expect.objectContaining({ key: 'fvclid' }),
             expect.objectContaining({ key: 'ttclid' }),
+            expect.objectContaining({ key: 'campaign' }),
+            expect.objectContaining({ key: 'adset' }),
+            expect.objectContaining({ key: 'ad' }),
             expect.objectContaining({ key: 'campaign_id' }),
             expect.objectContaining({ key: 'landing_page_full' }),
           ]),
         }),
       })
     );
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    const marketingKeys = payload.kanban_board.custom_field_definitions
+      .filter(definition => definition.layout.section === 'marketing')
+      .map(definition => definition.key);
+    expect(marketingKeys).toEqual([
+      'origem_do_lead',
+      'sub_origem',
+      'campaign',
+      'adset',
+      'ad',
+      'utm_content',
+      'utm_medium',
+      'utm_campaign',
+      'utm_source',
+      'utm_term',
+      'utm_referrer',
+      'referrer',
+      'gclientid',
+      'gclid',
+      'fvclid',
+      'ttad_name',
+      'ttad_id',
+      'fbc',
+      'fbp',
+      'ttclid',
+      'campaign_id',
+      'adset_id',
+      'ad_id',
+      'landing_page',
+      'event_id',
+      'landing_page_full',
+    ]);
+  });
+
+  it('uses compact stage checkboxes for field requirements', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper.findAll('[data-testid="kanban-settings-required-stage"]')
+    ).toHaveLength(2);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-required-stage-list"]')
+        .classes()
+    ).toContain('grid-cols-2');
+  });
+
+  it('adds select options through a compact option input', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-custom-field-option-input"]')
+      .setValue('Talvez');
+    await wrapper
+      .find('[data-testid="kanban-settings-add-field-option"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    expect(payload.kanban_board.custom_field_definitions[0].options).toEqual([
+      'Sim',
+      'Não',
+      'Talvez',
+    ]);
+  });
+
+  it('creates a custom opportunity tab from the field manager', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-add-field-section"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-new-field-section-name"]')
+      .setValue('Consulta');
+    await wrapper
+      .find('[data-testid="kanban-settings-create-field-section"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    expect(payload.kanban_board.custom_field_sections).toEqual([
+      { key: 'consulta', label: 'Consulta' },
+    ]);
   });
 
   it('moves custom fields between tabs with the visual layout editor', async () => {
     const { wrapper } = await mountSettings();
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
     const draggableSections = wrapper.findAllComponents({ name: 'Draggable' });
     const detailsSection = draggableSections.find(
       component => component.attributes('data-section-key') === 'details'
@@ -515,13 +645,19 @@ describe('KanbanBoardSettings', () => {
       },
     });
 
-    const rows = wrapper.findAll(
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-field-list-item-motivo"]')
+      .trigger('click');
+    const row = wrapper.find(
       '[data-testid="kanban-settings-custom-field-row"]'
     );
-    const conditionField = rows[1].find(
+    const conditionField = row.find(
       '[data-testid="kanban-settings-condition-field"]'
     );
-    const conditionValue = rows[1].find(
+    const conditionValue = row.find(
       '[data-testid="kanban-settings-condition-value-select"]'
     );
 
@@ -533,6 +669,9 @@ describe('KanbanBoardSettings', () => {
 
   it('offers native opportunity fields as condition sources', async () => {
     const { wrapper } = await mountSettings();
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
     const conditionField = wrapper.find(
       '[data-testid="kanban-settings-condition-field"]'
     );
@@ -582,12 +721,134 @@ describe('KanbanBoardSettings', () => {
       },
     });
 
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
     const conditionValue = wrapper.find(
       '[data-testid="kanban-settings-condition-value-select"]'
     );
     expect(conditionValue.text()).toContain('Alice');
     expect(conditionValue.text()).toContain('Bob');
     expect(conditionValue.element.value).toBe('2');
+  });
+
+  it('suggests numeric fields by label while typing a formula', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            {
+              key: 'valor_procedimento',
+              label: 'Valor do procedimento',
+              field_type: 'currency',
+            },
+            {
+              key: 'valor_total',
+              label: 'Valor total',
+              field_type: 'formula',
+              formula: '',
+            },
+          ],
+        },
+      },
+    });
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-field-list-item-valor_total"]')
+      .trigger('click');
+    const row = wrapper.find(
+      '[data-testid="kanban-settings-custom-field-row"]'
+    );
+    const formulaInput = row.find(
+      '[data-testid="kanban-settings-formula-input"]'
+    );
+
+    await formulaInput.setValue('[');
+    await formulaInput.trigger('focus');
+
+    let suggestions = row.find(
+      '[data-testid="kanban-settings-formula-suggestions"]'
+    );
+    expect(suggestions.text()).toContain('Valor do procedimento');
+    expect(suggestions.text()).toContain(
+      'KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT'
+    );
+
+    await formulaInput.setValue('[v');
+    suggestions = row.find(
+      '[data-testid="kanban-settings-formula-suggestions"]'
+    );
+    expect(suggestions.text()).toContain('Valor do procedimento');
+
+    await formulaInput.trigger('keydown', { key: 'Enter' });
+    expect(formulaInput.element.value).toBe(
+      '[KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT] '
+    );
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    expect(
+      payload.kanban_board.custom_field_definitions.find(
+        definition => definition.key === 'valor_total'
+      ).formula
+    ).toBe('system_amount ');
+  });
+
+  it('suggests only earlier calculated fields in a formula', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            {
+              key: 'base',
+              label: 'Base',
+              field_type: 'currency',
+            },
+            {
+              key: 'subtotal',
+              label: 'Subtotal',
+              field_type: 'formula',
+              formula: 'base * 2',
+            },
+            {
+              key: 'total',
+              label: 'Total',
+              field_type: 'formula',
+              formula: '',
+            },
+            {
+              key: 'projecao',
+              label: 'Projeção',
+              field_type: 'formula',
+              formula: 'total * 2',
+            },
+          ],
+        },
+      },
+    });
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-field-list-item-total"]')
+      .trigger('click');
+    const formulaInput = wrapper.find(
+      '[data-testid="kanban-settings-formula-input"]'
+    );
+
+    await formulaInput.setValue('[');
+    await formulaInput.trigger('focus');
+
+    const suggestions = wrapper.find(
+      '[data-testid="kanban-settings-formula-suggestions"]'
+    );
+    expect(suggestions.text()).toContain('Subtotal');
+    expect(suggestions.text()).not.toContain('Projeção');
   });
 
   it('opens import modal when enabling auto-create', async () => {
@@ -748,6 +1009,9 @@ describe('KanbanBoardSettings', () => {
       .find('[data-testid="kanban-settings-lost-reason-options"]')
       .setValue('Preço\n\nFechou com outro');
     await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
       .find('[data-testid="kanban-settings-custom-fields"]')
       .setValue(
         JSON.stringify([
@@ -784,6 +1048,7 @@ describe('KanbanBoardSettings', () => {
             field_type: 'decimal',
           },
         ],
+        custom_field_sections: [],
         compact_card_field_keys: [],
         stale_stage_thresholds: { 100: 3 },
       },

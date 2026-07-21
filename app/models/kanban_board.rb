@@ -7,6 +7,7 @@
 #  auto_create_cards_from_conversations :boolean          default(FALSE), not null
 #  compact_card_field_keys              :jsonb            not null
 #  custom_field_definitions             :jsonb            not null
+#  custom_field_sections                :jsonb            not null
 #  description                          :text
 #  inbox_scope_mode                     :string           default("all_inboxes"), not null
 #  lost_reason_options                  :jsonb            not null
@@ -32,6 +33,7 @@ class KanbanBoard < ApplicationRecord
   VISIBILITY_MODES = %w[all_agents selected_agents].freeze
   CUSTOM_FIELD_TYPES = %w[text textarea select multiselect integer decimal currency date datetime boolean url formula].freeze
   CUSTOM_FIELD_LAYOUT_WIDTHS = %w[full half third].freeze
+  RESERVED_CUSTOM_FIELD_SECTION_KEYS = %w[details marketing timeline].freeze
   DEFAULT_NEXT_ACTION_TYPES = [
     'Chamar novamente',
     'Enviar proposta',
@@ -58,6 +60,7 @@ class KanbanBoard < ApplicationRecord
   has_many :kanban_board_members, dependent: :destroy_async
   has_many :visible_users, through: :kanban_board_members, source: :user
   has_many :kanban_board_inboxes, dependent: :destroy_async
+  has_many :kanban_saved_filters, dependent: :destroy_async
   has_many :allowed_inboxes, through: :kanban_board_inboxes, source: :inbox
 
   attribute :visibility_mode, :string, default: 'all_agents'
@@ -105,6 +108,10 @@ class KanbanBoard < ApplicationRecord
     custom_field_definitions.presence || []
   end
 
+  def configured_custom_field_sections
+    custom_field_sections.presence || []
+  end
+
   def compact_custom_field_definitions
     definitions_by_key = configured_custom_field_definitions.index_by { |definition| definition['key'] }
     Array(compact_card_field_keys).filter_map { |key| definitions_by_key[key] }
@@ -125,6 +132,7 @@ class KanbanBoard < ApplicationRecord
     self.next_action_types = normalize_string_list(next_action_types)
     self.lost_reason_options = normalize_string_list(lost_reason_options)
     self.custom_field_definitions = normalize_custom_field_definitions(custom_field_definitions)
+    self.custom_field_sections = normalize_custom_field_sections(custom_field_sections)
     self.compact_card_field_keys = normalize_compact_card_field_keys(compact_card_field_keys)
     self.stale_stage_thresholds = normalize_stale_stage_thresholds(stale_stage_thresholds)
   end
@@ -159,10 +167,24 @@ class KanbanBoard < ApplicationRecord
       'field_type' => field_type,
       'options' => %w[select multiselect].include?(field_type) ? normalize_string_list(source[:options]) : [],
       'required_stage_ids' => normalize_stage_ids(source[:required_stage_ids]),
+      'important' => ActiveModel::Type::Boolean.new.cast(source[:important]),
       'condition' => normalize_custom_field_condition(source[:condition]),
       'formula' => field_type == 'formula' ? source[:formula].to_s.strip.presence : nil,
       'layout' => normalize_custom_field_layout(source[:layout])
     }
+  end
+
+  def normalize_custom_field_sections(sections)
+    seen_keys = []
+    Array(sections).filter_map do |section|
+      source = section.to_h.with_indifferent_access
+      key = source[:key].to_s.strip.parameterize(separator: '_')
+      label = source[:label].to_s.strip
+      next if key.blank? || label.blank? || RESERVED_CUSTOM_FIELD_SECTION_KEYS.include?(key) || seen_keys.include?(key)
+
+      seen_keys << key
+      { 'key' => key, 'label' => label }
+    end
   end
 
   def custom_field_identity(source)

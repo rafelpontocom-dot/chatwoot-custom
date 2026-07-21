@@ -1,6 +1,35 @@
 require 'rails_helper'
 
 RSpec.describe KanbanBoard do
+  describe 'custom field presentation' do
+    it 'preserves the important flag in a custom field definition' do
+      board = create(
+        :kanban_board,
+        custom_field_definitions: [
+          { key: 'budget', label: 'Budget', field_type: 'currency', important: true }
+        ]
+      )
+
+      expect(board.custom_field_definitions.first).to include('important' => true)
+    end
+
+    it 'normalizes custom opportunity tabs and removes duplicates' do
+      board = build(
+        :kanban_board,
+        custom_field_sections: [
+          { key: ' consultation ', label: ' Consulta ' },
+          { key: 'consultation', label: 'Duplicada' },
+          { key: 'marketing', label: 'Reservada' },
+          { key: '', label: 'Inválida' }
+        ]
+      )
+
+      board.valid?
+
+      expect(board.custom_field_sections).to eq([{ 'key' => 'consultation', 'label' => 'Consulta' }])
+    end
+  end
+
   describe 'defaults' do
     it 'disables automatic card creation for new boards' do
       board = described_class.new

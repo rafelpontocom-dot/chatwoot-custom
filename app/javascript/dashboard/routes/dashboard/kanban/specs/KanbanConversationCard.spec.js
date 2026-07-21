@@ -75,6 +75,7 @@ const mountCard = ({ card = buildCard(), activeActionKey = '' } = {}) =>
     props: {
       card,
       activeActionKey,
+      selected: false,
     },
     global: {
       stubs: {
@@ -121,6 +122,15 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.element.tagName).toBe('ARTICLE');
     expect(wrapper.classes()).toContain('card-drag-handle');
     expect(wrapper.classes()).not.toContain('no-drag');
+  });
+
+  it('emits selection without opening the opportunity', async () => {
+    const wrapper = mountCard();
+
+    await wrapper.find('[data-testid="kanban-card-select"]').setValue(true);
+
+    expect(wrapper.emitted('toggleSelection')[0]).toEqual([buildCard(), true]);
+    expect(wrapper.emitted('openDetails')).toBeUndefined();
   });
 
   it('shows the native priority indicator when priority is present', () => {
@@ -251,6 +261,33 @@ describe('KanbanConversationCard', () => {
       wrapper.find('[data-testid="kanban-card-custom-fields"]').text()
     ).toContain('Origem: Instagram');
     expect(wrapper.text()).not.toContain('Não exibir');
+  });
+
+  it('limits compact custom fields to two rows', () => {
+    const wrapper = mountCard({
+      card: buildManualCard({
+        compactCustomFields: [
+          { key: 'origem', label: 'Origem', value: 'Google' },
+          { key: 'campanha', label: 'Campanha', value: 'Julho' },
+          { key: 'anuncio', label: 'Anuncio', value: 'Criativo 3' },
+        ],
+      }),
+    });
+
+    const fields = wrapper.find('[data-testid="kanban-card-custom-fields"]');
+    expect(fields.text()).toContain('Origem: Google');
+    expect(fields.text()).toContain('Campanha: Julho');
+    expect(fields.text()).not.toContain('Anuncio: Criativo 3');
+  });
+
+  it('renders the expected closing date', () => {
+    const wrapper = mountCard({
+      card: buildManualCard({ expectedCloseDate: '2026-08-15' }),
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-card-expected-close-date"]').text()
+    ).toContain('Aug 15');
   });
 
   it('emits openDetails even when conversationId is null', async () => {

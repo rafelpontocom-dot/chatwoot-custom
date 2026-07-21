@@ -23,6 +23,7 @@ json.lost_reason card.lost_reason
 json.closed_by_id card.closed_by_id
 json.amount_cents card.amount_cents
 json.amount_currency card.amount_currency
+json.expected_close_date card.expected_close_date&.iso8601
 json.custom_field_values card.custom_field_values
 json.compact_custom_fields card.compact_custom_fields
 json.stale_in_stage card.stale_in_stage?

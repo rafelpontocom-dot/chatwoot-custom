@@ -21,6 +21,9 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS': 'Custom fields',
         'KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL': 'General',
         'KANBAN.OPPORTUNITY_DETAILS.TABS.MARKETING': 'Marketing',
+        'KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE': 'Timeline',
+        'KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE': 'Expected close date',
+        'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY': 'No changes yet',
         'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER':
           'Add a single note for this card',
         'KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE': 'Agent',
@@ -92,6 +95,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
   default: {
     showCardById: vi.fn(),
     updateCardDetailsById: vi.fn(),
+    getCardTimeline: vi.fn(),
     getCardLabels: vi.fn(),
     updateCardLabels: vi.fn(),
   },
@@ -159,6 +163,7 @@ const buildCard = overrides => ({
   nextActionCompletedAt: null,
   nextActionHistory: [],
   lostReason: '',
+  expectedCloseDate: '2026-08-15',
   conversationId: 42,
   conversation: {
     id: 42,
@@ -192,6 +197,7 @@ const mountModal = async ({
       fieldType: 'text',
     },
   ],
+  customFieldSections = [],
 } = {}) => {
   storeMocks.labels = accountLabels;
   storeMocks.dispatch.mockResolvedValue();
@@ -204,6 +210,17 @@ const mountModal = async ({
 
   if (resolveLoad) {
     KanbanBoardsAPI.showCardById.mockResolvedValue({ data: card });
+    KanbanBoardsAPI.getCardTimeline.mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          event_type: 'card_created',
+          occurred_at: '2026-07-21T12:00:00Z',
+          actor: { name: 'Jane Agent' },
+          changes: {},
+        },
+      ],
+    });
   }
 
   const wrapper = mount(KanbanOpportunityDetailsModal, {
@@ -214,10 +231,12 @@ const mountModal = async ({
       nextActionTypes: ['Enviar proposta', 'Enviar link de pagamento'],
       lostReasonOptions: ['Preço', 'Sem resposta'],
       customFieldDefinitions,
+      customFieldSections,
       ownerOptions: [
         { value: 7, label: 'Jane Agent' },
         { value: 8, label: 'Ana Paula' },
       ],
+      canManageFields: true,
     },
     global: {
       stubs: {
@@ -244,6 +263,8 @@ const startsAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-starts-at"]');
 const dueAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-due-at"]');
+const expectedCloseDateInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-expected-close-date"]');
 const nextActionTypeInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-next-action-type"]');
 const ownerInput = wrapper =>
@@ -267,10 +288,80 @@ describe('KanbanOpportunityDetailsModal', () => {
     storeMocks.labels = [];
   });
 
+  it('uses a wide two-column layout for opportunity details', async () => {
+    const wrapper = await mountModal();
+    const layout = wrapper.find('[data-testid="kanban-opportunity-layout"]');
+
+    expect(
+      layout.classes().some(className => className.startsWith('lg:grid-cols-'))
+    ).toBe(true);
+  });
+
+  it('offers contextual field management to administrators', async () => {
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-manage-fields"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('manageFields')).toHaveLength(1);
+  });
+
+  it('renders custom tabs and offers a plus shortcut to create another tab', async () => {
+    const wrapper = await mountModal({
+      customFieldSections: [{ key: 'consulta', label: 'Consulta' }],
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-tab-consulta"]').text()
+    ).toBe('Consulta');
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-tab-marketing"]').text()
+    ).toBe('Marketing');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-add-tab"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('manageFields').at(-1)).toEqual([
+      { action: 'newTab' },
+    ]);
+  });
+
   it('loads detail through showCardById', async () => {
     await mountModal();
 
     expect(KanbanBoardsAPI.showCardById).toHaveBeenCalledWith(10, 501);
+    expect(KanbanBoardsAPI.getCardTimeline).toHaveBeenCalledWith(10, 501);
+  });
+
+  it('edits the expected close date and sends it with the card', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({ expectedCloseDate: '2026-09-01' }),
+    });
+    const wrapper = await mountModal();
+
+    expect(expectedCloseDateInput(wrapper).element.value).toBe('2026-08-15');
+    await expectedCloseDateInput(wrapper).setValue('2026-09-01');
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({ expected_close_date: '2026-09-01' })
+    );
+  });
+
+  it('shows the immutable commercial timeline in its own tab', async () => {
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-timeline"]').text()
+    ).toContain('Jane Agent');
   });
 
   it('renders a responsive two-column layout', async () => {
@@ -290,7 +381,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toContain('grid');
     expect(
       wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
-    ).toContain('xl:grid-cols-[minmax(0,4fr)_minmax(16rem,1fr)]');
+    ).toContain('lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.85fr)]');
   });
 
   it('renders title, compact description, and amount controls', async () => {

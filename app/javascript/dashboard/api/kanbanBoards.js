@@ -49,6 +49,14 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.patch(`${this.url}/${boardId}/settings`, payload);
   }
 
+  getSavedFilters(boardId) {
+    return axios.get(`${this.url}/${boardId}/saved_filters`);
+  }
+
+  createSavedFilter(boardId, payload) {
+    return axios.post(`${this.url}/${boardId}/saved_filters`, payload);
+  }
+
   importExistingConversations(boardId, payload) {
     return axios.post(
       `${this.url}/${boardId}/settings/import_existing_conversations`,
@@ -88,12 +96,28 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.post(`${this.url}/${boardId}/cards/manual`, payload);
   }
 
+  getArchivedCards(boardId) {
+    return axios.get(`${this.url}/${boardId}/cards/archived`);
+  }
+
+  restoreCardById(boardId, cardId) {
+    return axios.patch(`${this.url}/${boardId}/cards/by_id/${cardId}/restore`);
+  }
+
+  bulkUpdateCards(boardId, payload) {
+    return axios.patch(`${this.url}/${boardId}/cards/bulk`, payload);
+  }
+
   updateCardById(boardId, cardId, payload) {
     return axios.patch(`${this.url}/${boardId}/cards/by_id/${cardId}`, payload);
   }
 
   showCardById(boardId, cardId) {
     return axios.get(`${this.url}/${boardId}/cards/by_id/${cardId}`);
+  }
+
+  getCardTimeline(boardId, cardId) {
+    return axios.get(`${this.url}/${boardId}/cards/by_id/${cardId}/timeline`);
   }
 
   updateCardDetailsById(boardId, cardId, payload) {

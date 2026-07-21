@@ -789,6 +789,41 @@ describe('KanbanOpportunityPicker', () => {
       ).toContain('Subject already exists');
     });
 
+    it('shows an understandable warning for a possible duplicate', async () => {
+      vi.useFakeTimers();
+      ContactAPI.getConversations.mockResolvedValue({
+        data: { payload: [buildConversation()] },
+      });
+      KanbanBoardsAPI.createManualCard.mockRejectedValue({
+        response: {
+          data: {
+            code: 'possible_duplicate',
+            duplicate_card: {
+              id: 91,
+              subject: 'Notebook quote',
+              stage_name: 'Proposta',
+            },
+          },
+        },
+      });
+      const wrapper = mountPicker();
+
+      await searchAndSelectFirstInbox(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-manual-card-subject"]')
+        .setValue('Notebook quote');
+      await wrapper
+        .find('[data-testid="kanban-manual-card-form"]')
+        .trigger('submit');
+      await flushPromises();
+
+      const warning = wrapper.find(
+        '[data-testid="kanban-possible-duplicate-warning"]'
+      );
+      expect(warning.text()).toContain('Notebook quote');
+      expect(warning.text()).toContain('Proposta');
+    });
+
     it('emits created and close on success', async () => {
       vi.useFakeTimers();
       ContactAPI.getContactableInboxes.mockResolvedValue({

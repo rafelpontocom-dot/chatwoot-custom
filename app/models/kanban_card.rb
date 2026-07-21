@@ -8,9 +8,11 @@
 #  active                   :boolean          default(TRUE), not null
 #  amount_cents             :bigint
 #  amount_currency          :string           default("BRL"), not null
+#  archived_at              :datetime
 #  custom_field_values      :jsonb            not null
 #  description              :text
 #  due_at                   :datetime
+#  expected_close_date      :date
 #  lost_at                  :datetime
 #  lost_reason              :string
 #  next_action_at           :datetime
@@ -28,6 +30,7 @@
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
 #  account_id               :bigint           not null
+#  archived_by_id           :bigint
 #  closed_by_id             :bigint
 #  contact_id               :bigint           not null
 #  conversation_id          :bigint
@@ -38,21 +41,28 @@
 #
 # Indexes
 #
-#  index_active_kanban_cards_on_board_stage_order            (kanban_board_id,kanban_stage_id,position,created_at,id) WHERE (active = true)
-#  index_active_manual_kanban_cards_unique_subject           (kanban_board_id,contact_id,inbox_id,normalized_subject) UNIQUE WHERE ((active = true) AND ((origin)::text = 'manual'::text) AND (normalized_subject IS NOT NULL))
-#  index_kanban_cards_on_account_id_and_active               (account_id,active)
-#  index_kanban_cards_on_account_id_and_contact_id           (account_id,contact_id)
-#  index_kanban_cards_on_account_id_and_inbox_id             (account_id,inbox_id)
-#  index_kanban_cards_on_account_id_and_next_action_at       (account_id,next_action_at)
-#  index_kanban_cards_on_board_stage_position                (kanban_board_id,kanban_stage_id,position)
-#  index_kanban_cards_on_conversation_id                     (conversation_id)
-#  index_kanban_cards_on_conversation_subject_unique         (kanban_board_id,conversation_id,inbox_id,normalized_subject) UNIQUE WHERE (((origin)::text = 'conversation'::text) AND (conversation_id IS NOT NULL) AND (normalized_subject IS NOT NULL))
-#  index_kanban_cards_on_kanban_board_id_and_active          (kanban_board_id,active)
-#  index_kanban_cards_on_kanban_board_id_and_amount_cents    (kanban_board_id,amount_cents)
-#  index_kanban_cards_on_kanban_board_id_and_lost_at         (kanban_board_id,lost_at)
-#  index_kanban_cards_on_kanban_board_id_and_next_action_at  (kanban_board_id,next_action_at)
-#  index_kanban_cards_on_kanban_board_id_and_won_at          (kanban_board_id,won_at)
-#  index_kanban_cards_on_owner_id_and_next_action_at         (owner_id,next_action_at)
+#  index_active_kanban_cards_on_board_stage_order                 (kanban_board_id,kanban_stage_id,position,created_at,id) WHERE (active = true)
+#  index_active_manual_kanban_cards_unique_subject                (kanban_board_id,contact_id,inbox_id,normalized_subject) UNIQUE WHERE ((active = true) AND ((origin)::text = 'manual'::text) AND (normalized_subject IS NOT NULL))
+#  index_kanban_cards_on_account_id_and_active                    (account_id,active)
+#  index_kanban_cards_on_account_id_and_contact_id                (account_id,contact_id)
+#  index_kanban_cards_on_account_id_and_inbox_id                  (account_id,inbox_id)
+#  index_kanban_cards_on_account_id_and_next_action_at            (account_id,next_action_at)
+#  index_kanban_cards_on_archived_by_id                           (archived_by_id)
+#  index_kanban_cards_on_board_stage_position                     (kanban_board_id,kanban_stage_id,position)
+#  index_kanban_cards_on_conversation_id                          (conversation_id)
+#  index_kanban_cards_on_conversation_subject_unique              (kanban_board_id,conversation_id,inbox_id,normalized_subject) UNIQUE WHERE (((origin)::text = 'conversation'::text) AND (conversation_id IS NOT NULL) AND (normalized_subject IS NOT NULL))
+#  index_kanban_cards_on_kanban_board_id_and_active               (kanban_board_id,active)
+#  index_kanban_cards_on_kanban_board_id_and_amount_cents         (kanban_board_id,amount_cents)
+#  index_kanban_cards_on_kanban_board_id_and_archived_at          (kanban_board_id,archived_at)
+#  index_kanban_cards_on_kanban_board_id_and_expected_close_date  (kanban_board_id,expected_close_date)
+#  index_kanban_cards_on_kanban_board_id_and_lost_at              (kanban_board_id,lost_at)
+#  index_kanban_cards_on_kanban_board_id_and_next_action_at       (kanban_board_id,next_action_at)
+#  index_kanban_cards_on_kanban_board_id_and_won_at               (kanban_board_id,won_at)
+#  index_kanban_cards_on_owner_id_and_next_action_at              (owner_id,next_action_at)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (archived_by_id => users.id)
 #
 # rubocop:enable Layout/LineLength
 class KanbanCard < ApplicationRecord
@@ -65,7 +75,7 @@ class KanbanCard < ApplicationRecord
   NEXT_ACTION_STATUS_OVERDUE = 'overdue'.freeze
   FORMULA_FIELD_PATTERN = /[a-zA-Z_][a-zA-Z0-9_]*/
   FORMULA_TOKEN_PATTERN = %r{\d+(?:\.\d+)?|[+\-*/()]}
-  NUMERIC_CUSTOM_FIELD_TYPES = %w[integer decimal currency].freeze
+  NUMERIC_CUSTOM_FIELD_TYPES = %w[integer decimal currency formula].freeze
   SYSTEM_AMOUNT_FIELD_KEY = 'system_amount'.freeze
   SYSTEM_CONDITION_VALUE_METHODS = {
     'system_subject' => :subject,
@@ -86,6 +96,18 @@ class KanbanCard < ApplicationRecord
     'system_contact_id' => :contact_id,
     'system_conversation_id' => :conversation_id
   }.freeze
+  EVENT_ATTRIBUTE_GROUPS = {
+    'stage_changed' => %w[kanban_stage_id],
+    'owner_changed' => %w[owner_id],
+    'amount_changed' => %w[amount_cents amount_currency],
+    'custom_fields_changed' => %w[custom_field_values],
+    'next_action_scheduled' => %w[next_action_type next_action_at next_action_note],
+    'next_action_completed' => %w[next_action_completed_at],
+    'card_won' => %w[won_at],
+    'card_lost' => %w[lost_at lost_reason],
+    'card_archived' => %w[archived_at],
+    'card_restored' => %w[active]
+  }.freeze
 
   belongs_to :account
   belongs_to :kanban_board
@@ -95,6 +117,9 @@ class KanbanCard < ApplicationRecord
   belongs_to :conversation, optional: true
   belongs_to :owner, class_name: 'User', optional: true
   belongs_to :closed_by, class_name: 'User', optional: true
+  belongs_to :archived_by, class_name: 'User', optional: true
+
+  has_many :kanban_card_events, dependent: :restrict_with_exception
 
   enum :origin, {
     conversation: 'conversation',
@@ -107,6 +132,8 @@ class KanbanCard < ApplicationRecord
   before_validation :reset_next_action_completion, if: :next_action_details_changed?
   before_validation :append_next_action_history, if: :next_action_completion_changed?
   before_validation :set_stage_entered_at, if: :stage_entry_timestamp_required?
+  after_create :record_creation_event
+  after_update :record_commercial_events
 
   validates :origin, presence: true
   validates :position, presence: true, numericality: { only_integer: true }
@@ -163,21 +190,37 @@ class KanbanCard < ApplicationRecord
       end
 
       normalize_reorder_stages!(source_stage, kanban_stage)
+      record_stage_change_event(source_stage, kanban_stage)
       reload
     end
   end
 
   def deactivate_and_normalize!
+    archive!
+  end
+
+  def archive!(actor: nil)
     self.class.transaction do
       stage = kanban_stage
 
       self.class.lock_reorder_stages!([stage.id])
       self.class.lock_active_cards_for_stages!(kanban_board, [stage.id])
 
-      self.class.where(id: id).update_all(active: false, updated_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
+      @event_actor = actor
+      update!(active: false, archived_at: Time.current, archived_by: actor)
       self.class.normalize_positions_for_stage!(kanban_board: kanban_board, kanban_stage: stage)
       reload
     end
+  end
+
+  def restore!(actor: nil)
+    @event_actor = actor
+    update!(
+      active: true,
+      archived_at: nil,
+      archived_by: nil,
+      position: self.class.where(kanban_board: kanban_board, kanban_stage: kanban_stage).active.maximum(:position).to_i + 1
+    )
   end
 
   def self.stage_active_cards(kanban_board, kanban_stage)
@@ -218,6 +261,16 @@ class KanbanCard < ApplicationRecord
     end
   end
 
+  def missing_required_custom_field_keys
+    custom_field_definitions.filter_map do |definition|
+      next unless custom_field_required_for_stage?(definition)
+      next unless custom_field_visible?(definition)
+
+      value = custom_field_values.to_h[definition['key']]
+      definition['key'] unless value == false || value.present?
+    end
+  end
+
   def self.lock_reorder_stages!(stage_ids)
     KanbanStage.where(id: stage_ids).order(:id).lock.each(&:id)
   end
@@ -247,6 +300,66 @@ class KanbanCard < ApplicationRecord
   private_class_method :bulk_normalize_positions_for_stage!
 
   private
+
+  def record_stage_change_event(source_stage, target_stage)
+    return if source_stage == target_stage
+
+    reload
+    create_card_event!('stage_changed', 'kanban_stage_id' => [source_stage.id, target_stage.id])
+  end
+
+  def record_creation_event
+    create_card_event!('card_created', {})
+  end
+
+  def record_commercial_events
+    EVENT_ATTRIBUTE_GROUPS.each do |event_type, attributes|
+      event_changes = saved_changes.slice(*attributes)
+      next if event_changes.blank?
+      next unless event_matches_current_state?(event_type)
+
+      create_card_event!(event_type, event_changes)
+    end
+
+    record_reopened_event if reopened_by_last_change?
+  ensure
+    @event_actor = nil
+  end
+
+  def record_reopened_event
+    create_card_event!('card_reopened', saved_changes.slice('won_at', 'lost_at'))
+  end
+
+  def reopened_by_last_change?
+    return false if won_at.present? || lost_at.present?
+
+    %w[won_at lost_at].any? do |attribute|
+      previous_value, current_value = saved_changes[attribute]
+      previous_value.present? && current_value.blank?
+    end
+  end
+
+  def event_matches_current_state?(event_type)
+    case event_type
+    when 'card_won' then won_at.present?
+    when 'card_lost' then lost_at.present?
+    when 'card_archived' then archived_at.present?
+    when 'card_restored' then active?
+    else true
+    end
+  end
+
+  def create_card_event!(event_type, event_changes)
+    kanban_card_events.create!(
+      account: account,
+      kanban_board: kanban_board,
+      event_type: event_type,
+      actor: @event_actor || Current.user,
+      occurred_at: Time.current,
+      change_set: event_changes,
+      metadata: {}
+    )
+  end
 
   def normalize_reorder_stages!(source_stage, target_stage)
     self.class.normalize_positions_for_stage!(kanban_board: kanban_board, kanban_stage: source_stage)
@@ -396,14 +509,8 @@ class KanbanCard < ApplicationRecord
   end
 
   def required_custom_fields_present
-    custom_field_definitions.each do |definition|
-      next unless custom_field_required_for_stage?(definition)
-      next unless custom_field_visible?(definition)
-
-      value = custom_field_values.to_h[definition['key']]
-      next if value == false || value.present?
-
-      errors.add(:custom_field_values, "#{definition['key']} is required")
+    missing_required_custom_field_keys.each do |field_key|
+      errors.add(:custom_field_values, "#{field_key} is required")
     end
   end
 
@@ -578,7 +685,7 @@ class KanbanCard < ApplicationRecord
     formula = definition['formula'].to_s
     return if formula.blank?
 
-    expression = formula_expression_with_values(definition, formula, values)
+    expression = formula_expression_with_values(formula, values)
     return if expression.blank?
 
     evaluate_formula_expression(expression).to_f
@@ -587,28 +694,36 @@ class KanbanCard < ApplicationRecord
     nil
   end
 
-  def formula_expression_with_values(definition, formula, values)
+  def formula_expression_with_values(formula, values)
     definitions_by_key = custom_field_definitions.index_by { |field_definition| field_definition['key'] }
-    invalid_formula = false
-
-    expression = formula.gsub(FORMULA_FIELD_PATTERN) do |field_key|
-      next (opportunity_amount || 0).to_d.to_s('F') if field_key == SYSTEM_AMOUNT_FIELD_KEY
-
-      field_definition = definitions_by_key[field_key]
-      unless field_definition && NUMERIC_CUSTOM_FIELD_TYPES.include?(field_definition['field_type'])
-        errors.add(:custom_field_values, "#{definition['key']} formula is invalid")
-        invalid_formula = true
-        next ''
-      end
-
-      Float(values[field_key] || 0).to_s
+    formula.gsub(FORMULA_FIELD_PATTERN) do |field_key|
+      formula_field_value(field_key, definitions_by_key, values)
     end
+  end
 
-    expression unless invalid_formula
+  def formula_field_value(field_key, definitions_by_key, values)
+    return (opportunity_amount || 0).to_d.to_s('F') if field_key == SYSTEM_AMOUNT_FIELD_KEY
+
+    field_definition = numeric_formula_field_definition!(definitions_by_key[field_key])
+    ensure_calculated_formula_value!(field_definition, field_key, values)
+
+    Float(values[field_key] || 0).to_s
+  end
+
+  def numeric_formula_field_definition!(field_definition)
+    raise ArgumentError if field_definition.blank?
+    raise ArgumentError unless NUMERIC_CUSTOM_FIELD_TYPES.include?(field_definition['field_type'])
+
+    field_definition
+  end
+
+  def ensure_calculated_formula_value!(field_definition, field_key, values)
+    return unless field_definition['field_type'] == 'formula'
+    raise ArgumentError unless values.key?(field_key)
   end
 
   def evaluate_formula_expression(expression)
-    normalized_expression = expression.delete(' ')
+    normalized_expression = expression.delete(' ').tr(',', '.')
     tokens = normalized_expression.scan(FORMULA_TOKEN_PATTERN)
     raise ArgumentError if tokens.join != normalized_expression
 

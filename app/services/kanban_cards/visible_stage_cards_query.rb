@@ -5,11 +5,12 @@ class KanbanCards::VisibleStageCardsQuery
 
   DEFAULT_LIMIT = 20
   MAX_LIMIT = 50
+  SORT_OPTIONS = %w[next_action_asc created_desc amount_desc stage_time_desc].freeze
 
   # rubocop:disable Metrics/ParameterLists
   def initialize(account:, user:, kanban_board:, kanban_stage:, limit: DEFAULT_LIMIT, cursor: nil, visible_inbox_ids: nil,
                  visible_team_ids: nil, account_user: nil, filtered_inbox_ids: nil, filtered_assignee_ids: nil,
-                 filtered_next_action_status: nil, filtered_opportunity_status: nil)
+                 filtered_next_action_status: nil, filtered_opportunity_status: nil, search: nil, sort: nil)
     @account = account
     @user = user
     @kanban_board = kanban_board
@@ -25,13 +26,15 @@ class KanbanCards::VisibleStageCardsQuery
       filtered_assignee_ids.nil? ? nil : Array(filtered_assignee_ids).uniq
     @filtered_next_action_status = filtered_next_action_status.presence
     @filtered_opportunity_status = filtered_opportunity_status.presence
+    @search = search.to_s.strip.presence
+    @sort = SORT_OPTIONS.include?(sort) ? sort : nil
   end
   # rubocop:enable Metrics/ParameterLists
 
   def call
     return empty_result unless valid_board_and_stage?
 
-    anchor = cursor_after_id.present? ? cursor_anchor! : nil
+    anchor = cursor_after_id.present? && sort.blank? ? cursor_anchor! : nil
     total_count = visible_cards.count
     ids = paginated_card_ids(anchor)
     page_ids = ids.first(clamped_limit)
@@ -48,7 +51,8 @@ class KanbanCards::VisibleStageCardsQuery
   private
 
   attr_reader :account, :user, :kanban_board, :kanban_stage, :limit, :cursor,
-              :filtered_inbox_ids, :filtered_assignee_ids, :filtered_next_action_status, :filtered_opportunity_status
+              :filtered_inbox_ids, :filtered_assignee_ids, :filtered_next_action_status, :filtered_opportunity_status,
+              :search, :sort
 
   def empty_result
     Result.new(cards: [], has_more: false, next_cursor: nil, total_count: 0)
@@ -63,20 +67,34 @@ class KanbanCards::VisibleStageCardsQuery
   end
 
   def visible_cards
-    @visible_cards ||= KanbanCard
-                       .active
-                       .left_outer_joins(:conversation)
-                       .where(account_id: account.id, kanban_board_id: kanban_board.id, kanban_stage_id: kanban_stage.id)
-                       .where(visibility_condition)
-                       .then { |scope| filtered_inbox_ids.nil? ? scope : scope.where(inbox_id: filtered_inbox_ids) }
-                       .then { |scope| filtered_assignee_ids.nil? ? scope : scope.where(conversations: { assignee_id: filtered_assignee_ids }) }
+    @visible_cards ||= base_visible_cards
+                       .then { |scope| apply_inbox_filter(scope) }
+                       .then { |scope| apply_assignee_filter(scope) }
                        .then { |scope| apply_opportunity_status_filter(scope) }
                        .then { |scope| apply_next_action_filter(scope) }
+                       .then { |scope| apply_search(scope) }
+  end
+
+  def base_visible_cards
+    KanbanCard
+      .active
+      .left_outer_joins(:conversation)
+      .where(account_id: account.id, kanban_board_id: kanban_board.id, kanban_stage_id: kanban_stage.id)
+      .where(visibility_condition)
+  end
+
+  def apply_inbox_filter(scope)
+    filtered_inbox_ids.nil? ? scope : scope.where(inbox_id: filtered_inbox_ids)
+  end
+
+  def apply_assignee_filter(scope)
+    filtered_assignee_ids.nil? ? scope : scope.where(conversations: { assignee_id: filtered_assignee_ids })
   end
 
   def paginated_card_ids(anchor)
-    scope = visible_cards.ordered
+    scope = ordered_cards
     scope = scope.where(after_anchor_condition(anchor)) if anchor.present?
+    scope = scope.offset(cursor_offset) if sort.present?
 
     scope.limit(clamped_limit + 1).ids
   end
@@ -124,8 +142,34 @@ class KanbanCards::VisibleStageCardsQuery
 
   def next_cursor_for(page_ids, ids)
     return if ids.length <= clamped_limit || page_ids.blank?
+    return { offset: cursor_offset + page_ids.length } if sort.present?
 
     { after_id: page_ids.last }
+  end
+
+  def ordered_cards
+    case sort
+    when 'next_action_asc'
+      visible_cards.order(Arel.sql('next_action_at ASC NULLS LAST, id ASC'))
+    when 'created_desc'
+      visible_cards.order(created_at: :desc, id: :desc)
+    when 'amount_desc'
+      visible_cards.order(Arel.sql('amount_cents DESC NULLS LAST, id ASC'))
+    when 'stage_time_desc'
+      visible_cards.order(stage_entered_at: :asc, id: :asc)
+    else
+      visible_cards.ordered
+    end
+  end
+
+  def apply_search(scope)
+    return scope if search.blank?
+
+    query = "%#{ActiveRecord::Base.sanitize_sql_like(search)}%"
+    scope.joins(:contact).where(
+      'kanban_cards.subject ILIKE :query OR contacts.name ILIKE :query OR contacts.email ILIKE :query OR contacts.phone_number ILIKE :query',
+      query: query
+    )
   end
 
   def clamped_limit
@@ -164,6 +208,12 @@ class KanbanCards::VisibleStageCardsQuery
     return if cursor.blank?
 
     cursor[:after_id] || cursor['after_id']
+  end
+
+  def cursor_offset
+    return 0 if cursor.blank?
+
+    (cursor[:offset] || cursor['offset']).to_i.clamp(0, 1_000_000)
   end
 
   def visibility_condition

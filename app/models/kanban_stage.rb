@@ -4,9 +4,11 @@
 #
 #  id              :bigint           not null, primary key
 #  active          :boolean          default(TRUE), not null
+#  category        :string           default("open"), not null
 #  color           :string           default("slate"), not null
 #  name            :string           not null
 #  position        :integer          default(0), not null
+#  wip_limit       :integer
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
 #  account_id      :bigint           not null
@@ -18,9 +20,12 @@
 #  index_kanban_stages_on_account_id                    (account_id)
 #  index_kanban_stages_on_account_id_and_active         (account_id,active)
 #  index_kanban_stages_on_kanban_board_id               (kanban_board_id)
+#  index_kanban_stages_on_kanban_board_id_and_category  (kanban_board_id,category)
 #  index_kanban_stages_on_kanban_board_id_and_position  (kanban_board_id,position)
 #
 class KanbanStage < ApplicationRecord
+  CATEGORIES = %w[open won lost].freeze
+
   belongs_to :account
   belongs_to :kanban_board
 
@@ -30,6 +35,8 @@ class KanbanStage < ApplicationRecord
   validates :account_id, presence: true
   validates :name, presence: true, uniqueness: { scope: :kanban_board_id, conditions: -> { active } }, if: :active?
   validates :position, presence: true, numericality: { only_integer: true }
+  validates :category, inclusion: { in: CATEGORIES }
+  validates :wip_limit, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validate :validate_board_account
 
   scope :active, -> { where(active: true) }

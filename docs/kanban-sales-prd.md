@@ -139,7 +139,20 @@ As abas padrão são:
 - `Geral`, com título, descrição, valor e campos comerciais gerais;
 - `Marketing`, com origem, suborigem e atribuição de mídia.
 
-Outras abas podem ser criadas ao informar uma nova seção no campo personalizado.
+Outras abas são criadas pelo botão `+` ao lado das abas padrão. A aba pertence ao board, possui nome e chave estável próprios e continua existindo mesmo quando ainda não contém campos.
+
+### Experiencia De Configuracao Dos Campos
+
+A configuração pertence ao funil, porque altera todas as oportunidades daquele board. O acesso, porém, deve ser contextual e fluido:
+
+- a engrenagem no card abre diretamente o gerenciador de campos do funil;
+- o botão `+` ao lado das abas abre o fluxo de criação de aba;
+- o gerenciador mostra as abas em formato compacto e edita somente um campo por vez;
+- criar campo começa por nome e tipo, revelando opções, condição, fórmula e obrigatoriedade somente quando aplicáveis;
+- opções de seleção são adicionadas em uma linha curta e exibidas como chips;
+- etapas obrigatórias são escolhidas por uma grade compacta de checkboxes;
+- campos podem ser arrastados entre abas e reordenados;
+- o JSON permanece recolhido em uma área avançada e nunca é necessário no fluxo comum.
 
 ## Personalizacao
 
@@ -292,18 +305,15 @@ Cada campo deve ter:
 
 ### Aba Marketing
 
-O board oferece um preset idempotente de campos de marketing. Ao adicioná-lo, somente chaves ainda inexistentes são criadas.
+O board oferece um preset idempotente de campos de marketing. Ao sincronizá-lo, o conjunto canônico substitui somente os campos conhecidos do preset, remove chaves obsoletas e preserva campos desconhecidos criados pelo cliente na aba Marketing.
 
-O preset cobre:
+O preset cobre exatamente:
 
-- origem e suborigem do lead;
-- UTMs (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `utm_id` e `utm_referrer`);
-- identificadores Google (`gclientid`, `gclid`, `gbraid`, `wbraid` e `dclid`);
-- identificadores Meta (`fbclid`, `fbc` e `fbp`);
-- identificadores TikTok (`ttclid`, `ttad_id` e `ttad_name`);
-- `msclkid`;
-- campanha, conjunto, anúncio e seus IDs;
-- página de destino, URL completa e `event_id`.
+- `Origem`, `Sub-origem`, `Campanha`, `Conjunto` e `Anuncio`;
+- `utm_content`, `utm_medium`, `utm_campaign`, `utm_source`, `utm_term` e `utm_referrer`;
+- `referrer`, `gclientid`, `gclid` e `fvclid`;
+- `ttad_name`, `ttad_id`, `fbc`, `fbp` e `ttclid`;
+- `campaign_id`, `adset_id`, `ad_id`, `landing_page`, `event_id` e `landing_page_full`.
 
 As chaves são estáveis para permitir preenchimento por API e automações sem depender do texto exibido.
 
@@ -328,15 +338,20 @@ Exemplos:
 - `valor_total = entrada + parcelas`;
 - `ticket_medio = valor_total / quantidade`.
 
-Fórmulas devem ser simples e seguras no MVP: operações matemáticas básicas e referência a outros campos numéricos. Não deve existir execução arbitrária de código.
+Fórmulas devem ser simples e seguras no MVP: operações matemáticas básicas e referência ao valor da oportunidade, a campos inteiros, decimais, monetários e a campos calculados anteriores. Não deve existir execução arbitrária de código.
 
 Na configuração de um campo:
 
 - `Mostrar quando` e `For igual a` configuram somente uma condição de visibilidade;
 - a expressão matemática é preenchida no editor `Fórmula`, visível somente quando o tipo do campo for `Fórmula`;
 - a expressão contém apenas o cálculo, por exemplo `procedimento + exames`, sem escrever `valor_total =`;
-- o editor deve permitir inserir campos por seleção, mostrar as chaves estáveis disponíveis, validar a expressão e apresentar uma prévia do cálculo;
+- digitar `[` abre os campos numéricos e monetários compatíveis; o texto após `[` filtra por nome e a seleção entra como marcador legível, por exemplo `[Valor da oportunidade]`;
+- a UI converte marcadores legíveis para chaves estáveis antes de salvar, valida a expressão e mantém o backend como autoridade do cálculo;
+- constantes decimais aceitam ponto ou vírgula, portanto `0.2` e `0,2` são equivalentes;
+- campos calculados podem referenciar apenas fórmulas anteriores na ordem do board, evitando referência futura e ciclos;
 - o texto `For igual a` nunca deve ser usado para digitar fórmula.
+
+Fórmulas com datas ficam fora deste MVP até existir um tipo de resultado explícito e semântica definida para soma de dias, diferença entre datas e data/hora. Campos de data continuam disponíveis como dados e condições, mas não aparecem como operandos matemáticos.
 
 ### Obrigatoriedade Por Etapa
 
@@ -541,6 +556,17 @@ Antes de iniciar o módulo de automações, o Kanban precisa fechar estas lacuna
 - data prevista de fechamento opcional;
 - destaque de campos importantes, sem torná-los obrigatórios;
 - limites de trabalho por etapa apenas como alerta de capacidade, nunca bloqueio rígido de entrada de leads.
+
+### Estado Verificado Em 21/07/2026
+
+- `Implementado`: linha do tempo comercial, categorias de etapa, movimentação assistida, busca por oportunidade/contato/telefone/email, ordenação, filtros ativos, limpar filtros, filtros salvos e aviso de duplicidade.
+- `Implementado`: construtor visual com condições, fórmulas por `[` e chaves estáveis, opções compactas, obrigatoriedade por checkbox, abas persistentes e preset exato de Marketing.
+- `Implementado no P1`: arquivar/restaurar oportunidades, data prevista de fechamento, campos importantes e alerta de capacidade por etapa.
+- `Parcial no P1`: ações em massa existem, mas ainda precisam de confirmação e resumo de impacto para todas as operações; arquivamento/restauração de board ainda não possui fluxo completo.
+- `Pendente no P0`: importação CSV do Kommo com mapeamento, prévia, relatório e idempotência.
+- `Pendente no P0`: validação E2E em desktop e mobile, navegação integral por teclado e auditoria de acessibilidade com tecnologia assistiva.
+
+O módulo de automações continua bloqueado até os dois itens P0 pendentes serem aceitos.
 
 ### Fora Do Fechamento Atual
 

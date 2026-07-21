@@ -3,8 +3,9 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   before_action :fetch_kanban_board
   before_action :authorize_kanban_board_show
   before_action :fetch_manual_card_records, only: [:create_manual]
-  before_action :fetch_kanban_card, only: [:show, :update, :destroy, :reorder]
-  before_action :authorize_mutation_target, only: [:show, :update, :destroy, :reorder]
+  before_action :fetch_kanban_card, only: [:show, :update, :destroy, :reorder, :timeline]
+  before_action :fetch_archived_kanban_card, only: [:restore]
+  before_action :authorize_mutation_target, only: [:show, :update, :destroy, :reorder, :restore, :timeline]
   before_action :fetch_kanban_stage, only: [:update]
 
   def show
@@ -23,6 +24,34 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     ).perform!
 
     render :create_manual, status: :created
+  rescue ActiveRecord::RecordInvalid => e
+    render_manual_creation_error(e)
+  end
+
+  def archived
+    cards = @kanban_board
+            .kanban_cards
+            .where(active: false)
+            .where.not(archived_at: nil)
+            .includes(:kanban_stage, :contact, :inbox, :conversation, :archived_by)
+            .order(archived_at: :desc, id: :desc)
+            .select { |card| policy(card).restore? }
+
+    render json: cards.map { |card| archived_card_payload(card) }
+  end
+
+  def bulk
+    cards = bulk_cards
+    authorize_bulk_cards!(cards)
+    updated_count = KanbanCards::BulkUpdateService.new(
+      board: @kanban_board,
+      cards: cards,
+      user: Current.user,
+      operation: bulk_params[:operation],
+      options: bulk_params.slice(:owner_id, :stage_id, :lost_reason)
+    ).perform!
+
+    render json: { updated_count: updated_count }
   end
 
   def update
@@ -31,6 +60,15 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
 
   def reorder
     reorder_kanban_card
+  end
+
+  def restore
+    @kanban_card.restore!(actor: Current.user)
+    render_card
+  end
+
+  def timeline
+    render json: @kanban_card.kanban_card_events.order(occurred_at: :asc, id: :asc).map { |event| timeline_event_payload(event) }
   end
 
   def destroy
@@ -49,6 +87,10 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
 
   def fetch_kanban_card
     @kanban_card = @kanban_board.kanban_cards.active.joins(:kanban_stage).merge(KanbanStage.active).find(params[:id])
+  end
+
+  def fetch_archived_kanban_card
+    @kanban_card = @kanban_board.kanban_cards.where(active: false).joins(:kanban_stage).merge(KanbanStage.active).find(params[:id])
   end
 
   def authorize_mutation_target
@@ -87,6 +129,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       :lost_reason,
       :amount_cents,
       :amount_currency,
+      :expected_close_date,
       custom_field_values: {},
       labels: []
     )
@@ -95,6 +138,51 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
 
   def manual_card_params
     params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject)
+  end
+
+  def bulk_params
+    params.permit(:operation, :owner_id, :stage_id, :lost_reason, card_ids: [])
+  end
+
+  def bulk_cards
+    card_ids = Array(bulk_params[:card_ids]).map(&:to_i).uniq
+    raise ActiveRecord::RecordNotFound if card_ids.blank? || card_ids.length > KanbanCards::BulkUpdateService::MAX_CARDS
+
+    cards = @kanban_board.kanban_cards.active.where(id: card_ids).includes(:kanban_stage, :contact, :inbox, :conversation).to_a
+    raise ActiveRecord::RecordNotFound unless cards.length == card_ids.length
+
+    cards.sort_by { |card| card_ids.index(card.id) }
+  end
+
+  def authorize_bulk_cards!(cards)
+    policy_action = bulk_params[:operation] == 'archive' ? :destroy? : :update?
+    cards.each { |card| authorize card, policy_action }
+  end
+
+  def render_manual_creation_error(error)
+    duplicate = possible_duplicate_card(error)
+    raise error unless duplicate
+
+    render json: {
+      message: error.record.errors.full_messages.to_sentence,
+      code: 'possible_duplicate',
+      duplicate_card: {
+        id: duplicate.id,
+        subject: duplicate.subject,
+        stage_id: duplicate.kanban_stage_id,
+        stage_name: duplicate.kanban_stage.name
+      }
+    }, status: :unprocessable_entity
+  end
+
+  def possible_duplicate_card(error)
+    return unless error.record.errors.full_messages.any? { |message| message.include?('Manual opportunity with this subject already exists') }
+
+    @kanban_board.kanban_cards.manual.active.find_by(
+      contact: @contact,
+      inbox: @inbox,
+      normalized_subject: manual_card_params[:subject].to_s.strip.gsub(/\s+/, ' ').downcase
+    )
   end
 
   def action_name_policy
@@ -128,21 +216,34 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
 
   def reorder_kanban_card
     source_stage_id = @kanban_card.kanban_stage_id
+    target_stage = target_card_stage_for_reorder
+    return render_missing_lost_reason if target_stage.category == 'lost' && reorder_card_params[:lost_reason].blank?
 
     KanbanCard.transaction do
       @kanban_card.reorder_to_position!(
-        kanban_stage: target_card_stage_for_reorder,
-        position: params.dig(:card, :position) || @kanban_card.position
+        kanban_stage: target_stage,
+        position: reorder_card_params[:position] || @kanban_card.position
       )
+      @kanban_card.update!(reorder_update_attributes(target_stage))
     end
 
     dispatch_kanban_card_reordered_event(source_stage_id)
     render_card
+  rescue ActiveRecord::RecordInvalid => e
+    render_assisted_move_fields(e.record)
+  end
+
+  def reorder_update_attributes(target_stage)
+    stage_category_attributes(target_stage, reorder_card_params[:lost_reason]).tap do |attributes|
+      next unless reorder_card_params.key?(:custom_field_values)
+
+      attributes[:custom_field_values] = @kanban_card.custom_field_values.to_h.merge(reorder_card_params[:custom_field_values].to_h)
+    end
   end
 
   def destroy_kanban_card
     stage_id = @kanban_card.kanban_stage_id
-    @kanban_card.deactivate_and_normalize!
+    @kanban_card.archive!(actor: Current.user)
 
     dispatch_kanban_card_event(Events::Types::KANBAN_CARD_DELETED, stage_id: stage_id)
     head :no_content
@@ -158,6 +259,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     next_card_position(kanban_stage)
   end
 
+  # rubocop:disable Metrics/MethodLength
   def stable_card_update_params
     card_params
       .slice(
@@ -175,10 +277,15 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
         :lost_reason,
         :amount_cents,
         :amount_currency,
+        :expected_close_date,
         :custom_field_values
       )
-      .tap { |permitted_params| normalize_sales_update_params!(permitted_params) }
+      .tap do |permitted_params|
+        apply_target_stage_category!(permitted_params) if card_params[:kanban_stage_id].present?
+        normalize_sales_update_params!(permitted_params)
+      end
   end
+  # rubocop:enable Metrics/MethodLength
 
   def normalize_sales_update_params!(permitted_params)
     validate_account_user_id!(:owner, permitted_params[:owner_id]) if permitted_params.key?(:owner_id)
@@ -239,10 +346,70 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def target_card_stage_for_reorder
-    stage_id = params.dig(:card, :kanban_stage_id)
+    stage_id = reorder_card_params[:kanban_stage_id]
     return @kanban_card.kanban_stage if stage_id.blank?
 
     @kanban_board.kanban_stages.active.find(stage_id)
+  end
+
+  def reorder_card_params
+    @reorder_card_params ||= params.require(:card).permit(:kanban_stage_id, :position, :lost_reason, custom_field_values: {})
+  end
+
+  def apply_target_stage_category!(permitted_params)
+    permitted_params.merge!(stage_category_attributes(@kanban_stage, permitted_params[:lost_reason]))
+  end
+
+  def stage_category_attributes(target_stage, lost_reason)
+    case target_stage.category
+    when 'won'
+      { won_at: Time.current, lost_at: nil, lost_reason: nil, closed_by_id: Current.user.id }
+    when 'lost'
+      { won_at: nil, lost_at: Time.current, lost_reason: lost_reason, closed_by_id: Current.user.id }
+    else
+      { won_at: nil, lost_at: nil, lost_reason: nil, closed_by_id: nil }
+    end
+  end
+
+  def render_missing_lost_reason
+    render json: {
+      message: 'Lost reason is required before moving this opportunity.',
+      missing_fields: ['lost_reason']
+    }, status: :unprocessable_entity
+  end
+
+  def render_assisted_move_fields(card)
+    missing_fields = card.missing_required_custom_field_keys
+    raise ActiveRecord::RecordInvalid, card if missing_fields.blank?
+
+    render json: {
+      message: 'Complete the required fields before moving this opportunity.',
+      missing_fields: missing_fields,
+      field_definitions: @kanban_board.custom_field_definitions.select { |definition| missing_fields.include?(definition['key']) }
+    }, status: :unprocessable_entity
+  end
+
+  def timeline_event_payload(event)
+    {
+      id: event.id,
+      event_type: event.event_type,
+      occurred_at: event.occurred_at.iso8601,
+      changes: event.change_set,
+      actor: event.actor && { id: event.actor_id, type: event.actor_type, name: event.actor.try(:name) },
+      metadata: event.metadata
+    }
+  end
+
+  def archived_card_payload(card)
+    {
+      id: card.id,
+      subject: card.subject,
+      stage_id: card.kanban_stage_id,
+      stage_name: card.kanban_stage.name,
+      contact_name: card.contact.name,
+      archived_at: card.archived_at.iso8601,
+      archived_by: card.archived_by && { id: card.archived_by_id, name: card.archived_by.name }
+    }
   end
 
   def dispatch_kanban_card_event(event_name, stage_id: @kanban_card.kanban_stage_id)

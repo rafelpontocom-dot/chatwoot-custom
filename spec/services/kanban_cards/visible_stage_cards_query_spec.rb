@@ -171,6 +171,37 @@ RSpec.describe KanbanCards::VisibleStageCardsQuery do
       expect(result.total_count).to eq(1)
     end
 
+    it 'searches by opportunity subject and contact identity' do
+      matching_contact = create(
+        :contact,
+        account: account,
+        name: 'Ana Valor',
+        email: 'ana@example.com',
+        phone_number: '+5562999999999'
+      )
+      subject_card = create_visible_card(position: 1, subject: 'Plano Premium')
+      contact_card = create_visible_card(position: 2, contact: matching_contact)
+      create_visible_card(position: 3, subject: 'Sem relação')
+
+      expect(query(search: 'premium').call.cards).to eq([subject_card])
+      expect(query(search: 'ana valor').call.cards).to eq([contact_card])
+      expect(query(search: '62999999999').call.cards).to eq([contact_card])
+      expect(query(search: 'ana@example.com').call.cards).to eq([contact_card])
+    end
+
+    it 'sorts cards by value and paginates the selected order' do
+      create_visible_card(position: 1, amount_cents: 100_00)
+      highest = create_visible_card(position: 2, amount_cents: 900_00)
+      middle = create_visible_card(position: 3, amount_cents: 500_00)
+
+      first_page = query(limit: 1, sort: 'amount_desc').call
+      second_page = query(limit: 1, sort: 'amount_desc', cursor: first_page.next_cursor).call
+
+      expect(first_page.cards).to eq([highest])
+      expect(first_page.next_cursor).to eq({ offset: 1 })
+      expect(second_page.cards).to eq([middle])
+    end
+
     it 'excludes manual cards when assignee filter is active' do
       manual_card = create_visible_card(position: 1)
       create_conversation_card(position: 2, assignee: agent)
@@ -363,7 +394,9 @@ RSpec.describe KanbanCards::VisibleStageCardsQuery do
       cursor: options[:cursor],
       account_user: options[:account_user],
       filtered_inbox_ids: options[:filtered_inbox_ids],
-      filtered_assignee_ids: options[:filtered_assignee_ids]
+      filtered_assignee_ids: options[:filtered_assignee_ids],
+      search: options[:search],
+      sort: options[:sort]
     )
   end
 

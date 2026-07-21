@@ -19,14 +19,30 @@ class KanbanCardPolicy < ApplicationPolicy
     show?
   end
 
+  def timeline?
+    show?
+  end
+
+  def restore?
+    !record.active? && record.archived_at.present? && valid_card_relationships? && card_access?
+  end
+
   private
 
   def valid_card_scope?
-    active_runtime_card? && card_account? && board_account? && stage_account? && stage_board? && contact_account? && inbox_account?
+    active_runtime_card? && valid_card_relationships?
+  end
+
+  def valid_card_relationships?
+    board_runtime_available? && card_account? && board_account? && stage_account? && stage_board? && contact_account? && inbox_account?
   end
 
   def active_runtime_card?
-    record.active? && record.kanban_board&.active? && board_visible_to_user? && record.kanban_stage&.active?
+    record.active? && board_runtime_available?
+  end
+
+  def board_runtime_available?
+    record.kanban_board&.active? && board_visible_to_user? && record.kanban_stage&.active?
   end
 
   def board_visible_to_user?

@@ -41,6 +41,7 @@ const subject = ref('');
 const generatedSubject = ref('');
 const subjectError = ref('');
 const creationError = ref('');
+const possibleDuplicate = ref(null);
 const isSaving = ref(false);
 
 const trimmedSubject = computed(() => subject.value.trim());
@@ -116,6 +117,8 @@ const resetSubmission = () => {
   generatedSubject.value = '';
   subjectError.value = '';
   creationError.value = '';
+  possibleDuplicate.value = null;
+  possibleDuplicate.value = null;
   isSaving.value = false;
 };
 
@@ -260,6 +263,7 @@ const selectInbox = inbox => {
 
   subjectError.value = '';
   creationError.value = '';
+  possibleDuplicate.value = null;
 };
 
 const handleClose = () => {
@@ -309,7 +313,15 @@ const createManualOpportunity = async () => {
     resetPicker();
     emit('close');
   } catch (error) {
-    creationError.value = getErrorMessage(error);
+    const responseData = error?.response?.data;
+    if (responseData?.code === 'possible_duplicate') {
+      possibleDuplicate.value = camelcaseKeys(
+        responseData.duplicate_card || {},
+        { deep: true }
+      );
+    } else {
+      creationError.value = getErrorMessage(error);
+    }
   } finally {
     isSaving.value = false;
   }
@@ -456,7 +468,10 @@ onUnmounted(() => {
             data-testid="kanban-manual-card-subject"
             class="no-drag min-h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
             :aria-invalid="!!subjectError"
-            @input="subjectError = ''"
+            @input="
+              subjectError = '';
+              possibleDuplicate = null;
+            "
           />
           <p
             v-if="subjectError"
@@ -472,6 +487,22 @@ onUnmounted(() => {
           >
             {{ creationError }}
           </p>
+          <div
+            v-if="possibleDuplicate"
+            data-testid="kanban-possible-duplicate-warning"
+            class="rounded-md border border-n-amber-7 bg-n-amber-2 p-3 text-sm text-n-amber-12"
+          >
+            <p class="mb-1 font-medium">
+              {{ t('KANBAN.ADD_ITEM.POSSIBLE_DUPLICATE') }}
+            </p>
+            <p class="mb-0">
+              {{ possibleDuplicate.subject }}
+              <span v-if="possibleDuplicate.stageName">
+                {{ t('KANBAN.ADD_ITEM.DUPLICATE_STAGE_SEPARATOR') }}
+                {{ possibleDuplicate.stageName }}
+              </span>
+            </p>
+          </div>
           <button
             type="submit"
             data-testid="kanban-manual-card-submit"

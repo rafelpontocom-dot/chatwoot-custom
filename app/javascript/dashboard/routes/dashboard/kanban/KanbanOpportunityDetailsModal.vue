@@ -32,13 +32,26 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  customFieldSections: {
+    type: Array,
+    default: () => [],
+  },
   ownerOptions: {
     type: Array,
     default: () => [],
   },
+  canManageFields: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['close', 'updated', 'openConversation']);
+const emit = defineEmits([
+  'close',
+  'updated',
+  'openConversation',
+  'manageFields',
+]);
 
 const { t } = useI18n();
 const store = useStore();
@@ -50,7 +63,11 @@ const description = ref('');
 const ownerId = ref('');
 const amountValue = ref('');
 const amountCurrency = ref('BRL');
+const expectedCloseDate = ref('');
 const customFieldValues = ref({});
+const timeline = ref([]);
+const isLoadingTimeline = ref(false);
+const timelineError = ref('');
 const startsAt = ref('');
 const dueAt = ref('');
 const nextActionType = ref('');
@@ -169,16 +186,33 @@ const customFieldSectionLabel = sectionKey => {
     .replace(/^./, character => character.toUpperCase());
 };
 const customFieldTabs = computed(() => {
-  const sectionKeys = [
-    'details',
-    ...normalizedCustomFieldDefinitions.value.map(customFieldSectionKey),
+  const sections = [
+    {
+      key: 'details',
+      label: customFieldSectionLabel('details'),
+    },
+    {
+      key: 'marketing',
+      label: customFieldSectionLabel('marketing'),
+    },
+    ...props.customFieldSections,
   ];
+  const knownKeys = new Set(sections.map(section => section.key));
 
-  return [...new Set(sectionKeys)].map(key => ({
-    key,
-    label: customFieldSectionLabel(key),
-  }));
+  normalizedCustomFieldDefinitions.value.forEach(definition => {
+    const key = customFieldSectionKey(definition);
+    if (knownKeys.has(key)) return;
+
+    knownKeys.add(key);
+    sections.push({ key, label: customFieldSectionLabel(key) });
+  });
+
+  return sections;
 });
+const timelineTab = computed(() => ({
+  key: 'timeline',
+  label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE'),
+}));
 
 const normalizeCard = payload =>
   Object.fromEntries(
@@ -191,6 +225,8 @@ const normalizeCard = payload =>
       ownerId: payload.ownerId ?? payload.owner_id,
       amountCents: payload.amountCents ?? payload.amount_cents,
       amountCurrency: payload.amountCurrency ?? payload.amount_currency,
+      expectedCloseDate:
+        payload.expectedCloseDate ?? payload.expected_close_date,
       customFieldValues:
         payload.customFieldValues ?? payload.custom_field_values,
       startsAt: payload.startsAt ?? payload.starts_at,
@@ -293,6 +329,7 @@ const setFormState = payload => {
   ownerId.value = card.value.ownerId ? String(card.value.ownerId) : '';
   amountValue.value = formatAmountInput(card.value.amountCents);
   amountCurrency.value = card.value.amountCurrency || 'BRL';
+  expectedCloseDate.value = card.value.expectedCloseDate || '';
   customFieldValues.value = card.value.customFieldValues || {};
   startsAt.value = formatDateTimeInput(card.value.startsAt);
   dueAt.value = formatDateTimeInput(card.value.dueAt);
@@ -347,12 +384,43 @@ const loadCard = async () => {
   }
 };
 
+const loadTimeline = async () => {
+  isLoadingTimeline.value = true;
+  timelineError.value = '';
+
+  try {
+    const response = await KanbanBoardsAPI.getCardTimeline(
+      props.boardId,
+      props.cardId
+    );
+    timeline.value = response?.data || [];
+  } catch (error) {
+    timelineError.value = getErrorMessage(
+      error,
+      t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.LOAD_ERROR')
+    );
+  } finally {
+    isLoadingTimeline.value = false;
+  }
+};
+
+const timelineEventLabel = eventType =>
+  String(eventType || '')
+    .replaceAll('_', ' ')
+    .replace(/^./, character => character.toUpperCase());
+const timelineEventMeta = event => {
+  const actorName =
+    event.actor?.name || t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.SYSTEM');
+  return `${actorName} - ${new Date(event.occurred_at).toLocaleString()}`;
+};
+
 const buildCardPayload = extraPayload => ({
   subject: subject.value.trim(),
   description: description.value.trim() ? description.value : null,
   owner_id: ownerId.value ? Number(ownerId.value) : null,
   amount_cents: toAmountCents(amountValue.value),
   amount_currency: amountCurrency.value || 'BRL',
+  expected_close_date: expectedCloseDate.value || null,
   custom_field_values: customFieldValues.value,
   starts_at: toIso8601(startsAt.value),
   due_at: toIso8601(dueAt.value),
@@ -466,6 +534,7 @@ const openConversation = () => {
 onMounted(() => {
   loadCard();
   loadLabels();
+  loadTimeline();
 });
 </script>
 
@@ -488,15 +557,28 @@ onMounted(() => {
           {{ t('KANBAN.OPPORTUNITY_DETAILS.CARD_ID', { id: cardDisplayId }) }}
         </p>
       </div>
-      <button
-        type="button"
-        data-testid="kanban-opportunity-close"
-        class="flex size-8 flex-shrink-0 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
-        :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.CLOSE')"
-        @click="emit('close')"
-      >
-        <i class="i-lucide-x size-4" />
-      </button>
+      <div class="flex flex-shrink-0 items-center gap-1">
+        <button
+          v-if="canManageFields"
+          type="button"
+          data-testid="kanban-opportunity-manage-fields"
+          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+          :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.MANAGE_FIELDS')"
+          :title="t('KANBAN.OPPORTUNITY_DETAILS.MANAGE_FIELDS')"
+          @click="emit('manageFields')"
+        >
+          <i class="i-lucide-settings-2 size-4" />
+        </button>
+        <button
+          type="button"
+          data-testid="kanban-opportunity-close"
+          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+          :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.CLOSE')"
+          @click="emit('close')"
+        >
+          <i class="i-lucide-x size-4" />
+        </button>
+      </div>
     </div>
 
     <div class="overflow-auto px-5 py-4">
@@ -541,11 +623,35 @@ onMounted(() => {
           >
             {{ tab.label }}
           </button>
+          <button
+            v-if="canManageFields"
+            type="button"
+            data-testid="kanban-opportunity-add-tab"
+            class="flex size-9 shrink-0 items-center justify-center border-b-2 border-transparent text-n-slate-11 hover:text-n-brand"
+            :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
+            :title="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
+            @click="emit('manageFields', { action: 'newTab' })"
+          >
+            <i class="i-lucide-plus size-4" />
+          </button>
+          <button
+            type="button"
+            :data-testid="`kanban-opportunity-tab-${timelineTab.key}`"
+            class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium"
+            :class="
+              activeTabKey === timelineTab.key
+                ? 'border-n-brand text-n-brand'
+                : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
+            "
+            @click="activeTabKey = timelineTab.key"
+          >
+            {{ timelineTab.label }}
+          </button>
         </nav>
 
         <div
           data-testid="kanban-opportunity-layout"
-          class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,4fr)_minmax(16rem,1fr)]"
+          class="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.85fr)]"
         >
           <section class="grid min-w-0 content-start gap-4">
             <template v-if="activeTabKey === 'details'">
@@ -584,7 +690,48 @@ onMounted(() => {
                 step="0.01"
                 :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
               />
+
+              <NextInput
+                v-model="expectedCloseDate"
+                data-testid="kanban-opportunity-expected-close-date"
+                class="w-full"
+                type="date"
+                :label="t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')"
+              />
             </template>
+
+            <section
+              v-if="activeTabKey === 'timeline'"
+              data-testid="kanban-opportunity-timeline"
+              class="grid gap-3"
+            >
+              <p v-if="isLoadingTimeline" class="mb-0 text-sm text-n-slate-11">
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+              </p>
+              <p v-else-if="timelineError" class="mb-0 text-sm text-n-ruby-11">
+                {{ timelineError }}
+              </p>
+              <p
+                v-else-if="timeline.length === 0"
+                class="mb-0 text-sm text-n-slate-11"
+              >
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY') }}
+              </p>
+              <template v-else>
+                <article
+                  v-for="event in timeline"
+                  :key="event.id"
+                  class="grid gap-1 border-b border-n-weak pb-3 last:border-0"
+                >
+                  <strong class="text-sm text-n-slate-12">
+                    {{ timelineEventLabel(event.event_type) }}
+                  </strong>
+                  <span class="text-xs text-n-slate-11">
+                    {{ timelineEventMeta(event) }}
+                  </span>
+                </article>
+              </template>
+            </section>
 
             <section
               v-if="hasCustomFields"
@@ -604,6 +751,11 @@ onMounted(() => {
                 >
                   <span class="text-sm font-medium text-n-slate-12">
                     {{ definition.label }}
+                    <i
+                      v-if="definition.important"
+                      class="i-lucide-asterisk ml-1 inline-block size-3 text-n-amber-11"
+                      :title="t('KANBAN.OPPORTUNITY_DETAILS.IMPORTANT_FIELD')"
+                    />
                   </span>
 
                   <select

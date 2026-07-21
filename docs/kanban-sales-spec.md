@@ -2,7 +2,7 @@
 
 Baseado em: [PRD: Kanban Comercial no Chatwoot](./kanban-sales-prd.md)
 
-Status: implementação principal entregue; fechamento estrutural P0 especificado e pendente
+Status: implementação estrutural avançada; importação do Kommo e validação E2E de acessibilidade/mobile pendentes
 
 ## Objetivo Da Spec
 
@@ -31,6 +31,7 @@ Campos existentes relevantes:
 Campos comerciais implementados:
 
 - `custom_field_definitions`: definição dos campos personalizados do board;
+- `custom_field_sections`: abas personalizadas persistentes do board;
 - `compact_card_field_keys`: campos customizados exibidos no card compacto;
 - `stale_stage_thresholds`: limites por etapa para alerta de card parado.
 
@@ -307,11 +308,13 @@ Cada campo deve ter:
 - `details`: aba Geral;
 - `marketing`: aba Marketing.
 
-Qualquer outro valor não vazio cria uma aba adicional com o nome humanizado. Campos sem `layout.section` permanecem em `details` para manter compatibilidade com boards existentes.
+Abas adicionais são persistidas em `custom_field_sections`, no formato `{ key, label }`. As chaves `details`, `marketing` e `timeline` são reservadas. Campos sem `layout.section` permanecem em `details` para manter compatibilidade com boards existentes.
+
+O card apresenta `Geral`, `Marketing`, as abas personalizadas e `Linha do tempo`. Para administradores, uma engrenagem abre o gerenciador do board e o botão `+` inicia a criação de uma aba sem exigir saída manual do contexto da oportunidade.
 
 As configurações do board devem oferecer um editor visual com `vuedraggable`. Mover um campo entre áreas atualiza `layout.section`; reordenar um campo atualiza `layout.position`. `layout.width` continua controlando a largura do campo dentro da aba.
 
-O botão de preset de Marketing adiciona apenas campos ausentes e usa chaves estáveis para origem, suborigem, UTMs, click IDs, cookies de atribuição, campanha, conjunto, anúncio e landing page. Todos os campos do preset usam `layout.section = marketing`.
+O botão de preset de Marketing substitui somente campos conhecidos do preset na seção Marketing, remove chaves obsoletas e preserva campos desconhecidos criados pelo cliente. A ordem e as chaves canônicas são: `origem_do_lead`, `sub_origem`, `campaign`, `adset`, `ad`, `utm_content`, `utm_medium`, `utm_campaign`, `utm_source`, `utm_term`, `utm_referrer`, `referrer`, `gclientid`, `gclid`, `fvclid`, `ttad_name`, `ttad_id`, `fbc`, `fbp`, `ttclid`, `campaign_id`, `adset_id`, `ad_id`, `landing_page`, `event_id` e `landing_page_full`.
 
 Formato sugerido de `custom_field_definitions`:
 
@@ -382,8 +385,9 @@ Campos `formula` são somente leitura no card e calculados no backend ao salvar.
 Regras MVP:
 
 - aceitar operações `+`, `-`, `*`, `/` e parênteses;
-- aceitar apenas referências a chaves de campos numéricos;
+- aceitar referências ao valor da oportunidade, a campos inteiros, decimais, monetários e a fórmulas anteriores;
 - valores vazios contam como `0`;
+- aceitar ponto ou vírgula como separador decimal em constantes;
 - fórmula inválida deve gerar erro de validação;
 - não executar código arbitrário.
 
@@ -394,9 +398,13 @@ Semântica da configuração:
 - a expressão não inclui atribuição: usar `procedimento + exames`, nunca `valor_total = procedimento + exames`;
 - a UI nunca salva expressão matemática em `condition.equals`;
 - o editor de fórmula só aparece para `field_type = formula`;
-- o editor oferece inserção dos campos numéricos disponíveis, incluindo `system_amount`;
-- antes de salvar, a UI exibe uma forma humanizada da expressão e uma prévia com valores de exemplo;
+- digitar `[` abre todos os campos numéricos e monetários disponíveis, incluindo `system_amount`;
+- digitar depois de `[` filtra por nome; selecionar insere um marcador humanizado como `[Valor da oportunidade]`;
+- antes de salvar, a UI converte o marcador humanizado para a chave estável correspondente;
+- fórmulas calculadas aparecem como candidatas somente quando estão antes do campo atual; referências futuras e ciclos são inválidos;
 - backend continua sendo a autoridade de validação e cálculo.
+
+Campos `date` e `datetime` não são operandos no MVP. Suporte futuro exige `formula_result_type` e regras explícitas para duração, diferença entre datas, soma de dias e preservação de fuso horário.
 
 ### Obrigatoriedade Por Etapa
 
@@ -584,6 +592,7 @@ Endpoint de settings deve aceitar no MVP:
 - `next_action_types`;
 - `lost_reason_options`;
 - `custom_field_definitions`;
+- `custom_field_sections`;
 - `compact_card_field_keys`;
 - `stale_stage_thresholds`.
 
@@ -621,6 +630,7 @@ Adicionar em `kanban_boards`:
 - `next_action_types jsonb`;
 - `lost_reason_options jsonb`;
 - `custom_field_definitions jsonb`;
+- `custom_field_sections jsonb`;
 - `compact_card_field_keys jsonb`;
 - `stale_stage_thresholds jsonb`;
 
@@ -751,7 +761,7 @@ O módulo de automações só entra em implementação depois de estes itens P0 
 - Resumo compacto mostra abertas, ganhas, perdidas, atrasadas e valor ganho.
 - Card organiza campos por abas e abre inicialmente na aba Geral.
 - Administrador consegue arrastar campos entre abas e reordená-los.
-- Preset de Marketing cria os campos ausentes sem duplicar chaves existentes.
+- Preset de Marketing sincroniza o conjunto canônico sem duplicar chaves e preserva campos desconhecidos criados pelo cliente.
 - Nada no fluxo exige consulta ou reunião.
 - Venda 100% via WhatsApp é suportada.
 

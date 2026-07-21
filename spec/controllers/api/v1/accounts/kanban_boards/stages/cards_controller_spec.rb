@@ -176,6 +176,24 @@ RSpec.describe 'Kanban stage cards API', type: :request do
       expect(response.parsed_body['pagination']['total_count']).to eq(1)
     end
 
+    it 'searches and sorts cards through query parameters' do
+      matching_contact = create(:contact, account: account, name: 'Cliente Valor')
+      create_visible_card(position: 1, amount_cents: 100_00)
+      matching_card = create_visible_card(
+        position: 2,
+        contact: matching_contact,
+        amount_cents: 900_00
+      )
+
+      get stage_cards_path,
+          headers: agent.create_new_auth_token,
+          params: { search: 'Cliente Valor', sort: 'amount_desc' },
+          as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['cards'].pluck('id')).to eq([matching_card.id])
+    end
+
     it 'excludes manual cards when assignee filter is active' do
       manual_card = create_visible_card(position: 1)
       conversation_card = create_conversation_card(position: 2, assignee: agent)
@@ -478,7 +496,7 @@ RSpec.describe 'Kanban stage cards API', type: :request do
     %w[
       id kanban_stage_id position origin subject active due_at stage_entered_at contact inbox conversation_id priority conversation assignee
       owner_id owner next_action_type next_action_at next_action_note next_action_completed_at next_action_status won_at lost_at lost_reason
-      closed_by_id closed_by amount_cents amount_currency custom_field_values compact_custom_fields stale_in_stage
+      closed_by_id closed_by amount_cents amount_currency expected_close_date custom_field_values compact_custom_fields stale_in_stage
       moved_by_id moved_at
     ]
   end

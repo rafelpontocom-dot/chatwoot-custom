@@ -7,7 +7,9 @@ RSpec.describe 'Kanban Stages API', type: :request do
   let(:kanban_board) { create(:kanban_board, account: account) }
 
   describe 'POST /api/v1/accounts/{account.id}/kanban_boards/{kanban_board.id}/stages' do
-    let(:payload) { { stage: { name: 'Proposal', position: 1, color: 'teal' } } }
+    let(:payload) do
+      { stage: { name: 'Proposal', position: 1, color: 'teal', category: 'open', wip_limit: 12 } }
+    end
 
     it 'creates a stage for administrators' do
       expect do
@@ -21,6 +23,8 @@ RSpec.describe 'Kanban Stages API', type: :request do
       expect(response.parsed_body['name']).to eq('Proposal')
       expect(response.parsed_body['color']).to eq('teal')
       expect(response.parsed_body['position']).to eq(1)
+      expect(response.parsed_body['category']).to eq('open')
+      expect(response.parsed_body['wip_limit']).to eq(12)
     end
 
     it 'emits kanban.stage.created with a compact payload' do
@@ -125,6 +129,18 @@ RSpec.describe 'Kanban Stages API', type: :request do
       expect(stage.reload.name).to eq('Won')
       expect(stage.color).to eq('ruby')
       expect(stage).not_to be_active
+    end
+
+    it 'updates the commercial category and optional capacity alert' do
+      stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/stages/#{stage.id}",
+            headers: administrator.create_new_auth_token,
+            params: { stage: { category: 'won', wip_limit: 8 } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('category' => 'won', 'wip_limit' => 8)
     end
 
     it 'emits kanban.stage.updated with a compact payload' do

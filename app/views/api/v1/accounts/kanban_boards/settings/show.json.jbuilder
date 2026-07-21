@@ -9,5 +9,6 @@ json.auto_create_cards_from_conversations @kanban_board.auto_create_cards_from_c
 json.next_action_types @kanban_board.configured_next_action_types
 json.lost_reason_options @kanban_board.configured_lost_reason_options
 json.custom_field_definitions @kanban_board.configured_custom_field_definitions
+json.custom_field_sections @kanban_board.configured_custom_field_sections
 json.compact_card_field_keys @kanban_board.compact_card_field_keys
 json.stale_stage_thresholds @kanban_board.stale_stage_thresholds

@@ -114,6 +114,29 @@ RSpec.describe 'Kanban board settings API', type: :request do
       expect(response.parsed_body['custom_field_definitions']).to eq(definitions)
     end
 
+    it 'updates board-specific opportunity tabs' do
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                custom_field_sections: [
+                  { key: 'consulta', label: 'Consulta' },
+                  { key: 'financeiro', label: 'Financeiro' }
+                ]
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload.custom_field_sections).to eq(
+        [
+          { 'key' => 'consulta', 'label' => 'Consulta' },
+          { 'key' => 'financeiro', 'label' => 'Financeiro' }
+        ]
+      )
+      expect(response.parsed_body['custom_field_sections']).to eq(board.custom_field_sections)
+    end
+
     it 'updates compact card fields and stale stage thresholds' do
       stage = create(:kanban_stage, account: account, kanban_board: board)
 
