@@ -2,7 +2,7 @@
 
 Baseado em: [PRD: Kanban Comercial no Chatwoot](./kanban-sales-prd.md)
 
-Status: implementação estrutural avançada; importação do Kommo e validação E2E de acessibilidade/mobile pendentes
+Status: implementação estrutural avançada; validação E2E de acessibilidade/mobile pendente
 
 ## Objetivo Da Spec
 
@@ -516,22 +516,9 @@ Ao arrastar um card:
 
 Movimentação para etapa `won` ou `lost` segue as regras de fechamento e histórico.
 
-### Importacao Do Kommo
+### Migracao Do Kommo
 
-Requisito P0 para concluir a substituição operacional do Kommo.
-
-Fluxo:
-
-1. enviar CSV exportado;
-2. mapear pipeline/etapa de origem para board/etapa de destino;
-3. mapear usuários por email, com opção de responsável padrão;
-4. mapear campos nativos e personalizados;
-5. visualizar contagens de criação, atualização, ignorados e erros antes de executar;
-6. executar em background com identificador de importação;
-7. baixar relatório de linhas rejeitadas;
-8. permitir repetir o mesmo arquivo sem duplicar registros já importados.
-
-Cada registro importado deve preservar `external_source = kommo` e `external_id` estável. A importação não deve enviar mensagens nem iniciar automações por padrão.
+Fora do escopo do produto. Caso seja necessária, será executada como operação de dados separada, sem adicionar uma interface permanente de importação ao Kanban.
 
 ### Navegacao E Contexto
 
@@ -732,7 +719,6 @@ O módulo de automações só entra em implementação depois de estes itens P0 
 - movimentação assistida com rollback visual;
 - busca, ordenação e filtros salvos;
 - construtor de condições e fórmulas sem ambiguidade;
-- importação idempotente do Kommo;
 - aviso de duplicidade compreensível;
 - UX responsiva e acessível validada em desktop e mobile.
 
@@ -774,7 +760,6 @@ O módulo de automações só entra em implementação depois de estes itens P0 
 - Linha do tempo identifica o que mudou, quando e por quem.
 - Campo do tipo fórmula mostra editor próprio, campos numéricos disponíveis, validação e prévia.
 - `For igual a` aparece apenas dentro da configuração de condição.
-- Importação do Kommo apresenta prévia, roda em background, gera relatório e pode ser repetida sem duplicar.
 - Possível duplicidade informa o motivo e permite entender a oportunidade existente.
 - Fluxos essenciais funcionam por teclado e em viewport móvel sem sobreposição.
 - Nenhuma ação do Kanban envia mensagem automática antes da ativação explícita do futuro módulo.
@@ -840,10 +825,12 @@ Fluxo:
 2. histórico comercial completo;
 3. busca, ordenação e filtros salvos;
 4. UX final do construtor de campos, condições e fórmulas;
-5. importação idempotente do Kommo;
-6. acessibilidade, mobile e teste E2E do fluxo integral;
-7. fundação de atributos canônicos do contato;
-8. PRD e spec separados do módulo de automações;
-9. lembrete de agendamento;
-10. cadência de follow-up;
-11. aniversário e outras recorrências.
+5. acessibilidade, mobile e teste E2E do fluxo integral;
+6. confirmação e resumo de impacto para todas as ações em massa;
+7. arquivamento e restauração de boards;
+8. gerenciamento completo de abas e filtros salvos, além da prévia numérica de fórmulas;
+9. fundação de atributos canônicos do contato;
+10. PRD e spec separados do módulo de automações;
+11. lembrete de agendamento;
+12. cadência de follow-up;
+13. aniversário e outras recorrências.

@@ -31,6 +31,7 @@ O produto deve ajudar o vendedor a responder rapidamente:
 - Fixar o fluxo em consulta, reunião ou qualquer tipo específico de venda.
 - Criar automações avançadas antes de validar o uso manual.
 - Substituir o atendimento do Chatwoot por um CRM separado.
+- Importar dados diretamente do Kommo. A migração será tratada fora do produto, se necessária.
 
 ## Principio Central
 
@@ -545,7 +546,6 @@ Antes de iniciar o módulo de automações, o Kanban precisa fechar estas lacuna
 - **Movimentação assistida:** ao arrastar para uma etapa com campos obrigatórios, abrir um formulário curto com os dados faltantes; se cancelar ou falhar, devolver visualmente o card à origem.
 - **Busca e produtividade:** busca global no board, filtros ativos claros, limpar filtros, ordenação e filtros salvos.
 - **Construtor de campos intuitivo:** separar dados básicos, condição e fórmula; usar selects e prévia em linguagem natural; esconder JSON na área avançada.
-- **Migração do Kommo:** importação CSV com mapeamento de etapas, responsáveis, contatos, oportunidades, valores e campos personalizados; prévia, relatório de erros e idempotência.
 - **Qualidade de dados:** aviso compreensível para possível oportunidade duplicada, sem impedir múltiplas oportunidades legítimas do mesmo contato.
 - **Confiabilidade e acessibilidade:** feedback de salvamento, estados de erro recuperáveis, navegação por teclado e comportamento responsivo do board e modal.
 
@@ -563,10 +563,11 @@ Antes de iniciar o módulo de automações, o Kanban precisa fechar estas lacuna
 - `Implementado`: construtor visual com condições, fórmulas por `[` e chaves estáveis, opções compactas, obrigatoriedade por checkbox, abas persistentes e preset exato de Marketing.
 - `Implementado no P1`: arquivar/restaurar oportunidades, data prevista de fechamento, campos importantes e alerta de capacidade por etapa.
 - `Parcial no P1`: ações em massa existem, mas ainda precisam de confirmação e resumo de impacto para todas as operações; arquivamento/restauração de board ainda não possui fluxo completo.
-- `Pendente no P0`: importação CSV do Kommo com mapeamento, prévia, relatório e idempotência.
 - `Pendente no P0`: validação E2E em desktop e mobile, navegação integral por teclado e auditoria de acessibilidade com tecnologia assistiva.
+- `Pendente de acabamento`: renomear, reordenar e excluir abas personalizadas; renomear e excluir filtros salvos pela interface; mostrar uma prévia numérica da fórmula antes de salvar.
+- `Futuro`: fórmulas com datas e horas dependem de semântica explícita para soma de dias, duração, diferença entre datas, resultado e fuso horário.
 
-O módulo de automações continua bloqueado até os dois itens P0 pendentes serem aceitos.
+O módulo de automações continua bloqueado até a validação P0 pendente ser aceita.
 
 ### Fora Do Fechamento Atual
 
