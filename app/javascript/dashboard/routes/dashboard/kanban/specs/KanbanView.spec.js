@@ -1720,31 +1720,20 @@ describe('KanbanView header navigation', () => {
     expect(summary.text()).toContain('R$ 1.255,00');
   });
 
-  it('renders detailed sales reports and the daily agenda', async () => {
+  it('does not render detailed sales reports or the daily agenda', async () => {
     const wrapper = await mountView();
 
-    const details = wrapper.find('[data-testid="kanban-sales-details"]');
-    expect(details.text()).toContain('Stage A');
-    expect(details.text()).toContain('Ada Lovelace');
-    expect(details.text()).toContain('Preço');
-    expect(details.text()).toContain('Enterprise expansion');
-    expect(details.text()).toContain('R$ 5.000,00');
-    expect(details.text()).toContain('R$ 3.000,00');
-    expect(details.text()).toContain('R$ 750,00');
-    expect(
-      details.find('[data-testid="kanban-sales-details-grid"]').classes()
-    ).toEqual(expect.arrayContaining(['lg:grid-cols-2', '2xl:grid-cols-4']));
+    expect(wrapper.find('[data-testid="kanban-sales-details"]').exists()).toBe(
+      false
+    );
   });
 
-  it('has complete pt_BR sales report translations', () => {
+  it('has pt_BR compact sales summary translations', () => {
     expect(ptBRKanbanMessages.KANBAN.REPORTS).toMatchObject({
-      DETAILS: 'Relatórios de vendas e agenda',
-      VALUES: 'Valores',
-      BY_STAGE: 'Por etapa',
-      BY_OWNER: 'Por responsável',
-      LOST_REASONS: 'Motivos de perda',
-      AGENDA: 'Agenda de hoje',
-      STALE: 'Paradas',
+      OPEN: 'Abertas',
+      WON: 'Ganhas',
+      LOST: 'Perdidas',
+      WON_AMOUNT: 'Valor ganho',
     });
   });
 

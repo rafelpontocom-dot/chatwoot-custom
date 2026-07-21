@@ -167,9 +167,9 @@ const mountSettings = async ({
         Draggable: {
           name: 'Draggable',
           props: ['modelValue', 'list'],
-          emits: ['update:modelValue', 'end'],
+          emits: ['update:modelValue', 'end', 'change'],
           template:
-            '<div><slot v-for="item in modelValue || list" name="item" :element="item" /></div>',
+            '<div v-bind="$attrs"><slot v-for="item in modelValue || list" name="item" :element="item" /></div>',
         },
         WootDeleteModal: {
           props: ['show', 'onConfirm'],
@@ -416,6 +416,77 @@ describe('KanbanBoardSettings', () => {
         .findAll('[data-testid="kanban-settings-custom-field-label"]')
         .at(1).element
     ).toBe(originalInputElement);
+  });
+
+  it('adds the complete marketing field preset', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-add-marketing-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    expect(KanbanBoardsAPI.updateSettings).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_board: expect.objectContaining({
+          custom_field_definitions: expect.arrayContaining([
+            expect.objectContaining({
+              key: 'origem_do_lead',
+              field_type: 'select',
+              layout: expect.objectContaining({ section: 'marketing' }),
+            }),
+            expect.objectContaining({
+              key: 'sub_origem',
+              field_type: 'select',
+              layout: expect.objectContaining({ section: 'marketing' }),
+            }),
+            expect.objectContaining({ key: 'utm_source' }),
+            expect.objectContaining({ key: 'gclid' }),
+            expect.objectContaining({ key: 'fbclid' }),
+            expect.objectContaining({ key: 'ttclid' }),
+            expect.objectContaining({ key: 'campaign_id' }),
+            expect.objectContaining({ key: 'landing_page_full' }),
+          ]),
+        }),
+      })
+    );
+  });
+
+  it('moves custom fields between tabs with the visual layout editor', async () => {
+    const { wrapper } = await mountSettings();
+    const draggableSections = wrapper.findAllComponents({ name: 'Draggable' });
+    const detailsSection = draggableSections.find(
+      component => component.attributes('data-section-key') === 'details'
+    );
+    const marketingSection = draggableSections.find(
+      component => component.attributes('data-section-key') === 'marketing'
+    );
+    const [field] = detailsSection.props('modelValue');
+
+    marketingSection.vm.$emit('change', {
+      added: { element: field, newIndex: 0 },
+    });
+    await nextTick();
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    expect(KanbanBoardsAPI.updateSettings).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_board: expect.objectContaining({
+          custom_field_definitions: expect.arrayContaining([
+            expect.objectContaining({
+              key: 'consulta_realizada',
+              layout: expect.objectContaining({ section: 'marketing' }),
+            }),
+          ]),
+        }),
+      })
+    );
   });
 
   it('uses the source field options as conditional values', async () => {

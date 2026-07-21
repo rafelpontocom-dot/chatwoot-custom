@@ -19,6 +19,8 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION': 'Description',
         'KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT': 'Value',
         'KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS': 'Custom fields',
+        'KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL': 'General',
+        'KANBAN.OPPORTUNITY_DETAILS.TABS.MARKETING': 'Marketing',
         'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER':
           'Add a single note for this card',
         'KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE': 'Agent',
@@ -296,9 +298,9 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(subjectInput(wrapper).classes()).toContain('w-full');
     expect(descriptionInput(wrapper).classes()).toEqual(
-      expect.arrayContaining(['max-w-full', 'w-full', 'min-h-24'])
+      expect.arrayContaining(['max-w-full', 'w-full', 'min-h-20'])
     );
-    expect(descriptionInput(wrapper).attributes('rows')).toBe('4');
+    expect(descriptionInput(wrapper).attributes('rows')).toBe('3');
     expect(amountInput(wrapper).element.value).toBe('125.50');
   });
 
@@ -382,6 +384,49 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
     expect(customFieldInput(wrapper, 'observacao_venda').element.value).toBe(
       'Cliente quer fechar no WhatsApp'
+    );
+  });
+
+  it('organizes custom fields in tabs using their configured section', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        customFieldValues: {
+          qualificacao: 'Pronto para comprar',
+          gclid: 'google-click-123',
+        },
+      }),
+      customFieldDefinitions: [
+        {
+          key: 'qualificacao',
+          label: 'Qualificação',
+          fieldType: 'text',
+          layout: { section: 'details', position: 1, width: 'full' },
+        },
+        {
+          key: 'gclid',
+          label: 'gclid',
+          fieldType: 'text',
+          layout: { section: 'marketing', position: 1, width: 'full' },
+        },
+      ],
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-tab-details"]').text()
+    ).toContain('General');
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-tab-marketing"]').text()
+    ).toContain('Marketing');
+    expect(customFieldInput(wrapper, 'qualificacao').exists()).toBe(true);
+    expect(customFieldInput(wrapper, 'gclid').exists()).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-marketing"]')
+      .trigger('click');
+
+    expect(customFieldInput(wrapper, 'qualificacao').exists()).toBe(false);
+    expect(customFieldInput(wrapper, 'gclid').element.value).toBe(
+      'google-click-123'
     );
   });
 

@@ -68,6 +68,7 @@ const labelsSaveError = ref('');
 const subjectError = ref('');
 const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
+const activeTabKey = ref('details');
 
 const modalTitle = computed(() =>
   props.boardName
@@ -153,6 +154,31 @@ const normalizedCustomFieldDefinitions = computed(() =>
         (secondDefinition.layout?.position || 0)
     )
 );
+const customFieldSectionKey = definition =>
+  definition.layout?.section?.trim() || 'details';
+const customFieldSectionLabel = sectionKey => {
+  if (sectionKey === 'details') {
+    return t('KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL');
+  }
+  if (sectionKey === 'marketing') {
+    return t('KANBAN.OPPORTUNITY_DETAILS.TABS.MARKETING');
+  }
+
+  return sectionKey
+    .replace(/[_-]+/g, ' ')
+    .replace(/^./, character => character.toUpperCase());
+};
+const customFieldTabs = computed(() => {
+  const sectionKeys = [
+    'details',
+    ...normalizedCustomFieldDefinitions.value.map(customFieldSectionKey),
+  ];
+
+  return [...new Set(sectionKeys)].map(key => ({
+    key,
+    label: customFieldSectionLabel(key),
+  }));
+});
 
 const normalizeCard = payload =>
   Object.fromEntries(
@@ -221,8 +247,13 @@ const visibleCustomFieldDefinitions = computed(() =>
     isCustomFieldVisible(definition)
   )
 );
+const activeTabCustomFieldDefinitions = computed(() =>
+  visibleCustomFieldDefinitions.value.filter(
+    definition => customFieldSectionKey(definition) === activeTabKey.value
+  )
+);
 const hasCustomFields = computed(
-  () => visibleCustomFieldDefinitions.value.length > 0
+  () => activeTabCustomFieldDefinitions.value.length > 0
 );
 const getCustomFieldValue = definition =>
   customFieldValues.value[definition.key] ?? '';
@@ -491,46 +522,69 @@ onMounted(() => {
         class="grid gap-5"
         @submit.prevent="saveCard"
       >
+        <nav
+          class="flex min-w-0 gap-1 overflow-x-auto border-b border-n-weak"
+          :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL')"
+        >
+          <button
+            v-for="tab in customFieldTabs"
+            :key="tab.key"
+            type="button"
+            :data-testid="`kanban-opportunity-tab-${tab.key}`"
+            class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium"
+            :class="
+              activeTabKey === tab.key
+                ? 'border-n-brand text-n-brand'
+                : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
+            "
+            @click="activeTabKey = tab.key"
+          >
+            {{ tab.label }}
+          </button>
+        </nav>
+
         <div
           data-testid="kanban-opportunity-layout"
           class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,4fr)_minmax(16rem,1fr)]"
         >
           <section class="grid min-w-0 content-start gap-4">
-            <NextInput
-              v-model="subject"
-              data-testid="kanban-opportunity-subject"
-              class="w-full"
-              :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_TITLE')"
-              :message="subjectError"
-              :message-type="subjectError ? 'error' : 'info'"
-              autofocus
-              @input="subjectError = ''"
-            />
-
-            <label class="grid gap-1.5">
-              <span class="text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION') }}
-              </span>
-              <textarea
-                v-model="description"
-                rows="4"
-                data-testid="kanban-opportunity-description"
-                class="min-h-24 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                :placeholder="
-                  t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
-                "
+            <template v-if="activeTabKey === 'details'">
+              <NextInput
+                v-model="subject"
+                data-testid="kanban-opportunity-subject"
+                class="w-full"
+                :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_TITLE')"
+                :message="subjectError"
+                :message-type="subjectError ? 'error' : 'info'"
+                autofocus
+                @input="subjectError = ''"
               />
-            </label>
 
-            <NextInput
-              v-model="amountValue"
-              data-testid="kanban-opportunity-amount"
-              class="w-full"
-              type="number"
-              min="0"
-              step="0.01"
-              :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
-            />
+              <label class="grid gap-1.5">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION') }}
+                </span>
+                <textarea
+                  v-model="description"
+                  rows="3"
+                  data-testid="kanban-opportunity-description"
+                  class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                  :placeholder="
+                    t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
+                  "
+                />
+              </label>
+
+              <NextInput
+                v-model="amountValue"
+                data-testid="kanban-opportunity-amount"
+                class="w-full"
+                type="number"
+                min="0"
+                step="0.01"
+                :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
+              />
+            </template>
 
             <section
               v-if="hasCustomFields"
@@ -543,7 +597,7 @@ onMounted(() => {
 
               <div class="grid gap-3 md:grid-cols-6">
                 <label
-                  v-for="definition in visibleCustomFieldDefinitions"
+                  v-for="definition in activeTabCustomFieldDefinitions"
                   :key="definition.key"
                   class="grid gap-1.5"
                   :class="customFieldLayoutClass(definition)"

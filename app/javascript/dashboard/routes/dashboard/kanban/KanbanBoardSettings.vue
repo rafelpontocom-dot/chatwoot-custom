@@ -245,6 +245,122 @@ const customFieldWidthOptions = computed(() => [
   { value: 'third', label: t('KANBAN.SETTINGS.SALES.FIELD_WIDTHS.THIRD') },
 ]);
 
+const leadOriginOptions = [
+  'Mídia Paga',
+  'WhatsApp Directo',
+  'Indicação',
+  'Google',
+  'Site',
+  'Facebook',
+  'Referência Médica',
+  'Outro',
+  'Orgânico',
+  'Parceria',
+];
+const leadSubOriginOptions = [
+  '[MP] Google',
+  '[MP] Meta',
+  '[MP] YouTube',
+  '[MP] TikTok',
+  '[ORG] Google',
+  '[ORG] Instagram',
+  '[ORG] Facebook',
+  '[ORG] Site Direto',
+  '[ORG] WhatsApp',
+  '[IND] Paciente',
+  '[IND] Parceiro',
+  '[OUT] Desconhecido',
+];
+const marketingFieldLabels = computed(() => ({
+  LEAD_ORIGIN: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.LEAD_ORIGIN'),
+  LEAD_SUB_ORIGIN: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.LEAD_SUB_ORIGIN'),
+  UTM_SOURCE: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.UTM_SOURCE'),
+  UTM_MEDIUM: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.UTM_MEDIUM'),
+  UTM_CAMPAIGN: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.UTM_CAMPAIGN'),
+  UTM_TERM: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.UTM_TERM'),
+  UTM_CONTENT: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.UTM_CONTENT'),
+  UTM_ID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.UTM_ID'),
+  UTM_REFERRER: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.UTM_REFERRER'),
+  REFERRER: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.REFERRER'),
+  GOOGLE_CLIENT_ID: t(
+    'KANBAN.SETTINGS.SALES.MARKETING_FIELDS.GOOGLE_CLIENT_ID'
+  ),
+  GCLID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.GCLID'),
+  GBRAID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.GBRAID'),
+  WBRAID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.WBRAID'),
+  DCLID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.DCLID'),
+  FBCLID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.FBCLID'),
+  FBC: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.FBC'),
+  FBP: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.FBP'),
+  TTCLID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.TTCLID'),
+  TIKTOK_AD_ID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.TIKTOK_AD_ID'),
+  TIKTOK_AD_NAME: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.TIKTOK_AD_NAME'),
+  MSCLKID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.MSCLKID'),
+  CAMPAIGN_NAME: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.CAMPAIGN_NAME'),
+  ADSET_NAME: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.ADSET_NAME'),
+  AD_NAME: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.AD_NAME'),
+  CAMPAIGN_ID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.CAMPAIGN_ID'),
+  ADSET_ID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.ADSET_ID'),
+  AD_ID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.AD_ID'),
+  LANDING_PAGE: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.LANDING_PAGE'),
+  LANDING_PAGE_FULL: t(
+    'KANBAN.SETTINGS.SALES.MARKETING_FIELDS.LANDING_PAGE_FULL'
+  ),
+  EVENT_ID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.EVENT_ID'),
+}));
+const marketingFieldDefinitions = computed(() => {
+  const field = (key, labelKey, options = {}) => ({
+    key,
+    label: marketingFieldLabels.value[labelKey],
+    fieldType: 'text',
+    layoutWidth: 'half',
+    ...options,
+  });
+
+  return [
+    field('origem_do_lead', 'LEAD_ORIGIN', {
+      fieldType: 'select',
+      options: leadOriginOptions,
+    }),
+    field('sub_origem', 'LEAD_SUB_ORIGIN', {
+      fieldType: 'select',
+      options: leadSubOriginOptions,
+    }),
+    field('utm_source', 'UTM_SOURCE'),
+    field('utm_medium', 'UTM_MEDIUM'),
+    field('utm_campaign', 'UTM_CAMPAIGN'),
+    field('utm_term', 'UTM_TERM'),
+    field('utm_content', 'UTM_CONTENT'),
+    field('utm_id', 'UTM_ID'),
+    field('utm_referrer', 'UTM_REFERRER'),
+    field('referrer', 'REFERRER'),
+    field('gclientid', 'GOOGLE_CLIENT_ID'),
+    field('gclid', 'GCLID'),
+    field('gbraid', 'GBRAID'),
+    field('wbraid', 'WBRAID'),
+    field('dclid', 'DCLID'),
+    field('fbclid', 'FBCLID'),
+    field('fbc', 'FBC'),
+    field('fbp', 'FBP'),
+    field('ttclid', 'TTCLID'),
+    field('ttad_id', 'TIKTOK_AD_ID'),
+    field('ttad_name', 'TIKTOK_AD_NAME'),
+    field('msclkid', 'MSCLKID'),
+    field('campaign_name', 'CAMPAIGN_NAME'),
+    field('adset_name', 'ADSET_NAME'),
+    field('ad_name', 'AD_NAME'),
+    field('campaign_id', 'CAMPAIGN_ID'),
+    field('adset_id', 'ADSET_ID'),
+    field('ad_id', 'AD_ID'),
+    field('landing_page', 'LANDING_PAGE', { fieldType: 'url' }),
+    field('landing_page_full', 'LANDING_PAGE_FULL', {
+      fieldType: 'textarea',
+      layoutWidth: 'full',
+    }),
+    field('event_id', 'EVENT_ID'),
+  ];
+});
+
 const getErrorMessage = (error, fallbackMessage) =>
   error?.response?.data?.error ||
   error?.response?.data?.message ||
@@ -357,6 +473,31 @@ const customFieldPayload = definition => ({
   },
 });
 
+const createCustomFieldRow = ({
+  key = '',
+  label = '',
+  fieldType = 'text',
+  options = [],
+  layoutSection = 'details',
+  layoutPosition = form.customFieldDefinitions.length + 1,
+  layoutWidth = 'full',
+  autoKey = true,
+} = {}) => ({
+  clientId: nextCustomFieldRowId(),
+  key,
+  label,
+  fieldType,
+  optionsText: options.join('\n'),
+  requiredStageIds: [],
+  conditionFieldKey: '',
+  conditionEquals: '',
+  formula: '',
+  layoutSection,
+  layoutPosition,
+  layoutWidth,
+  autoKey,
+});
+
 const syncCustomFieldDefinitionsText = () => {
   form.customFieldDefinitionsText = JSON.stringify(
     form.customFieldDefinitions.map(customFieldPayload),
@@ -366,20 +507,91 @@ const syncCustomFieldDefinitionsText = () => {
 };
 
 const addCustomField = () => {
-  form.customFieldDefinitions.push({
-    clientId: nextCustomFieldRowId(),
-    key: '',
-    label: '',
-    fieldType: 'text',
-    optionsText: '',
-    requiredStageIds: [],
-    conditionFieldKey: '',
-    conditionEquals: '',
-    formula: '',
-    layoutSection: 'details',
-    layoutPosition: form.customFieldDefinitions.length + 1,
-    layoutWidth: 'full',
-    autoKey: true,
+  form.customFieldDefinitions.push(createCustomFieldRow());
+  syncCustomFieldDefinitionsText();
+};
+
+const customFieldSectionLabel = sectionKey => {
+  if (sectionKey === 'details') {
+    return t('KANBAN.SETTINGS.SALES.TABS.GENERAL');
+  }
+  if (sectionKey === 'marketing') {
+    return t('KANBAN.SETTINGS.SALES.TABS.MARKETING');
+  }
+
+  return sectionKey
+    .replace(/[_-]+/g, ' ')
+    .replace(/^./, character => character.toUpperCase());
+};
+const customFieldLayoutSections = computed(() => {
+  const sectionKeys = [
+    'details',
+    'marketing',
+    ...form.customFieldDefinitions.map(
+      definition => definition.layoutSection || 'details'
+    ),
+  ];
+
+  return [...new Set(sectionKeys)].map(key => ({
+    key,
+    label: customFieldSectionLabel(key),
+  }));
+});
+const customFieldsForLayoutSection = sectionKey =>
+  form.customFieldDefinitions
+    .filter(
+      definition => (definition.layoutSection || 'details') === sectionKey
+    )
+    .sort(
+      (firstDefinition, secondDefinition) =>
+        Number(firstDefinition.layoutPosition) -
+        Number(secondDefinition.layoutPosition)
+    );
+const renumberCustomFieldSection = sectionKey => {
+  customFieldsForLayoutSection(sectionKey).forEach((definition, index) => {
+    definition.layoutPosition = index + 1;
+  });
+};
+const moveCustomFieldInLayout = (sectionKey, event) => {
+  const change = event.added || event.moved;
+  if (!change) return;
+
+  const definition = change.element;
+  const previousSectionKey = definition.layoutSection || 'details';
+  definition.layoutSection = sectionKey;
+
+  const sectionFields = customFieldsForLayoutSection(sectionKey).filter(
+    field => field !== definition
+  );
+  sectionFields.splice(change.newIndex, 0, definition);
+  sectionFields.forEach((field, index) => {
+    field.layoutPosition = index + 1;
+  });
+
+  if (previousSectionKey !== sectionKey) {
+    renumberCustomFieldSection(previousSectionKey);
+  }
+  syncCustomFieldDefinitionsText();
+};
+const addMarketingFields = () => {
+  const existingKeys = new Set(
+    form.customFieldDefinitions.map(definition => definition.key)
+  );
+  let position = customFieldsForLayoutSection('marketing').length + 1;
+
+  marketingFieldDefinitions.value.forEach(definition => {
+    if (existingKeys.has(definition.key)) return;
+
+    form.customFieldDefinitions.push(
+      createCustomFieldRow({
+        ...definition,
+        layoutSection: 'marketing',
+        layoutPosition: position,
+        autoKey: false,
+      })
+    );
+    existingKeys.add(definition.key);
+    position += 1;
   });
   syncCustomFieldDefinitionsText();
 };
@@ -1000,16 +1212,81 @@ onMounted(fetchSettings);
               <h3 class="mb-0 text-sm font-medium text-n-slate-12">
                 {{ t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS') }}
               </h3>
-              <Button
-                type="button"
-                data-testid="kanban-settings-add-custom-field"
-                icon="i-lucide-plus"
-                :label="t('KANBAN.SETTINGS.SALES.ADD_CUSTOM_FIELD')"
-                color="slate"
-                size="sm"
-                @click="addCustomField"
-              />
+              <div class="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  data-testid="kanban-settings-add-marketing-fields"
+                  icon="i-lucide-megaphone"
+                  :label="t('KANBAN.SETTINGS.SALES.ADD_MARKETING_FIELDS')"
+                  color="slate"
+                  size="sm"
+                  @click="addMarketingFields"
+                />
+                <Button
+                  type="button"
+                  data-testid="kanban-settings-add-custom-field"
+                  icon="i-lucide-plus"
+                  :label="t('KANBAN.SETTINGS.SALES.ADD_CUSTOM_FIELD')"
+                  color="slate"
+                  size="sm"
+                  @click="addCustomField"
+                />
+              </div>
             </div>
+
+            <section class="grid gap-3 rounded-md border border-n-weak p-3">
+              <div class="grid gap-1">
+                <h4 class="mb-0 text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT') }}
+                </h4>
+                <p class="mb-0 text-xs text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT_DESCRIPTION') }}
+                </p>
+              </div>
+
+              <div class="grid gap-3 lg:grid-cols-2">
+                <article
+                  v-for="section in customFieldLayoutSections"
+                  :key="section.key"
+                  class="grid min-w-0 content-start gap-2 rounded-md bg-n-surface-2 p-2"
+                >
+                  <h5 class="mb-0 text-xs font-medium text-n-slate-12">
+                    {{ section.label }}
+                  </h5>
+                  <Draggable
+                    :model-value="customFieldsForLayoutSection(section.key)"
+                    item-key="clientId"
+                    group="kanban-custom-field-layout"
+                    :data-section-key="section.key"
+                    class="grid min-h-16 content-start gap-2 rounded-md border border-dashed border-n-weak p-2"
+                    @change="moveCustomFieldInLayout(section.key, $event)"
+                  >
+                    <template #item="{ element }">
+                      <div
+                        class="flex min-w-0 cursor-grab items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2 py-1.5 text-xs text-n-slate-12"
+                      >
+                        <i class="i-lucide-grip-vertical size-3.5 shrink-0" />
+                        <span class="truncate">
+                          {{
+                            element.label ||
+                            element.key ||
+                            t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
+                          }}
+                        </span>
+                      </div>
+                    </template>
+                    <template #footer>
+                      <p
+                        v-if="!customFieldsForLayoutSection(section.key).length"
+                        class="m-0 self-center text-center text-xs text-n-slate-10"
+                      >
+                        {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
+                      </p>
+                    </template>
+                  </Draggable>
+                </article>
+              </div>
+            </section>
 
             <article
               v-for="(definition, index) in form.customFieldDefinitions"

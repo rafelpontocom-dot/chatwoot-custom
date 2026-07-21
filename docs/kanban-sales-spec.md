@@ -245,6 +245,17 @@ Cada campo deve ter:
 - condição opcional de exibição;
 - fórmula opcional quando o tipo for fórmula.
 
+`layout.section` identifica a aba do modal. Os valores reservados são:
+
+- `details`: aba Geral;
+- `marketing`: aba Marketing.
+
+Qualquer outro valor não vazio cria uma aba adicional com o nome humanizado. Campos sem `layout.section` permanecem em `details` para manter compatibilidade com boards existentes.
+
+As configurações do board devem oferecer um editor visual com `vuedraggable`. Mover um campo entre áreas atualiza `layout.section`; reordenar um campo atualiza `layout.position`. `layout.width` continua controlando a largura do campo dentro da aba.
+
+O botão de preset de Marketing adiciona apenas campos ausentes e usa chaves estáveis para origem, suborigem, UTMs, click IDs, cookies de atribuição, campanha, conjunto, anúncio e landing page. Todos os campos do preset usam `layout.section = marketing`.
+
 Formato sugerido de `custom_field_definitions`:
 
 ```json
@@ -401,22 +412,17 @@ Além da tela principal do funil:
 - criar oportunidade a partir da conversa deve preencher contato, inbox e conversa quando possível;
 - abrir card deve permitir voltar para a conversa.
 
-### Relatorios Simples
+### Indicadores Compactos
 
-MVP de relatórios deve expor:
+A tela do board deve exibir somente:
 
 - total aberto;
 - total ganho;
 - total perdido;
-- valor aberto;
-- valor ganho;
-- valor perdido;
-- quantidade por etapa;
-- quantidade por responsável;
-- atrasados por responsável;
-- motivos de perda;
-- cards parados por etapa e responsável;
-- agenda de ações atrasadas e de hoje.
+- total atrasado;
+- valor ganho.
+
+O frontend não deve renderizar painel detalhado por etapa/responsável, motivos de perda ou agenda. Os dados adicionais já existentes no payload podem permanecer disponíveis para compatibilidade, sem exposição nessa tela.
 
 ## API
 
@@ -577,7 +583,10 @@ Futuro:
 - Campo fórmula calcula valor a partir de outros campos.
 - Card continua abrindo a conversa do Chatwoot.
 - Conversa/contato permitem criar ou acessar oportunidade vinculada.
-- Relatório simples mostra ganhos, perdidos, atrasados, etapas e responsáveis.
+- Resumo compacto mostra abertas, ganhas, perdidas, atrasadas e valor ganho.
+- Card organiza campos por abas e abre inicialmente na aba Geral.
+- Administrador consegue arrastar campos entre abas e reordená-los.
+- Preset de Marketing cria os campos ausentes sem duplicar chaves existentes.
 - Nada no fluxo exige consulta ou reunião.
 - Venda 100% via WhatsApp é suportada.
 

@@ -111,7 +111,14 @@ Exemplo de fórmula:
 
 - `valor_total = procedimento + exames`.
 
-O layout dos campos deve ser configurável por board. No MVP, layout pode ser simples: seção, posição e largura. No futuro pode virar editor visual com arrastar e soltar.
+O layout dos campos é configurável por board por meio de abas, posição e largura. O administrador pode arrastar campos entre as abas e reordená-los dentro de cada aba.
+
+As abas padrão são:
+
+- `Geral`, com título, descrição, valor e campos comerciais gerais;
+- `Marketing`, com origem, suborigem e atribuição de mídia.
+
+Outras abas podem ser criadas ao informar uma nova seção no campo personalizado.
 
 ## Personalizacao
 
@@ -262,6 +269,23 @@ Cada campo deve ter:
 - condição de exibição opcional;
 - fórmula opcional para campos calculados.
 
+### Aba Marketing
+
+O board oferece um preset idempotente de campos de marketing. Ao adicioná-lo, somente chaves ainda inexistentes são criadas.
+
+O preset cobre:
+
+- origem e suborigem do lead;
+- UTMs (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `utm_id` e `utm_referrer`);
+- identificadores Google (`gclientid`, `gclid`, `gbraid`, `wbraid` e `dclid`);
+- identificadores Meta (`fbclid`, `fbc` e `fbp`);
+- identificadores TikTok (`ttclid`, `ttad_id` e `ttad_name`);
+- `msclkid`;
+- campanha, conjunto, anúncio e seus IDs;
+- página de destino, URL completa e `event_id`.
+
+As chaves são estáveis para permitir preenchimento por API e automações sem depender do texto exibido.
+
 ### Condicionais
 
 O administrador deve poder configurar uma regra simples:
@@ -378,25 +402,17 @@ Motivos iniciais sugeridos:
 
 Ao marcar como ganho, o sistema deve registrar data e responsável pelo fechamento.
 
-## Relatorios MVP
+## Indicadores Compactos
 
-Sem BI complexo no começo.
+O board exibe somente um resumo operacional compacto no topo:
 
-Métricas iniciais:
+- oportunidades abertas;
+- oportunidades ganhas;
+- oportunidades perdidas;
+- oportunidades atrasadas;
+- valor ganho.
 
-- oportunidades por etapa;
-- oportunidades atrasadas por responsável;
-- oportunidades sem próximo passo;
-- ganhos;
-- perdidos;
-- valor ganho;
-- valor em aberto;
-- valor perdido;
-- motivos de perda;
-- ganhos/perdidos por responsável;
-- ganhos/perdidos por etapa;
-- taxa de comparecimento, se o board usar consulta;
-- cards parados por etapa.
+Não existe painel expansível de relatório comercial nem agenda dentro do board. O trabalho diário continua apoiado pelos filtros de hoje, atrasados e sem próxima ação.
 
 ## Entrada No Atendimento E Contatos
 
@@ -463,11 +479,13 @@ O Kanban comercial entregue inclui:
 - obrigatoriedade por etapa;
 - escolher campos visíveis no card compacto;
 - visão Kanban dentro de conversa e contato;
-- relatórios simples de vendas por valor, etapa e responsável;
+- indicadores compactos de abertas, ganhas, perdidas, atrasadas e valor ganho;
 - templates de board;
 - regras simples de alerta por etapa;
 - histórico das próximas ações concluídas;
-- agenda diária de ações atrasadas e de hoje.
+- abas Geral e Marketing no card;
+- editor visual para arrastar e ordenar campos entre abas;
+- preset completo de campos de atribuição de marketing.
 
 ## Proximas Fases
 
