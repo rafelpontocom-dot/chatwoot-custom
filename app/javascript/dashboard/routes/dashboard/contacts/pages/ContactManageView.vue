@@ -12,6 +12,7 @@ import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import ContactNotes from 'dashboard/components-next/Contacts/ContactsSidebar/ContactNotes.vue';
 import ContactHistory from 'dashboard/components-next/Contacts/ContactsSidebar/ContactHistory.vue';
 import ContactMedia from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMedia.vue';
+import ContactKanbanCards from 'dashboard/components-next/Contacts/ContactsSidebar/ContactKanbanCards.vue';
 import ContactMerge from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMerge.vue';
 import ContactCustomAttributes from 'dashboard/components-next/Contacts/ContactsSidebar/ContactCustomAttributes.vue';
 
@@ -38,18 +39,41 @@ const showSpinner = computed(
 const { t } = useI18n();
 
 const CONTACT_TABS_OPTIONS = [
-  { key: 'ATTRIBUTES', value: 'attributes' },
-  { key: 'HISTORY', value: 'history' },
-  { key: 'NOTES', value: 'notes' },
-  { key: 'MEDIA', value: 'media' },
-  { key: 'MERGE', value: 'merge' },
+  { value: 'attributes' },
+  { value: 'history' },
+  { value: 'kanban' },
+  { value: 'notes' },
+  { value: 'media' },
+  { value: 'merge' },
 ];
 
 const tabs = computed(() => {
-  return CONTACT_TABS_OPTIONS.map(tab => ({
-    label: t(`CONTACTS_LAYOUT.SIDEBAR.TABS.${tab.key}`),
-    value: tab.value,
-  }));
+  return [
+    {
+      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.ATTRIBUTES'),
+      value: 'attributes',
+    },
+    {
+      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.HISTORY'),
+      value: 'history',
+    },
+    {
+      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.KANBAN'),
+      value: 'kanban',
+    },
+    {
+      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.NOTES'),
+      value: 'notes',
+    },
+    {
+      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.MEDIA'),
+      value: 'media',
+    },
+    {
+      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.MERGE'),
+      value: 'merge',
+    },
+  ];
 });
 
 const activeTabIndex = computed(() => {
@@ -172,6 +196,10 @@ onMounted(() => {
           <ContactCustomAttributes
             v-if="activeTab === 'attributes'"
             :selected-contact="selectedContact"
+          />
+          <ContactKanbanCards
+            v-if="activeTab === 'kanban' && selectedContact"
+            :contact-id="selectedContact.id"
           />
           <ContactNotes v-if="activeTab === 'notes'" />
           <ContactHistory v-if="activeTab === 'history'" />

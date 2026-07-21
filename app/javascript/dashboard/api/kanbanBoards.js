@@ -37,6 +37,10 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.get(`${this.url}/${boardId}`, config);
   }
 
+  getSalesSummary(boardId, config = {}) {
+    return axios.get(`${this.url}/${boardId}/reports/sales_summary`, config);
+  }
+
   getSettings(boardId) {
     return axios.get(`${this.url}/${boardId}/settings`);
   }
@@ -63,6 +67,13 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.post(
       `${this.baseUrl()}/conversations/${conversationId}/kanban_cards`,
       payload,
+      config
+    );
+  }
+
+  getContactCards(contactId, config = {}) {
+    return axios.get(
+      `${this.baseUrl()}/contacts/${contactId}/kanban_cards`,
       config
     );
   }

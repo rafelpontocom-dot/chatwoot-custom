@@ -509,11 +509,20 @@
       "TABS": {
         "ATTRIBUTES": "Atributos",
         "HISTORY": "Histórico",
+        "KANBAN": "Oportunidades",
         "NOTES": "Notas",
+        "MEDIA": "Mídia",
         "MERGE": "Mesclar"
       },
       "HISTORY": {
         "EMPTY_STATE": "Não há conversas anteriores associadas a este contato"
+      },
+      "KANBAN": {
+        "EMPTY_STATE": "Nenhuma oportunidade vinculada a este contato",
+        "ERROR": "Não foi possível carregar as oportunidades",
+        "DUE_DATE": "Data de vencimento",
+        "NOT_SET": "Não definido",
+        "OPEN_CONVERSATION": "Abrir conversa"
       },
       "ATTRIBUTES": {
         "SEARCH_PLACEHOLDER": "Pesquisar atributos",

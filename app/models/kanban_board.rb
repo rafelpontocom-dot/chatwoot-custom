@@ -103,44 +103,10 @@ class KanbanBoard < ApplicationRecord
   end
 
   def sales_summary
-    cards = kanban_cards.active.includes(:kanban_stage, :owner).to_a
-
-    {
-      open_count: cards.count(&:open_opportunity?),
-      won_count: cards.count { |card| card.won_at.present? },
-      lost_count: cards.count { |card| card.lost_at.present? },
-      overdue_count: cards.count { |card| card.next_action_status == KanbanCard::NEXT_ACTION_STATUS_OVERDUE },
-      won_amount_cents: cards.select { |card| card.won_at.present? }.sum { |card| card.amount_cents.to_i },
-      by_stage: sales_summary_by_stage(cards),
-      by_owner: sales_summary_by_owner(cards)
-    }
+    KanbanBoards::SalesSummaryBuilder.new(self).call
   end
 
   private
-
-  def sales_summary_by_stage(cards)
-    kanban_stages.active.ordered.map do |stage|
-      stage_cards = cards.select { |card| card.kanban_stage_id == stage.id }
-      sales_summary_bucket(id: stage.id, name: stage.name, cards: stage_cards)
-    end
-  end
-
-  def sales_summary_by_owner(cards)
-    cards.select(&:owner_id).group_by(&:owner).map do |owner, owner_cards|
-      sales_summary_bucket(id: owner.id, name: owner.name, cards: owner_cards)
-    end
-  end
-
-  def sales_summary_bucket(id:, name:, cards:)
-    {
-      id: id,
-      name: name,
-      open_count: cards.count(&:open_opportunity?),
-      won_count: cards.count { |card| card.won_at.present? },
-      lost_count: cards.count { |card| card.lost_at.present? },
-      amount_cents: cards.select { |card| card.won_at.present? }.sum { |card| card.amount_cents.to_i }
-    }
-  end
 
   def normalize_sales_configuration
     self.next_action_types = normalize_string_list(next_action_types)

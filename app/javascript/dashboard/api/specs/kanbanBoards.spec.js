@@ -15,11 +15,13 @@ describe('#KanbanBoardsAPI', () => {
     expect(kanbanBoards).toHaveProperty('deleteStage');
     expect(kanbanBoards).toHaveProperty('getBoards');
     expect(kanbanBoards).toHaveProperty('showBoard');
+    expect(kanbanBoards).toHaveProperty('getSalesSummary');
     expect(kanbanBoards).toHaveProperty('getSettings');
     expect(kanbanBoards).toHaveProperty('updateSettings');
     expect(kanbanBoards).toHaveProperty('importExistingConversations');
     expect(kanbanBoards).toHaveProperty('getConversationCards');
     expect(kanbanBoards).toHaveProperty('createConversationCard');
+    expect(kanbanBoards).toHaveProperty('getContactCards');
     expect(kanbanBoards).toHaveProperty('getStageCards');
     expect(kanbanBoards).toHaveProperty('createManualCard');
     expect(kanbanBoards).toHaveProperty('updateCardById');
@@ -149,6 +151,25 @@ describe('#KanbanBoardsAPI', () => {
       );
     });
 
+    it('#getSalesSummary', () => {
+      kanbanBoards.getSalesSummary(2);
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/reports/sales_summary',
+        {}
+      );
+    });
+
+    it('#getSalesSummary with config', () => {
+      const controller = new AbortController();
+      kanbanBoards.getSalesSummary(2, { signal: controller.signal });
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/reports/sales_summary',
+        { signal: controller.signal }
+      );
+    });
+
     it('#getSettings', () => {
       kanbanBoards.getSettings(2);
 
@@ -185,6 +206,25 @@ describe('#KanbanBoardsAPI', () => {
         '/api/v1/accounts/1/conversations/42/kanban_cards',
         payload,
         {}
+      );
+    });
+
+    it('#getContactCards', () => {
+      kanbanBoards.getContactCards(7);
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/contacts/7/kanban_cards',
+        {}
+      );
+    });
+
+    it('#getContactCards with config', () => {
+      const controller = new AbortController();
+      kanbanBoards.getContactCards(7, { signal: controller.signal });
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/contacts/7/kanban_cards',
+        { signal: controller.signal }
       );
     });
 

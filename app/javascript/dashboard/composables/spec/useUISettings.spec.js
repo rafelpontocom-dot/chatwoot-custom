@@ -80,6 +80,12 @@ describe('useUISettings', () => {
     );
   });
 
+  it('includes kanban opportunities in the default conversation sidebar order', () => {
+    expect(DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER).toContainEqual({
+      name: 'kanban_cards',
+    });
+  });
+
   it('returns correct contact sidebar items order', () => {
     const { contactSidebarItemsOrder } = useUISettings();
     expect(contactSidebarItemsOrder.value).toEqual(

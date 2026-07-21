@@ -510,12 +510,20 @@
       "TABS": {
         "ATTRIBUTES": "Attributes",
         "HISTORY": "History",
+        "KANBAN": "Opportunities",
         "NOTES": "Notes",
         "MEDIA": "Media",
         "MERGE": "Merge"
       },
       "HISTORY": {
         "EMPTY_STATE": "There are no previous conversations associated to this contact"
+      },
+      "KANBAN": {
+        "EMPTY_STATE": "No opportunities linked to this contact",
+        "ERROR": "Could not load opportunities",
+        "DUE_DATE": "Due date",
+        "NOT_SET": "Not set",
+        "OPEN_CONVERSATION": "Open conversation"
       },
       "ATTRIBUTES": {
         "SEARCH_PLACEHOLDER": "Search for attributes",

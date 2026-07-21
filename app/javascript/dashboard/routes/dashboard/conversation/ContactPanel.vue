@@ -17,6 +17,7 @@ import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
+import KanbanConversationCards from './Kanban/KanbanConversationCards.vue';
 import SharedFiles from './SharedFiles.vue';
 import Draggable from 'vuedraggable';
 import MacrosList from './Macros/List.vue';
@@ -198,6 +199,18 @@ onMounted(() => {
                 :conversation-attributes="conversationAdditionalAttributes"
                 :contact-attributes="contactAdditionalAttributes"
               />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'kanban_cards'">
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.KANBAN')"
+              :is-open="isContactSidebarItemOpen('is_kanban_cards_open')"
+              compact
+              @toggle="
+                value => toggleSidebarUIState('is_kanban_cards_open', value)
+              "
+            >
+              <KanbanConversationCards :conversation-id="conversationId" />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_attributes'">

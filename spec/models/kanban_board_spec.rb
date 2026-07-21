@@ -195,7 +195,7 @@ RSpec.describe KanbanBoard do
       board = create(:kanban_board)
       inbox = create(:inbox, account: board.account)
 
-      expect(described_class.accepting_inbox(inbox.id)).to include(board)
+      expect(described_class.accepting_inbox(inbox.id).ids).to include(board.id)
     end
 
     it 'includes selected_inboxes boards when inbox is associated' do
@@ -203,14 +203,14 @@ RSpec.describe KanbanBoard do
       inbox = create(:inbox, account: board.account)
       create(:kanban_board_inbox, account: board.account, kanban_board: board, inbox: inbox)
 
-      expect(described_class.accepting_inbox(inbox.id)).to include(board)
+      expect(described_class.accepting_inbox(inbox.id).ids).to include(board.id)
     end
 
     it 'excludes selected_inboxes boards when inbox is not associated' do
       board = create(:kanban_board, inbox_scope_mode: 'selected_inboxes')
       inbox = create(:inbox, account: board.account)
 
-      expect(described_class.accepting_inbox(inbox.id)).not_to include(board)
+      expect(described_class.accepting_inbox(inbox.id).ids).not_to include(board.id)
     end
 
     it 'excludes selected_inboxes boards when inbox belongs to another account' do
@@ -218,7 +218,7 @@ RSpec.describe KanbanBoard do
       other_account = create(:account)
       inbox = create(:inbox, account: other_account)
 
-      expect(described_class.accepting_inbox(inbox.id)).not_to include(board)
+      expect(described_class.accepting_inbox(inbox.id).ids).not_to include(board.id)
     end
   end
 end

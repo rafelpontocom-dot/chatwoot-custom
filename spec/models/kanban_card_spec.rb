@@ -349,7 +349,7 @@ RSpec.describe KanbanCard do
       active_card = create(:kanban_card, active: true)
       create(:kanban_card, active: false)
 
-      expect(described_class.active).to contain_exactly(active_card)
+      expect(described_class.active.ids).to contain_exactly(active_card.id)
     end
   end
 
@@ -360,7 +360,7 @@ RSpec.describe KanbanCard do
       first_duplicate = create(:kanban_card, position: 1, created_at: 1.day.ago)
       second_duplicate = create(:kanban_card, position: 1, created_at: 1.day.ago)
 
-      expect(described_class.ordered).to eq([earlier_card, first_duplicate, second_duplicate, newer_card])
+      expect(described_class.ordered.ids).to eq([earlier_card.id, first_duplicate.id, second_duplicate.id, newer_card.id])
     end
   end
 

@@ -133,6 +133,7 @@ Rails.application.routes.draw do
               patch 'cards/by_id/:id/reorder', to: 'cards#reorder'
               get 'cards/by_id/:id/labels', to: 'cards/labels#index'
               put 'cards/by_id/:id/labels', to: 'cards/labels#update'
+              get 'reports/sales_summary', to: 'reports#sales_summary'
             end
           end
           resources :automation_rules, only: [:index, :create, :show, :update, :destroy] do
@@ -234,6 +235,7 @@ Rails.application.routes.draw do
             scope module: :contacts do
               resources :conversations, only: [:index]
               resources :contact_inboxes, only: [:create]
+              resources :kanban_cards, only: [:index]
               resources :labels, only: [:create, :index]
               resources :notes
               get :attachments, to: 'attachments#index'
