@@ -5,21 +5,8 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
   def show; end
 
   def update
-    if settings_params[:lock_version].present? && settings_params[:lock_version].to_i != @kanban_board.lock_version
-      return render json: {
-        code: 'stale_settings',
-        message: 'These funnel settings changed in another session. Reload before saving.',
-        lock_version: @kanban_board.lock_version
-      }, status: :conflict
-    end
-
-    affected_fields = removed_field_usage
-    if affected_fields.present? && !ActiveModel::Type::Boolean.new.cast(params[:confirm_data_loss])
-      return render json: {
-        code: 'custom_field_data_loss_confirmation_required',
-        affected_fields: affected_fields
-      }, status: :unprocessable_entity
-    end
+    return render_stale_settings if stale_settings?
+    return render_data_loss_confirmation if removed_field_usage.present? && !data_loss_confirmed?
 
     ActiveRecord::Base.transaction do
       @kanban_board.update!(settings_params.except(:visible_user_ids, :allowed_inbox_ids))
@@ -56,6 +43,29 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
 
   def authorize_kanban_board
     authorize @kanban_board, :update?
+  end
+
+  def stale_settings?
+    settings_params[:lock_version].present? && settings_params[:lock_version].to_i != @kanban_board.lock_version
+  end
+
+  def render_stale_settings
+    render json: {
+      code: 'stale_settings',
+      message: 'These funnel settings changed in another session. Reload before saving.',
+      lock_version: @kanban_board.lock_version
+    }, status: :conflict
+  end
+
+  def data_loss_confirmed?
+    ActiveModel::Type::Boolean.new.cast(params[:confirm_data_loss])
+  end
+
+  def render_data_loss_confirmation
+    render json: {
+      code: 'custom_field_data_loss_confirmation_required',
+      affected_fields: removed_field_usage
+    }, status: :unprocessable_entity
   end
 
   # rubocop:disable Metrics/MethodLength

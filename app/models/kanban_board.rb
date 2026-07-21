@@ -37,6 +37,8 @@
 #
 #  fk_rails_...  (archived_by_id => users.id)
 #
+# The board owns the normalized sales configuration used by cards and settings.
+# rubocop:disable Metrics/ClassLength
 class KanbanBoard < ApplicationRecord
   INBOX_SCOPE_MODES = %w[all_inboxes selected_inboxes].freeze
   VISIBILITY_MODES = %w[all_agents selected_agents].freeze
@@ -273,3 +275,4 @@ class KanbanBoard < ApplicationRecord
     end
   end
 end
+# rubocop:enable Metrics/ClassLength

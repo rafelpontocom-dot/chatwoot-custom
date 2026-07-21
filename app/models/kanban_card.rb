@@ -76,7 +76,12 @@ class KanbanCard < ApplicationRecord
   NEXT_ACTION_STATUS_OVERDUE = 'overdue'.freeze
   FORMULA_FIELD_PATTERN = /[a-zA-Z_][a-zA-Z0-9_]*/
   FORMULA_TOKEN_PATTERN = %r{\d+(?:\.\d+)?|[+\-*/()]}
-  DATE_FORMULA_PATTERN = /\A(?<function>add_days|days_between)\(\s*(?<left>[a-zA-Z_][a-zA-Z0-9_]*)\s*,\s*(?<right>-?\d+(?:\.\d+)?|[a-zA-Z_][a-zA-Z0-9_]*)\s*\)\z/
+  DATE_FORMULA_PATTERN = /
+    \A(?<function>add_days|days_between)\(
+    \s*(?<left>[a-zA-Z_][a-zA-Z0-9_]*)
+    \s*,\s*(?<right>-?\d+(?:\.\d+)?|[a-zA-Z_][a-zA-Z0-9_]*)
+    \s*\)\z
+  /x
   NUMERIC_CUSTOM_FIELD_TYPES = %w[integer decimal currency formula].freeze
   SYSTEM_AMOUNT_FIELD_KEY = 'system_amount'.freeze
   SYSTEM_CONDITION_VALUE_METHODS = {

@@ -120,6 +120,7 @@ jobs:
         run: |
           bundle exec rake db:create
           bundle exec rake db:schema:load
+          bundle exec rails db:migrate
       - name: Run kanban + whatsapp specs
         run: |
           # Exclude the legacy backfill/parity rake spec (spec/lib/tasks/kanban_cards_spec.rb):

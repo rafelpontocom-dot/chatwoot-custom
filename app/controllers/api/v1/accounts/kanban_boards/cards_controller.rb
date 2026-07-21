@@ -214,28 +214,36 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   def update_kanban_card
     return render_stale_card unless card_version_current?(card_params[:lock_version])
 
-    invalid_label_titles = []
-
-    KanbanCard.transaction do
-      if labels_param_present? && unknown_label_titles.present?
-        invalid_label_titles = unknown_label_titles
-        raise ActiveRecord::Rollback
-      end
-
-      if stable_card_move_params?
-        @kanban_card.reorder_to_position!(
-          kanban_stage: @kanban_stage,
-          position: card_params[:position] || target_card_position(@kanban_stage)
-        )
-      end
-      @kanban_card.update!(stable_card_update_params)
-      @kanban_card.update_labels(label_titles) if labels_param_present?
-    end
+    invalid_label_titles = persist_card_update
 
     return render_unknown_labels(invalid_label_titles) if invalid_label_titles.present?
 
     dispatch_kanban_card_event(Events::Types::KANBAN_CARD_UPDATED)
     render_card
+  end
+
+  def persist_card_update
+    invalid_label_titles = []
+
+    KanbanCard.transaction do
+      invalid_label_titles = unknown_label_titles if labels_param_present? && unknown_label_titles.present?
+      raise ActiveRecord::Rollback if invalid_label_titles.present?
+
+      reorder_card_if_needed
+      @kanban_card.update!(stable_card_update_params)
+      @kanban_card.update_labels(label_titles) if labels_param_present?
+    end
+
+    invalid_label_titles
+  end
+
+  def reorder_card_if_needed
+    return unless stable_card_move_params?
+
+    @kanban_card.reorder_to_position!(
+      kanban_stage: @kanban_stage,
+      position: card_params[:position] || target_card_position(@kanban_stage)
+    )
   end
 
   def reorder_kanban_card
