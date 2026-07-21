@@ -27,6 +27,13 @@
       "AUTO_CREATE_CARDS": "Criar cartões automaticamente para novas conversas",
       "NO_STAGES_HELP": "Adicione uma etapa antes de habilitar a criação automática de cartões."
     },
+    "BOARD_TEMPLATES": {
+      "LABEL": "Modelo do funil",
+      "WHATSAPP_SALES": "Vendas pelo WhatsApp",
+      "CLINIC": "Clínica ou consulta",
+      "B2B": "Serviços B2B",
+      "BLANK": "Funil em branco"
+    },
     "FILTERS": {
       "INBOXES": "Caixas de entrada",
       "AGENTS": "Agentes",
@@ -44,7 +51,14 @@
       "WON": "Ganhas",
       "LOST": "Perdidas",
       "OVERDUE": "Atrasadas",
-      "WON_AMOUNT": "Valor ganho"
+      "WON_AMOUNT": "Valor ganho",
+      "STALE": "Paradas",
+      "DETAILS": "Relatórios de vendas e agenda",
+      "VALUES": "Valores",
+      "BY_STAGE": "Por etapa",
+      "BY_OWNER": "Por responsável",
+      "LOST_REASONS": "Motivos de perda",
+      "AGENDA": "Agenda de hoje"
     },
     "ACTIONS": {
       "CREATE_BOARD": "Adicionar",
@@ -144,7 +158,53 @@
         "LOST_REASON_OPTIONS": "Motivos de perda",
         "LOST_REASON_OPTIONS_PLACEHOLDER": "Um motivo de perda por linha",
         "CUSTOM_FIELDS": "Definições de campos personalizados",
-        "CUSTOM_FIELDS_PLACEHOLDER": "Array JSON com key, label, field_type, options, required_stage_ids, condition, formula e layout"
+        "CUSTOM_FIELDS_PLACEHOLDER": "Array JSON com key, label, field_type, options, required_stage_ids, condition, formula e layout",
+        "ADD_CUSTOM_FIELD": "Adicionar campo",
+        "REMOVE_CUSTOM_FIELD": "Remover campo",
+        "FIELD_LABEL": "Nome do campo",
+        "FIELD_KEY": "Chave estável",
+        "FIELD_TYPE": "Tipo",
+        "FIELD_OPTIONS": "Opções, uma por linha",
+        "FIELD_WIDTH": "Largura",
+        "FIELD_SECTION": "Seção",
+        "FIELD_POSITION": "Posição",
+        "REQUIRED_STAGES": "Obrigatório nas etapas",
+        "CONDITION_FIELD": "Mostrar quando",
+        "CONDITION_VALUE": "For igual a",
+        "CONDITION_NONE": "Sempre visível",
+        "CONDITION_HELP": "Exibe este campo somente quando outro campo tiver o valor esperado.",
+        "CONDITION_VALUE_PLACEHOLDER": "Selecione ou informe o valor esperado",
+        "CONDITION_SELECT_FIELD_FIRST": "Selecione um campo primeiro",
+        "CONDITION_BOOLEAN_TRUE": "Sim",
+        "CONDITION_BOOLEAN_FALSE": "Não",
+        "FORMULA": "Fórmula",
+        "FORMULA_PLACEHOLDER": "Exemplo: campo_z + campo_w",
+        "FORMULA_HELP": "Use as chaves estáveis de campos numéricos com +, -, * ou /.",
+        "SHOW_ON_CARD": "Mostrar no card compacto",
+        "ADVANCED_JSON": "JSON avançado",
+        "STALE_ALERTS": "Alertas de oportunidade parada",
+        "STALE_ALERTS_DESCRIPTION": "Defina quantos dias uma oportunidade pode permanecer em cada etapa antes de ser marcada como parada.",
+        "STALE_DAYS": "Dias na etapa antes do alerta",
+        "STALE_DAYS_SUFFIX": "dias",
+        "FIELD_WIDTHS": {
+          "FULL": "Largura total",
+          "HALF": "Meia largura",
+          "THIRD": "Um terço"
+        },
+        "FIELD_TYPES": {
+          "TEXT": "Texto",
+          "TEXTAREA": "Texto longo",
+          "SELECT": "Seleção única",
+          "MULTISELECT": "Seleção múltipla",
+          "INTEGER": "Número inteiro",
+          "DECIMAL": "Número decimal",
+          "CURRENCY": "Moeda",
+          "DATE": "Data",
+          "DATETIME": "Data e hora",
+          "BOOLEAN": "Caixa de seleção",
+          "URL": "URL",
+          "FORMULA": "Fórmula"
+        }
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
@@ -205,6 +265,8 @@
       "NEXT_ACTION_AT": "Data da ação",
       "NEXT_ACTION_NOTE": "Observação da ação",
       "NEXT_ACTION_NOTE_PLACEHOLDER": "O que precisa acontecer agora?",
+      "COMPLETE_NEXT_ACTION": "Concluir próxima ação",
+      "NEXT_ACTION_HISTORY": "Ações concluídas",
       "ACTION_TYPES": {
         "NONE": "Selecionar ação",
         "CALL_BACK": "Chamar novamente",
@@ -272,13 +334,15 @@
       "ASSIGNEE": "Responsável: {assignee}",
       "PRIORITY": "Prioridade: {priority}",
       "LAST_ACTIVITY": "Última atividade: {time}",
+      "CUSTOM_FIELD": "{label}: {value}",
       "NEXT_ACTION": {
         "MISSING": "Sem próxima ação",
         "OVERDUE": "Atrasado",
         "DUE_TODAY": "Hoje",
         "FUTURE": "Próxima ação",
         "CLOSED": "Fechado"
-      }
+      },
+      "STALE_IN_STAGE": "Parada na etapa"
     },
     "NOTES": {
       "TITLE": "Notas do contato",

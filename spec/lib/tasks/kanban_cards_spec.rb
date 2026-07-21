@@ -152,6 +152,8 @@ RSpec.describe KanbanCardsBackfill do
   end
 
   def expect_migrated_card_attributes(card, state)
+    expect_migrated_card_stage_timestamp(card, state)
+
     aggregate_failures do
       expect(card.position).to eq(state.position)
       expect(card.created_at.to_i).to eq(state.created_at.to_i)
@@ -159,6 +161,10 @@ RSpec.describe KanbanCardsBackfill do
     end
 
     expect_migrated_card_defaults(card)
+  end
+
+  def expect_migrated_card_stage_timestamp(card, state)
+    expect(card.stage_entered_at.to_i).to eq(state.created_at.to_i)
   end
 
   def expect_migrated_card_defaults(card)

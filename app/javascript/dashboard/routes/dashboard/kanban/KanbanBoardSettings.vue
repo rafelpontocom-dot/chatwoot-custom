@@ -44,6 +44,12 @@ const newStageName = ref('');
 const newStageColor = ref(DEFAULT_KANBAN_STAGE_COLOR);
 const activeStageActionKey = ref('');
 const ignoreGroupsForImport = ref(false);
+let customFieldRowSequence = 0;
+
+const nextCustomFieldRowId = () => {
+  customFieldRowSequence += 1;
+  return `custom-field-${customFieldRowSequence}`;
+};
 
 const form = reactive({
   name: '',
@@ -142,6 +148,7 @@ const applySettings = payload => {
   );
   form.customFieldDefinitions = (settings.customFieldDefinitions || []).map(
     definition => ({
+      clientId: nextCustomFieldRowId(),
       key: definition.key || '',
       label: definition.label || '',
       fieldType: definition.fieldType || 'text',
@@ -149,7 +156,7 @@ const applySettings = payload => {
       requiredStageIds: definition.requiredStageIds || [],
       conditionFieldKey:
         definition.condition?.fieldKey || definition.condition?.field_key || '',
-      conditionEquals: definition.condition?.equals || '',
+      conditionEquals: definition.condition?.equals ?? '',
       formula: definition.formula || '',
       layoutSection: definition.layout?.section || 'details',
       layoutPosition: definition.layout?.position || 1,
@@ -242,6 +249,7 @@ const syncCustomFieldDefinitionsText = () => {
 
 const addCustomField = () => {
   form.customFieldDefinitions.push({
+    clientId: nextCustomFieldRowId(),
     key: '',
     label: '',
     fieldType: 'text',
@@ -260,8 +268,55 @@ const addCustomField = () => {
 
 const updateCustomFieldLabel = definition => {
   if (definition.autoKey) {
-    definition.key = customFieldKeyFromLabel(definition.label);
+    const previousKey = definition.key;
+    const nextKey = customFieldKeyFromLabel(definition.label);
+    definition.key = nextKey;
+    form.compactCardFieldKeys = form.compactCardFieldKeys.map(key =>
+      key === previousKey ? nextKey : key
+    );
   }
+  syncCustomFieldDefinitionsText();
+};
+
+const customFieldConditionCandidates = definition =>
+  form.customFieldDefinitions.filter(
+    field => field !== definition && field.key
+  );
+
+const conditionSourceField = definition =>
+  form.customFieldDefinitions.find(
+    field => field.key === definition.conditionFieldKey
+  );
+
+const conditionValueOptions = definition => {
+  const sourceField = conditionSourceField(definition);
+  if (!sourceField) return [];
+
+  if (['select', 'multiselect'].includes(sourceField.fieldType)) {
+    return linesFromText(sourceField.optionsText).map(value => ({
+      value,
+      label: value,
+    }));
+  }
+
+  if (sourceField.fieldType === 'boolean') {
+    return [
+      {
+        value: 'true',
+        label: t('KANBAN.SETTINGS.SALES.CONDITION_BOOLEAN_TRUE'),
+      },
+      {
+        value: 'false',
+        label: t('KANBAN.SETTINGS.SALES.CONDITION_BOOLEAN_FALSE'),
+      },
+    ];
+  }
+
+  return [];
+};
+
+const updateConditionField = definition => {
+  definition.conditionEquals = '';
   syncCustomFieldDefinitionsText();
 };
 
@@ -321,6 +376,10 @@ const saveSettings = async () => {
     applySettings(response.data);
     await store.dispatch('kanbanBoards/refreshBoards');
     useAlert(t('KANBAN.SETTINGS.SAVE_SUCCESS'));
+    await router.replace({
+      name: 'kanban_board_show',
+      params: { accountId: route.params.accountId, boardId: boardId.value },
+    });
   } catch (error) {
     saveError.value = getErrorMessage(error, t('KANBAN.SETTINGS.SAVE_ERROR'));
     useAlert(saveError.value);
@@ -814,7 +873,7 @@ onMounted(fetchSettings);
 
             <article
               v-for="(definition, index) in form.customFieldDefinitions"
-              :key="`${definition.key}-${index}`"
+              :key="definition.clientId"
               data-testid="kanban-settings-custom-field-row"
               class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
             >
@@ -931,13 +990,16 @@ onMounted(fetchSettings);
                   {{ t('KANBAN.SETTINGS.SALES.CONDITION_FIELD') }}
                   <select
                     v-model="definition.conditionFieldKey"
+                    data-testid="kanban-settings-condition-field"
                     class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="syncCustomFieldDefinitionsText"
+                    @change="updateConditionField(definition)"
                   >
-                    <option value="" />
+                    <option value="">
+                      {{ t('KANBAN.SETTINGS.SALES.CONDITION_NONE') }}
+                    </option>
                     <option
-                      v-for="candidate in form.customFieldDefinitions.filter(
-                        field => field !== definition
+                      v-for="candidate in customFieldConditionCandidates(
+                        definition
                       )"
                       :key="candidate.key"
                       :value="candidate.key"
@@ -948,13 +1010,47 @@ onMounted(fetchSettings);
                 </label>
                 <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                   {{ t('KANBAN.SETTINGS.SALES.CONDITION_VALUE') }}
-                  <input
+                  <select
+                    v-if="conditionValueOptions(definition).length"
                     v-model="definition.conditionEquals"
+                    data-testid="kanban-settings-condition-value-select"
                     class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="syncCustomFieldDefinitionsText"
+                  >
+                    <option value="">
+                      {{
+                        t('KANBAN.SETTINGS.SALES.CONDITION_VALUE_PLACEHOLDER')
+                      }}
+                    </option>
+                    <option
+                      v-for="option in conditionValueOptions(definition)"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                  <input
+                    v-else
+                    v-model="definition.conditionEquals"
+                    data-testid="kanban-settings-condition-value-input"
+                    :disabled="!definition.conditionFieldKey"
+                    :placeholder="
+                      definition.conditionFieldKey
+                        ? t('KANBAN.SETTINGS.SALES.CONDITION_VALUE_PLACEHOLDER')
+                        : t(
+                            'KANBAN.SETTINGS.SALES.CONDITION_SELECT_FIELD_FIRST'
+                          )
+                    "
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:bg-n-surface-3"
                     @input="syncCustomFieldDefinitionsText"
                   />
                 </label>
               </div>
+
+              <p class="text-xs text-n-slate-10">
+                {{ t('KANBAN.SETTINGS.SALES.CONDITION_HELP') }}
+              </p>
 
               <label
                 v-if="definition.fieldType === 'formula'"
@@ -963,9 +1059,13 @@ onMounted(fetchSettings);
                 {{ t('KANBAN.SETTINGS.SALES.FORMULA') }}
                 <input
                   v-model="definition.formula"
+                  :placeholder="t('KANBAN.SETTINGS.SALES.FORMULA_PLACEHOLDER')"
                   class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 font-mono text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
                   @input="syncCustomFieldDefinitionsText"
                 />
+                <span class="font-sans text-xs font-normal text-n-slate-10">
+                  {{ t('KANBAN.SETTINGS.SALES.FORMULA_HELP') }}
+                </span>
               </label>
 
               <div class="flex flex-wrap items-center justify-between gap-3">
@@ -1017,20 +1117,28 @@ onMounted(fetchSettings);
             <h3 class="mb-0 text-sm font-medium text-n-slate-12">
               {{ t('KANBAN.SETTINGS.SALES.STALE_ALERTS') }}
             </h3>
+            <p class="text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.SALES.STALE_ALERTS_DESCRIPTION') }}
+            </p>
             <label
               v-for="stage in stages"
               :key="stage.id"
-              class="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 text-sm text-n-slate-12"
+              class="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3 text-sm text-n-slate-12"
             >
               <span class="truncate">{{ stage.name }}</span>
-              <input
-                v-model="form.staleStageThresholds[stage.id]"
-                :data-testid="`kanban-settings-stale-stage-${stage.id}`"
-                type="number"
-                min="1"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                :aria-label="t('KANBAN.SETTINGS.SALES.STALE_DAYS')"
-              />
+              <span class="flex items-center gap-2">
+                <input
+                  v-model="form.staleStageThresholds[stage.id]"
+                  :data-testid="`kanban-settings-stale-stage-${stage.id}`"
+                  type="number"
+                  min="1"
+                  class="h-9 min-w-0 flex-1 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :aria-label="t('KANBAN.SETTINGS.SALES.STALE_DAYS')"
+                />
+                <span class="text-xs text-n-slate-10">
+                  {{ t('KANBAN.SETTINGS.SALES.STALE_DAYS_SUFFIX') }}
+                </span>
+              </span>
             </label>
           </div>
         </section>

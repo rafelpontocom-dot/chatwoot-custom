@@ -1731,6 +1731,21 @@ describe('KanbanView header navigation', () => {
     expect(details.text()).toContain('R$ 5.000,00');
     expect(details.text()).toContain('R$ 3.000,00');
     expect(details.text()).toContain('R$ 750,00');
+    expect(
+      details.find('[data-testid="kanban-sales-details-grid"]').classes()
+    ).toEqual(expect.arrayContaining(['lg:grid-cols-2', '2xl:grid-cols-4']));
+  });
+
+  it('has complete pt_BR sales report translations', () => {
+    expect(ptBRKanbanMessages.KANBAN.REPORTS).toMatchObject({
+      DETAILS: 'Relatórios de vendas e agenda',
+      VALUES: 'Valores',
+      BY_STAGE: 'Por etapa',
+      BY_OWNER: 'Por responsável',
+      LOST_REASONS: 'Motivos de perda',
+      AGENDA: 'Agenda de hoje',
+      STALE: 'Paradas',
+    });
   });
 
   it('lists visible boards in the dropdown', async () => {

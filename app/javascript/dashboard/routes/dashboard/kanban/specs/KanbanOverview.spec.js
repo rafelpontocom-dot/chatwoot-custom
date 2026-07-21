@@ -418,7 +418,10 @@ describe('KanbanOverview', () => {
     await createBtn.trigger('click');
     await nextTick();
 
-    findCreateBoardDialog(wrapper).vm.$emit('create', 'New Board');
+    findCreateBoardDialog(wrapper).vm.$emit('create', {
+      name: 'New Board',
+      templateKey: 'whatsapp_sales',
+    });
     await flushPromises();
     await nextTick();
 
@@ -445,7 +448,10 @@ describe('KanbanOverview', () => {
       .find('[data-testid="overview-create-board-button"]')
       .trigger('click');
     await nextTick();
-    findCreateBoardDialog(wrapper).vm.$emit('create', 'Enter Board');
+    findCreateBoardDialog(wrapper).vm.$emit('create', {
+      name: 'Enter Board',
+      templateKey: 'b2b',
+    });
     await flushPromises();
     await nextTick();
 
@@ -453,6 +459,7 @@ describe('KanbanOverview', () => {
       kanban_board: {
         name: 'Enter Board',
         position: 0,
+        template_key: 'b2b',
       },
     });
     expect(wrapper.dispatchSpy).toHaveBeenCalledWith(
@@ -478,7 +485,10 @@ describe('KanbanOverview', () => {
       .find('[data-testid="overview-create-board-button"]')
       .trigger('click');
     await nextTick();
-    findCreateBoardDialog(wrapper).vm.$emit('create', 'Existing Board');
+    findCreateBoardDialog(wrapper).vm.$emit('create', {
+      name: 'Existing Board',
+      templateKey: 'whatsapp_sales',
+    });
     await flushPromises();
     await nextTick();
 

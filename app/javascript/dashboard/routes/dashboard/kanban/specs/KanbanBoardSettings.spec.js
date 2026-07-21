@@ -396,6 +396,70 @@ describe('KanbanBoardSettings', () => {
     );
   });
 
+  it('keeps the custom field row mounted while deriving its key from the label', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-add-custom-field"]')
+      .trigger('click');
+
+    const labelInput = wrapper
+      .findAll('[data-testid="kanban-settings-custom-field-label"]')
+      .at(1);
+    const originalInputElement = labelInput.element;
+
+    await labelInput.setValue('O');
+    await nextTick();
+
+    expect(
+      wrapper
+        .findAll('[data-testid="kanban-settings-custom-field-label"]')
+        .at(1).element
+    ).toBe(originalInputElement);
+  });
+
+  it('uses the source field options as conditional values', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            {
+              key: 'consulta_realizada',
+              label: 'Consulta realizada?',
+              field_type: 'select',
+              options: ['Sim', 'Não'],
+            },
+            {
+              key: 'motivo',
+              label: 'Motivo',
+              field_type: 'text',
+              condition: {
+                field_key: 'consulta_realizada',
+                equals: 'Não',
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const rows = wrapper.findAll(
+      '[data-testid="kanban-settings-custom-field-row"]'
+    );
+    const conditionField = rows[1].find(
+      '[data-testid="kanban-settings-condition-field"]'
+    );
+    const conditionValue = rows[1].find(
+      '[data-testid="kanban-settings-condition-value-select"]'
+    );
+
+    expect(conditionField.text()).toContain('Consulta realizada?');
+    expect(conditionValue.element.value).toBe('Não');
+    expect(conditionValue.text()).toContain('Sim');
+    expect(conditionValue.text()).toContain('Não');
+  });
+
   it('opens import modal when enabling auto-create', async () => {
     const { wrapper } = await mountSettings({
       getSettingsResponse: {
@@ -624,6 +688,20 @@ describe('KanbanBoardSettings', () => {
 
     expect(dispatch).toHaveBeenCalledWith('kanbanBoards/refreshBoards');
     expect(useAlert).toHaveBeenCalledWith('KANBAN.SETTINGS.SAVE_SUCCESS');
+    expect(mockReplace).toHaveBeenCalledWith({
+      name: 'kanban_board_show',
+      params: { accountId: '1', boardId: 10 },
+    });
+  });
+
+  it('has pt_BR sales settings translations', () => {
+    expect(ptBRKanbanMessages.KANBAN.SETTINGS.SALES).toMatchObject({
+      ADD_CUSTOM_FIELD: 'Adicionar campo',
+      CONDITION_FIELD: 'Mostrar quando',
+      CONDITION_VALUE: 'For igual a',
+      FORMULA: 'Fórmula',
+      STALE_ALERTS: 'Alertas de oportunidade parada',
+    });
   });
 
   it('deletes the board and navigates to overview', async () => {

@@ -1136,8 +1136,11 @@ onUnmounted(() => {
         <summary class="cursor-pointer text-sm font-medium text-n-slate-12">
           {{ t('KANBAN.REPORTS.DETAILS') }}
         </summary>
-        <div class="mt-4 grid gap-5 xl:grid-cols-4">
-          <section class="grid content-start gap-2">
+        <div
+          data-testid="kanban-sales-details-grid"
+          class="mt-4 grid min-w-0 gap-5 lg:grid-cols-2 2xl:grid-cols-4"
+        >
+          <section class="grid min-w-0 content-start gap-2">
             <h3 class="mb-0 text-sm font-medium text-n-slate-12">
               {{ t('KANBAN.REPORTS.VALUES') }}
             </h3>
@@ -1169,17 +1172,19 @@ onUnmounted(() => {
             </dl>
           </section>
 
-          <section class="grid content-start gap-2">
+          <section class="grid min-w-0 content-start gap-2">
             <h3 class="mb-0 text-sm font-medium text-n-slate-12">
               {{ t('KANBAN.REPORTS.BY_STAGE') }}
             </h3>
             <div
               v-for="stage in salesSummary.byStage || []"
               :key="stage.id"
-              class="flex justify-between gap-3 text-sm"
+              class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 text-sm"
             >
               <span class="truncate text-n-slate-11">{{ stage.name }}</span>
-              <span class="flex items-center gap-2 text-n-slate-12">
+              <span
+                class="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-n-slate-12"
+              >
                 <span
                   class="inline-flex items-center gap-1"
                   :title="t('KANBAN.REPORTS.OPEN')"
@@ -1206,17 +1211,19 @@ onUnmounted(() => {
             </div>
           </section>
 
-          <section class="grid content-start gap-2">
+          <section class="grid min-w-0 content-start gap-2">
             <h3 class="mb-0 text-sm font-medium text-n-slate-12">
               {{ t('KANBAN.REPORTS.BY_OWNER') }}
             </h3>
             <div
               v-for="owner in salesSummary.byOwner || []"
               :key="owner.id"
-              class="flex justify-between gap-3 text-sm"
+              class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 text-sm"
             >
               <span class="truncate text-n-slate-11">{{ owner.name }}</span>
-              <span class="flex items-center gap-2 text-n-slate-12">
+              <span
+                class="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-n-slate-12"
+              >
                 <span
                   class="inline-flex items-center gap-1"
                   :title="t('KANBAN.REPORTS.OPEN')"
@@ -1264,7 +1271,7 @@ onUnmounted(() => {
             </div>
           </section>
 
-          <section class="grid content-start gap-2">
+          <section class="grid min-w-0 content-start gap-2">
             <h3 class="mb-0 text-sm font-medium text-n-slate-12">
               {{ t('KANBAN.REPORTS.AGENDA') }}
             </h3>
