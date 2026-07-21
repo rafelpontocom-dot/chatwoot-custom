@@ -147,6 +147,21 @@ const buildBoardResponse = (stageBCards = [], overrides = {}) => ({
   allowed_inbox_ids: [],
   next_action_types: ['Enviar proposta', 'Enviar link de pagamento'],
   lost_reason_options: ['Preço', 'Sem resposta'],
+  custom_field_definitions: [
+    {
+      key: 'consulta_realizada',
+      label: 'Consulta realizada?',
+      field_type: 'select',
+      options: ['Sim', 'Não'],
+    },
+  ],
+  sales_summary: {
+    open_count: 3,
+    won_count: 2,
+    lost_count: 1,
+    overdue_count: 4,
+    won_amount_cents: 125500,
+  },
   stages: [
     {
       id: 100,
@@ -282,6 +297,7 @@ const mountView = async (
             'cardId',
             'nextActionTypes',
             'lostReasonOptions',
+            'customFieldDefinitions',
             'ownerOptions',
           ],
           template:
@@ -1498,6 +1514,14 @@ describe('KanbanView drag and drop', () => {
       'Enviar link de pagamento',
     ]);
     expect(modal.props('lostReasonOptions')).toEqual(['Preço', 'Sem resposta']);
+    expect(modal.props('customFieldDefinitions')).toEqual([
+      {
+        key: 'consulta_realizada',
+        label: 'Consulta realizada?',
+        fieldType: 'select',
+        options: ['Sim', 'Não'],
+      },
+    ]);
     expect(modal.props('ownerOptions')).toEqual([
       { value: 7, label: 'Ada Lovelace' },
       { value: 8, label: 'Grace Hopper' },
@@ -1649,6 +1673,17 @@ describe('KanbanView header navigation', () => {
     expect(
       wrapper.find('[data-testid="kanban-board-switcher"]').text()
     ).toContain('Sales Board');
+  });
+
+  it('renders the sales summary from the board payload', async () => {
+    const wrapper = await mountView();
+
+    const summary = wrapper.find('[data-testid="kanban-sales-summary"]');
+    expect(summary.text()).toContain('KANBAN.REPORTS.OPEN');
+    expect(summary.text()).toContain('3');
+    expect(summary.text()).toContain('KANBAN.REPORTS.WON');
+    expect(summary.text()).toContain('2');
+    expect(summary.text()).toContain('R$ 1.255,00');
   });
 
   it('lists visible boards in the dropdown', async () => {

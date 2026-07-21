@@ -196,6 +196,57 @@ RSpec.describe 'Kanban Boards API', type: :request do
       expect(response.parsed_body['allowed_inbox_ids']).to eq([inbox.id])
     end
 
+    it 'returns a simple sales summary for the board' do
+      first_stage = create(:kanban_stage, account: account, kanban_board: kanban_board, name: 'Lead')
+      second_stage = create(:kanban_stage, account: account, kanban_board: kanban_board, name: 'Fechamento')
+      inbox = create(:inbox, account: account)
+      owner = create(:user, account: account, role: :agent, name: 'Ana Paula')
+      create(:inbox_member, user: agent, inbox: inbox)
+      create_board_listing_manual_cards(first_stage, inbox, 1)
+      create(
+        :kanban_card,
+        account: account,
+        kanban_board: kanban_board,
+        kanban_stage: second_stage,
+        contact: create(:contact, account: account),
+        inbox: inbox,
+        owner: owner,
+        subject: 'Ganho',
+        amount_cents: 250_00,
+        won_at: Time.current
+      )
+      create(
+        :kanban_card,
+        account: account,
+        kanban_board: kanban_board,
+        kanban_stage: second_stage,
+        contact: create(:contact, account: account),
+        inbox: inbox,
+        subject: 'Perdido',
+        lost_at: Time.current,
+        lost_reason: 'Preço'
+      )
+
+      get "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}",
+          headers: agent.create_new_auth_token,
+          as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['sales_summary']).to include(
+        'open_count' => 1,
+        'won_count' => 1,
+        'lost_count' => 1,
+        'won_amount_cents' => 250_00
+      )
+      expect(response.parsed_body['sales_summary']['by_stage']).to include(
+        { 'id' => first_stage.id, 'name' => 'Lead', 'open_count' => 1, 'won_count' => 0, 'lost_count' => 0, 'amount_cents' => 0 },
+        { 'id' => second_stage.id, 'name' => 'Fechamento', 'open_count' => 0, 'won_count' => 1, 'lost_count' => 1, 'amount_cents' => 250_00 }
+      )
+      expect(response.parsed_body['sales_summary']['by_owner']).to include(
+        { 'id' => owner.id, 'name' => 'Ana Paula', 'open_count' => 0, 'won_count' => 1, 'lost_count' => 0, 'amount_cents' => 250_00 }
+      )
+    end
+
     it 'filters embedded cards and counts by inbox ids' do
       stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
       first_inbox = create(:inbox, account: account)
@@ -893,7 +944,7 @@ RSpec.describe 'Kanban Boards API', type: :request do
         expect(rendered_card_ids).to match_array(expected_card_ids)
         expect([rendered_card_ids.length, rendered_card_ids.intersect?(inactive_kanban_card_ids)]).to eq([30, false])
         expect(query_counts.slice(:messages, :notes, :labels_tags_taggings)).to eq(messages: 0, notes: 0, labels_tags_taggings: 0)
-        expect(query_counts[:kanban_cards]).to be <= 9
+        expect(query_counts[:kanban_cards]).to be <= 10
         expect(query_counts[:inbox_members]).to be <= 1
         expect(query_counts[:team_members]).to be <= 1
       end
@@ -1644,7 +1695,7 @@ RSpec.describe 'Kanban Boards API', type: :request do
     %w[
       id kanban_stage_id position origin subject active due_at stage_entered_at contact inbox conversation_id priority conversation assignee
       moved_by_id moved_at owner_id owner next_action_type next_action_at next_action_note next_action_status next_action_completed_at
-      won_at lost_at lost_reason closed_by_id closed_by
+      won_at lost_at lost_reason closed_by_id closed_by amount_cents amount_currency custom_field_values
     ]
   end
 

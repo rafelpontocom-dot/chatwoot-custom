@@ -65,6 +65,54 @@ RSpec.describe 'Kanban board settings API', type: :request do
         lost_reason_options: ['Preço']
       )
     end
+
+    it 'updates board-specific opportunity field definitions' do
+      stage = create(:kanban_stage, account: account, kanban_board: board)
+
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                name: board.name,
+                custom_field_definitions: [
+                  {
+                    key: 'consulta_realizada',
+                    label: 'Consulta realizada?',
+                    field_type: 'select',
+                    options: %w[Sim Não],
+                    layout: { section: 'qualification', position: 1 }
+                  },
+                  {
+                    key: 'valor_total',
+                    label: 'Valor total',
+                    field_type: 'formula',
+                    formula: 'procedimento + exames',
+                    required_stage_ids: [stage.id],
+                    condition: { field_key: 'consulta_realizada', equals: 'Sim' },
+                    layout: { section: 'commercial', position: 2 }
+                  }
+                ]
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      definitions = board.reload.custom_field_definitions
+      expect(definitions.first).to include(
+        'key' => 'consulta_realizada',
+        'field_type' => 'select',
+        'options' => %w[Sim Não],
+        'layout' => { 'section' => 'qualification', 'position' => 1, 'width' => 'full' }
+      )
+      expect(definitions.second).to include(
+        'key' => 'valor_total',
+        'field_type' => 'formula',
+        'required_stage_ids' => [stage.id],
+        'condition' => { 'field_key' => 'consulta_realizada', 'equals' => 'Sim' },
+        'formula' => 'procedimento + exames'
+      )
+      expect(response.parsed_body['custom_field_definitions']).to eq(definitions)
+    end
   end
 
   describe 'POST /api/v1/accounts/{account.id}/kanban_boards/{board.id}/settings/import_existing_conversations' do

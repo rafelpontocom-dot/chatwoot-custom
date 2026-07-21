@@ -478,7 +478,7 @@ RSpec.describe 'Kanban stage cards API', type: :request do
     %w[
       id kanban_stage_id position origin subject active due_at stage_entered_at contact inbox conversation_id priority conversation assignee
       owner_id owner next_action_type next_action_at next_action_note next_action_completed_at next_action_status won_at lost_at lost_reason
-      closed_by_id closed_by
+      closed_by_id closed_by amount_cents amount_currency custom_field_values
       moved_by_id moved_at
     ]
   end

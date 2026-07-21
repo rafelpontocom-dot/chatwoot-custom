@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_20_203000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_21_100000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -687,6 +687,26 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_20_203000) do
     t.index ["phone_number", "account_id"], name: "index_contacts_on_phone_number_and_account_id"
   end
 
+  create_table "conversation_kanban_states", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "kanban_stage_id", null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "moved_by_id"
+    t.datetime "moved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "kanban_board_id"], name: "idx_conversation_kanban_states_on_account_board"
+    t.index ["account_id"], name: "index_conversation_kanban_states_on_account_id"
+    t.index ["conversation_id", "kanban_board_id"], name: "index_conversation_kanban_states_on_conversation_and_board", unique: true
+    t.index ["conversation_id"], name: "index_conversation_kanban_states_on_conversation_id"
+    t.index ["kanban_board_id", "kanban_stage_id", "position"], name: "index_conversation_kanban_states_on_board_stage_position"
+    t.index ["kanban_board_id"], name: "index_conversation_kanban_states_on_kanban_board_id"
+    t.index ["kanban_stage_id"], name: "index_conversation_kanban_states_on_kanban_stage_id"
+    t.index ["moved_by_id"], name: "index_conversation_kanban_states_on_moved_by_id"
+  end
+
   create_table "conversation_participants", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "user_id", null: false
@@ -950,26 +970,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_20_203000) do
     t.jsonb "settings", default: {}
   end
 
-  create_table "conversation_kanban_states", force: :cascade do |t|
-    t.bigint "account_id", null: false
-    t.bigint "conversation_id", null: false
-    t.bigint "kanban_board_id", null: false
-    t.bigint "kanban_stage_id", null: false
-    t.integer "position", default: 0, null: false
-    t.bigint "moved_by_id"
-    t.datetime "moved_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["account_id", "kanban_board_id"], name: "idx_conversation_kanban_states_on_account_board"
-    t.index ["account_id"], name: "index_conversation_kanban_states_on_account_id"
-    t.index ["conversation_id", "kanban_board_id"], name: "index_conversation_kanban_states_on_conversation_and_board", unique: true
-    t.index ["conversation_id"], name: "index_conversation_kanban_states_on_conversation_id"
-    t.index ["kanban_board_id", "kanban_stage_id", "position"], name: "index_conversation_kanban_states_on_board_stage_position"
-    t.index ["kanban_board_id"], name: "index_conversation_kanban_states_on_kanban_board_id"
-    t.index ["kanban_stage_id"], name: "index_conversation_kanban_states_on_kanban_stage_id"
-    t.index ["moved_by_id"], name: "index_conversation_kanban_states_on_moved_by_id"
-  end
-
   create_table "kanban_board_inboxes", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "kanban_board_id", null: false
@@ -1006,6 +1006,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_20_203000) do
     t.string "inbox_scope_mode", default: "all_inboxes", null: false
     t.jsonb "next_action_types", default: [], null: false
     t.jsonb "lost_reason_options", default: [], null: false
+    t.jsonb "custom_field_definitions", default: [], null: false
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
     t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"
@@ -1039,18 +1040,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_20_203000) do
     t.datetime "lost_at"
     t.string "lost_reason"
     t.bigint "closed_by_id"
+    t.bigint "amount_cents"
+    t.string "amount_currency", default: "BRL", null: false
+    t.jsonb "custom_field_values", default: {}, null: false
     t.index ["account_id", "active"], name: "index_kanban_cards_on_account_id_and_active"
     t.index ["account_id", "contact_id"], name: "index_kanban_cards_on_account_id_and_contact_id"
     t.index ["account_id", "inbox_id"], name: "index_kanban_cards_on_account_id_and_inbox_id"
     t.index ["account_id", "next_action_at"], name: "index_kanban_cards_on_account_id_and_next_action_at"
     t.index ["conversation_id"], name: "index_kanban_cards_on_conversation_id"
     t.index ["kanban_board_id", "active"], name: "index_kanban_cards_on_kanban_board_id_and_active"
+    t.index ["kanban_board_id", "amount_cents"], name: "index_kanban_cards_on_kanban_board_id_and_amount_cents"
     t.index ["kanban_board_id", "contact_id", "inbox_id", "normalized_subject"], name: "index_active_manual_kanban_cards_unique_subject", unique: true, where: "((active = true) AND ((origin)::text = 'manual'::text) AND (normalized_subject IS NOT NULL))"
     t.index ["kanban_board_id", "conversation_id", "inbox_id", "normalized_subject"], name: "index_kanban_cards_on_conversation_subject_unique", unique: true, where: "(((origin)::text = 'conversation'::text) AND (conversation_id IS NOT NULL) AND (normalized_subject IS NOT NULL))"
-    t.index ["kanban_board_id", "lost_at"], name: "index_kanban_cards_on_kanban_board_id_and_lost_at"
-    t.index ["kanban_board_id", "next_action_at"], name: "index_kanban_cards_on_kanban_board_id_and_next_action_at"
     t.index ["kanban_board_id", "kanban_stage_id", "position", "created_at", "id"], name: "index_active_kanban_cards_on_board_stage_order", where: "(active = true)"
     t.index ["kanban_board_id", "kanban_stage_id", "position"], name: "index_kanban_cards_on_board_stage_position"
+    t.index ["kanban_board_id", "lost_at"], name: "index_kanban_cards_on_kanban_board_id_and_lost_at"
+    t.index ["kanban_board_id", "next_action_at"], name: "index_kanban_cards_on_kanban_board_id_and_next_action_at"
     t.index ["kanban_board_id", "won_at"], name: "index_kanban_cards_on_kanban_board_id_and_won_at"
     t.index ["owner_id", "next_action_at"], name: "index_kanban_cards_on_owner_id_and_next_action_at"
   end

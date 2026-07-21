@@ -459,6 +459,92 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    it 'updates monetary value and board-specific custom field values' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          { key: 'procedimento', label: 'Procedimento', field_type: 'decimal' },
+          { key: 'exames', label: 'Exames', field_type: 'decimal' },
+          { key: 'valor_total', label: 'Valor total', field_type: 'formula', formula: 'procedimento + exames' }
+        ]
+      )
+      card = create_manual_card(subject: 'Old opportunity')
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                amount_cents: 125_50,
+                amount_currency: 'BRL',
+                custom_field_values: {
+                  procedimento: '100.50',
+                  exames: 25
+                }
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(amount_cents: 125_50, amount_currency: 'BRL')
+      expect(card.custom_field_values).to include(
+        'procedimento' => 100.5,
+        'exames' => 25,
+        'valor_total' => 125.5
+      )
+      expect(response.parsed_body).to include(
+        'amount_cents' => 125_50,
+        'amount_currency' => 'BRL',
+        'custom_field_values' => card.custom_field_values
+      )
+    end
+
+    it 'rejects invalid custom field formulas' do
+      card = create_manual_card(subject: 'Old opportunity')
+      kanban_board.update!(
+        custom_field_definitions: [
+          { key: 'procedimento', label: 'Procedimento', field_type: 'decimal' },
+          { key: 'valor_total', label: 'Valor total', field_type: 'formula', formula: 'procedimento + campo_inexistente' }
+        ]
+      )
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                custom_field_values: {
+                  procedimento: '100.50'
+                }
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['message']).to include('Custom field values valor_total formula is invalid')
+    end
+
+    it 'requires configured custom fields when a card reaches a required stage' do
+      required_stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'text',
+            required_stage_ids: [required_stage.id]
+          }
+        ]
+      )
+      card = create_manual_card(subject: 'Old opportunity')
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { kanban_stage_id: required_stage.id } },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['message']).to include('Custom field values procedimento is required')
+      expect(card.reload.kanban_stage_id).to eq(stage.id)
+    end
+
     it 'marks a stable card as won and records the closing user' do
       card = create_manual_card(subject: 'Old opportunity')
 

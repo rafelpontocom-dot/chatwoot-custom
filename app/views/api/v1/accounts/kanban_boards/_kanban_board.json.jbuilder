@@ -7,5 +7,6 @@ json.active kanban_board.active
 json.auto_create_cards_from_conversations kanban_board.auto_create_cards_from_conversations
 json.next_action_types kanban_board.configured_next_action_types
 json.lost_reason_options kanban_board.configured_lost_reason_options
+json.custom_field_definitions kanban_board.configured_custom_field_definitions
 json.created_at kanban_board.created_at.to_i
 json.updated_at kanban_board.updated_at.to_i

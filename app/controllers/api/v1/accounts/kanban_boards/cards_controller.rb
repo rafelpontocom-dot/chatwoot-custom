@@ -68,6 +68,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     @inbox = Current.account.inboxes.find(manual_card_params[:inbox_id])
   end
 
+  # rubocop:disable Metrics/MethodLength
   def card_params
     params.require(:card).permit(
       :kanban_stage_id,
@@ -84,9 +85,13 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       :won_at,
       :lost_at,
       :lost_reason,
+      :amount_cents,
+      :amount_currency,
+      custom_field_values: {},
       labels: []
     )
   end
+  # rubocop:enable Metrics/MethodLength
 
   def manual_card_params
     params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject)
@@ -167,7 +172,10 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
         :next_action_completed_at,
         :won_at,
         :lost_at,
-        :lost_reason
+        :lost_reason,
+        :amount_cents,
+        :amount_currency,
+        :custom_field_values
       )
       .tap { |permitted_params| normalize_sales_update_params!(permitted_params) }
   end

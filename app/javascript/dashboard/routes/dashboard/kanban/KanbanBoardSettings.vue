@@ -55,6 +55,7 @@ const form = reactive({
   allowedInboxIds: [],
   nextActionTypesText: '',
   lostReasonOptionsText: '',
+  customFieldDefinitionsText: '',
 });
 
 const boardId = computed(() => Number(route.params.boardId));
@@ -98,6 +99,11 @@ const applySettings = payload => {
   form.allowedInboxIds = settings.allowedInboxIds || [];
   form.nextActionTypesText = (settings.nextActionTypes || []).join('\n');
   form.lostReasonOptionsText = (settings.lostReasonOptions || []).join('\n');
+  form.customFieldDefinitionsText = JSON.stringify(
+    settings.customFieldDefinitions || [],
+    null,
+    2
+  );
 };
 
 const applyBoard = payload => {
@@ -135,6 +141,13 @@ const linesFromText = value =>
     .split('\n')
     .map(item => item.trim())
     .filter(Boolean);
+const customFieldDefinitionsFromText = value => {
+  const trimmedValue = String(value || '').trim();
+  if (!trimmedValue) return [];
+
+  const parsedValue = JSON.parse(trimmedValue);
+  return Array.isArray(parsedValue) ? parsedValue : [];
+};
 
 const buildPayload = () => ({
   kanban_board: {
@@ -149,6 +162,9 @@ const buildPayload = () => ({
       form.inboxScopeMode === 'selected_inboxes' ? form.allowedInboxIds : [],
     next_action_types: linesFromText(form.nextActionTypesText),
     lost_reason_options: linesFromText(form.lostReasonOptionsText),
+    custom_field_definitions: customFieldDefinitionsFromText(
+      form.customFieldDefinitionsText
+    ),
   },
 });
 
@@ -638,6 +654,18 @@ onMounted(fetchSettings);
               class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
               :placeholder="
                 t('KANBAN.SETTINGS.SALES.LOST_REASON_OPTIONS_PLACEHOLDER')
+              "
+            />
+          </label>
+          <label class="grid gap-1 text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS') }}
+            <textarea
+              v-model="form.customFieldDefinitionsText"
+              data-testid="kanban-settings-custom-fields"
+              rows="10"
+              class="font-mono rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+              :placeholder="
+                t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS_PLACEHOLDER')
               "
             />
           </label>

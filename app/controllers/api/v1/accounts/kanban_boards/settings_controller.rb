@@ -42,6 +42,7 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
     authorize @kanban_board, :update?
   end
 
+  # rubocop:disable Metrics/MethodLength
   def settings_params
     params.require(:kanban_board).permit(
       :name,
@@ -52,9 +53,22 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
       visible_user_ids: [],
       allowed_inbox_ids: [],
       next_action_types: [],
-      lost_reason_options: []
+      lost_reason_options: [],
+      custom_field_definitions: [
+        :key,
+        :label,
+        :field_type,
+        :formula,
+        {
+          options: [],
+          required_stage_ids: [],
+          condition: [:field_key, :equals],
+          layout: [:section, :position, :width]
+        }
+      ]
     )
   end
+  # rubocop:enable Metrics/MethodLength
 
   def replace_memberships!
     return unless settings_params.key?(:visible_user_ids) || @kanban_board.all_agents?

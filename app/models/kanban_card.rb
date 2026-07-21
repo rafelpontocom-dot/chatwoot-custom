@@ -52,6 +52,9 @@ class KanbanCard < ApplicationRecord
   NEXT_ACTION_STATUS_FUTURE = 'future'.freeze
   NEXT_ACTION_STATUS_MISSING = 'missing'.freeze
   NEXT_ACTION_STATUS_OVERDUE = 'overdue'.freeze
+  FORMULA_FIELD_PATTERN = /[a-zA-Z_][a-zA-Z0-9_]*/
+  FORMULA_TOKEN_PATTERN = %r{\d+(?:\.\d+)?|[+\-*/()]}
+  NUMERIC_CUSTOM_FIELD_TYPES = %w[integer decimal].freeze
 
   belongs_to :account
   belongs_to :kanban_board
@@ -93,6 +96,7 @@ class KanbanCard < ApplicationRecord
   validate :due_at_after_starts_at
   validate :lost_reason_present_when_lost
   validate :won_and_lost_are_mutually_exclusive
+  validate :required_custom_fields_present
   validate :validate_account_consistency
 
   scope :active, -> { where(active: true) }
@@ -279,6 +283,32 @@ class KanbanCard < ApplicationRecord
     self.next_action_type = nil if next_action_type.blank?
     self.next_action_note = nil if next_action_note.blank?
     self.lost_reason = nil if lost_reason.blank?
+    self.amount_currency = 'BRL' if amount_currency.blank?
+    self.custom_field_values = normalized_custom_field_values
+  end
+
+  def normalized_custom_field_values
+    values = custom_field_values.to_h.with_indifferent_access
+    normalized_values = {}
+
+    custom_field_definitions.each do |definition|
+      key = definition['key']
+      next if definition['field_type'] == 'formula'
+
+      normalized_value = normalize_custom_field_value(definition, values[key])
+      normalized_values[key] = normalized_value unless normalized_value.nil?
+    end
+
+    custom_field_definitions.select { |definition| definition['field_type'] == 'formula' }.each do |definition|
+      formula_value = calculate_formula_value(definition, normalized_values)
+      normalized_values[definition['key']] = formula_value unless formula_value.nil?
+    end
+
+    normalized_values
+  end
+
+  def custom_field_definitions
+    kanban_board&.configured_custom_field_definitions || []
   end
 
   def stage_entry_timestamp_required?
@@ -313,6 +343,165 @@ class KanbanCard < ApplicationRecord
     return if won_at.blank? || lost_at.blank?
 
     errors.add(:base, 'cannot be marked as won and lost at the same time')
+  end
+
+  def required_custom_fields_present
+    custom_field_definitions.each do |definition|
+      next unless custom_field_required_for_stage?(definition)
+      next unless custom_field_visible?(definition)
+      next if custom_field_values.to_h[definition['key']].present?
+
+      errors.add(:custom_field_values, "#{definition['key']} is required")
+    end
+  end
+
+  def custom_field_required_for_stage?(definition)
+    Array(definition['required_stage_ids']).map(&:to_i).include?(kanban_stage_id)
+  end
+
+  def custom_field_visible?(definition)
+    condition = definition['condition'].to_h
+    return true if condition.blank?
+
+    custom_field_values.to_h[condition['field_key']].to_s == condition['equals'].to_s
+  end
+
+  def normalize_custom_field_value(definition, value)
+    return if value.nil? || (value.respond_to?(:blank?) && value.blank?)
+
+    custom_field_value_normalizer(definition).call(value)
+  rescue ArgumentError, TypeError
+    errors.add(:custom_field_values, "#{definition['key']} is invalid")
+    nil
+  end
+
+  def custom_field_value_normalizer(definition)
+    normalizers = {
+      'integer' => method(:normalize_integer_custom_field_value),
+      'decimal' => method(:normalize_decimal_custom_field_value),
+      'boolean' => method(:normalize_boolean_custom_field_value),
+      'select' => ->(value) { normalize_select_custom_field_value(definition, value) },
+      'date' => method(:normalize_date_custom_field_value),
+      'datetime' => method(:normalize_datetime_custom_field_value)
+    }
+
+    normalizers.fetch(definition['field_type'], method(:normalize_text_custom_field_value))
+  end
+
+  def normalize_integer_custom_field_value(value)
+    Integer(value)
+  end
+
+  def normalize_decimal_custom_field_value(value)
+    Float(value)
+  end
+
+  def normalize_boolean_custom_field_value(value)
+    ActiveModel::Type::Boolean.new.cast(value)
+  end
+
+  def normalize_text_custom_field_value(value)
+    value.to_s.strip.presence
+  end
+
+  def normalize_date_custom_field_value(value)
+    Date.iso8601(value.to_s).iso8601
+  end
+
+  def normalize_datetime_custom_field_value(value)
+    Time.zone.parse(value.to_s)&.iso8601
+  end
+
+  def normalize_select_custom_field_value(definition, value)
+    normalized_value = value.to_s.strip
+    return normalized_value if Array(definition['options']).include?(normalized_value)
+
+    errors.add(:custom_field_values, "#{definition['key']} is invalid")
+    nil
+  end
+
+  def calculate_formula_value(definition, values)
+    formula = definition['formula'].to_s
+    return if formula.blank?
+
+    expression = formula_expression_with_values(definition, formula, values)
+    return if expression.blank?
+
+    evaluate_formula_expression(expression).to_f
+  rescue ArgumentError, ZeroDivisionError, SyntaxError
+    errors.add(:custom_field_values, "#{definition['key']} formula is invalid")
+    nil
+  end
+
+  def formula_expression_with_values(definition, formula, values)
+    definitions_by_key = custom_field_definitions.index_by { |field_definition| field_definition['key'] }
+    invalid_formula = false
+
+    expression = formula.gsub(FORMULA_FIELD_PATTERN) do |field_key|
+      field_definition = definitions_by_key[field_key]
+      unless field_definition && NUMERIC_CUSTOM_FIELD_TYPES.include?(field_definition['field_type'])
+        errors.add(:custom_field_values, "#{definition['key']} formula is invalid")
+        invalid_formula = true
+        next ''
+      end
+
+      Float(values[field_key] || 0).to_s
+    end
+
+    expression unless invalid_formula
+  end
+
+  def evaluate_formula_expression(expression)
+    normalized_expression = expression.delete(' ')
+    tokens = normalized_expression.scan(FORMULA_TOKEN_PATTERN)
+    raise ArgumentError if tokens.join != normalized_expression
+
+    result = parse_formula_expression(tokens)
+    raise ArgumentError if tokens.any?
+
+    result
+  end
+
+  def parse_formula_expression(tokens)
+    value = parse_formula_term(tokens)
+
+    while %w[+ -].include?(tokens.first)
+      operator = tokens.shift
+      next_value = parse_formula_term(tokens)
+      value = operator == '+' ? value + next_value : value - next_value
+    end
+
+    value
+  end
+
+  def parse_formula_term(tokens)
+    value = parse_formula_factor(tokens)
+
+    while %w[* /].include?(tokens.first)
+      operator = tokens.shift
+      next_value = parse_formula_factor(tokens)
+      value = operator == '*' ? value * next_value : value / next_value
+    end
+
+    value
+  end
+
+  def parse_formula_factor(tokens)
+    token = tokens.shift
+    raise ArgumentError if token.blank?
+    return -parse_formula_factor(tokens) if token == '-'
+
+    return parse_parenthesized_formula_expression(tokens) if token == '('
+    return Float(token) if token.match?(/\A\d+(?:\.\d+)?\z/)
+
+    raise ArgumentError
+  end
+
+  def parse_parenthesized_formula_expression(tokens)
+    value = parse_formula_expression(tokens)
+    raise ArgumentError unless tokens.shift == ')'
+
+    value
   end
 
   def validate_account_consistency

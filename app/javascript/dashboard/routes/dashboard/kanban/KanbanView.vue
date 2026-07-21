@@ -77,6 +77,7 @@ const stageColorOptions = KANBAN_STAGE_COLOR_OPTIONS;
 
 const activeBoardId = computed(() => Number(route.params.boardId) || null);
 const stages = computed(() => selectedBoard.value?.stages || []);
+const salesSummary = computed(() => selectedBoard.value?.salesSummary || null);
 const hasBoards = computed(() => boards.value.length > 0);
 const hasMultipleBoards = computed(() => boards.value.length > 1);
 const isInitialLoading = computed(
@@ -137,6 +138,11 @@ const isCardDragDisabled = computed(
   () => isPersistingCardDrag.value || !!activeActionKey.value
 );
 const normalizePayload = data => camelcaseKeys(data || {}, { deep: true });
+const formatCurrencyFromCents = amountCents =>
+  new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(Number(amountCents || 0) / 100);
 
 const normalizeKanbanPayload = data => {
   const payload = normalizePayload(data);
@@ -1075,6 +1081,53 @@ onUnmounted(() => {
         </div>
       </header>
 
+      <section
+        v-if="salesSummary"
+        data-testid="kanban-sales-summary"
+        class="grid grid-cols-2 gap-2 border-b border-n-weak px-6 py-3 sm:grid-cols-5"
+      >
+        <div class="grid gap-0.5">
+          <span class="text-xs text-n-slate-11">
+            {{ t('KANBAN.REPORTS.OPEN') }}
+          </span>
+          <span class="text-sm font-semibold text-n-slate-12">
+            {{ salesSummary.openCount || 0 }}
+          </span>
+        </div>
+        <div class="grid gap-0.5">
+          <span class="text-xs text-n-slate-11">
+            {{ t('KANBAN.REPORTS.WON') }}
+          </span>
+          <span class="text-sm font-semibold text-n-slate-12">
+            {{ salesSummary.wonCount || 0 }}
+          </span>
+        </div>
+        <div class="grid gap-0.5">
+          <span class="text-xs text-n-slate-11">
+            {{ t('KANBAN.REPORTS.LOST') }}
+          </span>
+          <span class="text-sm font-semibold text-n-slate-12">
+            {{ salesSummary.lostCount || 0 }}
+          </span>
+        </div>
+        <div class="grid gap-0.5">
+          <span class="text-xs text-n-slate-11">
+            {{ t('KANBAN.REPORTS.OVERDUE') }}
+          </span>
+          <span class="text-sm font-semibold text-n-ruby-11">
+            {{ salesSummary.overdueCount || 0 }}
+          </span>
+        </div>
+        <div class="grid gap-0.5">
+          <span class="text-xs text-n-slate-11">
+            {{ t('KANBAN.REPORTS.WON_AMOUNT') }}
+          </span>
+          <span class="text-sm font-semibold text-n-slate-12">
+            {{ formatCurrencyFromCents(salesSummary.wonAmountCents) }}
+          </span>
+        </div>
+      </section>
+
       <div
         v-if="hasError"
         class="flex flex-1 items-center justify-center p-6 text-sm text-n-ruby-11"
@@ -1354,6 +1407,7 @@ onUnmounted(() => {
         :card-id="selectedOpportunityCardId"
         :next-action-types="selectedBoard.nextActionTypes || []"
         :lost-reason-options="selectedBoard.lostReasonOptions || []"
+        :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
         :owner-options="agentFilterOptions"
         @close="closeOpportunityDetails"
         @updated="onOpportunityUpdated"

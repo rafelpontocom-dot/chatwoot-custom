@@ -29,6 +29,9 @@ if stable_card
   json.lost_at card.lost_at&.iso8601
   json.lost_reason card.lost_reason
   json.closed_by_id card.closed_by_id
+  json.amount_cents card.amount_cents
+  json.amount_currency card.amount_currency
+  json.custom_field_values card.custom_field_values
   json.owner do
     if card.owner
       json.id card.owner.id

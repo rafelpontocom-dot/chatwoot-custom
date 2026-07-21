@@ -55,6 +55,14 @@ const settingsPayload = {
   auto_create_cards_from_conversations: true,
   next_action_types: ['Enviar proposta', 'Cobrar retorno'],
   lost_reason_options: ['Preço', 'Sem resposta'],
+  custom_field_definitions: [
+    {
+      key: 'consulta_realizada',
+      label: 'Consulta realizada?',
+      field_type: 'select',
+      options: ['Sim', 'Não'],
+    },
+  ],
 };
 
 const boardPayload = {
@@ -497,6 +505,17 @@ describe('KanbanBoardSettings', () => {
       .find('[data-testid="kanban-settings-lost-reason-options"]')
       .setValue('Preço\n\nFechou com outro');
     await wrapper
+      .find('[data-testid="kanban-settings-custom-fields"]')
+      .setValue(
+        JSON.stringify([
+          {
+            key: 'valor_procedimento',
+            label: 'Valor do procedimento',
+            field_type: 'decimal',
+          },
+        ])
+      );
+    await wrapper
       .find('[data-testid="kanban-settings-form"]')
       .trigger('submit');
 
@@ -515,6 +534,13 @@ describe('KanbanBoardSettings', () => {
           'Enviar proposta',
         ],
         lost_reason_options: ['Preço', 'Fechou com outro'],
+        custom_field_definitions: [
+          {
+            key: 'valor_procedimento',
+            label: 'Valor do procedimento',
+            field_type: 'decimal',
+          },
+        ],
       },
     });
   });

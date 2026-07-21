@@ -27,6 +27,8 @@
 class KanbanBoard < ApplicationRecord
   INBOX_SCOPE_MODES = %w[all_inboxes selected_inboxes].freeze
   VISIBILITY_MODES = %w[all_agents selected_agents].freeze
+  CUSTOM_FIELD_TYPES = %w[text select integer decimal date datetime boolean formula].freeze
+  CUSTOM_FIELD_LAYOUT_WIDTHS = %w[full half third].freeze
   DEFAULT_NEXT_ACTION_TYPES = [
     'Chamar novamente',
     'Enviar proposta',
@@ -96,11 +98,54 @@ class KanbanBoard < ApplicationRecord
     lost_reason_options.presence || DEFAULT_LOST_REASON_OPTIONS
   end
 
+  def configured_custom_field_definitions
+    custom_field_definitions.presence || []
+  end
+
+  def sales_summary
+    cards = kanban_cards.active.includes(:kanban_stage, :owner).to_a
+
+    {
+      open_count: cards.count(&:open_opportunity?),
+      won_count: cards.count { |card| card.won_at.present? },
+      lost_count: cards.count { |card| card.lost_at.present? },
+      overdue_count: cards.count { |card| card.next_action_status == KanbanCard::NEXT_ACTION_STATUS_OVERDUE },
+      won_amount_cents: cards.select { |card| card.won_at.present? }.sum { |card| card.amount_cents.to_i },
+      by_stage: sales_summary_by_stage(cards),
+      by_owner: sales_summary_by_owner(cards)
+    }
+  end
+
   private
+
+  def sales_summary_by_stage(cards)
+    kanban_stages.active.ordered.map do |stage|
+      stage_cards = cards.select { |card| card.kanban_stage_id == stage.id }
+      sales_summary_bucket(id: stage.id, name: stage.name, cards: stage_cards)
+    end
+  end
+
+  def sales_summary_by_owner(cards)
+    cards.select(&:owner_id).group_by(&:owner).map do |owner, owner_cards|
+      sales_summary_bucket(id: owner.id, name: owner.name, cards: owner_cards)
+    end
+  end
+
+  def sales_summary_bucket(id:, name:, cards:)
+    {
+      id: id,
+      name: name,
+      open_count: cards.count(&:open_opportunity?),
+      won_count: cards.count { |card| card.won_at.present? },
+      lost_count: cards.count { |card| card.lost_at.present? },
+      amount_cents: cards.select { |card| card.won_at.present? }.sum { |card| card.amount_cents.to_i }
+    }
+  end
 
   def normalize_sales_configuration
     self.next_action_types = normalize_string_list(next_action_types)
     self.lost_reason_options = normalize_string_list(lost_reason_options)
+    self.custom_field_definitions = normalize_custom_field_definitions(custom_field_definitions)
   end
 
   def normalize_string_list(values)
@@ -108,5 +153,68 @@ class KanbanBoard < ApplicationRecord
       normalized_value = value.to_s.strip
       normalized_value.presence
     end.uniq
+  end
+
+  def normalize_custom_field_definitions(definitions)
+    seen_keys = []
+    Array(definitions).filter_map do |definition|
+      normalized_definition = normalize_custom_field_definition(definition)
+      next if normalized_definition.blank? || seen_keys.include?(normalized_definition['key'])
+
+      seen_keys << normalized_definition['key']
+      normalized_definition
+    end
+  end
+
+  def normalize_custom_field_definition(definition)
+    source = definition.to_h.with_indifferent_access
+    key, label, field_type = custom_field_identity(source)
+
+    return if key.blank? || label.blank? || CUSTOM_FIELD_TYPES.exclude?(field_type)
+
+    {
+      'key' => key,
+      'label' => label,
+      'field_type' => field_type,
+      'options' => field_type == 'select' ? normalize_string_list(source[:options]) : [],
+      'required_stage_ids' => normalize_stage_ids(source[:required_stage_ids]),
+      'condition' => normalize_custom_field_condition(source[:condition]),
+      'formula' => field_type == 'formula' ? source[:formula].to_s.strip.presence : nil,
+      'layout' => normalize_custom_field_layout(source[:layout])
+    }
+  end
+
+  def custom_field_identity(source)
+    [
+      source[:key].to_s.strip.parameterize(separator: '_'),
+      source[:label].to_s.strip,
+      source[:field_type].to_s.strip
+    ]
+  end
+
+  def normalize_stage_ids(stage_ids)
+    board_stage_ids = kanban_stages.pluck(:id)
+
+    Array(stage_ids).filter_map(&:presence).map(&:to_i).uniq & board_stage_ids
+  end
+
+  def normalize_custom_field_condition(condition)
+    source = condition.to_h.with_indifferent_access
+    field_key = source[:field_key].to_s.strip.parameterize(separator: '_')
+
+    return {} if field_key.blank?
+
+    { 'field_key' => field_key, 'equals' => source[:equals].to_s }
+  end
+
+  def normalize_custom_field_layout(layout)
+    source = layout.to_h.with_indifferent_access
+    width = source[:width].to_s
+
+    {
+      'section' => source[:section].to_s.strip.presence || 'details',
+      'position' => source[:position].to_i.positive? ? source[:position].to_i : 1,
+      'width' => CUSTOM_FIELD_LAYOUT_WIDTHS.include?(width) ? width : 'full'
+    }
   end
 end

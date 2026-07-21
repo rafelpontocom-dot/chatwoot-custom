@@ -39,6 +39,13 @@
       "WON": "Won",
       "LOST": "Lost"
     },
+    "REPORTS": {
+      "OPEN": "Open",
+      "WON": "Won",
+      "LOST": "Lost",
+      "OVERDUE": "Overdue",
+      "WON_AMOUNT": "Won value"
+    },
     "ACTIONS": {
       "CREATE_BOARD": "Add",
       "RETRY": "Try again",
@@ -139,7 +146,9 @@
         "NEXT_ACTION_TYPES": "Next action types",
         "NEXT_ACTION_TYPES_PLACEHOLDER": "One action type per line",
         "LOST_REASON_OPTIONS": "Lost reasons",
-        "LOST_REASON_OPTIONS_PLACEHOLDER": "One lost reason per line"
+        "LOST_REASON_OPTIONS_PLACEHOLDER": "One lost reason per line",
+        "CUSTOM_FIELDS": "Custom field definitions",
+        "CUSTOM_FIELDS_PLACEHOLDER": "JSON array with key, label, field_type, options, required_stage_ids, condition, formula and layout"
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",
@@ -182,6 +191,8 @@
       "CARD_ID": "Card #{id}",
       "FIELD_TITLE": "Title",
       "FIELD_DESCRIPTION": "Description",
+      "FIELD_AMOUNT": "Value",
+      "CUSTOM_FIELDS": "Custom fields",
       "DESCRIPTION_PLACEHOLDER": "Add a single note for this card",
       "OWNER": "Sales owner",
       "ASSIGNEE": "Agent",

@@ -17,6 +17,8 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.CARD_ID': 'Card #{id}',
         'KANBAN.OPPORTUNITY_DETAILS.FIELD_TITLE': 'Title',
         'KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION': 'Description',
+        'KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT': 'Value',
+        'KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS': 'Custom fields',
         'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER':
           'Add a single note for this card',
         'KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE': 'Agent',
@@ -142,6 +144,12 @@ const buildCard = overrides => ({
   description: 'Follow up with procurement next week.',
   startsAt: '2026-06-01T09:00',
   dueAt: '2026-06-05T18:00',
+  amountCents: 12550,
+  amountCurrency: 'BRL',
+  customFieldValues: {
+    consulta_realizada: 'Sim',
+    observacao_venda: 'Cliente quer fechar no WhatsApp',
+  },
   ownerId: 7,
   nextActionType: 'Enviar proposta',
   nextActionAt: '2026-07-20T15:00',
@@ -167,6 +175,19 @@ const mountModal = async ({
   resolveLabels = true,
   accountLabels = labels,
   assignedLabels = [labels[0]],
+  customFieldDefinitions = [
+    {
+      key: 'consulta_realizada',
+      label: 'Consulta realizada?',
+      fieldType: 'select',
+      options: ['Sim', 'Não'],
+    },
+    {
+      key: 'observacao_venda',
+      label: 'Observação de venda',
+      fieldType: 'text',
+    },
+  ],
 } = {}) => {
   storeMocks.labels = accountLabels;
   storeMocks.dispatch.mockResolvedValue();
@@ -188,6 +209,7 @@ const mountModal = async ({
       cardId: 501,
       nextActionTypes: ['Enviar proposta', 'Enviar link de pagamento'],
       lostReasonOptions: ['Preço', 'Sem resposta'],
+      customFieldDefinitions,
       ownerOptions: [
         { value: 7, label: 'Jane Agent' },
         { value: 8, label: 'Ana Paula' },
@@ -210,6 +232,10 @@ const subjectInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-subject"]');
 const descriptionInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-description"]');
+const amountInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-amount"]');
+const customFieldInput = (wrapper, key) =>
+  wrapper.find(`[data-testid="kanban-custom-field-${key}"]`);
 const startsAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-starts-at"]');
 const dueAtInput = wrapper =>
@@ -243,7 +269,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(KanbanBoardsAPI.showCardById).toHaveBeenCalledWith(10, 501);
   });
 
-  it('renders a responsive two-column layout with more space for description', async () => {
+  it('renders a responsive two-column layout', async () => {
     const wrapper = await mountModal();
 
     expect(wrapper.text()).toContain('Edit opportunity in Sales funnel');
@@ -263,13 +289,15 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toContain('xl:grid-cols-[minmax(0,4fr)_minmax(16rem,1fr)]');
   });
 
-  it('renders title and description controls at full width', async () => {
+  it('renders title, compact description, and amount controls', async () => {
     const wrapper = await mountModal();
 
     expect(subjectInput(wrapper).classes()).toContain('w-full');
     expect(descriptionInput(wrapper).classes()).toEqual(
-      expect.arrayContaining(['max-w-full', 'w-full', 'min-h-[18rem]'])
+      expect.arrayContaining(['max-w-full', 'w-full', 'min-h-24'])
     );
+    expect(descriptionInput(wrapper).attributes('rows')).toBe('4');
+    expect(amountInput(wrapper).element.value).toBe('125.50');
   });
 
   it('renders card ID in the header', async () => {
@@ -341,6 +369,18 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(startsAtInput(wrapper).element.value).toBe('2026-06-01T09:00');
     expect(dueAtInput(wrapper).element.value).toBe('2026-06-05T18:00');
+  });
+
+  it('loads board-specific custom fields', async () => {
+    const wrapper = await mountModal();
+
+    expect(wrapper.text()).toContain('Custom fields');
+    expect(customFieldInput(wrapper, 'consulta_realizada').element.value).toBe(
+      'Sim'
+    );
+    expect(customFieldInput(wrapper, 'observacao_venda').element.value).toBe(
+      'Cliente quer fechar no WhatsApp'
+    );
   });
 
   it('loads next action fields', async () => {
@@ -434,6 +474,40 @@ describe('KanbanOpportunityDetailsModal', () => {
       expect.objectContaining({
         starts_at: new Date('2026-06-02T10:30').toISOString(),
         due_at: new Date('2026-06-04T15:45').toISOString(),
+      })
+    );
+  });
+
+  it('saves amount and board-specific custom fields', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        amountCents: 19990,
+        customFieldValues: {
+          consulta_realizada: 'Não',
+          observacao_venda: 'Fechamento sem reunião',
+        },
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await amountInput(wrapper).setValue('199.90');
+    await customFieldInput(wrapper, 'consulta_realizada').setValue('Não');
+    await customFieldInput(wrapper, 'observacao_venda').setValue(
+      'Fechamento sem reunião'
+    );
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({
+        amount_cents: 19990,
+        amount_currency: 'BRL',
+        custom_field_values: {
+          consulta_realizada: 'Não',
+          observacao_venda: 'Fechamento sem reunião',
+        },
       })
     );
   });

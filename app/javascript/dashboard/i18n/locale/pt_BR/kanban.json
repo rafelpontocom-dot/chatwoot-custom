@@ -39,6 +39,13 @@
       "WON": "Ganhos",
       "LOST": "Perdidos"
     },
+    "REPORTS": {
+      "OPEN": "Abertas",
+      "WON": "Ganhas",
+      "LOST": "Perdidas",
+      "OVERDUE": "Atrasadas",
+      "WON_AMOUNT": "Valor ganho"
+    },
     "ACTIONS": {
       "CREATE_BOARD": "Adicionar",
       "RETRY": "Tentar novamente",
@@ -135,7 +142,9 @@
         "NEXT_ACTION_TYPES": "Tipos de próxima ação",
         "NEXT_ACTION_TYPES_PLACEHOLDER": "Um tipo de ação por linha",
         "LOST_REASON_OPTIONS": "Motivos de perda",
-        "LOST_REASON_OPTIONS_PLACEHOLDER": "Um motivo de perda por linha"
+        "LOST_REASON_OPTIONS_PLACEHOLDER": "Um motivo de perda por linha",
+        "CUSTOM_FIELDS": "Definições de campos personalizados",
+        "CUSTOM_FIELDS_PLACEHOLDER": "Array JSON com key, label, field_type, options, required_stage_ids, condition, formula e layout"
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
@@ -178,6 +187,8 @@
       "CARD_ID": "Card #{id}",
       "FIELD_TITLE": "Título",
       "FIELD_DESCRIPTION": "Descrição",
+      "FIELD_AMOUNT": "Valor",
+      "CUSTOM_FIELDS": "Campos personalizados",
       "DESCRIPTION_PLACEHOLDER": "Adicione uma anotação única para este card",
       "OWNER": "Responsável comercial",
       "ASSIGNEE": "Agente",

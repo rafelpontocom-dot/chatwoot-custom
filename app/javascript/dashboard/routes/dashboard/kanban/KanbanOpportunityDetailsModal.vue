@@ -28,6 +28,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  customFieldDefinitions: {
+    type: Array,
+    default: () => [],
+  },
   ownerOptions: {
     type: Array,
     default: () => [],
@@ -44,6 +48,9 @@ const card = ref(null);
 const subject = ref('');
 const description = ref('');
 const ownerId = ref('');
+const amountValue = ref('');
+const amountCurrency = ref('BRL');
+const customFieldValues = ref({});
 const startsAt = ref('');
 const dueAt = ref('');
 const nextActionType = ref('');
@@ -132,6 +139,20 @@ const selectableLostReasonOptions = computed(() => {
 
   return options;
 });
+const normalizedCustomFieldDefinitions = computed(() =>
+  props.customFieldDefinitions
+    .map(definition => ({
+      ...definition,
+      fieldType: definition.fieldType || definition.field_type,
+      requiredStageIds:
+        definition.requiredStageIds || definition.required_stage_ids || [],
+    }))
+    .sort(
+      (firstDefinition, secondDefinition) =>
+        (firstDefinition.layout?.position || 0) -
+        (secondDefinition.layout?.position || 0)
+    )
+);
 
 const normalizeCard = payload => ({
   ...payload,
@@ -140,6 +161,9 @@ const normalizeCard = payload => ({
   kanbanStageId: payload.kanbanStageId ?? payload.kanban_stage_id,
   conversationId: payload.conversationId ?? payload.conversation_id,
   ownerId: payload.ownerId ?? payload.owner_id,
+  amountCents: payload.amountCents ?? payload.amount_cents,
+  amountCurrency: payload.amountCurrency ?? payload.amount_currency,
+  customFieldValues: payload.customFieldValues ?? payload.custom_field_values,
   startsAt: payload.startsAt ?? payload.starts_at,
   dueAt: payload.dueAt ?? payload.due_at,
   nextActionType: payload.nextActionType ?? payload.next_action_type,
@@ -160,6 +184,44 @@ const formatDateTimeInput = value => {
 };
 
 const toIso8601 = value => (value ? new Date(value).toISOString() : null);
+const formatAmountInput = amountCents =>
+  amountCents === null || amountCents === undefined
+    ? ''
+    : (Number(amountCents) / 100).toFixed(2);
+const toAmountCents = value => {
+  const normalizedValue = String(value || '')
+    .replace(',', '.')
+    .trim();
+  if (!normalizedValue) return null;
+
+  const amount = Number(normalizedValue);
+  return Number.isNaN(amount) ? null : Math.round(amount * 100);
+};
+function isCustomFieldVisible(definition) {
+  const condition = definition.condition || {};
+  if (!condition.fieldKey && !condition.field_key) return true;
+
+  const fieldKey = condition.fieldKey || condition.field_key;
+  return (
+    String(customFieldValues.value[fieldKey] || '') === String(condition.equals)
+  );
+}
+const visibleCustomFieldDefinitions = computed(() =>
+  normalizedCustomFieldDefinitions.value.filter(definition =>
+    isCustomFieldVisible(definition)
+  )
+);
+const hasCustomFields = computed(
+  () => visibleCustomFieldDefinitions.value.length > 0
+);
+const getCustomFieldValue = definition =>
+  customFieldValues.value[definition.key] ?? '';
+const setCustomFieldValue = (definition, value) => {
+  customFieldValues.value = {
+    ...customFieldValues.value,
+    [definition.key]: value,
+  };
+};
 
 const getErrorMessage = (error, fallback) => {
   const errors = error?.response?.data?.errors;
@@ -178,6 +240,9 @@ const setFormState = payload => {
   subject.value = card.value.subject || '';
   description.value = card.value.description || '';
   ownerId.value = card.value.ownerId ? String(card.value.ownerId) : '';
+  amountValue.value = formatAmountInput(card.value.amountCents);
+  amountCurrency.value = card.value.amountCurrency || 'BRL';
+  customFieldValues.value = card.value.customFieldValues || {};
   startsAt.value = formatDateTimeInput(card.value.startsAt);
   dueAt.value = formatDateTimeInput(card.value.dueAt);
   nextActionType.value = card.value.nextActionType || '';
@@ -235,6 +300,9 @@ const buildCardPayload = extraPayload => ({
   subject: subject.value.trim(),
   description: description.value.trim() ? description.value : null,
   owner_id: ownerId.value ? Number(ownerId.value) : null,
+  amount_cents: toAmountCents(amountValue.value),
+  amount_currency: amountCurrency.value || 'BRL',
+  custom_field_values: customFieldValues.value,
   starts_at: toIso8601(startsAt.value),
   due_at: toIso8601(dueAt.value),
   next_action_type: nextActionType.value || null,
@@ -420,14 +488,90 @@ onMounted(() => {
               </span>
               <textarea
                 v-model="description"
-                rows="12"
+                rows="4"
                 data-testid="kanban-opportunity-description"
-                class="min-h-[18rem] max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                class="min-h-24 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
                 :placeholder="
                   t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
                 "
               />
             </label>
+
+            <NextInput
+              v-model="amountValue"
+              data-testid="kanban-opportunity-amount"
+              class="w-full"
+              type="number"
+              min="0"
+              step="0.01"
+              :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
+            />
+
+            <section
+              v-if="hasCustomFields"
+              data-testid="kanban-opportunity-custom-fields"
+              class="grid gap-3 rounded-lg border border-n-weak p-3"
+            >
+              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS') }}
+              </h3>
+
+              <div class="grid gap-3 md:grid-cols-2">
+                <label
+                  v-for="definition in visibleCustomFieldDefinitions"
+                  :key="definition.key"
+                  class="grid gap-1.5"
+                >
+                  <span class="text-sm font-medium text-n-slate-12">
+                    {{ definition.label }}
+                  </span>
+
+                  <select
+                    v-if="definition.fieldType === 'select'"
+                    :value="getCustomFieldValue(definition)"
+                    :data-testid="`kanban-custom-field-${definition.key}`"
+                    class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="
+                      setCustomFieldValue(definition, $event.target.value)
+                    "
+                  >
+                    <option value="" />
+                    <option
+                      v-for="option in definition.options || []"
+                      :key="option"
+                      :value="option"
+                    >
+                      {{ option }}
+                    </option>
+                  </select>
+
+                  <input
+                    v-else
+                    :value="getCustomFieldValue(definition)"
+                    :type="
+                      definition.fieldType === 'integer' ||
+                      definition.fieldType === 'decimal' ||
+                      definition.fieldType === 'formula'
+                        ? 'number'
+                        : definition.fieldType === 'date'
+                          ? 'date'
+                          : definition.fieldType === 'datetime'
+                            ? 'datetime-local'
+                            : 'text'
+                    "
+                    :step="
+                      definition.fieldType === 'decimal' ? '0.01' : undefined
+                    "
+                    :disabled="definition.fieldType === 'formula'"
+                    :data-testid="`kanban-custom-field-${definition.key}`"
+                    class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:border-n-brand"
+                    @input="
+                      setCustomFieldValue(definition, $event.target.value)
+                    "
+                  />
+                </label>
+              </div>
+            </section>
           </section>
 
           <aside class="grid min-w-0 content-start gap-4">
