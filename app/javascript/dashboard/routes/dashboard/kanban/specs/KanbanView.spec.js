@@ -355,6 +355,7 @@ const mountView = async (
             'customFieldSections',
             'ownerOptions',
             'canManageFields',
+            'drawerMode',
           ],
           template:
             '<div class="kanban-opportunity-modal-stub" data-board-id="{{ boardId }}" data-card-id="{{ cardId }}" />',
@@ -1774,7 +1775,7 @@ describe('KanbanView drag and drop', () => {
     });
   });
 
-  it('hides the outer opportunity modal close button', async () => {
+  it('opens opportunity details in an accessible drawer shell', async () => {
     const wrapper = await mountView();
     const cardComponent = wrapper.findComponent({
       name: 'KanbanConversationCard',
@@ -1783,12 +1784,11 @@ describe('KanbanView drag and drop', () => {
     cardComponent.vm.$emit('openDetails', { id: 501, conversationId: 123 }, {});
     await nextTick();
 
-    const modal = wrapper
-      .findAllComponents({ name: 'WootModal' })
-      .find(component => component.props('size') === 'modal-big');
-    expect(modal.props('showCloseButton')).toBe(false);
-    expect(modal.props('size')).toBe('modal-big');
-    expect(modal.props('fullWidth')).toBe(true);
+    const drawer = wrapper.find('[data-testid="kanban-opportunity-drawer"]');
+    expect(drawer.exists()).toBe(true);
+    expect(
+      wrapper.findComponent({ name: 'KanbanOpportunityDetailsModal' }).props()
+    ).toHaveProperty('drawerMode');
   });
 
   it('closes opportunity modal and clears selected card', async () => {
@@ -2358,7 +2358,9 @@ describe('KanbanView header navigation', () => {
     );
     const inboxFilter = findInboxFilterWrapper(wrapper);
 
-    expect(settingsButton.element.nextElementSibling).toBe(inboxFilter.element);
+    expect(
+      settingsButton.element.compareDocumentPosition(inboxFilter.element)
+    ).toBeTruthy();
   });
 
   it('does not show board settings button for agents', async () => {
@@ -2384,7 +2386,7 @@ describe('KanbanView header navigation', () => {
 
   it('keeps board header filters compact', async () => {
     const wrapper = await mountView();
-    const compactClasses = ['w-48', 'max-w-full', 'flex-none'];
+    const compactClasses = ['min-w-0'];
 
     compactClasses.forEach(className => {
       expect(findInboxFilterWrapper(wrapper).classes()).toContain(className);

@@ -84,6 +84,8 @@
     },
     "FILTERS": {
       "SEARCH_PLACEHOLDER": "Search opportunities",
+      "SEARCH_LABEL": "Search opportunities",
+      "SORT_LABEL": "Sort by",
       "DEFAULT_ORDER": "Board order",
       "NEXT_ACTION_FIRST": "Next action first",
       "NEWEST_FIRST": "Newest first",
@@ -102,8 +104,11 @@
       "DELETE_CONFIRMATION": "Delete this saved filter?",
       "ACTIVE_COUNT": "Active filter groups",
       "CLEAR": "Clear filters",
+      "OPEN": "Filters",
       "INBOXES": "Inboxes",
       "AGENTS": "Agents",
+      "NEXT_ACTION_LABEL": "Next action",
+      "STATUS_LABEL": "Status",
       "ALL_ACTIONS": "All actions",
       "MISSING_NEXT_ACTION": "No action",
       "OVERDUE": "Overdue",
@@ -112,6 +117,38 @@
       "OPEN": "Open",
       "WON": "Won",
       "LOST": "Lost"
+    },
+    "VIEW": {
+      "LABEL": "Opportunity view",
+      "KANBAN": "Kanban view",
+      "LIST": "List view"
+    },
+    "ACTIVITY": {
+      "OPEN": "Open activity center",
+      "LABEL": "Sales work",
+      "TITLE": "Activity center",
+      "TABS_LABEL": "Activity filters",
+      "TODAY": "Today",
+      "OVERDUE": "Overdue",
+      "UPCOMING": "Upcoming",
+      "MISSING": "No next action",
+      "BY_OWNER": "By owner",
+      "NEXT_ACTION": "Next action",
+      "NO_DATE": "No date",
+      "EMPTY": "No activities match this view."
+    },
+    "LIST": {
+      "SELECT": "Select",
+      "SELECT_OPPORTUNITY": "Select opportunity for {name}",
+      "OPPORTUNITY": "Opportunity",
+      "STAGE": "Stage",
+      "VALUE": "Value",
+      "NEXT_ACTION": "Next action",
+      "OWNER": "Owner",
+      "ACTIONS": "Actions",
+      "OPEN": "Open conversation",
+      "EMPTY": "No opportunities match the current filters.",
+      "PAGINATION_NOTE": "The list uses the opportunities currently loaded for each stage. Load more in Kanban to expand it."
     },
     "REPORTS": {
       "OPEN": "Open",
@@ -150,6 +187,7 @@
       "CONFIRM_CREATE_BOARD": "Create funnel",
       "CANCEL_CREATE_BOARD": "Cancel funnel creation",
       "ADD_ITEM": "Add item",
+      "NEW_OPPORTUNITY": "New opportunity",
       "LOAD_MORE_CARDS": "Load more",
       "LOADING_CARDS": "Loading",
       "LOAD_CARDS_ERROR": "Failed to load cards",
@@ -274,6 +312,15 @@
         "ADD_FIELD_OPTION": "Add option",
         "REMOVE_FIELD_OPTION": "Remove option {option}",
         "REMOVE_CUSTOM_FIELD": "Remove field",
+        "FIELD_GROUPS": "Tab groups",
+        "FIELD_GROUPS_DESCRIPTION": "Organize fields into blocks inside the tab. Drag a field onto a group to move it.",
+        "FIELD_GROUP_NAME": "Group name",
+        "FIELD_GROUP_COLOR": "Group color",
+        "ADD_FIELD_GROUP": "Add group",
+        "REMOVE_FIELD_GROUP": "Remove group",
+        "NO_FIELD_GROUPS": "No groups in this tab.",
+        "FIELD_GROUP": "Group",
+        "FIELD_GROUP_NONE": "No group",
         "TAB_LAYOUT": "Opportunity tabs",
         "TAB_LAYOUT_DESCRIPTION": "Open a tab to see its fields. Use + to add or drag a field from the list into this tab.",
         "EMPTY_TAB": "Drag fields here",
@@ -442,6 +489,7 @@
       "FIELD_AMOUNT": "Value",
       "STAGE": "Stage",
       "CUSTOM_FIELDS": "Custom fields",
+      "UNGROUPED_FIELDS": "Other fields",
       "IMPORTANT_FIELD": "Important, but not required",
       "TABS": {
         "LABEL": "Opportunity sections",
@@ -500,7 +548,37 @@
       "REQUIRED_TITLE": "Title is required.",
       "CLOSE": "Close opportunity details",
       "MANAGE_FIELDS": "Manage opportunity fields",
-      "ADD_TAB": "Create opportunity tab"
+      "ADD_TAB": "Create opportunity tab",
+      "GROUPS": {
+        "COMMERCIAL": "Commercial"
+      }
+    },
+    "DRAWER_PREVIEW": {
+      "OPEN": "Preview opportunity as a drawer",
+      "TITLE": "Opportunity drawer preview",
+      "PREVIEW_LABEL": "Preview",
+      "STAGE": "Stage",
+      "VALUE": "Value",
+      "OWNER": "Owner",
+      "NEXT_ACTION": "Next action",
+      "NEXT_ACTION_DATE": "Due date",
+      "SOURCE": "Source",
+      "CAMPAIGN": "Campaign",
+      "NOT_SET": "Not set",
+      "ACTIVITY_PLACEHOLDER": "The activity timeline would live here, with today, overdue, and upcoming actions in one place.",
+      "CONVERSATION_PLACEHOLDER": "The linked conversation would stay available here without leaving the opportunity.",
+      "FOOTER_HINT": "This is a visual preview. The current modal remains unchanged.",
+      "PRIMARY_ACTION": "Save opportunity",
+      "GROUPS": {
+        "COMMERCIAL": "Commercial",
+        "MARKETING": "Marketing"
+      },
+      "TABS": {
+        "LABEL": "Opportunity sections",
+        "OVERVIEW": "Overview",
+        "ACTIVITY": "Activity",
+        "CONVERSATION": "Conversation"
+      }
     },
     "ADD_ITEM": {
       "POSSIBLE_DUPLICATE": "A similar opportunity already exists for this contact in this inbox.",
@@ -516,6 +594,7 @@
       "INBOXES_ERROR": "Could not load inboxes. Try again.",
       "NO_INBOXES": "No available inboxes for this contact.",
       "SUBJECT": "Subject",
+      "QUICK_CREATE_DESCRIPTION": "Start with the contact and inbox. You can complete the opportunity details after creation.",
       "CREATE_OPPORTUNITY": "Create opportunity",
       "SAVING": "Saving...",
       "SUBJECT_REQUIRED": "Enter a subject to create the opportunity.",

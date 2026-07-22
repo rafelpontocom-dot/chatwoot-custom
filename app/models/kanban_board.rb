@@ -45,7 +45,8 @@ class KanbanBoard < ApplicationRecord
   CUSTOM_FIELD_TYPES = %w[text textarea select multiselect integer decimal currency date datetime boolean url formula].freeze
   CUSTOM_FIELD_LAYOUT_WIDTHS = %w[full half third].freeze
   FORMULA_RESULT_TYPES = %w[number date datetime].freeze
-  RESERVED_CUSTOM_FIELD_SECTION_KEYS = %w[details marketing timeline].freeze
+  RESERVED_CUSTOM_FIELD_SECTION_KEYS = %w[timeline].freeze
+  CUSTOM_FIELD_SECTION_COLORS = %w[slate blue teal green amber orange ruby rose violet iris].freeze
   DEFAULT_NEXT_ACTION_TYPES = [
     'Chamar novamente',
     'Enviar proposta',
@@ -219,11 +220,39 @@ class KanbanBoard < ApplicationRecord
       source = section.to_h.with_indifferent_access
       key = source[:key].to_s.strip.parameterize(separator: '_')
       label = source[:label].to_s.strip
+      label = key.capitalize if %w[details marketing].include?(key)
       next if key.blank? || label.blank? || RESERVED_CUSTOM_FIELD_SECTION_KEYS.include?(key) || seen_keys.include?(key)
 
       seen_keys << key
-      { 'key' => key, 'label' => label }
+      {
+        'key' => key,
+        'label' => label,
+        'color' => normalize_custom_field_section_color(source[:color]),
+        'groups' => normalize_custom_field_groups(source[:groups])
+      }
     end
+  end
+
+  def normalize_custom_field_groups(groups)
+    seen_keys = []
+    Array(groups).filter_map do |group|
+      source = group.to_h.with_indifferent_access
+      key = source[:key].to_s.strip.parameterize(separator: '_')
+      label = source[:label].to_s.strip
+      next if key.blank? || label.blank? || seen_keys.include?(key)
+
+      seen_keys << key
+      {
+        'key' => key,
+        'label' => label,
+        'color' => normalize_custom_field_section_color(source[:color])
+      }
+    end
+  end
+
+  def normalize_custom_field_section_color(color)
+    color = color.to_s
+    CUSTOM_FIELD_SECTION_COLORS.include?(color) ? color : 'slate'
   end
 
   def custom_field_identity(source)
@@ -253,11 +282,14 @@ class KanbanBoard < ApplicationRecord
     source = layout.to_h.with_indifferent_access
     width = source[:width].to_s
 
-    {
+    normalized_layout = {
       'section' => source[:section].to_s.strip.presence || 'details',
       'position' => source[:position].to_i.positive? ? source[:position].to_i : 1,
       'width' => CUSTOM_FIELD_LAYOUT_WIDTHS.include?(width) ? width : 'full'
     }
+    group = source[:group].to_s.strip.parameterize(separator: '_').presence
+    normalized_layout['group'] = group if group
+    normalized_layout
   end
 
   def normalize_compact_card_field_keys(field_keys)

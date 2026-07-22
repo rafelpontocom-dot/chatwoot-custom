@@ -80,6 +80,7 @@ vi.mock('vue-i18n', () => ({
           'Could not save opportunity details.',
         'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_TITLE': 'Title is required.',
         'KANBAN.OPPORTUNITY_DETAILS.CLOSE': 'Close opportunity details',
+        'KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL': 'Commercial',
       };
 
       return Object.entries(params).reduce(
@@ -293,7 +294,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     const layout = wrapper.find('[data-testid="kanban-opportunity-layout"]');
 
     expect(
-      layout.classes().some(className => className.startsWith('lg:grid-cols-'))
+      layout.classes().some(className => className.startsWith('xl:grid-cols-'))
     ).toBe(true);
   });
 
@@ -372,8 +373,8 @@ describe('KanbanOpportunityDetailsModal', () => {
       expect.arrayContaining([
         'mx-auto',
         'w-full',
-        'max-w-[calc(100vw-2rem)]',
-        '2xl:max-w-[96rem]',
+        'max-w-[calc(100vw-1rem)]',
+        '2xl:max-w-[88rem]',
       ])
     );
     expect(
@@ -381,7 +382,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toContain('grid');
     expect(
       wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
-    ).toContain('lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.85fr)]');
+    ).toContain('xl:grid-cols-[minmax(0,1fr)_18rem]');
   });
 
   it('renders title, compact description, and amount controls', async () => {
@@ -393,6 +394,23 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
     expect(descriptionInput(wrapper).attributes('rows')).toBe('3');
     expect(amountInput(wrapper).element.value).toBe('125.50');
+  });
+
+  it('allows the commercial group in the summary to collapse its fields', async () => {
+    const wrapper = await mountModal();
+    const group = wrapper.find(
+      '[data-testid="kanban-opportunity-commercial-group"]'
+    );
+
+    expect(group.exists()).toBe(true);
+    expect(
+      group.find('[data-testid="kanban-opportunity-subject"]').exists()
+    ).toBe(true);
+    await group.find('button').trigger('click');
+    expect(
+      group.find('[data-testid="kanban-opportunity-subject"]').element
+        .parentElement.parentElement.style.display
+    ).toBe('none');
   });
 
   it('renders card ID in the header', async () => {
@@ -518,6 +536,39 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(customFieldInput(wrapper, 'qualificacao').exists()).toBe(false);
     expect(customFieldInput(wrapper, 'gclid').element.value).toBe(
       'google-click-123'
+    );
+  });
+
+  it('renders grouped custom fields with the configured group color', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({ customFieldValues: { data_consulta: '2026-08-20' } }),
+      customFieldDefinitions: [
+        {
+          key: 'data_consulta',
+          label: 'Data da consulta',
+          fieldType: 'date',
+          layout: { section: 'consulta', group: 'agenda', position: 1 },
+        },
+      ],
+      customFieldSections: [
+        {
+          key: 'consulta',
+          label: 'Consulta',
+          groups: [{ key: 'agenda', label: 'Agenda', color: 'teal' }],
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-consulta"]')
+      .trigger('click');
+
+    const group = wrapper.find(
+      '[data-testid="kanban-opportunity-custom-fields"] section'
+    );
+    expect(group.text()).toContain('Agenda');
+    expect(group.classes()).toEqual(
+      expect.arrayContaining(['bg-n-teal-2', 'border-n-teal-4'])
     );
   });
 

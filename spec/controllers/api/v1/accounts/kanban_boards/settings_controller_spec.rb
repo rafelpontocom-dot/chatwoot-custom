@@ -120,7 +120,12 @@ RSpec.describe 'Kanban board settings API', type: :request do
             params: {
               kanban_board: {
                 custom_field_sections: [
-                  { key: 'consulta', label: 'Consulta' },
+                  {
+                    key: 'consulta',
+                    label: 'Consulta',
+                    color: 'blue',
+                    groups: [{ key: 'agenda', label: 'Agenda', color: 'teal' }]
+                  },
                   { key: 'financeiro', label: 'Financeiro' }
                 ]
               }
@@ -130,8 +135,13 @@ RSpec.describe 'Kanban board settings API', type: :request do
       expect(response).to have_http_status(:success)
       expect(board.reload.custom_field_sections).to eq(
         [
-          { 'key' => 'consulta', 'label' => 'Consulta' },
-          { 'key' => 'financeiro', 'label' => 'Financeiro' }
+          {
+            'key' => 'consulta',
+            'label' => 'Consulta',
+            'color' => 'blue',
+            'groups' => [{ 'key' => 'agenda', 'label' => 'Agenda', 'color' => 'teal' }]
+          },
+          { 'key' => 'financeiro', 'label' => 'Financeiro', 'color' => 'slate', 'groups' => [] }
         ]
       )
       expect(response.parsed_body['custom_field_sections']).to eq(board.custom_field_sections)

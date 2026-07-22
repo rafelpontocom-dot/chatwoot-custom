@@ -48,6 +48,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  drawerMode: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -91,6 +95,7 @@ const subjectError = ref('');
 const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
 const activeTabKey = ref('details');
+const expandedGroupKeys = ref({ commercial: true });
 
 const modalTitle = computed(() =>
   props.boardName
@@ -178,6 +183,8 @@ const normalizedCustomFieldDefinitions = computed(() =>
 );
 const customFieldSectionKey = definition =>
   definition.layout?.section?.trim() || 'details';
+const customFieldGroupKey = definition =>
+  definition.layout?.group?.trim() || '';
 const customFieldSectionLabel = sectionKey => {
   if (sectionKey === 'details') {
     return t('KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL');
@@ -293,6 +300,53 @@ const activeTabCustomFieldDefinitions = computed(() =>
     definition => customFieldSectionKey(definition) === activeTabKey.value
   )
 );
+const activeTabGroups = computed(() => {
+  const activeSection = customFieldTabs.value.find(
+    section => section.key === activeTabKey.value
+  );
+  const definitions = activeTabCustomFieldDefinitions.value;
+  const groups = (activeSection?.groups || []).map(group => ({
+    ...group,
+    definitions: definitions.filter(
+      definition => customFieldGroupKey(definition) === group.key
+    ),
+  }));
+  const ungrouped = definitions.filter(
+    definition => !customFieldGroupKey(definition)
+  );
+
+  if (ungrouped.length) {
+    groups.push({
+      key: 'ungrouped',
+      label: t('KANBAN.OPPORTUNITY_DETAILS.UNGROUPED_FIELDS'),
+      color: 'slate',
+      definitions: ungrouped,
+    });
+  }
+
+  return groups.filter(group => group.definitions.length);
+});
+const customFieldGroupClass = color =>
+  ({
+    slate: 'border-n-weak bg-n-surface-2',
+    blue: 'border-n-blue-4 bg-n-blue-2',
+    teal: 'border-n-teal-4 bg-n-teal-2',
+    green: 'border-green-200 bg-green-50',
+    amber: 'border-n-amber-4 bg-n-amber-2',
+    orange: 'border-orange-200 bg-orange-50',
+    ruby: 'border-n-ruby-4 bg-n-ruby-2',
+    rose: 'border-rose-200 bg-rose-50',
+    violet: 'border-n-violet-4 bg-n-violet-2',
+    iris: 'border-n-iris-4 bg-n-iris-2',
+  })[color] || 'border-n-weak bg-n-surface-2';
+const groupToggleKey = (sectionKey, groupKey) => `${sectionKey}:${groupKey}`;
+const isGroupExpanded = groupKey => expandedGroupKeys.value[groupKey] !== false;
+const toggleGroup = groupKey => {
+  expandedGroupKeys.value = {
+    ...expandedGroupKeys.value,
+    [groupKey]: !isGroupExpanded(groupKey),
+  };
+};
 const hasCustomFields = computed(
   () => activeTabCustomFieldDefinitions.value.length > 0
 );
@@ -549,7 +603,11 @@ onMounted(() => {
 
 <template>
   <div
-    class="mx-auto flex max-h-[92vh] w-full max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl bg-n-background 2xl:max-w-[96rem]"
+    :class="
+      drawerMode
+        ? 'flex h-full max-h-full w-full flex-col overflow-hidden bg-n-background'
+        : 'mx-auto flex max-h-[94vh] w-full max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl bg-n-background 2xl:max-w-[88rem]'
+    "
   >
     <div
       class="flex items-start justify-between gap-4 border-b border-n-weak px-5 py-4"
@@ -590,7 +648,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="overflow-auto px-5 py-4">
+    <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
       <p
         v-if="isLoading"
         data-testid="kanban-opportunity-loading"
@@ -660,53 +718,86 @@ onMounted(() => {
 
         <div
           data-testid="kanban-opportunity-layout"
-          class="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.85fr)]"
+          :class="
+            drawerMode
+              ? 'grid min-w-0 gap-5'
+              : 'grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]'
+          "
         >
           <section class="grid min-w-0 content-start gap-4">
             <template v-if="activeTabKey === 'details'">
-              <NextInput
-                v-model="subject"
-                data-testid="kanban-opportunity-subject"
-                class="w-full"
-                :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_TITLE')"
-                :message="subjectError"
-                :message-type="subjectError ? 'error' : 'info'"
-                autofocus
-                @input="subjectError = ''"
-              />
+              <section
+                data-testid="kanban-opportunity-commercial-group"
+                class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
+              >
+                <button
+                  type="button"
+                  class="flex items-center justify-between gap-3 text-left"
+                  :aria-expanded="isGroupExpanded('commercial')"
+                  @click="toggleGroup('commercial')"
+                >
+                  <span class="text-sm font-semibold text-n-slate-12">
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL') }}
+                  </span>
+                  <i
+                    class="size-4 text-n-slate-10"
+                    :class="
+                      isGroupExpanded('commercial')
+                        ? 'i-lucide-chevron-up'
+                        : 'i-lucide-chevron-down'
+                    "
+                  />
+                </button>
+                <div v-show="isGroupExpanded('commercial')" class="grid gap-4">
+                  <NextInput
+                    v-model="subject"
+                    data-testid="kanban-opportunity-subject"
+                    class="w-full"
+                    :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_TITLE')"
+                    :message="subjectError"
+                    :message-type="subjectError ? 'error' : 'info'"
+                    autofocus
+                    @input="subjectError = ''"
+                  />
 
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION') }}
-                </span>
-                <textarea
-                  v-model="description"
-                  rows="3"
-                  data-testid="kanban-opportunity-description"
-                  class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                  :placeholder="
-                    t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
-                  "
-                />
-              </label>
+                  <label class="grid gap-1.5">
+                    <span class="text-sm font-medium text-n-slate-12">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION') }}
+                    </span>
+                    <textarea
+                      v-model="description"
+                      rows="3"
+                      data-testid="kanban-opportunity-description"
+                      class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                      :placeholder="
+                        t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
+                      "
+                    />
+                  </label>
 
-              <NextInput
-                v-model="amountValue"
-                data-testid="kanban-opportunity-amount"
-                class="w-full"
-                type="number"
-                min="0"
-                step="0.01"
-                :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
-              />
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <NextInput
+                      v-model="amountValue"
+                      data-testid="kanban-opportunity-amount"
+                      class="w-full"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
+                    />
 
-              <NextInput
-                v-model="expectedCloseDate"
-                data-testid="kanban-opportunity-expected-close-date"
-                class="w-full"
-                type="date"
-                :label="t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')"
-              />
+                    <NextInput
+                      v-model="expectedCloseDate"
+                      data-testid="kanban-opportunity-expected-close-date"
+                      class="w-full"
+                      type="date"
+                      :label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
+                      "
+                    />
+                  </div>
+                </div>
+              </section>
             </template>
 
             <section
@@ -751,113 +842,153 @@ onMounted(() => {
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS') }}
               </h3>
 
-              <div class="grid gap-3 md:grid-cols-6">
-                <label
-                  v-for="definition in activeTabCustomFieldDefinitions"
-                  :key="definition.key"
-                  class="grid gap-1.5"
-                  :class="customFieldLayoutClass(definition)"
+              <div class="grid gap-3">
+                <section
+                  v-for="group in activeTabGroups"
+                  :key="group.key"
+                  class="grid gap-3 rounded-md border p-3"
+                  :class="customFieldGroupClass(group.color)"
                 >
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ definition.label }}
+                  <button
+                    type="button"
+                    class="flex items-center justify-between gap-3 text-left"
+                    :aria-expanded="
+                      isGroupExpanded(groupToggleKey(activeTabKey, group.key))
+                    "
+                    @click="
+                      toggleGroup(groupToggleKey(activeTabKey, group.key))
+                    "
+                  >
+                    <span class="text-xs font-semibold text-n-slate-12">
+                      {{ group.label }}
+                    </span>
                     <i
-                      v-if="definition.important"
-                      class="i-lucide-asterisk ml-1 inline-block size-3 text-n-amber-11"
-                      :title="t('KANBAN.OPPORTUNITY_DETAILS.IMPORTANT_FIELD')"
+                      class="size-4 text-n-slate-10"
+                      :class="
+                        isGroupExpanded(groupToggleKey(activeTabKey, group.key))
+                          ? 'i-lucide-chevron-up'
+                          : 'i-lucide-chevron-down'
+                      "
                     />
-                  </span>
-
-                  <select
-                    v-if="definition.fieldType === 'select'"
-                    :value="getCustomFieldValue(definition)"
-                    :data-testid="`kanban-custom-field-${definition.key}`"
-                    class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="
-                      setCustomFieldValue(definition, $event.target.value)
+                  </button>
+                  <div
+                    v-show="
+                      isGroupExpanded(groupToggleKey(activeTabKey, group.key))
                     "
+                    class="grid gap-3 md:grid-cols-6"
                   >
-                    <option value="" />
-                    <option
-                      v-for="option in definition.options || []"
-                      :key="option"
-                      :value="option"
+                    <label
+                      v-for="definition in group.definitions"
+                      :key="definition.key"
+                      class="grid gap-1.5"
+                      :class="customFieldLayoutClass(definition)"
                     >
-                      {{ option }}
-                    </option>
-                  </select>
+                      <span class="text-sm font-medium text-n-slate-12">
+                        {{ definition.label }}
+                        <i
+                          v-if="definition.important"
+                          class="i-lucide-asterisk ml-1 inline-block size-3 text-n-amber-11"
+                          :title="
+                            t('KANBAN.OPPORTUNITY_DETAILS.IMPORTANT_FIELD')
+                          "
+                        />
+                      </span>
 
-                  <select
-                    v-else-if="definition.fieldType === 'multiselect'"
-                    multiple
-                    :value="getCustomFieldValue(definition)"
-                    :data-testid="`kanban-custom-field-${definition.key}`"
-                    class="min-h-24 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="
-                      setCustomFieldValue(
-                        definition,
-                        selectedMultiselectValues($event)
-                      )
-                    "
-                  >
-                    <option
-                      v-for="option in definition.options || []"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ option }}
-                    </option>
-                  </select>
+                      <select
+                        v-if="definition.fieldType === 'select'"
+                        :value="getCustomFieldValue(definition)"
+                        :data-testid="`kanban-custom-field-${definition.key}`"
+                        class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        @change="
+                          setCustomFieldValue(definition, $event.target.value)
+                        "
+                      >
+                        <option value="" />
+                        <option
+                          v-for="option in definition.options || []"
+                          :key="option"
+                          :value="option"
+                        >
+                          {{ option }}
+                        </option>
+                      </select>
 
-                  <textarea
-                    v-else-if="definition.fieldType === 'textarea'"
-                    :value="getCustomFieldValue(definition)"
-                    rows="3"
-                    :data-testid="`kanban-custom-field-${definition.key}`"
-                    class="min-h-20 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @input="
-                      setCustomFieldValue(definition, $event.target.value)
-                    "
-                  />
+                      <select
+                        v-else-if="definition.fieldType === 'multiselect'"
+                        multiple
+                        :value="getCustomFieldValue(definition)"
+                        :data-testid="`kanban-custom-field-${definition.key}`"
+                        class="min-h-24 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        @change="
+                          setCustomFieldValue(
+                            definition,
+                            selectedMultiselectValues($event)
+                          )
+                        "
+                      >
+                        <option
+                          v-for="option in definition.options || []"
+                          :key="option"
+                          :value="option"
+                        >
+                          {{ option }}
+                        </option>
+                      </select>
 
-                  <input
-                    v-else-if="definition.fieldType === 'boolean'"
-                    type="checkbox"
-                    :checked="Boolean(getCustomFieldValue(definition))"
-                    :data-testid="`kanban-custom-field-${definition.key}`"
-                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                    @change="
-                      setCustomFieldValue(definition, $event.target.checked)
-                    "
-                  />
+                      <textarea
+                        v-else-if="definition.fieldType === 'textarea'"
+                        :value="getCustomFieldValue(definition)"
+                        rows="3"
+                        :data-testid="`kanban-custom-field-${definition.key}`"
+                        class="min-h-20 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        @input="
+                          setCustomFieldValue(definition, $event.target.value)
+                        "
+                      />
 
-                  <input
-                    v-else
-                    :value="getCustomFieldValue(definition)"
-                    :type="
-                      definition.fieldType === 'integer' ||
-                      definition.fieldType === 'decimal' ||
-                      definition.fieldType === 'currency' ||
-                      definition.fieldType === 'formula'
-                        ? 'number'
-                        : definition.fieldType === 'date'
-                          ? 'date'
-                          : definition.fieldType === 'datetime'
-                            ? 'datetime-local'
-                            : definition.fieldType === 'url'
-                              ? 'url'
-                              : 'text'
-                    "
-                    :step="
-                      definition.fieldType === 'decimal' ? '0.01' : undefined
-                    "
-                    :disabled="definition.fieldType === 'formula'"
-                    :data-testid="`kanban-custom-field-${definition.key}`"
-                    class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:border-n-brand"
-                    @input="
-                      setCustomFieldValue(definition, $event.target.value)
-                    "
-                  />
-                </label>
+                      <input
+                        v-else-if="definition.fieldType === 'boolean'"
+                        type="checkbox"
+                        :checked="Boolean(getCustomFieldValue(definition))"
+                        :data-testid="`kanban-custom-field-${definition.key}`"
+                        class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                        @change="
+                          setCustomFieldValue(definition, $event.target.checked)
+                        "
+                      />
+
+                      <input
+                        v-else
+                        :value="getCustomFieldValue(definition)"
+                        :type="
+                          definition.fieldType === 'integer' ||
+                          definition.fieldType === 'decimal' ||
+                          definition.fieldType === 'currency' ||
+                          definition.fieldType === 'formula'
+                            ? 'number'
+                            : definition.fieldType === 'date'
+                              ? 'date'
+                              : definition.fieldType === 'datetime'
+                                ? 'datetime-local'
+                                : definition.fieldType === 'url'
+                                  ? 'url'
+                                  : 'text'
+                        "
+                        :step="
+                          definition.fieldType === 'decimal'
+                            ? '0.01'
+                            : undefined
+                        "
+                        :disabled="definition.fieldType === 'formula'"
+                        :data-testid="`kanban-custom-field-${definition.key}`"
+                        class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:border-n-brand"
+                        @input="
+                          setCustomFieldValue(definition, $event.target.value)
+                        "
+                      />
+                    </label>
+                  </div>
+                </section>
               </div>
             </section>
           </section>
@@ -1207,7 +1338,7 @@ onMounted(() => {
         </p>
 
         <div
-          class="flex items-center justify-end gap-3 border-t border-n-weak pt-4"
+          class="sticky bottom-0 flex items-center justify-end gap-3 border-t border-n-weak bg-n-background pt-4"
         >
           <NextButton
             type="button"

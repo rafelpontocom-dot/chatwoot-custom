@@ -84,6 +84,8 @@
     },
     "FILTERS": {
       "SEARCH_PLACEHOLDER": "Buscar oportunidades",
+      "SEARCH_LABEL": "Buscar oportunidades",
+      "SORT_LABEL": "Ordenar por",
       "DEFAULT_ORDER": "Ordem do quadro",
       "NEXT_ACTION_FIRST": "Próxima ação primeiro",
       "NEWEST_FIRST": "Mais recentes",
@@ -102,8 +104,11 @@
       "DELETE_CONFIRMATION": "Excluir este filtro salvo?",
       "ACTIVE_COUNT": "Grupos de filtros ativos",
       "CLEAR": "Limpar filtros",
+      "OPEN": "Filtros",
       "INBOXES": "Caixas de entrada",
       "AGENTS": "Agentes",
+      "NEXT_ACTION_LABEL": "Próxima ação",
+      "STATUS_LABEL": "Status",
       "ALL_ACTIONS": "Todas as ações",
       "MISSING_NEXT_ACTION": "Sem ação",
       "OVERDUE": "Atrasados",
@@ -112,6 +117,38 @@
       "OPEN": "Abertos",
       "WON": "Ganhos",
       "LOST": "Perdidos"
+    },
+    "VIEW": {
+      "LABEL": "Visão das oportunidades",
+      "KANBAN": "Visão kanban",
+      "LIST": "Visão em lista"
+    },
+    "ACTIVITY": {
+      "OPEN": "Abrir central de atividades",
+      "LABEL": "Trabalho comercial",
+      "TITLE": "Central de atividades",
+      "TABS_LABEL": "Filtros de atividades",
+      "TODAY": "Hoje",
+      "OVERDUE": "Atrasadas",
+      "UPCOMING": "Próximas",
+      "MISSING": "Sem próxima ação",
+      "BY_OWNER": "Por responsável",
+      "NEXT_ACTION": "Próxima ação",
+      "NO_DATE": "Sem data",
+      "EMPTY": "Nenhuma atividade corresponde a esta visão."
+    },
+    "LIST": {
+      "SELECT": "Selecionar",
+      "SELECT_OPPORTUNITY": "Selecionar oportunidade de {name}",
+      "OPPORTUNITY": "Oportunidade",
+      "STAGE": "Etapa",
+      "VALUE": "Valor",
+      "NEXT_ACTION": "Próxima ação",
+      "OWNER": "Responsável",
+      "ACTIONS": "Ações",
+      "OPEN": "Abrir conversa",
+      "EMPTY": "Nenhuma oportunidade corresponde aos filtros atuais.",
+      "PAGINATION_NOTE": "A lista usa as oportunidades carregadas em cada etapa. Carregue mais no kanban para expandi-la."
     },
     "REPORTS": {
       "OPEN": "Abertas",
@@ -150,6 +187,7 @@
       "CONFIRM_CREATE_BOARD": "Criar funil",
       "CANCEL_CREATE_BOARD": "Cancelar criação do funil",
       "ADD_ITEM": "Adicionar item",
+      "NEW_OPPORTUNITY": "Nova oportunidade",
       "LOAD_MORE_CARDS": "Carregar mais",
       "LOADING_CARDS": "Carregando",
       "LOAD_CARDS_ERROR": "Falha ao carregar cartões",
@@ -270,6 +308,15 @@
         "ADD_FIELD_OPTION": "Adicionar opção",
         "REMOVE_FIELD_OPTION": "Remover opção {option}",
         "REMOVE_CUSTOM_FIELD": "Remover campo",
+        "FIELD_GROUPS": "Grupos da aba",
+        "FIELD_GROUPS_DESCRIPTION": "Organize os campos em blocos dentro da aba. Arraste um campo sobre um grupo para movê-lo.",
+        "FIELD_GROUP_NAME": "Nome do grupo",
+        "FIELD_GROUP_COLOR": "Cor do grupo",
+        "ADD_FIELD_GROUP": "Adicionar grupo",
+        "REMOVE_FIELD_GROUP": "Remover grupo",
+        "NO_FIELD_GROUPS": "Nenhum grupo nesta aba.",
+        "FIELD_GROUP": "Grupo",
+        "FIELD_GROUP_NONE": "Sem grupo",
         "TAB_LAYOUT": "Abas da oportunidade",
         "TAB_LAYOUT_DESCRIPTION": "Abra uma aba para ver seus campos. Use + para adicionar ou arraste um campo da lista para esta aba.",
         "EMPTY_TAB": "Arraste campos para cá",
@@ -438,6 +485,7 @@
       "FIELD_AMOUNT": "Valor",
       "STAGE": "Etapa",
       "CUSTOM_FIELDS": "Campos personalizados",
+      "UNGROUPED_FIELDS": "Outros campos",
       "IMPORTANT_FIELD": "Importante, mas não obrigatório",
       "TABS": {
         "LABEL": "Seções da oportunidade",
@@ -496,7 +544,37 @@
       "REQUIRED_TITLE": "O título é obrigatório.",
       "CLOSE": "Fechar detalhes da oportunidade",
       "MANAGE_FIELDS": "Configurar campos da oportunidade",
-      "ADD_TAB": "Criar aba da oportunidade"
+      "ADD_TAB": "Criar aba da oportunidade",
+      "GROUPS": {
+        "COMMERCIAL": "Comercial"
+      }
+    },
+    "DRAWER_PREVIEW": {
+      "OPEN": "Visualizar oportunidade como drawer",
+      "TITLE": "Prévia do drawer da oportunidade",
+      "PREVIEW_LABEL": "Prévia",
+      "STAGE": "Etapa",
+      "VALUE": "Valor",
+      "OWNER": "Responsável",
+      "NEXT_ACTION": "Próxima ação",
+      "NEXT_ACTION_DATE": "Data limite",
+      "SOURCE": "Origem",
+      "CAMPAIGN": "Campanha",
+      "NOT_SET": "Não preenchido",
+      "ACTIVITY_PLACEHOLDER": "A linha do tempo de atividades ficaria aqui, reunindo ações de hoje, atrasadas e próximas.",
+      "CONVERSATION_PLACEHOLDER": "A conversa vinculada continuaria disponível aqui sem sair da oportunidade.",
+      "FOOTER_HINT": "Esta é uma prévia visual. O modal atual continua inalterado.",
+      "PRIMARY_ACTION": "Salvar oportunidade",
+      "GROUPS": {
+        "COMMERCIAL": "Comercial",
+        "MARKETING": "Marketing"
+      },
+      "TABS": {
+        "LABEL": "Seções da oportunidade",
+        "OVERVIEW": "Resumo",
+        "ACTIVITY": "Atividades",
+        "CONVERSATION": "Conversa"
+      }
     },
     "ADD_ITEM": {
       "POSSIBLE_DUPLICATE": "Já existe uma oportunidade semelhante para este contato nesta caixa de entrada.",
@@ -512,6 +590,7 @@
       "INBOXES_ERROR": "Não foi possível carregar as caixas de entrada. Tente novamente.",
       "NO_INBOXES": "Nenhuma caixa de entrada disponível para este contato.",
       "SUBJECT": "Assunto",
+      "QUICK_CREATE_DESCRIPTION": "Comece pelo contato e pela caixa de entrada. Você poderá completar os detalhes depois da criação.",
       "CREATE_OPPORTUNITY": "Criar oportunidade",
       "SAVING": "Salvando...",
       "SUBJECT_REQUIRED": "Informe um assunto para criar a oportunidade.",

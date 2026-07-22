@@ -537,6 +537,89 @@ Uma cadência precisa parar ou pausar quando houver resposta do cliente, opt-out
 
 ## Fechamento Estrutural Do Kanban
 
+## Experiencia De Trabalho Comercial
+
+O Kanban terá duas visões complementares:
+
+- `Kanban`, para acompanhar fluxo, capacidade e avanço por etapa;
+- `Lista`, para buscar, comparar, selecionar e editar oportunidades com volume maior.
+
+A visão em lista reutiliza os mesmos filtros, seleção em massa e abertura da oportunidade. Ela não cria um segundo modelo de dados.
+
+### Cabeçalho Do Board
+
+O cabeçalho deve preservar hierarquia visual curta:
+
+1. pipeline, busca, `Nova oportunidade` e configurações;
+2. `Filtros`, ordenação, visão Kanban/Lista e filtros salvos;
+3. resumo compacto de abertas, ganhas, perdidas, atrasadas e valor.
+
+Filtros rápidos como sem ação, atrasadas e ganhos pertencem ao popover/drawer de filtros. Eles não devem ocupar linhas permanentes do board. O resumo não substitui a Central de Atividades nem os relatórios.
+
+### Central De Atividades
+
+`Próxima ação` é um dado da oportunidade, mas o trabalho diário precisa de uma visão própria. A Central de Atividades deve oferecer:
+
+- minhas atividades de hoje;
+- atividades atrasadas;
+- próximas atividades;
+- oportunidades sem próxima ação;
+- agrupamento por responsável.
+
+Cada item deve abrir a oportunidade e preservar o contexto do funil. Relatórios comerciais continuam separados porque respondem a perguntas de resultado, enquanto atividades respondem a "o que preciso fazer agora?".
+
+### Detalhe Da Oportunidade
+
+O modal atual continua como fluxo de edição até a aprovação da nova experiência. Existe uma prévia interativa de drawer aberta pelo ícone de painel no cabeçalho do detalhe. A prévia deve ser avaliada em desktop e mobile antes de substituir o modal.
+
+O drawer proposto usa:
+
+- cabeçalho fixo com título, contato, etapa, valor e responsável;
+- abas Resumo, Atividades e Conversa;
+- grupos de campos compactos, com edição contextual;
+- conversa e linha do tempo sem abandonar a oportunidade;
+- rodapé fixo com ações primárias.
+
+Configuração de campos não deve ficar misturada à edição normal. A engrenagem abre o gerenciador do board, enquanto a edição do card mostra somente dados da oportunidade.
+
+### Entradas De Criacao
+
+Devem coexistir três entradas:
+
+- criação rápida pelo botão `Nova oportunidade`, iniciando na primeira etapa aberta;
+- criação a partir da conversa, preservando inbox, contato e conversa de origem;
+- criação a partir do contato, permitindo várias oportunidades legítimas para a mesma pessoa.
+
+A criação automática de todas as conversas continua opcional por board/inbox. O padrão recomendado para venda é criação manual ou por automação explícita, evitando poluir o funil com atendimentos que não são oportunidades.
+
+### Estagios Inteligentes
+
+Cada etapa possui categoria `aberta`, `ganha` ou `perdida`, critério de saída, campos obrigatórios por etapa e alerta opcional de permanência. Mover um card para uma etapa terminal deve registrar o fechamento e usar as mesmas validações do modal.
+
+O sistema deve sugerir o próximo passo quando a etapa exigir uma ação, mas nunca impor consulta, reunião ou proposta. Limite de cards é alerta de capacidade, não bloqueio.
+
+### Permissoes Comerciais
+
+Permissões devem separar:
+
+- visualizar board e oportunidades;
+- criar oportunidades;
+- editar dados e campos;
+- mover etapa;
+- ganhar/perder e reabrir;
+- atribuir responsável;
+- executar ações em massa;
+- configurar campos, etapas e listas;
+- arquivar/restaurar.
+
+Administrador configura o board. Agente trabalha nas oportunidades permitidas. A API deve autorizar cada operação no backend, sem depender de esconder botões no frontend.
+
+### Governanca De Dados
+
+Campos, abas e grupos possuem chaves estáveis. Remover ou alterar um campo que já tem valores exige aviso com a quantidade de oportunidades afetadas e uma decisão explícita sobre preservar, limpar ou migrar os valores. Fechar configurações com alterações não salvas deve pedir confirmação.
+
+O histórico comercial é imutável para auditoria. O sistema registra ator, horário, valor anterior, valor novo, etapa anterior e etapa nova. Dados de marketing mantêm o conjunto canônico de atribuição, sem recriar os campos legados removidos.
+
 Antes de iniciar o módulo de automações, o Kanban precisa fechar estas lacunas, em ordem:
 
 ### Prioridade P0

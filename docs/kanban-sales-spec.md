@@ -753,6 +753,62 @@ O módulo de automações só entra em implementação depois de estes itens P0 
 
 ## Criterios De Aceite Do Fechamento P0
 
+## Visao Lista E Central De Atividades
+
+### Lista
+
+`KanbanListView` é uma projeção da resposta atual do board. Ela deve:
+
+- renderizar oportunidade, contato, etapa, valor, próxima ação, responsável e última atividade;
+- reutilizar `selectedCardIds` e as ações em massa do board;
+- abrir o mesmo detalhe e a mesma conversa da visão Kanban;
+- funcionar em viewport estreito com rolagem horizontal controlada, sem sobrepor texto;
+- informar quando somente os cards carregados estão visíveis e permitir ampliar a carga pelo fluxo existente.
+
+Não deve existir endpoint ou persistência paralela para a lista.
+
+### Central De Atividades
+
+`KanbanActivityCenter` é uma visão de trabalho separada dos relatórios. Ela agrupa cards carregados por:
+
+- hoje;
+- atrasadas;
+- próximas;
+- sem próxima ação;
+- responsável.
+
+Cada item emite a abertura do detalhe. Em fase posterior, a consulta deve ser paginada no backend para que a central não dependa apenas dos cards carregados nas colunas.
+
+### Prévia De Drawer
+
+`KanbanOpportunityDrawerPreview` é uma prévia não destrutiva. Ela não salva dados e não substitui o modal atual. O aceite visual deve verificar:
+
+- foco inicial e fechamento por Escape;
+- backdrop sem bloquear o conteúdo do drawer;
+- largura adequada em desktop e mobile;
+- cabeçalho e rodapé fixos durante rolagem;
+- navegação por abas sem perda de contexto;
+- leitura correta por leitor de tela.
+
+Somente após esse aceite a implementação deve migrar a edição real para drawer.
+
+## Entradas E Autorizacao
+
+- `Nova oportunidade` usa a primeira etapa aberta e o seletor de criação existente.
+- Conversa e contato podem criar ou abrir várias oportunidades sem sobrescrever outra.
+- Criação automática é controlada por board/inbox.
+- Toda operação comercial relevante deve ser validada por policy/service no backend.
+- O frontend apenas apresenta capacidades já autorizadas.
+
+## Governanca De Configuracao
+
+- Campos e abas são identificados por chaves estáveis.
+- Renomear não altera a chave.
+- Remover campo com valores exige contagem de impacto e confirmação.
+- Alterações não salvas exigem confirmação ao fechar.
+- Alterações de layout são versionadas junto com a configuração do board.
+- Histórico de oportunidade não pode ser apagado por edição de campos.
+
 - Usuário encontra uma oportunidade por nome, telefone, email ou assunto sem conhecer a etapa.
 - Usuário salva e reutiliza um conjunto de filtros pessoais.
 - Arrastar para etapa com campos obrigatórios solicita os dados faltantes e não perde a posição ao cancelar.

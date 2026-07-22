@@ -26,7 +26,12 @@ RSpec.describe KanbanBoard do
 
       board.valid?
 
-      expect(board.custom_field_sections).to eq([{ 'key' => 'consultation', 'label' => 'Consulta' }])
+      expect(board.custom_field_sections).to eq(
+        [
+          { 'key' => 'consultation', 'label' => 'Consulta', 'color' => 'slate', 'groups' => [] },
+          { 'key' => 'marketing', 'label' => 'Marketing', 'color' => 'slate', 'groups' => [] }
+        ]
+      )
     end
   end
 

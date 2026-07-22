@@ -643,8 +643,49 @@ describe('KanbanBoardSettings', () => {
 
     const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
     expect(payload.kanban_board.custom_field_sections).toEqual([
-      { key: 'consulta', label: 'Consulta' },
+      { key: 'consulta', label: 'Consulta', color: 'slate', groups: [] },
     ]);
+  });
+
+  it('creates a colored group and assigns a field inside the active tab', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-new-field-group-name"]')
+      .setValue('Consulta');
+    await wrapper
+      .find('[data-testid="kanban-settings-new-field-group-color"]')
+      .setValue('teal');
+    await wrapper
+      .find('[data-testid="kanban-settings-add-field-group"]')
+      .trigger('click');
+    await wrapper
+      .find(
+        '[data-testid="kanban-settings-field-list-item-consulta_realizada"]'
+      )
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-field-group"]')
+      .setValue('consulta');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    expect(payload.kanban_board.custom_field_sections).toEqual([
+      {
+        key: 'details',
+        label: 'KANBAN.SETTINGS.SALES.TABS.GENERAL',
+        color: 'slate',
+        groups: [{ key: 'consulta', label: 'Consulta', color: 'teal' }],
+      },
+    ]);
+    expect(payload.kanban_board.custom_field_definitions[0].layout.group).toBe(
+      'consulta'
+    );
   });
 
   it('renames, reorders and removes a custom tab while moving its fields', async () => {
@@ -695,7 +736,7 @@ describe('KanbanBoardSettings', () => {
 
     const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
     expect(payload.kanban_board.custom_field_sections).toEqual([
-      { key: 'financeiro', label: 'Financeiro' },
+      { key: 'financeiro', label: 'Financeiro', color: 'slate', groups: [] },
     ]);
     expect(
       payload.kanban_board.custom_field_definitions[0].layout.section

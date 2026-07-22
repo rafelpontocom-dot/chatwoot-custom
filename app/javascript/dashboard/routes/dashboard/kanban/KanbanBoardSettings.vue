@@ -60,6 +60,8 @@ const newFieldSectionName = ref('');
 const sectionPendingRemoval = ref(null);
 const sectionRemovalDestination = ref('details');
 const showRemoveFieldSectionConfirmation = ref(false);
+const newFieldGroupName = ref('');
+const newFieldGroupColor = ref('slate');
 let customFieldRowSequence = 0;
 
 const nextCustomFieldRowId = () => {
@@ -704,6 +706,7 @@ const applySettings = payload => {
       definition.formula_result_type ||
       'number',
     layoutSection: definition.layout?.section || 'details',
+    layoutGroup: definition.layout?.group || '',
     layoutPosition: definition.layout?.position || 1,
     layoutWidth: definition.layout?.width || 'full',
     important: Boolean(definition.important),
@@ -712,7 +715,15 @@ const applySettings = payload => {
   form.customFieldDefinitions.forEach(definition => {
     definition.formulaDisplay = formulaDisplayValue(definition);
   });
-  form.customFieldSections = settings.customFieldSections || [];
+  form.customFieldSections = (settings.customFieldSections || []).map(
+    section => {
+      const groups = (section.groups || []).map(group => ({
+        color: 'slate',
+        ...group,
+      }));
+      return { color: 'slate', ...section, groups };
+    }
+  );
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
   form.lockVersion = settings.lockVersion ?? null;
@@ -785,6 +796,7 @@ const customFieldPayload = definition => ({
   important: Boolean(definition.important),
   layout: {
     section: definition.layoutSection || 'details',
+    group: definition.layoutGroup || '',
     position: Number(definition.layoutPosition) || 1,
     width: definition.layoutWidth || 'full',
   },
@@ -796,6 +808,7 @@ const createCustomFieldRow = ({
   fieldType = 'text',
   options = [],
   layoutSection = 'details',
+  layoutGroup = '',
   layoutPosition = form.customFieldDefinitions.length + 1,
   layoutWidth = 'full',
   autoKey = true,
@@ -813,6 +826,7 @@ const createCustomFieldRow = ({
   formulaDisplay: '',
   formulaResultType: 'number',
   layoutSection,
+  layoutGroup,
   layoutPosition,
   layoutWidth,
   important,
@@ -917,14 +931,23 @@ const customFieldLayoutSections = computed(() => {
       key: 'details',
       label: t('KANBAN.SETTINGS.SALES.TABS.GENERAL'),
       builtIn: true,
+      groups: [],
     },
     {
       key: 'marketing',
       label: t('KANBAN.SETTINGS.SALES.TABS.MARKETING'),
       builtIn: true,
+      groups: [],
     },
-    ...form.customFieldSections,
   ];
+  form.customFieldSections.forEach(section => {
+    const existing = configuredSections.find(item => item.key === section.key);
+    if (existing) {
+      Object.assign(existing, section);
+      return;
+    }
+    configuredSections.push({ color: 'slate', groups: [], ...section });
+  });
   const knownKeys = new Set(configuredSections.map(section => section.key));
 
   form.customFieldDefinitions.forEach(definition => {
@@ -932,11 +955,104 @@ const customFieldLayoutSections = computed(() => {
     if (knownKeys.has(key)) return;
 
     knownKeys.add(key);
-    configuredSections.push({ key, label: customFieldSectionLabel(key) });
+    configuredSections.push({
+      key,
+      label: customFieldSectionLabel(key),
+      color: 'slate',
+      groups: [],
+    });
   });
 
   return configuredSections;
 });
+
+const customFieldSectionConfig = sectionKey => {
+  let section = form.customFieldSections.find(item => item.key === sectionKey);
+  if (!section && ['details', 'marketing'].includes(sectionKey)) {
+    section = {
+      key: sectionKey,
+      label: customFieldSectionLabel(sectionKey),
+      color: 'slate',
+      groups: [],
+    };
+    form.customFieldSections.push(section);
+  }
+  if (!section) return null;
+  section.groups ||= [];
+  return section;
+};
+
+const customFieldGroupsForSection = sectionKey =>
+  customFieldLayoutSections.value.find(section => section.key === sectionKey)
+    ?.groups || [];
+
+const updateCustomFieldSection = definition => {
+  const groups = customFieldGroupsForSection(definition.layoutSection);
+  if (!groups.some(group => group.key === definition.layoutGroup)) {
+    definition.layoutGroup = '';
+  }
+  syncCustomFieldDefinitionsText();
+};
+
+const createCustomFieldGroup = () => {
+  const label = newFieldGroupName.value.trim();
+  if (!label) return;
+
+  const section = customFieldSectionConfig(activeFieldSectionKey.value);
+  if (!section) return;
+
+  const usedKeys = new Set(section.groups.map(group => group.key));
+  const baseKey = customFieldKeyFromLabel(label) || 'novo_grupo';
+  let key = baseKey;
+  let suffix = 2;
+  while (usedKeys.has(key)) {
+    key = `${baseKey}_${suffix}`;
+    suffix += 1;
+  }
+
+  section.groups.push({ key, label, color: newFieldGroupColor.value });
+  newFieldGroupName.value = '';
+  newFieldGroupColor.value = 'slate';
+  syncCustomFieldDefinitionsText();
+};
+
+const removeCustomFieldGroup = (sectionKey, groupKey) => {
+  const section = customFieldSectionConfig(sectionKey);
+  if (!section) return;
+
+  form.customFieldDefinitions.forEach(definition => {
+    if (
+      definition.layoutSection === sectionKey &&
+      definition.layoutGroup === groupKey
+    ) {
+      definition.layoutGroup = '';
+    }
+  });
+  section.groups = section.groups.filter(group => group.key !== groupKey);
+  syncCustomFieldDefinitionsText();
+};
+
+const moveCustomFieldToGroup = (sectionKey, groupKey, event) => {
+  event.preventDefault();
+  const clientId =
+    event.dataTransfer?.getData('text/plain') || draggedCustomFieldId.value;
+  const definition = form.customFieldDefinitions.find(
+    item => item.clientId === clientId
+  );
+  if (!definition) return;
+
+  // The section mover is declared with the other drag handlers below.
+  // eslint-disable-next-line no-use-before-define
+  moveCustomFieldToSection(
+    sectionKey,
+    definition,
+    // eslint-disable-next-line no-use-before-define
+    customFieldsForLayoutSection(sectionKey).length
+  );
+  definition.layoutGroup = groupKey;
+  syncCustomFieldDefinitionsText();
+  draggedCustomFieldId.value = null;
+};
 
 const openNewFieldSectionForm = () => {
   showNewFieldSectionForm.value = true;
@@ -957,7 +1073,7 @@ const createCustomFieldSection = () => {
     suffix += 1;
   }
 
-  form.customFieldSections.push({ key, label });
+  form.customFieldSections.push({ key, label, color: 'slate', groups: [] });
   activeFieldSectionKey.value = key;
   newFieldSectionName.value = '';
   showNewFieldSectionForm.value = false;
@@ -2173,6 +2289,143 @@ onMounted(async () => {
                         />
                       </div>
 
+                      <section
+                        class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+                      >
+                        <div
+                          class="flex flex-wrap items-center justify-between gap-2"
+                        >
+                          <div>
+                            <h4
+                              class="mb-0 text-xs font-medium text-n-slate-12"
+                            >
+                              {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUPS') }}
+                            </h4>
+                            <p class="mb-0 mt-0.5 text-xs text-n-slate-10">
+                              {{
+                                t(
+                                  'KANBAN.SETTINGS.SALES.FIELD_GROUPS_DESCRIPTION'
+                                )
+                              }}
+                            </p>
+                          </div>
+                          <div
+                            class="flex min-w-0 flex-wrap items-center gap-1"
+                          >
+                            <input
+                              v-model="newFieldGroupName"
+                              data-testid="kanban-settings-new-field-group-name"
+                              class="h-8 w-36 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+                              :placeholder="
+                                t('KANBAN.SETTINGS.SALES.FIELD_GROUP_NAME')
+                              "
+                              @keydown.enter.prevent="createCustomFieldGroup"
+                            />
+                            <select
+                              v-model="newFieldGroupColor"
+                              data-testid="kanban-settings-new-field-group-color"
+                              class="h-8 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+                              :aria-label="
+                                t('KANBAN.SETTINGS.SALES.FIELD_GROUP_COLOR')
+                              "
+                            >
+                              <option
+                                v-for="color in KANBAN_STAGE_COLOR_OPTIONS"
+                                :key="color.value"
+                                :value="color.value"
+                              >
+                                {{ color.value }}
+                              </option>
+                            </select>
+                            <button
+                              type="button"
+                              data-testid="kanban-settings-add-field-group"
+                              class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 disabled:opacity-50"
+                              :disabled="!newFieldGroupName.trim()"
+                              :aria-label="
+                                t('KANBAN.SETTINGS.SALES.ADD_FIELD_GROUP')
+                              "
+                              @click="createCustomFieldGroup"
+                            >
+                              <i class="i-lucide-plus size-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div class="flex min-w-0 flex-wrap gap-2">
+                          <div
+                            v-for="group in customFieldGroupsForSection(
+                              activeFieldSectionKey
+                            )"
+                            :key="group.key"
+                            class="flex min-w-0 items-center gap-1 rounded-md border border-n-weak bg-n-surface-2 px-2 py-1"
+                            @dragover.prevent
+                            @drop="
+                              moveCustomFieldToGroup(
+                                activeFieldSectionKey,
+                                group.key,
+                                $event
+                              )
+                            "
+                          >
+                            <span
+                              class="size-2.5 shrink-0 rounded-full"
+                              :class="
+                                getKanbanStageColorOption(group.color)
+                                  .swatchClass
+                              "
+                              aria-hidden="true"
+                            />
+                            <input
+                              v-model="group.label"
+                              class="min-w-16 max-w-32 border-0 bg-transparent px-1 text-xs text-n-slate-12 outline-none"
+                              :aria-label="group.label"
+                              @input="syncCustomFieldDefinitionsText"
+                            />
+                            <select
+                              v-model="group.color"
+                              class="h-6 max-w-16 border-0 bg-transparent text-[10px] text-n-slate-10 outline-none"
+                              :aria-label="
+                                t('KANBAN.SETTINGS.SALES.FIELD_GROUP_COLOR')
+                              "
+                              @change="syncCustomFieldDefinitionsText"
+                            >
+                              <option
+                                v-for="color in KANBAN_STAGE_COLOR_OPTIONS"
+                                :key="color.value"
+                                :value="color.value"
+                              >
+                                {{ color.value }}
+                              </option>
+                            </select>
+                            <button
+                              type="button"
+                              class="flex size-6 items-center justify-center rounded text-n-ruby-11 hover:bg-n-ruby-2"
+                              :aria-label="
+                                t('KANBAN.SETTINGS.SALES.REMOVE_FIELD_GROUP')
+                              "
+                              @click="
+                                removeCustomFieldGroup(
+                                  activeFieldSectionKey,
+                                  group.key
+                                )
+                              "
+                            >
+                              <i class="i-lucide-x size-3" />
+                            </button>
+                          </div>
+                          <span
+                            v-if="
+                              !customFieldGroupsForSection(
+                                activeFieldSectionKey
+                              ).length
+                            "
+                            class="text-xs text-n-slate-10"
+                          >
+                            {{ t('KANBAN.SETTINGS.SALES.NO_FIELD_GROUPS') }}
+                          </span>
+                        </div>
+                      </section>
+
                       <div
                         v-if="showRemoveFieldSectionConfirmation"
                         class="grid gap-2 rounded-md border border-n-ruby-6 bg-n-ruby-2 p-3"
@@ -2306,7 +2559,7 @@ onMounted(async () => {
                       data-testid="kanban-settings-custom-field-row"
                       class="grid gap-4 rounded-md border border-n-weak bg-n-surface-2 p-4"
                     >
-                      <div class="grid gap-3 md:grid-cols-3">
+                      <div class="grid gap-3 md:grid-cols-4">
                         <label
                           class="grid gap-1 text-xs font-medium text-n-slate-11"
                         >
@@ -2317,6 +2570,30 @@ onMounted(async () => {
                             class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
                             @input="updateCustomFieldLabel(selectedCustomField)"
                           />
+                        </label>
+                        <label
+                          class="grid gap-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUP') }}
+                          <select
+                            v-model="selectedCustomField.layoutGroup"
+                            data-testid="kanban-settings-field-group"
+                            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                            @change="syncCustomFieldDefinitionsText"
+                          >
+                            <option value="">
+                              {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUP_NONE') }}
+                            </option>
+                            <option
+                              v-for="group in customFieldGroupsForSection(
+                                selectedCustomField.layoutSection
+                              )"
+                              :key="group.key"
+                              :value="group.key"
+                            >
+                              {{ group.label }}
+                            </option>
+                          </select>
                         </label>
                         <label
                           class="grid gap-1 text-xs font-medium text-n-slate-11"
@@ -2447,7 +2724,9 @@ onMounted(async () => {
                           <select
                             v-model="selectedCustomField.layoutSection"
                             class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                            @change="syncCustomFieldDefinitionsText"
+                            @change="
+                              updateCustomFieldSection(selectedCustomField)
+                            "
                           >
                             <option
                               v-for="section in customFieldLayoutSections"
