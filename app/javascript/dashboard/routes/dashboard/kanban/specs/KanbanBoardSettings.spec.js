@@ -184,6 +184,7 @@ const mountSettings = async ({
       days_before: 0,
       delivery_channels: [],
       opt_in_attribute_key: 'birthday_messages_opt_in',
+      message_locale: 'pt_BR',
       timezone: '',
       timezone_name: 'UTC',
       send_time: '09:00',
@@ -242,6 +243,7 @@ describe('KanbanBoardSettings', () => {
         days_before: 2,
         delivery_channels: ['whatsapp'],
         opt_in_attribute_key: 'birthday_messages_opt_in',
+        message_locale: 'pt_BR',
         timezone: 'America/Sao_Paulo',
         timezone_name: 'America/Sao_Paulo',
         send_time: '09:00',
@@ -901,8 +903,65 @@ describe('KanbanBoardSettings', () => {
 
     const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
     expect(payload.kanban_board.custom_field_sections).toEqual([
+      {
+        key: 'details',
+        label: 'KANBAN.SETTINGS.SALES.TABS.GENERAL',
+        color: 'slate',
+        groups: [],
+      },
+      {
+        key: 'marketing',
+        label: 'KANBAN.SETTINGS.SALES.TABS.MARKETING',
+        color: 'slate',
+        groups: [],
+      },
       { key: 'consulta', label: 'Consulta', color: 'slate', groups: [] },
     ]);
+  });
+
+  it('moves a custom tab directly after the general tab', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-add-field-section"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-new-field-section-name"]')
+      .setValue('Consulta');
+    await wrapper
+      .find('[data-testid="kanban-settings-create-field-section"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-move-section-consulta-up"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    expect(
+      payload.kanban_board.custom_field_sections.map(section => section.key)
+    ).toEqual(['details', 'consulta', 'marketing']);
+  });
+
+  it('round-trips loaded custom fields using the API field names', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    expect(payload.kanban_board.custom_field_definitions[0]).toEqual(
+      expect.objectContaining({
+        key: 'consulta_realizada',
+        field_type: 'select',
+        required_stage_ids: [],
+      })
+    );
   });
 
   it('creates a colored group and assigns a field inside the active tab', async () => {
@@ -939,6 +998,12 @@ describe('KanbanBoardSettings', () => {
         label: 'KANBAN.SETTINGS.SALES.TABS.GENERAL',
         color: 'slate',
         groups: [{ key: 'consulta', label: 'Consulta', color: 'teal' }],
+      },
+      {
+        key: 'marketing',
+        label: 'KANBAN.SETTINGS.SALES.TABS.MARKETING',
+        color: 'slate',
+        groups: [],
       },
     ]);
     expect(payload.kanban_board.custom_field_definitions[0].layout.group).toBe(
@@ -994,6 +1059,18 @@ describe('KanbanBoardSettings', () => {
 
     const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
     expect(payload.kanban_board.custom_field_sections).toEqual([
+      {
+        key: 'details',
+        label: 'KANBAN.SETTINGS.SALES.TABS.GENERAL',
+        color: 'slate',
+        groups: [],
+      },
+      {
+        key: 'marketing',
+        label: 'KANBAN.SETTINGS.SALES.TABS.MARKETING',
+        color: 'slate',
+        groups: [],
+      },
       { key: 'financeiro', label: 'Financeiro', color: 'slate', groups: [] },
     ]);
     expect(
@@ -1441,6 +1518,13 @@ describe('KanbanBoardSettings', () => {
       IGNORE_GROUPS: 'Ignorar grupos',
       SKIP_IMPORT: 'Não importar agora',
     });
+    expect(
+      ptBRKanbanMessages.KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY
+    ).toMatchObject({
+      TITLE: 'Mensagens de aniversário',
+      PT_BR: 'Português (Brasil)',
+      PT_PT: 'Português (Portugal)',
+    });
   });
 
   it('saves the expected payload', async () => {
@@ -1496,13 +1580,33 @@ describe('KanbanBoardSettings', () => {
         ],
         lost_reason_options: ['Preço', 'Fechou com outro'],
         custom_field_definitions: [
-          {
+          expect.objectContaining({
             key: 'valor_procedimento',
             label: 'Valor do procedimento',
             field_type: 'decimal',
+            options: [],
+            required_stage_ids: [],
+            condition: {},
+            formula: null,
+            formula_result_type: null,
+            important: false,
+            layout: {},
+          }),
+        ],
+        custom_field_sections: [
+          {
+            key: 'details',
+            label: 'KANBAN.SETTINGS.SALES.TABS.GENERAL',
+            color: 'slate',
+            groups: [],
+          },
+          {
+            key: 'marketing',
+            label: 'KANBAN.SETTINGS.SALES.TABS.MARKETING',
+            color: 'slate',
+            groups: [],
           },
         ],
-        custom_field_sections: [],
         compact_card_field_keys: [],
         stale_stage_thresholds: { 100: 3 },
         appointment_reminder_hours: null,

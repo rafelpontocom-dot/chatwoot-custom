@@ -86,6 +86,7 @@ const birthdayAutomation = reactive({
   daysBefore: 0,
   deliveryChannels: [],
   optInAttributeKey: 'birthday_messages_opt_in',
+  messageLocale: 'pt_BR',
   timezone: '',
   timezoneName: '',
   sendTime: '09:00',
@@ -816,6 +817,7 @@ const applyBirthdayAutomation = payload => {
   birthdayAutomation.deliveryChannels = settings.deliveryChannels || [];
   birthdayAutomation.optInAttributeKey =
     settings.optInAttributeKey || 'birthday_messages_opt_in';
+  birthdayAutomation.messageLocale = settings.messageLocale || 'pt_BR';
   birthdayAutomation.timezone = settings.timezone || '';
   birthdayAutomation.timezoneName = settings.timezoneName || '';
   birthdayAutomation.sendTime = settings.sendTime || '09:00';
@@ -852,6 +854,7 @@ const saveBirthdayAutomation = async () => {
         days_before: Number(birthdayAutomation.daysBefore) || 0,
         delivery_channels: birthdayAutomation.deliveryChannels,
         opt_in_attribute_key: birthdayAutomation.optInAttributeKey.trim(),
+        message_locale: birthdayAutomation.messageLocale,
         timezone: birthdayAutomation.timezone.trim() || null,
         send_time: birthdayAutomation.sendTime,
         message_template: birthdayAutomation.messageTemplate.trim(),
@@ -883,11 +886,6 @@ const applySettings = payload => {
   form.allowedInboxIds = settings.allowedInboxIds || [];
   form.nextActionTypesText = (settings.nextActionTypes || []).join('\n');
   form.lostReasonOptionsText = (settings.lostReasonOptions || []).join('\n');
-  form.customFieldDefinitionsText = JSON.stringify(
-    settings.customFieldDefinitions || [],
-    null,
-    2
-  );
   form.customFieldDefinitions = normalizeMarketingFieldDefinitions(
     settings.customFieldDefinitions || []
   ).map(definition => ({
@@ -916,7 +914,7 @@ const applySettings = payload => {
   form.customFieldDefinitions.forEach(definition => {
     definition.formulaDisplay = formulaDisplayValue(definition);
   });
-  form.customFieldSections = (settings.customFieldSections || []).map(
+  const configuredSections = (settings.customFieldSections || []).map(
     section => {
       const groups = (section.groups || []).map(group => ({
         color: 'slate',
@@ -925,10 +923,47 @@ const applySettings = payload => {
       return { color: 'slate', ...section, groups };
     }
   );
+  const builtInSections = [
+    {
+      key: 'details',
+      label: t('KANBAN.SETTINGS.SALES.TABS.GENERAL'),
+      builtIn: true,
+      color: 'slate',
+      groups: [],
+    },
+    {
+      key: 'marketing',
+      label: t('KANBAN.SETTINGS.SALES.TABS.MARKETING'),
+      builtIn: true,
+      color: 'slate',
+      groups: [],
+    },
+  ];
+  const hasPersistedTabOrder = builtInSections.every(builtIn =>
+    configuredSections.some(section => section.key === builtIn.key)
+  );
+  const configuredSectionsByKey = new Map(
+    configuredSections.map(section => [section.key, section])
+  );
+  form.customFieldSections = hasPersistedTabOrder
+    ? configuredSections
+    : [
+        ...builtInSections.map(section => ({
+          ...section,
+          ...(configuredSectionsByKey.get(section.key) || {}),
+        })),
+        ...configuredSections.filter(
+          section =>
+            !builtInSections.some(builtIn => builtIn.key === section.key)
+        ),
+      ];
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
   form.appointmentReminderHours = settings.appointmentReminderHours ?? '';
   form.lockVersion = settings.lockVersion ?? null;
+  // Keep the editor's normalized view model and the API payload in sync.
+  // eslint-disable-next-line no-use-before-define
+  syncCustomFieldDefinitionsText();
   serverSettingsPayload.value = JSON.parse(JSON.stringify(settings));
   serverSettingsSnapshot.value = settingsFingerprint();
 };
@@ -969,8 +1004,35 @@ const customFieldDefinitionsFromText = value => {
   if (!trimmedValue) return [];
 
   const parsedValue = JSON.parse(trimmedValue);
-  return Array.isArray(parsedValue) ? parsedValue : [];
+  if (!Array.isArray(parsedValue)) return [];
+
+  return parsedValue.map(definition => ({
+    key: definition.key,
+    label: definition.label,
+    field_type: definition.field_type || definition.fieldType,
+    options: definition.options || [],
+    required_stage_ids:
+      definition.required_stage_ids || definition.requiredStageIds || [],
+    condition: definition.condition || {},
+    formula: definition.formula || null,
+    formula_result_type:
+      definition.formula_result_type || definition.formulaResultType || null,
+    important: Boolean(definition.important),
+    layout: definition.layout || {},
+  }));
 };
+
+const customFieldSectionsPayload = () =>
+  form.customFieldSections.map(section => ({
+    key: section.key,
+    label: section.label,
+    color: section.color,
+    groups: (section.groups || []).map(group => ({
+      key: group.key,
+      label: group.label,
+      color: group.color,
+    })),
+  }));
 
 const customFieldKeyFromLabel = label =>
   String(label || '')
@@ -1036,13 +1098,13 @@ const createCustomFieldRow = ({
   autoKey,
 });
 
-const syncCustomFieldDefinitionsText = () => {
+function syncCustomFieldDefinitionsText() {
   form.customFieldDefinitionsText = JSON.stringify(
     form.customFieldDefinitions.map(customFieldPayload),
     null,
     2
   );
-};
+}
 
 const addCustomField = () => {
   const definition = createCustomFieldRow({
@@ -1129,27 +1191,30 @@ const customFieldSectionLabel = sectionKey => {
     .replace(/^./, character => character.toUpperCase());
 };
 const customFieldLayoutSections = computed(() => {
-  const configuredSections = [
-    {
-      key: 'details',
-      label: t('KANBAN.SETTINGS.SALES.TABS.GENERAL'),
-      builtIn: true,
-      groups: [],
-    },
-    {
-      key: 'marketing',
-      label: t('KANBAN.SETTINGS.SALES.TABS.MARKETING'),
-      builtIn: true,
-      groups: [],
-    },
-  ];
+  const configuredSections = [];
+  const seenKeys = new Set();
   form.customFieldSections.forEach(section => {
-    const existing = configuredSections.find(item => item.key === section.key);
-    if (existing) {
-      Object.assign(existing, section);
-      return;
-    }
-    configuredSections.push({ color: 'slate', groups: [], ...section });
+    if (seenKeys.has(section.key)) return;
+
+    seenKeys.add(section.key);
+    configuredSections.push({
+      color: 'slate',
+      groups: [],
+      builtIn: ['details', 'marketing'].includes(section.key),
+      ...section,
+    });
+  });
+  ['details', 'marketing'].forEach(sectionKey => {
+    if (seenKeys.has(sectionKey)) return;
+
+    seenKeys.add(sectionKey);
+    configuredSections.push({
+      key: sectionKey,
+      label: customFieldSectionLabel(sectionKey),
+      builtIn: true,
+      color: 'slate',
+      groups: [],
+    });
   });
   const knownKeys = new Set(configuredSections.map(section => section.key));
 
@@ -1303,6 +1368,7 @@ const moveCustomFieldSection = (sectionKey, direction) => {
     sections[sectionIndex],
   ];
   form.customFieldSections = sections;
+  syncCustomFieldDefinitionsText();
 };
 
 const openRemoveCustomFieldSection = section => {
@@ -1642,7 +1708,7 @@ const buildPayload = () => ({
     custom_field_definitions: customFieldDefinitionsFromText(
       form.customFieldDefinitionsText
     ),
-    custom_field_sections: form.customFieldSections,
+    custom_field_sections: customFieldSectionsPayload(),
     compact_card_field_keys: form.compactCardFieldKeys,
     stale_stage_thresholds: normalizedStaleStageThresholds(),
     appointment_reminder_hours:
@@ -2883,7 +2949,7 @@ onMounted(async () => {
                             <i class="i-lucide-pencil size-3" />
                           </button>
                           <button
-                            v-if="!section.builtIn && sectionIndex > 2"
+                            v-if="!section.builtIn && sectionIndex > 0"
                             type="button"
                             :data-testid="`kanban-settings-move-section-${section.key}-up`"
                             class="flex size-5 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
@@ -2893,6 +2959,22 @@ onMounted(async () => {
                             @click="moveCustomFieldSection(section.key, -1)"
                           >
                             <i class="i-lucide-chevron-up size-3" />
+                          </button>
+                          <button
+                            v-if="
+                              !section.builtIn &&
+                              sectionIndex <
+                                customFieldLayoutSections.length - 1
+                            "
+                            type="button"
+                            :data-testid="`kanban-settings-move-section-${section.key}-down`"
+                            class="flex size-5 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+                            :aria-label="
+                              t('KANBAN.SETTINGS.SALES.MOVE_FIELD_SECTION_DOWN')
+                            "
+                            @click="moveCustomFieldSection(section.key, 1)"
+                          >
+                            <i class="i-lucide-chevron-down size-3" />
                           </button>
                           <button
                             v-if="!section.builtIn"
@@ -4100,7 +4182,7 @@ onMounted(async () => {
               </div>
             </fieldset>
 
-            <div class="grid gap-3 md:grid-cols-3">
+            <div class="grid gap-3 md:grid-cols-4">
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.DAYS_BEFORE') }}
                 <input
@@ -4120,6 +4202,21 @@ onMounted(async () => {
                   type="text"
                   class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
                 />
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.MESSAGE_LOCALE') }}
+                <select
+                  v-model="birthdayAutomation.messageLocale"
+                  data-testid="kanban-settings-birthday-message-locale"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="pt_BR">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.PT_BR') }}
+                  </option>
+                  <option value="pt_PT">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.PT_PT') }}
+                  </option>
+                </select>
               </label>
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SEND_TIME') }}

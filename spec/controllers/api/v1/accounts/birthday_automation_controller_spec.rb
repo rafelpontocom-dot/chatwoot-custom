@@ -18,7 +18,8 @@ RSpec.describe 'Birthday automation API', type: :request do
       expect(response.parsed_body).to include(
         'active' => false,
         'delivery_channels' => [],
-        'opt_in_attribute_key' => 'birthday_messages_opt_in'
+        'opt_in_attribute_key' => 'birthday_messages_opt_in',
+        'message_locale' => 'pt_BR'
       )
     end
   end
@@ -39,6 +40,7 @@ RSpec.describe 'Birthday automation API', type: :request do
           days_before: 2,
           delivery_channels: %w[whatsapp email],
           opt_in_attribute_key: 'birthday_messages_opt_in',
+          message_locale: 'pt_PT',
           timezone: 'America/Sao_Paulo',
           send_time: '09:00',
           message_template: 'Parabéns, {{contact_name}}!'
@@ -50,7 +52,8 @@ RSpec.describe 'Birthday automation API', type: :request do
         active: true,
         days_before: 2,
         delivery_channels: contain_exactly('whatsapp', 'email'),
-        opt_in_attribute_key: 'birthday_messages_opt_in'
+        opt_in_attribute_key: 'birthday_messages_opt_in',
+        message_locale: 'pt_PT'
       )
     end
 

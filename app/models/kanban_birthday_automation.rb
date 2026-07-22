@@ -7,6 +7,7 @@
 #  days_before              :integer          default(0), not null
 #  delivery_channels        :string           default([]), not null, is an Array
 #  message_template         :text             default("Feliz aniversário, {{contact_name}}! Desejamos um dia especial para você."), not null
+#  message_locale           :string           default("pt_BR"), not null
 #  opt_in_attribute_key     :string           default("birthday_messages_opt_in"), not null
 #  send_time                :string           default("09:00"), not null
 #  timezone                 :string
@@ -28,6 +29,7 @@ class KanbanBirthdayAutomation < ApplicationRecord
   DEFAULT_OPT_IN_ATTRIBUTE_KEY = 'birthday_messages_opt_in'.freeze
   DEFAULT_SEND_TIME = '09:00'.freeze
   DEFAULT_MESSAGE_TEMPLATE = 'Feliz aniversário, {{contact_name}}! Desejamos um dia especial para você.'.freeze
+  MESSAGE_LOCALES = %w[pt_BR pt_PT].freeze
 
   belongs_to :account
   has_many :kanban_birthday_deliveries, dependent: :destroy
@@ -39,6 +41,7 @@ class KanbanBirthdayAutomation < ApplicationRecord
   validate :delivery_channels_are_supported
   validates :opt_in_attribute_key, format: { with: /\A[a-z][a-z0-9_]*\z/ }, allow_blank: false
   validates :message_template, presence: true, length: { maximum: 4_000 }
+  validates :message_locale, inclusion: { in: MESSAGE_LOCALES }
   validates :send_time, format: { with: /\A(?:[01]\d|2[0-3]):[0-5]\d\z/ }
   validate :timezone_must_exist
 
@@ -57,7 +60,12 @@ class KanbanBirthdayAutomation < ApplicationRecord
     self.opt_in_attribute_key = opt_in_attribute_key.to_s.strip.presence || DEFAULT_OPT_IN_ATTRIBUTE_KEY
     self.send_time = send_time.to_s.strip.presence || DEFAULT_SEND_TIME
     self.message_template = message_template.to_s.strip.presence || DEFAULT_MESSAGE_TEMPLATE
+    normalize_message_locale
     self.whatsapp_template_params = whatsapp_template_params.to_h
+  end
+
+  def normalize_message_locale
+    self.message_locale = MESSAGE_LOCALES.include?(message_locale.to_s) ? message_locale.to_s : 'pt_BR'
   end
 
   def timezone_must_exist
