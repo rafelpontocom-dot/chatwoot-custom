@@ -143,6 +143,84 @@ Configuração anual pertencente à conta, independente de oportunidade:
 
 `KanbanBirthdayDelivery` registra uma entrega por conta, contato, ano e canal. O índice único, lock de processamento e estados `pending`, `sending`, `sent`, `skipped` e `failed` tornam retries idempotentes. Sem opt-in, sem conversa compatível ou fora da janela do WhatsApp sem template aprovado, nada é enviado.
 
+### KanbanAppointmentReminderRule
+
+Regra de lembrete externo vinculada a um board e a um campo `datetime`.
+
+Contrato proposto:
+
+- `kanban_board_id`;
+- `field_key`;
+- `offsets`, em horas positivas, por exemplo `[48, 24, 2]`;
+- `channels`: `whatsapp` e/ou `email`;
+- `message_template` e `whatsapp_template_params`;
+- `timezone_mode`: `contact`, `board` ou `account`;
+- `conditions` opcionais;
+- `active` e `lock_version`.
+
+A chave idempotente recomendada é `account_id + rule_id + card_id + appointment_value + offset_hours + channel`. Ao alterar a data, a versão anterior é cancelada e uma nova programação é criada.
+
+Estados de entrega: `scheduled`, `sending`, `sent`, `skipped`, `failed` e `canceled`. O job deve fazer claim com lock, registrar o motivo de não envio e aplicar retry limitado.
+
+### KanbanCadence
+
+A implementação atual já possui `KanbanCadence` e `KanbanCadenceEnrollment` para lembretes internos. O contrato deve ser preservado, separando ações internas de mensagens externas.
+
+Formato de passo interno:
+
+```json
+{
+  "delay_hours": 24,
+  "action_type": "internal_task",
+  "next_action_type": "Cobrar retorno",
+  "note": "Verificar se o lead respondeu",
+  "conditions": { "incoming_since_previous_step": false }
+}
+```
+
+Para a fase futura de mensagens externas:
+
+```json
+{
+  "delay_hours": 48,
+  "action_type": "send_message",
+  "channel": "whatsapp",
+  "template_name": "followup_48h",
+  "requires_opt_in": true,
+  "stop_if_customer_replied": true
+}
+```
+
+`send_message` não deve ser habilitado apenas adicionando um valor no JSON. O backend precisa validar canal, template, consentimento, janela, limite de frequência e permissão do board.
+
+### KanbanCadenceStepExecution
+
+Registro idempotente de cada passo executado:
+
+- `enrollment_id`, `step_index`, `scheduled_at` e `executed_at`;
+- `status`: `scheduled`, `sent`, `completed`, `skipped`, `failed` ou `canceled`;
+- `message_id`, quando houver;
+- `idempotency_key` única;
+- `error_message` e `metadata`.
+
+Esse registro evita duplicidade em retries do Sidekiq e permite mostrar no card exatamente o que ocorreu.
+
+### Fluxo De Cadencia
+
+1. `EnrollService` valida board, card, cadência ativa e ausência de execução duplicada.
+2. O enrollment agenda o primeiro passo no fuso do board ou da conta.
+3. `ProcessDueJob` faz claim com lock e cria a execução do passo.
+4. A execução avalia condições e paradas antes de qualquer ação.
+5. A ação interna atualiza `next_action_*`; a externa passa pelo serviço do canal.
+6. O passo concluído agenda o próximo; uma falha registra erro e segue retry limitado.
+7. Mensagem recebida, mudança terminal ou cancelamento manual pausa/cancela o enrollment.
+
+### Mapeamento Do N8N
+
+Para migrar um workflow existente, cada nó deve ser mapeado para uma categoria: gatilho para origem de enrollment, `Wait` para atraso, condição para `conditions`, envio WhatsApp para ação externa, atualização de campo para `set_field`, troca de etapa para `move_stage`, atribuição para `assign_owner` e resposta do cliente para evento de pausa.
+
+O produto deve oferecer prévia do mapeamento, listar nós não suportados e nunca ativar automaticamente uma cadência migrada sem revisão do administrador.
+
 ### KanbanCardEvent
 
 Entidade P0 para histórico comercial imutável da oportunidade.

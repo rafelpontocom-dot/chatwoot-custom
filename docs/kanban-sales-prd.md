@@ -188,6 +188,48 @@ As listas de tipos de próxima ação e motivos de perda fazem parte do MVP. Ela
 
 Se o board ainda não tiver listas configuradas, o sistema deve usar listas padrão úteis para venda via WhatsApp.
 
+## Automacoes Comerciais
+
+As automações ficam em uma área própria do board, separadas da operação manual do card. O card mostra o resultado e o histórico, mas não esconde de onde veio uma ação ou mensagem.
+
+### Lembretes De Consulta
+
+O lembrete de consulta é baseado em um campo `datetime` do card, por exemplo `data_hora_consulta`.
+
+O administrador configura o campo de data e hora, um ou mais offsets (`48h`, `24h`, `2h`), mensagem ou template por offset, canais permitidos e fuso horário. Condições opcionais podem limitar o envio por etapa, confirmação, status ou opt-in.
+
+Comportamento obrigatório:
+
+- cada offset envia no máximo uma vez para cada agendamento;
+- alterar a data cancela lembretes pendentes e recria a programação;
+- cancelar, perder ou arquivar a oportunidade interrompe lembretes futuros;
+- ausência de conversa compatível registra o não envio, sem tentativas infinitas;
+- WhatsApp fora da janela de 24 horas exige template aprovado;
+- a tela mostra prévia, próximo envio e histórico de tentativas;
+- o lembrete externo é separado da próxima ação interna do vendedor.
+
+Preencher uma data não autoriza, por si só, uma mensagem externa. Opt-in, canal, horário silencioso e regras da conta devem ser respeitados.
+
+### Cadencia De Follow-up
+
+Cadência é uma sequência de passos temporizados aplicada a uma oportunidade. Ela deve substituir gradualmente fluxos simples hoje mantidos no N8N, com execução visível, pausável e cancelável.
+
+Pode iniciar manualmente pelo card, ao entrar em uma etapa, quando a oportunidade é criada ou por uma regra comercial.
+
+Cada passo declara espera, ação interna, mensagem externa opcional, condição e observação. Ações internas incluem criar próxima ação, atribuir responsável, mover etapa e adicionar etiqueta. Mensagens externas precisam declarar canal, template/texto, consentimento e limite de envio.
+
+Paradas padrão: resposta do cliente, mudança de etapa, ganho, perda, arquivamento, remoção de opt-in ou cancelamento manual.
+
+A primeira versão deve manter cadências internas sem mensagem ao cliente. Mensagens externas entram depois, com idempotência, janela do WhatsApp, templates aprovados, limite de frequência, horário silencioso e trilha de auditoria.
+
+Exemplo de cadência de vendas via WhatsApp:
+
+1. imediatamente: criar tarefa `Responder lead`;
+2. após 24h sem resposta: criar tarefa `Cobrar retorno`;
+3. após 48h sem resposta: enviar template aprovado, se houver consentimento;
+4. após 72h sem resposta: mover para `Follow-up` e criar última tarefa;
+5. parar em qualquer resposta, ganho, perda ou cancelamento.
+
 ## Pipeline
 
 As etapas devem ser configuráveis.
