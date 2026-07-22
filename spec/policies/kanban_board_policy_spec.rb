@@ -32,7 +32,7 @@ RSpec.describe KanbanBoardPolicy, type: :policy do
     it { is_expected.to permit(admin_context, KanbanBoard) }
     it { is_expected.to permit(agent_context, KanbanBoard) }
 
-    context 'when an agent has a custom role' do
+    context 'when an agent has a custom role', if: defined?(CustomRole) do
       let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
 
       before { agent_context[:account_user].update!(custom_role: custom_role) }
@@ -50,7 +50,7 @@ RSpec.describe KanbanBoardPolicy, type: :policy do
     it { is_expected.to permit(admin_context, KanbanBoard) }
     it { is_expected.to permit(agent_context, KanbanBoard) }
 
-    context 'when an agent has a custom role' do
+    context 'when an agent has a custom role', if: defined?(CustomRole) do
       let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
 
       before { agent_context[:account_user].update!(custom_role: custom_role) }
@@ -59,7 +59,7 @@ RSpec.describe KanbanBoardPolicy, type: :policy do
     end
   end
 
-  describe 'custom role permissions' do
+  describe 'custom role permissions', if: defined?(CustomRole) do
     let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
     let(:board) { build(:kanban_board, account: account) }
 

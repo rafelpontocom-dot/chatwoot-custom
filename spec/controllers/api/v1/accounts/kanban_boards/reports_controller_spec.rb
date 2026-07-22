@@ -83,7 +83,7 @@ RSpec.describe 'Kanban Board Reports API', type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it 'requires the commercial report permission for custom roles' do
+    it 'requires the commercial report permission for custom roles', if: defined?(CustomRole) do
       custom_role = create(:custom_role, account: account, permissions: ['kanban_view'])
       agent.account_users.find_by(account: account).update!(custom_role: custom_role)
 
@@ -93,7 +93,7 @@ RSpec.describe 'Kanban Board Reports API', type: :request do
       expect(response.parsed_body['error']).to include('not authorized')
     end
 
-    it 'allows a custom role with the commercial report permission' do
+    it 'allows a custom role with the commercial report permission', if: defined?(CustomRole) do
       custom_role = create(:custom_role, account: account, permissions: %w[kanban_view kanban_report])
       agent.account_users.find_by(account: account).update!(custom_role: custom_role)
 

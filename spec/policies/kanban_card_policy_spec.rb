@@ -212,7 +212,7 @@ RSpec.describe KanbanCardPolicy, type: :policy do
     end
   end
 
-  describe 'custom role permissions' do
+  describe 'custom role permissions', if: defined?(CustomRole) do
     let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
 
     before do
