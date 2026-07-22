@@ -5,6 +5,16 @@ export const AVAILABLE_CUSTOM_ROLE_PERMISSIONS = [
   'contact_manage',
   'report_manage',
   'knowledge_base_manage',
+  'kanban_view',
+  'kanban_create',
+  'kanban_edit',
+  'kanban_assign',
+  'kanban_move',
+  'kanban_close',
+  'kanban_bulk',
+  'kanban_configure',
+  'kanban_manage',
+  'kanban_report',
 ];
 
 export const ROLES = ['agent', 'administrator'];

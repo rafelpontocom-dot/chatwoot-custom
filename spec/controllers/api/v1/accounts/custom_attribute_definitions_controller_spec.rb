@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Custom Attribute Definitions API', type: :request do
-  let(:account) { create(:account) }
+  let!(:account) { create(:account) }
   let(:agent) { create(:user, account: account, role: :agent) }
   let(:admin) { create(:user, account: account, role: :administrator) }
 
@@ -26,8 +26,8 @@ RSpec.describe 'Custom Attribute Definitions API', type: :request do
         expect(response).to have_http_status(:success)
         response_body = response.parsed_body
 
-        expect(response_body.count).to eq(2)
-        expect(response_body.first['attribute_key']).to eq(custom_attribute_definition.attribute_key)
+        expect(response_body.count).to eq(3)
+        expect(response_body.pluck('attribute_key')).to include(custom_attribute_definition.attribute_key, 'date_of_birth')
       end
     end
   end
@@ -185,7 +185,8 @@ RSpec.describe 'Custom Attribute Definitions API', type: :request do
                headers: admin.create_new_auth_token,
                as: :json
         expect(response).to have_http_status(:no_content)
-        expect(account.custom_attribute_definitions.count).to be 0
+        expect(account.custom_attribute_definitions.count).to be 1
+        expect(account.custom_attribute_definitions.pluck(:attribute_key)).to eq(['date_of_birth'])
       end
     end
 
@@ -196,7 +197,7 @@ RSpec.describe 'Custom Attribute Definitions API', type: :request do
                as: :json
 
         expect(response).to have_http_status(:unauthorized)
-        expect(account.custom_attribute_definitions.count).to be 1
+        expect(account.custom_attribute_definitions.count).to be 2
       end
     end
   end

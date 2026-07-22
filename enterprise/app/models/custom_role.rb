@@ -23,6 +23,16 @@
 # - 'contact_manage': Can manage contacts.
 # - 'report_manage': Can manage reports.
 # - 'knowledge_base_manage': Can manage knowledge base portals.
+# - 'kanban_view': Can view commercial boards and opportunities.
+# - 'kanban_create': Can create opportunities.
+# - 'kanban_edit': Can edit opportunity data.
+# - 'kanban_assign': Can change the commercial owner.
+# - 'kanban_move': Can move opportunities between stages.
+# - 'kanban_close': Can mark opportunities won, lost or reopened.
+# - 'kanban_bulk': Can execute bulk commercial actions.
+# - 'kanban_configure': Can configure commercial boards.
+# - 'kanban_manage': Can archive, restore and delete commercial boards.
+# - 'kanban_report': Can view commercial reports and exports.
 
 class CustomRole < ApplicationRecord
   belongs_to :account
@@ -35,6 +45,16 @@ class CustomRole < ApplicationRecord
     contact_manage
     report_manage
     knowledge_base_manage
+    kanban_view
+    kanban_create
+    kanban_edit
+    kanban_assign
+    kanban_move
+    kanban_close
+    kanban_bulk
+    kanban_configure
+    kanban_manage
+    kanban_report
   ].freeze
 
   validates :name, presence: true

@@ -2,6 +2,8 @@
 
 Status: fonte de verdade do produto
 
+Execucao: [Roadmap do Workspace Comercial](./kanban-commercial-workspace-roadmap.md)
+
 Este documento define a direção do Kanban comercial do nosso Chatwoot. Ele deve guiar escopo, decisões técnicas, UX e priorização.
 
 ## Tese
@@ -71,7 +73,7 @@ Pessoa ou lead. Deve continuar sendo o registro principal da pessoa no Chatwoot.
 
 Dados que pertencem à pessoa, como data de nascimento, consentimento de comunicação, idioma e fuso horário, não devem ser duplicados em cada oportunidade.
 
-`date_of_birth` deve ser um campo canônico do contato para o nosso produto. Na primeira versão, pode ser provisionado como atributo personalizado de contato do Chatwoot, com tipo data, chave estável e presença garantida na ficha do contato. Ele não é campo do board.
+`date_of_birth` é um campo canônico do contato para o nosso produto. É provisionado como atributo personalizado de contato do Chatwoot, com tipo data, chave estável e presença garantida na ficha do contato. Ele não é campo do board.
 
 ### Conversation
 
@@ -529,7 +531,7 @@ Responsabilidade de um módulo próprio de `Automações`:
 
 Classificação dos casos levantados:
 
-1. **Lembrete de agendamento:** automação relativa a um campo de data/hora do card ou evento de agenda. O board fornece a data e o contexto; a automação agenda e envia o lembrete.
+1. **Lembrete de agendamento:** o Kanban já pode criar uma próxima ação interna relativa a `starts_at`, configurada em horas por board. O envio de WhatsApp/email continua pertencendo ao módulo de automações e exige ativação explícita.
 2. **Mensagem de aniversário:** automação recorrente anual baseada em `contact.date_of_birth`. Não depende de existir oportunidade no Kanban.
 3. **Cadência de follow-up:** módulo de sequências/cadências, com passos de mensagem, espera e tarefa manual. O card pode inscrever ou retirar o contato da cadência, mas não deve ser o editor da sequência.
 
@@ -640,17 +642,19 @@ Antes de iniciar o módulo de automações, o Kanban precisa fechar estas lacuna
 - destaque de campos importantes, sem torná-los obrigatórios;
 - limites de trabalho por etapa apenas como alerta de capacidade, nunca bloqueio rígido de entrada de leads.
 
-### Estado Verificado Em 21/07/2026
+### Estado Verificado Em 22/07/2026
 
 - `Implementado`: linha do tempo comercial, categorias de etapa, movimentação assistida, busca por oportunidade/contato/telefone/email, ordenação, filtros ativos, limpar filtros, filtros salvos e aviso de duplicidade.
 - `Implementado`: construtor visual com condições, fórmulas por `[` e chaves estáveis, opções compactas, obrigatoriedade por checkbox, abas persistentes e preset exato de Marketing.
 - `Implementado no P1`: arquivar/restaurar oportunidades, data prevista de fechamento, campos importantes e alerta de capacidade por etapa.
-- `Parcial no P1`: ações em massa existem, mas ainda precisam de confirmação e resumo de impacto para todas as operações; arquivamento/restauração de board ainda não possui fluxo completo.
-- `Pendente no P0`: validação E2E em desktop e mobile, navegação integral por teclado e auditoria de acessibilidade com tecnologia assistiva.
+- `Implementado`: ações em massa com confirmação, resumo de impacto, sucesso parcial e arquivamento/restauração; permissões comerciais são aplicadas por operação no backend.
+- `Implementado`: `date_of_birth` provisionado por conta, automação anual de aniversário com opt-in, timezone, horário, canais WhatsApp/email e idempotência de entrega.
+- `Preparado para aceite`: suíte Playwright real em desktop Chrome e Pixel 7 cobre foco, teclado, drawer, abas, nomes acessíveis e responsividade; leitor de tela ainda precisa ser executado com VoiceOver/NVDA em ambiente real.
+- `Pendente de produção`: concorrência entre agentes, retries de jobs e carga elevada precisam ser executados no Swarm com dados representativos.
 - `Pendente de acabamento`: renomear, reordenar e excluir abas personalizadas; renomear e excluir filtros salvos pela interface; mostrar uma prévia numérica da fórmula antes de salvar.
 - `Futuro`: fórmulas com datas e horas dependem de semântica explícita para soma de dias, duração, diferença entre datas, resultado e fuso horário.
 
-O módulo de automações continua bloqueado até a validação P0 pendente ser aceita.
+O módulo de automações segue separado do Kanban. O aniversário já possui uma primeira automação controlada; cadências, lembretes e demais notificações devem continuar obedecendo opt-in, janela, timezone, idempotência e auditoria.
 
 ### Fora Do Fechamento Atual
 
@@ -690,16 +694,21 @@ O Kanban comercial entregue inclui:
 - abas Geral e Marketing no card;
 - editor visual para arrastar e ordenar campos entre abas;
 - preset completo de campos de atribuição de marketing.
+- atributo padrão `date_of_birth` provisionado por conta;
+- automação de aniversário com opt-in, timezone, horário configurável e entrega idempotente por WhatsApp/email;
+- permissões comerciais separadas para visualizar, editar, mover, configurar, administrar e consultar relatórios;
+- suíte Playwright opt-in para desktop Chrome, Pixel 7, teclado, foco, drawer e semântica ARIA.
 
 ## Proximas Fases
 
 1. concluir os itens P0 de fechamento estrutural;
 2. validar o fluxo manual completo com secretária e vendedor;
-3. criar a fundação de dados do contato, incluindo `date_of_birth`, consentimento e fuso horário;
-4. especificar o módulo próprio de automações;
-5. entregar lembretes de agendamento;
-6. entregar cadências de follow-up;
-7. entregar automações recorrentes, incluindo aniversário.
+3. executar a suíte Playwright em desktop e mobile e validar VoiceOver/NVDA;
+4. executar smoke, concorrência e alto volume no Swarm;
+5. especificar o módulo próprio de automações;
+6. validar em produção os lembretes internos de agendamento;
+7. entregar cadências de follow-up;
+8. evoluir automações recorrentes além do aniversário.
 
 ## Riscos
 
@@ -721,6 +730,7 @@ O Kanban comercial entregue inclui:
 - Consulta é apenas um tipo configurável de próxima ação.
 - O produto deve ser útil para venda 100% WhatsApp.
 - Lembretes, aniversários e cadências usam dados do Kanban, mas pertencem a um módulo próprio de automações.
+- O lembrete interno de agendamento é uma exceção operacional do Kanban: ele apenas cria uma próxima ação e nunca envia mensagem.
 - Data de nascimento pertence ao contato, não à oportunidade.
 - `For igual a` é condição; fórmula possui editor próprio.
 

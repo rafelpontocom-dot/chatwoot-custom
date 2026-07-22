@@ -12,7 +12,7 @@ class Api::V1::Accounts::KanbanBoards::StagesController < Api::V1::Accounts::Bas
       end
 
       @kanban_stage = @kanban_board.kanban_stages.create!(
-        kanban_stage_params.except(:position).merge(account: Current.account, position: 1)
+        stage_params_with_probability.except(:position).merge(account: Current.account, position: 1)
       )
 
       KanbanStage.normalize_positions_for_board!(@kanban_board)
@@ -28,7 +28,7 @@ class Api::V1::Accounts::KanbanBoards::StagesController < Api::V1::Accounts::Bas
       return
     end
 
-    @kanban_stage.update!(kanban_stage_params)
+    @kanban_stage.update!(stage_params_with_probability)
     dispatch_kanban_stage_event(Events::Types::KANBAN_STAGE_UPDATED)
   end
 
@@ -78,7 +78,21 @@ class Api::V1::Accounts::KanbanBoards::StagesController < Api::V1::Accounts::Bas
   end
 
   def kanban_stage_params
-    params.require(:stage).permit(:name, :position, :active, :color, :category, :wip_limit)
+    params.require(:stage).permit(:name, :position, :active, :color, :category, :wip_limit, :probability)
+  end
+
+  def stage_params_with_probability
+    permitted_params = kanban_stage_params
+    return permitted_params unless permitted_params.key?(:category) && !permitted_params.key?(:probability)
+
+    permitted_params.merge(probability: default_probability_for(permitted_params[:category]))
+  end
+
+  def default_probability_for(category)
+    return 100 if category == 'won'
+    return 0 if category == 'lost'
+
+    0
   end
 
   def deactivating_stage_with_active_cards?

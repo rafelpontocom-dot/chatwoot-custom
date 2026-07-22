@@ -40,6 +40,8 @@ const isFetchingBoard = ref(false);
 const isCreatingStage = ref(false);
 const selectedOpportunityCardId = ref(null);
 const opportunityTriggerElement = ref(null);
+const opportunityDetailsModal = ref(null);
+const activityTriggerElement = ref(null);
 const viewMode = ref('kanban');
 const showActivityCenter = ref(false);
 const showFiltersPanel = ref(false);
@@ -205,6 +207,46 @@ const stageCardCount = stage => stage.cardsCount ?? stage.cards?.length ?? 0;
 const stageOverCapacity = stage =>
   Number(stage.wipLimit) > 0 && stageCardCount(stage) > Number(stage.wipLimit);
 const selectedCardsCount = computed(() => selectedCardIds.value.length);
+const pendingBulkImpactTarget = computed(() => {
+  const pending = pendingBulkOperation.value;
+  if (!pending) return '';
+
+  if (pending.operation === 'move_stage') {
+    return t('KANBAN.BULK.TARGET_STAGE', {
+      target:
+        stages.value.find(stage => stage.id === pending.attributes.stage_id)
+          ?.name || t('KANBAN.CARD.UNKNOWN_STAGE'),
+    });
+  }
+
+  if (pending.operation === 'assign_owner') {
+    return t('KANBAN.BULK.TARGET_OWNER', {
+      target:
+        agentFilterOptions.value.find(
+          option => option.value === pending.attributes.owner_id
+        )?.label || t('KANBAN.CARD.UNASSIGNED'),
+    });
+  }
+
+  if (pending.operation === 'mark_lost') {
+    return t('KANBAN.BULK.TARGET_LOST_REASON', {
+      target: pending.attributes.lost_reason,
+    });
+  }
+
+  return t('KANBAN.BULK.NO_ADDITIONAL_DETAIL');
+});
+const pendingBulkImpactMessage = computed(() => {
+  const pending = pendingBulkOperation.value;
+  if (!pending)
+    return t('KANBAN.BULK.IMPACT', { count: selectedCardsCount.value });
+
+  return t('KANBAN.BULK.IMPACT_DETAILS', {
+    count: selectedCardsCount.value,
+    operation: pending.label,
+    target: pendingBulkImpactTarget.value,
+  });
+});
 const firstStageId = computed(() => stages.value[0]?.id || null);
 
 const normalizeKanbanPayload = data => {
@@ -552,6 +594,25 @@ const clearFilters = async () => {
   selectedSort.value = '';
   selectedSavedFilterId.value = '';
   await refreshSelectedBoard();
+};
+
+const exportFilteredCards = async () => {
+  if (!selectedBoard.value?.id) return;
+
+  try {
+    const response = await KanbanBoardsAPI.exportCards(selectedBoard.value.id, {
+      params: currentFilterParams(),
+    });
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `${currentBoardName.value.toLowerCase().replace(/\s+/g, '-')}-oportunidades.csv`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    showActionError(error, t('KANBAN.REPORTS.EXPORT_ERROR'));
+  }
 };
 
 const applySavedFilter = async event => {
@@ -1169,6 +1230,18 @@ const onCardDragEnd = () => {
   hasCardDragChanged.value = false;
 };
 
+const moveCardToStage = (card, targetStageId) => {
+  const targetStage = stages.value.find(stage => stage.id === targetStageId);
+  if (!targetStage || card.kanbanStageId === targetStageId) return;
+
+  onCardDragChange(targetStage, {
+    added: {
+      element: card,
+      newIndex: stageCardCount(targetStage),
+    },
+  });
+};
+
 const openRemoveCardConfirmation = card => {
   cardPendingRemoval.value = card;
   showRemoveCardConfirmation.value = true;
@@ -1301,6 +1374,25 @@ const openDetails = card => {
 
 const closeOpportunityDetails = () => {
   selectedOpportunityCardId.value = null;
+};
+const requestOpportunityClose = event => {
+  if (opportunityDetailsModal.value?.requestClose) {
+    opportunityDetailsModal.value.requestClose(event);
+    return;
+  }
+
+  closeOpportunityDetails();
+};
+
+const openActivityCenter = event => {
+  activityTriggerElement.value = event?.currentTarget || null;
+  showActivityCenter.value = true;
+};
+const closeActivityCenter = ({ restoreFocus = true } = {}) => {
+  showActivityCenter.value = false;
+  if (!restoreFocus) return;
+
+  nextTick(() => activityTriggerElement.value?.focus?.());
 };
 
 const handleOpportunityKeydown = event => {
@@ -1439,8 +1531,14 @@ onUnmounted(() => {
 <template>
   <main class="flex h-full min-h-0 w-full bg-n-surface-1 text-n-slate-12">
     <section class="flex min-w-0 flex-1 flex-col">
-      <header class="grid gap-3 border-b border-n-weak px-4 py-3 lg:px-6">
-        <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+      <header
+        data-testid="kanban-workspace-header"
+        class="grid gap-3 border-b border-n-weak px-4 py-3 lg:px-6"
+      >
+        <div
+          data-testid="kanban-workspace-primary-row"
+          class="grid min-w-0 gap-3 lg:grid-cols-[minmax(12rem,auto)_minmax(16rem,1fr)_auto] lg:items-center"
+        >
           <div class="min-w-0 flex-1">
             <OnClickOutside @trigger="isBoardDropdownOpen = false">
               <div class="relative inline-flex max-w-full flex-col">
@@ -1485,7 +1583,29 @@ onUnmounted(() => {
             </OnClickOutside>
           </div>
           <template v-if="selectedBoard">
-            <div class="flex items-center gap-1">
+            <label class="order-3 grid min-w-0 flex-1 gap-1 md:order-2">
+              <span class="text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.FILTERS.SEARCH_LABEL') }}
+              </span>
+              <div
+                class="relative z-10 flex h-10 min-w-0 w-full items-center overflow-hidden rounded-md border border-n-weak bg-n-surface-1 px-2 shadow-sm"
+              >
+                <i
+                  class="i-lucide-search size-4 flex-shrink-0 text-n-slate-10"
+                />
+                <input
+                  v-model="searchInput"
+                  type="search"
+                  data-testid="kanban-search-input"
+                  class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/30"
+                  :placeholder="t('KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
+                  @keyup.enter="applySearch"
+                />
+              </div>
+            </label>
+          </template>
+          <template v-if="selectedBoard">
+            <div class="order-2 flex items-center gap-1 md:order-3">
               <button
                 type="button"
                 data-testid="kanban-open-archived-cards"
@@ -1533,29 +1653,10 @@ onUnmounted(() => {
 
         <template v-if="selectedBoard">
           <div
-            class="grid min-w-0 gap-3 border-t border-n-weak pt-3 md:grid-cols-[minmax(14rem,1fr)_12rem_minmax(13rem,0.75fr)_auto] md:items-end"
+            data-testid="kanban-workspace-secondary-row"
+            class="flex min-w-0 flex-wrap items-end gap-2 border-t border-n-weak pt-3"
           >
-            <label class="grid min-w-0 gap-1">
-              <span class="text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.FILTERS.SEARCH_LABEL') }}
-              </span>
-              <div
-                class="relative z-10 flex h-10 min-w-0 w-full items-center overflow-hidden rounded-md border border-n-weak bg-n-surface-1 px-2 shadow-sm"
-              >
-                <i
-                  class="i-lucide-search size-4 flex-shrink-0 text-n-slate-10"
-                />
-                <input
-                  v-model="searchInput"
-                  type="search"
-                  data-testid="kanban-search-input"
-                  class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/30"
-                  :placeholder="t('KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
-                  @keyup.enter="applySearch"
-                />
-              </div>
-            </label>
-            <label class="grid min-w-0 gap-1">
+            <label class="grid min-w-40 gap-1">
               <span class="text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.FILTERS.SORT_LABEL') }}
               </span>
@@ -1575,7 +1676,7 @@ onUnmounted(() => {
                 </option>
               </select>
             </label>
-            <label class="grid min-w-0 gap-1">
+            <label class="grid min-w-48 gap-1">
               <span class="text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
               </span>
@@ -1598,9 +1699,7 @@ onUnmounted(() => {
                 </option>
               </select>
             </label>
-            <div
-              class="flex min-h-10 items-center justify-start gap-1 md:justify-end"
-            >
+            <div class="ml-auto flex min-h-10 items-center justify-start gap-1">
               <div
                 class="flex items-center rounded-md border border-n-weak bg-n-surface-1 p-0.5"
                 :aria-label="t('KANBAN.VIEW.LABEL')"
@@ -1642,9 +1741,19 @@ onUnmounted(() => {
                 class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                 :aria-label="t('KANBAN.ACTIVITY.OPEN')"
                 :title="t('KANBAN.ACTIVITY.OPEN')"
-                @click="showActivityCenter = true"
+                @click="openActivityCenter"
               >
                 <i class="i-lucide-calendar-check-2 size-4" />
+              </button>
+              <button
+                type="button"
+                data-testid="kanban-export-cards"
+                class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                :aria-label="t('KANBAN.REPORTS.EXPORT')"
+                :title="t('KANBAN.REPORTS.EXPORT')"
+                @click="exportFilteredCards"
+              >
+                <i class="i-lucide-download size-4" />
               </button>
               <button
                 type="button"
@@ -1869,9 +1978,12 @@ onUnmounted(() => {
       <section
         v-if="salesSummary"
         data-testid="kanban-sales-summary"
-        class="grid grid-cols-2 gap-2 border-b border-n-weak px-6 py-3 sm:grid-cols-5"
+        class="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-n-weak px-4 py-2 lg:px-6"
       >
-        <div class="grid gap-0.5">
+        <span class="text-xs font-semibold text-n-slate-12">
+          {{ t('KANBAN.REPORTS.SUMMARY') }}
+        </span>
+        <div class="flex items-baseline gap-1.5 whitespace-nowrap">
           <span class="text-xs text-n-slate-11">
             {{ t('KANBAN.REPORTS.OPEN') }}
           </span>
@@ -1879,7 +1991,7 @@ onUnmounted(() => {
             {{ salesSummary.openCount || 0 }}
           </span>
         </div>
-        <div class="grid gap-0.5">
+        <div class="flex items-baseline gap-1.5 whitespace-nowrap">
           <span class="text-xs text-n-slate-11">
             {{ t('KANBAN.REPORTS.WON') }}
           </span>
@@ -1887,7 +1999,7 @@ onUnmounted(() => {
             {{ salesSummary.wonCount || 0 }}
           </span>
         </div>
-        <div class="grid gap-0.5">
+        <div class="flex items-baseline gap-1.5 whitespace-nowrap">
           <span class="text-xs text-n-slate-11">
             {{ t('KANBAN.REPORTS.LOST') }}
           </span>
@@ -1895,7 +2007,7 @@ onUnmounted(() => {
             {{ salesSummary.lostCount || 0 }}
           </span>
         </div>
-        <div class="grid gap-0.5">
+        <div class="flex items-baseline gap-1.5 whitespace-nowrap">
           <span class="text-xs text-n-slate-11">
             {{ t('KANBAN.REPORTS.OVERDUE') }}
           </span>
@@ -1903,12 +2015,23 @@ onUnmounted(() => {
             {{ salesSummary.overdueCount || 0 }}
           </span>
         </div>
-        <div class="grid gap-0.5">
+        <div class="flex items-baseline gap-1.5 whitespace-nowrap">
           <span class="text-xs text-n-slate-11">
             {{ t('KANBAN.REPORTS.WON_AMOUNT') }}
           </span>
           <span class="text-sm font-semibold text-n-slate-12">
             {{ formatCurrencyFromCents(salesSummary.wonAmountCents) }}
+          </span>
+        </div>
+        <div
+          class="flex items-baseline gap-1.5 whitespace-nowrap"
+          :title="t('KANBAN.REPORTS.WEIGHTED_OPEN_AMOUNT')"
+        >
+          <span class="text-xs text-n-slate-11">
+            {{ t('KANBAN.REPORTS.WEIGHTED_OPEN_AMOUNT') }}
+          </span>
+          <span class="text-sm font-semibold text-n-slate-12">
+            {{ formatCurrencyFromCents(salesSummary.weightedOpenAmountCents) }}
           </span>
         </div>
       </section>
@@ -2012,7 +2135,7 @@ onUnmounted(() => {
         data-testid="kanban-bulk-impact-summary"
         class="mb-0 border-b border-n-weak bg-n-surface-2 px-6 py-2 text-sm text-n-slate-11"
       >
-        {{ t('KANBAN.BULK.IMPACT', { count: selectedCardsCount }) }}
+        {{ pendingBulkImpactMessage }}
       </p>
 
       <div
@@ -2061,9 +2184,12 @@ onUnmounted(() => {
         v-else-if="viewMode === 'list'"
         :stages="stages"
         :selected-card-ids="selectedCardIds"
+        :stage-cards-loading="stageCardsLoading"
+        :stage-cards-errors="stageCardsErrors"
         @open-details="openDetails"
         @open-conversation="openConversation"
         @toggle-selection="toggleCardSelection"
+        @load-more-stage-cards="loadMoreStageCards"
       />
 
       <div v-else class="flex min-h-0 flex-1 overflow-x-auto p-4">
@@ -2145,7 +2271,7 @@ onUnmounted(() => {
                 <template v-else>
                   <div class="flex min-w-0 flex-1 items-center gap-2">
                     <h3 class="truncate text-sm font-medium">
-                      {{ stage.name }}
+                      <span :title="stage.name">{{ stage.name }}</span>
                     </h3>
                     <span
                       class="flex-shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium"
@@ -2240,12 +2366,14 @@ onUnmounted(() => {
                   <template #item="{ element: card }">
                     <KanbanConversationCard
                       :card="card"
+                      :stages="stages"
                       :active-action-key="activeActionKey"
                       :selected="selectedCardIds.includes(card.id)"
                       @open-details="openDetails"
                       @open-conversation="openConversation"
                       @remove-card="openRemoveCardConfirmation"
                       @toggle-selection="toggleCardSelection"
+                      @move-card="moveCardToStage"
                     />
                   </template>
                 </Draggable>
@@ -2286,6 +2414,7 @@ onUnmounted(() => {
       :on-confirm="() => performBulkOperation('archive')"
       :title="t('KANBAN.BULK.ARCHIVE_TITLE')"
       :message="t('KANBAN.BULK.ARCHIVE_MESSAGE')"
+      :message-value="selectedCardsCount"
       :confirm-text="t('KANBAN.BULK.ARCHIVE')"
       :reject-text="t('KANBAN.ACTIONS.CANCEL')"
     />
@@ -2294,8 +2423,7 @@ onUnmounted(() => {
       :on-close="closeBulkImpactConfirmation"
       :on-confirm="confirmBulkImpact"
       :title="t('KANBAN.BULK.IMPACT_TITLE')"
-      :message="t('KANBAN.BULK.IMPACT')"
-      :message-value="selectedCardsCount"
+      :message="pendingBulkImpactMessage"
       :confirm-text="t('KANBAN.BULK.CONFIRM_IMPACT')"
       :reject-text="t('KANBAN.ACTIONS.CANCEL')"
     />
@@ -2522,12 +2650,13 @@ onUnmounted(() => {
         type="button"
         class="absolute inset-0 cursor-default"
         :aria-label="t('KANBAN.ACTIONS.CLOSE')"
-        @click="closeOpportunityDetails"
+        @click="requestOpportunityClose"
       />
       <aside
         class="relative flex h-full w-full max-w-[44rem] flex-col bg-n-background shadow-xl"
       >
         <KanbanOpportunityDetailsModal
+          ref="opportunityDetailsModal"
           :board-id="selectedBoard.id"
           :board-name="selectedBoard.name"
           :stages="stages"
@@ -2550,10 +2679,12 @@ onUnmounted(() => {
     <KanbanActivityCenter
       v-if="showActivityCenter"
       :stages="stages"
-      @close="showActivityCenter = false"
+      :board-id="selectedBoard.id"
+      :owner-options="agentFilterOptions"
+      @close="closeActivityCenter"
       @open-details="
         card => {
-          showActivityCenter = false;
+          closeActivityCenter({ restoreFocus: false });
           openDetails(card);
         }
       "

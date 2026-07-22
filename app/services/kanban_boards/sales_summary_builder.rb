@@ -16,6 +16,7 @@ class KanbanBoards::SalesSummaryBuilder
       overdue_count: overdue_sales_cards(cards).count,
       stale_count: cards.count(&:stale_in_stage?),
       open_amount_cents: sales_amount_cents(open_cards),
+      weighted_open_amount_cents: weighted_amount_cents(open_cards),
       won_amount_cents: sales_amount_cents(won_cards),
       lost_amount_cents: sales_amount_cents(lost_cards),
       by_stage: sales_summary_by_stage(cards),
@@ -49,16 +50,24 @@ class KanbanBoards::SalesSummaryBuilder
     cards.sum { |card| card.amount_cents.to_i }
   end
 
+  def weighted_amount_cents(cards)
+    cards.sum do |card|
+      next 0 unless card.open_opportunity?
+
+      (card.amount_cents.to_i * card.kanban_stage.probability.to_i / 100.0).round
+    end
+  end
+
   def sales_summary_by_stage(cards)
     kanban_board.kanban_stages.active.ordered.map do |stage|
       stage_cards = cards.select { |card| card.kanban_stage_id == stage.id }
-      sales_summary_bucket(id: stage.id, name: stage.name, cards: stage_cards)
+      sales_summary_bucket(id: stage.id, name: stage.name, cards: stage_cards, include_probability: true)
     end
   end
 
   def sales_summary_by_owner(cards)
     cards.select(&:owner_id).group_by(&:owner).map do |owner, owner_cards|
-      sales_summary_bucket(id: owner.id, name: owner.name, cards: owner_cards)
+      sales_summary_bucket(id: owner.id, name: owner.name, cards: owner_cards, include_probability: false)
     end
   end
 
@@ -93,16 +102,25 @@ class KanbanBoards::SalesSummaryBuilder
     agenda_items.sort_by { |item| item[:next_action_at].to_s }
   end
 
-  def sales_summary_bucket(id:, name:, cards:)
-    {
+  def sales_summary_bucket(id:, name:, cards:, include_probability:)
+    summary = {
       id: id,
       name: name,
       open_count: cards.count(&:open_opportunity?),
       won_count: cards.count { |card| card.won_at.present? },
       lost_count: cards.count { |card| card.lost_at.present? },
       amount_cents: sales_amount_cents(cards),
+      weighted_amount_cents: weighted_amount_cents(cards),
       overdue_count: overdue_sales_cards(cards).count,
       stale_count: cards.count(&:stale_in_stage?)
     }
+
+    summary.merge(probability_summary(cards, include_probability))
+  end
+
+  def probability_summary(cards, include_probability)
+    return {} unless include_probability
+
+    { probability: cards.filter_map { |card| card.kanban_stage&.probability }.first || 0 }
   end
 end

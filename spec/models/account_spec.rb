@@ -3,6 +3,13 @@
 require 'rails_helper'
 
 RSpec.describe Account do
+  it 'provisions the standard contact date of birth attribute after creation' do
+    account = create(:account)
+
+    expect(account.custom_attribute_definitions.contact_attribute.pluck(:attribute_key))
+      .to include('date_of_birth')
+  end
+
   it { is_expected.to have_many(:users).through(:account_users) }
   it { is_expected.to have_many(:account_users) }
   it { is_expected.to have_many(:inboxes).dependent(:destroy_async) }

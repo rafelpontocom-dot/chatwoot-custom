@@ -36,11 +36,26 @@ class KanbanCardEvent < ApplicationRecord
     next_action_scheduled next_action_completed card_won card_lost card_reopened
     card_archived card_restored
   ].freeze
+  DOMAIN_EVENT_TYPES = {
+    'stage_changed' => Events::Types::KANBAN_CARD_STAGE_CHANGED,
+    'owner_changed' => Events::Types::KANBAN_CARD_OWNER_CHANGED,
+    'amount_changed' => Events::Types::KANBAN_CARD_AMOUNT_CHANGED,
+    'custom_fields_changed' => Events::Types::KANBAN_CARD_CUSTOM_FIELDS_CHANGED,
+    'next_action_scheduled' => Events::Types::KANBAN_CARD_NEXT_ACTION_SCHEDULED,
+    'next_action_completed' => Events::Types::KANBAN_CARD_NEXT_ACTION_COMPLETED,
+    'card_won' => Events::Types::KANBAN_CARD_WON,
+    'card_lost' => Events::Types::KANBAN_CARD_LOST,
+    'card_reopened' => Events::Types::KANBAN_CARD_REOPENED,
+    'card_archived' => Events::Types::KANBAN_CARD_ARCHIVED,
+    'card_restored' => Events::Types::KANBAN_CARD_RESTORED
+  }.freeze
 
   belongs_to :account
   belongs_to :kanban_board
   belongs_to :kanban_card
   belongs_to :actor, polymorphic: true, optional: true
+
+  has_many :kanban_automation_executions, dependent: :nullify
 
   validates :event_type, inclusion: { in: EVENT_TYPES }
   validates :occurred_at, presence: true
@@ -48,6 +63,7 @@ class KanbanCardEvent < ApplicationRecord
 
   before_update :prevent_mutation
   before_destroy :prevent_mutation
+  after_create_commit :dispatch_domain_event, if: :domain_event_type?
 
   private
 
@@ -61,5 +77,30 @@ class KanbanCardEvent < ApplicationRecord
 
     errors.add(:account_id, :invalid) if account_id != kanban_card.account_id
     errors.add(:kanban_board_id, :invalid) if kanban_board_id != kanban_card.kanban_board_id
+  end
+
+  def domain_event_type?
+    DOMAIN_EVENT_TYPES.key?(event_type)
+  end
+
+  def dispatch_domain_event
+    Rails.configuration.dispatcher.dispatch(
+      DOMAIN_EVENT_TYPES.fetch(event_type),
+      occurred_at,
+      {
+        account_id: account_id,
+        board_id: kanban_board_id,
+        stage_id: kanban_card.kanban_stage_id,
+        card_id: kanban_card_id,
+        contact_id: kanban_card.contact_id,
+        conversation_id: kanban_card.conversation_id,
+        owner_id: kanban_card.owner_id,
+        event_id: id,
+        event_type: event_type,
+        occurred_at: occurred_at,
+        change_set: change_set,
+        metadata: metadata
+      }
+    )
   end
 end

@@ -127,6 +127,7 @@ class KanbanCard < ApplicationRecord
   belongs_to :archived_by, class_name: 'User', optional: true
 
   has_many :kanban_card_events, dependent: :restrict_with_exception
+  has_many :kanban_cadence_enrollments, dependent: :destroy
 
   enum :origin, {
     conversation: 'conversation',

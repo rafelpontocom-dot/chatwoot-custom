@@ -134,6 +134,8 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
         filtered_assignee_ids: sanitized_assignee_filter_ids,
         filtered_next_action_status: params[:next_action].presence,
         filtered_opportunity_status: params[:status].presence,
+        search: params[:search],
+        sort: params[:sort],
         visible_inbox_ids: board_list_inbox_ids,
         visible_team_ids: board_list_team_ids,
         account_user: Current.account_user

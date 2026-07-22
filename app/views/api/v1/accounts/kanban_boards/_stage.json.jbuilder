@@ -5,6 +5,7 @@ json.name kanban_stage.name
 json.color kanban_stage.color
 json.category kanban_stage.category
 json.wip_limit kanban_stage.wip_limit
+json.probability kanban_stage.probability
 json.position kanban_stage.position
 json.active kanban_stage.active
 json.created_at kanban_stage.created_at.to_i

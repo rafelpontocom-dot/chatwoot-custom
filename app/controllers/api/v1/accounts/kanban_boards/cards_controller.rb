@@ -5,8 +5,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   before_action :fetch_manual_card_records, only: [:create_manual]
   before_action :fetch_kanban_card, only: [:show, :update, :destroy, :reorder, :timeline]
   before_action :fetch_archived_kanban_card, only: [:restore]
-  before_action :authorize_mutation_target, only: [:show, :update, :destroy, :reorder, :restore, :timeline]
   before_action :fetch_kanban_stage, only: [:update]
+  before_action :authorize_mutation_target, only: [:show, :update, :destroy, :reorder, :restore, :timeline]
 
   def show
     render_card
@@ -41,22 +41,16 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def bulk
-    cards = bulk_cards
-    authorize_bulk_cards!(cards)
-    updated_count = KanbanCards::BulkUpdateService.new(
-      board: @kanban_board,
-      cards: cards,
-      user: Current.user,
-      operation: bulk_params[:operation],
-      options: bulk_params.slice(:owner_id, :stage_id, :lost_reason)
-    ).perform!
+    authorize @kanban_board, :bulk?
+    @bulk_cards = bulk_cards
+    updated_count = run_bulk_update
 
     render json: { updated_count: updated_count, failed_count: 0, errors: [] }
   rescue ActiveRecord::RecordInvalid => e
     render json: {
       updated_count: 0,
-      failed_count: cards&.length || 0,
-      errors: Array(cards).map do |card|
+      failed_count: @bulk_cards&.length || 0,
+      errors: Array(@bulk_cards).map do |card|
         { card_id: card.id, messages: e.record.errors.full_messages }
       end,
       message: e.record.errors.full_messages.to_sentence
@@ -107,7 +101,18 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def authorize_mutation_target
-    authorize @kanban_card, action_name_policy
+    policy_action = action_name_policy
+    authorize @kanban_card, policy_action
+    authorize_update_permissions if policy_action == :update?
+  end
+
+  def authorize_update_permissions
+    authorize @kanban_card, :assign? if card_params.key?(:owner_id)
+    authorize @kanban_card, :close? if close_permission_required?
+  end
+
+  def close_permission_required?
+    close_status_update?(card_params) || @kanban_stage&.category&.in?(%w[won lost])
   end
 
   def fetch_kanban_stage
@@ -158,6 +163,18 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     params.permit(:operation, :owner_id, :stage_id, :lost_reason, card_ids: [])
   end
 
+  def run_bulk_update
+    authorize_bulk_cards!(@bulk_cards)
+
+    KanbanCards::BulkUpdateService.new(
+      board: @kanban_board,
+      cards: @bulk_cards,
+      user: Current.user,
+      operation: bulk_params[:operation],
+      options: bulk_params.slice(:owner_id, :stage_id, :lost_reason)
+    ).perform!
+  end
+
   def bulk_cards
     card_ids = Array(bulk_params[:card_ids]).map(&:to_i).uniq
     raise ActiveRecord::RecordNotFound if card_ids.blank? || card_ids.length > KanbanCards::BulkUpdateService::MAX_CARDS
@@ -176,6 +193,9 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     policy_action = case bulk_params[:operation]
                     when 'archive' then :destroy?
                     when 'restore' then :restore?
+                    when 'assign_owner' then :assign?
+                    when 'mark_won', 'mark_lost' then :close?
+                    when 'move_stage' then :reorder?
                     else :update?
                     end
     cards.each { |card| authorize card, policy_action }

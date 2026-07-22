@@ -15,10 +15,26 @@ describe('#KanbanBoardsAPI', () => {
     expect(kanbanBoards).toHaveProperty('deleteStage');
     expect(kanbanBoards).toHaveProperty('getBoards');
     expect(kanbanBoards).toHaveProperty('showBoard');
+    expect(kanbanBoards).toHaveProperty('duplicateBoard');
     expect(kanbanBoards).toHaveProperty('getSalesSummary');
+    expect(kanbanBoards).toHaveProperty('getActivities');
+    expect(kanbanBoards).toHaveProperty('exportCards');
     expect(kanbanBoards).toHaveProperty('getSettings');
     expect(kanbanBoards).toHaveProperty('updateSettings');
     expect(kanbanBoards).toHaveProperty('importExistingConversations');
+    expect(kanbanBoards).toHaveProperty('getAutomationRules');
+    expect(kanbanBoards).toHaveProperty('createAutomationRule');
+    expect(kanbanBoards).toHaveProperty('updateAutomationRule');
+    expect(kanbanBoards).toHaveProperty('deleteAutomationRule');
+    expect(kanbanBoards).toHaveProperty('testAutomationRule');
+    expect(kanbanBoards).toHaveProperty('getAutomationExecutions');
+    expect(kanbanBoards).toHaveProperty('getCadences');
+    expect(kanbanBoards).toHaveProperty('createCadence');
+    expect(kanbanBoards).toHaveProperty('updateCadence');
+    expect(kanbanBoards).toHaveProperty('deleteCadence');
+    expect(kanbanBoards).toHaveProperty('getCardCadence');
+    expect(kanbanBoards).toHaveProperty('enrollCardInCadence');
+    expect(kanbanBoards).toHaveProperty('cancelCardCadence');
     expect(kanbanBoards).toHaveProperty('getConversationCards');
     expect(kanbanBoards).toHaveProperty('createConversationCard');
     expect(kanbanBoards).toHaveProperty('getContactCards');
@@ -109,6 +125,146 @@ describe('#KanbanBoardsAPI', () => {
       expect(axiosMock.get).toHaveBeenCalledWith(
         '/api/v1/accounts/1/kanban_boards/2/stages/3/cards',
         { params: {} }
+      );
+    });
+
+    it('#getActivities', () => {
+      kanbanBoards.getActivities(2, { params: { view: 'overdue', page: 2 } });
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/reports/activities',
+        { params: { view: 'overdue', page: 2 } }
+      );
+    });
+
+    it('#exportCards', () => {
+      kanbanBoards.exportCards(2, { params: { status: 'open' } });
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/reports/export',
+        { params: { status: 'open' }, responseType: 'blob' }
+      );
+    });
+
+    it('#duplicateBoard', () => {
+      kanbanBoards.duplicateBoard(2);
+
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/duplicate'
+      );
+    });
+
+    it('#getAutomationRules', () => {
+      kanbanBoards.getAutomationRules(2);
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/automation_rules'
+      );
+    });
+
+    it('#createAutomationRule', () => {
+      const payload = { kanban_automation_rule: { name: 'Qualificar' } };
+      kanbanBoards.createAutomationRule(2, payload);
+
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/automation_rules',
+        payload
+      );
+    });
+
+    it('#updateAutomationRule', () => {
+      const payload = { kanban_automation_rule: { active: false } };
+      kanbanBoards.updateAutomationRule(2, 9, payload);
+
+      expect(axiosMock.patch).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/automation_rules/9',
+        payload
+      );
+    });
+
+    it('#deleteAutomationRule', () => {
+      kanbanBoards.deleteAutomationRule(2, 9);
+
+      expect(axiosMock.delete).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/automation_rules/9'
+      );
+    });
+
+    it('#testAutomationRule', () => {
+      kanbanBoards.testAutomationRule(2, 9, 77);
+
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/automation_rules/9/test',
+        { card_id: 77 }
+      );
+    });
+
+    it('#getAutomationExecutions', () => {
+      kanbanBoards.getAutomationExecutions(2, 9);
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/automation_rules/9/executions'
+      );
+    });
+
+    it('#getCadences', () => {
+      kanbanBoards.getCadences(2);
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/cadences'
+      );
+    });
+
+    it('#createCadence', () => {
+      const payload = { cadence: { name: 'Follow-up' } };
+      kanbanBoards.createCadence(2, payload);
+
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/cadences',
+        payload
+      );
+    });
+
+    it('#updateCadence', () => {
+      const payload = { cadence: { active: false } };
+      kanbanBoards.updateCadence(2, 4, payload);
+
+      expect(axiosMock.patch).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/cadences/4',
+        payload
+      );
+    });
+
+    it('#deleteCadence', () => {
+      kanbanBoards.deleteCadence(2, 4);
+
+      expect(axiosMock.delete).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/cadences/4'
+      );
+    });
+
+    it('#getCardCadence', () => {
+      kanbanBoards.getCardCadence(2, 77);
+
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/cards/by_id/77/cadence'
+      );
+    });
+
+    it('#enrollCardInCadence', () => {
+      kanbanBoards.enrollCardInCadence(2, 77, 4);
+
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/cards/by_id/77/cadence',
+        { enrollment: { cadence_id: 4 } }
+      );
+    });
+
+    it('#cancelCardCadence', () => {
+      kanbanBoards.cancelCardCadence(2, 77);
+
+      expect(axiosMock.delete).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/kanban_boards/2/cards/by_id/77/cadence'
       );
     });
 

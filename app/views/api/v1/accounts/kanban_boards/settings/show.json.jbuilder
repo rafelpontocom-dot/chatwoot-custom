@@ -6,6 +6,7 @@ json.visible_user_ids @kanban_board.kanban_board_members.order(:user_id).pluck(:
 json.inbox_scope_mode @kanban_board.inbox_scope_mode
 json.allowed_inbox_ids @kanban_board.kanban_board_inboxes.order(:inbox_id).pluck(:inbox_id)
 json.auto_create_cards_from_conversations @kanban_board.auto_create_cards_from_conversations
+json.appointment_reminder_hours @kanban_board.appointment_reminder_hours
 json.next_action_types @kanban_board.configured_next_action_types
 json.lost_reason_options @kanban_board.configured_lost_reason_options
 json.custom_field_definitions @kanban_board.configured_custom_field_definitions

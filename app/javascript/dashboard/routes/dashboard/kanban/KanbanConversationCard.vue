@@ -24,6 +24,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  stages: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits([
@@ -31,6 +35,7 @@ const emit = defineEmits([
   'openConversation',
   'removeCard',
   'toggleSelection',
+  'moveCard',
 ]);
 
 const { t } = useI18n();
@@ -131,6 +136,12 @@ const nextActionStatusConfig = computed(() => {
 
   return configs[nextActionStatus.value] || null;
 });
+const currentStageId = computed(
+  () => props.card.kanbanStageId || props.card.kanban_stage_id
+);
+const moveStageOptions = computed(() =>
+  props.stages.filter(stage => stage.id !== currentStageId.value)
+);
 
 const toUnixTimestamp = value => {
   if (!value) return null;
@@ -179,6 +190,13 @@ const openConversation = event => {
   if (!hasConversation.value) return;
 
   emit('openConversation', props.card, event);
+};
+const moveToStage = event => {
+  const stageId = Number(event.target.value);
+  event.target.value = '';
+  if (!stageId) return;
+
+  emit('moveCard', props.card, stageId);
 };
 </script>
 
@@ -283,7 +301,7 @@ const openConversation = event => {
       </div>
 
       <div
-        v-if="nextActionStatusConfig || amountLabel"
+        v-if="nextActionStatusConfig || amountLabel || hasConversation"
         class="mt-1 flex min-w-0 items-center justify-between gap-2"
       >
         <div
@@ -309,6 +327,37 @@ const openConversation = event => {
         >
           {{ amountLabel }}
         </strong>
+
+        <button
+          v-if="hasConversation"
+          type="button"
+          data-testid="kanban-card-open-conversation"
+          class="no-drag flex size-8 shrink-0 items-center justify-center rounded-md text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
+          :title="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
+          @click.stop="openConversation"
+        >
+          <i class="i-lucide-message-circle size-4" />
+        </button>
+
+        <select
+          v-if="moveStageOptions.length"
+          data-testid="kanban-card-move-stage"
+          class="no-drag h-8 max-w-28 rounded-md border border-n-weak bg-n-surface-1 px-1.5 text-xs text-n-slate-11 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          :aria-label="t('KANBAN.CARD.MOVE_TO_STAGE')"
+          :disabled="!!activeActionKey"
+          @click.stop
+          @change.stop="moveToStage"
+        >
+          <option value="">{{ t('KANBAN.CARD.MOVE_TO_STAGE') }}</option>
+          <option
+            v-for="stage in moveStageOptions"
+            :key="stage.id"
+            :value="stage.id"
+          >
+            {{ stage.name }}
+          </option>
+        </select>
       </div>
 
       <div

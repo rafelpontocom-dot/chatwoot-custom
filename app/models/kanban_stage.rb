@@ -8,6 +8,7 @@
 #  color           :string           default("slate"), not null
 #  name            :string           not null
 #  position        :integer          default(0), not null
+#  probability     :integer          default(0), not null
 #  wip_limit       :integer
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
@@ -37,6 +38,7 @@ class KanbanStage < ApplicationRecord
   validates :position, presence: true, numericality: { only_integer: true }
   validates :category, inclusion: { in: CATEGORIES }
   validates :wip_limit, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :probability, numericality: { only_integer: true, in: 0..100 }
   validate :validate_board_account
 
   scope :active, -> { where(active: true) }

@@ -2,7 +2,9 @@
 
 Baseado em: [PRD: Kanban Comercial no Chatwoot](./kanban-sales-prd.md)
 
-Status: implementação estrutural avançada; validação E2E de acessibilidade/mobile pendente
+Status: implementação avançada; E2E real preparada em Playwright e validação de produção pendente
+
+Execucao: [Roadmap do Workspace Comercial](./kanban-commercial-workspace-roadmap.md)
 
 ## Objetivo Da Spec
 
@@ -27,6 +29,7 @@ Campos existentes relevantes:
 - `auto_create_cards_from_conversations`
 - `next_action_types`: lista configurável de tipos de próxima ação;
 - `lost_reason_options`: lista configurável de motivos de perda;
+- `appointment_reminder_hours`: antecedência do lembrete interno de agendamento; vazio desativa;
 
 Campos comerciais implementados:
 
@@ -119,6 +122,27 @@ Implementação inicial recomendada:
 - validar somente data, sem exigir ano quando uma futura evolução suportar aniversário sem ano;
 - consentimento de WhatsApp, idioma e fuso horário também são atributos do contato, não do card.
 
+Implementação atual:
+
+- `20260728100000_provision_contact_date_of_birth_attribute.rb` provisiona a definição por conta;
+- `Accounts::ProvisionStandardContactAttributesService` mantém a operação idempotente para novas contas e reprocessamento;
+- uma definição existente com a mesma chave é preservada, evitando sobrescrever configuração do cliente;
+- o atributo continua sendo preenchido na ficha do contato, não no card.
+
+### KanbanBirthdayAutomation
+
+Configuração anual pertencente à conta, independente de oportunidade:
+
+- `active` habilita o processamento;
+- `days_before` permite enviar no dia ou até 30 dias antes;
+- `delivery_channels` aceita `whatsapp` e `email`;
+- `opt_in_attribute_key` aponta para um atributo booleano de consentimento do contato;
+- `timezone` e `send_time` controlam a janela local de envio;
+- `message_template` suporta `{{contact_name}}` e `{{birthday_date}}`;
+- `whatsapp_template_params` permite usar template aprovado fora da janela de 24 horas.
+
+`KanbanBirthdayDelivery` registra uma entrega por conta, contato, ano e canal. O índice único, lock de processamento e estados `pending`, `sending`, `sent`, `skipped` e `failed` tornam retries idempotentes. Sem opt-in, sem conversa compatível ou fora da janela do WhatsApp sem template aprovado, nada é enviado.
+
 ### KanbanCardEvent
 
 Entidade P0 para histórico comercial imutável da oportunidade.
@@ -148,7 +172,38 @@ Eventos mínimos:
 - `card_reopened`;
 - `card_archived` e `card_restored` quando a fase P1 existir.
 
+Eventos de dominio publicados apos o commit, para o modulo futuro de automacoes e integracoes:
+
+- `kanban.card.stage_changed`;
+- `kanban.card.owner_changed`;
+- `kanban.card.amount_changed`;
+- `kanban.card.custom_fields_changed`;
+- `kanban.card.next_action_scheduled`;
+- `kanban.card.next_action_completed`;
+- `kanban.card.won`;
+- `kanban.card.lost`;
+- `kanban.card.reopened`;
+- `kanban.card.archived`;
+- `kanban.card.restored`.
+
+Esses eventos carregam o identificador do evento imutavel e o snapshot minimo da oportunidade. `kanban.card.created` permanece publicado pelos servicos de criacao existentes para manter compatibilidade com os consumidores atuais.
+
 O histórico não substitui logs técnicos e não deve armazenar conteúdo sensível de mensagens desnecessariamente.
+
+### KanbanAutomationRule
+
+Regra comercial pertencente a um board. O contrato inicial aceita:
+
+- `event_name` entre os eventos `kanban.card.*` publicados pelo Kanban;
+- condições opcionais por `inbox_ids`, `stage_ids`, `owner_ids` e `fields`;
+- operadores de campo `equals`, `not_equals`, `contains`, `exists`, `greater_than`, `greater_or_equal`, `less_than` e `less_or_equal`;
+- ações internas `move_stage`, `assign_owner`, `set_next_action`, `set_field` e `archive_card`.
+
+O backend valida que todas as referências pertencem à conta e ao board da regra. Nenhuma ação dessa primeira fase envia mensagem ao cliente.
+
+### KanbanAutomationExecution
+
+Cada regra/evento possui uma execução idempotente por `event_key`. A execução registra status, início, conclusão, resultado por ação e erro. Reprocessamentos podem ocorrer para execuções falhas, mas execuções concluídas com sucesso não são repetidas.
 
 ## Estados Do Card
 
@@ -663,6 +718,23 @@ Agente:
 - marca ganho/perda se a política permitir editar card;
 - abre conversa.
 
+Quando Custom Roles está disponível, as operações comerciais são separadas em:
+
+- `kanban_view`: listar e abrir boards e oportunidades;
+- `kanban_create`: criar oportunidades;
+- `kanban_edit`: editar dados da oportunidade;
+- `kanban_assign`: alterar o responsável comercial;
+- `kanban_move`: mover e reordenar oportunidades;
+- `kanban_close`: marcar ganho, perda ou reabertura;
+- `kanban_bulk`: executar ações comerciais em massa;
+- `kanban_configure`: configurar board, etapas, campos e automações;
+- `kanban_manage`: arquivar, restaurar e excluir board ou oportunidade;
+- `kanban_report`: consultar resumo, atividades e exportações comerciais.
+
+Administradores mantêm acesso completo. Contas sem Custom Role preservam o comportamento legado de agentes. A visibilidade do board continua sendo aplicada antes da autorização da operação.
+
+Para não quebrar Custom Roles criados antes da separação fina, `kanban_edit` também continua concedendo criação; novos perfis podem usar `kanban_create` isoladamente.
+
 ## Automacoes
 
 Não colocar o construtor de automações dentro do Kanban.
@@ -680,7 +752,6 @@ Futuro:
 - módulo próprio baseado em `gatilho -> condições -> ações`;
 - gatilhos de evento do card, contato e conversa;
 - gatilhos relativos a campos de data/hora;
-- recorrência anual baseada em `contact.date_of_birth`;
 - notificações internas, tarefas e notas privadas;
 - mensagens automáticas opcionais e controladas;
 - cadências com mensagem, espera, tarefa manual, pausa e saída.
@@ -706,9 +777,33 @@ Guardrails obrigatórios para mensagens:
 
 Casos de uso iniciais da próxima fase:
 
-1. lembrete relativo ao campo de data/hora de agendamento selecionado no board;
-2. cadência de follow-up inscrita manualmente ou por evento de etapa;
-3. aniversário recorrente usando `contact.date_of_birth`, independente de oportunidade.
+1. notificação externa relativa ao campo de data/hora de agendamento selecionado no board;
+2. cadência de follow-up inscrita manualmente ou por evento de etapa.
+
+Aniversário já possui uma primeira automação controlada por conta: usa `contact.date_of_birth`, opt-in, timezone, horário, WhatsApp/email e registro idempotente por ano e canal.
+
+Implementacao atual de cadencias internas:
+
+- `KanbanCadence` pertence a conta e board e armazena no maximo 20 passos;
+- cada passo aceita `delay_hours`, `action_type` e `note`;
+- `KanbanCadenceEnrollment` vincula uma oportunidade a uma cadencia e controla os estados `active`, `awaiting_completion`, `paused`, `completed` e `canceled`;
+- o job `KanbanCadences::ProcessDueJob` roda no scheduler de cinco minutos;
+- um passo vencido define a proxima acao do card e aguarda a conclusao do agente;
+- concluir a proxima acao agenda o passo seguinte;
+- mensagem recebida do cliente, ganho, perda e arquivamento pausam a inscricao;
+- lembrete de agendamento configurado no board cria uma proxima acao interna antes de `starts_at`;
+- o scheduler nao altera uma proxima acao manual existente e protege a criacao com lock;
+- a configuracao deixa explicito que a cadencia e interna e nao envia mensagens ao cliente.
+
+Lembrete interno de agendamento:
+
+- `appointment_reminder_hours` aceita vazio ou inteiro entre `0` e `168`;
+- o scheduler cria `Lembrete de agendamento` como próxima ação quando `starts_at` é futuro e o card não possui próxima ação;
+- a próxima ação manual nunca é sobrescrita;
+- a criação usa lock por card para ser idempotente em execuções concorrentes;
+- a central de atividades exibe os agendamentos separadamente e não envia mensagens.
+
+Ainda fora do escopo: notificações internas no feed do Chatwoot, calendário externo, WhatsApp/email para eventos diferentes do aniversário e editor completo de automações multicanal.
 
 ## Gate De Conclusao Estrutural
 
@@ -721,6 +816,14 @@ O módulo de automações só entra em implementação depois de estes itens P0 
 - construtor de condições e fórmulas sem ambiguidade;
 - aviso de duplicidade compreensível;
 - UX responsiva e acessível validada em desktop e mobile.
+
+A suíte real está em `tests/playwright/tests/e2e/ui/kanban-accessibility.spec.ts`. Ela cobre desktop Chrome e Pixel 7, foco por teclado, filtro, drawer, Escape, nomes acessíveis, tablist e overflow do cabeçalho. A execução depende de ambiente e dados semeados:
+
+```bash
+cd tests/playwright
+KANBAN_E2E=1 BASE_URL=https://seu-ambiente \
+  TEST_USER_EMAIL=... TEST_USER_PASSWORD=... pnpm run playwright:run
+```
 
 ## Criterios De Aceite MVP
 
@@ -775,9 +878,10 @@ Não deve existir endpoint ou persistência paralela para a lista.
 - atrasadas;
 - próximas;
 - sem próxima ação;
+- agendamentos de hoje e futuros, usando `starts_at`;
 - responsável.
 
-Cada item emite a abertura do detalhe. Em fase posterior, a consulta deve ser paginada no backend para que a central não dependa apenas dos cards carregados nas colunas.
+Cada item emite a abertura do detalhe. A consulta remota é paginada no backend e a aba de agendamentos ordena pela data/hora de início. A central não envia lembretes nem mensagens ao cliente; ela apenas organiza o trabalho do agente.
 
 ### Prévia De Drawer
 
@@ -856,6 +960,8 @@ Fluxo:
 5. vendedor move para proposta;
 6. marca ganho ou perdido.
 
+Também executar os projetos `chromium` e `mobile-chromium`. Para leitor de tela, validar a árvore ARIA do drawer e das abas com VoiceOver no macOS ou NVDA no Windows; a suíte automatizada garante os nomes e estados semânticos que alimentam essa árvore, mas não substitui a tecnologia assistiva real.
+
 ## Cuidados
 
 - Não usar i18n frontend para tokens literais como `{{agent}}`; manter tokens em constantes JS ou backend config.
@@ -885,8 +991,10 @@ Fluxo:
 6. confirmação e resumo de impacto para todas as ações em massa;
 7. arquivamento e restauração de boards;
 8. gerenciamento completo de abas e filtros salvos, além da prévia numérica de fórmulas;
-9. fundação de atributos canônicos do contato;
-10. PRD e spec separados do módulo de automações;
-11. lembrete de agendamento;
-12. cadência de follow-up;
-13. aniversário e outras recorrências.
+9. aceite E2E real em desktop, mobile, teclado e leitor de tela;
+10. testes de produção com concorrência, retries e alto volume;
+11. fundação de atributos canônicos do contato;
+12. PRD e spec separados do módulo de automações;
+13. lembrete de agendamento;
+14. cadência de follow-up;
+15. aniversário e outras recorrências.

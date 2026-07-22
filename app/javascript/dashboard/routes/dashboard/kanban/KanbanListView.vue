@@ -11,12 +11,21 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  stageCardsLoading: {
+    type: Object,
+    default: () => ({}),
+  },
+  stageCardsErrors: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 
 const emit = defineEmits([
   'openDetails',
   'openConversation',
   'toggleSelection',
+  'loadMoreStageCards',
 ]);
 const { t } = useI18n();
 
@@ -24,6 +33,9 @@ const rows = computed(() =>
   props.stages.flatMap(stage =>
     (stage.cards || []).map(card => ({ ...card, stageName: stage.name }))
   )
+);
+const stagesWithMore = computed(() =>
+  props.stages.filter(stage => stage.pagination?.hasMore)
 );
 
 const contactName = card =>
@@ -161,6 +173,39 @@ const lastActivity = card =>
       <p v-else class="mb-0 p-8 text-center text-sm text-n-slate-11">
         {{ t('KANBAN.LIST.EMPTY') }}
       </p>
+    </div>
+    <div v-if="stagesWithMore.length" class="mt-3 grid gap-2">
+      <div
+        v-for="stage in stagesWithMore"
+        :key="stage.id"
+        class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2"
+      >
+        <span class="text-xs text-n-slate-11">
+          {{ stage.name }}
+          {{ t('KANBAN.OVERVIEW.SEPARATOR') }}
+          {{ stage.cardsCount || stage.cards?.length || 0 }}
+        </span>
+        <button
+          type="button"
+          class="rounded-md px-2.5 py-1.5 text-xs font-medium text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-wait disabled:opacity-60"
+          :data-testid="`kanban-list-load-more-${stage.id}`"
+          :disabled="stageCardsLoading[stage.id]"
+          @click="emit('loadMoreStageCards', stage)"
+        >
+          {{
+            stageCardsLoading[stage.id]
+              ? t('KANBAN.LIST.LOADING_MORE')
+              : t('KANBAN.ACTIONS.LOAD_MORE_CARDS')
+          }}
+        </button>
+        <p
+          v-if="stageCardsErrors[stage.id]"
+          class="basis-full mb-0 text-xs text-n-ruby-11"
+          role="alert"
+        >
+          {{ stageCardsErrors[stage.id] }}
+        </p>
+      </div>
     </div>
     <p class="mb-0 mt-3 text-xs text-n-slate-10">
       {{ t('KANBAN.LIST.PAGINATION_NOTE') }}

@@ -76,6 +76,7 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
       :visibility_mode,
       :inbox_scope_mode,
       :auto_create_cards_from_conversations,
+      :appointment_reminder_hours,
       :lock_version,
       visible_user_ids: [],
       allowed_inbox_ids: [],

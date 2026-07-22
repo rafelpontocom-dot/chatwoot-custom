@@ -169,6 +169,7 @@ const buildBoardResponse = (stageBCards = [], overrides = {}) => ({
     overdue_count: 4,
     stale_count: 2,
     open_amount_cents: 500000,
+    weighted_open_amount_cents: 200000,
     won_amount_cents: 125500,
     lost_amount_cents: 75000,
     by_stage: [
@@ -1178,6 +1179,27 @@ describe('KanbanView drag and drop', () => {
     });
   });
 
+  it('moves a card to another stage without requiring drag and drop', async () => {
+    const wrapper = await mountView();
+    const cardComponent = wrapper.findComponent({
+      name: 'KanbanConversationCard',
+    });
+
+    cardComponent.vm.$emit(
+      'moveCard',
+      buildCard({ id: 501, kanbanStageId: 100, position: 2 }),
+      200
+    );
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.reorderCardById).toHaveBeenCalledWith(10, 501, {
+      card: {
+        kanban_stage_id: 200,
+        position: 1,
+      },
+    });
+  });
+
   it('asks for required fields and completes the assisted movement', async () => {
     const boardResponse = buildBoardResponse([], {
       custom_field_definitions: [
@@ -1609,7 +1631,7 @@ describe('KanbanView drag and drop', () => {
       .setValue('200');
 
     expect(KanbanBoardsAPI.bulkUpdateCards).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain('KANBAN.BULK.IMPACT');
+    expect(wrapper.text()).toContain('KANBAN.BULK.IMPACT_DETAILS');
 
     await wrapper.find('[data-testid="confirm-delete"]').trigger('click');
     await flushPromises();
@@ -1963,6 +1985,32 @@ describe('KanbanView header navigation', () => {
     expect(summary.text()).toContain('KANBAN.REPORTS.WON');
     expect(summary.text()).toContain('2');
     expect(summary.text()).toContain('R$ 1.255,00');
+  });
+
+  it('organizes the operator workspace into primary and secondary rows', async () => {
+    const wrapper = await mountView();
+
+    const header = wrapper.find('[data-testid="kanban-workspace-header"]');
+    const primaryRow = wrapper.find(
+      '[data-testid="kanban-workspace-primary-row"]'
+    );
+    const secondaryRow = wrapper.find(
+      '[data-testid="kanban-workspace-secondary-row"]'
+    );
+
+    expect(header.exists()).toBe(true);
+    expect(
+      primaryRow.find('[data-testid="kanban-board-switcher"]').exists()
+    ).toBe(true);
+    expect(
+      primaryRow.find('[data-testid="kanban-search-input"]').exists()
+    ).toBe(true);
+    expect(
+      secondaryRow.find('[data-testid="kanban-sort-select"]').exists()
+    ).toBe(true);
+    expect(secondaryRow.find('[data-testid="kanban-view-list"]').exists()).toBe(
+      true
+    );
   });
 
   it('shows a non-blocking capacity alert when a stage exceeds its limit', async () => {

@@ -38,7 +38,17 @@
       "CONVERSATION_PARTICIPATING_MANAGE": "Manage participating conversations and those assigned to them",
       "CONTACT_MANAGE": "Manage contacts",
       "REPORT_MANAGE": "Manage reports",
-      "KNOWLEDGE_BASE_MANAGE": "Manage knowledge base"
+      "KNOWLEDGE_BASE_MANAGE": "Manage knowledge base",
+      "KANBAN_VIEW": "View commercial boards and opportunities",
+      "KANBAN_CREATE": "Create opportunities",
+      "KANBAN_EDIT": "Edit opportunity data",
+      "KANBAN_ASSIGN": "Change commercial owner",
+      "KANBAN_MOVE": "Move opportunities between stages",
+      "KANBAN_CLOSE": "Mark opportunities won, lost or reopened",
+      "KANBAN_BULK": "Execute bulk commercial actions",
+      "KANBAN_CONFIGURE": "Configure commercial boards",
+      "KANBAN_MANAGE": "Archive, restore and delete commercial boards",
+      "KANBAN_REPORT": "View commercial reports and exports"
     },
     "FORM": {
       "NAME": {

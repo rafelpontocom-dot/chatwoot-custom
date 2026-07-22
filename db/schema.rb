@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_23_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_29_100000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -970,6 +970,81 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_100000) do
     t.jsonb "settings", default: {}
   end
 
+  create_table "kanban_automation_executions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_automation_rule_id", null: false
+    t.bigint "kanban_card_event_id"
+    t.string "event_name", null: false
+    t.string "event_key", null: false
+    t.string "status", default: "queued", null: false
+    t.jsonb "action_results", default: [], null: false
+    t.text "error_message"
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status", "created_at"], name: "idx_kanban_automation_executions_history"
+    t.index ["account_id"], name: "index_kanban_automation_executions_on_account_id"
+    t.index ["kanban_automation_rule_id", "event_key"], name: "idx_kanban_automation_executions_idempotency", unique: true
+    t.index ["kanban_automation_rule_id"], name: "idx_on_kanban_automation_rule_id_fc8facec2f"
+    t.index ["kanban_card_event_id"], name: "index_kanban_automation_executions_on_kanban_card_event_id"
+  end
+
+  create_table "kanban_automation_rules", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.string "event_name", null: false
+    t.jsonb "conditions", default: {}, null: false
+    t.jsonb "actions", default: [], null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "kanban_board_id", "event_name", "active"], name: "idx_kanban_automation_rules_lookup"
+    t.index ["account_id"], name: "index_kanban_automation_rules_on_account_id"
+    t.index ["kanban_board_id", "name"], name: "idx_kanban_automation_rules_board_name", unique: true
+    t.index ["kanban_board_id"], name: "index_kanban_automation_rules_on_kanban_board_id"
+  end
+
+  create_table "kanban_birthday_automations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.boolean "active", default: false, null: false
+    t.integer "days_before", default: 0, null: false
+    t.string "delivery_channels", default: [], null: false, array: true
+    t.string "opt_in_attribute_key", default: "birthday_messages_opt_in", null: false
+    t.string "timezone"
+    t.string "send_time", default: "09:00", null: false
+    t.text "message_template", default: "Feliz aniversário, {{contact_name}}! Desejamos um dia especial para você.", null: false
+    t.jsonb "whatsapp_template_params", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_birthday_automations_on_account_id", unique: true
+  end
+
+  create_table "kanban_birthday_deliveries", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "kanban_birthday_automation_id", null: false
+    t.integer "birthday_year", null: false
+    t.string "delivery_channel", null: false
+    t.string "status", default: "pending", null: false
+    t.bigint "message_id"
+    t.datetime "attempted_at"
+    t.datetime "sent_at"
+    t.datetime "skipped_at"
+    t.text "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "contact_id", "birthday_year", "delivery_channel"], name: "idx_unique_kanban_birthday_deliveries", unique: true
+    t.index ["account_id", "status", "created_at"], name: "idx_kanban_birthday_deliveries_processing"
+    t.index ["account_id"], name: "index_kanban_birthday_deliveries_on_account_id"
+    t.index ["contact_id"], name: "index_kanban_birthday_deliveries_on_contact_id"
+    t.index ["kanban_birthday_automation_id"], name: "idx_birthday_deliveries_on_automation"
+  end
+
   create_table "kanban_board_inboxes", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "kanban_board_id", null: false
@@ -1013,12 +1088,56 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_100000) do
     t.datetime "archived_at"
     t.bigint "archived_by_id"
     t.integer "lock_version", default: 0, null: false
+    t.integer "appointment_reminder_hours"
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "archived_at"], name: "index_kanban_boards_on_account_id_and_archived_at"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
     t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"
     t.index ["account_id"], name: "index_kanban_boards_on_account_id"
     t.index ["archived_by_id"], name: "index_kanban_boards_on_archived_by_id"
+  end
+
+  create_table "kanban_cadence_enrollments", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "kanban_card_id", null: false
+    t.bigint "kanban_cadence_id", null: false
+    t.bigint "owner_id"
+    t.integer "current_step", default: 0, null: false
+    t.string "status", default: "active", null: false
+    t.datetime "next_run_at"
+    t.datetime "started_at", null: false
+    t.datetime "paused_at"
+    t.datetime "completed_at"
+    t.datetime "last_run_at"
+    t.text "last_error"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status"], name: "idx_kanban_cadence_enrollments_account_status"
+    t.index ["account_id"], name: "index_kanban_cadence_enrollments_on_account_id"
+    t.index ["kanban_board_id"], name: "index_kanban_cadence_enrollments_on_kanban_board_id"
+    t.index ["kanban_cadence_id"], name: "index_kanban_cadence_enrollments_on_kanban_cadence_id"
+    t.index ["kanban_card_id", "kanban_cadence_id"], name: "idx_kanban_cadence_enrollments_card_cadence", unique: true
+    t.index ["kanban_card_id"], name: "index_kanban_cadence_enrollments_on_kanban_card_id"
+    t.index ["owner_id"], name: "index_kanban_cadence_enrollments_on_owner_id"
+    t.index ["status", "next_run_at"], name: "idx_kanban_cadence_enrollments_due"
+  end
+
+  create_table "kanban_cadences", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.string "name", null: false
+    t.jsonb "steps", default: [], null: false
+    t.boolean "active", default: true, null: false
+    t.boolean "pause_on_incoming_message", default: true, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "active"], name: "index_kanban_cadences_on_account_id_and_active"
+    t.index ["account_id"], name: "index_kanban_cadences_on_account_id"
+    t.index ["kanban_board_id", "name"], name: "index_kanban_cadences_on_kanban_board_id_and_name", unique: true
+    t.index ["kanban_board_id"], name: "index_kanban_cadences_on_kanban_board_id"
   end
 
   create_table "kanban_card_events", force: :cascade do |t|
@@ -1121,13 +1240,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_100000) do
     t.string "color", default: "slate", null: false
     t.string "category", default: "open", null: false
     t.integer "wip_limit"
+    t.integer "probability", default: 0, null: false
     t.index ["account_id", "active"], name: "index_kanban_stages_on_account_id_and_active"
     t.index ["account_id"], name: "index_kanban_stages_on_account_id"
     t.index ["kanban_board_id", "category"], name: "index_kanban_stages_on_kanban_board_id_and_category"
     t.index ["kanban_board_id", "name"], name: "index_active_kanban_stages_on_board_id_and_name", unique: true, where: "(active = true)"
     t.index ["kanban_board_id", "position"], name: "index_kanban_stages_on_kanban_board_id_and_position"
     t.index ["kanban_board_id"], name: "index_kanban_stages_on_kanban_board_id"
-    t.check_constraint "category::text = ANY (ARRAY['open'::character varying::text, 'won'::character varying::text, 'lost'::character varying::text])", name: "kanban_stages_category_check"
+    t.check_constraint "category::text = ANY (ARRAY['open'::character varying, 'won'::character varying, 'lost'::character varying]::text[])", name: "kanban_stages_category_check"
+    t.check_constraint "probability >= 0 AND probability <= 100", name: "kanban_stages_probability_check"
     t.check_constraint "wip_limit IS NULL OR wip_limit > 0", name: "kanban_stages_wip_limit_check"
   end
 
@@ -1545,6 +1666,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_100000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "kanban_automation_executions", "accounts"
+  add_foreign_key "kanban_automation_executions", "kanban_automation_rules"
+  add_foreign_key "kanban_automation_executions", "kanban_card_events"
+  add_foreign_key "kanban_automation_rules", "accounts"
+  add_foreign_key "kanban_automation_rules", "kanban_boards"
+  add_foreign_key "kanban_birthday_automations", "accounts"
+  add_foreign_key "kanban_birthday_deliveries", "accounts"
+  add_foreign_key "kanban_birthday_deliveries", "contacts"
+  add_foreign_key "kanban_birthday_deliveries", "kanban_birthday_automations"
   add_foreign_key "kanban_board_inboxes", "accounts"
   add_foreign_key "kanban_board_inboxes", "inboxes"
   add_foreign_key "kanban_board_inboxes", "kanban_boards"
@@ -1552,6 +1682,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_100000) do
   add_foreign_key "kanban_board_members", "kanban_boards"
   add_foreign_key "kanban_board_members", "users"
   add_foreign_key "kanban_boards", "users", column: "archived_by_id"
+  add_foreign_key "kanban_cadence_enrollments", "accounts"
+  add_foreign_key "kanban_cadence_enrollments", "kanban_boards"
+  add_foreign_key "kanban_cadence_enrollments", "kanban_cadences"
+  add_foreign_key "kanban_cadence_enrollments", "kanban_cards"
+  add_foreign_key "kanban_cadence_enrollments", "users", column: "owner_id"
+  add_foreign_key "kanban_cadences", "accounts"
+  add_foreign_key "kanban_cadences", "kanban_boards"
   add_foreign_key "kanban_card_events", "accounts"
   add_foreign_key "kanban_card_events", "kanban_boards"
   add_foreign_key "kanban_card_events", "kanban_cards"

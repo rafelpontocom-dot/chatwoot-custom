@@ -17,6 +17,15 @@ class TriggerScheduledItemsJob < ApplicationJob
     # Job to auto-resolve conversations
     Account::ConversationsResolutionSchedulerJob.perform_later
 
+    # Job to surface due internal sales follow-ups in the activity center
+    KanbanCadences::ProcessDueJob.perform_later
+
+    # Job to schedule internal reminders before configured appointments
+    KanbanBoards::ScheduleAppointmentRemindersJob.perform_later
+
+    # Send opt-in birthday messages through the existing conversation channels.
+    KanbanBirthdayAutomations::ProcessJob.perform_later
+
     # Job to sync whatsapp templates
     Channels::Whatsapp::TemplatesSyncSchedulerJob.perform_later
   end

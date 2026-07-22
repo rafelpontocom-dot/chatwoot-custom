@@ -211,4 +211,35 @@ RSpec.describe KanbanCardPolicy, type: :policy do
       end
     end
   end
+
+  describe 'custom role permissions' do
+    let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
+
+    before do
+      agent_context[:account_user].update!(custom_role: custom_role)
+      create(:inbox_member, user: agent, inbox: inbox)
+    end
+
+    # rubocop:disable RSpec/MultipleExpectations
+    it 'separates view, edit, assignment, move and close permissions' do
+      policy = described_class.new(agent_context, manual_card)
+
+      expect(policy.show?).to be true
+      expect(policy.create?).to be false
+      expect(policy.update?).to be false
+      expect(policy.assign?).to be false
+      expect(policy.reorder?).to be false
+      expect(policy.close?).to be false
+
+      custom_role.update!(permissions: %w[kanban_view kanban_create kanban_edit kanban_assign kanban_move kanban_close])
+      policy = described_class.new(agent_context, manual_card)
+
+      expect(policy.create?).to be true
+      expect(policy.update?).to be true
+      expect(policy.assign?).to be true
+      expect(policy.reorder?).to be true
+      expect(policy.close?).to be true
+    end
+    # rubocop:enable RSpec/MultipleExpectations
+  end
 end

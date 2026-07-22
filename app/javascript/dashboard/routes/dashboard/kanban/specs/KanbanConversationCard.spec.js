@@ -20,6 +20,7 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.CARD.NEXT_ACTION.CLOSED': 'Closed',
         'KANBAN.ACTIONS.REMOVE_CARD': 'Remove',
         'KANBAN.ACTIONS.OPEN_CARD_DETAILS': 'Open opportunity details',
+        'KANBAN.CARD.MOVE_TO_STAGE': 'Move to stage',
       };
 
       return translations[key] || key;
@@ -71,12 +72,17 @@ const buildManualCard = overrides =>
     ...overrides,
   });
 
-const mountCard = ({ card = buildCard(), activeActionKey = '' } = {}) =>
+const mountCard = ({
+  card = buildCard(),
+  activeActionKey = '',
+  stages = [],
+} = {}) =>
   shallowMount(KanbanConversationCard, {
     props: {
       card,
       activeActionKey,
       selected: false,
+      stages,
     },
     global: {
       stubs: {
@@ -142,6 +148,17 @@ describe('KanbanConversationCard', () => {
       .trigger('click');
 
     expect(wrapper.emitted('openDetails')).toHaveLength(1);
+  });
+
+  it('provides a direct action to open the linked conversation', async () => {
+    const wrapper = mountCard();
+
+    await wrapper
+      .find('[data-testid="kanban-card-open-conversation"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('openConversation')).toHaveLength(1);
+    expect(wrapper.emitted('openConversation')[0][0]).toEqual(buildCard());
   });
 
   it('shows the native priority indicator when priority is present', () => {
@@ -272,6 +289,24 @@ describe('KanbanConversationCard', () => {
       wrapper.find('[data-testid="kanban-card-custom-fields"]').text()
     ).toContain('Origem: Instagram');
     expect(wrapper.text()).not.toContain('Não exibir');
+  });
+
+  it('offers a keyboard-friendly stage move action', async () => {
+    const wrapper = mountCard({
+      stages: [
+        { id: 1, name: 'New lead' },
+        { id: 2, name: 'Proposal' },
+      ],
+    });
+
+    const moveSelect = wrapper.find('[data-testid="kanban-card-move-stage"]');
+    expect(moveSelect.exists()).toBe(true);
+
+    await moveSelect.setValue('2');
+
+    expect(wrapper.emitted('moveCard')).toEqual([
+      [expect.objectContaining({ id: 10 }), 2],
+    ]);
   });
 
   it('limits compact custom fields to two rows', () => {

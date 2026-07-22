@@ -8,10 +8,10 @@ RSpec.describe 'Kanban Stages API', type: :request do
 
   describe 'POST /api/v1/accounts/{account.id}/kanban_boards/{kanban_board.id}/stages' do
     let(:payload) do
-      { stage: { name: 'Proposal', position: 1, color: 'teal', category: 'open', wip_limit: 12 } }
+      { stage: { name: 'Proposal', position: 1, color: 'teal', category: 'open', wip_limit: 12, probability: 65 } }
     end
 
-    it 'creates a stage for administrators' do
+    it 'creates a stage for administrators', :aggregate_failures do
       expect do
         post "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/stages",
              headers: administrator.create_new_auth_token,
@@ -25,6 +25,7 @@ RSpec.describe 'Kanban Stages API', type: :request do
       expect(response.parsed_body['position']).to eq(1)
       expect(response.parsed_body['category']).to eq('open')
       expect(response.parsed_body['wip_limit']).to eq(12)
+      expect(response.parsed_body['probability']).to eq(65)
     end
 
     it 'emits kanban.stage.created with a compact payload' do
@@ -140,7 +141,30 @@ RSpec.describe 'Kanban Stages API', type: :request do
             as: :json
 
       expect(response).to have_http_status(:success)
-      expect(response.parsed_body).to include('category' => 'won', 'wip_limit' => 8)
+      expect(response.parsed_body).to include('category' => 'won', 'wip_limit' => 8, 'probability' => 100)
+    end
+
+    it 'updates the probability of an open stage' do
+      stage = create(:kanban_stage, account: account, kanban_board: kanban_board, probability: 20)
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/stages/#{stage.id}",
+            headers: administrator.create_new_auth_token,
+            params: { stage: { probability: 70 } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['probability']).to eq(70)
+    end
+
+    it 'rejects probabilities outside the supported range' do
+      stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/stages/#{stage.id}",
+            headers: administrator.create_new_auth_token,
+            params: { stage: { probability: 101 } },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it 'emits kanban.stage.updated with a compact payload' do

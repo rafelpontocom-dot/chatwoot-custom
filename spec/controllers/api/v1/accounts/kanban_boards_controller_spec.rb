@@ -182,6 +182,55 @@ RSpec.describe 'Kanban Boards API', type: :request do
       )
     end
 
+    it 'applies search and sort to the initial embedded cards' do
+      stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      inbox = create(:inbox, account: account)
+      create(:inbox_member, user: agent, inbox: inbox)
+      lower_value_card = create(
+        :kanban_card,
+        account: account,
+        kanban_board: kanban_board,
+        kanban_stage: stage,
+        contact: create(:contact, account: account),
+        inbox: inbox,
+        subject: 'Prioridade alta',
+        amount_cents: 100_00,
+        position: 1
+      )
+      higher_value_card = create(
+        :kanban_card,
+        account: account,
+        kanban_board: kanban_board,
+        kanban_stage: stage,
+        contact: create(:contact, account: account),
+        inbox: inbox,
+        subject: 'Prioridade media',
+        amount_cents: 300_00,
+        position: 2
+      )
+      create(
+        :kanban_card,
+        account: account,
+        kanban_board: kanban_board,
+        kanban_stage: stage,
+        contact: create(:contact, account: account),
+        inbox: inbox,
+        subject: 'Sem correspondencia',
+        amount_cents: 900_00,
+        position: 3
+      )
+
+      get "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}",
+          headers: agent.create_new_auth_token,
+          params: { search: 'Prioridade', sort: 'amount_desc' },
+          as: :json
+
+      response_stage = response.parsed_body['stages'].first
+      expect(response).to have_http_status(:success)
+      expect(response_stage['cards'].pluck('id')).to eq([higher_value_card.id, lower_value_card.id])
+      expect(response_stage['cards_count']).to eq(2)
+    end
+
     it 'returns inbox scope metadata for the board header' do
       inbox = create(:inbox, account: account)
       kanban_board.update!(inbox_scope_mode: 'selected_inboxes')
@@ -1523,6 +1572,80 @@ RSpec.describe 'Kanban Boards API', type: :request do
 
       expect(response).to have_http_status(:unauthorized)
       expect(kanban_board.reload).to be_active
+    end
+  end
+
+  describe 'POST /api/v1/accounts/{account.id}/kanban_boards/{id}/duplicate' do
+    # rubocop:disable RSpec/ExampleLength
+    it 'duplicates the board configuration without copying opportunities', :aggregate_failures do
+      first_stage = create(
+        :kanban_stage,
+        account: account,
+        kanban_board: kanban_board,
+        name: 'Lead',
+        position: 1,
+        probability: 25
+      )
+      second_stage = create(
+        :kanban_stage,
+        account: account,
+        kanban_board: kanban_board,
+        name: 'Won',
+        position: 2,
+        category: 'won',
+        probability: 100
+      )
+      inbox = create(:inbox, account: account)
+      create(:kanban_board_member, account: account, kanban_board: kanban_board, user: agent)
+      create(:kanban_board_inbox, account: account, kanban_board: kanban_board, inbox: inbox)
+      create(:kanban_card, account: account, kanban_board: kanban_board, kanban_stage: first_stage)
+      kanban_board.update!(
+        visibility_mode: 'selected_agents',
+        inbox_scope_mode: 'selected_inboxes',
+        next_action_types: ['Retornar'],
+        custom_field_definitions: [{ key: 'budget', label: 'Budget', field_type: 'currency' }],
+        custom_field_sections: [{ key: 'commercial', label: 'Commercial', groups: [] }],
+        stale_stage_thresholds: { first_stage.id.to_s => 5 }
+      )
+
+      boards_before_duplicate = KanbanBoard.count
+      stages_before_duplicate = KanbanStage.count
+      post "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/duplicate",
+           headers: administrator.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:created), response.body
+      expect(KanbanBoard.count).to eq(boards_before_duplicate + 1)
+      expect(KanbanStage.count).to eq(stages_before_duplicate + 2)
+      duplicate = KanbanBoard.find(response.parsed_body['id'])
+      expect(duplicate).to have_attributes(
+        name: 'Sales (copy)',
+        visibility_mode: 'selected_agents',
+        inbox_scope_mode: 'selected_inboxes',
+        next_action_types: ['Retornar']
+      )
+      expect(duplicate.custom_field_definitions.first).to include(
+        'key' => 'budget', 'label' => 'Budget', 'field_type' => 'currency'
+      )
+      expect(duplicate.kanban_stages.order(:position).pluck(:name, :category, :probability)).to eq(
+        [['Lead', 'open', 25], ['Won', 'won', 100]]
+      )
+      expect(duplicate.stale_stage_thresholds).to eq(
+        duplicate.kanban_stages.where(name: 'Lead').pluck(:id).index_with { 5 }.stringify_keys
+      )
+      expect(duplicate.kanban_board_members.pluck(:user_id)).to eq([agent.id])
+      expect(duplicate.kanban_board_inboxes.pluck(:inbox_id)).to eq([inbox.id])
+      expect(duplicate.kanban_cards).to be_empty
+      expect(second_stage).to be_persisted
+    end
+    # rubocop:enable RSpec/ExampleLength
+
+    it 'rejects agents from duplicating a board' do
+      post "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/duplicate",
+           headers: agent.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:unauthorized)
     end
   end
 

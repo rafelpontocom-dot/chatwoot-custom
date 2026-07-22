@@ -81,6 +81,27 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_TITLE': 'Title is required.',
         'KANBAN.OPPORTUNITY_DETAILS.CLOSE': 'Close opportunity details',
         'KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL': 'Commercial',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.TITLE': 'Follow-up cadence',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.DESCRIPTION':
+          'Internal reminders only. No automatic customer messages.',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.SELECT': 'Select a cadence',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.START': 'Start cadence',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.CANCEL': 'Pause cadence',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.NONE':
+          'No active cadence is configured for this board.',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.STATUS': 'Status: {status}',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.NEXT_STEP': 'Next step: {date}',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.LOAD_ERROR':
+          'Could not load follow-up cadences.',
+        'KANBAN.OPPORTUNITY_DETAILS.CADENCE.SAVE_ERROR':
+          'Could not update the follow-up cadence.',
+        'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.TITLE':
+          'Discard unsaved changes?',
+        'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.DESCRIPTION':
+          'Your changes will be lost if you close this opportunity.',
+        'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.KEEP_EDITING':
+          'Keep editing',
+        'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.DISCARD': 'Discard',
       };
 
       return Object.entries(params).reduce(
@@ -99,6 +120,10 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     getCardTimeline: vi.fn(),
     getCardLabels: vi.fn(),
     updateCardLabels: vi.fn(),
+    getCadences: vi.fn(),
+    getCardCadence: vi.fn(),
+    enrollCardInCadence: vi.fn(),
+    cancelCardCadence: vi.fn(),
   },
 }));
 
@@ -202,6 +227,10 @@ const mountModal = async ({
 } = {}) => {
   storeMocks.labels = accountLabels;
   storeMocks.dispatch.mockResolvedValue();
+  KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
+  KanbanBoardsAPI.getCardCadence.mockResolvedValue({
+    data: { enrollment: null },
+  });
 
   if (resolveLabels) {
     KanbanBoardsAPI.getCardLabels.mockResolvedValue({
@@ -1053,5 +1082,39 @@ describe('KanbanOpportunityDetailsModal', () => {
       .trigger('click');
 
     expect(wrapper.emitted('close')).toHaveLength(2);
+  });
+
+  it('asks before closing when the opportunity has unsaved changes', async () => {
+    const wrapper = await mountModal();
+
+    await subjectInput(wrapper).setValue('Modified subject');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-cancel"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-unsaved-changes"]')
+        .exists()
+    ).toBe(true);
+    expect(wrapper.emitted('close')).toBeUndefined();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-keep-editing"]')
+      .trigger('click');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-unsaved-changes"]')
+        .exists()
+    ).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-cancel"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-discard-changes"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('close')).toHaveLength(1);
   });
 });

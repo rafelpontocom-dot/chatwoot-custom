@@ -169,6 +169,22 @@ RSpec.describe 'Kanban board settings API', type: :request do
       )
     end
 
+    it 'configures the appointment reminder lead time' do
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                name: board.name,
+                appointment_reminder_hours: 12
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload.appointment_reminder_hours).to eq(12)
+      expect(response.parsed_body['appointment_reminder_hours']).to eq(12)
+    end
+
     it 'returns usage counts for configured fields' do
       stage = create(:kanban_stage, account: account, kanban_board: board)
       board.update!(custom_field_definitions: [{ key: 'plano', label: 'Plano', field_type: 'text' }])

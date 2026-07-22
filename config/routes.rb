@@ -106,6 +106,7 @@ Rails.application.routes.draw do
           end
           resources :assignable_agents, only: [:index]
           resource :audit_logs, only: [:show]
+          resource :birthday_automation, only: [:show, :update], controller: 'birthday_automation'
           resources :callbacks, only: [] do
             collection do
               post :register_facebook_page
@@ -119,6 +120,7 @@ Rails.application.routes.draw do
             patch '', on: :member, action: :update
             get :archived, on: :collection
             patch :restore, on: :member
+            post :duplicate, on: :member, to: 'kanban_boards/duplicates#create'
 
             scope module: :kanban_boards do
               resource :settings, only: [:show, :update]
@@ -141,6 +143,16 @@ Rails.application.routes.draw do
               get 'cards/by_id/:id/labels', to: 'cards/labels#index'
               put 'cards/by_id/:id/labels', to: 'cards/labels#update'
               get 'reports/sales_summary', to: 'reports#sales_summary'
+              get 'reports/activities', to: 'reports#activities'
+              get 'reports/export', to: 'reports#export'
+              resources :automation_rules, only: [:index, :create, :update, :destroy] do
+                post :test, on: :member
+                get :executions, on: :member
+              end
+              resources :cadences, only: [:index, :create, :update, :destroy]
+              get 'cards/by_id/:id/cadence', to: 'cadence_enrollments#show'
+              post 'cards/by_id/:id/cadence', to: 'cadence_enrollments#create'
+              delete 'cards/by_id/:id/cadence', to: 'cadence_enrollments#destroy'
             end
           end
           resources :automation_rules, only: [:index, :create, :show, :update, :destroy] do

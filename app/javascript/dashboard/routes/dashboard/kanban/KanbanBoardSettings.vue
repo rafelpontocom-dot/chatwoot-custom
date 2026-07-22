@@ -29,7 +29,10 @@ const { isAdmin } = useAdmin();
 const isLoading = ref(false);
 const isSaving = ref(false);
 const isSavingAutomation = ref(false);
+const isLoadingBirthdayAutomation = ref(false);
+const isSavingBirthdayAutomation = ref(false);
 const isDeleting = ref(false);
+const isDuplicating = ref(false);
 const isCreatingStage = ref(false);
 const isImportingConversations = ref(false);
 const activeSettingsSection = ref('general');
@@ -41,6 +44,7 @@ const showUnsavedChangesConfirmation = ref(false);
 const serverSettingsSnapshot = ref(null);
 const serverSettingsPayload = ref(null);
 const showDeleteConfirmation = ref(false);
+const showDuplicateConfirmation = ref(false);
 const showCreateStageForm = ref(false);
 const showImportExistingConversationsModal = ref(false);
 const stages = ref([]);
@@ -63,6 +67,59 @@ const sectionRemovalDestination = ref('details');
 const showRemoveFieldSectionConfirmation = ref(false);
 const newFieldGroupName = ref('');
 const newFieldGroupColor = ref('slate');
+const automationRules = ref([]);
+const automationRulesLoading = ref(false);
+const automationRulesSaving = ref(false);
+const automationRulesError = ref('');
+const selectedAutomationRuleId = ref(null);
+const automationTestCardId = ref('');
+const automationTestResult = ref(null);
+const showAutomationDeleteConfirmation = ref(false);
+const automationRulePendingDeletion = ref(null);
+const cadences = ref([]);
+const cadencesLoading = ref(false);
+const cadenceSaving = ref(false);
+const cadenceError = ref('');
+const birthdayAutomationError = ref('');
+const birthdayAutomation = reactive({
+  active: false,
+  daysBefore: 0,
+  deliveryChannels: [],
+  optInAttributeKey: 'birthday_messages_opt_in',
+  timezone: '',
+  timezoneName: '',
+  sendTime: '09:00',
+  messageTemplate:
+    'Feliz aniversário, {{contact_name}}! Desejamos um dia especial para você.',
+});
+const cadenceForm = reactive({
+  name: '',
+  pauseOnIncomingMessage: true,
+  steps: [{ delayHours: 0, actionType: '', note: '' }],
+});
+const automationRuleForm = reactive({
+  name: '',
+  description: '',
+  eventName: 'kanban.card.stage_changed',
+  active: true,
+  stageId: '',
+  ownerId: '',
+  fieldKey: '',
+  fieldOperator: 'equals',
+  fieldValue: '',
+  actions: [
+    {
+      actionName: 'move_stage',
+      stageId: '',
+      ownerId: '',
+      fieldKey: '',
+      fieldValue: '',
+      nextActionType: '',
+      nextActionAt: '',
+      nextActionNote: '',
+    },
+  ],
+});
 let customFieldRowSequence = 0;
 
 const nextCustomFieldRowId = () => {
@@ -85,6 +142,7 @@ const form = reactive({
   customFieldSections: [],
   compactCardFieldKeys: [],
   staleStageThresholds: {},
+  appointmentReminderHours: '',
   lockVersion: null,
 });
 
@@ -116,6 +174,52 @@ const settingsNavigation = computed(() => [
     icon: 'i-lucide-trash-2',
   },
 ]);
+
+const automationEventOptions = computed(() => [
+  {
+    value: 'kanban.card.created',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.CREATED'),
+  },
+  {
+    value: 'kanban.card.stage_changed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.STAGE_CHANGED'),
+  },
+  {
+    value: 'kanban.card.next_action_completed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.NEXT_ACTION_COMPLETED'),
+  },
+  {
+    value: 'kanban.card.won',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.WON'),
+  },
+  {
+    value: 'kanban.card.lost',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.LOST'),
+  },
+]);
+
+const automationActionOptions = computed(() => [
+  {
+    value: 'move_stage',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.MOVE_STAGE'),
+  },
+  {
+    value: 'assign_owner',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ASSIGN_OWNER'),
+  },
+  {
+    value: 'set_next_action',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.SET_NEXT_ACTION'),
+  },
+  {
+    value: 'set_field',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.SET_FIELD'),
+  },
+  {
+    value: 'archive_card',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ARCHIVE_CARD'),
+  },
+]);
 const stageListModel = computed({
   get: () => stages.value,
   set: nextStages => {
@@ -143,6 +247,7 @@ const settingsFingerprint = () =>
     customFieldSections: form.customFieldSections,
     compactCardFieldKeys: form.compactCardFieldKeys,
     staleStageThresholds: form.staleStageThresholds,
+    appointmentReminderHours: form.appointmentReminderHours,
   });
 
 const hasUnsavedSettings = computed(
@@ -286,6 +391,18 @@ const systemConditionFields = computed(() => [
     label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.CONVERSATION'),
     fieldType: 'integer',
   },
+]);
+
+const automationFieldOptions = computed(() => [
+  ...systemConditionFields.value,
+  ...form.customFieldDefinitions.map(field => ({
+    key: field.key,
+    label: field.label || field.key,
+    fieldType: field.fieldType,
+    conditionOptions: field.optionsText
+      ? linesFromText(field.optionsText).map(value => ({ value, label: value }))
+      : [],
+  })),
 ]);
 
 const customFieldTypeOptions = computed(() => [
@@ -692,6 +809,67 @@ const formulaPreviewResult = computed(() => {
   );
 });
 
+const applyBirthdayAutomation = payload => {
+  const settings = camelcaseKeys(payload || {}, { deep: true });
+  birthdayAutomation.active = Boolean(settings.active);
+  birthdayAutomation.daysBefore = Number(settings.daysBefore) || 0;
+  birthdayAutomation.deliveryChannels = settings.deliveryChannels || [];
+  birthdayAutomation.optInAttributeKey =
+    settings.optInAttributeKey || 'birthday_messages_opt_in';
+  birthdayAutomation.timezone = settings.timezone || '';
+  birthdayAutomation.timezoneName = settings.timezoneName || '';
+  birthdayAutomation.sendTime = settings.sendTime || '09:00';
+  birthdayAutomation.messageTemplate = settings.messageTemplate || '';
+};
+
+const fetchBirthdayAutomation = async () => {
+  if (!isAdmin.value) return;
+
+  isLoadingBirthdayAutomation.value = true;
+  birthdayAutomationError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.getBirthdayAutomation();
+    applyBirthdayAutomation(response.data);
+  } catch (error) {
+    birthdayAutomationError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.LOAD_ERROR')
+    );
+  } finally {
+    isLoadingBirthdayAutomation.value = false;
+  }
+};
+
+const saveBirthdayAutomation = async () => {
+  if (isSavingBirthdayAutomation.value || !isAdmin.value) return;
+
+  isSavingBirthdayAutomation.value = true;
+  birthdayAutomationError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.updateBirthdayAutomation({
+      birthday_automation: {
+        active: birthdayAutomation.active,
+        days_before: Number(birthdayAutomation.daysBefore) || 0,
+        delivery_channels: birthdayAutomation.deliveryChannels,
+        opt_in_attribute_key: birthdayAutomation.optInAttributeKey.trim(),
+        timezone: birthdayAutomation.timezone.trim() || null,
+        send_time: birthdayAutomation.sendTime,
+        message_template: birthdayAutomation.messageTemplate.trim(),
+      },
+    });
+    applyBirthdayAutomation(response.data);
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SAVE_SUCCESS'));
+  } catch (error) {
+    birthdayAutomationError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SAVE_ERROR')
+    );
+    useAlert(birthdayAutomationError.value);
+  } finally {
+    isSavingBirthdayAutomation.value = false;
+  }
+};
+
 const applySettings = payload => {
   const settings = camelcaseKeys(payload || {}, { deep: true });
 
@@ -749,6 +927,7 @@ const applySettings = payload => {
   );
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
+  form.appointmentReminderHours = settings.appointmentReminderHours ?? '';
   form.lockVersion = settings.lockVersion ?? null;
   serverSettingsPayload.value = JSON.parse(JSON.stringify(settings));
   serverSettingsSnapshot.value = settingsFingerprint();
@@ -767,6 +946,7 @@ const fetchSettings = async () => {
     const [response, boardResponse] = await Promise.all([
       KanbanBoardsAPI.getSettings(boardId.value),
       KanbanBoardsAPI.showBoard(boardId.value),
+      fetchBirthdayAutomation(),
       store.dispatch('agents/get'),
       store.dispatch('inboxes/get'),
     ]);
@@ -1162,6 +1342,10 @@ const customFieldsForLayoutSection = sectionKey =>
         Number(firstDefinition.layoutPosition) -
         Number(secondDefinition.layoutPosition)
     );
+const customFieldsForLayoutGroup = (sectionKey, groupKey) =>
+  customFieldsForLayoutSection(sectionKey).filter(
+    definition => definition.layoutGroup === groupKey
+  );
 const renumberCustomFieldSection = sectionKey => {
   customFieldsForLayoutSection(sectionKey).forEach((definition, index) => {
     definition.layoutPosition = index + 1;
@@ -1199,6 +1383,14 @@ const moveCustomFieldInLayout = (sectionKey, event) => {
   if (!change) return;
 
   moveCustomFieldToSection(sectionKey, change.element, change.newIndex);
+};
+const moveCustomFieldInGroup = (sectionKey, groupKey, event) => {
+  const change = event.added || event.moved;
+  if (!change) return;
+
+  moveCustomFieldToSection(sectionKey, change.element, change.newIndex);
+  change.element.layoutGroup = groupKey;
+  syncCustomFieldDefinitionsText();
 };
 const onCustomFieldDragStart = (event, definition) => {
   draggedCustomFieldId.value = definition.clientId;
@@ -1453,6 +1645,10 @@ const buildPayload = () => ({
     custom_field_sections: form.customFieldSections,
     compact_card_field_keys: form.compactCardFieldKeys,
     stale_stage_thresholds: normalizedStaleStageThresholds(),
+    appointment_reminder_hours:
+      form.appointmentReminderHours === ''
+        ? null
+        : Number(form.appointmentReminderHours),
   },
 });
 
@@ -1543,6 +1739,328 @@ const importExistingConversations = async () => {
   }
 };
 
+const blankAutomationAction = () => ({
+  actionName: 'move_stage',
+  stageId: '',
+  ownerId: '',
+  fieldKey: '',
+  fieldValue: '',
+  nextActionType: '',
+  nextActionAt: '',
+  nextActionNote: '',
+});
+
+const resetAutomationRuleForm = () => {
+  selectedAutomationRuleId.value = null;
+  automationTestResult.value = null;
+  automationRuleForm.name = '';
+  automationRuleForm.description = '';
+  automationRuleForm.eventName = 'kanban.card.stage_changed';
+  automationRuleForm.active = true;
+  automationRuleForm.stageId = '';
+  automationRuleForm.ownerId = '';
+  automationRuleForm.fieldKey = '';
+  automationRuleForm.fieldOperator = 'equals';
+  automationRuleForm.fieldValue = '';
+  automationRuleForm.actions.splice(
+    0,
+    automationRuleForm.actions.length,
+    blankAutomationAction()
+  );
+};
+
+const applyAutomationRule = rule => {
+  const normalizedRule = camelcaseKeys(rule || {}, { deep: true });
+  const conditions = normalizedRule.conditions || {};
+  const firstField = conditions.fields?.[0] || {};
+  selectedAutomationRuleId.value = normalizedRule.id;
+  automationTestResult.value = null;
+  automationRuleForm.name = normalizedRule.name || '';
+  automationRuleForm.description = normalizedRule.description || '';
+  automationRuleForm.eventName =
+    normalizedRule.eventName || 'kanban.card.stage_changed';
+  automationRuleForm.active = normalizedRule.active !== false;
+  automationRuleForm.stageId = conditions.stageIds?.[0] || '';
+  automationRuleForm.ownerId = conditions.ownerIds?.[0] || '';
+  automationRuleForm.fieldKey = firstField.fieldKey || '';
+  automationRuleForm.fieldOperator = firstField.operator || 'equals';
+  automationRuleForm.fieldValue = firstField.value ?? '';
+  const actions = (normalizedRule.actions || []).map(action => ({
+    ...blankAutomationAction(),
+    actionName: action.actionName || 'move_stage',
+    stageId: action.actionParams?.stageId || '',
+    ownerId: action.actionParams?.ownerId || '',
+    fieldKey: action.actionParams?.fieldKey || '',
+    fieldValue: action.actionParams?.value ?? '',
+    nextActionType: action.actionParams?.nextActionType || '',
+    nextActionAt: action.actionParams?.nextActionAt || '',
+    nextActionNote: action.actionParams?.nextActionNote || '',
+  }));
+  automationRuleForm.actions.splice(
+    0,
+    automationRuleForm.actions.length,
+    ...(actions.length ? actions : [blankAutomationAction()])
+  );
+};
+
+const fetchAutomationRules = async () => {
+  if (!isAdmin.value) return;
+
+  automationRulesLoading.value = true;
+  automationRulesError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.getAutomationRules(boardId.value);
+    automationRules.value = camelcaseKeys(response.data || [], { deep: true });
+  } catch (error) {
+    automationRulesError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LOAD_ERROR')
+    );
+  } finally {
+    automationRulesLoading.value = false;
+  }
+};
+
+const blankCadenceStep = () => ({ delayHours: 0, actionType: '', note: '' });
+
+const resetCadenceForm = () => {
+  cadenceForm.name = '';
+  cadenceForm.pauseOnIncomingMessage = true;
+  cadenceForm.steps.splice(0, cadenceForm.steps.length, blankCadenceStep());
+};
+
+const fetchCadences = async () => {
+  if (!isAdmin.value) return;
+
+  cadencesLoading.value = true;
+  cadenceError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.getCadences(boardId.value);
+    cadences.value = camelcaseKeys(response.data || [], { deep: true });
+  } catch (error) {
+    cadenceError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.LOAD_ERROR')
+    );
+  } finally {
+    cadencesLoading.value = false;
+  }
+};
+
+const saveCadence = async () => {
+  if (!isAdmin.value || cadenceSaving.value || !cadenceForm.name.trim()) return;
+
+  const steps = cadenceForm.steps
+    .map(step => ({
+      delay_hours: Number(step.delayHours) || 0,
+      action_type: step.actionType.trim(),
+      note: step.note.trim() || null,
+    }))
+    .filter(step => step.action_type);
+  if (!steps.length) return;
+
+  cadenceSaving.value = true;
+  cadenceError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.createCadence(boardId.value, {
+      cadence: {
+        name: cadenceForm.name.trim(),
+        pause_on_incoming_message: cadenceForm.pauseOnIncomingMessage,
+        steps,
+      },
+    });
+    cadences.value.push(camelcaseKeys(response.data || {}, { deep: true }));
+    resetCadenceForm();
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE_SUCCESS'));
+  } catch (error) {
+    cadenceError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE_ERROR')
+    );
+    useAlert(cadenceError.value);
+  } finally {
+    cadenceSaving.value = false;
+  }
+};
+
+const deleteCadence = async cadence => {
+  if (!cadence?.id || cadenceSaving.value) return;
+
+  cadenceSaving.value = true;
+  cadenceError.value = '';
+  try {
+    await KanbanBoardsAPI.deleteCadence(boardId.value, cadence.id);
+    cadences.value = cadences.value.filter(item => item.id !== cadence.id);
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELETE_SUCCESS'));
+  } catch (error) {
+    cadenceError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELETE_ERROR')
+    );
+    useAlert(cadenceError.value);
+  } finally {
+    cadenceSaving.value = false;
+  }
+};
+
+const automationActionParams = action => {
+  switch (action.actionName) {
+    case 'move_stage':
+      return { stage_id: Number(action.stageId) };
+    case 'assign_owner':
+      return { owner_id: Number(action.ownerId) };
+    case 'set_next_action':
+      return {
+        next_action_type: action.nextActionType,
+        next_action_at: action.nextActionAt || null,
+        next_action_note: action.nextActionNote || null,
+      };
+    case 'set_field':
+      return { field_key: action.fieldKey, value: action.fieldValue };
+    default:
+      return {};
+  }
+};
+
+const automationRulePayload = () => ({
+  kanban_automation_rule: {
+    name: automationRuleForm.name.trim(),
+    description: automationRuleForm.description.trim() || null,
+    event_name: automationRuleForm.eventName,
+    active: automationRuleForm.active,
+    conditions: {
+      stage_ids: automationRuleForm.stageId
+        ? [Number(automationRuleForm.stageId)]
+        : [],
+      owner_ids: automationRuleForm.ownerId
+        ? [Number(automationRuleForm.ownerId)]
+        : [],
+      fields: automationRuleForm.fieldKey
+        ? [
+            {
+              field_key: automationRuleForm.fieldKey,
+              operator: automationRuleForm.fieldOperator,
+              value: automationRuleForm.fieldValue,
+            },
+          ]
+        : [],
+    },
+    actions: automationRuleForm.actions
+      .filter(action => action.actionName)
+      .map(action => ({
+        action_name: action.actionName,
+        action_params: automationActionParams(action),
+      })),
+  },
+});
+
+const saveAutomationRule = async () => {
+  if (!automationRuleForm.name.trim() || automationRulesSaving.value) return;
+
+  automationRulesSaving.value = true;
+  automationRulesError.value = '';
+  try {
+    const response = selectedAutomationRuleId.value
+      ? await KanbanBoardsAPI.updateAutomationRule(
+          boardId.value,
+          selectedAutomationRuleId.value,
+          automationRulePayload()
+        )
+      : await KanbanBoardsAPI.createAutomationRule(
+          boardId.value,
+          automationRulePayload()
+        );
+    const savedRule = camelcaseKeys(response.data || {}, { deep: true });
+    const index = automationRules.value.findIndex(
+      rule => rule.id === savedRule.id
+    );
+    if (index >= 0) automationRules.value.splice(index, 1, savedRule);
+    else automationRules.value.push(savedRule);
+    applyAutomationRule(savedRule);
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_SUCCESS'));
+  } catch (error) {
+    automationRulesError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_ERROR')
+    );
+    useAlert(automationRulesError.value);
+  } finally {
+    automationRulesSaving.value = false;
+  }
+};
+
+const toggleAutomationRule = async rule => {
+  try {
+    const response = await KanbanBoardsAPI.updateAutomationRule(
+      boardId.value,
+      rule.id,
+      { kanban_automation_rule: { active: !rule.active } }
+    );
+    Object.assign(rule, camelcaseKeys(response.data || {}, { deep: true }));
+  } catch (error) {
+    useAlert(
+      getErrorMessage(error, t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_ERROR'))
+    );
+  }
+};
+
+const deleteAutomationRule = async rule => {
+  automationRulePendingDeletion.value = rule;
+  showAutomationDeleteConfirmation.value = true;
+};
+
+const closeAutomationDeleteConfirmation = () => {
+  if (automationRulesSaving.value) return;
+
+  showAutomationDeleteConfirmation.value = false;
+  automationRulePendingDeletion.value = null;
+};
+
+const confirmDeleteAutomationRule = async () => {
+  const rule = automationRulePendingDeletion.value;
+  if (!rule) return;
+
+  try {
+    await KanbanBoardsAPI.deleteAutomationRule(boardId.value, rule.id);
+    automationRules.value = automationRules.value.filter(
+      item => item.id !== rule.id
+    );
+    if (selectedAutomationRuleId.value === rule.id) resetAutomationRuleForm();
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DELETE_SUCCESS'));
+    closeAutomationDeleteConfirmation();
+  } catch (error) {
+    useAlert(
+      getErrorMessage(
+        error,
+        t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DELETE_ERROR')
+      )
+    );
+  }
+};
+
+const testAutomationRule = async rule => {
+  if (!automationTestCardId.value) return;
+
+  try {
+    const response = await KanbanBoardsAPI.testAutomationRule(
+      boardId.value,
+      rule.id,
+      Number(automationTestCardId.value)
+    );
+    automationTestResult.value = camelcaseKeys(response.data || {}, {
+      deep: true,
+    });
+  } catch (error) {
+    automationTestResult.value = {
+      matches: false,
+      message: getErrorMessage(
+        error,
+        t('KANBAN.SETTINGS.AUTOMATIONS.RULES.TEST_ERROR')
+      ),
+    };
+  }
+};
+
 const getStageColorClass = stage =>
   getKanbanStageColorOption(stage.color).swatchClass;
 
@@ -1600,6 +2118,9 @@ const saveStageRules = async stage => {
       stage: {
         category: stage.category || 'open',
         wip_limit: Number(stage.wipLimit) || null,
+        ...(stage.category === 'open'
+          ? { probability: Number(stage.probability) || 0 }
+          : {}),
       },
     });
     await refreshBoard();
@@ -1683,8 +2204,48 @@ const deleteBoard = async () => {
   }
 };
 
+const openDuplicateConfirmation = () => {
+  showDuplicateConfirmation.value = true;
+};
+
+const closeDuplicateConfirmation = () => {
+  showDuplicateConfirmation.value = false;
+};
+
+const duplicateBoard = async () => {
+  if (isDuplicating.value || !isAdmin.value) return;
+
+  isDuplicating.value = true;
+  saveError.value = '';
+
+  try {
+    const response = await KanbanBoardsAPI.duplicateBoard(boardId.value);
+    const duplicatedBoard = camelcaseKeys(response.data || {}, { deep: true });
+    await store.dispatch('kanbanBoards/refreshBoards');
+    closeDuplicateConfirmation();
+    await router.replace({
+      name: 'kanban_board_settings',
+      params: {
+        accountId: route.params.accountId,
+        boardId: duplicatedBoard.id,
+      },
+    });
+    useAlert(t('KANBAN.SETTINGS.DUPLICATE.SUCCESS'));
+  } catch (error) {
+    saveError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.DUPLICATE.ERROR')
+    );
+    useAlert(saveError.value);
+  } finally {
+    isDuplicating.value = false;
+  }
+};
+
 onMounted(async () => {
   await fetchSettings();
+  await fetchAutomationRules();
+  await fetchCadences();
   if (route.query?.section === 'fields') {
     activeSettingsSection.value = 'sales';
     openCustomFieldManager();
@@ -1705,18 +2266,31 @@ onMounted(async () => {
             {{ t('KANBAN.SETTINGS.DESCRIPTION') }}
           </p>
         </div>
-        <Button
-          icon="i-lucide-arrow-left"
-          :label="t('KANBAN.SETTINGS.BACK_TO_BOARD')"
-          color="slate"
-          size="sm"
-          @click="
-            router.push({
-              name: 'kanban_board_show',
-              params: { accountId: route.params.accountId, boardId },
-            })
-          "
-        />
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            v-if="isAdmin"
+            type="button"
+            data-testid="kanban-settings-duplicate"
+            icon="i-lucide-copy"
+            :label="t('KANBAN.SETTINGS.DUPLICATE.ACTION')"
+            color="slate"
+            size="sm"
+            @click="openDuplicateConfirmation"
+          />
+          <Button
+            type="button"
+            icon="i-lucide-arrow-left"
+            :label="t('KANBAN.SETTINGS.BACK_TO_BOARD')"
+            color="slate"
+            size="sm"
+            @click="
+              router.push({
+                name: 'kanban_board_show',
+                params: { accountId: route.params.accountId, boardId },
+              })
+            "
+          />
+        </div>
       </header>
 
       <div
@@ -1898,7 +2472,7 @@ onMounted(async () => {
                 <div
                   :data-stage-id="stage.id"
                   data-testid="kanban-settings-stage-row"
-                  class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 px-3 py-3 lg:grid-cols-[minmax(10rem,1fr)_minmax(9rem,0.55fr)_minmax(9rem,0.45fr)_auto] lg:items-end"
+                  class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 px-3 py-3 lg:grid-cols-[minmax(10rem,1fr)_minmax(9rem,0.55fr)_minmax(8rem,0.4fr)_minmax(8rem,0.4fr)_auto] lg:items-end"
                 >
                   <div
                     class="stage-drag-handle flex min-w-0 cursor-grab items-center gap-3 self-center"
@@ -1947,6 +2521,25 @@ onMounted(async () => {
                       min="1"
                       class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                     />
+                  </label>
+                  <label class="grid gap-1 text-xs text-n-slate-11">
+                    {{ t('KANBAN.SETTINGS.STAGES.PROBABILITY') }}
+                    <div class="relative">
+                      <input
+                        v-model.number="stage.probability"
+                        data-testid="kanban-settings-stage-probability"
+                        type="number"
+                        min="0"
+                        max="100"
+                        class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 pr-7 text-sm text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:bg-n-alpha-1 disabled:text-n-slate-10"
+                        :disabled="stage.category !== 'open'"
+                      />
+                      <span
+                        class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-n-slate-10"
+                      >
+                        {{ t('KANBAN.SETTINGS.STAGES.PERCENT') }}
+                      </span>
+                    </div>
                   </label>
                   <button
                     type="button"
@@ -2356,33 +2949,44 @@ onMounted(async () => {
                         />
                       </div>
 
-                      <section
-                        class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+                      <details
+                        data-testid="kanban-settings-field-groups"
+                        class="rounded-md border border-n-weak bg-n-surface-1"
                       >
-                        <div
-                          class="flex flex-wrap items-center justify-between gap-2"
+                        <summary
+                          class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-medium text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                         >
-                          <div>
-                            <h4
-                              class="mb-0 text-xs font-medium text-n-slate-12"
+                          <span class="flex items-center gap-2">
+                            <i
+                              class="i-lucide-layout-grid size-3.5 text-n-slate-10"
+                            />
+                            {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUPS') }}
+                            <span
+                              class="rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-[11px] font-normal text-n-slate-10"
                             >
-                              {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUPS') }}
-                            </h4>
-                            <p class="mb-0 mt-0.5 text-xs text-n-slate-10">
                               {{
-                                t(
-                                  'KANBAN.SETTINGS.SALES.FIELD_GROUPS_DESCRIPTION'
-                                )
+                                customFieldGroupsForSection(
+                                  activeFieldSectionKey
+                                ).length
                               }}
-                            </p>
-                          </div>
+                            </span>
+                          </span>
+                          <span class="text-[11px] font-normal text-n-slate-10">
+                            {{
+                              t(
+                                'KANBAN.SETTINGS.SALES.FIELD_GROUPS_DESCRIPTION'
+                              )
+                            }}
+                          </span>
+                        </summary>
+                        <div class="grid gap-2 border-t border-n-weak p-3">
                           <div
-                            class="flex min-w-0 flex-wrap items-center gap-1"
+                            class="flex min-w-0 flex-wrap items-center gap-1.5"
                           >
                             <input
                               v-model="newFieldGroupName"
                               data-testid="kanban-settings-new-field-group-name"
-                              class="h-8 w-36 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+                              class="h-8 min-w-40 flex-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
                               :placeholder="
                                 t('KANBAN.SETTINGS.SALES.FIELD_GROUP_NAME')
                               "
@@ -2391,7 +2995,7 @@ onMounted(async () => {
                             <select
                               v-model="newFieldGroupColor"
                               data-testid="kanban-settings-new-field-group-color"
-                              class="h-8 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+                              class="h-8 max-w-28 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
                               :aria-label="
                                 t('KANBAN.SETTINGS.SALES.FIELD_GROUP_COLOR')
                               "
@@ -2417,81 +3021,81 @@ onMounted(async () => {
                               <i class="i-lucide-plus size-4" />
                             </button>
                           </div>
-                        </div>
-                        <div class="flex min-w-0 flex-wrap gap-2">
-                          <div
-                            v-for="group in customFieldGroupsForSection(
-                              activeFieldSectionKey
-                            )"
-                            :key="group.key"
-                            class="flex min-w-0 items-center gap-1 rounded-md border border-n-weak bg-n-surface-2 px-2 py-1"
-                            @dragover.prevent
-                            @drop="
-                              moveCustomFieldToGroup(
-                                activeFieldSectionKey,
-                                group.key,
-                                $event
-                              )
-                            "
-                          >
-                            <span
-                              class="size-2.5 shrink-0 rounded-full"
-                              :class="
-                                getKanbanStageColorOption(group.color)
-                                  .swatchClass
-                              "
-                              aria-hidden="true"
-                            />
-                            <input
-                              v-model="group.label"
-                              class="min-w-16 max-w-32 border-0 bg-transparent px-1 text-xs text-n-slate-12 outline-none"
-                              :aria-label="group.label"
-                              @input="syncCustomFieldDefinitionsText"
-                            />
-                            <select
-                              v-model="group.color"
-                              class="h-6 max-w-16 border-0 bg-transparent text-[10px] text-n-slate-10 outline-none"
-                              :aria-label="
-                                t('KANBAN.SETTINGS.SALES.FIELD_GROUP_COLOR')
-                              "
-                              @change="syncCustomFieldDefinitionsText"
+                          <div class="grid gap-1.5 sm:grid-cols-2">
+                            <div
+                              v-for="group in customFieldGroupsForSection(
+                                activeFieldSectionKey
+                              )"
+                              :key="group.key"
+                              class="flex min-w-0 items-center gap-1.5 rounded-md border border-n-weak bg-n-surface-2 px-2 py-1.5"
                             >
-                              <option
-                                v-for="color in KANBAN_STAGE_COLOR_OPTIONS"
-                                :key="color.value"
-                                :value="color.value"
+                              <span
+                                class="size-2.5 shrink-0 rounded-full"
+                                :class="
+                                  getKanbanStageColorOption(group.color)
+                                    .swatchClass
+                                "
+                                aria-hidden="true"
+                              />
+                              <input
+                                v-model="group.label"
+                                class="min-w-0 flex-1 border-0 bg-transparent px-1 text-xs text-n-slate-12 outline-none"
+                                :aria-label="group.label"
+                                @input="syncCustomFieldDefinitionsText"
+                              />
+                              <span class="text-[11px] text-n-slate-10">
+                                {{
+                                  customFieldsForLayoutGroup(
+                                    activeFieldSectionKey,
+                                    group.key
+                                  ).length
+                                }}
+                              </span>
+                              <select
+                                v-model="group.color"
+                                class="h-6 max-w-16 border-0 bg-transparent text-[10px] text-n-slate-10 outline-none"
+                                :aria-label="
+                                  t('KANBAN.SETTINGS.SALES.FIELD_GROUP_COLOR')
+                                "
+                                @change="syncCustomFieldDefinitionsText"
                               >
-                                {{ color.value }}
-                              </option>
-                            </select>
-                            <button
-                              type="button"
-                              class="flex size-6 items-center justify-center rounded text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8"
-                              :aria-label="
-                                t('KANBAN.SETTINGS.SALES.REMOVE_FIELD_GROUP')
-                              "
-                              @click="
-                                removeCustomFieldGroup(
-                                  activeFieldSectionKey,
-                                  group.key
-                                )
-                              "
-                            >
-                              <i class="i-lucide-x size-3" />
-                            </button>
+                                <option
+                                  v-for="color in KANBAN_STAGE_COLOR_OPTIONS"
+                                  :key="color.value"
+                                  :value="color.value"
+                                >
+                                  {{ color.value }}
+                                </option>
+                              </select>
+                              <button
+                                type="button"
+                                class="flex size-6 items-center justify-center rounded text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8"
+                                :aria-label="
+                                  t('KANBAN.SETTINGS.SALES.REMOVE_FIELD_GROUP')
+                                "
+                                @click="
+                                  removeCustomFieldGroup(
+                                    activeFieldSectionKey,
+                                    group.key
+                                  )
+                                "
+                              >
+                                <i class="i-lucide-x size-3" />
+                              </button>
+                            </div>
                           </div>
-                          <span
+                          <p
                             v-if="
                               !customFieldGroupsForSection(
                                 activeFieldSectionKey
                               ).length
                             "
-                            class="text-xs text-n-slate-10"
+                            class="m-0 text-xs text-n-slate-10"
                           >
                             {{ t('KANBAN.SETTINGS.SALES.NO_FIELD_GROUPS') }}
-                          </span>
+                          </p>
                         </div>
-                      </section>
+                      </details>
 
                       <div
                         v-if="showRemoveFieldSectionConfirmation"
@@ -2546,77 +3150,172 @@ onMounted(async () => {
                         </div>
                       </div>
 
-                      <div class="grid gap-3">
-                        <article
-                          v-for="section in customFieldLayoutSections.filter(
-                            item => item.key === activeFieldSectionKey
-                          )"
-                          :key="section.key"
-                          class="grid min-w-0 content-start gap-2 rounded-md bg-n-surface-2 p-2"
-                        >
-                          <div class="flex items-center justify-between gap-2">
-                            <h5
-                              class="mb-0 text-xs font-medium text-n-slate-12"
-                            >
-                              {{ section.label }}
-                            </h5>
-                            <Button
-                              type="button"
-                              data-testid="kanban-settings-add-field-to-active-section"
-                              icon="i-lucide-plus"
-                              :label="
-                                t('KANBAN.SETTINGS.SALES.ADD_FIELD_TO_SECTION')
-                              "
-                              color="slate"
-                              size="xs"
-                              @click="addCustomField"
-                            />
-                          </div>
-                          <Draggable
-                            :model-value="
-                              customFieldsForLayoutSection(section.key)
+                      <div
+                        v-for="section in customFieldLayoutSections.filter(
+                          item => item.key === activeFieldSectionKey
+                        )"
+                        :key="section.key"
+                        class="grid min-w-0 content-start gap-2"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          <h5 class="mb-0 text-xs font-medium text-n-slate-12">
+                            {{ section.label }}
+                          </h5>
+                          <Button
+                            type="button"
+                            data-testid="kanban-settings-add-field-to-active-section"
+                            icon="i-lucide-plus"
+                            :label="
+                              t('KANBAN.SETTINGS.SALES.ADD_FIELD_TO_SECTION')
                             "
-                            item-key="clientId"
-                            group="kanban-custom-field-layout"
-                            :data-section-key="section.key"
-                            class="grid min-h-16 content-start gap-1.5 rounded-md border border-dashed border-n-weak p-2"
+                            color="slate"
+                            size="xs"
+                            @click="addCustomField"
+                          />
+                        </div>
+
+                        <div
+                          v-if="customFieldGroupsForSection(section.key).length"
+                          class="grid gap-2 md:grid-cols-2"
+                        >
+                          <article
+                            v-for="group in customFieldGroupsForSection(
+                              section.key
+                            )"
+                            :key="group.key"
+                            class="grid min-w-0 content-start gap-1.5 rounded-md border border-n-weak bg-n-surface-1 p-2"
                             @dragover.prevent
-                            @drop="onCustomFieldDrop(section.key, $event)"
-                            @change="
-                              moveCustomFieldInLayout(section.key, $event)
+                            @drop="
+                              moveCustomFieldToGroup(
+                                section.key,
+                                group.key,
+                                $event
+                              )
                             "
                           >
-                            <template #item="{ element }">
-                              <button
-                                type="button"
-                                class="flex min-w-0 cursor-grab items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2 py-1.5 text-left text-xs text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
-                                @click="selectCustomField(element)"
-                              >
-                                <i
-                                  class="i-lucide-grip-vertical size-3.5 shrink-0"
-                                />
-                                <span class="truncate">
-                                  {{
-                                    element.label ||
-                                    element.key ||
-                                    t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
-                                  }}
-                                </span>
-                              </button>
-                            </template>
-                            <template #footer>
-                              <p
-                                v-if="
-                                  !customFieldsForLayoutSection(section.key)
-                                    .length
+                            <div class="flex items-center gap-2 px-1">
+                              <span
+                                class="size-2.5 shrink-0 rounded-full"
+                                :class="
+                                  getKanbanStageColorOption(group.color)
+                                    .swatchClass
                                 "
-                                class="m-0 self-center text-center text-xs text-n-slate-10"
+                                aria-hidden="true"
+                              />
+                              <span
+                                class="min-w-0 flex-1 truncate text-xs font-medium text-n-slate-12"
                               >
-                                {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
-                              </p>
-                            </template>
-                          </Draggable>
-                        </article>
+                                {{ group.label }}
+                              </span>
+                              <span class="text-[11px] text-n-slate-10">
+                                {{
+                                  customFieldsForLayoutGroup(
+                                    section.key,
+                                    group.key
+                                  ).length
+                                }}
+                              </span>
+                            </div>
+                            <Draggable
+                              :model-value="
+                                customFieldsForLayoutGroup(
+                                  section.key,
+                                  group.key
+                                )
+                              "
+                              item-key="clientId"
+                              group="kanban-custom-field-layout"
+                              :data-testid="`kanban-settings-field-group-dropzone-${group.key}`"
+                              class="grid min-h-12 content-start gap-1 rounded border border-dashed border-n-weak p-1.5"
+                              @change="
+                                moveCustomFieldInGroup(
+                                  section.key,
+                                  group.key,
+                                  $event
+                                )
+                              "
+                            >
+                              <template #item="{ element }">
+                                <button
+                                  type="button"
+                                  class="flex min-w-0 cursor-grab items-center gap-2 rounded border border-n-weak bg-n-surface-2 px-2 py-1.5 text-left text-xs text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                                  @click="selectCustomField(element)"
+                                >
+                                  <i
+                                    class="i-lucide-grip-vertical size-3.5 shrink-0"
+                                  />
+                                  <span class="truncate">
+                                    {{
+                                      element.label ||
+                                      element.key ||
+                                      t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
+                                    }}
+                                  </span>
+                                </button>
+                              </template>
+                              <template #footer>
+                                <p
+                                  v-if="
+                                    !customFieldsForLayoutGroup(
+                                      section.key,
+                                      group.key
+                                    ).length
+                                  "
+                                  class="m-0 py-2 text-center text-[11px] text-n-slate-10"
+                                >
+                                  {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
+                                </p>
+                              </template>
+                            </Draggable>
+                          </article>
+                        </div>
+
+                        <Draggable
+                          :model-value="
+                            customFieldsForLayoutSection(section.key).filter(
+                              definition => !definition.layoutGroup
+                            )
+                          "
+                          item-key="clientId"
+                          group="kanban-custom-field-layout"
+                          :data-section-key="section.key"
+                          class="grid min-h-12 content-start gap-1 rounded-md border border-dashed border-n-weak bg-n-surface-2 p-1.5"
+                          @dragover.prevent
+                          @drop="onCustomFieldDrop(section.key, $event)"
+                          @change="moveCustomFieldInLayout(section.key, $event)"
+                        >
+                          <template #item="{ element }">
+                            <button
+                              type="button"
+                              class="flex min-w-0 cursor-grab items-center gap-2 rounded border border-n-weak bg-n-surface-1 px-2 py-1.5 text-left text-xs text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                              @click="selectCustomField(element)"
+                            >
+                              <i
+                                class="i-lucide-grip-vertical size-3.5 shrink-0"
+                              />
+                              <span class="truncate">
+                                {{
+                                  element.label ||
+                                  element.key ||
+                                  t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
+                                }}
+                              </span>
+                            </button>
+                          </template>
+                          <template #footer>
+                            <p
+                              v-if="
+                                !customFieldsForLayoutSection(
+                                  section.key
+                                ).filter(definition => !definition.layoutGroup)
+                                  .length
+                              "
+                              class="m-0 py-2 text-center text-[11px] text-n-slate-10"
+                            >
+                              {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
+                            </p>
+                          </template>
+                        </Draggable>
                       </div>
                     </section>
 
@@ -2780,6 +3479,37 @@ onMounted(async () => {
                         </div>
                       </fieldset>
 
+                      <fieldset
+                        data-testid="kanban-settings-required-stage-list"
+                        class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+                      >
+                        <legend
+                          class="px-1 text-xs font-medium text-n-slate-11"
+                        >
+                          {{ t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES') }}
+                        </legend>
+                        <p class="m-0 text-xs text-n-slate-10">
+                          {{ t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES_HELP') }}
+                        </p>
+                        <div class="grid grid-cols-2 gap-2 md:grid-cols-3">
+                          <label
+                            v-for="stage in stages"
+                            :key="stage.id"
+                            class="flex min-w-0 items-center gap-2 text-sm text-n-slate-12"
+                          >
+                            <input
+                              v-model="selectedCustomField.requiredStageIds"
+                              data-testid="kanban-settings-required-stage"
+                              type="checkbox"
+                              :value="stage.id"
+                              class="size-4 shrink-0 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                              @change="syncCustomFieldDefinitionsText"
+                            />
+                            <span class="truncate">{{ stage.name }}</span>
+                          </label>
+                        </div>
+                      </fieldset>
+
                       <details
                         class="rounded-md border border-n-weak bg-n-surface-1"
                       >
@@ -2867,32 +3597,6 @@ onMounted(async () => {
                               />
                             </label>
                           </div>
-
-                          <fieldset
-                            data-testid="kanban-settings-required-stage-list"
-                            class="grid grid-cols-2 gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 md:grid-cols-3"
-                          >
-                            <legend
-                              class="px-1 text-xs font-medium text-n-slate-11"
-                            >
-                              {{ t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES') }}
-                            </legend>
-                            <label
-                              v-for="stage in stages"
-                              :key="stage.id"
-                              class="flex min-w-0 items-center gap-2 text-sm text-n-slate-12"
-                            >
-                              <input
-                                v-model="selectedCustomField.requiredStageIds"
-                                data-testid="kanban-settings-required-stage"
-                                type="checkbox"
-                                :value="stage.id"
-                                class="size-4 shrink-0 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                                @change="syncCustomFieldDefinitionsText"
-                              />
-                              <span class="truncate">{{ stage.name }}</span>
-                            </label>
-                          </fieldset>
 
                           <div class="grid gap-3 md:grid-cols-2">
                             <label
@@ -3247,15 +3951,70 @@ onMounted(async () => {
               </span>
             </label>
           </div>
+
+          <div class="grid gap-2 rounded-lg border border-n-weak p-3">
+            <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+              {{ t('KANBAN.SETTINGS.SALES.APPOINTMENT_REMINDERS') }}
+            </h3>
+            <p class="mb-0 text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.SALES.APPOINTMENT_REMINDERS_DESCRIPTION') }}
+            </p>
+            <label
+              for="kanban-settings-appointment-reminder-hours"
+              class="grid gap-1 text-sm font-medium text-n-slate-12 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-center sm:gap-3"
+            >
+              <span>{{
+                t('KANBAN.SETTINGS.SALES.APPOINTMENT_REMINDER_LEAD_TIME')
+              }}</span>
+              <span class="flex items-center gap-2">
+                <input
+                  id="kanban-settings-appointment-reminder-hours"
+                  v-model="form.appointmentReminderHours"
+                  data-testid="kanban-settings-appointment-reminder-hours"
+                  type="number"
+                  min="0"
+                  max="168"
+                  :placeholder="
+                    t(
+                      'KANBAN.SETTINGS.SALES.APPOINTMENT_REMINDER_HOURS_PLACEHOLDER'
+                    )
+                  "
+                  class="h-9 min-w-0 flex-1 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <span class="text-xs font-normal text-n-slate-10">
+                  {{
+                    t('KANBAN.SETTINGS.SALES.APPOINTMENT_REMINDER_HOURS_SUFFIX')
+                  }}
+                </span>
+              </span>
+            </label>
+          </div>
         </section>
 
         <section
           v-show="activeSettingsSection === 'automation'"
           class="grid gap-4 border-b border-n-weak pb-6 lg:col-start-2"
         >
-          <h2 class="text-base font-medium text-n-slate-12">
-            {{ t('KANBAN.SETTINGS.AUTOMATIONS.TITLE') }}
-          </h2>
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="text-base font-medium text-n-slate-12">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.TITLE') }}
+              </h2>
+              <p class="mt-1 max-w-2xl text-sm text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.DESCRIPTION') }}
+              </p>
+            </div>
+            <Button
+              type="button"
+              data-testid="kanban-settings-new-automation-rule"
+              icon="i-lucide-plus"
+              :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NEW')"
+              color="blue"
+              size="sm"
+              @click="resetAutomationRuleForm"
+            />
+          </div>
+
           <label
             class="flex items-start gap-3 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12"
           >
@@ -3271,6 +4030,728 @@ onMounted(async () => {
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.AUTO_CREATE') }}
             </span>
           </label>
+
+          <section
+            data-testid="kanban-settings-birthday-automation"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="m-0 text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.TITLE') }}
+                </h3>
+                <p class="m-0 mt-1 max-w-2xl text-xs text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.DESCRIPTION') }}
+                </p>
+              </div>
+              <span
+                v-if="isLoadingBirthdayAutomation"
+                class="text-xs text-n-slate-10"
+              >
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.LOADING') }}
+              </span>
+            </div>
+
+            <p
+              v-if="birthdayAutomationError"
+              class="m-0 text-sm text-n-ruby-11"
+              role="alert"
+            >
+              {{ birthdayAutomationError }}
+            </p>
+
+            <label class="flex items-start gap-2 text-sm text-n-slate-12">
+              <input
+                v-model="birthdayAutomation.active"
+                data-testid="kanban-settings-birthday-active"
+                type="checkbox"
+                class="mt-0.5 size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+              />
+              <span>
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.ACTIVE') }}
+              </span>
+            </label>
+
+            <fieldset class="grid gap-2">
+              <legend class="text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.CHANNELS') }}
+              </legend>
+              <div class="flex flex-wrap gap-x-4 gap-y-2">
+                <label class="flex items-center gap-2 text-sm text-n-slate-12">
+                  <input
+                    v-model="birthdayAutomation.deliveryChannels"
+                    type="checkbox"
+                    value="whatsapp"
+                    data-testid="kanban-settings-birthday-whatsapp"
+                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                  />
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.WHATSAPP') }}
+                </label>
+                <label class="flex items-center gap-2 text-sm text-n-slate-12">
+                  <input
+                    v-model="birthdayAutomation.deliveryChannels"
+                    type="checkbox"
+                    value="email"
+                    data-testid="kanban-settings-birthday-email"
+                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                  />
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.EMAIL') }}
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="grid gap-3 md:grid-cols-3">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.DAYS_BEFORE') }}
+                <input
+                  v-model="birthdayAutomation.daysBefore"
+                  data-testid="kanban-settings-birthday-days-before"
+                  type="number"
+                  min="0"
+                  max="30"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                />
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.OPT_IN_KEY') }}
+                <input
+                  v-model="birthdayAutomation.optInAttributeKey"
+                  data-testid="kanban-settings-birthday-opt-in-key"
+                  type="text"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                />
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SEND_TIME') }}
+                <input
+                  v-model="birthdayAutomation.sendTime"
+                  data-testid="kanban-settings-birthday-send-time"
+                  type="time"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                />
+              </label>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.TIMEZONE') }}
+                <input
+                  v-model="birthdayAutomation.timezone"
+                  data-testid="kanban-settings-birthday-timezone"
+                  type="text"
+                  :placeholder="birthdayAutomation.timezoneName"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                />
+              </label>
+              <p class="m-0 self-end text-xs text-n-slate-10">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.OPT_IN_HELP') }}
+              </p>
+            </div>
+
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.MESSAGE') }}
+              <textarea
+                v-model="birthdayAutomation.messageTemplate"
+                data-testid="kanban-settings-birthday-message"
+                rows="2"
+                class="resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+
+            <div class="flex justify-end">
+              <Button
+                type="button"
+                data-testid="kanban-settings-save-birthday"
+                icon="i-lucide-save"
+                :label="t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SAVE')"
+                color="blue"
+                size="sm"
+                :is-loading="isSavingBirthdayAutomation"
+                @click="saveBirthdayAutomation"
+              />
+            </div>
+          </section>
+
+          <section
+            data-testid="kanban-settings-cadences"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="m-0 text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TITLE') }}
+                </h3>
+                <p class="m-0 mt-1 text-xs text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DESCRIPTION') }}
+                </p>
+              </div>
+              <span v-if="cadencesLoading" class="text-xs text-n-slate-10">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.LOADING') }}
+              </span>
+            </div>
+
+            <p
+              v-if="cadenceError"
+              data-testid="kanban-settings-cadence-error"
+              class="m-0 text-sm text-n-ruby-11"
+              role="alert"
+            >
+              {{ cadenceError }}
+            </p>
+
+            <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+              <input
+                v-model="cadenceForm.name"
+                data-testid="kanban-settings-cadence-name"
+                type="text"
+                :placeholder="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.NAME_PLACEHOLDER')
+                "
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+              <label class="flex items-center gap-2 text-xs text-n-slate-11">
+                <input
+                  v-model="cadenceForm.pauseOnIncomingMessage"
+                  type="checkbox"
+                  class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                />
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.PAUSE_ON_INCOMING')
+                }}
+              </label>
+            </div>
+
+            <div class="grid gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.STEPS') }}
+                </span>
+                <Button
+                  type="button"
+                  icon="i-lucide-plus"
+                  :label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.ADD_STEP')"
+                  color="slate"
+                  size="xs"
+                  @click="cadenceForm.steps.push(blankCadenceStep())"
+                />
+              </div>
+              <div
+                v-for="(step, stepIndex) in cadenceForm.steps"
+                :key="stepIndex"
+                class="grid gap-2 md:grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)_2rem]"
+              >
+                <input
+                  v-model="step.delayHours"
+                  type="number"
+                  min="0"
+                  step="1"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELAY_HOURS')
+                  "
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <input
+                  v-model="step.actionType"
+                  :data-testid="`kanban-settings-cadence-action-${stepIndex}`"
+                  :placeholder="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.ACTION_PLACEHOLDER')
+                  "
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <input
+                  v-model="step.note"
+                  :data-testid="`kanban-settings-cadence-note-${stepIndex}`"
+                  :placeholder="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.NOTE_PLACEHOLDER')
+                  "
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <Button
+                  v-if="cadenceForm.steps.length > 1"
+                  type="button"
+                  icon="i-lucide-trash-2"
+                  color="ruby"
+                  size="xs"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.REMOVE_STEP')
+                  "
+                  @click="cadenceForm.steps.splice(stepIndex, 1)"
+                />
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <Button
+                type="button"
+                data-testid="kanban-settings-save-cadence"
+                icon="i-lucide-save"
+                :label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE')"
+                color="blue"
+                size="sm"
+                :is-loading="cadenceSaving"
+                @click="saveCadence"
+              />
+            </div>
+
+            <div v-if="cadences.length" class="grid gap-2">
+              <article
+                v-for="cadence in cadences"
+                :key="cadence.id"
+                class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2"
+              >
+                <div class="min-w-0">
+                  <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                    {{ cadence.name }}
+                  </p>
+                  <p class="m-0 text-xs text-n-slate-10">
+                    {{ cadence.steps?.length || 0 }}
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.STEP_COUNT') }}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  icon="i-lucide-trash-2"
+                  color="ruby"
+                  size="xs"
+                  :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELETE')"
+                  @click="deleteCadence(cadence)"
+                />
+              </article>
+            </div>
+          </section>
+
+          <p
+            v-if="automationRulesError"
+            data-testid="kanban-settings-automation-error"
+            class="m-0 text-sm text-n-ruby-11"
+            role="alert"
+          >
+            {{ automationRulesError }}
+          </p>
+
+          <div
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="m-0 text-sm font-medium text-n-slate-12">
+                {{
+                  selectedAutomationRuleId
+                    ? t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EDIT_TITLE')
+                    : t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NEW_TITLE')
+                }}
+              </h3>
+              <Button
+                v-if="selectedAutomationRuleId"
+                type="button"
+                data-testid="kanban-settings-cancel-automation-rule"
+                :label="t('KANBAN.ACTIONS.CANCEL')"
+                color="slate"
+                size="sm"
+                @click="resetAutomationRuleForm"
+              />
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NAME') }}
+                <input
+                  v-model="automationRuleForm.name"
+                  data-testid="kanban-settings-automation-name"
+                  type="text"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                />
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
+                <select
+                  v-model="automationRuleForm.eventName"
+                  data-testid="kanban-settings-automation-event"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option
+                    v-for="option in automationEventOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </label>
+            </div>
+
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DESCRIPTION') }}
+              <input
+                v-model="automationRuleForm.description"
+                data-testid="kanban-settings-automation-description"
+                type="text"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+
+            <div class="grid gap-2">
+              <h4 class="m-0 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONDITIONS') }}
+              </h4>
+              <div class="grid gap-2 md:grid-cols-3">
+                <select
+                  v-model="automationRuleForm.stageId"
+                  data-testid="kanban-settings-automation-stage"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_STAGE') }}
+                  </option>
+                  <option
+                    v-for="stage in stages"
+                    :key="stage.id"
+                    :value="stage.id"
+                  >
+                    {{ stage.name }}
+                  </option>
+                </select>
+                <select
+                  v-model="automationRuleForm.ownerId"
+                  data-testid="kanban-settings-automation-owner"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_OWNER') }}
+                  </option>
+                  <option
+                    v-for="agent in agentOptions"
+                    :key="agent.value"
+                    :value="agent.value"
+                  >
+                    {{ agent.label }}
+                  </option>
+                </select>
+                <select
+                  v-model="automationRuleForm.fieldKey"
+                  data-testid="kanban-settings-automation-field"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
+                  </option>
+                  <option
+                    v-for="field in automationFieldOptions"
+                    :key="field.key"
+                    :value="field.key"
+                  >
+                    {{ field.label }}
+                  </option>
+                </select>
+              </div>
+              <div
+                v-if="automationRuleForm.fieldKey"
+                class="grid gap-2 md:grid-cols-[10rem_minmax(0,1fr)]"
+              >
+                <select
+                  v-model="automationRuleForm.fieldOperator"
+                  data-testid="kanban-settings-automation-operator"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="equals">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') }}
+                  </option>
+                  <option value="not_equals">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NOT_EQUALS') }}
+                  </option>
+                  <option value="contains">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONTAINS') }}
+                  </option>
+                  <option value="exists">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EXISTS') }}
+                  </option>
+                  <option value="greater_than">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN') }}
+                  </option>
+                  <option value="less_than">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN') }}
+                  </option>
+                </select>
+                <input
+                  v-model="automationRuleForm.fieldValue"
+                  data-testid="kanban-settings-automation-value"
+                  type="text"
+                  :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                />
+              </div>
+            </div>
+
+            <div class="grid gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <h4 class="m-0 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ACTIONS') }}
+                </h4>
+                <Button
+                  type="button"
+                  data-testid="kanban-settings-add-automation-action"
+                  icon="i-lucide-plus"
+                  :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ADD_ACTION')"
+                  color="slate"
+                  size="xs"
+                  @click="
+                    automationRuleForm.actions.push(blankAutomationAction())
+                  "
+                />
+              </div>
+              <div
+                v-for="(action, actionIndex) in automationRuleForm.actions"
+                :key="actionIndex"
+                class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-2 md:grid-cols-[minmax(0,1fr)_2rem]"
+              >
+                <div class="grid gap-2 md:grid-cols-2">
+                  <select
+                    v-model="action.actionName"
+                    :data-testid="`kanban-settings-automation-action-${actionIndex}`"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option
+                      v-for="option in automationActionOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                  <select
+                    v-if="action.actionName === 'move_stage'"
+                    v-model="action.stageId"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option value="">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_STAGE') }}
+                    </option>
+                    <option
+                      v-for="stage in stages"
+                      :key="stage.id"
+                      :value="stage.id"
+                    >
+                      {{ stage.name }}
+                    </option>
+                  </select>
+                  <select
+                    v-else-if="action.actionName === 'assign_owner'"
+                    v-model="action.ownerId"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option value="">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
+                    </option>
+                    <option
+                      v-for="agent in agentOptions"
+                      :key="agent.value"
+                      :value="agent.value"
+                    >
+                      {{ agent.label }}
+                    </option>
+                  </select>
+                  <select
+                    v-else-if="action.actionName === 'set_field'"
+                    v-model="action.fieldKey"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option value="">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+                    </option>
+                    <option
+                      v-for="field in form.customFieldDefinitions"
+                      :key="field.key"
+                      :value="field.key"
+                    >
+                      {{ field.label || field.key }}
+                    </option>
+                  </select>
+                  <input
+                    v-if="action.actionName === 'set_field'"
+                    v-model="action.fieldValue"
+                    type="text"
+                    :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  />
+                  <select
+                    v-else-if="action.actionName === 'set_next_action'"
+                    v-model="action.nextActionType"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option value="">
+                      {{
+                        t(
+                          'KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_NEXT_ACTION'
+                        )
+                      }}
+                    </option>
+                    <option
+                      v-for="type in linesFromText(form.nextActionTypesText)"
+                      :key="type"
+                      :value="type"
+                    >
+                      {{ type }}
+                    </option>
+                  </select>
+                  <input
+                    v-if="action.actionName === 'set_next_action'"
+                    v-model="action.nextActionAt"
+                    type="datetime-local"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  />
+                  <input
+                    v-if="action.actionName === 'set_next_action'"
+                    v-model="action.nextActionNote"
+                    type="text"
+                    :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NOTE')"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand md:col-span-2"
+                  />
+                </div>
+                <Button
+                  v-if="automationRuleForm.actions.length > 1"
+                  type="button"
+                  icon="i-lucide-trash-2"
+                  color="ruby"
+                  size="xs"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REMOVE_ACTION')
+                  "
+                  :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REMOVE_ACTION')"
+                  @click="automationRuleForm.actions.splice(actionIndex, 1)"
+                />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label class="flex items-center gap-2 text-sm text-n-slate-12">
+                <input
+                  v-model="automationRuleForm.active"
+                  type="checkbox"
+                  class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                />
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ACTIVE') }}
+              </label>
+              <Button
+                type="button"
+                data-testid="kanban-settings-save-automation-rule"
+                icon="i-lucide-save"
+                :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE')"
+                color="blue"
+                size="sm"
+                :is-loading="automationRulesSaving"
+                @click="saveAutomationRule"
+              />
+            </div>
+          </div>
+
+          <div class="grid gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="m-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LIST_TITLE') }}
+              </h3>
+              <span
+                v-if="automationRulesLoading"
+                class="text-xs text-n-slate-10"
+              >
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LOADING') }}
+              </span>
+            </div>
+            <p
+              v-if="!automationRulesLoading && !automationRules.length"
+              class="m-0 text-sm text-n-slate-11"
+            >
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EMPTY') }}
+            </p>
+            <article
+              v-for="rule in automationRules"
+              :key="rule.id"
+              class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+              :class="rule.active ? '' : 'opacity-60'"
+            >
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h4 class="m-0 truncate text-sm font-medium text-n-slate-12">
+                    {{ rule.name }}
+                  </h4>
+                  <p class="m-0 text-xs text-n-slate-10">
+                    {{
+                      automationEventOptions.find(
+                        option => option.value === rule.eventName
+                      )?.label || rule.eventName
+                    }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    icon="i-lucide-pencil"
+                    color="slate"
+                    size="xs"
+                    :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EDIT')"
+                    :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EDIT')"
+                    @click="applyAutomationRule(rule)"
+                  />
+                  <Button
+                    type="button"
+                    icon="i-lucide-trash-2"
+                    color="ruby"
+                    size="xs"
+                    :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DELETE')"
+                    :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DELETE')"
+                    @click="deleteAutomationRule(rule)"
+                  />
+                </div>
+              </div>
+              <label class="flex items-center gap-2 text-xs text-n-slate-11">
+                <input
+                  :checked="rule.active"
+                  type="checkbox"
+                  class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                  @change="toggleAutomationRule(rule)"
+                />
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ACTIVE') }}
+              </label>
+              <div
+                class="flex flex-wrap items-center gap-2 border-t border-n-weak pt-2"
+              >
+                <input
+                  v-model="automationTestCardId"
+                  type="number"
+                  min="1"
+                  :placeholder="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.RULES.TEST_CARD_ID')
+                  "
+                  class="h-8 w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <Button
+                  type="button"
+                  icon="i-lucide-play"
+                  :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.TEST')"
+                  color="slate"
+                  size="xs"
+                  :disabled="!automationTestCardId"
+                  @click="testAutomationRule(rule)"
+                />
+                <span v-if="rule.lastExecution" class="text-xs text-n-slate-10">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LAST_EXECUTION') }}
+                  {{ rule.lastExecution.status }}
+                </span>
+              </div>
+              <p
+                v-if="
+                  selectedAutomationRuleId === rule.id && automationTestResult
+                "
+                class="m-0 text-xs"
+                :class="
+                  automationTestResult.matches
+                    ? 'text-n-teal-11'
+                    : 'text-n-ruby-11'
+                "
+                role="status"
+              >
+                {{ automationTestResult.message }}
+              </p>
+            </article>
+          </div>
         </section>
 
         <section
@@ -3339,6 +4820,44 @@ onMounted(async () => {
         :reject-text="t('KANBAN.REMOVE_BOARD.CANCEL')"
       />
 
+      <woot-modal
+        v-model:show="showDuplicateConfirmation"
+        :on-close="closeDuplicateConfirmation"
+      >
+        <div
+          class="flex w-full max-w-lg flex-col gap-4 rounded-lg bg-n-surface-1 p-6 text-n-slate-12"
+          data-testid="kanban-settings-duplicate-modal"
+        >
+          <div class="grid gap-1">
+            <h2 class="text-lg font-medium">
+              {{ t('KANBAN.SETTINGS.DUPLICATE.TITLE') }}
+            </h2>
+            <p class="text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.DUPLICATE.MESSAGE') }}
+            </p>
+          </div>
+          <footer class="flex justify-end gap-2">
+            <Button
+              type="button"
+              :label="t('KANBAN.ACTIONS.CANCEL')"
+              color="slate"
+              size="sm"
+              @click="closeDuplicateConfirmation"
+            />
+            <Button
+              type="button"
+              data-testid="kanban-settings-confirm-duplicate"
+              icon="i-lucide-copy"
+              :label="t('KANBAN.SETTINGS.DUPLICATE.CONFIRM')"
+              color="blue"
+              size="sm"
+              :is-loading="isDuplicating"
+              @click="duplicateBoard"
+            />
+          </footer>
+        </div>
+      </woot-modal>
+
       <woot-delete-modal
         v-model:show="showUnsavedChangesConfirmation"
         :on-close="() => (showUnsavedChangesConfirmation = false)"
@@ -3348,6 +4867,45 @@ onMounted(async () => {
         :confirm-text="t('KANBAN.SETTINGS.UNSAVED.DISCARD')"
         :reject-text="t('KANBAN.ACTIONS.CANCEL')"
       />
+
+      <woot-modal
+        v-model:show="showAutomationDeleteConfirmation"
+        :on-close="closeAutomationDeleteConfirmation"
+      >
+        <div
+          class="flex w-full max-w-md flex-col gap-4 rounded-lg bg-n-surface-1 p-6 text-n-slate-12"
+          data-testid="kanban-automation-delete-modal"
+        >
+          <div class="grid gap-1">
+            <h3 class="text-lg font-medium">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DELETE') }}
+            </h3>
+            <p class="text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DELETE_CONFIRM') }}
+            </p>
+          </div>
+          <div class="flex justify-end gap-2">
+            <Button
+              type="button"
+              data-testid="kanban-automation-delete-cancel"
+              :label="t('KANBAN.ACTIONS.CANCEL')"
+              color="slate"
+              size="sm"
+              @click="closeAutomationDeleteConfirmation"
+            />
+            <Button
+              type="button"
+              data-testid="kanban-automation-delete-confirm"
+              icon="i-lucide-trash-2"
+              :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DELETE')"
+              color="ruby"
+              size="sm"
+              :is-loading="automationRulesSaving"
+              @click="confirmDeleteAutomationRule"
+            />
+          </div>
+        </div>
+      </woot-modal>
 
       <woot-modal
         v-model:show="showImportExistingConversationsModal"

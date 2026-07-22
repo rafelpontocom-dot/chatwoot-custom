@@ -4,11 +4,11 @@ class KanbanCardPolicy < ApplicationPolicy
   end
 
   def create?
-    show?
+    show? && can_create?
   end
 
   def update?
-    show?
+    show? && can_edit?
   end
 
   def destroy?
@@ -16,7 +16,15 @@ class KanbanCardPolicy < ApplicationPolicy
   end
 
   def reorder?
-    show?
+    show? && can_move?
+  end
+
+  def assign?
+    show? && kanban_permission?('kanban_assign')
+  end
+
+  def close?
+    show? && kanban_permission?('kanban_close')
   end
 
   def timeline?
@@ -24,7 +32,7 @@ class KanbanCardPolicy < ApplicationPolicy
   end
 
   def restore?
-    !record.active? && record.archived_at.present? && valid_card_relationships? && card_access?
+    !record.active? && record.archived_at.present? && valid_card_relationships? && card_access? && can_manage?
   end
 
   private
@@ -97,5 +105,28 @@ class KanbanCardPolicy < ApplicationPolicy
 
   def inbox_access?
     user.inboxes.where(account_id: account&.id).exists?(id: record.inbox_id)
+  end
+
+  def can_edit?
+    kanban_permission?('kanban_edit')
+  end
+
+  def can_create?
+    kanban_permission?('kanban_create') || kanban_permission?('kanban_edit')
+  end
+
+  def can_move?
+    kanban_permission?('kanban_move')
+  end
+
+  def can_manage?
+    kanban_permission?('kanban_manage')
+  end
+
+  def kanban_permission?(permission)
+    return true if administrator?
+    return true unless account_user.respond_to?(:custom_role) && account_user.custom_role.present?
+
+    account_user.custom_role.permissions.include?(permission)
   end
 end

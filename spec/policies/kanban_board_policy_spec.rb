@@ -27,6 +27,66 @@ RSpec.describe KanbanBoardPolicy, type: :policy do
     it { is_expected.to permit(admin_context, KanbanBoard) }
     it { is_expected.not_to permit(agent_context, KanbanBoard) }
   end
+
+  permissions :report? do
+    it { is_expected.to permit(admin_context, KanbanBoard) }
+    it { is_expected.to permit(agent_context, KanbanBoard) }
+
+    context 'when an agent has a custom role' do
+      let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
+
+      before { agent_context[:account_user].update!(custom_role: custom_role) }
+
+      it 'requires the commercial report permission' do
+        expect(subject).not_to permit(agent_context, KanbanBoard)
+
+        custom_role.update!(permissions: %w[kanban_view kanban_report])
+        expect(subject).to permit(agent_context, KanbanBoard)
+      end
+    end
+  end
+
+  permissions :bulk? do
+    it { is_expected.to permit(admin_context, KanbanBoard) }
+    it { is_expected.to permit(agent_context, KanbanBoard) }
+
+    context 'when an agent has a custom role' do
+      let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
+
+      before { agent_context[:account_user].update!(custom_role: custom_role) }
+
+      it { is_expected.not_to permit(agent_context, KanbanBoard) }
+    end
+  end
+
+  describe 'custom role permissions' do
+    let(:custom_role) { create(:custom_role, account: account, permissions: ['kanban_view']) }
+    let(:board) { build(:kanban_board, account: account) }
+
+    before { agent_context[:account_user].update!(custom_role: custom_role) }
+
+    it 'allows viewing but not configuring a board with a view-only role' do
+      policy = described_class.new(agent_context, board)
+
+      expect(policy.show?).to be true
+      expect(policy.update?).to be false
+      expect(policy.create?).to be false
+    end
+
+    it 'allows configuring without granting board management' do
+      custom_role.update!(permissions: %w[kanban_view kanban_configure])
+      policy = described_class.new(agent_context, board)
+
+      expect(policy.update?).to be true
+      expect(policy.destroy?).to be false
+    end
+
+    it 'allows creating only when the role has the create permission' do
+      custom_role.update!(permissions: %w[kanban_view kanban_create])
+
+      expect(described_class.new(agent_context, board).create?).to be true
+    end
+  end
   # rubocop:enable RSpec/RepeatedExample
 
   describe '#visible?' do

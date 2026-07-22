@@ -23,6 +23,7 @@
 #  updated_at                           :datetime         not null
 #  account_id                           :bigint           not null
 #  archived_by_id                       :bigint
+#  appointment_reminder_hours           :integer
 #
 # Indexes
 #
@@ -75,6 +76,8 @@ class KanbanBoard < ApplicationRecord
   has_many :visible_users, through: :kanban_board_members, source: :user
   has_many :kanban_board_inboxes, dependent: :destroy_async
   has_many :kanban_saved_filters, dependent: :destroy_async
+  has_many :kanban_automation_rules, dependent: :destroy_async
+  has_many :kanban_cadences, dependent: :destroy
   has_many :allowed_inboxes, through: :kanban_board_inboxes, source: :inbox
 
   attribute :visibility_mode, :string, default: 'all_agents'
@@ -88,6 +91,9 @@ class KanbanBoard < ApplicationRecord
   validates :account_id, presence: true
   validates :name, presence: true, uniqueness: { scope: :account_id, conditions: -> { active } }, if: :active?
   validates :position, presence: true, numericality: { only_integer: true }
+  validates :appointment_reminder_hours,
+            numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 168 },
+            allow_nil: true
 
   scope :active, -> { where(active: true) }
   scope :archived, -> { where(active: false).where.not(archived_at: nil) }

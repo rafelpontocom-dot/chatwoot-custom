@@ -41,6 +41,10 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.patch(`${this.url}/${boardId}/restore`);
   }
 
+  duplicateBoard(boardId) {
+    return axios.post(`${this.url}/${boardId}/duplicate`);
+  }
+
   showBoard(boardId, config = {}) {
     return axios.get(`${this.url}/${boardId}`, config);
   }
@@ -49,8 +53,27 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.get(`${this.url}/${boardId}/reports/sales_summary`, config);
   }
 
+  getActivities(boardId, config = {}) {
+    return axios.get(`${this.url}/${boardId}/reports/activities`, config);
+  }
+
+  exportCards(boardId, config = {}) {
+    return axios.get(`${this.url}/${boardId}/reports/export`, {
+      ...config,
+      responseType: 'blob',
+    });
+  }
+
   getSettings(boardId) {
     return axios.get(`${this.url}/${boardId}/settings`);
+  }
+
+  getBirthdayAutomation() {
+    return axios.get(`${this.baseUrl()}/birthday_automation`);
+  }
+
+  updateBirthdayAutomation(payload) {
+    return axios.patch(`${this.baseUrl()}/birthday_automation`, payload);
   }
 
   updateSettings(boardId, payload) {
@@ -81,6 +104,68 @@ class KanbanBoardsAPI extends ApiClient {
       `${this.url}/${boardId}/settings/import_existing_conversations`,
       payload
     );
+  }
+
+  getAutomationRules(boardId) {
+    return axios.get(`${this.url}/${boardId}/automation_rules`);
+  }
+
+  createAutomationRule(boardId, payload) {
+    return axios.post(`${this.url}/${boardId}/automation_rules`, payload);
+  }
+
+  updateAutomationRule(boardId, ruleId, payload) {
+    return axios.patch(
+      `${this.url}/${boardId}/automation_rules/${ruleId}`,
+      payload
+    );
+  }
+
+  deleteAutomationRule(boardId, ruleId) {
+    return axios.delete(`${this.url}/${boardId}/automation_rules/${ruleId}`);
+  }
+
+  testAutomationRule(boardId, ruleId, cardId) {
+    return axios.post(
+      `${this.url}/${boardId}/automation_rules/${ruleId}/test`,
+      { card_id: cardId }
+    );
+  }
+
+  getAutomationExecutions(boardId, ruleId) {
+    return axios.get(
+      `${this.url}/${boardId}/automation_rules/${ruleId}/executions`
+    );
+  }
+
+  getCadences(boardId) {
+    return axios.get(`${this.url}/${boardId}/cadences`);
+  }
+
+  createCadence(boardId, payload) {
+    return axios.post(`${this.url}/${boardId}/cadences`, payload);
+  }
+
+  updateCadence(boardId, cadenceId, payload) {
+    return axios.patch(`${this.url}/${boardId}/cadences/${cadenceId}`, payload);
+  }
+
+  deleteCadence(boardId, cadenceId) {
+    return axios.delete(`${this.url}/${boardId}/cadences/${cadenceId}`);
+  }
+
+  getCardCadence(boardId, cardId) {
+    return axios.get(`${this.url}/${boardId}/cards/by_id/${cardId}/cadence`);
+  }
+
+  enrollCardInCadence(boardId, cardId, cadenceId) {
+    return axios.post(`${this.url}/${boardId}/cards/by_id/${cardId}/cadence`, {
+      enrollment: { cadence_id: cadenceId },
+    });
+  }
+
+  cancelCardCadence(boardId, cardId) {
+    return axios.delete(`${this.url}/${boardId}/cards/by_id/${cardId}/cadence`);
   }
 
   getConversationCards(conversationId, config = {}) {

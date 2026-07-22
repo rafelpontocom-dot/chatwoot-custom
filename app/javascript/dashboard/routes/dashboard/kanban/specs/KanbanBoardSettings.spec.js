@@ -36,12 +36,25 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
   default: {
     getSettings: vi.fn(),
     showBoard: vi.fn(),
+    getBirthdayAutomation: vi.fn(),
+    updateBirthdayAutomation: vi.fn(),
     updateSettings: vi.fn(),
     delete: vi.fn(),
+    duplicateBoard: vi.fn(),
     createStage: vi.fn(),
     updateStage: vi.fn(),
     reorderStage: vi.fn(),
     importExistingConversations: vi.fn(),
+    getAutomationRules: vi.fn(),
+    createAutomationRule: vi.fn(),
+    updateAutomationRule: vi.fn(),
+    deleteAutomationRule: vi.fn(),
+    testAutomationRule: vi.fn(),
+    getAutomationExecutions: vi.fn(),
+    getCadences: vi.fn(),
+    createCadence: vi.fn(),
+    updateCadence: vi.fn(),
+    deleteCadence: vi.fn(),
   },
 }));
 
@@ -72,8 +85,24 @@ const settingsPayload = {
 const boardPayload = {
   id: 10,
   stages: [
-    { id: 100, name: 'Lead', color: 'blue', position: 1, cards_count: 3 },
-    { id: 200, name: 'Won', color: 'green', position: 2, cards_count: 0 },
+    {
+      id: 100,
+      name: 'Lead',
+      color: 'blue',
+      category: 'open',
+      probability: 40,
+      position: 1,
+      cards_count: 3,
+    },
+    {
+      id: 200,
+      name: 'Won',
+      color: 'green',
+      category: 'won',
+      probability: 100,
+      position: 2,
+      cards_count: 0,
+    },
   ],
 };
 
@@ -149,6 +178,18 @@ const mountSettings = async ({
     KanbanBoardsAPI.getSettings.mockResolvedValue(getSettingsResponse);
   }
   KanbanBoardsAPI.showBoard.mockResolvedValue({ data: boardPayload });
+  KanbanBoardsAPI.getBirthdayAutomation.mockResolvedValue({
+    data: {
+      active: false,
+      days_before: 0,
+      delivery_channels: [],
+      opt_in_attribute_key: 'birthday_messages_opt_in',
+      timezone: '',
+      timezone_name: 'UTC',
+      send_time: '09:00',
+      message_template: 'Feliz aniversário, {{contact_name}}!',
+    },
+  });
 
   const { store, dispatch } = createTestStore(role);
   const wrapper = shallowMount(KanbanBoardSettings, {
@@ -195,7 +236,20 @@ describe('KanbanBoardSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     KanbanBoardsAPI.updateSettings.mockResolvedValue({ data: settingsPayload });
+    KanbanBoardsAPI.updateBirthdayAutomation.mockResolvedValue({
+      data: {
+        active: true,
+        days_before: 2,
+        delivery_channels: ['whatsapp'],
+        opt_in_attribute_key: 'birthday_messages_opt_in',
+        timezone: 'America/Sao_Paulo',
+        timezone_name: 'America/Sao_Paulo',
+        send_time: '09:00',
+        message_template: 'Parabéns, {{contact_name}}!',
+      },
+    });
     KanbanBoardsAPI.delete.mockResolvedValue({ data: {} });
+    KanbanBoardsAPI.duplicateBoard.mockResolvedValue({ data: { id: 11 } });
     KanbanBoardsAPI.createStage.mockResolvedValue({
       data: { id: 300, name: 'Follow up', color: 'slate', position: 3 },
     });
@@ -204,6 +258,37 @@ describe('KanbanBoardSettings', () => {
     KanbanBoardsAPI.importExistingConversations.mockResolvedValue({
       data: { status: 'accepted', enqueued: true, estimated_count: 3 },
     });
+    KanbanBoardsAPI.getAutomationRules.mockResolvedValue({ data: [] });
+    KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+      data: {
+        id: 50,
+        name: 'Nova regra',
+        event_name: 'kanban.card.won',
+        active: true,
+      },
+    });
+    KanbanBoardsAPI.updateAutomationRule.mockResolvedValue({
+      data: {
+        id: 50,
+        name: 'Nova regra',
+        event_name: 'kanban.card.won',
+        active: true,
+      },
+    });
+    KanbanBoardsAPI.deleteAutomationRule.mockResolvedValue({ data: {} });
+    KanbanBoardsAPI.testAutomationRule.mockResolvedValue({
+      data: { matches: true, message: 'Matches' },
+    });
+    KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
+    KanbanBoardsAPI.createCadence.mockResolvedValue({
+      data: {
+        id: 80,
+        name: 'Novo follow-up',
+        active: true,
+        steps: [{ delay_hours: 24, action_type: 'Retorno' }],
+      },
+    });
+    KanbanBoardsAPI.deleteCadence.mockResolvedValue({ data: {} });
   });
 
   it('loads the page settings', async () => {
@@ -216,6 +301,29 @@ describe('KanbanBoardSettings', () => {
     expect(wrapper.find('[data-testid="kanban-settings-form"]').exists()).toBe(
       true
     );
+  });
+
+  it('duplicates the funnel from the settings header', async () => {
+    const { wrapper, dispatch } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-duplicate"]')
+      .trigger('click');
+    expect(
+      wrapper.find('[data-testid="kanban-settings-duplicate-modal"]').exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-settings-confirm-duplicate"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.duplicateBoard).toHaveBeenCalledWith(10);
+    expect(dispatch).toHaveBeenCalledWith('kanbanBoards/refreshBoards');
+    expect(mockReplace).toHaveBeenCalledWith({
+      name: 'kanban_board_settings',
+      params: { accountId: '1', boardId: 11 },
+    });
   });
 
   it('renders stages in the settings page', async () => {
@@ -256,6 +364,23 @@ describe('KanbanBoardSettings', () => {
 
     expect(KanbanBoardsAPI.updateStage).toHaveBeenCalledWith(10, 100, {
       stage: { category: 'won', wip_limit: 8 },
+    });
+  });
+
+  it('saves win probability for an open stage', async () => {
+    const { wrapper } = await mountSettings();
+    const row = wrapper.find('[data-testid="kanban-settings-stage-row"]');
+
+    await row
+      .find('[data-testid="kanban-settings-stage-probability"]')
+      .setValue('65');
+    await row
+      .find('[data-testid="kanban-settings-save-stage-rules"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateStage).toHaveBeenCalledWith(10, 100, {
+      stage: { category: 'open', wip_limit: null, probability: 65 },
     });
   });
 
@@ -343,6 +468,92 @@ describe('KanbanBoardSettings', () => {
     expect(
       wrapper.find('[data-testid="kanban-settings-agent-select"]').exists()
     ).toBe(true);
+  });
+
+  it('loads cadence configuration for administrators', async () => {
+    await mountSettings();
+
+    expect(KanbanBoardsAPI.getCadences).toHaveBeenCalledWith(10);
+  });
+
+  it('configures opt-in birthday delivery from the automation section', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-automation"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-birthday-active"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-settings-birthday-whatsapp"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-settings-birthday-days-before"]')
+      .setValue(2);
+    await wrapper
+      .find('[data-testid="kanban-settings-birthday-message"]')
+      .setValue('Parabéns, {{contact_name}}!');
+    await wrapper
+      .find('[data-testid="kanban-settings-save-birthday"]')
+      .trigger('click');
+
+    expect(KanbanBoardsAPI.updateBirthdayAutomation).toHaveBeenCalledWith({
+      birthday_automation: expect.objectContaining({
+        active: true,
+        days_before: 2,
+        delivery_channels: ['whatsapp'],
+        message_template: 'Parabéns, {{contact_name}}!',
+      }),
+    });
+  });
+
+  it('creates an internal follow-up cadence from automation settings', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-automation"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-cadence-name"]')
+      .setValue('Primeiro retorno');
+    await wrapper
+      .find('[data-testid="kanban-settings-cadence-action-0"]')
+      .setValue('Ligação');
+    await wrapper
+      .find('[data-testid="kanban-settings-save-cadence"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createCadence).toHaveBeenCalledWith(10, {
+      cadence: {
+        name: 'Primeiro retorno',
+        pause_on_incoming_message: true,
+        steps: [{ delay_hours: 0, action_type: 'Ligação', note: null }],
+      },
+    });
+  });
+
+  it('loads and saves commercial automation rules from the automation section', async () => {
+    const { wrapper } = await mountSettings();
+
+    expect(KanbanBoardsAPI.getAutomationRules).toHaveBeenCalledWith(10);
+    await wrapper
+      .find('[data-testid="kanban-settings-automation-name"]')
+      .setValue('Mover para proposta');
+    await wrapper
+      .find('[data-testid="kanban-settings-save-automation-rule"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({
+          name: 'Mover para proposta',
+        }),
+      })
+    );
   });
 
   it('toggles all_inboxes and selected_inboxes controls', async () => {
@@ -581,6 +792,52 @@ describe('KanbanBoardSettings', () => {
     ).toBe(true);
   });
 
+  it('shows compact group drop zones and visible stage requirements', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_sections: [
+            {
+              key: 'details',
+              label: 'Geral',
+              groups: [{ key: 'consulta', label: 'Consulta', color: 'teal' }],
+            },
+          ],
+          custom_field_definitions: [
+            {
+              ...settingsPayload.custom_field_definitions[0],
+              layout: { section: 'details', group: 'consulta', position: 1 },
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-settings-field-groups"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-field-group-dropzone-consulta"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-required-stage-list"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-required-stage-list"]')
+        .element.closest('details')
+    ).toBeNull();
+  });
+
   it('uses compact stage checkboxes for field requirements', async () => {
     const { wrapper } = await mountSettings();
 
@@ -594,8 +851,9 @@ describe('KanbanBoardSettings', () => {
     expect(
       wrapper
         .find('[data-testid="kanban-settings-required-stage-list"]')
-        .classes()
-    ).toContain('grid-cols-2');
+        .find('.grid-cols-2')
+        .exists()
+    ).toBe(true);
   });
 
   it('adds select options through a compact option input', async () => {
@@ -1247,8 +1505,29 @@ describe('KanbanBoardSettings', () => {
         custom_field_sections: [],
         compact_card_field_keys: [],
         stale_stage_thresholds: { 100: 3 },
+        appointment_reminder_hours: null,
       },
     });
+  });
+
+  it('configures the appointment reminder lead time', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-appointment-reminder-hours"]')
+      .setValue('12');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    expect(KanbanBoardsAPI.updateSettings).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_board: expect.objectContaining({
+          appointment_reminder_hours: 12,
+        }),
+      })
+    );
   });
 
   it('preserves the filled form after save error', async () => {
