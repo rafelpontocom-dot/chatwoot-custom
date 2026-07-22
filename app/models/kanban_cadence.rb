@@ -8,13 +8,16 @@
 #  name                      :string           not null
 #  pause_on_incoming_message :boolean          default(TRUE), not null
 #  steps                     :jsonb            not null
+#  trigger_type              :string           default("manual"), not null
 #  created_at                :datetime         not null
 #  updated_at                :datetime         not null
 #  account_id                :bigint           not null
 #  kanban_board_id           :bigint           not null
+#  trigger_stage_id          :bigint
 #
 # Indexes
 #
+#  idx_kanban_cadences_on_stage_trigger               (kanban_board_id,trigger_type,trigger_stage_id)
 #  index_kanban_cadences_on_account_id                (account_id)
 #  index_kanban_cadences_on_account_id_and_active     (account_id,active)
 #  index_kanban_cadences_on_kanban_board_id           (kanban_board_id)
@@ -24,14 +27,17 @@
 #
 #  fk_rails_...  (account_id => accounts.id)
 #  fk_rails_...  (kanban_board_id => kanban_boards.id)
+#  fk_rails_...  (trigger_stage_id => kanban_stages.id)
 #
 class KanbanCadence < ApplicationRecord
   MAX_STEPS = 20
   MAX_DELAY_HOURS = 24 * 365
   DISALLOWED_ACTION_TYPES = %w[send_message send_template send_whatsapp].freeze
+  TRIGGER_TYPES = %w[manual stage_entered].freeze
 
   belongs_to :account
   belongs_to :kanban_board
+  belongs_to :trigger_stage, class_name: 'KanbanStage', optional: true
   has_many :kanban_cadence_enrollments, dependent: :destroy
 
   scope :active, -> { where(active: true) }
@@ -41,6 +47,8 @@ class KanbanCadence < ApplicationRecord
   validates :account, :kanban_board, presence: true
   validate :board_belongs_to_account
   validate :steps_are_supported
+  validates :trigger_type, inclusion: { in: TRIGGER_TYPES }
+  validate :stage_trigger_belongs_to_board
 
   private
 
@@ -49,6 +57,13 @@ class KanbanCadence < ApplicationRecord
     return if account_id == kanban_board.account_id
 
     errors.add(:kanban_board, :invalid)
+  end
+
+  def stage_trigger_belongs_to_board
+    return unless trigger_type == 'stage_entered'
+    return if trigger_stage_id.present? && kanban_board&.kanban_stages&.exists?(id: trigger_stage_id)
+
+    errors.add(:trigger_stage_id, :invalid)
   end
 
   def steps_are_supported

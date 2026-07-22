@@ -192,6 +192,8 @@ Se o board ainda não tiver listas configuradas, o sistema deve usar listas padr
 
 As automações ficam em uma área própria do board, separadas da operação manual do card. O card mostra o resultado e o histórico, mas não esconde de onde veio uma ação ou mensagem.
 
+Estado da primeira entrega: o board já aceita regras de lembrete por entrada em etapa, o scheduler cria entregas idempotentes por agendamento/canal e o serviço de mensagens respeita opt-in e janela do WhatsApp. Cadências podem ser inscritas automaticamente ao entrar em uma etapa, mantendo os passos atuais como tarefas internas.
+
 ### Lembretes De Consulta
 
 O lembrete de consulta deve ser iniciado por um evento de negócio explícito, preferencialmente a entrada da oportunidade em uma etapa como `Agendado`. O evento seleciona a regra, mas não substitui a data/hora da consulta: a regra também aponta para um campo `datetime` do card, por exemplo `data_hora_consulta`.

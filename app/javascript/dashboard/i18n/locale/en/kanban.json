@@ -482,6 +482,28 @@
         "IMPORT_SUCCESS": "Existing conversation import started.",
         "IMPORT_ERROR": "Could not start existing conversation import.",
         "DESCRIPTION": "Run internal actions when an opportunity changes. No customer message is sent.",
+        "APPOINTMENT": {
+          "TITLE": "Appointment reminders",
+          "DESCRIPTION": "When an opportunity enters the selected stage, schedule messages using its appointment date and time.",
+          "TRIGGER_STAGE": "Trigger stage",
+          "SELECT_STAGE": "Select a stage",
+          "DATE_FIELD": "Date and time field",
+          "SYSTEM_DATE": "Opportunity appointment",
+          "ADVANCE_HOURS": "Advance notice in hours",
+          "CHANNELS": "Channels",
+          "OPT_IN": "Contact opt-in field",
+          "MESSAGE": "Message",
+          "PLACEHOLDER_HOURS": "48, 24, 2",
+          "ACTIVATE": "Activate reminder",
+          "DISABLE": "Disable reminder",
+          "ACTIVE": "Reminder active",
+          "HOURS_BEFORE": "h before",
+          "SAVE_SUCCESS": "Appointment reminder activated.",
+          "SAVE_ERROR": "Could not save appointment reminder.",
+          "LOAD_ERROR": "Could not load appointment reminders.",
+          "DISABLE_SUCCESS": "Appointment reminder disabled.",
+          "DISABLE_ERROR": "Could not disable appointment reminder."
+        },
         "BIRTHDAY": {
           "TITLE": "Birthday messages",
           "DESCRIPTION": "Send an opt-in birthday message through a compatible WhatsApp or email conversation. The automation is off until you enable it.",
@@ -523,7 +545,10 @@
           "DELETE_ERROR": "Could not delete follow-up cadence.",
           "STEP_COUNT": "steps",
           "LOADING": "Loading cadences...",
-          "LOAD_ERROR": "Could not load follow-up cadences."
+          "LOAD_ERROR": "Could not load follow-up cadences.",
+          "TRIGGER_MANUAL": "Start manually",
+          "TRIGGER_STAGE": "When entering a stage",
+          "SELECT_STAGE": "Select a stage"
         },
         "EVENTS": {
           "CREATED": "Opportunity created",

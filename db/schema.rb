@@ -970,6 +970,53 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_100000) do
     t.jsonb "settings", default: {}
   end
 
+  create_table "kanban_appointment_reminder_deliveries", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "kanban_card_id", null: false
+    t.bigint "kanban_appointment_reminder_rule_id", null: false
+    t.string "appointment_version", null: false
+    t.string "appointment_value", null: false
+    t.integer "offset_hours", null: false
+    t.string "delivery_channel", null: false
+    t.datetime "scheduled_at", null: false
+    t.datetime "attempted_at"
+    t.datetime "sent_at"
+    t.bigint "message_id"
+    t.string "status", default: "scheduled", null: false
+    t.string "idempotency_key", null: false
+    t.text "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_appointment_reminder_deliveries_on_account_id"
+    t.index ["idempotency_key"], name: "idx_kanban_reminder_deliveries_on_idempotency", unique: true
+    t.index ["kanban_appointment_reminder_rule_id"], name: "idx_kanban_reminder_deliveries_on_rule"
+    t.index ["kanban_board_id"], name: "idx_on_kanban_board_id_c50d2652b4"
+    t.index ["kanban_card_id"], name: "index_kanban_appointment_reminder_deliveries_on_kanban_card_id"
+    t.index ["status", "scheduled_at"], name: "idx_kanban_reminder_deliveries_on_due"
+  end
+
+  create_table "kanban_appointment_reminder_rules", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "trigger_stage_id"
+    t.string "trigger_type", default: "stage_entered", null: false
+    t.string "field_key", null: false
+    t.jsonb "offsets", default: [], null: false
+    t.jsonb "channels", default: [], null: false
+    t.jsonb "message_templates", default: {}, null: false
+    t.jsonb "whatsapp_template_params", default: {}, null: false
+    t.string "opt_in_attribute_key", default: "appointment_reminders_opt_in", null: false
+    t.string "timezone_mode", default: "board", null: false
+    t.boolean "active", default: false, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_appointment_reminder_rules_on_account_id"
+    t.index ["kanban_board_id", "trigger_type", "trigger_stage_id"], name: "idx_kanban_appointment_rules_on_trigger"
+    t.index ["kanban_board_id"], name: "index_kanban_appointment_reminder_rules_on_kanban_board_id"
+  end
+
   create_table "kanban_automation_executions", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "kanban_automation_rule_id", null: false
@@ -1135,9 +1182,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_100000) do
     t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "trigger_type", default: "manual", null: false
+    t.bigint "trigger_stage_id"
     t.index ["account_id", "active"], name: "index_kanban_cadences_on_account_id_and_active"
     t.index ["account_id"], name: "index_kanban_cadences_on_account_id"
     t.index ["kanban_board_id", "name"], name: "index_kanban_cadences_on_kanban_board_id_and_name", unique: true
+    t.index ["kanban_board_id", "trigger_type", "trigger_stage_id"], name: "idx_kanban_cadences_on_stage_trigger"
     t.index ["kanban_board_id"], name: "index_kanban_cadences_on_kanban_board_id"
   end
 
@@ -1667,6 +1717,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_100000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "kanban_appointment_reminder_deliveries", "accounts"
+  add_foreign_key "kanban_appointment_reminder_deliveries", "kanban_appointment_reminder_rules"
+  add_foreign_key "kanban_appointment_reminder_deliveries", "kanban_boards"
+  add_foreign_key "kanban_appointment_reminder_deliveries", "kanban_cards"
+  add_foreign_key "kanban_appointment_reminder_deliveries", "messages"
+  add_foreign_key "kanban_appointment_reminder_rules", "accounts"
+  add_foreign_key "kanban_appointment_reminder_rules", "kanban_boards"
+  add_foreign_key "kanban_appointment_reminder_rules", "kanban_stages", column: "trigger_stage_id"
   add_foreign_key "kanban_automation_executions", "accounts"
   add_foreign_key "kanban_automation_executions", "kanban_automation_rules"
   add_foreign_key "kanban_automation_executions", "kanban_card_events"
@@ -1690,6 +1748,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_100000) do
   add_foreign_key "kanban_cadence_enrollments", "users", column: "owner_id"
   add_foreign_key "kanban_cadences", "accounts"
   add_foreign_key "kanban_cadences", "kanban_boards"
+  add_foreign_key "kanban_cadences", "kanban_stages", column: "trigger_stage_id"
   add_foreign_key "kanban_card_events", "accounts"
   add_foreign_key "kanban_card_events", "kanban_boards"
   add_foreign_key "kanban_card_events", "kanban_cards"

@@ -166,9 +166,13 @@ A chave idempotente recomendada é `account_id + rule_id + card_id + appointment
 
 Estados de entrega: `scheduled`, `sending`, `sent`, `skipped`, `failed` e `canceled`. O job deve fazer claim com lock, registrar o motivo de não envio e aplicar retry limitado.
 
+Implementação inicial: `KanbanAppointmentReminders::ScheduleService` cria uma entrega por offset e canal quando a oportunidade entra na etapa configurada. `KanbanAppointmentReminders::ProcessDueJob` faz o claim com lock e usa `Messages::MessageBuilder`; o serviço registra `no_compatible_conversation`, `opt_in_required` e `outside_whatsapp_window` como motivos de `skipped`. O scheduler de itens agendados executa esse job separadamente do processamento de cadências internas.
+
 ### KanbanCadence
 
 A implementação atual já possui `KanbanCadence` e `KanbanCadenceEnrollment` para lembretes internos. O contrato deve ser preservado, separando ações internas de mensagens externas.
+
+Implementação inicial: `trigger_type = stage_entered` e `trigger_stage_id` permitem inscrever a oportunidade automaticamente na primeira cadência ativa daquela etapa. A inscrição é idempotente em retries do evento; uma oportunidade já ativa ou aguardando conclusão não recebe uma segunda inscrição.
 
 Formato de passo interno:
 

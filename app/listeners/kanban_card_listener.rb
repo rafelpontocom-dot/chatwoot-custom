@@ -52,6 +52,15 @@ class KanbanCardListener < BaseListener
     card = KanbanCard.find_by(id: data[:card_id], account_id: data[:account_id])
     return if card.blank?
 
+    if data[:event_type].to_s == 'stage_changed'
+      KanbanCadences::EnrollOnStageEntryService.new(card: card, stage: card.kanban_stage).call
+      KanbanAppointmentReminderRule.active.where(kanban_board_id: card.kanban_board_id,
+                                                 trigger_type: 'stage_entered',
+                                                 trigger_stage_id: card.kanban_stage_id).find_each do |rule|
+        KanbanAppointmentReminders::ScheduleService.new(card: card, rule: rule).call
+      end
+    end
+
     case data[:event_type].to_s
     when 'next_action_completed'
       KanbanCadences::CompleteStepService.call_for_card(card)

@@ -80,6 +80,10 @@ const cadences = ref([]);
 const cadencesLoading = ref(false);
 const cadenceSaving = ref(false);
 const cadenceError = ref('');
+const appointmentReminderRules = ref([]);
+const appointmentReminderLoading = ref(false);
+const appointmentReminderSaving = ref(false);
+const appointmentReminderError = ref('');
 const birthdayAutomationError = ref('');
 const birthdayAutomation = reactive({
   active: false,
@@ -96,7 +100,18 @@ const birthdayAutomation = reactive({
 const cadenceForm = reactive({
   name: '',
   pauseOnIncomingMessage: true,
+  triggerType: 'manual',
+  triggerStageId: '',
   steps: [{ delayHours: 0, actionType: '', note: '' }],
+});
+const appointmentReminderForm = reactive({
+  triggerStageId: '',
+  fieldKey: 'system_starts_at',
+  offsets: '48,24,2',
+  channels: ['whatsapp'],
+  optInAttributeKey: 'appointment_reminders_opt_in',
+  message:
+    'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.',
 });
 const automationRuleForm = reactive({
   name: '',
@@ -1892,7 +1907,100 @@ const blankCadenceStep = () => ({ delayHours: 0, actionType: '', note: '' });
 const resetCadenceForm = () => {
   cadenceForm.name = '';
   cadenceForm.pauseOnIncomingMessage = true;
+  cadenceForm.triggerType = 'manual';
+  cadenceForm.triggerStageId = '';
   cadenceForm.steps.splice(0, cadenceForm.steps.length, blankCadenceStep());
+};
+
+const fetchAppointmentReminderRules = async () => {
+  if (!isAdmin.value) return;
+  appointmentReminderLoading.value = true;
+  appointmentReminderError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.getAppointmentReminderRules(
+      boardId.value
+    );
+    appointmentReminderRules.value = camelcaseKeys(response.data || [], {
+      deep: true,
+    });
+  } catch (error) {
+    appointmentReminderError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.LOAD_ERROR')
+    );
+  } finally {
+    appointmentReminderLoading.value = false;
+  }
+};
+
+const saveAppointmentReminderRule = async () => {
+  if (
+    appointmentReminderSaving.value ||
+    !appointmentReminderForm.triggerStageId
+  )
+    return;
+  const offsets = appointmentReminderForm.offsets
+    .split(',')
+    .map(value => Number(value.trim()))
+    .filter(value => Number.isInteger(value) && value > 0);
+  if (!offsets.length || !appointmentReminderForm.channels.length) return;
+
+  appointmentReminderSaving.value = true;
+  appointmentReminderError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.createAppointmentReminderRule(
+      boardId.value,
+      {
+        appointment_reminder_rule: {
+          trigger_type: 'stage_entered',
+          trigger_stage_id: Number(appointmentReminderForm.triggerStageId),
+          field_key: appointmentReminderForm.fieldKey,
+          offsets,
+          channels: appointmentReminderForm.channels,
+          opt_in_attribute_key: appointmentReminderForm.optInAttributeKey,
+          message_templates: Object.fromEntries(
+            offsets.map(offset => [
+              String(offset),
+              appointmentReminderForm.message,
+            ])
+          ),
+          active: true,
+        },
+      }
+    );
+    appointmentReminderRules.value.push(
+      camelcaseKeys(response.data || {}, { deep: true })
+    );
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SAVE_SUCCESS'));
+  } catch (error) {
+    appointmentReminderError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SAVE_ERROR')
+    );
+    useAlert(appointmentReminderError.value);
+  } finally {
+    appointmentReminderSaving.value = false;
+  }
+};
+
+const deleteAppointmentReminderRule = async rule => {
+  if (!rule?.id || appointmentReminderSaving.value) return;
+  appointmentReminderSaving.value = true;
+  try {
+    await KanbanBoardsAPI.deleteAppointmentReminderRule(boardId.value, rule.id);
+    appointmentReminderRules.value = appointmentReminderRules.value.filter(
+      item => item.id !== rule.id
+    );
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DISABLE_SUCCESS'));
+  } catch (error) {
+    appointmentReminderError.value = getErrorMessage(
+      error,
+      t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DISABLE_ERROR')
+    );
+    useAlert(appointmentReminderError.value);
+  } finally {
+    appointmentReminderSaving.value = false;
+  }
 };
 
 const fetchCadences = async () => {
@@ -1932,6 +2040,10 @@ const saveCadence = async () => {
       cadence: {
         name: cadenceForm.name.trim(),
         pause_on_incoming_message: cadenceForm.pauseOnIncomingMessage,
+        trigger_type: cadenceForm.triggerType,
+        trigger_stage_id: cadenceForm.triggerStageId
+          ? Number(cadenceForm.triggerStageId)
+          : null,
         steps,
       },
     });
@@ -2312,6 +2424,7 @@ onMounted(async () => {
   await fetchSettings();
   await fetchAutomationRules();
   await fetchCadences();
+  await fetchAppointmentReminderRules();
   if (route.query?.section === 'fields') {
     activeSettingsSection.value = 'sales';
     openCustomFieldManager();
@@ -4114,6 +4227,166 @@ onMounted(async () => {
           </label>
 
           <section
+            data-testid="kanban-settings-appointment-reminders"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+          >
+            <div>
+              <h3 class="m-0 text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.TITLE') }}
+              </h3>
+              <p class="m-0 mt-1 text-xs text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DESCRIPTION') }}
+              </p>
+            </div>
+            <p
+              v-if="appointmentReminderError"
+              class="m-0 text-sm text-n-ruby-11"
+              role="alert"
+            >
+              {{ appointmentReminderError }}
+            </p>
+            <div class="grid gap-2 md:grid-cols-2">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.TRIGGER_STAGE') }}
+                <select
+                  v-model="appointmentReminderForm.triggerStageId"
+                  data-testid="kanban-settings-appointment-stage"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SELECT_STAGE')
+                    }}
+                  </option>
+                  <option
+                    v-for="stage in stages"
+                    :key="stage.id"
+                    :value="String(stage.id)"
+                  >
+                    {{ stage.name }}
+                  </option>
+                </select>
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DATE_FIELD') }}
+                <select
+                  v-model="appointmentReminderForm.fieldKey"
+                  data-testid="kanban-settings-appointment-field"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="system_starts_at">
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SYSTEM_DATE')
+                    }}
+                  </option>
+                  <option
+                    v-for="field in form.customFieldDefinitions.filter(item =>
+                      ['date', 'datetime'].includes(item.fieldType)
+                    )"
+                    :key="field.key"
+                    :value="field.key"
+                  >
+                    {{ field.label || field.key }}
+                  </option>
+                </select>
+              </label>
+            </div>
+            <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.ADVANCE_HOURS') }}
+                <input
+                  v-model="appointmentReminderForm.offsets"
+                  data-testid="kanban-settings-appointment-offsets"
+                  type="text"
+                  :placeholder="
+                    t(
+                      'KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.PLACEHOLDER_HOURS'
+                    )
+                  "
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                />
+              </label>
+              <div class="flex items-end gap-3 pb-1 text-xs text-n-slate-11">
+                <label class="flex items-center gap-2">
+                  <input
+                    v-model="appointmentReminderForm.channels"
+                    value="whatsapp"
+                    type="checkbox"
+                    class="size-4"
+                  />
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.WHATSAPP') }}
+                </label>
+                <label class="flex items-center gap-2">
+                  <input
+                    v-model="appointmentReminderForm.channels"
+                    value="email"
+                    type="checkbox"
+                    class="size-4"
+                  />
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.EMAIL') }}
+                </label>
+              </div>
+            </div>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.OPT_IN') }}
+              <input
+                v-model="appointmentReminderForm.optInAttributeKey"
+                data-testid="kanban-settings-appointment-opt-in"
+                type="text"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.MESSAGE') }}
+              <textarea
+                v-model="appointmentReminderForm.message"
+                data-testid="kanban-settings-appointment-message"
+                rows="2"
+                class="resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <div class="flex justify-end">
+              <Button
+                type="button"
+                data-testid="kanban-settings-save-appointment-reminder"
+                icon="i-lucide-calendar-clock"
+                :label="t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.ACTIVATE')"
+                color="blue"
+                size="sm"
+                :is-loading="
+                  appointmentReminderSaving || appointmentReminderLoading
+                "
+                @click="saveAppointmentReminderRule"
+              />
+            </div>
+            <div v-if="appointmentReminderRules.length" class="grid gap-2">
+              <article
+                v-for="rule in appointmentReminderRules"
+                :key="rule.id"
+                class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2"
+              >
+                <p class="m-0 text-xs text-n-slate-11">
+                  {{ rule.offsets.join(', ')
+                  }}{{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.HOURS_BEFORE')
+                  }}
+                  {{ rule.channels.join(', ') }}
+                </p>
+                <Button
+                  type="button"
+                  icon="i-lucide-trash-2"
+                  color="ruby"
+                  size="xs"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DISABLE')
+                  "
+                  @click="deleteAppointmentReminderRule(rule)"
+                />
+              </article>
+            </div>
+          </section>
+
+          <section
             data-testid="kanban-settings-birthday-automation"
             class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
           >
@@ -4306,6 +4579,35 @@ onMounted(async () => {
                 "
                 class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
               />
+              <select
+                v-model="cadenceForm.triggerType"
+                data-testid="kanban-settings-cadence-trigger"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              >
+                <option value="manual">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_MANUAL') }}
+                </option>
+                <option value="stage_entered">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_STAGE') }}
+                </option>
+              </select>
+              <select
+                v-if="cadenceForm.triggerType === 'stage_entered'"
+                v-model="cadenceForm.triggerStageId"
+                data-testid="kanban-settings-cadence-trigger-stage"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              >
+                <option value="">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SELECT_STAGE') }}
+                </option>
+                <option
+                  v-for="stage in stages"
+                  :key="stage.id"
+                  :value="String(stage.id)"
+                >
+                  {{ stage.name }}
+                </option>
+              </select>
               <label class="flex items-center gap-2 text-xs text-n-slate-11">
                 <input
                   v-model="cadenceForm.pauseOnIncomingMessage"

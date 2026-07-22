@@ -52,6 +52,9 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     testAutomationRule: vi.fn(),
     getAutomationExecutions: vi.fn(),
     getCadences: vi.fn(),
+    getAppointmentReminderRules: vi.fn(),
+    createAppointmentReminderRule: vi.fn(),
+    deleteAppointmentReminderRule: vi.fn(),
     createCadence: vi.fn(),
     updateCadence: vi.fn(),
     deleteCadence: vi.fn(),
@@ -282,6 +285,7 @@ describe('KanbanBoardSettings', () => {
       data: { matches: true, message: 'Matches' },
     });
     KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
+    KanbanBoardsAPI.getAppointmentReminderRules.mockResolvedValue({ data: [] });
     KanbanBoardsAPI.createCadence.mockResolvedValue({
       data: {
         id: 80,
@@ -531,6 +535,8 @@ describe('KanbanBoardSettings', () => {
       cadence: {
         name: 'Primeiro retorno',
         pause_on_incoming_message: true,
+        trigger_stage_id: null,
+        trigger_type: 'manual',
         steps: [{ delay_hours: 0, action_type: 'Ligação', note: null }],
       },
     });

@@ -51,6 +51,8 @@ class Api::V1::Accounts::KanbanBoards::CadencesController < Api::V1::Accounts::B
       :name,
       :active,
       :pause_on_incoming_message,
+      :trigger_type,
+      :trigger_stage_id,
       steps: [:delay_hours, :action_type, :note]
     )
   end
@@ -61,6 +63,8 @@ class Api::V1::Accounts::KanbanBoards::CadencesController < Api::V1::Accounts::B
       name: cadence.name,
       active: cadence.active,
       pause_on_incoming_message: cadence.pause_on_incoming_message,
+      trigger_type: cadence.trigger_type,
+      trigger_stage_id: cadence.trigger_stage_id,
       steps: cadence.steps
     }
   end

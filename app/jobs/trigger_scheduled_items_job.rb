@@ -20,6 +20,9 @@ class TriggerScheduledItemsJob < ApplicationJob
     # Job to surface due internal sales follow-ups in the activity center
     KanbanCadences::ProcessDueJob.perform_later
 
+    # Job to deliver due opt-in appointment reminders.
+    KanbanAppointmentReminders::ProcessDueJob.perform_later
+
     # Job to schedule internal reminders before configured appointments
     KanbanBoards::ScheduleAppointmentRemindersJob.perform_later
 

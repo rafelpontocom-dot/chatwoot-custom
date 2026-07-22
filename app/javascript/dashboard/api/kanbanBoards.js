@@ -154,6 +154,30 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.delete(`${this.url}/${boardId}/cadences/${cadenceId}`);
   }
 
+  getAppointmentReminderRules(boardId) {
+    return axios.get(`${this.url}/${boardId}/appointment_reminder_rules`);
+  }
+
+  createAppointmentReminderRule(boardId, payload) {
+    return axios.post(
+      `${this.url}/${boardId}/appointment_reminder_rules`,
+      payload
+    );
+  }
+
+  updateAppointmentReminderRule(boardId, ruleId, payload) {
+    return axios.patch(
+      `${this.url}/${boardId}/appointment_reminder_rules/${ruleId}`,
+      payload
+    );
+  }
+
+  deleteAppointmentReminderRule(boardId, ruleId) {
+    return axios.delete(
+      `${this.url}/${boardId}/appointment_reminder_rules/${ruleId}`
+    );
+  }
+
   getCardCadence(boardId, cardId) {
     return axios.get(`${this.url}/${boardId}/cards/by_id/${cardId}/cadence`);
   }

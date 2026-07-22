@@ -6,5 +6,7 @@ FactoryBot.define do
     steps { [{ delay_hours: 0, action_type: 'Follow-up', note: 'Realizar follow-up' }] }
     active { true }
     pause_on_incoming_message { true }
+    trigger_type { 'manual' }
+    trigger_stage_id { nil }
   end
 end

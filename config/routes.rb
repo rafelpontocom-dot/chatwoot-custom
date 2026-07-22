@@ -150,6 +150,7 @@ Rails.application.routes.draw do
                 get :executions, on: :member
               end
               resources :cadences, only: [:index, :create, :update, :destroy]
+              resources :appointment_reminder_rules, only: [:index, :create, :update, :destroy]
               get 'cards/by_id/:id/cadence', to: 'cadence_enrollments#show'
               post 'cards/by_id/:id/cadence', to: 'cadence_enrollments#create'
               delete 'cards/by_id/:id/cadence', to: 'cadence_enrollments#destroy'

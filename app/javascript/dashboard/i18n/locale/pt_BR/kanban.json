@@ -478,6 +478,28 @@
         "IMPORT_SUCCESS": "Importação de conversas existentes iniciada.",
         "IMPORT_ERROR": "Não foi possível iniciar a importação de conversas existentes.",
         "DESCRIPTION": "Execute ações internas quando uma oportunidade mudar. Nenhuma mensagem é enviada ao cliente.",
+        "APPOINTMENT": {
+          "TITLE": "Lembretes de consulta",
+          "DESCRIPTION": "Ao entrar na etapa escolhida, agenda mensagens usando a data e hora da oportunidade.",
+          "TRIGGER_STAGE": "Etapa de disparo",
+          "SELECT_STAGE": "Selecione uma etapa",
+          "DATE_FIELD": "Campo de data e hora",
+          "SYSTEM_DATE": "Agendamento da oportunidade",
+          "ADVANCE_HOURS": "Antecedências em horas",
+          "CHANNELS": "Canais",
+          "OPT_IN": "Campo de opt-in do contato",
+          "MESSAGE": "Mensagem",
+          "PLACEHOLDER_HOURS": "48, 24, 2",
+          "ACTIVATE": "Ativar lembrete",
+          "DISABLE": "Desativar lembrete",
+          "ACTIVE": "Lembrete ativo",
+          "HOURS_BEFORE": "h antes",
+          "SAVE_SUCCESS": "Lembrete de consulta ativado.",
+          "SAVE_ERROR": "Não foi possível salvar o lembrete de consulta.",
+          "LOAD_ERROR": "Não foi possível carregar os lembretes de consulta.",
+          "DISABLE_SUCCESS": "Lembrete de consulta desativado.",
+          "DISABLE_ERROR": "Não foi possível desativar o lembrete de consulta."
+        },
         "BIRTHDAY": {
           "TITLE": "Mensagens de aniversário",
           "DESCRIPTION": "Envie uma mensagem de aniversário mediante opt-in por uma conversa compatível de WhatsApp ou e-mail. A automação fica desativada até ser habilitada.",
@@ -519,7 +541,10 @@
           "DELETE_ERROR": "Não foi possível excluir a cadência de follow-up.",
           "STEP_COUNT": "passos",
           "LOADING": "Carregando cadências...",
-          "LOAD_ERROR": "Não foi possível carregar as cadências de follow-up."
+          "LOAD_ERROR": "Não foi possível carregar as cadências de follow-up.",
+          "TRIGGER_MANUAL": "Iniciar manualmente",
+          "TRIGGER_STAGE": "Ao entrar em uma etapa",
+          "SELECT_STAGE": "Selecione a etapa"
         },
         "EVENTS": {
           "CREATED": "Oportunidade criada",
