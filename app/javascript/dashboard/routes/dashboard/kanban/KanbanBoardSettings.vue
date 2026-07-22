@@ -110,9 +110,17 @@ const appointmentReminderForm = reactive({
   offsets: '48,24,2',
   channels: ['whatsapp'],
   optInAttributeKey: 'appointment_reminders_opt_in',
-  message:
-    'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.',
+  messageTemplates: {},
 });
+const defaultAppointmentReminderMessage =
+  'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.';
+const appointmentReminderOffsets = computed(() =>
+  appointmentReminderForm.offsets
+    .split(',')
+    .map(value => Number(value.trim()))
+    .filter(value => Number.isInteger(value) && value > 0)
+    .filter((value, index, values) => values.indexOf(value) === index)
+);
 const automationRuleForm = reactive({
   name: '',
   description: '',
@@ -1939,10 +1947,7 @@ const saveAppointmentReminderRule = async () => {
     !appointmentReminderForm.triggerStageId
   )
     return;
-  const offsets = appointmentReminderForm.offsets
-    .split(',')
-    .map(value => Number(value.trim()))
-    .filter(value => Number.isInteger(value) && value > 0);
+  const offsets = appointmentReminderOffsets.value;
   if (!offsets.length || !appointmentReminderForm.channels.length) return;
 
   appointmentReminderSaving.value = true;
@@ -1961,7 +1966,8 @@ const saveAppointmentReminderRule = async () => {
           message_templates: Object.fromEntries(
             offsets.map(offset => [
               String(offset),
-              appointmentReminderForm.message,
+              appointmentReminderForm.messageTemplates[offset]?.trim() ||
+                defaultAppointmentReminderMessage,
             ])
           ),
           active: true,
@@ -4336,15 +4342,42 @@ onMounted(async () => {
                 class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
               />
             </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.MESSAGE') }}
-              <textarea
-                v-model="appointmentReminderForm.message"
-                data-testid="kanban-settings-appointment-message"
-                rows="2"
-                class="resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-              />
-            </label>
+            <div
+              v-if="appointmentReminderOffsets.length"
+              class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+            >
+              <p class="m-0 text-xs font-medium text-n-slate-11">
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.MESSAGES_TITLE')
+                }}
+              </p>
+              <label
+                v-for="offset in appointmentReminderOffsets"
+                :key="offset"
+                class="grid gap-1 text-xs font-medium text-n-slate-11"
+              >
+                <span>
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.MESSAGE_FOR', {
+                      hours: offset,
+                    })
+                  }}
+                </span>
+                <textarea
+                  :data-testid="`kanban-settings-appointment-message-${offset}`"
+                  :value="
+                    appointmentReminderForm.messageTemplates[offset] ||
+                    defaultAppointmentReminderMessage
+                  "
+                  rows="2"
+                  class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+                  @input="
+                    appointmentReminderForm.messageTemplates[offset] =
+                      $event.target.value
+                  "
+                />
+              </label>
+            </div>
             <div class="flex justify-end">
               <Button
                 type="button"

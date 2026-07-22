@@ -489,6 +489,8 @@
           "CHANNELS": "Canais",
           "OPT_IN": "Campo de opt-in do contato",
           "MESSAGE": "Mensagem",
+          "MESSAGES_TITLE": "Mensagens por antecedência",
+          "MESSAGE_FOR": "Mensagem {{hours}} horas antes",
           "PLACEHOLDER_HOURS": "48, 24, 2",
           "ACTIVATE": "Ativar lembrete",
           "DISABLE": "Desativar lembrete",

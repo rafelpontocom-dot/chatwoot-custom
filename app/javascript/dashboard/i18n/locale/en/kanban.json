@@ -493,6 +493,8 @@
           "CHANNELS": "Channels",
           "OPT_IN": "Contact opt-in field",
           "MESSAGE": "Message",
+          "MESSAGES_TITLE": "Messages by advance notice",
+          "MESSAGE_FOR": "Message {{hours}} hours before",
           "PLACEHOLDER_HOURS": "48, 24, 2",
           "ACTIVATE": "Activate reminder",
           "DISABLE": "Disable reminder",

@@ -1640,6 +1640,40 @@ describe('KanbanBoardSettings', () => {
     );
   });
 
+  it('saves a distinct message for each appointment reminder offset', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-appointment-stage"]')
+      .setValue('100');
+    await wrapper
+      .find('[data-testid="kanban-settings-appointment-offsets"]')
+      .setValue('48, 24');
+    await wrapper
+      .find('[data-testid="kanban-settings-appointment-message-48"]')
+      .setValue('Faltam dois dias para sua consulta, {{contact_name}}.');
+    await wrapper
+      .find('[data-testid="kanban-settings-appointment-message-24"]')
+      .setValue('Sua consulta e amanha, {{contact_name}}.');
+    await wrapper
+      .find('[data-testid="kanban-settings-save-appointment-reminder"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAppointmentReminderRule).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        appointment_reminder_rule: expect.objectContaining({
+          offsets: [48, 24],
+          message_templates: {
+            48: 'Faltam dois dias para sua consulta, {{contact_name}}.',
+            24: 'Sua consulta e amanha, {{contact_name}}.',
+          },
+        }),
+      })
+    );
+  });
+
   it('preserves the filled form after save error', async () => {
     KanbanBoardsAPI.updateSettings.mockRejectedValueOnce(new Error('Failed'));
     const { wrapper } = await mountSettings();
