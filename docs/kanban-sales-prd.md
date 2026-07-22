@@ -194,7 +194,17 @@ As automações ficam em uma área própria do board, separadas da operação ma
 
 ### Lembretes De Consulta
 
-O lembrete de consulta é baseado em um campo `datetime` do card, por exemplo `data_hora_consulta`.
+O lembrete de consulta deve ser iniciado por um evento de negócio explícito, preferencialmente a entrada da oportunidade em uma etapa como `Agendado`. O evento seleciona a regra, mas não substitui a data/hora da consulta: a regra também aponta para um campo `datetime` do card, por exemplo `data_hora_consulta`.
+
+Essa combinação é a prática padrão do produto:
+
+- **gatilho:** oportunidade entrou em `Agendado`;
+- **fonte do horário:** campo `Data e hora da consulta`;
+- **agenda:** offsets configuráveis, como `48h`, `24h` e `2h` antes;
+- **reentrada:** uma execução por agendamento; reagendamento cria uma nova versão;
+- **saída:** mensagem externa e/ou tarefa interna, conforme a regra.
+
+O administrador pode adicionar outros gatilhos, como criação da oportunidade, alteração da data ou início manual. A etapa sozinha nunca deve disparar uma mensagem sem uma data válida.
 
 O administrador configura o campo de data e hora, um ou mais offsets (`48h`, `24h`, `2h`), mensagem ou template por offset, canais permitidos e fuso horário. Condições opcionais podem limitar o envio por etapa, confirmação, status ou opt-in.
 
@@ -203,6 +213,7 @@ Comportamento obrigatório:
 - cada offset envia no máximo uma vez para cada agendamento;
 - alterar a data cancela lembretes pendentes e recria a programação;
 - cancelar, perder ou arquivar a oportunidade interrompe lembretes futuros;
+- sair de `Agendado`, trocar a data, remover o opt-in ou cancelar a consulta interrompe a versão pendente;
 - ausência de conversa compatível registra o não envio, sem tentativas infinitas;
 - WhatsApp fora da janela de 24 horas exige template aprovado;
 - a tela mostra prévia, próximo envio e histórico de tentativas;

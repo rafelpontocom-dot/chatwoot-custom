@@ -145,11 +145,13 @@ Configuração anual pertencente à conta, independente de oportunidade:
 
 ### KanbanAppointmentReminderRule
 
-Regra de lembrete externo vinculada a um board e a um campo `datetime`.
+Regra de lembrete externo vinculada a um board, a um evento de negócio e a um campo `datetime`.
 
 Contrato proposto:
 
 - `kanban_board_id`;
+- `trigger_type`: `stage_entered`, `card_created`, `appointment_changed` ou `manual`;
+- `trigger_stage_id`, obrigatório quando `trigger_type` for `stage_entered`;
 - `field_key`;
 - `offsets`, em horas positivas, por exemplo `[48, 24, 2]`;
 - `channels`: `whatsapp` e/ou `email`;
@@ -158,7 +160,9 @@ Contrato proposto:
 - `conditions` opcionais;
 - `active` e `lock_version`.
 
-A chave idempotente recomendada é `account_id + rule_id + card_id + appointment_value + offset_hours + channel`. Ao alterar a data, a versão anterior é cancelada e uma nova programação é criada.
+A entrada em uma etapa é apenas o gatilho de elegibilidade. O serviço deve exigir que `field_key` resolva para um `datetime` futuro, que o card esteja aberto e que o contato possa receber a comunicação. A política de reentrada recomendada é `once_per_appointment`: sair e voltar para a etapa não duplica envios. Um reagendamento gera `appointment_version` nova, cancela a versão anterior e recria a programação.
+
+A chave idempotente recomendada é `account_id + rule_id + card_id + appointment_version + offset_hours + channel`. Ao alterar a data, a versão anterior é cancelada e uma nova programação é criada.
 
 Estados de entrega: `scheduled`, `sending`, `sent`, `skipped`, `failed` e `canceled`. O job deve fazer claim com lock, registrar o motivo de não envio e aplicar retry limitado.
 
@@ -215,11 +219,32 @@ Esse registro evita duplicidade em retries do Sidekiq e permite mostrar no card 
 6. O passo concluído agenda o próximo; uma falha registra erro e segue retry limitado.
 7. Mensagem recebida, mudança terminal ou cancelamento manual pausa/cancela o enrollment.
 
+### Politica De Gatilhos
+
+Gatilhos são eventos de domínio, não chamadas diretas de controller. A transição do card deve publicar `kanban.card.stage_entered`, a alteração do campo de consulta deve publicar `kanban.card.appointment_changed` e a criação deve publicar `kanban.card.created`. Um listener encontra regras ativas do board e agenda o serviço correspondente.
+
+O serviço deve ser idempotente e reavaliar as condições no momento do envio. Portanto, mover para `Agendado` não garante envio: a oportunidade ainda pode estar sem data, sem conversa compatível, sem opt-in ou fora da política de canal. Cada motivo de não envio deve ser persistido para diagnóstico.
+
+Para cadências de follow-up, a inscrição pode ocorrer ao entrar em uma etapa ou manualmente. A execução deve interromper quando houver resposta do cliente, mudança de etapa configurada como terminal, ganho, perda, arquivamento, opt-out ou cancelamento. O encerramento automático como `Perdido` nunca deve ser implícito: precisa ser uma ação configurada e visível na revisão da cadência.
+
 ### Mapeamento Do N8N
 
 Para migrar um workflow existente, cada nó deve ser mapeado para uma categoria: gatilho para origem de enrollment, `Wait` para atraso, condição para `conditions`, envio WhatsApp para ação externa, atualização de campo para `set_field`, troca de etapa para `move_stage`, atribuição para `assign_owner` e resposta do cliente para evento de pausa.
 
 O produto deve oferecer prévia do mapeamento, listar nós não suportados e nunca ativar automaticamente uma cadência migrada sem revisão do administrador.
+
+O workflow de referência `Follow-up Citocenter` foi analisado por API. A equivalência nativa é:
+
+- Webhook: evento de inscrição ou mudança de etapa;
+- Switch por `acompanhamento_follow_up`: condição de entrada da cadência;
+- nós de configuração: versões de uma cadência, não código duplicado por ramo;
+- cálculo de agenda: política de atraso e horário comercial configurável;
+- nós `Checar antes`: condições avaliadas novamente antes de cada passo;
+- labels `fup_*`: eventos/etiquetas de execução, sem depender de texto técnico no atendimento;
+- envio: ação de canal validada pelo serviço de mensagens;
+- resolver/perder: ação terminal opcional, sempre explícita e revisável.
+
+O N8N atual contém um token de acesso ao Chatwoot gravado dentro do workflow. Antes de manter esse fluxo em produção, o token deve ser revogado/rotacionado e substituído por uma credencial segura do N8N. A integração temporária deve usar apenas uma conta técnica com escopo mínimo e registrar request ID, status e erro sem salvar segredo em logs.
 
 ### KanbanCardEvent
 
