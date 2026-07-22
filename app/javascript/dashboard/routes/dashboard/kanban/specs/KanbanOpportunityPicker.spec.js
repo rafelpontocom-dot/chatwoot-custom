@@ -9,7 +9,18 @@ const storeMock = vi.hoisted(() => ({
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
-    t: key => key,
+    t: (key, params = {}) => {
+      const translations = {
+        'KANBAN.ADD_ITEM.CONTACT_FALLBACK': 'Contact #{id}',
+        'KANBAN.ADD_ITEM.INBOX_FALLBACK': 'Inbox #{id}',
+      };
+
+      return Object.entries(params).reduce(
+        (message, [name, value]) =>
+          message.replace(`{${name}}`, value).replace(`#{${name}}`, value),
+        translations[key] || key
+      );
+    },
   }),
 }));
 

@@ -115,12 +115,10 @@ onMounted(async () => {
 
 <template>
   <main class="flex h-full min-h-0 w-full bg-n-surface-1 text-n-slate-12">
-    <div
-      class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 lg:px-10"
-    >
+    <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-6 lg:px-8">
       <header class="flex flex-wrap items-center justify-between gap-4">
         <div class="min-w-0">
-          <h1 class="text-2xl font-semibold text-n-slate-12">
+          <h1 class="text-xl font-semibold text-n-slate-12">
             {{ t('KANBAN.OVERVIEW.TITLE') }}
           </h1>
         </div>
@@ -129,7 +127,7 @@ onMounted(async () => {
             v-if="isAdmin"
             type="button"
             data-testid="overview-open-archived-boards"
-            class="flex size-9 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+            class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.OVERVIEW.ARCHIVED_BOARDS')"
             :title="t('KANBAN.OVERVIEW.ARCHIVED_BOARDS')"
             @click="openArchivedBoards"
@@ -160,7 +158,7 @@ onMounted(async () => {
             </h2>
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+              class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
               :aria-label="t('KANBAN.ACTIONS.CLOSE')"
               @click="showArchivedBoards = false"
             >
@@ -202,7 +200,7 @@ onMounted(async () => {
               <button
                 type="button"
                 :data-testid="`overview-restore-board-${board.id}`"
-                class="flex size-9 flex-none items-center justify-center rounded-md text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+                class="flex size-9 flex-none items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
                 :disabled="Boolean(restoringBoardId)"
                 :aria-label="t('KANBAN.OVERVIEW.RESTORE_BOARD')"
                 :title="t('KANBAN.OVERVIEW.RESTORE_BOARD')"
@@ -234,7 +232,7 @@ onMounted(async () => {
         v-else-if="error"
         class="flex flex-col items-center gap-4 py-16 text-center"
       >
-        <p class="text-sm text-n-ruby-11">
+        <p class="text-sm text-n-ruby-11" role="alert">
           {{ t('KANBAN.OVERVIEW.ERROR') }}
         </p>
         <Button
@@ -258,24 +256,27 @@ onMounted(async () => {
         </p>
       </div>
 
-      <div v-else-if="hasBoards" class="flex flex-col gap-3">
+      <div
+        v-else-if="hasBoards"
+        class="overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
+      >
         <button
           v-for="board in boards"
           :key="board.id"
           type="button"
           data-testid="overview-board-card"
-          class="group flex w-full flex-col gap-5 rounded-lg border border-n-weak bg-n-surface-2 p-5 text-left transition-colors hover:border-n-brand hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+          class="group flex w-full flex-col gap-3 border-b border-n-weak bg-n-solid-1 p-3 text-left transition-colors last:border-b-0 hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
           @click="openBoard(board.id)"
         >
           <div
-            class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+            class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
           >
-            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-              <span class="truncate text-base font-semibold text-n-slate-12">
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <span class="truncate text-sm font-semibold text-n-slate-12">
                 {{ board.name }}
               </span>
               <span
-                class="inline-flex items-center rounded-full bg-n-alpha-2 px-2.5 py-1 text-xs font-medium text-n-slate-11"
+                class="inline-flex items-center rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs font-medium text-n-slate-11"
                 data-testid="overview-cards-count"
               >
                 {{
@@ -286,11 +287,11 @@ onMounted(async () => {
               </span>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+            <div class="flex flex-wrap items-center gap-2 lg:justify-end">
               <div class="flex items-center" data-testid="overview-agent-list">
                 <template v-if="boardVisibilityMode(board) === 'all_agents'">
                   <span
-                    class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2.5 py-1 text-xs font-medium text-n-slate-11"
+                    class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-0.5 text-xs font-medium text-n-slate-11"
                   >
                     <i class="i-lucide-users size-3.5" />
                     {{ t('KANBAN.SETTINGS.AGENTS.ALL') }}
@@ -326,7 +327,7 @@ onMounted(async () => {
               >
                 <template v-if="boardInboxScopeMode(board) === 'all_inboxes'">
                   <span
-                    class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2.5 py-1 text-xs font-medium text-n-slate-11"
+                    class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-0.5 text-xs font-medium text-n-slate-11"
                     data-testid="overview-inbox-pill"
                   >
                     <i class="i-lucide-inbox size-3.5" />
@@ -363,13 +364,13 @@ onMounted(async () => {
 
           <div
             v-if="boardStages(board).length"
-            class="flex flex-wrap gap-2"
+            class="flex flex-wrap gap-1.5"
             data-testid="overview-stage-list"
           >
             <span
               v-for="stage in boardStages(board)"
               :key="stage.id"
-              class="inline-flex max-w-full items-center gap-2 rounded-full border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs font-medium text-n-slate-11"
+              class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-11"
               data-testid="overview-stage-pill"
             >
               <span

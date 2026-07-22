@@ -594,6 +594,28 @@ const openConversation = () => {
   emit('openConversation', card.value);
 };
 
+const trapModalFocus = event => {
+  if (event.key !== 'Tab') return;
+
+  const focusableElements = [
+    ...event.currentTarget.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href]'
+    ),
+  ];
+  if (!focusableElements.length) return;
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+};
+
 onMounted(() => {
   loadCard();
   loadLabels();
@@ -608,6 +630,7 @@ onMounted(() => {
         ? 'flex h-full max-h-full w-full flex-col overflow-hidden bg-n-background'
         : 'mx-auto flex max-h-[94vh] w-full max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl bg-n-background 2xl:max-w-[88rem]'
     "
+    @keydown="trapModalFocus"
   >
     <div
       class="flex items-start justify-between gap-4 border-b border-n-weak px-5 py-4"
@@ -629,7 +652,7 @@ onMounted(() => {
           v-if="canManageFields"
           type="button"
           data-testid="kanban-opportunity-manage-fields"
-          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.MANAGE_FIELDS')"
           :title="t('KANBAN.OPPORTUNITY_DETAILS.MANAGE_FIELDS')"
           @click="emit('manageFields')"
@@ -639,7 +662,7 @@ onMounted(() => {
         <button
           type="button"
           data-testid="kanban-opportunity-close"
-          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.CLOSE')"
           @click="emit('close')"
         >
@@ -661,6 +684,7 @@ onMounted(() => {
         v-else-if="loadError"
         data-testid="kanban-opportunity-load-error"
         class="mb-0 text-sm text-n-ruby-11"
+        role="alert"
       >
         {{ loadError }}
       </p>
@@ -672,15 +696,18 @@ onMounted(() => {
         @submit.prevent="saveCard"
       >
         <nav
-          class="flex min-w-0 gap-1 overflow-x-auto border-b border-n-weak"
+          class="sticky top-0 z-10 flex min-w-0 gap-1 overflow-x-auto border-b border-n-weak bg-n-background"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL')"
+          role="tablist"
         >
           <button
             v-for="tab in customFieldTabs"
             :key="tab.key"
             type="button"
             :data-testid="`kanban-opportunity-tab-${tab.key}`"
-            class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium"
+            class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
+            role="tab"
+            :aria-selected="activeTabKey === tab.key"
             :class="
               activeTabKey === tab.key
                 ? 'border-n-brand text-n-brand'
@@ -694,7 +721,7 @@ onMounted(() => {
             v-if="canManageFields"
             type="button"
             data-testid="kanban-opportunity-add-tab"
-            class="flex size-9 shrink-0 items-center justify-center border-b-2 border-transparent text-n-slate-11 hover:text-n-brand"
+            class="flex size-9 shrink-0 items-center justify-center border-b-2 border-transparent text-n-slate-11 hover:text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
             :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
             :title="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
             @click="emit('manageFields', { action: 'newTab' })"
@@ -704,7 +731,9 @@ onMounted(() => {
           <button
             type="button"
             :data-testid="`kanban-opportunity-tab-${timelineTab.key}`"
-            class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium"
+            class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
+            role="tab"
+            :aria-selected="activeTabKey === timelineTab.key"
             :class="
               activeTabKey === timelineTab.key
                 ? 'border-n-brand text-n-brand'
@@ -720,7 +749,7 @@ onMounted(() => {
           data-testid="kanban-opportunity-layout"
           :class="
             drawerMode
-              ? 'grid min-w-0 gap-5'
+              ? 'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]'
               : 'grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]'
           "
         >
@@ -768,7 +797,7 @@ onMounted(() => {
                       v-model="description"
                       rows="3"
                       data-testid="kanban-opportunity-description"
-                      class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                      class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
                       :placeholder="
                         t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
                       "
@@ -808,7 +837,11 @@ onMounted(() => {
               <p v-if="isLoadingTimeline" class="mb-0 text-sm text-n-slate-11">
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
               </p>
-              <p v-else-if="timelineError" class="mb-0 text-sm text-n-ruby-11">
+              <p
+                v-else-if="timelineError"
+                class="mb-0 text-sm text-n-ruby-11"
+                role="alert"
+              >
                 {{ timelineError }}
               </p>
               <p
@@ -836,7 +869,7 @@ onMounted(() => {
             <section
               v-if="hasCustomFields"
               data-testid="kanban-opportunity-custom-fields"
-              class="grid gap-3 rounded-lg border border-n-weak p-3"
+              class="grid gap-3"
             >
               <h3 class="mb-0 text-sm font-medium text-n-slate-12">
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS') }}
@@ -993,7 +1026,7 @@ onMounted(() => {
             </section>
           </section>
 
-          <aside class="grid min-w-0 content-start gap-4">
+          <aside class="grid min-w-0 content-start gap-2">
             <section class="grid gap-3 rounded-lg border border-n-weak p-3">
               <h3 class="mb-0 text-sm font-medium text-n-slate-12">
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.STAGE') }}
@@ -1060,7 +1093,7 @@ onMounted(() => {
                 <button
                   type="button"
                   data-testid="kanban-opportunity-save-labels"
-                  class="flex size-7 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                   :aria-label="
                     isSavingLabels
                       ? t('KANBAN.OPPORTUNITY_DETAILS.SAVING_LABELS')
@@ -1077,6 +1110,7 @@ onMounted(() => {
                 v-if="labelsLoadError"
                 data-testid="kanban-opportunity-labels-load-error"
                 class="mb-0 text-sm text-n-ruby-11"
+                role="alert"
               >
                 {{ labelsLoadError }}
               </p>
@@ -1124,6 +1158,7 @@ onMounted(() => {
                 v-if="labelsSaveError"
                 data-testid="kanban-opportunity-labels-save-error"
                 class="mb-0 text-sm text-n-ruby-11"
+                role="alert"
               >
                 {{ labelsSaveError }}
               </p>
@@ -1311,7 +1346,11 @@ onMounted(() => {
                     {{ option }}
                   </option>
                 </select>
-                <span v-if="lostReasonError" class="text-xs text-n-ruby-11">
+                <span
+                  v-if="lostReasonError"
+                  class="text-xs text-n-ruby-11"
+                  role="alert"
+                >
                   {{ lostReasonError }}
                 </span>
               </label>
@@ -1333,6 +1372,7 @@ onMounted(() => {
           v-if="saveError"
           data-testid="kanban-opportunity-save-error"
           class="mb-0 text-sm text-n-ruby-11"
+          role="alert"
         >
           {{ saveError }}
         </p>

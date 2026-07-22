@@ -32,6 +32,34 @@ const closeDialog = () => {
   emit('close');
 };
 
+const handleDialogKeydown = event => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeDialog();
+    return;
+  }
+
+  if (event.key !== 'Tab') return;
+
+  const focusableElements = [
+    ...event.currentTarget.querySelectorAll(
+      'input:not([disabled]), select:not([disabled]), button:not([disabled])'
+    ),
+  ];
+  if (!focusableElements.length) return;
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+};
+
 const createBoard = () => {
   const name = boardName.value.trim();
   if (!name || props.isCreating) return;
@@ -61,14 +89,15 @@ watch(
       data-testid="kanban-create-board-dialog"
       role="dialog"
       aria-modal="true"
-      :aria-label="t('KANBAN.OVERVIEW.CREATE_BOARD_MODAL_TITLE')"
-      @keydown.escape.prevent="closeDialog"
+      aria-labelledby="kanban-create-board-title"
+      @keydown="handleDialogKeydown"
     >
       <form
         class="w-full max-w-sm rounded-lg border border-n-weak bg-n-surface-1 p-4 shadow-xl"
         @submit.prevent="createBoard"
       >
         <label
+          id="kanban-create-board-title"
           for="kanban-create-board-name"
           class="mb-2 block text-sm font-medium text-n-slate-12"
         >
@@ -108,6 +137,7 @@ watch(
         <p
           v-if="error"
           class="mt-2 text-sm text-n-ruby-11"
+          role="alert"
           data-testid="kanban-create-board-error"
         >
           {{ error }}

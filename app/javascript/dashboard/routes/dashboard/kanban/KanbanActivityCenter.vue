@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
@@ -12,6 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'openDetails']);
 const { t } = useI18n();
 const activeView = ref('today');
+const activityCloseButton = ref(null);
 
 const cards = computed(() =>
   props.stages.flatMap(stage =>
@@ -94,6 +95,44 @@ const activityTabs = computed(() => [
   { key: 'missing', label: t('KANBAN.ACTIVITY.MISSING') },
   { key: 'owner', label: t('KANBAN.ACTIVITY.BY_OWNER') },
 ]);
+
+const handleActivityKeydown = event => {
+  if (event.key !== 'Escape') return;
+
+  event.preventDefault();
+  emit('close');
+};
+
+const trapActivityFocus = event => {
+  if (event.key !== 'Tab') return;
+
+  const focusableElements = [
+    ...event.currentTarget.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href]'
+    ),
+  ];
+  if (!focusableElements.length) return;
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+};
+
+onMounted(() => {
+  activityCloseButton.value?.focus();
+  window.addEventListener('keydown', handleActivityKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleActivityKeydown);
+});
 </script>
 
 <template>
@@ -112,6 +151,7 @@ const activityTabs = computed(() => [
     />
     <aside
       class="relative flex h-full w-full max-w-[34rem] flex-col bg-n-background shadow-xl"
+      @keydown="trapActivityFocus"
     >
       <header
         class="flex items-start justify-between gap-3 border-b border-n-weak px-5 py-4"
@@ -127,8 +167,9 @@ const activityTabs = computed(() => [
           </h2>
         </div>
         <button
+          ref="activityCloseButton"
           type="button"
-          class="flex size-9 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+          class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.ACTIONS.CLOSE')"
           @click="emit('close')"
         >
@@ -139,13 +180,16 @@ const activityTabs = computed(() => [
       <nav
         class="flex gap-1 overflow-x-auto border-b border-n-weak px-5"
         :aria-label="t('KANBAN.ACTIVITY.TABS_LABEL')"
+        role="tablist"
       >
         <button
           v-for="item in activityTabs"
           :key="item.key"
           type="button"
           :data-testid="`kanban-activity-tab-${item.key}`"
-          class="whitespace-nowrap border-b-2 px-2.5 py-3 text-sm font-medium"
+          class="whitespace-nowrap border-b-2 px-2.5 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+          role="tab"
+          :aria-selected="activeView === item.key"
           :class="
             activeView === item.key
               ? 'border-n-brand text-n-brand'
@@ -176,7 +220,7 @@ const activityTabs = computed(() => [
               v-for="card in group.cards"
               :key="card.id"
               type="button"
-              class="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-left hover:bg-n-alpha-2"
+              class="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-left outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
               @click="emit('openDetails', card)"
             >
               <span class="min-w-0 truncate text-sm text-n-slate-12">
@@ -195,7 +239,7 @@ const activityTabs = computed(() => [
             :key="card.id"
             type="button"
             :data-testid="`kanban-activity-card-${card.id}`"
-            class="grid gap-1 rounded-lg border border-n-weak p-3 text-left hover:border-n-brand hover:bg-n-alpha-1"
+            class="grid gap-1 rounded-lg border border-n-weak p-3 text-left outline-none hover:border-n-brand hover:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
             @click="emit('openDetails', card)"
           >
             <span class="truncate text-sm font-medium text-n-slate-12">

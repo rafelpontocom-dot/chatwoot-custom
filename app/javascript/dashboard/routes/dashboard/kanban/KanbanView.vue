@@ -39,6 +39,7 @@ const selectedBoard = ref(null);
 const isFetchingBoard = ref(false);
 const isCreatingStage = ref(false);
 const selectedOpportunityCardId = ref(null);
+const opportunityTriggerElement = ref(null);
 const viewMode = ref('kanban');
 const showActivityCenter = ref(false);
 const showFiltersPanel = ref(false);
@@ -1294,11 +1295,19 @@ const openDetails = card => {
     return;
   }
 
+  opportunityTriggerElement.value = document.activeElement;
   selectedOpportunityCardId.value = card.id;
 };
 
 const closeOpportunityDetails = () => {
   selectedOpportunityCardId.value = null;
+};
+
+const handleOpportunityKeydown = event => {
+  if (event.key === 'Escape' && selectedOpportunityCardId.value) {
+    event.preventDefault();
+    closeOpportunityDetails();
+  }
 };
 
 const openFieldSettings = ({ action } = {}) => {
@@ -1403,13 +1412,27 @@ watch(activeBoardId, (boardId, previousBoardId) => {
   showBoard(boardId);
 });
 
+watch(selectedOpportunityCardId, async cardId => {
+  if (cardId) {
+    await nextTick();
+    document.querySelector('[data-testid="kanban-opportunity-close"]')?.focus();
+    return;
+  }
+
+  await nextTick();
+  opportunityTriggerElement.value?.focus?.();
+  opportunityTriggerElement.value = null;
+});
+
 onMounted(() => {
   emitter.on(BUS_EVENTS.KANBAN_REALTIME_EVENT, handleRealtimeKanbanEvent);
+  window.addEventListener('keydown', handleOpportunityKeydown);
   fetchBoards();
 });
 
 onUnmounted(() => {
   emitter.off(BUS_EVENTS.KANBAN_REALTIME_EVENT, handleRealtimeKanbanEvent);
+  window.removeEventListener('keydown', handleOpportunityKeydown);
 });
 </script>
 
@@ -1424,7 +1447,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   data-testid="kanban-board-switcher"
-                  class="inline-flex max-w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xl font-medium text-n-slate-12 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="inline-flex max-w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xl font-medium text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!hasBoards"
                   @click="
                     isBoardDropdownOpen =
@@ -1443,7 +1466,7 @@ onUnmounted(() => {
                     v-for="board in boards"
                     :key="board.id"
                     type="button"
-                    class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm text-n-slate-12 hover:bg-n-alpha-1"
+                    class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-1 focus:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                     @click="selectBoard(board.id)"
                   >
                     <span
@@ -1466,7 +1489,7 @@ onUnmounted(() => {
               <button
                 type="button"
                 data-testid="kanban-open-archived-cards"
-                class="flex size-10 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+                class="flex size-10 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
                 :aria-label="t('KANBAN.ARCHIVE.OPEN')"
                 :title="t('KANBAN.ARCHIVE.OPEN')"
                 @click="openArchivedCards"
@@ -1476,7 +1499,7 @@ onUnmounted(() => {
               <button
                 type="button"
                 data-testid="kanban-create-stage-toggle"
-                class="flex items-center gap-1 rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                class="flex items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="isCreatingStage"
                 @click="createStage"
               >
@@ -1486,7 +1509,7 @@ onUnmounted(() => {
               <button
                 type="button"
                 data-testid="kanban-quick-create-opportunity"
-                class="flex items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:opacity-50"
+                class="flex items-center gap-1 rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand/90 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="!firstStageId"
                 @click="openQuickOpportunityPicker"
               >
@@ -1497,7 +1520,7 @@ onUnmounted(() => {
                 v-if="isAdmin"
                 type="button"
                 data-testid="kanban-board-settings-button"
-                class="flex size-10 items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2"
+                class="flex size-10 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
                 :aria-label="t('KANBAN.ACTIONS.BOARD_SETTINGS')"
                 :title="t('KANBAN.ACTIONS.BOARD_SETTINGS')"
                 @click="openBoardSettings"
@@ -1526,7 +1549,7 @@ onUnmounted(() => {
                   v-model="searchInput"
                   type="search"
                   data-testid="kanban-search-input"
-                  class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none"
+                  class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/30"
                   :placeholder="t('KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
                   @keyup.enter="applySearch"
                 />
@@ -1539,7 +1562,7 @@ onUnmounted(() => {
               <select
                 :value="selectedSort"
                 data-testid="kanban-sort-select"
-                class="h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none"
+                class="h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
                 :aria-label="t('KANBAN.FILTERS.SORT_LABEL')"
                 @change="updateSort"
               >
@@ -1559,7 +1582,7 @@ onUnmounted(() => {
               <select
                 :value="selectedSavedFilterId"
                 data-testid="kanban-saved-filter-select"
-                class="h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none"
+                class="h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
                 :aria-label="t('KANBAN.FILTERS.SAVED_FILTERS')"
                 @change="applySavedFilter"
               >
@@ -1585,7 +1608,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   data-testid="kanban-view-kanban"
-                  class="flex size-8 items-center justify-center rounded-md"
+                  class="flex size-8 items-center justify-center rounded-md outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                   :class="
                     viewMode === 'kanban'
                       ? 'bg-n-alpha-2 text-n-brand'
@@ -1600,7 +1623,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   data-testid="kanban-view-list"
-                  class="flex size-8 items-center justify-center rounded-md"
+                  class="flex size-8 items-center justify-center rounded-md outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                   :class="
                     viewMode === 'list'
                       ? 'bg-n-alpha-2 text-n-brand'
@@ -1616,7 +1639,7 @@ onUnmounted(() => {
               <button
                 type="button"
                 data-testid="kanban-open-activity-center"
-                class="flex size-9 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+                class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                 :aria-label="t('KANBAN.ACTIVITY.OPEN')"
                 :title="t('KANBAN.ACTIVITY.OPEN')"
                 @click="showActivityCenter = true"
@@ -1626,13 +1649,13 @@ onUnmounted(() => {
               <button
                 type="button"
                 data-testid="kanban-toggle-filters"
-                class="flex items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2.5 py-2 text-xs font-medium text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+                class="flex items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2.5 py-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                 :aria-expanded="showFiltersPanel"
                 aria-controls="kanban-filter-panel"
                 @click="showFiltersPanel = !showFiltersPanel"
               >
                 <i class="i-lucide-sliders-horizontal size-4" />
-                {{ t('KANBAN.FILTERS.OPEN') }}
+                {{ t('KANBAN.FILTERS.OPEN_FILTERS') }}
                 <span
                   v-if="activeFilterCount"
                   class="flex size-5 items-center justify-center rounded-full bg-n-brand text-[11px] text-white"
@@ -1646,7 +1669,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   data-testid="kanban-rename-saved-filter"
-                  class="flex size-10 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+                  class="flex size-10 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
                   :aria-label="t('KANBAN.FILTERS.RENAME_FILTER')"
                   :title="t('KANBAN.FILTERS.RENAME_FILTER')"
                   @click="openRenameSavedFilter"
@@ -1656,7 +1679,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   data-testid="kanban-delete-saved-filter"
-                  class="flex size-10 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2"
+                  class="flex size-10 items-center justify-center rounded-md text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8"
                   :aria-label="t('KANBAN.FILTERS.DELETE_FILTER')"
                   :title="t('KANBAN.FILTERS.DELETE_FILTER')"
                   @click="showDeleteSavedFilterConfirmation = true"
@@ -1668,7 +1691,7 @@ onUnmounted(() => {
                 v-if="hasActiveFilters"
                 type="button"
                 data-testid="kanban-save-filter"
-                class="flex size-10 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+                class="flex size-10 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
                 :aria-label="t('KANBAN.FILTERS.SAVE_FILTER')"
                 :title="t('KANBAN.FILTERS.SAVE_FILTER')"
                 @click="toggleSaveFilterForm"
@@ -1687,7 +1710,7 @@ onUnmounted(() => {
                 v-if="hasActiveFilters"
                 type="button"
                 data-testid="kanban-clear-filters"
-                class="flex size-10 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+                class="flex size-10 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
                 :aria-label="t('KANBAN.FILTERS.CLEAR')"
                 :title="t('KANBAN.FILTERS.CLEAR')"
                 @click="clearFilters"
@@ -1746,7 +1769,7 @@ onUnmounted(() => {
                     :key="option.value || 'all'"
                     type="button"
                     :data-testid="`kanban-next-action-filter-${option.value || 'all'}`"
-                    class="rounded-md border px-2.5 py-1.5 text-xs font-medium transition"
+                    class="rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition focus:ring-2 focus:ring-n-brand/40"
                     :class="
                       selectedNextActionFilter === option.value
                         ? 'border-n-brand bg-n-brand text-white'
@@ -1768,7 +1791,7 @@ onUnmounted(() => {
                     :key="option.value || 'all'"
                     type="button"
                     :data-testid="`kanban-status-filter-${option.value || 'all'}`"
-                    class="rounded-md border px-2.5 py-1.5 text-xs font-medium transition"
+                    class="rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition focus:ring-2 focus:ring-n-brand/40"
                     :class="
                       selectedStatusFilter === option.value
                         ? 'border-n-brand bg-n-brand text-white'
@@ -1821,7 +1844,7 @@ onUnmounted(() => {
               v-if="showRenameSavedFilterForm"
               type="button"
               data-testid="kanban-confirm-rename-saved-filter"
-              class="flex size-9 items-center justify-center rounded-md text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+              class="flex size-9 items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
               :disabled="!savedFilterRename.trim()"
               :aria-label="t('KANBAN.FILTERS.RENAME_FILTER')"
               @click="renameSavedFilter"
@@ -1832,7 +1855,7 @@ onUnmounted(() => {
               v-else
               type="button"
               data-testid="kanban-save-filter-confirm"
-              class="flex size-9 items-center justify-center rounded-md text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+              class="flex size-9 items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
               :disabled="!savedFilterName.trim()"
               :aria-label="t('KANBAN.FILTERS.SAVE_FILTER')"
               @click="saveCurrentFilter"
@@ -1900,7 +1923,7 @@ onUnmounted(() => {
         </strong>
         <select
           data-testid="kanban-bulk-stage-select"
-          class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12"
+          class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           :aria-label="t('KANBAN.BULK.MOVE')"
           :disabled="isBulkUpdating"
           @change="updateBulkStage"
@@ -1912,7 +1935,7 @@ onUnmounted(() => {
         </select>
         <select
           data-testid="kanban-bulk-owner-select"
-          class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12"
+          class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           :aria-label="t('KANBAN.BULK.ASSIGN')"
           :disabled="isBulkUpdating"
           @change="updateBulkOwner"
@@ -1929,7 +1952,7 @@ onUnmounted(() => {
         <button
           type="button"
           data-testid="kanban-bulk-won"
-          class="flex size-9 items-center justify-center rounded-md text-n-teal-11 hover:bg-n-teal-2"
+          class="flex size-9 items-center justify-center rounded-md text-n-teal-11 outline-none hover:bg-n-teal-2 focus:ring-2 focus:ring-n-teal-8"
           :disabled="isBulkUpdating"
           :aria-label="t('KANBAN.BULK.MARK_WON')"
           :title="t('KANBAN.BULK.MARK_WON')"
@@ -1940,7 +1963,7 @@ onUnmounted(() => {
         <select
           v-model="bulkLostReason"
           data-testid="kanban-bulk-lost-reason"
-          class="h-9 max-w-44 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12"
+          class="h-9 max-w-44 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           :aria-label="t('KANBAN.BULK.LOST_REASON')"
           :disabled="isBulkUpdating"
         >
@@ -1956,7 +1979,7 @@ onUnmounted(() => {
         <button
           type="button"
           data-testid="kanban-bulk-lost"
-          class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2 disabled:opacity-50"
+          class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8 disabled:opacity-50"
           :disabled="isBulkUpdating || !bulkLostReason"
           :aria-label="t('KANBAN.BULK.MARK_LOST')"
           :title="t('KANBAN.BULK.MARK_LOST')"
@@ -1967,7 +1990,7 @@ onUnmounted(() => {
         <button
           type="button"
           data-testid="kanban-bulk-archive"
-          class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-2"
+          class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8"
           :disabled="isBulkUpdating"
           :aria-label="t('KANBAN.BULK.ARCHIVE')"
           :title="t('KANBAN.BULK.ARCHIVE')"
@@ -1977,7 +2000,7 @@ onUnmounted(() => {
         </button>
         <button
           type="button"
-          class="flex size-9 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+          class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.BULK.CLEAR')"
           @click="clearCardSelection"
         >
@@ -2079,7 +2102,7 @@ onUnmounted(() => {
                     />
                     <button
                       type="submit"
-                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="
                         !String(stageNames[stage.id] || '').trim() ||
                         !!activeActionKey
@@ -2091,7 +2114,7 @@ onUnmounted(() => {
                     </button>
                     <button
                       type="button"
-                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white hover:bg-white/20"
+                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70"
                       :aria-label="t('KANBAN.ACTIONS.CANCEL')"
                       :title="t('KANBAN.ACTIONS.CANCEL')"
                       @click="cancelEditingStage"
@@ -2142,7 +2165,7 @@ onUnmounted(() => {
                   <div class="flex flex-shrink-0 gap-1">
                     <button
                       type="button"
-                      class="flex size-8 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-8 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
                       :aria-label="t('KANBAN.ACTIONS.EDIT_STAGE')"
                       @click="startEditingStage(stage)"
@@ -2151,7 +2174,7 @@ onUnmounted(() => {
                     </button>
                     <button
                       type="button"
-                      class="flex size-8 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-8 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
                       :aria-label="t('KANBAN.ACTIONS.REMOVE_STAGE')"
                       @click="openRemoveStageConfirmation(stage)"
@@ -2169,7 +2192,7 @@ onUnmounted(() => {
                   type="button"
                   data-testid="kanban-add-item-button"
                   :data-stage-id="stage.id"
-                  class="no-drag flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-n-weak bg-n-alpha-1 px-3 py-2 text-sm font-medium text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="no-drag flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-n-weak bg-n-alpha-1 px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!!activeActionKey"
                   :aria-expanded="activeAddItemStageId === stage.id"
                   :aria-controls="`kanban-add-item-panel-${stage.id}`"
@@ -2239,7 +2262,7 @@ onUnmounted(() => {
                   type="button"
                   data-testid="kanban-load-more-cards"
                   :data-stage-id="stage.id"
-                  class="no-drag flex w-full items-center justify-center gap-1 rounded-md border border-n-weak bg-n-alpha-1 px-3 py-2 text-sm font-medium text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="no-drag flex w-full items-center justify-center gap-1 rounded-md border border-n-weak bg-n-alpha-1 px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="isStageCardsLoading(stage.id)"
                   @click="loadMoreStageCards(stage)"
                 >
@@ -2347,7 +2370,7 @@ onUnmounted(() => {
             v-if="selectedArchivedCardIds.length"
             type="button"
             data-testid="kanban-bulk-restore"
-            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
             :disabled="Boolean(restoringCardId)"
             @click="showBulkRestoreConfirmation = true"
           >
@@ -2356,7 +2379,7 @@ onUnmounted(() => {
           </button>
           <button
             type="button"
-            class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+            class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.ACTIONS.CLOSE')"
             @click="closeArchivedCards"
           >
@@ -2398,7 +2421,7 @@ onUnmounted(() => {
             <button
               type="button"
               :data-testid="`kanban-restore-card-${card.id}`"
-              class="flex size-9 flex-none items-center justify-center rounded-md text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+              class="flex size-9 flex-none items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
               :disabled="Boolean(restoringCardId)"
               :aria-label="t('KANBAN.ARCHIVE.RESTORE')"
               :title="t('KANBAN.ARCHIVE.RESTORE')"
@@ -2469,7 +2492,7 @@ onUnmounted(() => {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="rounded-md px-3 py-2 text-sm font-medium text-n-slate-11 hover:bg-n-alpha-2"
+            class="rounded-md px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             @click="closeAssistedMove"
           >
             {{ t('KANBAN.ACTIONS.CANCEL') }}
@@ -2477,7 +2500,7 @@ onUnmounted(() => {
           <button
             type="button"
             data-testid="kanban-assisted-move-confirm"
-            class="rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white hover:bg-n-brand-hover disabled:opacity-50"
+            class="rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand-hover focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
             :disabled="isPersistingCardDrag"
             @click="confirmAssistedMove"
           >
@@ -2558,7 +2581,7 @@ onUnmounted(() => {
           </div>
           <button
             type="button"
-            class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2"
+            class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.ACTIONS.CLOSE')"
             @click="showQuickCreate = false"
           >

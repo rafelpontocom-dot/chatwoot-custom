@@ -184,10 +184,15 @@ const openConversation = event => {
 
 <template>
   <article
-    class="card-drag-handle group relative cursor-grab rounded-md border border-n-weak bg-n-surface-1 p-2"
+    class="card-drag-handle group relative cursor-grab rounded-md border border-n-weak bg-n-surface-1 p-2 focus:outline-none focus:ring-2 focus:ring-n-brand/40"
     :data-card-id="card.id"
     :data-conversation-id="card.conversationId"
+    role="button"
+    tabindex="0"
+    :aria-label="contactName"
     @click="openDetails"
+    @keydown.enter.prevent="openDetails"
+    @keydown.space.prevent="openDetails"
   >
     <input
       type="checkbox"

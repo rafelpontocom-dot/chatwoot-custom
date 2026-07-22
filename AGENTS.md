@@ -121,6 +121,15 @@ Chatwoot is a Ruby on Rails (Ruby `3.4.4`) monolith with a Vue 3 frontend bundle
 - **Frontend**:
   - Use `components-next/` for message bubbles (the rest is being deprecated)
 
+## Kanban UI/UX Review
+
+For Kanban, opportunity, and CRM-facing UI work, load these project skills together:
+- `ui-ux-pro-max`: define the visual system, density, hierarchy, responsive layout, and interaction polish for a focused CRM workspace.
+- `frappe-ui-patterns`: guide pipeline, list/detail, activity, bulk-action, and configuration patterns used by CRM products.
+- `accessibility-compliance`: audit semantic controls, keyboard navigation, modal focus, screen-reader feedback, contrast, and responsive behavior.
+
+Apply them as a single review workflow. Keep the board header compact, use progressive disclosure for filters and configuration, and separate field administration from opportunity editing. Cards and dialogs must preserve stable dimensions, readable hierarchy, and clear empty/loading/error states. Drag-and-drop must distinguish click from drag, show a drop target, update optimistically, and restore the original position with an actionable error when the request fails. Every important action must also have a keyboard-accessible alternative.
+
 ## Ruby Best Practices
 
 - Use compact `module/class` definitions; avoid nested styles

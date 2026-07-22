@@ -68,13 +68,11 @@ const lastActivity = card =>
 <template>
   <section
     data-testid="kanban-list-view"
-    class="min-h-0 flex-1 overflow-auto p-4 lg:p-6"
+    class="min-h-0 flex-1 overflow-auto p-3 lg:p-6"
   >
-    <div
-      class="min-w-[48rem] overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
-    >
+    <div class="overflow-hidden rounded-lg border border-n-weak bg-n-solid-1">
       <div
-        class="grid grid-cols-[2.5rem_minmax(16rem,1.5fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(9rem,0.9fr)_minmax(9rem,0.8fr)_2.5rem] items-center gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 text-xs font-medium text-n-slate-11"
+        class="hidden grid-cols-[2.5rem_minmax(16rem,1.5fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(9rem,0.9fr)_minmax(9rem,0.8fr)_2.5rem] items-center gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 text-xs font-medium text-n-slate-11 md:grid"
       >
         <span class="sr-only">{{ t('KANBAN.LIST.SELECT') }}</span>
         <span>{{ t('KANBAN.LIST.OPPORTUNITY') }}</span>
@@ -90,7 +88,7 @@ const lastActivity = card =>
           v-for="card in rows"
           :key="card.id"
           :data-testid="`kanban-list-row-${card.id}`"
-          class="grid grid-cols-[2.5rem_minmax(16rem,1.5fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(9rem,0.9fr)_minmax(9rem,0.8fr)_2.5rem] items-center gap-3 px-4 py-3 text-sm hover:bg-n-alpha-1"
+          class="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-2 px-3 py-3 text-sm hover:bg-n-alpha-1 md:grid-cols-[2.5rem_minmax(16rem,1.5fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(9rem,0.9fr)_minmax(9rem,0.8fr)_2.5rem] md:gap-3 md:px-4"
         >
           <input
             type="checkbox"
@@ -103,7 +101,7 @@ const lastActivity = card =>
           />
           <button
             type="button"
-            class="min-w-0 text-left"
+            class="min-w-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand/40"
             @click="emit('openDetails', card)"
           >
             <span class="block truncate font-medium text-n-slate-12">{{
@@ -115,17 +113,42 @@ const lastActivity = card =>
               {{ lastActivity(card) }}
             </span>
           </button>
-          <span class="truncate text-n-slate-11">{{ card.stageName }}</span>
-          <span class="truncate font-medium text-n-slate-12">{{
-            amount(card)
-          }}</span>
-          <span class="truncate" :class="nextActionClass(card)">{{
-            nextAction(card)
-          }}</span>
-          <span class="truncate text-n-slate-11">{{ ownerName(card) }}</span>
+          <span
+            class="col-start-2 flex min-w-0 items-center justify-between gap-3 text-n-slate-11 md:col-auto md:block"
+          >
+            <span class="text-xs text-n-slate-10 md:hidden">
+              {{ t('KANBAN.LIST.STAGE') }}
+            </span>
+            <span class="truncate">{{ card.stageName }}</span>
+          </span>
+          <span
+            class="col-start-2 flex min-w-0 items-center justify-between gap-3 font-medium text-n-slate-12 md:col-auto md:block"
+          >
+            <span class="text-xs font-normal text-n-slate-10 md:hidden">
+              {{ t('KANBAN.LIST.VALUE') }}
+            </span>
+            <span class="truncate">{{ amount(card) }}</span>
+          </span>
+          <span
+            class="col-start-2 flex min-w-0 items-center justify-between gap-3 md:col-auto md:block"
+            :class="nextActionClass(card)"
+          >
+            <span class="text-xs text-n-slate-10 md:hidden">
+              {{ t('KANBAN.LIST.NEXT_ACTION') }}
+            </span>
+            <span class="truncate">{{ nextAction(card) }}</span>
+          </span>
+          <span
+            class="col-start-2 flex min-w-0 items-center justify-between gap-3 text-n-slate-11 md:col-auto md:block"
+          >
+            <span class="text-xs text-n-slate-10 md:hidden">
+              {{ t('KANBAN.LIST.OWNER') }}
+            </span>
+            <span class="truncate">{{ ownerName(card) }}</span>
+          </span>
           <button
             type="button"
-            class="flex size-8 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+            class="col-start-2 flex size-8 items-center justify-center self-end justify-self-end rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 md:col-auto md:self-auto"
             :aria-label="t('KANBAN.LIST.OPEN')"
             :title="t('KANBAN.LIST.OPEN')"
             @click="emit('openConversation', card)"

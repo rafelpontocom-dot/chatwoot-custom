@@ -118,14 +118,15 @@ const resetSubmission = () => {
   subjectError.value = '';
   creationError.value = '';
   possibleDuplicate.value = null;
-  possibleDuplicate.value = null;
   isSaving.value = false;
 };
 
 const contactDisplayName = contact =>
-  contact?.name?.trim() || `Contact #${contact?.id}`;
+  contact?.name?.trim() ||
+  t('KANBAN.ADD_ITEM.CONTACT_FALLBACK', { id: contact?.id });
 
-const inboxDisplayName = inbox => inbox?.name?.trim() || `Inbox #${inbox?.id}`;
+const inboxDisplayName = inbox =>
+  inbox?.name?.trim() || t('KANBAN.ADD_ITEM.INBOX_FALLBACK', { id: inbox?.id });
 
 const defaultSubjectFor = (contact, inbox) =>
   `${contactDisplayName(contact)} - ${inboxDisplayName(inbox)}`;
@@ -183,7 +184,8 @@ const deriveInboxesFromConversations = conversations => {
     inboxesById.set(inboxId, {
       ...storeInbox,
       id: inboxId,
-      name: storeInbox.name || `Inbox #${inboxId}`,
+      name:
+        storeInbox.name || t('KANBAN.ADD_ITEM.INBOX_FALLBACK', { id: inboxId }),
       channelType: storeInbox.channelType || conversation.meta?.channel || '',
     });
   });
@@ -350,7 +352,7 @@ onUnmounted(() => {
             v-model="contactSearchQuery"
             type="search"
             data-testid="kanban-contact-search-input"
-            class="no-drag min-h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+            class="no-drag min-h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
             :placeholder="t('KANBAN.ADD_ITEM.PLACEHOLDER')"
             @input="onContactSearchInput"
           />
@@ -358,7 +360,7 @@ onUnmounted(() => {
       </div>
       <button
         type="button"
-        class="mt-1 flex size-8 flex-shrink-0 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+        class="mt-1 flex size-8 flex-shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
         :aria-label="t('KANBAN.ADD_ITEM.CLOSE')"
         @click="handleClose"
       >
@@ -380,7 +382,7 @@ onUnmounted(() => {
           </div>
           <button
             type="button"
-            class="flex size-7 flex-shrink-0 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+            class="flex size-7 flex-shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.ADD_ITEM.CLEAR_CONTACT')"
             @click="clearSelectedContact"
           >
@@ -402,6 +404,7 @@ onUnmounted(() => {
           v-else-if="inboxesError"
           data-testid="kanban-inboxes-error"
           class="mb-0 text-sm text-n-ruby-11"
+          role="alert"
         >
           {{ t('KANBAN.ADD_ITEM.INBOXES_ERROR') }}
         </p>
@@ -419,7 +422,7 @@ onUnmounted(() => {
             v-for="inbox in contactableInboxes"
             :key="inbox.id"
             type="button"
-            class="no-drag flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-n-alpha-2"
+            class="no-drag flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             :class="{
               'bg-n-alpha-2 ring-1 ring-n-brand':
                 selectedInbox?.id === inbox.id,
@@ -477,6 +480,7 @@ onUnmounted(() => {
             v-if="subjectError"
             data-testid="kanban-manual-card-subject-error"
             class="mb-0 text-sm text-n-ruby-11"
+            role="alert"
           >
             {{ subjectError }}
           </p>
@@ -484,6 +488,7 @@ onUnmounted(() => {
             v-if="creationError"
             data-testid="kanban-manual-card-error"
             class="mb-0 text-sm text-n-ruby-11"
+            role="alert"
           >
             {{ creationError }}
           </p>
@@ -506,7 +511,7 @@ onUnmounted(() => {
           <button
             type="submit"
             data-testid="kanban-manual-card-submit"
-            class="no-drag flex min-h-10 items-center justify-center rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            class="no-drag flex min-h-10 items-center justify-center rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="isSaving"
           >
             {{
@@ -530,6 +535,7 @@ onUnmounted(() => {
         v-else-if="contactSearchError"
         data-testid="kanban-contact-search-error"
         class="mb-0 text-sm text-n-ruby-11"
+        role="alert"
       >
         {{ t('KANBAN.ADD_ITEM.SEARCH_ERROR') }}
       </p>
@@ -543,7 +549,7 @@ onUnmounted(() => {
           v-for="contact in contactSearchResults"
           :key="contact.id"
           type="button"
-          class="no-drag flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-n-alpha-2"
+          class="no-drag flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
           @click="selectContact(contact)"
         >
           <img
