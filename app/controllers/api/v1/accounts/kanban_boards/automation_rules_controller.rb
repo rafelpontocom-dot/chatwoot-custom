@@ -1,7 +1,7 @@
 class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Accounts::BaseController
   before_action :fetch_kanban_board
   before_action :authorize_kanban_board
-  before_action :fetch_rule, only: [:update, :destroy, :test, :executions]
+  before_action :fetch_rule, only: [:update, :destroy, :test, :executions, :cancel_execution]
 
   def index
     render json: @kanban_board.kanban_automation_rules.ordered.map { |rule| rule_payload(rule) }
@@ -33,6 +33,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
     render json: {
       matches: matches,
       card_id: card.id,
+      steps: KanbanAutomations::WorkflowPreviewService.new(rule: @rule, card: card).perform,
       message: matches ? 'The opportunity matches this rule.' : 'The opportunity does not match this rule.'
     }
   end
@@ -40,6 +41,19 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
   def executions
     executions = @rule.kanban_automation_executions.order(created_at: :desc, id: :desc).limit(50)
     render json: executions.map { |execution| execution_payload(execution) }
+  end
+
+  def cancel_execution
+    execution = @rule.kanban_automation_executions.waiting.find(params[:execution_id])
+    execution.with_lock do
+      execution.update!(
+        status: :skipped,
+        scheduled_at: nil,
+        completed_at: Time.current,
+        action_results: Array(execution.action_results) + [{ 'status' => 'skipped', 'reason' => 'cancelled_by_administrator' }]
+      )
+    end
+    render json: execution_payload(execution)
   end
 
   private
@@ -95,6 +109,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       status: execution.status,
       action_results: execution.action_results,
       error_message: execution.error_message,
+      scheduled_at: execution.scheduled_at&.iso8601,
       started_at: execution.started_at&.iso8601,
       completed_at: execution.completed_at&.iso8601,
       created_at: execution.created_at.iso8601

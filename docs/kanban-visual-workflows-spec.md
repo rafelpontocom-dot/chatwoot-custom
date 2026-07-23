@@ -51,7 +51,7 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 }
 ```
 
-Tipos permitidos: `trigger`, `delay`, `send_message`, `action`, `end`.
+Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `send_message`, `action`, `condition`, `end`.
 
 ## Validação No Servidor
 
@@ -62,9 +62,12 @@ Tipos permitidos: `trigger`, `delay`, `send_message`, `action`, `end`.
 - tipos de nó não permitidos;
 - arestas que não apontam para ids existentes;
 - espera com horas menores ou iguais a zero;
+- espera por data sem um campo `date`/`datetime` válido ou ajuste numérico;
 - mensagem sem canal permitido, conteúdo ou chave de opt-in;
 - ação fora de `KanbanAutomationRule::ACTION_NAMES`;
 - etapa, agente ou campo personalizados que não pertencem ao board ou conta.
+- condição sem saídas `yes` e `no`;
+- ciclos no grafo.
 
 O backend não confia no canvas para validar autorização, referências nem regras de canal.
 
@@ -80,11 +83,13 @@ O backend não confia no canvas para validar autorização, referências nem reg
 
 1. `trigger`: segue para a primeira aresta de saída.
 2. `delay`: grava `waiting`, `scheduled_at` e o id do próximo nó; agenda `ContinueWorkflowJob`.
-3. `action`: delega a `KanbanAutomations::ActionService`.
-4. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
-5. `end`: conclui a execução.
+3. `wait_until_field`: agenda a partir de um campo `date` ou `datetime`, com deslocamento em horas.
+4. `condition`: avalia um campo e segue pela saída `yes` ou `no`.
+5. `action`: delega a `KanbanAutomations::ActionService`.
+6. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
+7. `end`: conclui a execução.
 
-O limite é de 50 nós por execução para evitar ciclo ou definição malformada. A primeira versão segue apenas a primeira aresta de saída; múltiplas saídas são visualmente permitidas pelo canvas, mas não são um contrato de ramificação e não devem ser usadas até P2.
+O limite é de 50 nós por execução. O backend rejeita ciclos; o único nó com duas saídas é `condition`, identificado por `sourceHandle: yes` e `sourceHandle: no`.
 
 ### Retomada
 
@@ -94,6 +99,8 @@ O limite é de 50 nós por execução para evitar ciclo ou definição malformad
 - a oportunidade estiver ativa.
 
 Caso contrário, muda para `skipped`, remove `scheduled_at` e encerra. Erros inesperados mudam para `failed`, guardam `error_message` e usam o retry padrão do job.
+
+O endpoint de teste usa `WorkflowPreviewService`, que percorre os nós e devolve passos planejados sem chamar `ActionService` ou `WorkflowMessageService`. Uma execução em estado `waiting` pode ser cancelada individualmente; ela passa para `skipped`, limpa `scheduled_at` e registra o motivo no histórico.
 
 ## Nó De Mensagem
 

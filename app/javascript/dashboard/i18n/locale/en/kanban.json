@@ -514,10 +514,16 @@
           "ADD": "Add {node}",
           "HOURS": "Wait {hours} hours",
           "DELAY_HOURS": "Wait in hours",
+          "DATE_FIELD": "Date and time field",
+          "DATE_OFFSET_HOURS": "Offset in hours",
+          "DATE_OFFSET": "{field} ({hours}h)",
           "CHANNEL": "Channel",
           "OPT_IN": "Contact opt-in field",
           "MESSAGE": "Message",
           "ACTION": "Action",
+          "OPERATOR": "Condition",
+          "YES": "Yes",
+          "NO": "No",
           "CREATE_TASK": "Create next action",
           "MOVE_STAGE": "Move opportunity",
           "ARCHIVE": "Archive opportunity",
@@ -525,8 +531,10 @@
           "NODES": {
             "TRIGGER": "Trigger",
             "DELAY": "Wait",
+            "DATE_WAIT": "Wait until date",
             "MESSAGE": "Send message",
             "ACTION": "Commercial action",
+            "CONDITION": "Condition",
             "END": "End"
           }
         },
@@ -632,6 +640,12 @@
           "TEST": "Test",
           "TEST_CARD_ID": "Opportunity ID",
           "TEST_ERROR": "Could not test this rule.",
+          "EXECUTIONS": "Executions",
+          "NO_EXECUTIONS": "No recent executions.",
+          "EXECUTIONS_ERROR": "Could not load executions.",
+          "CANCEL_EXECUTION": "Cancel execution",
+          "CANCEL_EXECUTION_SUCCESS": "Execution cancelled.",
+          "CANCEL_EXECUTION_ERROR": "Could not cancel the execution.",
           "LAST_EXECUTION": "Last execution status"
         }
       },

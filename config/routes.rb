@@ -148,6 +148,7 @@ Rails.application.routes.draw do
               resources :automation_rules, only: [:index, :create, :update, :destroy] do
                 post :test, on: :member
                 get :executions, on: :member
+                post 'executions/:execution_id/cancel', to: 'automation_rules#cancel_execution', on: :member
               end
               resources :cadences, only: [:index, :create, :update, :destroy]
               resources :appointment_reminder_rules, only: [:index, :create, :update, :destroy]

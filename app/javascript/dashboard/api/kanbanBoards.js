@@ -138,6 +138,12 @@ class KanbanBoardsAPI extends ApiClient {
     );
   }
 
+  cancelAutomationExecution(boardId, ruleId, executionId) {
+    return axios.post(
+      `${this.url}/${boardId}/automation_rules/${ruleId}/executions/${executionId}/cancel`
+    );
+  }
+
   getCadences(boardId) {
     return axios.get(`${this.url}/${boardId}/cadences`);
   }

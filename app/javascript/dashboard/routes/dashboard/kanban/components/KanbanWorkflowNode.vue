@@ -26,8 +26,32 @@ defineProps({
       {{ data.summary }}
     </p>
   </div>
+  <template v-if="data.kind === 'condition'">
+    <span
+      class="pointer-events-none absolute -right-8 top-3 text-[10px] text-n-slate-10"
+    >
+      {{ data.yesLabel }}
+    </span>
+    <Handle
+      id="yes"
+      type="source"
+      :position="Position.Right"
+      class="!top-4 !size-3 !border-2 !border-n-surface-1 !bg-n-brand"
+    />
+    <span
+      class="pointer-events-none absolute -right-8 bottom-3 text-[10px] text-n-slate-10"
+    >
+      {{ data.noLabel }}
+    </span>
+    <Handle
+      id="no"
+      type="source"
+      :position="Position.Right"
+      class="!bottom-4 !top-auto !size-3 !border-2 !border-n-surface-1 !bg-n-ruby-9"
+    />
+  </template>
   <Handle
-    v-if="data.kind !== 'end'"
+    v-else-if="data.kind !== 'end'"
     type="source"
     :position="Position.Right"
     class="!size-3 !border-2 !border-n-surface-1 !bg-n-brand"

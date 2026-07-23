@@ -43,6 +43,10 @@ class KanbanAutomations::ConditionsMatcher
       Array(conditions[:fields]).all? { |condition| field_condition_matches?(condition) }
   end
 
+  def matches_field_condition?(condition)
+    field_condition_matches?(condition)
+  end
+
   private
 
   def ids_match?(expected_ids, actual_id)

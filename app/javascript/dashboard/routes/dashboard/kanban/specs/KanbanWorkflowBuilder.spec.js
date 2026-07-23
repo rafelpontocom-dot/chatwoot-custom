@@ -14,7 +14,7 @@ describe('KanbanWorkflowBuilder', () => {
     expect(
       wrapper.find('[data-testid="kanban-workflow-builder"]').exists()
     ).toBe(true);
-    expect(wrapper.findAll('button')).toHaveLength(3);
+    expect(wrapper.findAll('button')).toHaveLength(5);
   });
 
   it('renders the action inspector for a selected node', () => {

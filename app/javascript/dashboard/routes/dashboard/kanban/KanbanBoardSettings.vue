@@ -75,6 +75,8 @@ const automationRulesError = ref('');
 const selectedAutomationRuleId = ref(null);
 const automationTestCardId = ref('');
 const automationTestResult = ref(null);
+const automationExecutions = ref([]);
+const automationExecutionsRuleId = ref(null);
 const showAutomationDeleteConfirmation = ref(false);
 const automationRulePendingDeletion = ref(null);
 const showWorkflowBuilder = ref(false);
@@ -2248,6 +2250,45 @@ const testAutomationRule = async rule => {
         t('KANBAN.SETTINGS.AUTOMATIONS.RULES.TEST_ERROR')
       ),
     };
+  }
+};
+
+const loadAutomationExecutions = async rule => {
+  try {
+    const response = await KanbanBoardsAPI.getAutomationExecutions(
+      boardId.value,
+      rule.id
+    );
+    automationExecutions.value = camelcaseKeys(response.data || [], {
+      deep: true,
+    });
+    automationExecutionsRuleId.value = rule.id;
+  } catch (error) {
+    useAlert(
+      getErrorMessage(
+        error,
+        t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EXECUTIONS_ERROR')
+      )
+    );
+  }
+};
+
+const cancelAutomationExecution = async (rule, execution) => {
+  try {
+    await KanbanBoardsAPI.cancelAutomationExecution(
+      boardId.value,
+      rule.id,
+      execution.id
+    );
+    await loadAutomationExecutions(rule);
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION_SUCCESS'));
+  } catch (error) {
+    useAlert(
+      getErrorMessage(
+        error,
+        t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION_ERROR')
+      )
+    );
   }
 };
 
@@ -4808,6 +4849,12 @@ onMounted(async () => {
               :agents="agentOptions"
               :custom-fields="form.customFieldDefinitions"
               :next-action-types="linesFromText(form.nextActionTypesText)"
+              :condition-fields="automationFieldOptions"
+              :date-fields="
+                automationFieldOptions.filter(field =>
+                  ['date', 'datetime'].includes(field.fieldType)
+                )
+              "
             />
 
             <div class="grid gap-3 md:grid-cols-2">
@@ -5194,6 +5241,14 @@ onMounted(async () => {
                   {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LAST_EXECUTION') }}
                   {{ rule.lastExecution.status }}
                 </span>
+                <Button
+                  type="button"
+                  icon="i-lucide-history"
+                  :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EXECUTIONS')"
+                  color="slate"
+                  size="xs"
+                  @click="loadAutomationExecutions(rule)"
+                />
               </div>
               <p
                 v-if="
@@ -5209,6 +5264,63 @@ onMounted(async () => {
               >
                 {{ automationTestResult.message }}
               </p>
+              <ol
+                v-if="
+                  selectedAutomationRuleId === rule.id &&
+                  automationTestResult?.steps?.length
+                "
+                class="m-0 grid list-decimal gap-1 pl-4 text-xs text-n-slate-11"
+              >
+                <li
+                  v-for="step in automationTestResult.steps"
+                  :key="step.nodeId"
+                >
+                  {{ step.actionName || step.type }}
+                  <span v-if="step.branch">
+                    {{ step.branch }}
+                  </span>
+                  <span v-if="step.content">
+                    {{ step.content }}
+                  </span>
+                </li>
+              </ol>
+              <div
+                v-if="automationExecutionsRuleId === rule.id"
+                class="grid gap-1 border-t border-n-weak pt-2 text-xs text-n-slate-11"
+              >
+                <p
+                  v-if="!automationExecutions.length"
+                  class="m-0 text-n-slate-10"
+                >
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NO_EXECUTIONS') }}
+                </p>
+                <div
+                  v-for="execution in automationExecutions"
+                  :key="execution.id"
+                  class="flex items-center justify-between gap-2"
+                >
+                  <span>
+                    {{ execution.status }}
+                    <span v-if="execution.scheduledAt">
+                      {{ execution.scheduledAt }}
+                    </span>
+                  </span>
+                  <Button
+                    v-if="execution.status === 'waiting'"
+                    type="button"
+                    icon="i-lucide-x"
+                    :aria-label="
+                      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION')
+                    "
+                    :title="
+                      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION')
+                    "
+                    color="ruby"
+                    size="xs"
+                    @click="cancelAutomationExecution(rule, execution)"
+                  />
+                </div>
+              </div>
             </article>
           </div>
         </section>

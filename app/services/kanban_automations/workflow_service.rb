@@ -1,5 +1,19 @@
 class KanbanAutomations::WorkflowService
   MAX_NODES_PER_EXECUTION = 50
+  SYSTEM_DATE_FIELD_METHODS = {
+    'system_starts_at' => :starts_at,
+    'system_due_at' => :due_at,
+    'system_next_action_at' => :next_action_at
+  }.freeze
+  NODE_HANDLERS = {
+    'trigger' => :advance_node,
+    'delay' => :delay_node,
+    'wait_until_field' => :date_wait_node,
+    'action' => :action_node,
+    'send_message' => :message_node,
+    'condition' => :condition_node,
+    'end' => :end_node
+  }.freeze
 
   def initialize(execution:, rule:, card:, now: Time.current)
     @execution = execution
@@ -41,24 +55,49 @@ class KanbanAutomations::WorkflowService
     nodes.values.find { |node| node['type'] == 'trigger' } || raise(ArgumentError, 'Workflow requires a trigger node')
   end
 
-  def next_node_id(node)
-    edge = Array(definition['edges']).find { |item| item['source'] == node.fetch('id') }
+  def next_node_id(node, source_handle: nil)
+    edge = Array(definition['edges']).find do |item|
+      item['source'] == node.fetch('id') && (source_handle.nil? || item['sourceHandle'].to_s == source_handle)
+    end
     edge&.fetch('target') || raise(ArgumentError, "Workflow node #{node.fetch('id')} has no next node")
   end
 
   def execute_node(node, results)
-    case node.fetch('type')
-    when 'trigger' then [next_node_id(node), nil]
-    when 'delay' then [nil, wait_for_node(node, results)]
-    when 'action'
-      results.concat(execute_action(node))
-      [next_node_id(node), nil]
-    when 'send_message'
-      results << send_message(node)
-      [next_node_id(node), nil]
-    when 'end' then [nil, completed(results)]
-    else raise ArgumentError, "Workflow node #{node.fetch('type')} is not executable"
-    end
+    handler = NODE_HANDLERS[node.fetch('type')] || raise(ArgumentError, "Workflow node #{node.fetch('type')} is not executable")
+    send(handler, node, results)
+  end
+
+  def advance_node(node, _results)
+    [next_node_id(node), nil]
+  end
+
+  def delay_node(node, results)
+    [nil, wait_for_node(node, results)]
+  end
+
+  def date_wait_node(node, results)
+    outcome = wait_until_field(node, results)
+    outcome ? [nil, outcome] : [next_node_id(node), nil]
+  end
+
+  def action_node(node, results)
+    results.concat(execute_action(node))
+    [next_node_id(node), nil]
+  end
+
+  def message_node(node, results)
+    results << send_message(node)
+    [next_node_id(node), nil]
+  end
+
+  def condition_node(node, results)
+    branch = condition_matches?(node) ? 'yes' : 'no'
+    results << { 'node_id' => node.fetch('id'), 'status' => 'succeeded', 'branch' => branch }
+    [next_node_id(node, source_handle: branch), nil]
+  end
+
+  def end_node(_node, results)
+    [nil, completed(results)]
   end
 
   def wait_for_node(node, results)
@@ -71,6 +110,33 @@ class KanbanAutomations::WorkflowService
       workflow_state: { 'next_node_id' => next_node_id(node) },
       action_results: results + [{ 'node_id' => node.fetch('id'), 'status' => 'waiting', 'delay_hours' => delay_hours }]
     }
+  end
+
+  def wait_until_field(node, results)
+    data = node.fetch('data', {}).deep_stringify_keys
+    scheduled_at = date_field_value(data.fetch('field_key')) + data.fetch('offset_hours').to_f.hours
+    if scheduled_at <= now
+      results << { 'node_id' => node.fetch('id'), 'status' => 'skipped', 'reason' => 'scheduled_time_in_past' }
+      return nil
+    end
+
+    {
+      status: :waiting,
+      scheduled_at: scheduled_at,
+      workflow_state: { 'next_node_id' => next_node_id(node) },
+      action_results: results + [{ 'node_id' => node.fetch('id'), 'status' => 'waiting', 'scheduled_at' => scheduled_at.iso8601 }]
+    }
+  end
+
+  def date_field_value(field_key)
+    value = if field_key.start_with?('system_')
+              card.public_send(SYSTEM_DATE_FIELD_METHODS.fetch(field_key))
+            else
+              card.custom_field_values.to_h[field_key]
+            end
+    return value if value.is_a?(Time) || value.is_a?(ActiveSupport::TimeWithZone)
+
+    Time.zone.parse(value.to_s) || raise(ArgumentError, "Workflow date field #{field_key} is blank or invalid")
   end
 
   def execute_action(node)
@@ -87,6 +153,12 @@ class KanbanAutomations::WorkflowService
   def send_message(node)
     result = KanbanAutomations::WorkflowMessageService.new(card: card, data: node.fetch('data', {})).perform!
     result.merge('node_id' => node.fetch('id'))
+  end
+
+  def condition_matches?(node)
+    data = node.fetch('data', {}).deep_stringify_keys
+    condition = data.slice('field_key', 'operator', 'value')
+    KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(condition)
   end
 
   def completed(results)

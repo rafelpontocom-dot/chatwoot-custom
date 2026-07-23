@@ -30,6 +30,14 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  conditionFields: {
+    type: Array,
+    default: () => [],
+  },
+  dateFields: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -40,18 +48,40 @@ const selectedNodeId = ref(null);
 const nodeTypes = {
   trigger: markRaw(KanbanWorkflowNode),
   delay: markRaw(KanbanWorkflowNode),
+  wait_until_field: markRaw(KanbanWorkflowNode),
   send_message: markRaw(KanbanWorkflowNode),
   action: markRaw(KanbanWorkflowNode),
+  condition: markRaw(KanbanWorkflowNode),
   end: markRaw(KanbanWorkflowNode),
 };
 
 const nodeLabels = computed(() => ({
   trigger: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.TRIGGER'),
   delay: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.DELAY'),
+  wait_until_field: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.DATE_WAIT'),
   send_message: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.MESSAGE'),
   action: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.ACTION'),
+  condition: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CONDITION'),
   end: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
 }));
+
+const conditionOperatorOptions = computed(() => [
+  { value: 'equals', label: t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') },
+  {
+    value: 'not_equals',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NOT_EQUALS'),
+  },
+  { value: 'contains', label: t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONTAINS') },
+  { value: 'exists', label: t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EXISTS') },
+  {
+    value: 'greater_than',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN'),
+  },
+  {
+    value: 'less_than',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN'),
+  },
+]);
 
 const actionOptions = computed(() => [
   {
@@ -79,9 +109,18 @@ const actionOptions = computed(() => [
 const selectedNode = computed(() =>
   nodes.value.find(node => node.id === selectedNodeId.value)
 );
+const selectedConditionField = computed(() =>
+  props.conditionFields.find(
+    field => field.key === selectedNode.value?.data?.field_key
+  )
+);
+const selectedConditionOptions = computed(
+  () => selectedConditionField.value?.conditionOptions || []
+);
 
 const defaultData = type => {
   if (type === 'delay') return { delay_hours: 24 };
+  if (type === 'wait_until_field') return { field_key: '', offset_hours: -24 };
   if (type === 'send_message') {
     return {
       channel: 'whatsapp',
@@ -95,6 +134,9 @@ const defaultData = type => {
       action_params: { next_action_type: '', next_action_note: '' },
     };
   }
+  if (type === 'condition') {
+    return { field_key: '', operator: 'equals', value: '' };
+  }
   return {};
 };
 
@@ -104,6 +146,15 @@ const nodeSummary = node => {
     return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HOURS', {
       hours: data.delay_hours || 0,
     });
+  if (node.type === 'wait_until_field') {
+    const field = props.dateFields.find(item => item.key === data.field_key);
+    return field
+      ? t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_OFFSET', {
+          field: field.label,
+          hours: data.offset_hours || 0,
+        })
+      : '';
+  }
   if (node.type === 'send_message')
     return data.channel === 'email'
       ? t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.EMAIL')
@@ -113,6 +164,10 @@ const nodeSummary = node => {
       actionOptions.value.find(option => option.value === data.action_name)
         ?.label || ''
     );
+  }
+  if (node.type === 'condition') {
+    return props.conditionFields.find(field => field.key === data.field_key)
+      ?.label;
   }
   return '';
 };
@@ -125,6 +180,8 @@ const decorateNode = node => ({
     kind: node.type,
     label: nodeLabels.value[node.type] || node.type,
     summary: nodeSummary(node),
+    yesLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.YES'),
+    noLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO'),
   },
 });
 
@@ -160,7 +217,8 @@ const emitFlow = () => {
       position,
       data: Object.fromEntries(
         Object.entries(data).filter(
-          ([key]) => !['kind', 'label', 'summary'].includes(key)
+          ([key]) =>
+            !['kind', 'label', 'summary', 'yesLabel', 'noLabel'].includes(key)
         )
       ),
     })),
@@ -203,7 +261,10 @@ const addNodeOfType = type => {
 
 const onConnect = connection => {
   edges.value = addEdge(
-    { ...connection, id: `${connection.source}-${connection.target}` },
+    {
+      ...connection,
+      id: `${connection.source}-${connection.sourceHandle || 'default'}-${connection.target}`,
+    },
     edges.value
   );
 };
@@ -242,7 +303,13 @@ const removeSelectedNode = () => {
       </div>
       <div class="flex flex-wrap gap-2">
         <button
-          v-for="type in ['delay', 'send_message', 'action']"
+          v-for="type in [
+            'delay',
+            'wait_until_field',
+            'condition',
+            'send_message',
+            'action',
+          ]"
           :key="type"
           type="button"
           class="h-8 rounded-md border border-n-weak bg-n-surface-1 px-3 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
@@ -302,6 +369,105 @@ const removeSelectedNode = () => {
                 v-model.number="selectedNode.data.delay_hours"
                 min="1"
                 type="number"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              />
+            </label>
+          </template>
+
+          <template v-else-if="selectedNode.type === 'wait_until_field'">
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FIELD') }}
+              <select
+                v-model="selectedNode.data.field_key"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option value="">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FIELD') }}
+                </option>
+                <option
+                  v-for="field in dateFields"
+                  :key="field.key"
+                  :value="field.key"
+                >
+                  {{ field.label }}
+                </option>
+              </select>
+            </label>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_OFFSET_HOURS') }}
+              <input
+                v-model.number="selectedNode.data.offset_hours"
+                type="number"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              />
+            </label>
+          </template>
+
+          <template v-else-if="selectedNode.type === 'condition'">
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+              <select
+                v-model="selectedNode.data.field_key"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option value="">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+                </option>
+                <option
+                  v-for="field in conditionFields"
+                  :key="field.key"
+                  :value="field.key"
+                >
+                  {{ field.label }}
+                </option>
+              </select>
+            </label>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPERATOR') }}
+              <select
+                v-model="selectedNode.data.operator"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option
+                  v-for="option in conditionOperatorOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+            <label
+              v-if="selectedNode.data.operator !== 'exists'"
+              class="grid gap-1 text-xs font-medium text-n-slate-11"
+            >
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
+              <select
+                v-if="selectedConditionOptions.length"
+                v-model="selectedNode.data.value"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option value="">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
+                </option>
+                <option
+                  v-for="option in selectedConditionOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+              <input
+                v-else
+                v-model="selectedNode.data.value"
+                type="text"
                 class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                 @change="updateNode"
               />

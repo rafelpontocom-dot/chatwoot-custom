@@ -1,4 +1,5 @@
 class KanbanAutomations::FlowDefinitionValidator
+  DATE_FIELD_TYPES = %w[date datetime].freeze
   def initialize(rule:)
     @rule = rule
   end
@@ -44,6 +45,28 @@ class KanbanAutomations::FlowDefinitionValidator
       edge[:source].blank? || edge[:target].blank? || node_ids.exclude?(edge[:source].to_s) || node_ids.exclude?(edge[:target].to_s)
     end
     add_error('edges must connect existing nodes') if invalid_edge
+    add_error('must not contain cycles') if workflow_has_cycle?
+  end
+
+  def workflow_has_cycle?
+    visited = Set.new
+    visiting = Set.new
+    node_ids.any? { |node_id| cycle_from?(node_id, visited, visiting) }
+  end
+
+  def cycle_from?(node_id, visited, visiting)
+    return false if visited.include?(node_id)
+    return true if visiting.include?(node_id)
+
+    visiting.add(node_id)
+    outgoing_node_ids(node_id).any? { |target_id| cycle_from?(target_id, visited, visiting) }
+  ensure
+    visiting.delete(node_id)
+    visited.add(node_id)
+  end
+
+  def outgoing_node_ids(node_id)
+    edges.filter_map { |edge| edge[:target].to_s if edge[:source].to_s == node_id }
   end
 
   def validate_node_data
@@ -51,7 +74,10 @@ class KanbanAutomations::FlowDefinitionValidator
       data = node[:data].to_h.with_indifferent_access
       validate_message_node(node, data)
       validate_delay_node(node, data)
+      validate_wait_until_field_node(node, data)
       validate_action_node(node, data)
+      validate_condition_node(node, data)
+      validate_condition_paths(node)
     end
   end
 
@@ -69,12 +95,59 @@ class KanbanAutomations::FlowDefinitionValidator
     add_error("Delay node #{node[:id]} needs positive hours") unless data[:delay_hours].to_f.positive?
   end
 
+  def validate_wait_until_field_node(node, data)
+    return unless node[:type] == 'wait_until_field'
+
+    valid_field = datetime_field?(data[:field_key])
+    valid_offset = Float(data[:offset_hours])
+    return if valid_field && valid_offset.finite?
+
+    add_error("Date wait node #{node[:id]} is incomplete")
+  rescue ArgumentError, TypeError
+    add_error("Date wait node #{node[:id]} is incomplete")
+  end
+
   def validate_action_node(node, data)
     return unless node[:type] == 'action'
 
     action_name = data[:action_name].to_s
     add_error("Action node #{node[:id]} has an unsupported action") unless KanbanAutomationRule::ACTION_NAMES.include?(action_name)
     validate_action_references(node, action_name, data[:action_params].to_h.with_indifferent_access)
+  end
+
+  def validate_condition_node(node, data)
+    return unless node[:type] == 'condition'
+
+    valid_field = condition_field_exists?(data[:field_key])
+    valid_operator = KanbanAutomationRule::FIELD_OPERATORS.include?(data[:operator].to_s)
+    return if valid_field && valid_operator
+
+    add_error("Condition node #{node[:id]} is incomplete")
+  end
+
+  def validate_condition_paths(node)
+    return unless node[:type] == 'condition'
+
+    handles = edges.filter_map do |edge|
+      edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s
+    end
+    return if handles.tally.slice('yes', 'no') == { 'yes' => 1, 'no' => 1 }
+
+    add_error("Condition node #{node[:id]} needs yes and no paths")
+  end
+
+  def condition_field_exists?(field_key)
+    return true if KanbanCard::SYSTEM_CONDITION_VALUE_METHODS.key?(field_key.to_s)
+
+    rule.kanban_board.configured_custom_field_definitions.any? { |field| field['key'] == field_key.to_s }
+  end
+
+  def datetime_field?(field_key)
+    return %w[system_starts_at system_due_at system_next_action_at].include?(field_key.to_s) if field_key.to_s.start_with?('system_')
+
+    rule.kanban_board.configured_custom_field_definitions.any? do |field|
+      field['key'] == field_key.to_s && DATE_FIELD_TYPES.include?(field['field_type'])
+    end
   end
 
   def validate_action_references(node, action_name, params)

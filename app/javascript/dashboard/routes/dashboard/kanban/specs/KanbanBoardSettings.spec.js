@@ -51,6 +51,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     deleteAutomationRule: vi.fn(),
     testAutomationRule: vi.fn(),
     getAutomationExecutions: vi.fn(),
+    cancelAutomationExecution: vi.fn(),
     getCadences: vi.fn(),
     getAppointmentReminderRules: vi.fn(),
     createAppointmentReminderRule: vi.fn(),

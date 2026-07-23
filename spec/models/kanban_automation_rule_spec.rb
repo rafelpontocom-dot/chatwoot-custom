@@ -100,4 +100,49 @@ RSpec.describe KanbanAutomationRule do
     expect(rule).not_to be_valid
     expect(rule.errors[:flow_definition]).to include('Action node move references a stage outside this board')
   end
+
+  it 'requires yes and no paths for a condition node' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [{ key: 'origem', label: 'Origem', field_type: 'text' }]
+    )
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          { id: 'condition', type: 'condition', data: { field_key: 'origem', operator: 'equals', value: 'Google' } },
+          { id: 'end', type: 'end' }
+        ],
+        edges: [
+          { source: 'trigger', target: 'condition' },
+          { source: 'condition', sourceHandle: 'yes', target: 'end' }
+        ]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include('Condition node condition needs yes and no paths')
+  end
+
+  it 'rejects cycles in a visual workflow' do
+    rule = build(
+      :kanban_automation_rule,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          { id: 'wait', type: 'delay', data: { delay_hours: 1 } }
+        ],
+        edges: [
+          { source: 'trigger', target: 'wait' },
+          { source: 'wait', target: 'trigger' }
+        ]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include('must not contain cycles')
+  end
 end

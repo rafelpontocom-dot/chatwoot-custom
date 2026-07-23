@@ -91,17 +91,18 @@ As ações comerciais disponíveis são: mover etapa, definir responsável, cria
 
 ### P1
 
-- Prévia do que será alterado ou enviado antes de salvar.
-- Teste da regra com uma oportunidade selecionada e relatório por nó.
-- Horários silenciosos, limite de frequência e cancelamento manual da execução.
+- Prévia do que será alterado ou enviado antes de salvar. Implementado pela ação Testar, sem efeitos colaterais.
+- Teste da regra com uma oportunidade selecionada e relatório por nó. Implementado.
+- Cancelamento manual de uma execução em espera. Implementado.
+- Horários silenciosos e limite de frequência.
 - Template oficial de WhatsApp e seleção de idioma.
 - Histórico visual por oportunidade, com ator e horário.
 
 ### P2
 
-- Nó Condição com caminhos Sim e Não.
-- Ramificação explícita, sem ciclos implícitos.
-- Nó de data de campo: por exemplo, `Data e hora da consulta - 24h`.
+- Nó Condição com caminhos Sim e Não. Implementado.
+- Ramificação explícita, sem ciclos implícitos. Implementado para caminhos Sim/Não.
+- Nó de data de campo: por exemplo, `Data e hora da consulta - 24h`. Implementado.
 - Ações de cadência de follow-up e lembrete de consulta no mesmo canvas.
 - Importação assistida de workflows do N8N, sempre desativada até revisão humana.
 

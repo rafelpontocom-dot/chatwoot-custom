@@ -85,4 +85,52 @@ RSpec.describe 'Kanban automation rules API', type: :request do
     expect(response.parsed_body).to include('matches' => true, 'card_id' => card.id)
     expect(KanbanAutomationExecution.count).to eq(0)
   end
+
+  it 'previews the visual workflow without changing the opportunity' do
+    card = create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage, subject: 'Teste visual')
+    rule = create(
+      :kanban_automation_rule,
+      account: account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'archive', type: 'action', data: { action_name: 'archive_card', action_params: {} } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'archive' },
+          { source: 'archive', target: 'end' }
+        ]
+      }
+    )
+
+    post "#{rules_url}/#{rule.id}/test",
+         headers: administrator.create_new_auth_token,
+         params: { card_id: card.id },
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body['steps']).to include(hash_including('node_id' => 'archive', 'action_name' => 'archive_card'))
+    expect(card.reload).to be_active
+  end
+
+  it 'cancels an individual waiting execution' do
+    rule = create(:kanban_automation_rule, account: account, kanban_board: board)
+    execution = create(
+      :kanban_automation_execution,
+      account: account,
+      kanban_automation_rule: rule,
+      status: 'waiting',
+      scheduled_at: 1.day.from_now
+    )
+
+    post "#{rules_url}/#{rule.id}/executions/#{execution.id}/cancel",
+         headers: administrator.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to include('status' => 'skipped')
+    expect(execution.reload).to have_attributes(status: 'skipped', scheduled_at: nil)
+  end
 end

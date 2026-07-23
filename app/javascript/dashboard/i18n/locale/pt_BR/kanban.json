@@ -510,10 +510,16 @@
           "ADD": "Adicionar {node}",
           "HOURS": "Aguardar {hours} horas",
           "DELAY_HOURS": "Aguardar em horas",
+          "DATE_FIELD": "Campo de data e hora",
+          "DATE_OFFSET_HOURS": "Ajuste em horas",
+          "DATE_OFFSET": "{field} ({hours}h)",
           "CHANNEL": "Canal",
           "OPT_IN": "Campo de opt-in do contato",
           "MESSAGE": "Mensagem",
           "ACTION": "Ação",
+          "OPERATOR": "Condição",
+          "YES": "Sim",
+          "NO": "Não",
           "CREATE_TASK": "Criar próxima ação",
           "MOVE_STAGE": "Mover oportunidade",
           "ARCHIVE": "Arquivar oportunidade",
@@ -521,8 +527,10 @@
           "NODES": {
             "TRIGGER": "Gatilho",
             "DELAY": "Aguardar",
+            "DATE_WAIT": "Aguardar até data",
             "MESSAGE": "Enviar mensagem",
             "ACTION": "Ação comercial",
+            "CONDITION": "Condição",
             "END": "Fim"
           }
         },
@@ -628,6 +636,12 @@
           "TEST": "Testar",
           "TEST_CARD_ID": "ID da oportunidade",
           "TEST_ERROR": "Não foi possível testar esta regra.",
+          "EXECUTIONS": "Execuções",
+          "NO_EXECUTIONS": "Nenhuma execução recente.",
+          "EXECUTIONS_ERROR": "Não foi possível carregar as execuções.",
+          "CANCEL_EXECUTION": "Cancelar execução",
+          "CANCEL_EXECUTION_SUCCESS": "Execução cancelada.",
+          "CANCEL_EXECUTION_ERROR": "Não foi possível cancelar a execução.",
           "LAST_EXECUTION": "Status da última execução"
         }
       },
