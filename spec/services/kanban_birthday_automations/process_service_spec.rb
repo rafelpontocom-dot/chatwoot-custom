@@ -10,6 +10,7 @@ RSpec.describe KanbanBirthdayAutomations::ProcessService do
       account: account,
       active: true,
       delivery_channels: ['whatsapp'],
+      send_time: '00:00',
       timezone: 'UTC'
     )
   end
