@@ -506,6 +506,30 @@
           "DISABLE_SUCCESS": "Appointment reminder disabled.",
           "DISABLE_ERROR": "Could not disable appointment reminder."
         },
+        "WORKFLOW": {
+          "OPEN": "Visual builder",
+          "TITLE": "Visual workflow",
+          "DESCRIPTION": "Connect the business steps that should run for this automation.",
+          "CANVAS_LABEL": "Automation workflow",
+          "ADD": "Add {node}",
+          "HOURS": "Wait {hours} hours",
+          "DELAY_HOURS": "Wait in hours",
+          "CHANNEL": "Channel",
+          "OPT_IN": "Contact opt-in field",
+          "MESSAGE": "Message",
+          "ACTION": "Action",
+          "CREATE_TASK": "Create next action",
+          "MOVE_STAGE": "Move opportunity",
+          "ARCHIVE": "Archive opportunity",
+          "NODE_HINT": "This node starts or completes the workflow.",
+          "NODES": {
+            "TRIGGER": "Trigger",
+            "DELAY": "Wait",
+            "MESSAGE": "Send message",
+            "ACTION": "Commercial action",
+            "END": "End"
+          }
+        },
         "BIRTHDAY": {
           "TITLE": "Birthday messages",
           "DESCRIPTION": "Send an opt-in birthday message through a compatible WhatsApp or email conversation. The automation is off until you enable it.",

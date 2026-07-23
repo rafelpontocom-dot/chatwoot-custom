@@ -192,6 +192,22 @@ Se o board ainda não tiver listas configuradas, o sistema deve usar listas padr
 
 As automações ficam em uma área própria do board, separadas da operação manual do card. O card mostra o resultado e o histórico, mas não esconde de onde veio uma ação ou mensagem.
 
+### Construtor Visual De Automacoes
+
+O board oferece um construtor visual próprio baseado em Vue Flow. Ele é uma interface para regras comerciais do Chatwoot, não um editor genérico de código, integrações arbitrárias ou credenciais externas.
+
+Nós da primeira entrega:
+
+- `Gatilho`: usa um evento já publicado pela oportunidade, como criação, mudança de etapa, ganho, perda ou próxima ação concluída;
+- `Aguardar`: pausa a execução por um número positivo de horas e a retoma por job, sem manter processo aberto;
+- `Enviar mensagem`: envia WhatsApp ou e-mail apenas para conversa compatível, com texto, opt-in obrigatório e respeito à janela de 24 horas do WhatsApp;
+- `Ação comercial`: criar próxima ação, mover etapa, arquivar, atribuir responsável ou preencher campo;
+- `Fim`: encerra explicitamente o fluxo.
+
+Cada fluxo é versionado como JSON validado pelo backend. O canvas nunca executa código enviado pelo usuário. Execuções possuem chave idempotente por evento, estado persistido ao aguardar e histórico dos nós executados.
+
+Fora da primeira entrega ficam condições com dois caminhos, ramificações, templates oficiais do WhatsApp, horários silenciosos, limites de frequência e migração assistida do N8N. Esses itens devem entrar somente quando houver prévia, simulação e trilha de auditoria adequadas.
+
 Estado da primeira entrega: o board já aceita regras de lembrete por entrada em etapa, o scheduler cria entregas idempotentes por agendamento/canal e o serviço de mensagens respeita opt-in e janela do WhatsApp. Cadências podem ser inscritas automaticamente ao entrar em uma etapa, mantendo os passos atuais como tarefas internas.
 
 ### Lembretes De Consulta

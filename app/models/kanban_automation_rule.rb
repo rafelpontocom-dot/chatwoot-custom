@@ -8,6 +8,7 @@
 #  conditions      :jsonb            not null
 #  description     :text
 #  event_name      :string           not null
+#  flow_definition :jsonb            not null
 #  lock_version    :integer          default(0), not null
 #  name            :string           not null
 #  position        :integer          default(0), not null
@@ -45,15 +46,13 @@ class KanbanAutomationRule < ApplicationRecord
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
   ACTION_NAMES = %w[move_stage assign_owner set_next_action set_field archive_card].freeze
-
+  FLOW_NODE_TYPES = %w[trigger delay send_message action end].freeze
   belongs_to :account
   belongs_to :kanban_board
   has_many :kanban_automation_executions, dependent: :destroy
-
   scope :active, -> { where(active: true) }
   scope :for_event, ->(event_name) { where(event_name: event_name) }
   scope :ordered, -> { order(position: :asc, id: :asc) }
-
   validates :name, presence: true, uniqueness: { scope: :kanban_board_id }
   validates :event_name, inclusion: { in: EVENT_NAMES }
   validates :account, :kanban_board, presence: true
@@ -61,9 +60,14 @@ class KanbanAutomationRule < ApplicationRecord
   validate :conditions_are_supported
   validate :actions_are_supported
   validate :references_belong_to_board
+  validate :flow_definition_is_supported
 
   def trigger_conditions
     conditions.to_h.with_indifferent_access
+  end
+
+  def visual_flow?
+    flow_definition.to_h['nodes'].present?
   end
 
   private
@@ -160,5 +164,9 @@ class KanbanAutomationRule < ApplicationRecord
     return if kanban_board.configured_custom_field_definitions.any? { |field| field['key'] == field_key.to_s }
 
     errors.add(:conditions, "Field #{field_key} does not belong to this board")
+  end
+
+  def flow_definition_is_supported
+    KanbanAutomations::FlowDefinitionValidator.new(rule: self).validate
   end
 end

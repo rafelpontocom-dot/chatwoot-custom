@@ -11,6 +11,7 @@ import { useMapGetter, useStore } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
+import KanbanWorkflowBuilder from './components/KanbanWorkflowBuilder.vue';
 import {
   DEFAULT_KANBAN_STAGE_COLOR,
   KANBAN_STAGE_COLOR_OPTIONS,
@@ -76,6 +77,7 @@ const automationTestCardId = ref('');
 const automationTestResult = ref(null);
 const showAutomationDeleteConfirmation = ref(false);
 const automationRulePendingDeletion = ref(null);
+const showWorkflowBuilder = ref(false);
 const cadences = ref([]);
 const cadencesLoading = ref(false);
 const cadenceSaving = ref(false);
@@ -131,6 +133,7 @@ const automationRuleForm = reactive({
   fieldKey: '',
   fieldOperator: 'equals',
   fieldValue: '',
+  flowDefinition: {},
   actions: [
     {
       actionName: 'move_stage',
@@ -1851,6 +1854,7 @@ const resetAutomationRuleForm = () => {
   automationRuleForm.fieldKey = '';
   automationRuleForm.fieldOperator = 'equals';
   automationRuleForm.fieldValue = '';
+  automationRuleForm.flowDefinition = {};
   automationRuleForm.actions.splice(
     0,
     automationRuleForm.actions.length,
@@ -1874,6 +1878,7 @@ const applyAutomationRule = rule => {
   automationRuleForm.fieldKey = firstField.fieldKey || '';
   automationRuleForm.fieldOperator = firstField.operator || 'equals';
   automationRuleForm.fieldValue = firstField.value ?? '';
+  automationRuleForm.flowDefinition = normalizedRule.flowDefinition || {};
   const actions = (normalizedRule.actions || []).map(action => ({
     ...blankAutomationAction(),
     actionName: action.actionName || 'move_stage',
@@ -2135,6 +2140,7 @@ const automationRulePayload = () => ({
         action_name: action.actionName,
         action_params: automationActionParams(action),
       })),
+    flow_definition: automationRuleForm.flowDefinition,
   },
 });
 
@@ -4782,6 +4788,27 @@ onMounted(async () => {
                 @click="resetAutomationRuleForm"
               />
             </div>
+
+            <div class="flex justify-end">
+              <Button
+                type="button"
+                data-testid="kanban-settings-open-workflow-builder"
+                icon="i-lucide-git-branch"
+                :label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPEN')"
+                color="slate"
+                size="sm"
+                @click="showWorkflowBuilder = !showWorkflowBuilder"
+              />
+            </div>
+
+            <KanbanWorkflowBuilder
+              v-if="showWorkflowBuilder"
+              v-model="automationRuleForm.flowDefinition"
+              :stages="stages"
+              :agents="agentOptions"
+              :custom-fields="form.customFieldDefinitions"
+              :next-action-types="linesFromText(form.nextActionTypesText)"
+            />
 
             <div class="grid gap-3 md:grid-cols-2">
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">

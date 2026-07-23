@@ -8,8 +8,10 @@
 #  error_message             :text
 #  event_key                 :string           not null
 #  event_name                :string           not null
+#  scheduled_at              :datetime
 #  started_at                :datetime
 #  status                    :string           default("queued"), not null
+#  workflow_state            :jsonb            not null
 #  created_at                :datetime         not null
 #  updated_at                :datetime         not null
 #  account_id                :bigint           not null
@@ -20,6 +22,7 @@
 #
 #  idx_kanban_automation_executions_history                    (account_id,status,created_at)
 #  idx_kanban_automation_executions_idempotency                (kanban_automation_rule_id,event_key) UNIQUE
+#  idx_kanban_automation_executions_on_schedule                (status,scheduled_at)
 #  idx_on_kanban_automation_rule_id_fc8facec2f                 (kanban_automation_rule_id)
 #  index_kanban_automation_executions_on_account_id            (account_id)
 #  index_kanban_automation_executions_on_kanban_card_event_id  (kanban_card_event_id)
@@ -31,7 +34,7 @@
 #  fk_rails_...  (kanban_card_event_id => kanban_card_events.id)
 #
 class KanbanAutomationExecution < ApplicationRecord
-  STATUSES = %w[queued running succeeded failed skipped].freeze
+  STATUSES = %w[queued running waiting succeeded failed skipped].freeze
 
   belongs_to :account
   belongs_to :kanban_automation_rule

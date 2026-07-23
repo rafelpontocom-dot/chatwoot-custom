@@ -33,6 +33,31 @@ RSpec.describe 'Kanban automation rules API', type: :request do
     expect(response.parsed_body.first['event_name']).to eq(Events::Types::KANBAN_CARD_STAGE_CHANGED)
   end
 
+  it 'persists a visual workflow definition' do
+    flow_definition = {
+      nodes: [
+        { id: 'trigger', type: 'trigger', position: { x: 0, y: 0 }, data: { event_name: Events::Types::KANBAN_CARD_STAGE_CHANGED } },
+        { id: 'wait', type: 'delay', position: { x: 280, y: 0 }, data: { delay_hours: 24 } },
+        { id: 'end', type: 'end', position: { x: 560, y: 0 }, data: {} }
+      ],
+      edges: [{ id: 'trigger-wait', source: 'trigger', target: 'wait' }, { id: 'wait-end', source: 'wait', target: 'end' }]
+    }
+
+    post rules_url,
+         headers: administrator.create_new_auth_token,
+         params: {
+           kanban_automation_rule: {
+             name: 'Lembrete visual',
+             event_name: Events::Types::KANBAN_CARD_STAGE_CHANGED,
+             flow_definition: flow_definition
+           }
+         },
+         as: :json
+
+    expect(response).to have_http_status(:created)
+    expect(response.parsed_body['flow_definition']).to eq(flow_definition.deep_stringify_keys)
+  end
+
   it 'rejects rule configuration for agents' do
     post rules_url,
          headers: agent.create_new_auth_token,

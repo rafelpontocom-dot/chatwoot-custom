@@ -52,4 +52,52 @@ RSpec.describe KanbanAutomationRule do
     expect(rule.errors[:actions]).to be_present
     expect(rule.errors[:conditions]).to include('Field unknown does not belong to this board')
   end
+
+  it 'rejects a visual workflow with an unsupported node type' do
+    rule = build(
+      :kanban_automation_rule,
+      flow_definition: {
+        nodes: [{ id: 'trigger', type: 'trigger' }, { id: 'unknown', type: 'teleport' }],
+        edges: [{ source: 'trigger', target: 'unknown' }]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to be_present
+  end
+
+  it 'rejects a message node without content and opt-in' do
+    rule = build(
+      :kanban_automation_rule,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          { id: 'message', type: 'send_message', data: { channel: 'whatsapp', content: '' } }
+        ],
+        edges: [{ source: 'trigger', target: 'message' }]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to be_present
+  end
+
+  it 'rejects visual actions that reference another board' do
+    board = create(:kanban_board)
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          { id: 'move', type: 'action', data: { action_name: 'move_stage', action_params: { stage_id: 999_999 } } }
+        ],
+        edges: [{ source: 'trigger', target: 'move' }]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include('Action node move references a stage outside this board')
+  end
 end

@@ -63,6 +63,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       :event_name,
       :active,
       :position,
+      flow_definition: {},
       conditions: [
         { inbox_ids: [], stage_ids: [], owner_ids: [], fields: [:field_key, :operator, :value] }
       ],
@@ -80,6 +81,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       position: rule.position,
       conditions: rule.conditions,
       actions: rule.actions,
+      flow_definition: rule.flow_definition,
       executions_count: rule.kanban_automation_executions.count,
       last_execution: rule.kanban_automation_executions.order(created_at: :desc, id: :desc).first&.then { |execution| execution_payload(execution) }
     }

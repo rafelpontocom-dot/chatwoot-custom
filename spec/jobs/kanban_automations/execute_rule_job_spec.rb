@@ -34,4 +34,30 @@ RSpec.describe KanbanAutomations::ExecuteRuleJob do
 
     expect(rule.kanban_automation_executions.sole.status).to eq('skipped')
   end
+
+  it 'schedules continuation when a visual workflow reaches a delay node' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'wait', type: 'delay', data: { delay_hours: 24 } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'wait' },
+          { source: 'wait', target: 'end' }
+        ]
+      }
+    )
+
+    described_class.perform_now(rule.id, rule.event_name, 'visual-flow-event', card.id)
+
+    execution = rule.kanban_automation_executions.sole
+    expect(execution).to have_attributes(status: 'waiting', workflow_state: { 'next_node_id' => 'end' })
+    expect(KanbanAutomations::ContinueWorkflowJob).to have_been_enqueued.with(execution.id, card.id)
+  end
 end

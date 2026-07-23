@@ -564,6 +564,16 @@ describe('KanbanBoardSettings', () => {
     );
   });
 
+  it('shows the visual workflow builder control in automation settings', async () => {
+    const { wrapper } = await mountSettings();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-open-workflow-builder"]')
+        .exists()
+    ).toBe(true);
+  });
+
   it('toggles all_inboxes and selected_inboxes controls', async () => {
     const { wrapper } = await mountSettings();
 

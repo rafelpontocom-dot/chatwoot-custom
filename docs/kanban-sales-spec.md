@@ -229,6 +229,28 @@ Gatilhos são eventos de domínio, não chamadas diretas de controller. A transi
 
 O serviço deve ser idempotente e reavaliar as condições no momento do envio. Portanto, mover para `Agendado` não garante envio: a oportunidade ainda pode estar sem data, sem conversa compatível, sem opt-in ou fora da política de canal. Cada motivo de não envio deve ser persistido para diagnóstico.
 
+### KanbanAutomationVisualFlow
+
+`KanbanAutomationRule.flow_definition` persiste o canvas como:
+
+```json
+{
+  "nodes": [
+    { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 }, "data": {} },
+    { "id": "wait", "type": "delay", "position": { "x": 280, "y": 0 }, "data": { "delay_hours": 24 } },
+    { "id": "message", "type": "send_message", "position": { "x": 560, "y": 0 }, "data": { "channel": "whatsapp", "opt_in_attribute_key": "marketing_messages_opt_in", "content": "Olá, {{contact_name}}" } },
+    { "id": "end", "type": "end", "position": { "x": 840, "y": 0 }, "data": {} }
+  ],
+  "edges": [
+    { "source": "trigger", "target": "wait" },
+    { "source": "wait", "target": "message" },
+    { "source": "message", "target": "end" }
+  ]
+}
+```
+
+O modelo aceita somente `trigger`, `delay`, `send_message`, `action` e `end`; ids são únicos e conexões precisam apontar para nós existentes. A primeira execução suporta o caminho linear `trigger -> delay -> send_message|action -> end`. `KanbanAutomationExecution.workflow_state` guarda o próximo nó e `scheduled_at`; `ContinueWorkflowJob` retoma execuções em espera. Uma mensagem sem texto, canal válido e opt-in não é persistida. Sem conversa compatível, opt-in ou janela de WhatsApp, a execução registra `skipped` e continua o fluxo. Condições e ramificações pertencem à próxima etapa do contrato.
+
 Para cadências de follow-up, a inscrição pode ocorrer ao entrar em uma etapa ou manualmente. A execução deve interromper quando houver resposta do cliente, mudança de etapa configurada como terminal, ganho, perda, arquivamento, opt-out ou cancelamento. O encerramento automático como `Perdido` nunca deve ser implícito: precisa ser uma ação configurada e visível na revisão da cadência.
 
 ### Mapeamento Do N8N

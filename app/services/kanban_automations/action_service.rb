@@ -7,14 +7,15 @@ class KanbanAutomations::ActionService
     'archive_card' => :archive_card
   }.freeze
 
-  def initialize(rule:, card:)
+  def initialize(rule:, card:, actions: nil)
     @rule = rule
     @card = card
     @board = rule.kanban_board
+    @actions = actions
   end
 
   def perform!
-    Array(@rule.actions).map do |action|
+    Array(@actions || @rule.actions).map do |action|
       source = action.to_h.with_indifferent_access
       action_name = source[:action_name].to_s
       params = source[:action_params].to_h.with_indifferent_access

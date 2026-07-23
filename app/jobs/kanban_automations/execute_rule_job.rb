@@ -38,7 +38,7 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
   end
 
   def execution_finished?
-    @execution.succeeded? || @execution.running?
+    @execution.succeeded? || @execution.running? || @execution.waiting?
   end
 
   def execute_with_lock
@@ -48,8 +48,12 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
       @execution.update!(status: :running, started_at: Time.current, error_message: nil)
       next skip_execution unless conditions_match?
 
-      results = KanbanAutomations::ActionService.new(rule: @rule, card: @card).perform!
-      @execution.update!(status: :succeeded, action_results: results, completed_at: Time.current)
+      if @rule.visual_flow?
+        execute_visual_workflow
+      else
+        results = KanbanAutomations::ActionService.new(rule: @rule, card: @card).perform!
+        @execution.update!(status: :succeeded, action_results: results, completed_at: Time.current)
+      end
     end
   end
 
@@ -59,5 +63,19 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
 
   def conditions_match?
     KanbanAutomations::ConditionsMatcher.new(rule: @rule, card: @card).matches?
+  end
+
+  def execute_visual_workflow
+    result = KanbanAutomations::WorkflowService.new(execution: @execution, rule: @rule, card: @card).perform!
+    @execution.update!(
+      status: result.fetch(:status),
+      action_results: result.fetch(:action_results),
+      workflow_state: result.fetch(:workflow_state),
+      scheduled_at: result.fetch(:scheduled_at),
+      completed_at: result[:status] == :succeeded ? Time.current : nil
+    )
+    return unless result[:status] == :waiting
+
+    KanbanAutomations::ContinueWorkflowJob.set(wait_until: result.fetch(:scheduled_at)).perform_later(@execution.id, @card.id)
   end
 end

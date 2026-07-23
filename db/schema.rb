@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_30_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_31_100000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1030,11 +1030,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_100000) do
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "workflow_state", default: {}, null: false
+    t.datetime "scheduled_at"
     t.index ["account_id", "status", "created_at"], name: "idx_kanban_automation_executions_history"
     t.index ["account_id"], name: "index_kanban_automation_executions_on_account_id"
     t.index ["kanban_automation_rule_id", "event_key"], name: "idx_kanban_automation_executions_idempotency", unique: true
     t.index ["kanban_automation_rule_id"], name: "idx_on_kanban_automation_rule_id_fc8facec2f"
     t.index ["kanban_card_event_id"], name: "index_kanban_automation_executions_on_kanban_card_event_id"
+    t.index ["status", "scheduled_at"], name: "idx_kanban_automation_executions_on_schedule"
   end
 
   create_table "kanban_automation_rules", force: :cascade do |t|
@@ -1050,6 +1053,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_100000) do
     t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "flow_definition", default: {}, null: false
     t.index ["account_id", "kanban_board_id", "event_name", "active"], name: "idx_kanban_automation_rules_lookup"
     t.index ["account_id"], name: "index_kanban_automation_rules_on_account_id"
     t.index ["kanban_board_id", "name"], name: "idx_kanban_automation_rules_board_name", unique: true

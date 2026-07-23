@@ -502,6 +502,30 @@
           "DISABLE_SUCCESS": "Lembrete de consulta desativado.",
           "DISABLE_ERROR": "Não foi possível desativar o lembrete de consulta."
         },
+        "WORKFLOW": {
+          "OPEN": "Construtor visual",
+          "TITLE": "Fluxo visual",
+          "DESCRIPTION": "Conecte as etapas de negócio que esta automação deve executar.",
+          "CANVAS_LABEL": "Fluxo de automação",
+          "ADD": "Adicionar {node}",
+          "HOURS": "Aguardar {hours} horas",
+          "DELAY_HOURS": "Aguardar em horas",
+          "CHANNEL": "Canal",
+          "OPT_IN": "Campo de opt-in do contato",
+          "MESSAGE": "Mensagem",
+          "ACTION": "Ação",
+          "CREATE_TASK": "Criar próxima ação",
+          "MOVE_STAGE": "Mover oportunidade",
+          "ARCHIVE": "Arquivar oportunidade",
+          "NODE_HINT": "Este nó inicia ou conclui o fluxo.",
+          "NODES": {
+            "TRIGGER": "Gatilho",
+            "DELAY": "Aguardar",
+            "MESSAGE": "Enviar mensagem",
+            "ACTION": "Ação comercial",
+            "END": "Fim"
+          }
+        },
         "BIRTHDAY": {
           "TITLE": "Mensagens de aniversário",
           "DESCRIPTION": "Envie uma mensagem de aniversário mediante opt-in por uma conversa compatível de WhatsApp ou e-mail. A automação fica desativada até ser habilitada.",
