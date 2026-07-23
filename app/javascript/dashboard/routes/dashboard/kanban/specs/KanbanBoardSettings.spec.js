@@ -575,6 +575,24 @@ describe('KanbanBoardSettings', () => {
     ).toBe(true);
   });
 
+  it('opens and focuses a fresh commercial rule from the new rule action', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-automation-name"]')
+      .setValue('Rascunho');
+    await wrapper
+      .find('[data-testid="kanban-settings-new-automation-rule"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-settings-automation-name"]').element
+        .value
+    ).toBe('');
+  });
+
   it('toggles all_inboxes and selected_inboxes controls', async () => {
     const { wrapper } = await mountSettings();
 

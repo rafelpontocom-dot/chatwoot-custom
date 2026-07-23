@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import camelcaseKeys from 'camelcase-keys';
@@ -80,6 +80,8 @@ const automationExecutionsRuleId = ref(null);
 const showAutomationDeleteConfirmation = ref(false);
 const automationRulePendingDeletion = ref(null);
 const showWorkflowBuilder = ref(false);
+const automationRuleEditor = ref(null);
+const automationRuleNameInput = ref(null);
 const cadences = ref([]);
 const cadencesLoading = ref(false);
 const cadenceSaving = ref(false);
@@ -1862,6 +1864,18 @@ const resetAutomationRuleForm = () => {
     automationRuleForm.actions.length,
     blankAutomationAction()
   );
+};
+
+const startNewAutomationRule = async () => {
+  resetAutomationRuleForm();
+  showWorkflowBuilder.value = true;
+
+  await nextTick();
+  automationRuleEditor.value?.scrollIntoView?.({
+    behavior: 'smooth',
+    block: 'start',
+  });
+  automationRuleNameInput.value?.focus();
 };
 
 const applyAutomationRule = rule => {
@@ -4259,7 +4273,7 @@ onMounted(async () => {
               :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NEW')"
               color="blue"
               size="sm"
-              @click="resetAutomationRuleForm"
+              @click="startNewAutomationRule"
             />
           </div>
 
@@ -4809,6 +4823,8 @@ onMounted(async () => {
           </p>
 
           <div
+            ref="automationRuleEditor"
+            data-testid="kanban-settings-automation-rule-editor"
             class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
           >
             <div class="flex items-center justify-between gap-2">
@@ -4862,6 +4878,7 @@ onMounted(async () => {
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NAME') }}
                 <input
+                  ref="automationRuleNameInput"
                   v-model="automationRuleForm.name"
                   data-testid="kanban-settings-automation-name"
                   type="text"
