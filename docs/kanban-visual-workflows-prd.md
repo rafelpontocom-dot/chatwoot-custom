@@ -158,7 +158,7 @@ HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrad
 
 **P0 operacional:** gatilhos de oportunidade e de resposta do cliente; nós de espera, condição, mensagem, ação, nota, etiqueta e webhook; conexões HTTPS aprovadas; histórico de execução; canvas com inserção contextual e propriedades laterais.
 
-**P1 de governança:** versão publicada da regra, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com variáveis resolvidas, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente.
+**P1 de governança:** versão publicada da regra, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com uma oportunidade ativa e passos previstos sem efeitos externos, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente.
 
 **P2 de escala:** tarefas internas com prazo, rodízio de responsáveis, templates por segmento, painel de saúde das automações e integrações declarativas adicionais, sempre por conexão aprovada.
 

@@ -34,6 +34,13 @@ const isSavingReminder = ref(false);
 const isSavingConnection = ref(false);
 const connectionSecret = ref('');
 const expandedConnectionId = ref(null);
+const testRuleId = ref(null);
+const testCards = ref([]);
+const selectedTestCardId = ref('');
+const testResult = ref(null);
+const isLoadingTestCards = ref(false);
+const isTestingRule = ref(false);
+const testError = ref('');
 
 const blankAction = () => ({
   actionName: 'move_stage',
@@ -296,6 +303,14 @@ const reminderOffsets = computed(() =>
     .filter(value => Number.isInteger(value) && value > 0)
     .filter((value, index, values) => values.indexOf(value) === index)
 );
+const testCardOptions = computed(() =>
+  testCards.value.map(card => ({
+    value: String(card.id),
+    label: `${card.subject || card.contact?.name || `#${card.id}`} · ${
+      card.contact?.name || t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.NO_CONTACT')
+    }${card.stageName ? ` · ${card.stageName}` : ''}`,
+  }))
+);
 
 const normalize = value => camelcaseKeys(value || {}, { deep: true });
 const resetForm = () => {
@@ -547,6 +562,79 @@ const copyConnectionUrl = async url => {
 
   await copyTextToClipboard(url);
   useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.URL_COPIED'));
+};
+
+const toggleRuleTest = async rule => {
+  if (testRuleId.value === rule.id) {
+    testRuleId.value = null;
+    return;
+  }
+
+  testRuleId.value = rule.id;
+  selectedTestCardId.value = '';
+  testResult.value = null;
+  testError.value = '';
+  if (testCards.value.length) return;
+
+  isLoadingTestCards.value = true;
+  try {
+    const responses = await Promise.all(
+      stages.value.map(stage =>
+        KanbanBoardsAPI.getStageCards(boardId.value, stage.id, { limit: 100 })
+      )
+    );
+    testCards.value = responses.flatMap((response, index) =>
+      (normalize(response.data).cards || []).map(card => ({
+        ...card,
+        stageName: stages.value[index]?.name,
+      }))
+    );
+  } catch (loadError) {
+    testError.value = t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.LOAD_CARDS_ERROR');
+  } finally {
+    isLoadingTestCards.value = false;
+  }
+};
+
+const runRuleTest = async rule => {
+  if (!selectedTestCardId.value || isTestingRule.value) return;
+
+  isTestingRule.value = true;
+  testError.value = '';
+  testResult.value = null;
+  try {
+    const response = await KanbanBoardsAPI.testAutomationRule(
+      boardId.value,
+      rule.id,
+      Number(selectedTestCardId.value)
+    );
+    testResult.value = normalize(response.data);
+  } catch (runError) {
+    testError.value = t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.RUN_ERROR');
+  } finally {
+    isTestingRule.value = false;
+  }
+};
+
+const previewStepLabel = step => {
+  switch (step.type || step.actionName) {
+    case 'delay':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.DELAY');
+    case 'wait_until_field':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_UNTIL_FIELD');
+    case 'wait_for_response':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_RESPONSE');
+    case 'condition':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.CONDITION');
+    case 'action':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.ACTION');
+    case 'send_message':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.SEND_MESSAGE');
+    case 'webhook':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WEBHOOK');
+    default:
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.UNKNOWN');
+  }
 };
 
 const actionParams = action => {
@@ -870,37 +958,132 @@ onMounted(load);
           <article
             v-for="rule in rules"
             :key="rule.id"
-            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+            class="rounded-md border border-n-weak bg-n-surface-1"
           >
-            <button
-              type="button"
-              class="min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-n-brand"
-              @click="openRule(rule)"
+            <div class="flex items-center justify-between gap-3 px-4 py-3">
+              <button
+                type="button"
+                class="min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-n-brand"
+                @click="openRule(rule)"
+              >
+                <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                  {{ rule.name }}
+                </p>
+                <p class="m-0 mt-1 text-xs text-n-slate-11">
+                  {{
+                    eventOptions.find(item => item.value === rule.eventName)
+                      ?.label
+                  }}
+                </p>
+              </button>
+              <div class="flex shrink-0 items-center gap-2">
+                <span
+                  class="rounded-full px-2 py-1 text-xs font-medium"
+                  :class="
+                    rule.active
+                      ? 'bg-n-green-3 text-n-green-11'
+                      : 'bg-n-slate-3 text-n-slate-11'
+                  "
+                >
+                  {{
+                    rule.active
+                      ? t('KANBAN.AUTOMATIONS_WORKSPACE.ACTIVE')
+                      : t('KANBAN.AUTOMATIONS_WORKSPACE.DRAFT')
+                  }}
+                </span>
+                <Button
+                  type="button"
+                  icon="i-lucide-flask-conical"
+                  color="slate"
+                  size="xs"
+                  :data-testid="`kanban-automation-test-rule-${rule.id}`"
+                  :aria-expanded="testRuleId === rule.id"
+                  :label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.OPEN')"
+                  @click="toggleRuleTest(rule)"
+                />
+              </div>
+            </div>
+            <section
+              v-if="testRuleId === rule.id"
+              class="grid gap-3 border-t border-n-weak bg-n-surface-2 px-4 py-3"
+              :data-testid="`kanban-automation-test-panel-${rule.id}`"
             >
-              <p class="m-0 truncate text-sm font-medium text-n-slate-12">
-                {{ rule.name }}
+              <div class="flex flex-wrap items-end gap-2">
+                <label
+                  class="grid min-w-60 flex-1 gap-1 text-xs font-medium text-n-slate-11"
+                >
+                  {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.CARD') }}
+                  <select
+                    v-model="selectedTestCardId"
+                    :data-testid="`kanban-automation-test-card-${rule.id}`"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    :disabled="isLoadingTestCards || !testCardOptions.length"
+                  >
+                    <option value="">
+                      {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.SELECT_CARD') }}
+                    </option>
+                    <option
+                      v-for="card in testCardOptions"
+                      :key="card.value"
+                      :value="card.value"
+                    >
+                      {{ card.label }}
+                    </option>
+                  </select>
+                </label>
+                <Button
+                  type="button"
+                  icon="i-lucide-play"
+                  color="blue"
+                  size="sm"
+                  :data-testid="`kanban-automation-run-test-${rule.id}`"
+                  :label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.RUN')"
+                  :is-loading="isTestingRule"
+                  :disabled="!selectedTestCardId || isLoadingTestCards"
+                  @click="runRuleTest(rule)"
+                />
+              </div>
+              <p v-if="isLoadingTestCards" class="m-0 text-xs text-n-slate-11">
+                {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.LOADING_CARDS') }}
               </p>
-              <p class="m-0 mt-1 text-xs text-n-slate-11">
-                {{
-                  eventOptions.find(item => item.value === rule.eventName)
-                    ?.label
-                }}
+              <p
+                v-else-if="!testCardOptions.length"
+                class="m-0 text-xs text-n-slate-11"
+              >
+                {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.NO_CARDS') }}
               </p>
-            </button>
-            <span
-              class="shrink-0 rounded-full px-2 py-1 text-xs font-medium"
-              :class="
-                rule.active
-                  ? 'bg-n-green-3 text-n-green-11'
-                  : 'bg-n-slate-3 text-n-slate-11'
-              "
-            >
-              {{
-                rule.active
-                  ? t('KANBAN.AUTOMATIONS_WORKSPACE.ACTIVE')
-                  : t('KANBAN.AUTOMATIONS_WORKSPACE.DRAFT')
-              }}
-            </span>
+              <p
+                v-if="testError"
+                class="m-0 text-xs text-n-ruby-11"
+                role="alert"
+              >
+                {{ testError }}
+              </p>
+              <div
+                v-if="testResult"
+                class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+                role="status"
+              >
+                <p class="m-0 text-sm font-medium text-n-slate-12">
+                  {{
+                    testResult.matches
+                      ? t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.RESULT_MATCHES')
+                      : t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.RESULT_NO_MATCH')
+                  }}
+                </p>
+                <ol
+                  v-if="testResult.steps?.length"
+                  class="m-0 grid gap-1 pl-4 text-xs text-n-slate-11"
+                >
+                  <li v-for="step in testResult.steps" :key="step.nodeId">
+                    {{ previewStepLabel(step) }}
+                  </li>
+                </ol>
+                <p v-else class="m-0 text-xs text-n-slate-11">
+                  {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.NO_STEPS') }}
+                </p>
+              </div>
+            </section>
           </article>
         </div>
         <div v-else class="grid max-w-xl justify-items-start gap-2 py-10">

@@ -14,6 +14,30 @@
       "UNTITLED": "Sem nome",
       "NO_ITEMS": "Nenhum item configurado.",
       "MANAGE": "Gerenciar configurações",
+      "TEST": {
+        "OPEN": "Testar",
+        "CARD": "Oportunidade para testar",
+        "SELECT_CARD": "Selecione uma oportunidade",
+        "LOADING_CARDS": "Carregando oportunidades ativas...",
+        "NO_CARDS": "Não há oportunidades ativas disponíveis para teste.",
+        "NO_CONTACT": "Sem contato",
+        "RUN": "Executar teste",
+        "LOAD_CARDS_ERROR": "Não foi possível carregar as oportunidades para teste.",
+        "RUN_ERROR": "Não foi possível testar esta automação.",
+        "RESULT_MATCHES": "A oportunidade atende às condições. Estes são os próximos passos previstos:",
+        "RESULT_NO_MATCH": "A oportunidade não atende às condições desta automação.",
+        "NO_STEPS": "Não há ações previstas neste fluxo.",
+        "STEPS": {
+          "DELAY": "Aguardar",
+          "WAIT_UNTIL_FIELD": "Aguardar data",
+          "WAIT_FOR_RESPONSE": "Aguardar resposta do cliente",
+          "CONDITION": "Avaliar condição",
+          "ACTION": "Executar ação interna",
+          "SEND_MESSAGE": "Enviar mensagem",
+          "WEBHOOK": "Enviar webhook",
+          "UNKNOWN": "Próximo passo"
+        }
+      },
       "TEMPLATES": {
         "TITLE": "Começar com um modelo",
         "FOLLOW_UP": {

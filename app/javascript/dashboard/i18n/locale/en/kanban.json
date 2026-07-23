@@ -14,6 +14,30 @@
       "UNTITLED": "Untitled",
       "NO_ITEMS": "No items configured.",
       "MANAGE": "Manage settings",
+      "TEST": {
+        "OPEN": "Test",
+        "CARD": "Opportunity to test",
+        "SELECT_CARD": "Select an opportunity",
+        "LOADING_CARDS": "Loading active opportunities...",
+        "NO_CARDS": "There are no active opportunities available for testing.",
+        "NO_CONTACT": "No contact",
+        "RUN": "Run test",
+        "LOAD_CARDS_ERROR": "Could not load opportunities for testing.",
+        "RUN_ERROR": "Could not test this automation.",
+        "RESULT_MATCHES": "The opportunity matches the conditions. These are the planned next steps:",
+        "RESULT_NO_MATCH": "The opportunity does not match this automation's conditions.",
+        "NO_STEPS": "There are no planned actions in this flow.",
+        "STEPS": {
+          "DELAY": "Wait",
+          "WAIT_UNTIL_FIELD": "Wait for date",
+          "WAIT_FOR_RESPONSE": "Wait for customer reply",
+          "CONDITION": "Evaluate condition",
+          "ACTION": "Run internal action",
+          "SEND_MESSAGE": "Send message",
+          "WEBHOOK": "Send webhook",
+          "UNKNOWN": "Next step"
+        }
+      },
       "TEMPLATES": {
         "TITLE": "Start from a template",
         "FOLLOW_UP": {

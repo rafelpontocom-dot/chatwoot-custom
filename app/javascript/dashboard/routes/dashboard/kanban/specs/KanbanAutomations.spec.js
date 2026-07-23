@@ -33,20 +33,34 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     resetAutomationConnectionSecret: vi.fn(),
     getAllAutomationExecutions: vi.fn(),
     retryAutomationExecution: vi.fn(),
+    getStageCards: vi.fn(),
+    testAutomationRule: vi.fn(),
   },
 }));
 
-const mountWorkspace = async ({ connections = [] } = {}) => {
+const mountWorkspace = async ({
+  connections = [],
+  rules = [],
+  stageCards = [],
+  settings = {
+    stages: [],
+    custom_field_definitions: [],
+    next_action_types: [],
+  },
+} = {}) => {
   KanbanBoardsAPI.getSettings.mockResolvedValue({
-    data: { stages: [], custom_field_definitions: [], next_action_types: [] },
+    data: settings,
   });
-  KanbanBoardsAPI.getAutomationRules.mockResolvedValue({ data: [] });
+  KanbanBoardsAPI.getAutomationRules.mockResolvedValue({ data: rules });
   KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getAppointmentReminderRules.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getAutomationConnections.mockResolvedValue({
     data: connections,
   });
   KanbanBoardsAPI.getAllAutomationExecutions.mockResolvedValue({ data: [] });
+  KanbanBoardsAPI.getStageCards.mockResolvedValue({
+    data: { cards: stageCards },
+  });
   KanbanBoardsAPI.createAppointmentReminderRule.mockResolvedValue({
     data: { id: 2, offsets: [24], channels: ['whatsapp'] },
   });
@@ -70,7 +84,21 @@ describe('KanbanAutomations', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('starts in the flows workspace and opens a dedicated visual editor', async () => {
-    const wrapper = await mountWorkspace();
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [{ id: 2, name: 'Qualificação' }],
+        custom_field_definitions: [],
+        next_action_types: [],
+      },
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+    });
 
     expect(
       wrapper.find('[data-testid="kanban-automations-workspace"]').exists()
@@ -98,7 +126,21 @@ describe('KanbanAutomations', () => {
         flow_definition: {},
       },
     });
-    const wrapper = await mountWorkspace();
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [{ id: 2, name: 'Qualificação' }],
+        custom_field_definitions: [],
+        next_action_types: [],
+      },
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+    });
 
     await wrapper
       .find('[data-testid="kanban-automations-new-flow"]')
@@ -145,6 +187,60 @@ describe('KanbanAutomations', () => {
       params: { accountId: '1', boardId: 10 },
       hash: '#birthday-automation',
     });
+  });
+
+  it('tests a flow with a selected opportunity without executing it', async () => {
+    KanbanBoardsAPI.testAutomationRule.mockResolvedValue({
+      data: {
+        matches: true,
+        steps: [
+          {
+            node_id: 'wait',
+            type: 'delay',
+            scheduled_at: '2026-07-24T12:00:00Z',
+          },
+        ],
+      },
+    });
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [{ id: 2, name: 'Qualificação' }],
+        custom_field_definitions: [],
+        next_action_types: [],
+      },
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+      stageCards: [
+        { id: 70, subject: 'Proposta Ana', contact: { name: 'Ana' } },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-test-rule-44"]')
+      .trigger('click');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-automation-test-card-44"]')
+      .setValue('70');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-automation-run-test-44"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.testAutomationRule).toHaveBeenCalledWith(10, 44, 70);
+    expect(wrapper.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEST.RESULT_MATCHES'
+    );
+    expect(wrapper.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.DELAY'
+    );
   });
 
   it('reveals compact inbound webhook instructions only when requested', async () => {

@@ -138,7 +138,7 @@ O limite é de 50 nós por execução. O backend rejeita ciclos; o único nó co
 
 Caso contrário, muda para `skipped`, remove `scheduled_at` e encerra. Erros inesperados mudam para `failed`, guardam `error_message` e usam o retry padrão do job.
 
-O endpoint de teste usa `WorkflowPreviewService`, que percorre os nós e devolve passos planejados sem chamar `ActionService` ou `WorkflowMessageService`. Uma execução em estado `waiting` pode ser cancelada individualmente; ela passa para `skipped`, limpa `scheduled_at` e registra o motivo no histórico.
+O endpoint de teste usa `WorkflowPreviewService`, que percorre os nós e devolve passos planejados sem chamar `ActionService` ou `WorkflowMessageService`. Na interface, o administrador escolhe uma oportunidade ativa do board, vê se as condições são atendidas e recebe a sequência traduzida dos passos previstos; mensagens, webhooks e ações internas nunca são disparados. Uma execução em estado `waiting` pode ser cancelada individualmente; ela passa para `skipped`, limpa `scheduled_at` e registra o motivo no histórico.
 
 ## Nó De Mensagem
 

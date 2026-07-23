@@ -510,56 +510,6 @@ const removeSelectedNode = () => {
                 </option>
               </select>
             </label>
-            <template v-if="selectedNode.data.channel === 'whatsapp'">
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME') }}
-                <input
-                  v-model="selectedNode.data.whatsapp_template_params.name"
-                  type="text"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-              <div class="grid grid-cols-2 gap-2">
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_LANGUAGE')
-                  }}
-                  <input
-                    v-model="
-                      selectedNode.data.whatsapp_template_params.language
-                    "
-                    type="text"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="updateNode"
-                  />
-                </label>
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_CATEGORY')
-                  }}
-                  <input
-                    v-model="
-                      selectedNode.data.whatsapp_template_params.category
-                    "
-                    type="text"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="updateNode"
-                  />
-                </label>
-              </div>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAMESPACE')
-                }}
-                <input
-                  v-model="selectedNode.data.whatsapp_template_params.namespace"
-                  type="text"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </template>
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_OFFSET_HOURS') }}
               <input
@@ -688,6 +638,56 @@ const removeSelectedNode = () => {
                 @change="updateNode"
               />
             </label>
+            <template v-if="selectedNode.data.channel === 'whatsapp'">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME') }}
+                <input
+                  v-model="selectedNode.data.whatsapp_template_params.name"
+                  type="text"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_LANGUAGE')
+                  }}
+                  <input
+                    v-model="
+                      selectedNode.data.whatsapp_template_params.language
+                    "
+                    type="text"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="updateNode"
+                  />
+                </label>
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_CATEGORY')
+                  }}
+                  <input
+                    v-model="
+                      selectedNode.data.whatsapp_template_params.category
+                    "
+                    type="text"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="updateNode"
+                  />
+                </label>
+              </div>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAMESPACE')
+                }}
+                <input
+                  v-model="selectedNode.data.whatsapp_template_params.namespace"
+                  type="text"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+            </template>
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.FREQUENCY_LIMIT') }}
               <input

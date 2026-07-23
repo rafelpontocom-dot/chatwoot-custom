@@ -69,4 +69,36 @@ describe('KanbanWorkflowBuilder', () => {
       'KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ENROLL_CADENCE'
     );
   });
+
+  it('configures official WhatsApp templates on the message node', () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [
+            {
+              id: 'message',
+              type: 'send_message',
+              data: {
+                channel: 'whatsapp',
+                content: 'Olá',
+                opt_in_attribute_key: 'marketing_messages_opt_in',
+                frequency_limit_hours: '',
+                quiet_hours: {
+                  start: '',
+                  end: '',
+                  timezone: 'America/Sao_Paulo',
+                },
+                whatsapp_template_params: {},
+              },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME'
+    );
+  });
 });
