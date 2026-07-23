@@ -6,7 +6,7 @@ vi.mock('vue-i18n', () => ({
 }));
 
 describe('KanbanWorkflowBuilder', () => {
-  it('renders the visual canvas and its executable node controls', () => {
+  it('renders the visual canvas and opens a compact node add menu', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: { modelValue: {} },
     });
@@ -14,7 +14,15 @@ describe('KanbanWorkflowBuilder', () => {
     expect(
       wrapper.find('[data-testid="kanban-workflow-builder"]').exists()
     ).toBe(true);
-    expect(wrapper.findAll('button')).toHaveLength(5);
+    await wrapper
+      .find('[data-testid="kanban-workflow-add-node"]')
+      .trigger('click');
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-menu"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.findAll('[data-testid="kanban-workflow-node-menu"] button')
+    ).toHaveLength(5);
   });
 
   it('renders the action inspector for a selected node', () => {

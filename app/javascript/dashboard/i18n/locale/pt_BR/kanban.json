@@ -1,5 +1,23 @@
 {
   "KANBAN": {
+    "AUTOMATIONS_WORKSPACE": {
+      "TITLE": "Automações do funil",
+      "BACK": "Voltar ao quadro",
+      "NEW_FLOW": "Nova automação",
+      "ANY_STAGE": "Qualquer etapa",
+      "ACTIVE": "Ativa",
+      "DRAFT": "Rascunho",
+      "EMPTY_TITLE": "Nenhuma automação criada",
+      "EMPTY_DESCRIPTION": "Crie um fluxo para automatizar o próximo passo comercial.",
+      "UNTITLED": "Sem nome",
+      "NO_ITEMS": "Nenhum item configurado.",
+      "MANAGE": "Gerenciar configurações",
+      "TABS": {
+        "FLOWS": "Fluxos",
+        "CADENCES": "Cadências",
+        "REMINDERS": "Lembretes"
+      }
+    },
     "ARCHIVE": {
       "OPEN": "Oportunidades arquivadas",
       "TITLE": "Oportunidades arquivadas",
@@ -515,6 +533,7 @@
           "DISABLE_ERROR": "Não foi possível desativar o lembrete de consulta."
         },
         "WORKFLOW": {
+          "ADD_NODE": "Adicionar etapa ao fluxo",
           "OPEN": "Construtor visual",
           "TITLE": "Fluxo visual",
           "DESCRIPTION": "Conecte as etapas de negócio que esta automação deve executar.",

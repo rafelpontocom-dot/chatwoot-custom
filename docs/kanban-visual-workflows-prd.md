@@ -28,13 +28,23 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 
 ## Fluxo Da Experiência
 
-1. O administrador abre Configurações do board > Automações > Regra comercial.
-2. Define nome, evento e condições de entrada no formulário da regra.
-3. Abre o Construtor visual e monta o caminho da automação.
-4. Seleciona um nó para configurar seu conteúdo no painel lateral.
-5. Salva. O backend valida todos os nós antes de ativar a regra.
-6. Quando o evento ocorre, a execução fica registrada no histórico da regra.
-7. Se houver uma espera, o card segue operando normalmente; a execução retoma no horário salvo.
+1. O administrador abre Kanban > Automações do funil pelo ícone de raio no cabeçalho.
+2. A central mostra as abas Fluxos, Cadências e Lembretes, com os fluxos existentes em uma lista curta e escaneável.
+3. Seleciona uma automação ou usa Nova automação para abrir o construtor em uma área dedicada.
+4. Define nome, evento, etapa de origem e estado ativo no cabeçalho compacto do fluxo.
+5. Usa o botão `+` para escolher uma etapa a acrescentar ao canvas, sem uma paleta permanente ocupando espaço.
+6. Seleciona um nó para configurar seu conteúdo no painel lateral.
+7. Salva. O backend valida todos os nós antes de ativar a regra.
+8. Quando o evento ocorre, a execução fica registrada no histórico da regra.
+9. Se houver uma espera, o card segue operando normalmente; a execução retoma no horário salvo.
+
+## Princípios Da Central De Automações
+
+- O canvas é uma área de trabalho, não um bloco dentro de um formulário longo.
+- O botão `+` apresenta opções somente quando a pessoa quer acrescentar uma etapa.
+- O painel lateral aparece apenas para o nó selecionado e concentra suas propriedades.
+- Cadências e lembretes são visíveis na mesma central, sem misturar seus formulários à edição do fluxo.
+- A configuração legada permanece acessível temporariamente durante a migração para preservar operações já configuradas.
 
 ## Nós Da Primeira Entrega
 

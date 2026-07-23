@@ -903,6 +903,18 @@ const openBoardSettings = () => {
   });
 };
 
+const openBoardAutomations = () => {
+  if (!selectedBoard.value?.id) return;
+
+  router.push({
+    name: 'kanban_board_automations',
+    params: {
+      accountId: route.params.accountId,
+      boardId: selectedBoard.value.id,
+    },
+  });
+};
+
 const setStageNameInput = (stageId, element) => {
   if (element) {
     stageNameInputs.set(stageId, element);
@@ -1635,6 +1647,17 @@ onUnmounted(() => {
               >
                 <i class="i-lucide-plus size-4" />
                 {{ t('KANBAN.ACTIONS.NEW_OPPORTUNITY') }}
+              </button>
+              <button
+                v-if="isAdmin"
+                type="button"
+                data-testid="kanban-board-automations-button"
+                class="flex size-10 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+                :aria-label="t('KANBAN.AUTOMATIONS_WORKSPACE.TITLE')"
+                :title="t('KANBAN.AUTOMATIONS_WORKSPACE.TITLE')"
+                @click="openBoardAutomations"
+              >
+                <span class="i-lucide-zap size-4" />
               </button>
               <button
                 v-if="isAdmin"

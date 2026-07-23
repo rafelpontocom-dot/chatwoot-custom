@@ -49,6 +49,7 @@ const { t } = useI18n();
 const nodes = ref([]);
 const edges = ref([]);
 const selectedNodeId = ref(null);
+const showNodeMenu = ref(false);
 const nodeTypes = {
   trigger: markRaw(KanbanWorkflowNode),
   delay: markRaw(KanbanWorkflowNode),
@@ -68,6 +69,14 @@ const nodeLabels = computed(() => ({
   condition: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CONDITION'),
   end: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
 }));
+
+const addableNodeTypes = computed(() => [
+  'delay',
+  'wait_until_field',
+  'condition',
+  'send_message',
+  'action',
+]);
 
 const conditionOperatorOptions = computed(() => [
   { value: 'equals', label: t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') },
@@ -279,6 +288,7 @@ const addNodeOfType = type => {
   });
   nodes.value.push(node);
   selectedNodeId.value = id;
+  showNodeMenu.value = false;
 };
 
 const onConnect = connection => {
@@ -323,26 +333,32 @@ const removeSelectedNode = () => {
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DESCRIPTION') }}
         </p>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="relative">
         <button
-          v-for="type in [
-            'delay',
-            'wait_until_field',
-            'condition',
-            'send_message',
-            'action',
-          ]"
-          :key="type"
           type="button"
-          class="h-8 rounded-md border border-n-weak bg-n-surface-1 px-3 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-          @click="addNodeOfType(type)"
+          data-testid="kanban-workflow-add-node"
+          class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand"
+          :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
+          :aria-expanded="showNodeMenu"
+          @click="showNodeMenu = !showNodeMenu"
         >
-          {{
-            t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD', {
-              node: nodeLabels[type],
-            })
-          }}
+          <i class="i-lucide-plus size-4" />
         </button>
+        <div
+          v-if="showNodeMenu"
+          data-testid="kanban-workflow-node-menu"
+          class="absolute right-0 z-10 mt-2 grid min-w-48 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-lg"
+        >
+          <button
+            v-for="type in addableNodeTypes"
+            :key="type"
+            type="button"
+            class="flex h-9 items-center rounded px-2 text-left text-sm font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            @click="addNodeOfType(type)"
+          >
+            {{ nodeLabels[type] }}
+          </button>
+        </div>
       </div>
     </div>
 

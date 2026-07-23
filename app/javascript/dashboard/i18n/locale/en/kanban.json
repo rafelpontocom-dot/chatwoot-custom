@@ -1,5 +1,23 @@
 {
   "KANBAN": {
+    "AUTOMATIONS_WORKSPACE": {
+      "TITLE": "Pipeline automations",
+      "BACK": "Back to board",
+      "NEW_FLOW": "New automation",
+      "ANY_STAGE": "Any stage",
+      "ACTIVE": "Active",
+      "DRAFT": "Draft",
+      "EMPTY_TITLE": "No automations yet",
+      "EMPTY_DESCRIPTION": "Create a flow to automate the next sales step.",
+      "UNTITLED": "Untitled",
+      "NO_ITEMS": "No items configured.",
+      "MANAGE": "Manage settings",
+      "TABS": {
+        "FLOWS": "Flows",
+        "CADENCES": "Cadences",
+        "REMINDERS": "Reminders"
+      }
+    },
     "ARCHIVE": {
       "OPEN": "Archived opportunities",
       "TITLE": "Archived opportunities",
@@ -519,6 +537,7 @@
           "DISABLE_ERROR": "Could not disable appointment reminder."
         },
         "WORKFLOW": {
+          "ADD_NODE": "Add step to flow",
           "OPEN": "Visual builder",
           "TITLE": "Visual workflow",
           "DESCRIPTION": "Connect the business steps that should run for this automation.",
