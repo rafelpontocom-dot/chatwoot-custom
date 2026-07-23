@@ -38,10 +38,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  cadences: {
-    type: Array,
-    default: () => [],
-  },
   connections: {
     type: Array,
     default: () => [],
@@ -140,10 +136,6 @@ const actionOptions = computed(() => [
   {
     value: 'archive_card',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ARCHIVE_CARD'),
-  },
-  {
-    value: 'enroll_cadence',
-    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ENROLL_CADENCE'),
   },
   {
     value: 'add_label',
@@ -827,28 +819,6 @@ const removeSelectedNode = () => {
                   :value="agent.value"
                 >
                   {{ agent.label }}
-                </option>
-              </select>
-            </label>
-            <label
-              v-else-if="selectedNode.data.action_name === 'enroll_cadence'"
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TITLE') }}
-              <select
-                v-model="selectedNode.data.action_params.cadence_id"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SELECT') }}
-                </option>
-                <option
-                  v-for="cadence in cadences.filter(item => item.active)"
-                  :key="cadence.id"
-                  :value="cadence.id"
-                >
-                  {{ cadence.name }}
                 </option>
               </select>
             </label>

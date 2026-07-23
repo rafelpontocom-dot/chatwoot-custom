@@ -44,7 +44,8 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::KANBAN_CARD_ARCHIVED,
     Events::Types::KANBAN_CARD_RESTORED,
     Events::Types::KANBAN_CARD_MANUAL_STARTED,
-    Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED
+    Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED,
+    Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
   ACTION_NAMES = %w[move_stage assign_owner set_next_action set_field archive_card enroll_cadence add_label remove_label add_note].freeze

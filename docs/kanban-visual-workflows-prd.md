@@ -29,8 +29,8 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 ## Fluxo Da Experiência
 
 1. O administrador abre Kanban > Automações do funil pelo ícone de raio no cabeçalho.
-2. A central mostra Fluxos, Cadências, Lembretes, Conexões e Execuções, com os itens existentes em listas curtas e escaneáveis.
-3. Seleciona uma automação ou usa Nova automação para abrir o construtor em uma área dedicada.
+2. A central mostra Fluxos, Lembretes, Conexões e Execuções, com os itens existentes em listas curtas e escaneáveis.
+3. Seleciona uma automação, usa Nova automação ou parte de um modelo pronto para abrir o construtor em uma área dedicada.
 4. Define nome, evento, etapa de origem e estado ativo no cabeçalho compacto do fluxo.
 5. Usa o botão `+` para escolher uma etapa a acrescentar ao canvas, sem uma paleta permanente ocupando espaço.
 6. Seleciona um nó para configurar seu conteúdo no painel lateral.
@@ -43,12 +43,13 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 - O canvas é uma área de trabalho, não um bloco dentro de um formulário longo.
 - O botão `+` apresenta opções somente quando a pessoa quer acrescentar uma etapa.
 - O painel lateral aparece apenas para o nó selecionado e concentra suas propriedades.
-- Cadências e lembretes são configurados e listados nas próprias abas da central, sem misturar seus formulários à edição do fluxo.
+- Lembretes de consulta são configurados em uma aba própria; follow-up comercial é um fluxo visual, nunca uma segunda configuração paralela.
 - Conexões externas têm configuração própria: o fluxo apenas escolhe uma conexão já aprovada.
 - Execuções permitem retry de falhas, cancelamento de esperas e leitura rápida do impacto na oportunidade.
 - O inseridor contextual `+` acrescenta e conecta o próximo passo no caminho selecionado; uma paleta fixa não deve roubar espaço do canvas.
 - O fluxo nasce como rascunho e só é ativado depois de validado e revisado por um administrador.
-- A configuração legada pode permanecer disponível como compatibilidade, mas o fluxo operacional recomendado é a central.
+- Cadências legadas permanecem somente para preservar histórico e regras existentes; novas cadências não são criadas pela central.
+- `Follow-up comercial` e `NPS e avaliação Google` são sempre abertos como rascunho. `Mensagem de aniversário` abre sua configuração específica, desativada por padrão, pois depende da data de nascimento do contato.
 
 ## Nós Da Primeira Entrega
 
@@ -59,14 +60,14 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 | Aguardar até data | Agenda em relação a um campo de data/hora da oportunidade.         | Campo e deslocamento.      |
 | Aguardar resposta | Pausa até uma resposta recebida do cliente, ou até vencer o prazo. | Limite positivo em horas.  |
 | Enviar mensagem   | Envia WhatsApp ou e-mail na conversa compatível do contato.        | Canal, opt-in e texto.     |
-| Ação comercial    | Atualiza a oportunidade ou inscreve em uma cadência interna.       | Tipo e parâmetros da ação. |
+| Ação comercial    | Atualiza a oportunidade ou registra o próximo trabalho do time.    | Tipo e parâmetros da ação. |
 | Enviar webhook    | Envia dados da oportunidade para uma conexão HTTPS já configurada. | Conexão ativa.             |
 | Condição          | Separa o fluxo em caminhos Sim e Não.                              | Campo, operador e valor.   |
 | Fim               | Encerra o caminho.                                                 | Nenhuma.                   |
 
-As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher campo personalizado, arquivar oportunidade, inscrever em uma cadência de follow-up ativa do mesmo board, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
+As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher campo personalizado, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
 
-A cadência continua sendo exclusivamente interna: ela cria próximas ações para o time comercial e pode pausar quando o contato responde. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
+O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima ação`, mantendo todo o processo em um único fluxo auditável. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
 
 ## Regras De Mensagem Externa
 
@@ -124,14 +125,14 @@ A cadência continua sendo exclusivamente interna: ela cria próximas ações pa
 - Horários silenciosos e limite de frequência. Implementado para mensagens do fluxo.
 - Template oficial de WhatsApp e seleção de idioma.
 - Histórico visual por oportunidade, com ator e horário.
-- Recepção de webhook de entrada, somente com assinatura, rate limit e mapeamento explícito para oportunidade.
+- Recepção de webhook de entrada, somente com assinatura, rate limit e mapeamento explícito para oportunidade. Implementado sem código arbitrário: uma conexão inicia somente regras do evento `Webhook recebido` para o card informado.
 
 ### P2
 
 - Nó Condição com caminhos Sim e Não. Implementado.
 - Ramificação explícita, sem ciclos implícitos. Implementado para caminhos Sim/Não.
 - Nó de data de campo: por exemplo, `Data e hora da consulta - 24h`. Implementado.
-- Inscrição em cadência de follow-up ativa do board no mesmo canvas. Implementado.
+- Modelos comerciais por objetivo, iniciados em rascunho e adaptados pelo administrador. Implementado para follow-up, NPS/Google e aniversário.
 - Ações de lembrete de consulta reutilizáveis no mesmo canvas.
 - Importação assistida de workflows do N8N, sempre desativada até revisão humana.
 
@@ -139,11 +140,11 @@ A cadência continua sendo exclusivamente interna: ela cria próximas ações pa
 
 ### Sistemas que orientam a experiência
 
-| Referência | O que adotar | O que evitar |
-| --- | --- | --- |
-| HubSpot Workflows | Separar gatilho de inscrição, condições de reentrada, agenda e saída do fluxo. | Um catálogo enorme de objetos e regras que não existem no Chatwoot. |
-| Pipedrive Automations | Inserção progressiva por `+`, sequência clara de condição/ação/espera e decisão explícita sobre execuções pendentes. | Limites de produto arbitrários e editor espalhado em muitos painéis. |
-| n8n | Histórico de execução por etapa, conexões fora do canvas e disciplina para nós de risco. | Código, shell, arquivos e HTTP arbitrário dentro de um funil comercial. |
+| Referência            | O que adotar                                                                                                         | O que evitar                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| HubSpot Workflows     | Separar gatilho de inscrição, condições de reentrada, agenda e saída do fluxo.                                       | Um catálogo enorme de objetos e regras que não existem no Chatwoot.     |
+| Pipedrive Automations | Inserção progressiva por `+`, sequência clara de condição/ação/espera e decisão explícita sobre execuções pendentes. | Limites de produto arbitrários e editor espalhado em muitos painéis.    |
+| n8n                   | Histórico de execução por etapa, conexões fora do canvas e disciplina para nós de risco.                             | Código, shell, arquivos e HTTP arbitrário dentro de um funil comercial. |
 
 HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrada como uma configuração explícita. Pipedrive limita a próxima escolha útil a condição, ação ou espera e pede o tratamento das execuções pendentes quando a automação muda. O n8n mostra a importância de registrar execuções e de auditar nós potencialmente perigosos. [HubSpot: criar workflows](https://knowledge.hubspot.com/workflows/create-workflows), [Pipedrive: atraso e pendências](https://support.pipedrive.com/en/article/workflow-automations-delay-feature), [n8n: auditoria de segurança](https://docs.n8n.io/hosting/securing/security-audit/).
 

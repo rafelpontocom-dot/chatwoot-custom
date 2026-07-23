@@ -55,10 +55,15 @@ class Api::V1::Accounts::KanbanBoards::AutomationConnectionsController < Api::V1
       id: connection.id,
       name: connection.name,
       webhook_url: connection.webhook_url,
+      inbound_webhook_url: inbound_webhook_url(connection),
       active: connection.active,
       secret_present: connection.secret.present?,
       created_at: connection.created_at.iso8601,
       updated_at: connection.updated_at.iso8601
     }.tap { |payload| payload[:secret] = connection.secret if include_secret }
+  end
+
+  def inbound_webhook_url(connection)
+    "#{ENV.fetch('FRONTEND_URL', '')}/webhooks/kanban/#{connection.inbound_token}"
   end
 end

@@ -85,4 +85,5 @@ module Events::Types
   KANBAN_CARD_RESTORED = 'kanban.card.restored'
   KANBAN_CARD_MANUAL_STARTED = 'kanban.card.manual_started'
   KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED = 'kanban.card.customer_message_received'
+  KANBAN_CARD_WEBHOOK_RECEIVED = 'kanban.card.webhook_received'
 end

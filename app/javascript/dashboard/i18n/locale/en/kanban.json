@@ -14,11 +14,29 @@
       "UNTITLED": "Untitled",
       "NO_ITEMS": "No items configured.",
       "MANAGE": "Manage settings",
+      "TEMPLATES": {
+        "TITLE": "Start from a template",
+        "FOLLOW_UP": {
+          "TITLE": "Sales follow-up",
+          "DESCRIPTION": "Waits for the customer reply and creates the team's next action."
+        },
+        "NPS_GOOGLE": {
+          "TITLE": "Request a review",
+          "DESCRIPTION": "After an opportunity is won, prepares an opt-in review request.",
+          "MESSAGE": "Hello, {{contact_name}}! Your feedback matters to us. Could you review your experience on Google?"
+        },
+        "BIRTHDAY": {
+          "TITLE": "Birthday message",
+          "DESCRIPTION": "Configures annual messages using the contact birthday."
+        }
+      },
       "CONNECTIONS": {
         "NEW": "New connection",
         "NAME": "Connection name",
         "URL": "Webhook URL",
         "URL_PLACEHOLDER": "https://",
+        "OUTBOUND_URL": "Send to: {url}",
+        "INBOUND_URL": "Receive at: {url}",
         "EMPTY": "No webhook connections configured.",
         "SECRET_TITLE": "Signing secret",
         "RESET_SECRET": "Generate new secret",
@@ -654,6 +672,7 @@
           "CREATED": "Opportunity created",
           "STAGE_CHANGED": "Stage changed",
           "CUSTOMER_MESSAGE_RECEIVED": "Customer replied",
+          "WEBHOOK_RECEIVED": "Webhook received",
           "OWNER_CHANGED": "Owner changed",
           "AMOUNT_CHANGED": "Amount changed",
           "CUSTOM_FIELDS_CHANGED": "Fields changed",

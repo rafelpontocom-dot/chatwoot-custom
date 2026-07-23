@@ -27,12 +27,13 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 
 ### `kanban_automation_connections`
 
-| Campo         | Tipo            | Uso                                                              |
-| ------------- | --------------- | ---------------------------------------------------------------- |
-| `name`        | string          | Nome legível, único por funil.                                   |
-| `webhook_url` | string          | Endpoint HTTPS sem credenciais embutidas.                        |
-| `secret`      | texto protegido | Chave para assinatura HMAC SHA-256. Nunca retorna nas listagens. |
-| `active`      | boolean         | Uma conexão inativa não pode ser escolhida por um nó.            |
+| Campo           | Tipo            | Uso                                                                  |
+| --------------- | --------------- | -------------------------------------------------------------------- |
+| `name`          | string          | Nome legível, único por funil.                                       |
+| `webhook_url`   | string          | Endpoint HTTPS sem credenciais embutidas.                            |
+| `secret`        | texto protegido | Chave para assinatura HMAC SHA-256. Nunca retorna nas listagens.     |
+| `active`        | boolean         | Uma conexão inativa não pode ser escolhida por um nó.                |
+| `inbound_token` | string secreta  | Identifica o endpoint de entrada e nunca dispensa a assinatura HMAC. |
 
 ## Contrato JSON
 
@@ -86,7 +87,7 @@ Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `
 - espera por resposta com prazo menor ou igual a zero;
 - mensagem sem canal permitido, conteúdo ou chave de opt-in;
 - ação fora de `KanbanAutomationRule::ACTION_NAMES`;
-- etapa, agente, campo personalizado ou cadência que não pertencem ao board ou conta.
+- etapa, agente ou campo personalizado que não pertencem ao board ou conta.
 - condição sem saídas `yes` e `no`;
 - webhook sem uma conexão ativa do mesmo board;
 - ciclos no grafo.
@@ -97,12 +98,12 @@ O backend não confia no canvas para validar autorização, referências nem reg
 
 Antes de habilitar reentrada ampla ou webhook de entrada, a regra passará a ter uma versão publicada imutável para cada execução. A edição permanecerá em rascunho; publicar cria uma versão e solicita o destino das execuções `waiting` da versão anterior: manter até o fim ou cancelar.
 
-| Conceito | Regra técnica |
-| --- | --- |
-| Reentrada | Bloqueada enquanto existir execução `queued`, `running` ou `waiting` para a mesma regra e oportunidade. Após conclusão, depende de configuração explícita do gatilho. |
-| Saída/supressão | Condições são reavaliadas antes de cada nó externo. Se não forem mais satisfeitas, a execução termina como `skipped` com motivo. |
-| Webhook de entrada | Endpoint com token de conexão, assinatura HMAC, timestamp curto, idempotency key e `card_id` obrigatório. Não cria oportunidade por efeito colateral. |
-| Teste guiado | Resolve variáveis, simula caminho e payload, mas não envia mensagem, webhook nem altera a oportunidade. |
+| Conceito           | Regra técnica                                                                                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reentrada          | Bloqueada enquanto existir execução `queued`, `running` ou `waiting` para a mesma regra e oportunidade. Após conclusão, depende de configuração explícita do gatilho. |
+| Saída/supressão    | Condições são reavaliadas antes de cada nó externo. Se não forem mais satisfeitas, a execução termina como `skipped` com motivo.                                      |
+| Webhook de entrada | Endpoint com token de conexão, assinatura HMAC, timestamp curto, idempotency key e `card_id` obrigatório. Não cria oportunidade por efeito colateral.                 |
+| Teste guiado       | Resolve variáveis, simula caminho e payload, mas não envia mensagem, webhook nem altera a oportunidade.                                                               |
 
 O sistema não terá nós de código, shell, SQL, acesso a arquivo ou requisição HTTP com URL/credencial digitada pelo usuário.
 
@@ -163,7 +164,6 @@ O nó utiliza o mesmo serviço das regras comerciais legadas. Ações aceitas:
 - `set_next_action`: aceita tipo, data/hora e observação;
 - `set_field`: exige chave de campo existente e valor;
 - `archive_card`: não requer parâmetro.
-- `enroll_cadence`: exige `action_params.cadence_id` de uma cadência ativa do mesmo board. A inscrição é idempotente enquanto a oportunidade já estiver ativa ou aguardando conclusão nessa cadência.
 - `add_label` e `remove_label`: exigem `action_params.label` não vazio.
 - `add_note`: exige `action_params.content` e uma conversa vinculada; cria uma mensagem privada, nunca uma mensagem ao cliente.
 
@@ -179,6 +179,12 @@ Cabeçalhos enviados:
 - `X-Chatwoot-Signature: sha256=<hex>`, calculado sobre `<timestamp>.<body>` com a chave da conexão.
 
 O segredo só é retornado na criação ou na regeneração. Falhas HTTP, TLS ou rede tornam a execução `failed`; resultado e logs guardam apenas status, conexão e código HTTP, sem payload ou segredo.
+
+## Webhook De Entrada
+
+Cada conexão também expõe `POST /webhooks/kanban/:inbound_token`. O consumidor envia JSON com `card_id` e os cabeçalhos `X-Chatwoot-Timestamp`, `X-Chatwoot-Idempotency-Key` e `X-Chatwoot-Signature`. A assinatura é HMAC SHA-256 de `<timestamp>.<body>` com a chave da conexão.
+
+O timestamp deve estar a no máximo cinco minutos do servidor. A chave de idempotência é obrigatória e se torna o `event_key` da execução. O endpoint só aceita a oportunidade ativa do board da conexão e inicia regras ativas de `kanban.card.webhook_received`; campos extras do JSON não são interpretados como ações. Assinatura, token, timestamp ou card inválidos não expõem detalhes internos.
 
 ## API
 
@@ -198,9 +204,9 @@ Erros de validação respondem `422` com `message` e `errors`. O frontend deve m
 
 ## Frontend
 
-`KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, cadências, lembretes, conexões e execuções. A aba Fluxos lista regras e abre o editor dedicado; Conexões cria URLs assinadas sem colocar segredos no canvas; Execuções permite diagnóstico, retry de falhas e cancelamento de esperas.
+`KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, lembretes, conexões e execuções. A aba Fluxos lista regras, oferece modelos em rascunho e abre o editor dedicado; Conexões cria URLs assinadas sem colocar segredos no canvas; Execuções permite diagnóstico, retry de falhas e cancelamento de esperas. Cadências existentes são legadas e não aparecem como opção no novo editor.
 
-`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados, cadências ativas e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo e resumo. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas e o painel de propriedades permanecem lado a lado em telas largas e empilham em telas menores.
+`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo e resumo. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas e o painel de propriedades permanecem lado a lado em telas largas e empilham em telas menores.
 
 O painel lateral configura o nó selecionado. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
 

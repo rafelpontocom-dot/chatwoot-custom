@@ -22,7 +22,7 @@ describe('KanbanWorkflowBuilder', () => {
     ).toBe(true);
     expect(
       wrapper.findAll('[data-testid="kanban-workflow-node-menu"] button')
-    ).toHaveLength(5);
+    ).toHaveLength(7);
   });
 
   it('renders the action inspector for a selected node', () => {
@@ -46,21 +46,17 @@ describe('KanbanWorkflowBuilder', () => {
     );
   });
 
-  it('offers active follow-up cadences to the cadence action node', () => {
+  it('does not expose the legacy cadence action in the visual builder', () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
-        cadences: [
-          { id: 1, name: 'Contato inicial', active: true },
-          { id: 2, name: 'Legada', active: false },
-        ],
         modelValue: {
           nodes: [
             {
-              id: 'cadence',
+              id: 'action',
               type: 'action',
               data: {
-                action_name: 'enroll_cadence',
-                action_params: { cadence_id: '' },
+                action_name: 'set_next_action',
+                action_params: {},
               },
             },
           ],
@@ -69,7 +65,8 @@ describe('KanbanWorkflowBuilder', () => {
       },
     });
 
-    expect(wrapper.text()).toContain('Contato inicial');
-    expect(wrapper.text()).not.toContain('Legada');
+    expect(wrapper.text()).not.toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ENROLL_CADENCE'
+    );
   });
 });

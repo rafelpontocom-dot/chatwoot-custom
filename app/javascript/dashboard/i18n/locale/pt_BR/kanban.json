@@ -14,11 +14,29 @@
       "UNTITLED": "Sem nome",
       "NO_ITEMS": "Nenhum item configurado.",
       "MANAGE": "Gerenciar configurações",
+      "TEMPLATES": {
+        "TITLE": "Começar com um modelo",
+        "FOLLOW_UP": {
+          "TITLE": "Follow-up comercial",
+          "DESCRIPTION": "Aguarda a resposta do cliente e cria a próxima ação para o time."
+        },
+        "NPS_GOOGLE": {
+          "TITLE": "Pedir avaliação",
+          "DESCRIPTION": "Após ganhar a oportunidade, prepara um pedido de avaliação com opt-in.",
+          "MESSAGE": "Olá, {{contact_name}}! Sua opinião é muito importante para nós. Você poderia avaliar sua experiência no Google?"
+        },
+        "BIRTHDAY": {
+          "TITLE": "Mensagem de aniversário",
+          "DESCRIPTION": "Configura mensagens anuais usando a data de nascimento do contato."
+        }
+      },
       "CONNECTIONS": {
         "NEW": "Nova conexão",
         "NAME": "Nome da conexão",
         "URL": "URL do webhook",
         "URL_PLACEHOLDER": "https://",
+        "OUTBOUND_URL": "Enviar para: {url}",
+        "INBOUND_URL": "Receber em: {url}",
         "EMPTY": "Nenhuma conexão de webhook configurada.",
         "SECRET_TITLE": "Chave de assinatura",
         "RESET_SECRET": "Gerar nova chave",
@@ -650,6 +668,7 @@
           "CREATED": "Oportunidade criada",
           "STAGE_CHANGED": "Etapa alterada",
           "CUSTOMER_MESSAGE_RECEIVED": "Cliente respondeu",
+          "WEBHOOK_RECEIVED": "Webhook recebido",
           "OWNER_CHANGED": "Responsável alterado",
           "AMOUNT_CHANGED": "Valor alterado",
           "CUSTOM_FIELDS_CHANGED": "Campos alterados",

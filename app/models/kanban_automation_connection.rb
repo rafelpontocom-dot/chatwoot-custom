@@ -4,6 +4,7 @@
 #
 #  id              :bigint           not null, primary key
 #  active          :boolean          default(TRUE), not null
+#  inbound_token   :string           not null
 #  name            :string           not null
 #  secret          :text             not null
 #  webhook_url     :string           not null
@@ -16,6 +17,7 @@
 #
 #  idx_kanban_automation_connections_board_name            (kanban_board_id,name) UNIQUE
 #  index_kanban_automation_connections_on_account_id       (account_id)
+#  index_kanban_automation_connections_on_inbound_token    (inbound_token) UNIQUE
 #  index_kanban_automation_connections_on_kanban_board_id  (kanban_board_id)
 #
 # Foreign Keys
@@ -25,6 +27,8 @@
 #
 class KanbanAutomationConnection < ApplicationRecord
   include WebhookSecretable
+
+  has_secure_token :inbound_token
 
   belongs_to :account
   belongs_to :kanban_board

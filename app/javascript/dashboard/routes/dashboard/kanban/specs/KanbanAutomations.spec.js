@@ -24,8 +24,6 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     updateAutomationRule: vi.fn(),
     deleteAutomationRule: vi.fn(),
     getCadences: vi.fn(),
-    createCadence: vi.fn(),
-    deleteCadence: vi.fn(),
     getAppointmentReminderRules: vi.fn(),
     createAppointmentReminderRule: vi.fn(),
     deleteAppointmentReminderRule: vi.fn(),
@@ -46,9 +44,6 @@ const mountWorkspace = async () => {
   KanbanBoardsAPI.getAppointmentReminderRules.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getAutomationConnections.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getAllAutomationExecutions.mockResolvedValue({ data: [] });
-  KanbanBoardsAPI.createCadence.mockResolvedValue({
-    data: { id: 1, name: 'Contato inicial', steps: [] },
-  });
   KanbanBoardsAPI.createAppointmentReminderRule.mockResolvedValue({
     data: { id: 2, offsets: [24], channels: ['whatsapp'] },
   });
@@ -87,32 +82,65 @@ describe('KanbanAutomations', () => {
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
   });
 
-  it('creates a cadence from the dedicated cadence tab', async () => {
+  it('returns to the automation list with a newly saved flow', async () => {
+    KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+      data: {
+        id: 44,
+        name: 'Retomar orçamento',
+        event_name: 'kanban.card.stage_changed',
+        active: true,
+        position: 0,
+        conditions: {},
+        actions: [],
+        flow_definition: {},
+      },
+    });
     const wrapper = await mountWorkspace();
 
     await wrapper
-      .findAll('[role="tab"]')
-      .find(item => item.text().includes('CADENCES'))
+      .find('[data-testid="kanban-automations-new-flow"]')
       .trigger('click');
     await wrapper
-      .find('[data-testid="kanban-automations-new-cadence"]')
-      .trigger('click');
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Retomar orçamento');
     await wrapper
-      .find('[data-testid="kanban-automations-cadence-name"]')
-      .setValue('Contato inicial');
-    await wrapper
-      .find('[data-testid="kanban-automations-cadence-action"]')
-      .setValue('Ligação');
-    await wrapper
-      .find('[data-testid="kanban-automations-save-cadence"]')
+      .find('[data-testid="kanban-automations-save-flow"]')
       .trigger('click');
     await flushPromises();
 
-    expect(KanbanBoardsAPI.createCadence).toHaveBeenCalledWith(
-      10,
-      expect.objectContaining({
-        cadence: expect.objectContaining({ name: 'Contato inicial' }),
-      })
-    );
+    expect(
+      wrapper.find('[data-testid="kanban-automation-editor"]').exists()
+    ).toBe(false);
+    expect(wrapper.text()).toContain('Retomar orçamento');
+  });
+
+  it('uses a follow-up template in the visual builder instead of a separate cadence', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-template-follow-up"]')
+      .trigger('click');
+
+    expect(wrapper.text()).not.toContain('CADENCES');
+    expect(
+      wrapper.find('[data-testid="kanban-automation-editor"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-automations-flow-name"]').element.value
+    ).toBe('Follow-up comercial');
+  });
+
+  it('opens birthday configuration from the ready-made template', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-template-birthday"]')
+      .trigger('click');
+
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'kanban_board_settings',
+      params: { accountId: '1', boardId: 10 },
+      hash: '#birthday-automation',
+    });
   });
 });

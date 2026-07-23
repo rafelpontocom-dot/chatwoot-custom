@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_31_110000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_31_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1026,7 +1026,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_31_110000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "inbound_token", null: false
     t.index ["account_id"], name: "index_kanban_automation_connections_on_account_id"
+    t.index ["inbound_token"], name: "index_kanban_automation_connections_on_inbound_token", unique: true
     t.index ["kanban_board_id", "name"], name: "idx_kanban_automation_connections_board_name", unique: true
     t.index ["kanban_board_id"], name: "index_kanban_automation_connections_on_kanban_board_id"
   end

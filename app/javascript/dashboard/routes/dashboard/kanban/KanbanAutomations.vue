@@ -21,17 +21,14 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const error = ref('');
 const rules = ref([]);
-const cadences = ref([]);
 const appointmentReminders = ref([]);
 const connections = ref([]);
 const executions = ref([]);
 const settings = ref({});
 const selectedRuleId = ref(null);
 const showEditor = ref(false);
-const showCadenceForm = ref(false);
 const showReminderForm = ref(false);
 const showConnectionForm = ref(false);
-const isSavingCadence = ref(false);
 const isSavingReminder = ref(false);
 const isSavingConnection = ref(false);
 const connectionSecret = ref('');
@@ -61,14 +58,6 @@ const form = reactive({
   flowDefinition: {},
 });
 
-const blankCadenceStep = () => ({ delayHours: 0, actionType: '', note: '' });
-const cadenceForm = reactive({
-  name: '',
-  pauseOnIncomingMessage: true,
-  triggerType: 'manual',
-  triggerStageId: '',
-  steps: [blankCadenceStep()],
-});
 const reminderForm = reactive({
   triggerStageId: '',
   fieldKey: 'system_starts_at',
@@ -93,6 +82,10 @@ const eventOptions = computed(() => [
   {
     value: 'kanban.card.customer_message_received',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.CUSTOMER_MESSAGE_RECEIVED'),
+  },
+  {
+    value: 'kanban.card.webhook_received',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.WEBHOOK_RECEIVED'),
   },
   {
     value: 'kanban.card.owner_changed',
@@ -143,10 +136,6 @@ const eventOptions = computed(() => [
 const automationTabs = computed(() => [
   { key: 'flows', label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.FLOWS') },
   {
-    key: 'cadences',
-    label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.CADENCES'),
-  },
-  {
     key: 'reminders',
     label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.REMINDERS'),
   },
@@ -157,6 +146,105 @@ const automationTabs = computed(() => [
   {
     key: 'executions',
     label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.EXECUTIONS'),
+  },
+]);
+
+const flowTemplate = ({ message, waitForResponse = false }) => {
+  const nodes = [
+    { id: 'trigger', type: 'trigger', position: { x: 32, y: 180 }, data: {} },
+  ];
+  const edges = [];
+  let previousId = 'trigger';
+
+  if (message) {
+    nodes.push({
+      id: 'message',
+      type: 'send_message',
+      position: { x: 300, y: 180 },
+      data: {
+        channel: 'whatsapp',
+        opt_in_attribute_key: 'marketing_messages_opt_in',
+        content: message,
+        frequency_limit_hours: 168,
+        quiet_hours: {
+          start: '20:00',
+          end: '08:00',
+          timezone: 'America/Sao_Paulo',
+        },
+        whatsapp_template_params: {},
+      },
+    });
+    edges.push({
+      id: 'trigger-message',
+      source: previousId,
+      target: 'message',
+    });
+    previousId = 'message';
+  }
+
+  if (waitForResponse) {
+    nodes.push({
+      id: 'wait-response',
+      type: 'wait_for_response',
+      position: { x: 568, y: 180 },
+      data: { timeout_hours: 72 },
+    });
+    edges.push({
+      id: `${previousId}-wait-response`,
+      source: previousId,
+      target: 'wait-response',
+    });
+    previousId = 'wait-response';
+  }
+
+  nodes.push({
+    id: 'next-action',
+    type: 'action',
+    position: { x: message || waitForResponse ? 836 : 300, y: 180 },
+    data: {
+      action_name: 'set_next_action',
+      action_params: { next_action_type: '', next_action_note: '' },
+    },
+  });
+  nodes.push({
+    id: 'end',
+    type: 'end',
+    position: { x: message || waitForResponse ? 1104 : 568, y: 180 },
+    data: {},
+  });
+  edges.push({
+    id: `${previousId}-next-action`,
+    source: previousId,
+    target: 'next-action',
+  });
+  edges.push({ id: 'next-action-end', source: 'next-action', target: 'end' });
+
+  return { nodes, edges };
+};
+
+const automationTemplates = computed(() => [
+  {
+    id: 'follow-up',
+    defaultName: 'Follow-up comercial',
+    name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.FOLLOW_UP.TITLE'),
+    description: t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.FOLLOW_UP.DESCRIPTION'
+    ),
+    eventName: 'kanban.card.stage_changed',
+    flowDefinition: flowTemplate({ waitForResponse: true }),
+  },
+  {
+    id: 'nps-google-review',
+    defaultName: 'Pedir avaliação no Google',
+    name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.NPS_GOOGLE.TITLE'),
+    description: t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.NPS_GOOGLE.DESCRIPTION'
+    ),
+    eventName: 'kanban.card.won',
+    flowDefinition: flowTemplate({
+      message: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.NPS_GOOGLE.MESSAGE'),
+      waitForResponse: true,
+    }),
   },
 ]);
 
@@ -246,6 +334,23 @@ const openNewFlow = () => {
   activeTab.value = 'flows';
   showEditor.value = true;
 };
+const openTemplate = template => {
+  resetForm();
+  form.name = template.defaultName || template.name;
+  form.description = template.description;
+  form.eventName = template.eventName;
+  form.active = false;
+  form.flowDefinition = template.flowDefinition;
+  activeTab.value = 'flows';
+  showEditor.value = true;
+};
+const openBirthdayAutomation = () => {
+  router.push({
+    name: 'kanban_board_settings',
+    params: { accountId: route.params.accountId, boardId: boardId.value },
+    hash: '#birthday-automation',
+  });
+};
 const openRule = rule => {
   applyRule(rule);
   activeTab.value = 'flows';
@@ -254,64 +359,6 @@ const openRule = rule => {
 const closeEditor = () => {
   showEditor.value = false;
   resetForm();
-};
-
-const resetCadenceForm = () => {
-  cadenceForm.name = '';
-  cadenceForm.pauseOnIncomingMessage = true;
-  cadenceForm.triggerType = 'manual';
-  cadenceForm.triggerStageId = '';
-  cadenceForm.steps.splice(0, cadenceForm.steps.length, blankCadenceStep());
-};
-
-const saveCadence = async () => {
-  if (!cadenceForm.name.trim() || isSavingCadence.value) return;
-
-  const steps = cadenceForm.steps
-    .map(step => ({
-      delay_hours: Number(step.delayHours) || 0,
-      action_type: step.actionType.trim(),
-      note: step.note.trim() || null,
-    }))
-    .filter(step => step.action_type);
-  if (!steps.length) return;
-
-  isSavingCadence.value = true;
-  try {
-    const response = await KanbanBoardsAPI.createCadence(boardId.value, {
-      cadence: {
-        name: cadenceForm.name.trim(),
-        pause_on_incoming_message: cadenceForm.pauseOnIncomingMessage,
-        trigger_type: cadenceForm.triggerType,
-        trigger_stage_id: cadenceForm.triggerStageId
-          ? Number(cadenceForm.triggerStageId)
-          : null,
-        steps,
-      },
-    });
-    cadences.value.push(normalize(response.data));
-    resetCadenceForm();
-    showCadenceForm.value = false;
-    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE_SUCCESS'));
-  } catch (saveError) {
-    error.value = t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE_ERROR');
-  } finally {
-    isSavingCadence.value = false;
-  }
-};
-
-const deleteCadence = async cadence => {
-  if (!cadence?.id || isSavingCadence.value) return;
-
-  isSavingCadence.value = true;
-  try {
-    await KanbanBoardsAPI.deleteCadence(boardId.value, cadence.id);
-    cadences.value = cadences.value.filter(item => item.id !== cadence.id);
-  } catch (deleteError) {
-    error.value = t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELETE_ERROR');
-  } finally {
-    isSavingCadence.value = false;
-  }
 };
 
 const saveReminder = async () => {
@@ -553,7 +600,9 @@ const save = async () => {
     const index = rules.value.findIndex(rule => rule.id === saved.id);
     if (index < 0) rules.value.push(saved);
     else rules.value.splice(index, 1, saved);
-    applyRule(saved);
+    rules.value.sort((left, right) => left.position - right.position);
+    closeEditor();
+    activeTab.value = 'flows';
     useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_SUCCESS'));
   } catch (saveError) {
     error.value =
@@ -572,21 +621,18 @@ const load = async () => {
     const [
       settingsResponse,
       rulesResponse,
-      cadencesResponse,
       remindersResponse,
       connectionsResponse,
       executionsResponse,
     ] = await Promise.all([
       KanbanBoardsAPI.getSettings(boardId.value),
       KanbanBoardsAPI.getAutomationRules(boardId.value),
-      KanbanBoardsAPI.getCadences(boardId.value),
       KanbanBoardsAPI.getAppointmentReminderRules(boardId.value),
       KanbanBoardsAPI.getAutomationConnections(boardId.value),
       KanbanBoardsAPI.getAllAutomationExecutions(boardId.value),
     ]);
     settings.value = normalize(settingsResponse.data);
     rules.value = normalize(rulesResponse.data);
-    cadences.value = normalize(cadencesResponse.data);
     appointmentReminders.value = normalize(remindersResponse.data);
     connections.value = normalize(connectionsResponse.data);
     executions.value = normalize(executionsResponse.data);
@@ -646,6 +692,7 @@ onMounted(load);
         />
         <Button
           type="button"
+          data-testid="kanban-automations-save-flow"
           icon="i-lucide-save"
           :label="t('KANBAN.ACTIONS.SAVE')"
           color="blue"
@@ -722,7 +769,6 @@ onMounted(load);
         :next-action-types="nextActionTypes"
         :condition-fields="conditionFields"
         :date-fields="dateFields"
-        :cadences="cadences"
         :connections="connections"
       />
       <p
@@ -765,6 +811,46 @@ onMounted(load);
         />
       </div>
       <template v-else-if="activeTab === 'flows'">
+        <div class="mb-2 max-w-5xl">
+          <h2 class="m-0 text-sm font-semibold text-n-slate-12">
+            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.TITLE') }}
+          </h2>
+        </div>
+        <section
+          class="mb-4 grid max-w-5xl gap-2 md:grid-cols-3"
+          :aria-label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.TITLE')"
+        >
+          <button
+            v-for="template in automationTemplates"
+            :key="template.id"
+            type="button"
+            class="grid min-h-20 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand"
+            :data-testid="`kanban-automations-template-${template.id === 'follow-up' ? 'follow-up' : 'nps-google'}`"
+            @click="openTemplate(template)"
+          >
+            <span class="text-sm font-medium text-n-slate-12">{{
+              template.name
+            }}</span>
+            <span class="text-xs text-n-slate-11">{{
+              template.description
+            }}</span>
+          </button>
+          <button
+            type="button"
+            data-testid="kanban-automations-template-birthday"
+            class="grid min-h-20 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand"
+            @click="openBirthdayAutomation"
+          >
+            <span class="text-sm font-medium text-n-slate-12">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.TITLE') }}
+            </span>
+            <span class="text-xs text-n-slate-11">
+              {{
+                t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.DESCRIPTION')
+              }}
+            </span>
+          </button>
+        </section>
         <div v-if="rules.length" class="grid max-w-5xl gap-2">
           <article
             v-for="rule in rules"
@@ -818,190 +904,6 @@ onMounted(load);
             size="sm"
             @click="openNewFlow"
           />
-        </div>
-      </template>
-      <template v-else-if="activeTab === 'cadences'">
-        <div class="grid max-w-3xl gap-3">
-          <div class="flex justify-end">
-            <Button
-              type="button"
-              data-testid="kanban-automations-new-cadence"
-              icon="i-lucide-plus"
-              :label="t('KANBAN.AUTOMATIONS_WORKSPACE.NEW_CADENCE')"
-              color="blue"
-              size="sm"
-              @click="showCadenceForm = !showCadenceForm"
-            />
-          </div>
-          <section
-            v-if="showCadenceForm"
-            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-4"
-          >
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.NAME_PLACEHOLDER') }}
-              <input
-                v-model="cadenceForm.name"
-                data-testid="kanban-automations-cadence-name"
-                type="text"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-              />
-            </label>
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_STAGE') }}
-                <select
-                  v-model="cadenceForm.triggerType"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                >
-                  <option value="manual">
-                    {{
-                      t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_MANUAL')
-                    }}
-                  </option>
-                  <option value="stage_entered">
-                    {{
-                      t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_STAGE')
-                    }}
-                  </option>
-                </select>
-              </label>
-              <label
-                v-if="cadenceForm.triggerType === 'stage_entered'"
-                class="grid gap-1 text-xs font-medium text-n-slate-11"
-              >
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SELECT_STAGE') }}
-                <select
-                  v-model="cadenceForm.triggerStageId"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                >
-                  <option value="">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SELECT_STAGE') }}
-                  </option>
-                  <option
-                    v-for="stage in stages"
-                    :key="stage.id"
-                    :value="stage.id"
-                  >
-                    {{ stage.name }}
-                  </option>
-                </select>
-              </label>
-            </div>
-            <label class="flex items-center gap-2 text-sm text-n-slate-12">
-              <input
-                v-model="cadenceForm.pauseOnIncomingMessage"
-                type="checkbox"
-                class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-              />
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.PAUSE_ON_INCOMING') }}
-            </label>
-            <div class="grid gap-2">
-              <div class="flex items-center justify-between gap-2">
-                <p class="m-0 text-xs font-medium text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.STEPS') }}
-                </p>
-                <Button
-                  type="button"
-                  icon="i-lucide-plus"
-                  :label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.ADD_STEP')"
-                  color="slate"
-                  size="xs"
-                  @click="cadenceForm.steps.push(blankCadenceStep())"
-                />
-              </div>
-              <div
-                v-for="(step, index) in cadenceForm.steps"
-                :key="index"
-                class="grid gap-2 md:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)_auto]"
-              >
-                <input
-                  v-model.number="step.delayHours"
-                  type="number"
-                  min="0"
-                  :aria-label="
-                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELAY_HOURS')
-                  "
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                />
-                <input
-                  v-model="step.actionType"
-                  data-testid="kanban-automations-cadence-action"
-                  type="text"
-                  :placeholder="
-                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.ACTION_PLACEHOLDER')
-                  "
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                />
-                <input
-                  v-model="step.note"
-                  type="text"
-                  :placeholder="
-                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.NOTE_PLACEHOLDER')
-                  "
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                />
-                <Button
-                  v-if="cadenceForm.steps.length > 1"
-                  type="button"
-                  icon="i-lucide-trash-2"
-                  color="ruby"
-                  size="xs"
-                  :aria-label="
-                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.REMOVE_STEP')
-                  "
-                  @click="cadenceForm.steps.splice(index, 1)"
-                />
-              </div>
-            </div>
-            <div class="flex justify-end">
-              <Button
-                type="button"
-                data-testid="kanban-automations-save-cadence"
-                icon="i-lucide-save"
-                :label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE')"
-                color="blue"
-                size="sm"
-                :is-loading="isSavingCadence"
-                @click="saveCadence"
-              />
-            </div>
-          </section>
-          <article
-            v-for="item in cadences"
-            :key="item.id"
-            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
-          >
-            <div>
-              <p class="m-0 text-sm font-medium text-n-slate-12">
-                {{ item.name }}
-              </p>
-              <p class="m-0 mt-1 text-xs text-n-slate-11">
-                {{ item.steps?.length || 0 }}
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.STEP_COUNT') }}
-              </p>
-            </div>
-            <Button
-              type="button"
-              icon="i-lucide-key-round"
-              color="slate"
-              size="xs"
-              :aria-label="
-                t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.RESET_SECRET')
-              "
-              @click="resetConnectionSecret(connection)"
-            />
-            <Button
-              type="button"
-              icon="i-lucide-trash-2"
-              color="ruby"
-              size="xs"
-              :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELETE')"
-              @click="deleteCadence(item)"
-            />
-          </article>
-          <p v-if="!cadences.length" class="m-0 text-sm text-n-slate-11">
-            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.NO_ITEMS') }}
-          </p>
         </div>
       </template>
       <template v-else-if="activeTab === 'reminders'">
@@ -1237,9 +1139,30 @@ onMounted(load);
                 {{ connection.name }}
               </p>
               <p class="m-0 mt-1 truncate text-xs text-n-slate-11">
-                {{ connection.webhookUrl }}
+                {{
+                  t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.OUTBOUND_URL', {
+                    url: connection.webhookUrl,
+                  })
+                }}
+              </p>
+              <p class="m-0 mt-1 truncate text-xs text-n-slate-11">
+                {{
+                  t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.INBOUND_URL', {
+                    url: connection.inboundWebhookUrl,
+                  })
+                }}
               </p>
             </div>
+            <Button
+              type="button"
+              icon="i-lucide-key-round"
+              color="slate"
+              size="xs"
+              :aria-label="
+                t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.RESET_SECRET')
+              "
+              @click="resetConnectionSecret(connection)"
+            />
             <Button
               type="button"
               icon="i-lucide-trash-2"

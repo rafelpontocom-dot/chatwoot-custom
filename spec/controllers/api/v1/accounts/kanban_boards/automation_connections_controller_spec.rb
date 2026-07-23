@@ -22,6 +22,7 @@ RSpec.describe 'Kanban automation connections API', type: :request do
 
     expect(response).to have_http_status(:created)
     expect(response.parsed_body).to include('name' => 'n8n produção', 'secret' => a_kind_of(String))
+    expect(response.parsed_body['inbound_webhook_url']).to end_with("/webhooks/kanban/#{KanbanAutomationConnection.last.inbound_token}")
 
     get connections_url, headers: administrator.create_new_auth_token, as: :json
 
