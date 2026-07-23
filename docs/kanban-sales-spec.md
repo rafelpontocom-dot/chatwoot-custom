@@ -231,6 +231,8 @@ O serviço deve ser idempotente e reavaliar as condições no momento do envio. 
 
 ### KanbanAutomationVisualFlow
 
+O contrato completo está em [Kanban Visual Workflows Spec](kanban-visual-workflows-spec.md); esta seção mantém apenas o resumo de integração com o domínio comercial.
+
 `KanbanAutomationRule.flow_definition` persiste o canvas como:
 
 ```json

@@ -194,6 +194,8 @@ As automações ficam em uma área própria do board, separadas da operação ma
 
 ### Construtor Visual De Automacoes
 
+O detalhamento de produto está em [Kanban Visual Workflows PRD](kanban-visual-workflows-prd.md) e o contrato técnico em [Kanban Visual Workflows Spec](kanban-visual-workflows-spec.md).
+
 O board oferece um construtor visual próprio baseado em Vue Flow. Ele é uma interface para regras comerciais do Chatwoot, não um editor genérico de código, integrações arbitrárias ou credenciais externas.
 
 Nós da primeira entrega:
