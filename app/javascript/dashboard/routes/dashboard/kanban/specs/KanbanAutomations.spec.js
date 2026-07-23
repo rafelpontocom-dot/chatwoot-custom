@@ -30,19 +30,22 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     getAutomationConnections: vi.fn(),
     createAutomationConnection: vi.fn(),
     deleteAutomationConnection: vi.fn(),
+    resetAutomationConnectionSecret: vi.fn(),
     getAllAutomationExecutions: vi.fn(),
     retryAutomationExecution: vi.fn(),
   },
 }));
 
-const mountWorkspace = async () => {
+const mountWorkspace = async ({ connections = [] } = {}) => {
   KanbanBoardsAPI.getSettings.mockResolvedValue({
     data: { stages: [], custom_field_definitions: [], next_action_types: [] },
   });
   KanbanBoardsAPI.getAutomationRules.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getAppointmentReminderRules.mockResolvedValue({ data: [] });
-  KanbanBoardsAPI.getAutomationConnections.mockResolvedValue({ data: [] });
+  KanbanBoardsAPI.getAutomationConnections.mockResolvedValue({
+    data: connections,
+  });
   KanbanBoardsAPI.getAllAutomationExecutions.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.createAppointmentReminderRule.mockResolvedValue({
     data: { id: 2, offsets: [24], channels: ['whatsapp'] },
@@ -142,5 +145,33 @@ describe('KanbanAutomations', () => {
       params: { accountId: '1', boardId: 10 },
       hash: '#birthday-automation',
     });
+  });
+
+  it('reveals compact inbound webhook instructions only when requested', async () => {
+    const wrapper = await mountWorkspace({
+      connections: [
+        {
+          id: 7,
+          name: 'n8n',
+          webhook_url: 'https://n8n.example.com/webhook/outbound',
+          inbound_webhook_url: 'https://chat.example.com/webhooks/kanban/token',
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-tab-connections"]')
+      .trigger('click');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-automation-connection-details-7"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-automation-connection-panel-7"]')
+        .exists()
+    ).toBe(true);
+    expect(wrapper.text()).toContain('INBOUND_HEADERS');
   });
 });

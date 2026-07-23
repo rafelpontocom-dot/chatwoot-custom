@@ -125,7 +125,7 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 - Horários silenciosos e limite de frequência. Implementado para mensagens do fluxo.
 - Template oficial de WhatsApp e seleção de idioma.
 - Histórico visual por oportunidade, com ator e horário.
-- Recepção de webhook de entrada, somente com assinatura, rate limit e mapeamento explícito para oportunidade. Implementado sem código arbitrário: uma conexão inicia somente regras do evento `Webhook recebido` para o card informado.
+- Recepção de webhook de entrada, somente com assinatura e mapeamento explícito para oportunidade. Implementado sem código arbitrário: uma conexão inicia somente regras do evento `Webhook recebido` para o card informado. O limite de taxa é configurado na borda de produção (Traefik/API gateway).
 
 ### P2
 

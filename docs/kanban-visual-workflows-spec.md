@@ -96,7 +96,7 @@ O backend não confia no canvas para validar autorização, referências nem reg
 
 ## Contrato De Governança Planejado
 
-Antes de habilitar reentrada ampla ou webhook de entrada, a regra passará a ter uma versão publicada imutável para cada execução. A edição permanecerá em rascunho; publicar cria uma versão e solicita o destino das execuções `waiting` da versão anterior: manter até o fim ou cancelar.
+Antes de habilitar reentrada ampla, a regra passará a ter uma versão publicada imutável para cada execução. A edição permanecerá em rascunho; publicar cria uma versão e solicita o destino das execuções `waiting` da versão anterior: manter até o fim ou cancelar.
 
 | Conceito           | Regra técnica                                                                                                                                                         |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

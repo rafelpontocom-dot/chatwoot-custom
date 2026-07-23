@@ -8,6 +8,7 @@ import { useAlert } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import Button from 'dashboard/components-next/button/Button.vue';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanWorkflowBuilder from './components/KanbanWorkflowBuilder.vue';
 
 const { t } = useI18n();
@@ -32,6 +33,7 @@ const showConnectionForm = ref(false);
 const isSavingReminder = ref(false);
 const isSavingConnection = ref(false);
 const connectionSecret = ref('');
+const expandedConnectionId = ref(null);
 
 const blankAction = () => ({
   actionName: 'move_stage',
@@ -535,6 +537,18 @@ const resetConnectionSecret = async connection => {
   }
 };
 
+const toggleConnectionDetails = connectionId => {
+  expandedConnectionId.value =
+    expandedConnectionId.value === connectionId ? null : connectionId;
+};
+
+const copyConnectionUrl = async url => {
+  if (!url) return;
+
+  await copyTextToClipboard(url);
+  useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.URL_COPIED'));
+};
+
 const actionParams = action => {
   switch (action.actionName) {
     case 'move_stage':
@@ -789,6 +803,7 @@ onMounted(load);
           v-for="tab in automationTabs"
           :key="tab.key"
           type="button"
+          :data-testid="`kanban-automations-tab-${tab.key}`"
           class="h-8 rounded px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-n-brand"
           :class="
             activeTab === tab.key
@@ -1132,45 +1147,128 @@ onMounted(load);
           <article
             v-for="connection in connections"
             :key="connection.id"
-            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+            class="rounded-md border border-n-weak bg-n-surface-1"
           >
-            <div class="min-w-0">
-              <p class="m-0 truncate text-sm font-medium text-n-slate-12">
-                {{ connection.name }}
-              </p>
-              <p class="m-0 mt-1 truncate text-xs text-n-slate-11">
-                {{
-                  t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.OUTBOUND_URL', {
-                    url: connection.webhookUrl,
-                  })
-                }}
-              </p>
-              <p class="m-0 mt-1 truncate text-xs text-n-slate-11">
-                {{
-                  t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.INBOUND_URL', {
-                    url: connection.inboundWebhookUrl,
-                  })
-                }}
-              </p>
+            <div class="flex items-center justify-between gap-3 px-4 py-3">
+              <div class="min-w-0">
+                <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                  {{ connection.name }}
+                </p>
+                <p class="m-0 mt-1 truncate text-xs text-n-slate-11">
+                  {{
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.OUTBOUND_URL', {
+                      url: connection.webhookUrl,
+                    })
+                  }}
+                </p>
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <Button
+                  type="button"
+                  icon="i-lucide-chevron-down"
+                  color="slate"
+                  size="xs"
+                  :aria-expanded="expandedConnectionId === connection.id"
+                  :aria-label="
+                    expandedConnectionId === connection.id
+                      ? t(
+                          'KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.HIDE_DETAILS'
+                        )
+                      : t(
+                          'KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SHOW_DETAILS'
+                        )
+                  "
+                  :data-testid="`kanban-automation-connection-details-${connection.id}`"
+                  @click="toggleConnectionDetails(connection.id)"
+                />
+                <Button
+                  type="button"
+                  icon="i-lucide-key-round"
+                  color="slate"
+                  size="xs"
+                  :aria-label="
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.RESET_SECRET')
+                  "
+                  @click="resetConnectionSecret(connection)"
+                />
+                <Button
+                  type="button"
+                  icon="i-lucide-trash-2"
+                  color="ruby"
+                  size="xs"
+                  :aria-label="t('KANBAN.ACTIONS.DELETE')"
+                  @click="deleteConnection(connection)"
+                />
+              </div>
             </div>
-            <Button
-              type="button"
-              icon="i-lucide-key-round"
-              color="slate"
-              size="xs"
-              :aria-label="
-                t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.RESET_SECRET')
-              "
-              @click="resetConnectionSecret(connection)"
-            />
-            <Button
-              type="button"
-              icon="i-lucide-trash-2"
-              color="ruby"
-              size="xs"
-              :aria-label="t('KANBAN.ACTIONS.DELETE')"
-              @click="deleteConnection(connection)"
-            />
+            <section
+              v-if="expandedConnectionId === connection.id"
+              :data-testid="`kanban-automation-connection-panel-${connection.id}`"
+              class="grid gap-3 border-t border-n-weak bg-n-surface-2 px-4 py-3 text-xs text-n-slate-11"
+            >
+              <div class="grid gap-1">
+                <p class="m-0 font-medium text-n-slate-12">
+                  {{
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.OUTBOUND_TITLE')
+                  }}
+                </p>
+                <div class="flex items-center gap-2">
+                  <code
+                    class="min-w-0 flex-1 break-all rounded bg-n-surface-1 px-2 py-1 text-xs text-n-slate-12"
+                  >
+                    {{ connection.webhookUrl }}
+                  </code>
+                  <Button
+                    type="button"
+                    icon="i-lucide-copy"
+                    color="slate"
+                    size="xs"
+                    :aria-label="
+                      t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.COPY_URL')
+                    "
+                    @click="copyConnectionUrl(connection.webhookUrl)"
+                  />
+                </div>
+              </div>
+              <div v-if="connection.inboundWebhookUrl" class="grid gap-1">
+                <p class="m-0 font-medium text-n-slate-12">
+                  {{
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.INBOUND_TITLE')
+                  }}
+                </p>
+                <p class="m-0">
+                  {{
+                    t(
+                      'KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.INBOUND_DESCRIPTION'
+                    )
+                  }}
+                </p>
+                <div class="flex items-center gap-2">
+                  <code
+                    class="min-w-0 flex-1 break-all rounded bg-n-surface-1 px-2 py-1 text-xs text-n-slate-12"
+                  >
+                    {{ connection.inboundWebhookUrl }}
+                  </code>
+                  <Button
+                    type="button"
+                    icon="i-lucide-copy"
+                    color="slate"
+                    size="xs"
+                    :aria-label="
+                      t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.COPY_URL')
+                    "
+                    @click="copyConnectionUrl(connection.inboundWebhookUrl)"
+                  />
+                </div>
+                <p class="m-0">
+                  {{
+                    t(
+                      'KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.INBOUND_HEADERS'
+                    )
+                  }}
+                </p>
+              </div>
+            </section>
           </article>
           <p v-if="!connections.length" class="m-0 text-sm text-n-slate-11">
             {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.EMPTY') }}
