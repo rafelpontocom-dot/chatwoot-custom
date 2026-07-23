@@ -55,6 +55,43 @@ RSpec.describe KanbanAutomations::WorkflowService do
     expect(result[:workflow_state]).to include('next_node_id' => 'end', 'waiting_for' => 'customer_message')
   end
 
+  it 'waits until the next configured business window before a follow-up message' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'business-hours',
+            type: 'wait_for_business_hours',
+            data: {
+              weekdays: [1, 2, 3, 4, 5],
+              start_time: '09:00',
+              end_time: '18:00',
+              timezone: 'America/Sao_Paulo'
+            }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'business-hours' },
+          { source: 'business-hours', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+    now = Time.find_zone!('America/Sao_Paulo').parse('2026-08-01 20:00:00')
+
+    result = described_class.new(execution: execution, rule: rule, card: card, now: now).perform!
+
+    expect(result).to include(status: :waiting)
+    expect(result[:scheduled_at]).to eq(Time.find_zone!('America/Sao_Paulo').parse('2026-08-03 09:00:00'))
+    expect(result[:workflow_state]).to include('next_node_id' => 'end')
+  end
+
   it 'executes an internal action node before completing the workflow' do
     board = create(:kanban_board, custom_field_definitions: [{ key: 'origem', label: 'Origem', field_type: 'text' }])
     card = create(:kanban_card, account: board.account, kanban_board: board, custom_field_values: {})

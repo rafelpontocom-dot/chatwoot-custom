@@ -28,6 +28,8 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     createAppointmentReminderRule: vi.fn(),
     deleteAppointmentReminderRule: vi.fn(),
     getAutomationConnections: vi.fn(),
+    getBirthdayAutomation: vi.fn(),
+    updateBirthdayAutomation: vi.fn(),
     createAutomationConnection: vi.fn(),
     deleteAutomationConnection: vi.fn(),
     resetAutomationConnectionSecret: vi.fn(),
@@ -40,6 +42,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
 
 const mountWorkspace = async ({
   connections = [],
+  executions = [],
   rules = [],
   stageCards = [],
   settings = {
@@ -57,7 +60,22 @@ const mountWorkspace = async ({
   KanbanBoardsAPI.getAutomationConnections.mockResolvedValue({
     data: connections,
   });
-  KanbanBoardsAPI.getAllAutomationExecutions.mockResolvedValue({ data: [] });
+  KanbanBoardsAPI.getAllAutomationExecutions.mockResolvedValue({
+    data: executions,
+  });
+  KanbanBoardsAPI.getBirthdayAutomation.mockResolvedValue({
+    data: {
+      active: false,
+      days_before: 0,
+      delivery_channels: ['whatsapp'],
+      opt_in_attribute_key: 'birthday_messages_opt_in',
+      message_locale: 'pt_BR',
+      timezone: 'America/Sao_Paulo',
+      timezone_name: 'America/Sao_Paulo',
+      send_time: '09:00',
+      message_template: 'Feliz aniversário, {{contact_name}}!',
+    },
+  });
   KanbanBoardsAPI.getStageCards.mockResolvedValue({
     data: { cards: stageCards },
   });
@@ -159,6 +177,122 @@ describe('KanbanAutomations', () => {
     expect(wrapper.text()).toContain('Retomar orçamento');
   });
 
+  it('does not send legacy actions when a visual flow is saved', async () => {
+    KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+      data: {
+        id: 44,
+        name: 'Fluxo visual',
+        event_name: 'kanban.card.stage_changed',
+        active: true,
+        position: 0,
+        conditions: {},
+        actions: [],
+        flow_definition: {},
+      },
+    });
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Fluxo visual');
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({ actions: [] }),
+      })
+    );
+  });
+
+  it('keeps an incomplete message flow in the editor with a clear validation error', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Mensagem pendente');
+    wrapper.vm.form.flowDefinition = {
+      nodes: [
+        { id: 'trigger', type: 'trigger', data: {} },
+        {
+          id: 'message',
+          type: 'send_message',
+          data: { content: '', opt_in_attribute_key: '' },
+        },
+      ],
+      edges: [{ source: 'trigger', target: 'message' }],
+    };
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.MESSAGE'
+    );
+  });
+
+  it('can cancel waiting executions when saving an edited flow', async () => {
+    KanbanBoardsAPI.updateAutomationRule.mockResolvedValue({
+      data: {
+        id: 44,
+        name: 'Retomar orçamento',
+        event_name: 'kanban.card.stage_changed',
+        active: true,
+        position: 0,
+        conditions: {},
+        actions: [],
+        flow_definition: {},
+      },
+    });
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+          position: 0,
+          conditions: {},
+          actions: [],
+          flow_definition: {},
+        },
+      ],
+      executions: [{ id: 5, rule_id: 44, status: 'waiting' }],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-rule-44"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-cancel-pending"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateAutomationRule).toHaveBeenCalledWith(
+      10,
+      44,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({
+          cancel_waiting_executions: true,
+        }),
+      })
+    );
+  });
+
   it('uses a follow-up template in the visual builder instead of a separate cadence', async () => {
     const wrapper = await mountWorkspace();
 
@@ -192,18 +326,17 @@ describe('KanbanAutomations', () => {
     );
   });
 
-  it('opens birthday configuration from the ready-made template', async () => {
+  it('opens the annual birthday automation in the automations workspace', async () => {
     const wrapper = await mountWorkspace();
 
     await wrapper
       .find('[data-testid="kanban-automations-template-birthday"]')
       .trigger('click');
 
-    expect(mockPush).toHaveBeenCalledWith({
-      name: 'kanban_board_settings',
-      params: { accountId: '1', boardId: 10 },
-      hash: '#birthday-automation',
-    });
+    expect(KanbanBoardsAPI.getBirthdayAutomation).toHaveBeenCalled();
+    expect(
+      wrapper.find('[data-testid="kanban-birthday-editor"]').exists()
+    ).toBe(true);
   });
 
   it('tests a flow with a selected opportunity without executing it', async () => {

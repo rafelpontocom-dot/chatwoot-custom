@@ -4,6 +4,7 @@
 #
 #  id                        :bigint           not null, primary key
 #  action_results            :jsonb            not null
+#  automation_snapshot       :jsonb            not null
 #  completed_at              :datetime
 #  error_message             :text
 #  event_key                 :string           not null

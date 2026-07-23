@@ -133,4 +133,5 @@ jobs:
           echo "Running:"; echo "$SPECS" | tr ' ' '\n'
           bundle exec rspec --profile=10 --format progress $SPECS
         env:
+          RAILS_ENV: test
           NODE_OPTIONS: --openssl-legacy-provider

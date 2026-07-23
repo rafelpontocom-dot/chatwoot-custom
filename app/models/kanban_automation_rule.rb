@@ -12,6 +12,8 @@
 #  lock_version    :integer          default(0), not null
 #  name            :string           not null
 #  position        :integer          default(0), not null
+#  reentry_enabled :boolean          default(FALSE), not null
+#  reentry_enabled :boolean          default(FALSE), not null
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
 #  account_id      :bigint           not null
@@ -48,8 +50,11 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
-  ACTION_NAMES = %w[move_stage assign_owner set_next_action set_field archive_card enroll_cadence add_label remove_label add_note].freeze
-  FLOW_NODE_TYPES = %w[trigger delay wait_until_field wait_for_response send_message action condition webhook end].freeze
+  ACTION_NAMES = %w[
+    move_stage assign_owner set_next_action set_field increment_field archive_card
+    enroll_cadence add_label remove_label add_note
+  ].freeze
+  FLOW_NODE_TYPES = %w[trigger delay wait_until_field wait_for_response wait_for_business_hours send_message action condition webhook end].freeze
   belongs_to :account
   belongs_to :kanban_board
   has_many :kanban_automation_executions, dependent: :destroy
@@ -151,9 +156,9 @@ class KanbanAutomationRule < ApplicationRecord
   end
 
   def validate_action_field(source, params)
-    return unless source[:action_name].to_s == 'set_field'
+    return unless %w[set_field increment_field].include?(source[:action_name].to_s)
 
-    validate_field_reference(params[:field_key])
+    validate_field_reference(params[:field_key], attribute: :actions)
   end
 
   def validate_action_cadence(source, params)
@@ -168,12 +173,12 @@ class KanbanAutomationRule < ApplicationRecord
     end
   end
 
-  def validate_field_reference(field_key)
+  def validate_field_reference(field_key, attribute: :conditions)
     return if field_key.blank?
     return if KanbanCard::SYSTEM_CONDITION_VALUE_METHODS.key?(field_key.to_s)
     return if kanban_board.configured_custom_field_definitions.any? { |field| field['key'] == field_key.to_s }
 
-    errors.add(:conditions, "Field #{field_key} does not belong to this board")
+    errors.add(attribute, "Field #{field_key} does not belong to this board")
   end
 
   def flow_definition_is_supported

@@ -134,6 +134,33 @@ RSpec.describe 'Kanban automation rules API', type: :request do
     expect(execution.reload).to have_attributes(status: 'skipped', scheduled_at: nil)
   end
 
+  it 'can cancel waiting executions when an administrator changes a rule' do
+    rule = create(:kanban_automation_rule, account: account, kanban_board: board, name: 'Cobrar retorno')
+    waiting_execution = create(
+      :kanban_automation_execution,
+      account: account,
+      kanban_automation_rule: rule,
+      status: 'waiting',
+      scheduled_at: 1.day.from_now
+    )
+
+    patch "#{rules_url}/#{rule.id}",
+          headers: administrator.create_new_auth_token,
+          params: {
+            kanban_automation_rule: {
+              name: 'Cobrar retorno atualizado',
+              event_name: rule.event_name,
+              cancel_waiting_executions: true
+            }
+          },
+          as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to include('waiting_executions_count' => 0)
+    expect(waiting_execution.reload).to have_attributes(status: 'skipped', scheduled_at: nil)
+    expect(waiting_execution.action_results).to include(hash_including('reason' => 'cancelled_after_rule_update'))
+  end
+
   it 'lists board executions and lets an administrator start a rule manually' do
     card = create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage)
     rule = create(:kanban_automation_rule, account: account, kanban_board: board)

@@ -22,6 +22,7 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 | `scheduled_at`   | `datetime`                        | Quando `ContinueWorkflowJob` deve retomar a execução.                                        |
 | `status`         | enum string                       | `queued`, `running`, `waiting`, `succeeded`, `failed`, `skipped`.                            |
 | `kanban_card_id` | referência opcional               | Oportunidade usada na execução, inclusive após o evento original deixar de estar disponível. |
+| `automation_snapshot` | `jsonb`, obrigatório, padrão `{}` | Cópia imutável de condições, ações, canvas e versão da regra no início da execução. |
 
 Índice: `(status, scheduled_at)` para diagnóstico e consultas de execuções aguardando.
 
@@ -72,7 +73,7 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 }
 ```
 
-Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `send_message`, `action`, `condition`, `webhook`, `end`.
+Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `wait_for_business_hours`, `send_message`, `action`, `condition`, `webhook`, `end`.
 
 ## Validação No Servidor
 
@@ -94,13 +95,13 @@ Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `
 
 O backend não confia no canvas para validar autorização, referências nem regras de canal.
 
-## Contrato De Governança Planejado
+## Contrato De Governança
 
-Antes de habilitar reentrada ampla, a regra passará a ter uma versão publicada imutável para cada execução. A edição permanecerá em rascunho; publicar cria uma versão e solicita o destino das execuções `waiting` da versão anterior: manter até o fim ou cancelar.
+Cada execução recebe um snapshot da regra no início. Uma atualização, portanto, não modifica passos já agendados. Na edição, o administrador pode cancelar todas as execuções `waiting`; quando não cancela, elas terminam com o snapshot original. A publicação formal de versões e rascunhos permanece uma evolução de produto, não uma dependência de segurança.
 
 | Conceito           | Regra técnica                                                                                                                                                         |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reentrada          | Bloqueada enquanto existir execução `queued`, `running` ou `waiting` para a mesma regra e oportunidade. Após conclusão, depende de configuração explícita do gatilho. |
+| Reentrada          | Bloqueada enquanto existir execução `queued`, `running` ou `waiting` para a mesma regra e oportunidade. Após conclusão, depende de `reentry_enabled` explícito na regra. |
 | Saída/supressão    | Condições são reavaliadas antes de cada nó externo. Se não forem mais satisfeitas, a execução termina como `skipped` com motivo.                                      |
 | Webhook de entrada | Endpoint com token de conexão, assinatura HMAC, timestamp curto, idempotency key e `card_id` obrigatório. Não cria oportunidade por efeito colateral.                 |
 | Teste guiado       | Resolve variáveis, simula caminho e payload, mas não envia mensagem, webhook nem altera a oportunidade.                                                               |
@@ -121,11 +122,12 @@ O sistema não terá nós de código, shell, SQL, acesso a arquivo ou requisiç�
 2. `delay`: grava `waiting`, `scheduled_at` e o id do próximo nó; agenda `ContinueWorkflowJob`.
 3. `wait_until_field`: agenda a partir de um campo `date` ou `datetime`, com deslocamento em horas.
 4. `wait_for_response`: grava `waiting_for: customer_message`; uma mensagem recebida retoma o próximo nó, e o prazo encerra a espera pelo job agendado.
-5. `condition`: avalia um campo e segue pela saída `yes` ou `no`.
-6. `action`: delega a `KanbanAutomations::ActionService`.
-7. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
-8. `webhook`: delega a `KanbanAutomations::WebhookDeliveryService`.
-9. `end`: conclui a execução.
+5. `wait_for_business_hours`: agenda a próxima data compatível com dias, horário e fuso configurados; dentro da janela, segue imediatamente.
+6. `condition`: avalia um campo e segue pela saída `yes` ou `no`.
+7. `action`: delega a `KanbanAutomations::ActionService`.
+8. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
+9. `webhook`: delega a `KanbanAutomations::WebhookDeliveryService`.
+10. `end`: conclui a execução.
 
 O limite é de 50 nós por execução. O backend rejeita ciclos; o único nó com duas saídas é `condition`, identificado por `sourceHandle: yes` e `sourceHandle: no`.
 
@@ -163,6 +165,7 @@ O nó utiliza o mesmo serviço das regras comerciais legadas. Ações aceitas:
 - `assign_owner`: recebe `action_params.owner_id` da conta, ou vazio para remover responsável;
 - `set_next_action`: aceita tipo, data/hora e observação;
 - `set_field`: exige chave de campo existente e valor;
+- `increment_field`: exige campo personalizado numérico e incremento finito;
 - `archive_card`: não requer parâmetro.
 - `add_label` e `remove_label`: exigem `action_params.label` não vazio.
 - `add_note`: exige `action_params.content` e uma conversa vinculada; cria uma mensagem privada, nunca uma mensagem ao cliente.

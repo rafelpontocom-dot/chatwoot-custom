@@ -14,6 +14,13 @@
       "UNTITLED": "Untitled",
       "NO_ITEMS": "No items configured.",
       "MANAGE": "Manage settings",
+      "VALIDATION": {
+        "MESSAGE": "Fill in the message and consent field before saving.",
+        "DATE_WAIT": "Select the date field before saving.",
+        "CONDITION": "Select the condition field before saving.",
+        "WEBHOOK": "Select a webhook connection before saving.",
+        "ACTION": "Complete the action details before saving."
+      },
       "TEST": {
         "OPEN": "Test",
         "CARD": "Opportunity to test",
@@ -81,7 +88,15 @@
         "DETAILS": "{event} · #{id}",
         "RETRY": "Retry",
         "RETRY_SUCCESS": "Execution was scheduled again.",
-        "RETRY_ERROR": "Could not retry this execution."
+        "RETRY_ERROR": "Could not retry this execution.",
+        "STATUS": {
+          "QUEUED": "Queued",
+          "RUNNING": "Running",
+          "WAITING": "Waiting",
+          "SUCCEEDED": "Completed",
+          "FAILED": "Failed",
+          "SKIPPED": "Skipped"
+        }
       },
       "TABS": {
         "FLOWS": "Flows",
@@ -610,6 +625,7 @@
           "DISABLE_ERROR": "Could not disable appointment reminder."
         },
         "WORKFLOW": {
+          "CONNECTION": "Connection",
           "ADD_NODE": "Add step to flow",
           "OPEN": "Visual builder",
           "TITLE": "Visual workflow",
@@ -624,6 +640,10 @@
           "ADD_AFTER": "Add after this step",
           "RESPONSE_TIMEOUT": "Wait for a response for up to {hours}h",
           "RESPONSE_TIMEOUT_HOURS": "Response timeout in hours",
+          "BUSINESS_DAYS": "Business days",
+          "BUSINESS_START": "Business hours start",
+          "BUSINESS_END": "Business hours end",
+          "BUSINESS_HOURS_SUMMARY": "Between {start} and {end}",
           "CHANNEL": "Channel",
           "OPT_IN": "Contact opt-in field",
           "MESSAGE": "Message",
@@ -644,11 +664,21 @@
             "DELAY": "Wait",
             "DATE_WAIT": "Wait until date",
             "RESPONSE_WAIT": "Wait for response",
+            "BUSINESS_HOURS": "Wait for business hours",
             "MESSAGE": "Send message",
             "ACTION": "Commercial action",
             "CONDITION": "Condition",
             "WEBHOOK": "Send webhook",
             "END": "End"
+          },
+          "WEEKDAYS": {
+            "MON": "Mon",
+            "TUE": "Tue",
+            "WED": "Wed",
+            "THU": "Thu",
+            "FRI": "Fri",
+            "SAT": "Sat",
+            "SUN": "Sun"
           }
         },
         "BIRTHDAY": {
@@ -720,6 +750,7 @@
           "ASSIGN_OWNER": "Assign owner",
           "SET_NEXT_ACTION": "Set next action",
           "SET_FIELD": "Set field",
+          "INCREMENT_FIELD": "Increment field",
           "ARCHIVE_CARD": "Archive opportunity",
           "ENROLL_CADENCE": "Enroll in cadence",
           "ADD_LABEL": "Add label",
@@ -733,6 +764,11 @@
           "NAME": "Rule name",
           "DESCRIPTION": "Description",
           "EVENT": "When this happens",
+          "STAGE": "Stage",
+          "REENTRY": "Allow re-entry after completion",
+          "REENTRY_HINT": "Use only for rules that should deliberately restart for the same opportunity.",
+          "CANCEL_PENDING": "Cancel {count} waiting execution(s)",
+          "CANCEL_PENDING_HINT": "When left unchecked, already scheduled executions keep the previous workflow version.",
           "CONDITIONS": "Only when",
           "ACTIONS": "Then do",
           "ADD_ACTION": "Add action",

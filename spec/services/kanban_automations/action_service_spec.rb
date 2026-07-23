@@ -44,6 +44,34 @@ RSpec.describe KanbanAutomations::ActionService do
     expect(card.reload.label_list).not_to include('prioridade-alta')
   end
 
+  it 'increments a numeric custom field for each follow-up attempt' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [
+        { key: 'follow_up_attempts', label: 'Tentativas de follow-up', field_type: 'integer' }
+      ]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { follow_up_attempts: 2 }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      actions: [
+        { action_name: 'increment_field', action_params: { field_key: 'follow_up_attempts', amount: 1 } }
+      ]
+    )
+
+    result = described_class.new(rule: rule, card: card).perform!
+
+    expect(card.reload.custom_field_values).to include('follow_up_attempts' => 3)
+    expect(result).to include(hash_including('action_name' => 'increment_field', 'amount' => 1))
+  end
+
   it 'records an internal note only in the linked conversation' do
     conversation = create(:conversation)
     card = create(:kanban_card, :conversation_origin, conversation: conversation)

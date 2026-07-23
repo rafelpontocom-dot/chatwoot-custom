@@ -4,6 +4,7 @@ class KanbanAutomations::ActionService
     'assign_owner' => :assign_owner,
     'set_next_action' => :update_next_action,
     'set_field' => :update_field,
+    'increment_field' => :increment_field,
     'archive_card' => :archive_card,
     'enroll_cadence' => :enroll_cadence,
     'add_label' => :add_label,
@@ -63,6 +64,39 @@ class KanbanAutomations::ActionService
     values = @card.custom_field_values.to_h.merge(field_key => params[:value])
     @card.update!(custom_field_values: values)
     result('set_field', 'succeeded', field_key: field_key)
+  end
+
+  def increment_field(params)
+    field_key = params.fetch(:field_key).to_s
+    definition = numeric_field_definition!(field_key)
+    amount = increment_amount(params)
+    next_value = incremented_field_value(field_key, amount, definition)
+    @card.update!(custom_field_values: @card.custom_field_values.to_h.merge(field_key => next_value))
+    result('increment_field', 'succeeded', field_key: field_key, amount: amount, value: next_value)
+  end
+
+  def numeric_field_definition!(field_key)
+    definition = @board.configured_custom_field_definitions.find { |field| field['key'] == field_key }
+    raise ActiveRecord::RecordNotFound, "Custom field #{field_key} was not found" if definition.blank?
+    raise ArgumentError, "Custom field #{field_key} must be numeric" unless %w[integer decimal currency].include?(definition['field_type'])
+
+    definition
+  end
+
+  def increment_amount(params)
+    amount = Float(params.fetch(:amount, 1))
+    raise ArgumentError, 'Increment amount cannot be zero' if amount.zero?
+
+    amount
+  rescue ArgumentError, TypeError
+    raise ArgumentError, 'Increment amount must be numeric'
+  end
+
+  def incremented_field_value(field_key, amount, definition)
+    value = Float(@card.custom_field_values.to_h[field_key].presence || 0) + amount
+    definition['field_type'] == 'integer' && value.integer? ? value.to_i : value
+  rescue ArgumentError, TypeError
+    raise ArgumentError, "Custom field #{field_key} must have a numeric value"
   end
 
   def archive_card(_params)

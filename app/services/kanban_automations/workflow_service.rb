@@ -11,6 +11,7 @@ class KanbanAutomations::WorkflowService
     'delay' => :delay_node,
     'wait_until_field' => :date_wait_node,
     'wait_for_response' => :response_wait_node,
+    'wait_for_business_hours' => :business_hours_node,
     'action' => :action_node,
     'send_message' => :message_node,
     'condition' => :condition_node,
@@ -43,7 +44,8 @@ class KanbanAutomations::WorkflowService
   attr_reader :execution, :rule, :card, :now
 
   def definition
-    @definition ||= rule.flow_definition.to_h.deep_stringify_keys
+    flow_definition = execution.automation_snapshot.to_h['flow_definition'].presence || rule.flow_definition
+    @definition ||= flow_definition.to_h.deep_stringify_keys
   end
 
   def nodes
@@ -110,6 +112,28 @@ class KanbanAutomations::WorkflowService
   end
   # rubocop:enable Metrics/MethodLength
 
+  def business_hours_node(node, results)
+    scheduled_at = next_business_time(node.fetch('data', {}).deep_stringify_keys)
+    return [next_node_id(node), nil] if scheduled_at.blank?
+
+    [
+      nil,
+      {
+        status: :waiting,
+        scheduled_at: scheduled_at,
+        workflow_state: { 'next_node_id' => next_node_id(node) },
+        action_results: results + [
+          {
+            'node_id' => node.fetch('id'),
+            'status' => 'waiting',
+            'reason' => 'outside_business_hours',
+            'scheduled_at' => scheduled_at.iso8601
+          }
+        ]
+      }
+    ]
+  end
+
   def action_node(node, results)
     results.concat(execute_action(node))
     [next_node_id(node), nil]
@@ -154,6 +178,40 @@ class KanbanAutomations::WorkflowService
       workflow_state: { 'next_node_id' => next_node_id(node) },
       action_results: results + [{ 'node_id' => node.fetch('id'), 'status' => 'waiting', 'delay_hours' => delay_hours }]
     }
+  end
+
+  def next_business_time(data)
+    schedule = business_hours_schedule(data)
+
+    8.times do |offset|
+      date = schedule[:current_time].to_date + offset.days
+      next unless schedule[:weekdays].include?(date.cwday)
+
+      available_at = business_time_for_date(schedule, date, offset)
+      return available_at if available_at != :unavailable
+    end
+
+    raise ArgumentError, 'Workflow business hours cannot find the next available window'
+  end
+
+  def business_hours_schedule(data)
+    timezone = Time.find_zone!(data.fetch('timezone'))
+    {
+      timezone: timezone,
+      current_time: now.in_time_zone(timezone),
+      weekdays: Array(data.fetch('weekdays')).map(&:to_i),
+      start_time: data.fetch('start_time'),
+      end_time: data.fetch('end_time')
+    }
+  end
+
+  def business_time_for_date(schedule, date, offset)
+    starts_at = schedule[:timezone].parse("#{date} #{schedule[:start_time]}")
+    ends_at = schedule[:timezone].parse("#{date} #{schedule[:end_time]}")
+    return nil if offset.zero? && schedule[:current_time] >= starts_at && schedule[:current_time] < ends_at
+    return starts_at if offset.positive? || schedule[:current_time] < starts_at
+
+    :unavailable
   end
 
   def wait_until_field(node, results)

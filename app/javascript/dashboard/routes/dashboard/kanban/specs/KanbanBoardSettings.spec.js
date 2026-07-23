@@ -483,114 +483,21 @@ describe('KanbanBoardSettings', () => {
     expect(KanbanBoardsAPI.getCadences).toHaveBeenCalledWith(10);
   });
 
-  it('configures opt-in birthday delivery from the automation section', async () => {
+  it('opens the visual automations workspace from the settings navigation', async () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
       .find('[data-testid="kanban-settings-nav-automation"]')
       .trigger('click');
-    await wrapper
-      .find('[data-testid="kanban-settings-birthday-active"]')
-      .setValue(true);
-    await wrapper
-      .find('[data-testid="kanban-settings-birthday-whatsapp"]')
-      .setValue(true);
-    await wrapper
-      .find('[data-testid="kanban-settings-birthday-days-before"]')
-      .setValue(2);
-    await wrapper
-      .find('[data-testid="kanban-settings-birthday-message"]')
-      .setValue('Parabéns, {{contact_name}}!');
-    await wrapper
-      .find('[data-testid="kanban-settings-save-birthday"]')
-      .trigger('click');
-
-    expect(KanbanBoardsAPI.updateBirthdayAutomation).toHaveBeenCalledWith({
-      birthday_automation: expect.objectContaining({
-        active: true,
-        days_before: 2,
-        delivery_channels: ['whatsapp'],
-        message_template: 'Parabéns, {{contact_name}}!',
-      }),
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'kanban_board_automations',
+      params: { accountId: '1', boardId: 10 },
     });
-  });
-
-  it('creates an internal follow-up cadence from automation settings', async () => {
-    const { wrapper } = await mountSettings();
-
-    await wrapper
-      .find('[data-testid="kanban-settings-nav-automation"]')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="kanban-settings-cadence-name"]')
-      .setValue('Primeiro retorno');
-    await wrapper
-      .find('[data-testid="kanban-settings-cadence-action-0"]')
-      .setValue('Ligação');
-    await wrapper
-      .find('[data-testid="kanban-settings-save-cadence"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(KanbanBoardsAPI.createCadence).toHaveBeenCalledWith(10, {
-      cadence: {
-        name: 'Primeiro retorno',
-        pause_on_incoming_message: true,
-        trigger_stage_id: null,
-        trigger_type: 'manual',
-        steps: [{ delay_hours: 0, action_type: 'Ligação', note: null }],
-      },
-    });
-  });
-
-  it('loads and saves commercial automation rules from the automation section', async () => {
-    const { wrapper } = await mountSettings();
-
-    expect(KanbanBoardsAPI.getAutomationRules).toHaveBeenCalledWith(10);
-    await wrapper
-      .find('[data-testid="kanban-settings-automation-name"]')
-      .setValue('Mover para proposta');
-    await wrapper
-      .find('[data-testid="kanban-settings-save-automation-rule"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(KanbanBoardsAPI.createAutomationRule).toHaveBeenCalledWith(
-      10,
-      expect.objectContaining({
-        kanban_automation_rule: expect.objectContaining({
-          name: 'Mover para proposta',
-        }),
-      })
-    );
-  });
-
-  it('shows the visual workflow builder control in automation settings', async () => {
-    const { wrapper } = await mountSettings();
-
     expect(
       wrapper
-        .find('[data-testid="kanban-settings-open-workflow-builder"]')
-        .exists()
-    ).toBe(true);
-  });
-
-  it('opens and focuses a fresh commercial rule from the new rule action', async () => {
-    const { wrapper } = await mountSettings();
-
-    await wrapper
-      .find('[data-testid="kanban-settings-automation-name"]')
-      .setValue('Rascunho');
-    await wrapper
-      .find('[data-testid="kanban-settings-new-automation-rule"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
-    expect(
-      wrapper.find('[data-testid="kanban-settings-automation-name"]').element
-        .value
-    ).toBe('');
+        .find('[data-testid="kanban-settings-automation-rule-editor"]')
+        .isVisible()
+    ).toBe(false);
   });
 
   it('toggles all_inboxes and selected_inboxes controls', async () => {

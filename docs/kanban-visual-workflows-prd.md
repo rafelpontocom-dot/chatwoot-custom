@@ -59,13 +59,14 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 | Aguardar          | Pausa a execução por horas.                                        | Número positivo de horas.  |
 | Aguardar até data | Agenda em relação a um campo de data/hora da oportunidade.         | Campo e deslocamento.      |
 | Aguardar resposta | Pausa até uma resposta recebida do cliente, ou até vencer o prazo. | Limite positivo em horas.  |
+| Aguardar horário comercial | Mantém a execução até a próxima janela de trabalho configurada. | Dias, horário inicial/final e fuso. |
 | Enviar mensagem   | Envia WhatsApp ou e-mail na conversa compatível do contato.        | Canal, opt-in e texto.     |
 | Ação comercial    | Atualiza a oportunidade ou registra o próximo trabalho do time.    | Tipo e parâmetros da ação. |
 | Enviar webhook    | Envia dados da oportunidade para uma conexão HTTPS já configurada. | Conexão ativa.             |
 | Condição          | Separa o fluxo em caminhos Sim e Não.                              | Campo, operador e valor.   |
 | Fim               | Encerra o caminho.                                                 | Nenhuma.                   |
 
-As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher campo personalizado, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
+As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher ou incrementar campo personalizado numérico, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
 
 O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima ação`, mantendo todo o processo em um único fluxo auditável. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
 
@@ -88,8 +89,9 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 - A configuração deve rejeitar referências a etapas, agentes e campos fora do board ou conta.
 - Webhooks só aceitam HTTPS sem credenciais na URL, têm timeout curto, não seguem redirecionamentos e usam assinatura HMAC.
 - Um fluxo possui no máximo 50 nós executáveis por rodada, não aceita ciclos e não executa código do usuário.
-- Ao alterar gatilho, condições ou nós de uma regra com execuções aguardando, o produto deve pedir uma decisão explícita: manter a versão iniciada ou cancelar pendências. Até haver versionamento, cancelar é o padrão seguro.
-- Uma oportunidade não pode reentrar na mesma automação enquanto já houver execução ativa. Reentrada após conclusão precisa ser configurada por gatilho; nunca acontece por acidente.
+- Cada execução recebe um snapshot imutável do gatilho, condições, ações e canvas no momento em que é criada. Edições posteriores não mudam uma mensagem já agendada.
+- Ao alterar uma regra com execuções aguardando, o administrador pode cancelá-las explicitamente. Sem essa opção, elas terminam com o snapshot da versão que as iniciou.
+- Uma oportunidade não pode reentrar na mesma automação enquanto já houver execução ativa. Depois de concluída, a reentrada só acontece se o administrador habilitar a opção correspondente na regra.
 
 ## Estados Visíveis
 
@@ -123,8 +125,8 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 - Teste da regra com uma oportunidade selecionada e relatório por nó. Implementado.
 - Cancelamento manual de uma execução em espera. Implementado.
 - Horários silenciosos e limite de frequência. Implementado para mensagens do fluxo.
-- Template oficial de WhatsApp e seleção de idioma.
-- Histórico visual por oportunidade, com ator e horário.
+- Template oficial de WhatsApp e seleção de idioma. Implementado no nó de mensagem.
+- Histórico visual por oportunidade, com ator e horário. Implementado na linha do tempo da oportunidade.
 - Recepção de webhook de entrada, somente com assinatura e mapeamento explícito para oportunidade. Implementado sem código arbitrário: uma conexão inicia somente regras do evento `Webhook recebido` para o card informado. O limite de taxa é configurado na borda de produção (Traefik/API gateway).
 
 ### P2
@@ -133,7 +135,7 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 - Ramificação explícita, sem ciclos implícitos. Implementado para caminhos Sim/Não.
 - Nó de data de campo: por exemplo, `Data e hora da consulta - 24h`. Implementado.
 - Modelos comerciais por objetivo, iniciados em rascunho e adaptados pelo administrador. Implementado para follow-up, NPS/Google e aniversário.
-- Ações de lembrete de consulta reutilizáveis no mesmo canvas.
+- Ações de lembrete de consulta reutilizáveis no mesmo canvas. Implementado com nós de data, atraso e horário comercial.
 - Importação assistida de workflows do N8N, sempre desativada até revisão humana.
 
 ## Referências E Estratégia
@@ -156,9 +158,9 @@ HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrad
 
 ### Plano de produto revisado
 
-**P0 operacional:** gatilhos de oportunidade e de resposta do cliente; nós de espera, condição, mensagem, ação, nota, etiqueta e webhook; conexões HTTPS aprovadas; histórico de execução; canvas com inserção contextual e propriedades laterais.
+**P0 operacional:** gatilhos de oportunidade e de resposta do cliente; nós de espera, horário comercial, condição, mensagem, ação, nota, etiqueta e webhook; conexões HTTPS aprovadas; histórico de execução; canvas com inserção contextual e propriedades laterais.
 
-**P1 de governança:** versão publicada da regra, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com uma oportunidade ativa e passos previstos sem efeitos externos, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente.
+**P1 de governança:** snapshot por execução, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com uma oportunidade ativa e passos previstos sem efeitos externos, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente. A publicação formal com rascunho/versionamento visível continua pendente.
 
 **P2 de escala:** tarefas internas com prazo, rodízio de responsáveis, templates por segmento, painel de saúde das automações e integrações declarativas adicionais, sempre por conexão aprovada.
 

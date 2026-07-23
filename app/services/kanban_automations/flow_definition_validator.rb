@@ -76,6 +76,7 @@ class KanbanAutomations::FlowDefinitionValidator
       validate_delay_node(node, data)
       validate_wait_until_field_node(node, data)
       validate_wait_for_response_node(node, data)
+      validate_wait_for_business_hours_node(node, data)
       validate_action_node(node, data)
       validate_condition_node(node, data)
       validate_webhook_node(node, data)
@@ -134,6 +135,30 @@ class KanbanAutomations::FlowDefinitionValidator
     add_error("Response wait node #{node[:id]} needs positive timeout hours") unless data[:timeout_hours].to_f.positive?
   end
 
+  def validate_wait_for_business_hours_node(node, data)
+    return unless node[:type] == 'wait_for_business_hours'
+    return if business_hours_valid?(data)
+
+    add_error("Business hours node #{node[:id]} is incomplete")
+  end
+
+  def business_hours_valid?(data)
+    weekdays = Array(data[:weekdays]).map { |day| Integer(day, exception: false) }
+    valid_weekdays = weekdays.present? && weekdays.all? { |day| (1..7).cover?(day) }
+    valid_times = business_times_valid?(data)
+    valid_timezone = ActiveSupport::TimeZone[data[:timezone]].present?
+
+    valid_weekdays && valid_times && valid_timezone
+  end
+
+  def business_times_valid?(data)
+    valid_time?(data[:start_time]) && valid_time?(data[:end_time]) && data[:start_time] < data[:end_time]
+  end
+
+  def valid_time?(value)
+    value.to_s.match?(/\A\d{2}:\d{2}\z/)
+  end
+
   def validate_action_node(node, data)
     return unless node[:type] == 'action'
 
@@ -187,7 +212,7 @@ class KanbanAutomations::FlowDefinitionValidator
   def validate_action_references(node, action_name, params)
     validate_action_stage(node, params) if action_name == 'move_stage'
     validate_action_owner(node, params) if action_name == 'assign_owner'
-    validate_action_field(node, params) if action_name == 'set_field'
+    validate_action_field(node, params) if %w[set_field increment_field].include?(action_name)
     validate_action_cadence(node, params) if action_name == 'enroll_cadence'
     validate_action_label(node, params) if %w[add_label remove_label].include?(action_name)
     validate_action_note(node, params) if action_name == 'add_note'

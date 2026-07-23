@@ -8,7 +8,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
   end
 
   def create
-    rule = @kanban_board.kanban_automation_rules.new(rule_params.merge(account: Current.account))
+    rule = @kanban_board.kanban_automation_rules.new(rule_attributes.merge(account: Current.account))
     rule.save!
     render json: rule_payload(rule), status: :created
   rescue ActiveRecord::RecordInvalid => e
@@ -16,7 +16,10 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
   end
 
   def update
-    @rule.update!(rule_params)
+    @rule.transaction do
+      @rule.update!(rule_attributes)
+      cancel_waiting_executions if cancel_waiting_executions?
+    end
     render json: rule_payload(@rule)
   rescue ActiveRecord::RecordInvalid => e
     render json: { message: e.record.errors.full_messages.to_sentence, errors: e.record.errors }, status: :unprocessable_entity
@@ -110,6 +113,8 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       :description,
       :event_name,
       :active,
+      :reentry_enabled,
+      :cancel_waiting_executions,
       :position,
       flow_definition: {},
       conditions: [
@@ -119,6 +124,10 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
     )
   end
 
+  def rule_attributes
+    rule_params.except(:cancel_waiting_executions)
+  end
+
   def rule_payload(rule)
     {
       id: rule.id,
@@ -126,13 +135,34 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       description: rule.description,
       event_name: rule.event_name,
       active: rule.active,
+      reentry_enabled: rule.reentry_enabled,
       position: rule.position,
       conditions: rule.conditions,
       actions: rule.actions,
       flow_definition: rule.flow_definition,
       executions_count: rule.kanban_automation_executions.count,
+      waiting_executions_count: rule.kanban_automation_executions.waiting.count,
       last_execution: rule.kanban_automation_executions.order(created_at: :desc, id: :desc).first&.then { |execution| execution_payload(execution) }
     }
+  end
+
+  def cancel_waiting_executions?
+    ActiveModel::Type::Boolean.new.cast(rule_params[:cancel_waiting_executions])
+  end
+
+  def cancel_waiting_executions
+    @rule.kanban_automation_executions.waiting.find_each do |execution|
+      execution.with_lock do
+        execution.update!(
+          status: :skipped,
+          scheduled_at: nil,
+          completed_at: Time.current,
+          action_results: Array(execution.action_results) + [
+            { 'status' => 'skipped', 'reason' => 'cancelled_after_rule_update' }
+          ]
+        )
+      end
+    end
   end
 
   def execution_payload(execution)

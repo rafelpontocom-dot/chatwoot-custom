@@ -14,6 +14,13 @@
       "UNTITLED": "Sem nome",
       "NO_ITEMS": "Nenhum item configurado.",
       "MANAGE": "Gerenciar configurações",
+      "VALIDATION": {
+        "MESSAGE": "Preencha a mensagem e o campo de consentimento antes de salvar.",
+        "DATE_WAIT": "Seleciona o campo de data antes de salvar.",
+        "CONDITION": "Selecione o campo da condição antes de salvar.",
+        "WEBHOOK": "Selecione uma conexão de webhook antes de salvar.",
+        "ACTION": "Complete os dados da ação antes de salvar."
+      },
       "TEST": {
         "OPEN": "Testar",
         "CARD": "Oportunidade para testar",
@@ -81,7 +88,15 @@
         "DETAILS": "{event} · #{id}",
         "RETRY": "Tentar novamente",
         "RETRY_SUCCESS": "A execução foi agendada novamente.",
-        "RETRY_ERROR": "Não foi possível repetir esta execução."
+        "RETRY_ERROR": "Não foi possível repetir esta execução.",
+        "STATUS": {
+          "QUEUED": "Em fila",
+          "RUNNING": "Executando",
+          "WAITING": "Aguardando",
+          "SUCCEEDED": "Concluídas",
+          "FAILED": "Falharam",
+          "SKIPPED": "Ignoradas"
+        }
       },
       "TABS": {
         "FLOWS": "Fluxos",
@@ -606,6 +621,7 @@
           "DISABLE_ERROR": "Não foi possível desativar o lembrete de consulta."
         },
         "WORKFLOW": {
+          "CONNECTION": "Conexão",
           "ADD_NODE": "Adicionar etapa ao fluxo",
           "OPEN": "Construtor visual",
           "TITLE": "Fluxo visual",
@@ -620,6 +636,10 @@
           "ADD_AFTER": "Adicionar depois deste passo",
           "RESPONSE_TIMEOUT": "Aguardar resposta por até {hours}h",
           "RESPONSE_TIMEOUT_HOURS": "Limite para resposta, em horas",
+          "BUSINESS_DAYS": "Dias de atendimento",
+          "BUSINESS_START": "Início do atendimento",
+          "BUSINESS_END": "Fim do atendimento",
+          "BUSINESS_HOURS_SUMMARY": "Entre {start} e {end}",
           "CHANNEL": "Canal",
           "OPT_IN": "Campo de opt-in do contato",
           "MESSAGE": "Mensagem",
@@ -640,11 +660,21 @@
             "DELAY": "Aguardar",
             "DATE_WAIT": "Aguardar até data",
             "RESPONSE_WAIT": "Aguardar resposta",
+            "BUSINESS_HOURS": "Aguardar horário comercial",
             "MESSAGE": "Enviar mensagem",
             "ACTION": "Ação comercial",
             "CONDITION": "Condição",
             "WEBHOOK": "Enviar webhook",
             "END": "Fim"
+          },
+          "WEEKDAYS": {
+            "MON": "Seg",
+            "TUE": "Ter",
+            "WED": "Qua",
+            "THU": "Qui",
+            "FRI": "Sex",
+            "SAT": "Sáb",
+            "SUN": "Dom"
           }
         },
         "BIRTHDAY": {
@@ -716,6 +746,7 @@
           "ASSIGN_OWNER": "Definir responsável",
           "SET_NEXT_ACTION": "Definir próxima ação",
           "SET_FIELD": "Preencher campo",
+          "INCREMENT_FIELD": "Incrementar campo",
           "ARCHIVE_CARD": "Arquivar oportunidade",
           "ENROLL_CADENCE": "Inscrever em cadência",
           "ADD_LABEL": "Adicionar etiqueta",
@@ -729,6 +760,11 @@
           "NAME": "Nome da regra",
           "DESCRIPTION": "Descrição",
           "EVENT": "Quando isso acontecer",
+          "STAGE": "Etapa",
+          "REENTRY": "Permitir nova entrada após a conclusão",
+          "REENTRY_HINT": "Use somente para regras que podem reiniciar de propósito na mesma oportunidade.",
+          "CANCEL_PENDING": "Cancelar {count} execução(ões) aguardando",
+          "CANCEL_PENDING_HINT": "Sem marcar esta opção, as execuções já agendadas mantêm a versão anterior do fluxo.",
           "CONDITIONS": "Somente quando",
           "ACTIONS": "Então fazer",
           "ADD_ACTION": "Adicionar ação",

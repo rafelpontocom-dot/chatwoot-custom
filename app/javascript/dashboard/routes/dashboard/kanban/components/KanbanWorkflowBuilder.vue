@@ -49,6 +49,7 @@ const { t } = useI18n();
 const nodes = ref([]);
 const edges = ref([]);
 const selectedNodeId = ref(null);
+const selectedEdgeId = ref(null);
 const showNodeMenu = ref(false);
 const insertAfterNodeId = ref(null);
 const nodeTypes = {
@@ -56,6 +57,7 @@ const nodeTypes = {
   delay: markRaw(KanbanWorkflowNode),
   wait_until_field: markRaw(KanbanWorkflowNode),
   wait_for_response: markRaw(KanbanWorkflowNode),
+  wait_for_business_hours: markRaw(KanbanWorkflowNode),
   send_message: markRaw(KanbanWorkflowNode),
   action: markRaw(KanbanWorkflowNode),
   condition: markRaw(KanbanWorkflowNode),
@@ -70,6 +72,9 @@ const nodeLabels = computed(() => ({
   wait_for_response: t(
     'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.RESPONSE_WAIT'
   ),
+  wait_for_business_hours: t(
+    'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.BUSINESS_HOURS'
+  ),
   send_message: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.MESSAGE'),
   action: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.ACTION'),
   condition: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CONDITION'),
@@ -81,6 +86,7 @@ const addableNodeTypes = computed(() => [
   'delay',
   'wait_until_field',
   'wait_for_response',
+  'wait_for_business_hours',
   'condition',
   'send_message',
   'action',
@@ -134,6 +140,10 @@ const actionOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.SET_FIELD'),
   },
   {
+    value: 'increment_field',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.INCREMENT_FIELD'),
+  },
+  {
     value: 'archive_card',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ARCHIVE_CARD'),
   },
@@ -154,6 +164,9 @@ const actionOptions = computed(() => [
 const selectedNode = computed(() =>
   nodes.value.find(node => node.id === selectedNodeId.value)
 );
+const selectedEdge = computed(() =>
+  edges.value.find(edge => edge.id === selectedEdgeId.value)
+);
 const selectedConditionField = computed(() =>
   props.conditionFields.find(
     field => field.key === selectedNode.value?.data?.field_key
@@ -162,11 +175,33 @@ const selectedConditionField = computed(() =>
 const selectedConditionOptions = computed(
   () => selectedConditionField.value?.conditionOptions || []
 );
+const numericCustomFields = computed(() =>
+  props.customFields.filter(field =>
+    ['integer', 'decimal', 'currency', 'formula'].includes(field.fieldType)
+  )
+);
+const businessDays = computed(() => [
+  { value: 1, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.MON') },
+  { value: 2, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.TUE') },
+  { value: 3, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.WED') },
+  { value: 4, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.THU') },
+  { value: 5, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.FRI') },
+  { value: 6, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.SAT') },
+  { value: 7, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.SUN') },
+]);
 
 const defaultData = type => {
   if (type === 'delay') return { delay_hours: 24 };
   if (type === 'wait_until_field') return { field_key: '', offset_hours: -24 };
   if (type === 'wait_for_response') return { timeout_hours: 24 };
+  if (type === 'wait_for_business_hours') {
+    return {
+      weekdays: [1, 2, 3, 4, 5],
+      start_time: '09:00',
+      end_time: '18:00',
+      timezone: 'America/Sao_Paulo',
+    };
+  }
   if (type === 'send_message') {
     return {
       channel: 'whatsapp',
@@ -208,6 +243,12 @@ const nodeSummary = node => {
   if (node.type === 'wait_for_response') {
     return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RESPONSE_TIMEOUT', {
       hours: data.timeout_hours || 0,
+    });
+  }
+  if (node.type === 'wait_for_business_hours') {
+    return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_HOURS_SUMMARY', {
+      start: data.start_time || '--:--',
+      end: data.end_time || '--:--',
     });
   }
   if (node.type === 'send_message')
@@ -288,18 +329,9 @@ const decorateNode = node => ({
 const defaultFlow = () => ({
   nodes: [
     { id: 'trigger', type: 'trigger', position: { x: 32, y: 180 }, data: {} },
-    {
-      id: 'message',
-      type: 'send_message',
-      position: { x: 300, y: 180 },
-      data: defaultData('send_message'),
-    },
-    { id: 'end', type: 'end', position: { x: 568, y: 180 }, data: {} },
+    { id: 'end', type: 'end', position: { x: 300, y: 180 }, data: {} },
   ],
-  edges: [
-    { id: 'trigger-message', source: 'trigger', target: 'message' },
-    { id: 'message-end', source: 'message', target: 'end' },
-  ],
+  edges: [{ id: 'trigger-end', source: 'trigger', target: 'end' }],
 });
 
 const applyFlow = flow => {
@@ -378,6 +410,17 @@ const onConnect = connection => {
   );
 };
 
+const onEdgeClick = ({ edge }) => {
+  selectedNodeId.value = null;
+  selectedEdgeId.value = edge.id;
+};
+
+const removeSelectedEdge = () => {
+  if (!selectedEdgeId.value) return;
+  edges.value = edges.value.filter(edge => edge.id !== selectedEdgeId.value);
+  selectedEdgeId.value = null;
+};
+
 const updateNode = () => {
   const node = selectedNode.value;
   if (!node) return;
@@ -452,7 +495,13 @@ const removeSelectedNode = () => {
           :max-zoom="1.8"
           fit-view-on-init
           @connect="onConnect"
-          @node-click="({ node }) => (selectedNodeId = node.id)"
+          @edge-click="onEdgeClick"
+          @node-click="
+            ({ node }) => {
+              selectedNodeId = node.id;
+              selectedEdgeId = null;
+            }
+          "
         >
           <Background pattern-color="var(--color-n-slate-5)" :gap="16" />
           <Controls :show-interactive="false" />
@@ -460,7 +509,7 @@ const removeSelectedNode = () => {
       </div>
 
       <aside
-        class="grid content-start gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3"
+        class="grid min-w-0 content-start gap-3 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-3"
       >
         <template v-if="selectedNode">
           <div class="flex items-center justify-between gap-2">
@@ -533,6 +582,68 @@ const removeSelectedNode = () => {
                 class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                 @change="updateNode"
               />
+            </label>
+          </template>
+
+          <template v-else-if="selectedNode.type === 'wait_for_business_hours'">
+            <fieldset
+              class="grid gap-1 border-0 p-0 text-xs font-medium text-n-slate-11"
+            >
+              <legend class="p-0">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_DAYS') }}
+              </legend>
+              <div class="grid grid-cols-4 gap-1">
+                <label
+                  v-for="day in businessDays"
+                  :key="day.value"
+                  class="flex items-center gap-1 rounded border border-n-weak px-2 py-1 text-xs"
+                >
+                  <input
+                    v-model="selectedNode.data.weekdays"
+                    :value="day.value"
+                    type="checkbox"
+                    class="size-3 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                    @change="updateNode"
+                  />
+                  {{ day.label }}
+                </label>
+              </div>
+            </fieldset>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_START') }}
+                <input
+                  v-model="selectedNode.data.start_time"
+                  type="time"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_END') }}
+                <input
+                  v-model="selectedNode.data.end_time"
+                  type="time"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+            </div>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_TIMEZONE') }}
+              <select
+                v-model="selectedNode.data.timezone"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option
+                  v-for="timezone in quietHoursTimezoneOptions"
+                  :key="timezone.value"
+                  :value="timezone.value"
+                >
+                  {{ timezone.label }}
+                </option>
+              </select>
             </label>
           </template>
 
@@ -865,7 +976,13 @@ const removeSelectedNode = () => {
                 />
               </label>
             </template>
-            <template v-else-if="selectedNode.data.action_name === 'set_field'">
+            <template
+              v-else-if="
+                ['set_field', 'increment_field'].includes(
+                  selectedNode.data.action_name
+                )
+              "
+            >
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
                 <select
@@ -877,7 +994,10 @@ const removeSelectedNode = () => {
                     {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
                   </option>
                   <option
-                    v-for="field in customFields"
+                    v-for="field in selectedNode.data.action_name ===
+                    'increment_field'
+                      ? numericCustomFields
+                      : customFields"
                     :key="field.key"
                     :value="field.key"
                   >
@@ -888,8 +1008,23 @@ const removeSelectedNode = () => {
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
                 <input
-                  v-model="selectedNode.data.action_params.value"
-                  type="text"
+                  v-model="
+                    selectedNode.data.action_params[
+                      selectedNode.data.action_name === 'increment_field'
+                        ? 'amount'
+                        : 'value'
+                    ]
+                  "
+                  :type="
+                    selectedNode.data.action_name === 'increment_field'
+                      ? 'number'
+                      : 'text'
+                  "
+                  :step="
+                    selectedNode.data.action_name === 'increment_field'
+                      ? 'any'
+                      : undefined
+                  "
                   class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"
                 />
@@ -928,6 +1063,18 @@ const removeSelectedNode = () => {
           <p v-else class="m-0 text-xs text-n-slate-11">
             {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODE_HINT') }}
           </p>
+        </template>
+        <template v-else-if="selectedEdge">
+          <p class="m-0 text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECTION') }}
+          </p>
+          <button
+            type="button"
+            class="justify-self-start text-xs font-medium text-n-ruby-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            @click="removeSelectedEdge"
+          >
+            {{ t('KANBAN.ACTIONS.DELETE') }}
+          </button>
         </template>
       </aside>
     </div>

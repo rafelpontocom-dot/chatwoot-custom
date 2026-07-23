@@ -28,15 +28,16 @@ class KanbanAutomations::ConditionsMatcher
     'less_or_equal' => :matches_less_or_equal?
   }.freeze
 
-  def initialize(rule:, card:)
+  def initialize(rule:, card:, conditions: nil)
     @rule = rule
     @card = card
+    @conditions = conditions
   end
 
   def matches?
     return false unless @rule.kanban_board_id == @card.kanban_board_id
 
-    conditions = @rule.trigger_conditions
+    conditions = (@conditions.presence || @rule.trigger_conditions).to_h.with_indifferent_access
     ids_match?(conditions[:inbox_ids], @card.inbox_id) &&
       ids_match?(conditions[:stage_ids], @card.kanban_stage_id) &&
       ids_match?(conditions[:owner_ids], @card.owner_id) &&

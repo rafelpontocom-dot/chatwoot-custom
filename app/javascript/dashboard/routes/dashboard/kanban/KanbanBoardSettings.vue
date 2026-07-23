@@ -178,6 +178,16 @@ const form = reactive({
 });
 
 const boardId = computed(() => Number(route.params.boardId));
+const openSettingsSection = key => {
+  if (key === 'automation') {
+    router.push({
+      name: 'kanban_board_automations',
+      params: { accountId: route.params.accountId, boardId: boardId.value },
+    });
+    return;
+  }
+  activeSettingsSection.value = key;
+};
 const settingsNavigation = computed(() => [
   {
     key: 'general',
@@ -2580,7 +2590,7 @@ onMounted(async () => {
               activeSettingsSection === item.key ? 'page' : undefined
             "
             :data-testid="`kanban-settings-nav-${item.key}`"
-            @click="activeSettingsSection = item.key"
+            @click="openSettingsSection(item.key)"
           >
             <i
               class="size-4 shrink-0"

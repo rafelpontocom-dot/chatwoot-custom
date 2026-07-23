@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_31_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_01_110000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1049,6 +1049,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_31_120000) do
     t.jsonb "workflow_state", default: {}, null: false
     t.datetime "scheduled_at"
     t.bigint "kanban_card_id"
+    t.jsonb "automation_snapshot", default: {}, null: false
     t.index ["account_id", "status", "created_at"], name: "idx_kanban_automation_executions_history"
     t.index ["account_id"], name: "index_kanban_automation_executions_on_account_id"
     t.index ["kanban_automation_rule_id", "event_key"], name: "idx_kanban_automation_executions_idempotency", unique: true
@@ -1072,6 +1073,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_31_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.jsonb "flow_definition", default: {}, null: false
+    t.boolean "reentry_enabled", default: false, null: false
     t.index ["account_id", "kanban_board_id", "event_name", "active"], name: "idx_kanban_automation_rules_lookup"
     t.index ["account_id"], name: "index_kanban_automation_rules_on_account_id"
     t.index ["kanban_board_id", "name"], name: "idx_kanban_automation_rules_board_name", unique: true

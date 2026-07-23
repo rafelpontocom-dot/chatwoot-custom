@@ -28,6 +28,7 @@ const executions = ref([]);
 const settings = ref({});
 const selectedRuleId = ref(null);
 const showEditor = ref(false);
+const showBirthdayEditor = ref(false);
 const showReminderForm = ref(false);
 const showConnectionForm = ref(false);
 const isSavingReminder = ref(false);
@@ -41,6 +42,20 @@ const testResult = ref(null);
 const isLoadingTestCards = ref(false);
 const isTestingRule = ref(false);
 const testError = ref('');
+const isLoadingBirthday = ref(false);
+const isSavingBirthday = ref(false);
+const birthdayError = ref('');
+const birthdayAutomation = reactive({
+  active: false,
+  daysBefore: 0,
+  deliveryChannels: ['whatsapp'],
+  optInAttributeKey: 'birthday_messages_opt_in',
+  messageLocale: 'pt_BR',
+  timezone: 'America/Sao_Paulo',
+  timezoneName: 'America/Sao_Paulo',
+  sendTime: '09:00',
+  messageTemplate: '',
+});
 
 const blankAction = () => ({
   actionName: 'move_stage',
@@ -52,12 +67,21 @@ const blankAction = () => ({
   nextActionAt: '',
   nextActionNote: '',
 });
+const blankVisualFlow = () => ({
+  nodes: [
+    { id: 'trigger', type: 'trigger', position: { x: 32, y: 180 }, data: {} },
+    { id: 'end', type: 'end', position: { x: 300, y: 180 }, data: {} },
+  ],
+  edges: [{ id: 'trigger-end', source: 'trigger', target: 'end' }],
+});
 
 const form = reactive({
   name: '',
   description: '',
   eventName: 'kanban.card.stage_changed',
   active: true,
+  reentryEnabled: false,
+  cancelWaitingExecutions: false,
   stageId: '',
   ownerId: '',
   fieldKey: '',
@@ -147,10 +171,6 @@ const eventOptions = computed(() => [
 const automationTabs = computed(() => [
   { key: 'flows', label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.FLOWS') },
   {
-    key: 'reminders',
-    label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.REMINDERS'),
-  },
-  {
     key: 'connections',
     label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.CONNECTIONS'),
   },
@@ -159,6 +179,40 @@ const automationTabs = computed(() => [
     label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.EXECUTIONS'),
   },
 ]);
+const executionStatusOptions = computed(() => [
+  {
+    value: 'waiting',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STATUS.WAITING'),
+  },
+  {
+    value: 'failed',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STATUS.FAILED'),
+  },
+  {
+    value: 'queued',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STATUS.QUEUED'),
+  },
+  {
+    value: 'running',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STATUS.RUNNING'),
+  },
+  {
+    value: 'succeeded',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STATUS.SUCCEEDED'),
+  },
+  {
+    value: 'skipped',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STATUS.SKIPPED'),
+  },
+]);
+const executionSummary = computed(() =>
+  executionStatusOptions.value.map(status => ({
+    ...status,
+    count: executions.value.filter(
+      execution => execution.status === status.value
+    ).length,
+  }))
+);
 
 const flowTemplate = ({ message, waitForResponse = false }) => {
   const nodes = [
@@ -270,11 +324,56 @@ const agentOptions = computed(() =>
     label: agent.name || agent.email,
   }))
 );
-const conditionFields = computed(() => [
-  { key: 'subject', label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.SUBJECT') },
+const waitingExecutionsForSelectedRule = computed(() =>
+  executions.value.filter(
+    execution =>
+      execution.ruleId === selectedRuleId.value &&
+      execution.status === 'waiting'
+  )
+);
+const opportunityStatusOptions = computed(() => [
   {
-    key: 'amount_cents',
+    value: 'open',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_STATUS.OPEN'),
+  },
+  {
+    value: 'won',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_STATUS.WON'),
+  },
+  {
+    value: 'lost',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_STATUS.LOST'),
+  },
+]);
+const conditionFields = computed(() => [
+  {
+    key: 'system_subject',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.SUBJECT'),
+  },
+  {
+    key: 'system_amount',
     label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT'),
+  },
+  {
+    key: 'system_stage_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STAGE'),
+    conditionOptions: stages.value.map(stage => ({
+      value: String(stage.id),
+      label: stage.name,
+    })),
+  },
+  {
+    key: 'system_status',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STATUS'),
+    conditionOptions: opportunityStatusOptions.value,
+  },
+  {
+    key: 'system_owner_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.OWNER'),
+    conditionOptions: agentOptions.value.map(agent => ({
+      value: String(agent.value),
+      label: agent.label,
+    })),
   },
   ...customFields.value.map(field => ({
     key: field.key,
@@ -286,18 +385,24 @@ const conditionFields = computed(() => [
     })),
   })),
 ]);
-const dateFields = computed(() =>
-  customFields.value.filter(field =>
-    ['date', 'datetime'].includes(field.fieldType)
-  )
-);
-const reminderDateFields = computed(() => [
+const dateFields = computed(() => [
   {
     key: 'system_starts_at',
-    label: t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SYSTEM_DATE'),
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STARTS_AT'),
   },
-  ...dateFields.value,
+  {
+    key: 'system_due_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.DUE_AT'),
+  },
+  {
+    key: 'system_next_action_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_AT'),
+  },
+  ...customFields.value.filter(field =>
+    ['date', 'datetime'].includes(field.fieldType)
+  ),
 ]);
+const reminderDateFields = computed(() => [...dateFields.value]);
 const reminderOffsets = computed(() =>
   reminderForm.offsets
     .split(',')
@@ -321,6 +426,8 @@ const resetForm = () => {
   form.description = '';
   form.eventName = 'kanban.card.stage_changed';
   form.active = true;
+  form.reentryEnabled = false;
+  form.cancelWaitingExecutions = false;
   form.stageId = '';
   form.ownerId = '';
   form.fieldKey = '';
@@ -339,6 +446,8 @@ const applyRule = rule => {
   form.description = normalized.description || '';
   form.eventName = normalized.eventName || 'kanban.card.stage_changed';
   form.active = normalized.active !== false;
+  form.reentryEnabled = normalized.reentryEnabled === true;
+  form.cancelWaitingExecutions = false;
   form.stageId = conditions.stageIds?.[0] || '';
   form.ownerId = conditions.ownerIds?.[0] || '';
   form.fieldKey = field.fieldKey || '';
@@ -350,6 +459,7 @@ const applyRule = rule => {
 
 const openNewFlow = () => {
   resetForm();
+  form.flowDefinition = blankVisualFlow();
   activeTab.value = 'flows';
   showEditor.value = true;
 };
@@ -363,13 +473,6 @@ const openTemplate = template => {
   activeTab.value = 'flows';
   showEditor.value = true;
 };
-const openBirthdayAutomation = () => {
-  router.push({
-    name: 'kanban_board_settings',
-    params: { accountId: route.params.accountId, boardId: boardId.value },
-    hash: '#birthday-automation',
-  });
-};
 const openRule = rule => {
   applyRule(rule);
   activeTab.value = 'flows';
@@ -377,7 +480,69 @@ const openRule = rule => {
 };
 const closeEditor = () => {
   showEditor.value = false;
+  showBirthdayEditor.value = false;
   resetForm();
+};
+
+const applyBirthdayAutomation = source => {
+  const automation = normalize(source);
+  birthdayAutomation.active = Boolean(automation.active);
+  birthdayAutomation.daysBefore = Number(automation.daysBefore) || 0;
+  birthdayAutomation.deliveryChannels = automation.deliveryChannels || [];
+  birthdayAutomation.optInAttributeKey =
+    automation.optInAttributeKey || 'birthday_messages_opt_in';
+  birthdayAutomation.messageLocale = automation.messageLocale || 'pt_BR';
+  birthdayAutomation.timezone = automation.timezone || '';
+  birthdayAutomation.timezoneName = automation.timezoneName || '';
+  birthdayAutomation.sendTime = automation.sendTime || '09:00';
+  birthdayAutomation.messageTemplate = automation.messageTemplate || '';
+};
+
+async function loadBirthdayAutomation() {
+  isLoadingBirthday.value = true;
+  birthdayError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.getBirthdayAutomation();
+    applyBirthdayAutomation(response.data);
+  } catch (loadError) {
+    birthdayError.value = t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.LOAD_ERROR');
+  } finally {
+    isLoadingBirthday.value = false;
+  }
+}
+
+function openBirthdayAutomation() {
+  showBirthdayEditor.value = true;
+  loadBirthdayAutomation();
+}
+
+const saveBirthdayAutomation = async () => {
+  if (isSavingBirthday.value) return;
+
+  isSavingBirthday.value = true;
+  birthdayError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.updateBirthdayAutomation({
+      birthday_automation: {
+        active: birthdayAutomation.active,
+        days_before: Number(birthdayAutomation.daysBefore) || 0,
+        delivery_channels: birthdayAutomation.deliveryChannels,
+        opt_in_attribute_key: birthdayAutomation.optInAttributeKey.trim(),
+        message_locale: birthdayAutomation.messageLocale,
+        timezone: birthdayAutomation.timezone.trim() || null,
+        send_time: birthdayAutomation.sendTime,
+        message_template: birthdayAutomation.messageTemplate.trim(),
+      },
+    });
+    applyBirthdayAutomation(response.data);
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SAVE_SUCCESS'));
+  } catch (saveError) {
+    birthdayError.value =
+      saveError?.response?.data?.message ||
+      t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SAVE_ERROR');
+  } finally {
+    isSavingBirthday.value = false;
+  }
 };
 
 const saveReminder = async () => {
@@ -639,6 +804,10 @@ const previewStepLabel = step => {
   }
 };
 
+const executionStatusLabel = status =>
+  executionStatusOptions.value.find(item => item.value === status)?.label ||
+  status;
+
 const actionParams = action => {
   switch (action.actionName) {
     case 'move_stage':
@@ -658,12 +827,50 @@ const actionParams = action => {
   }
 };
 
+const visualFlowValidationError = () => {
+  const nodes = form.flowDefinition?.nodes || [];
+  if (!nodes.length) return null;
+
+  const invalidNode = nodes.find(node => {
+    const data = node.data || {};
+
+    if (node.type === 'send_message') {
+      return !data.content?.trim() || !data.opt_in_attribute_key?.trim();
+    }
+    if (node.type === 'wait_until_field') return !data.field_key;
+    if (node.type === 'condition') return !data.field_key;
+    if (node.type === 'webhook') return !data.connection_id;
+    if (node.type !== 'action') return false;
+
+    const params = data.action_params || {};
+    if (data.action_name === 'move_stage') return !params.stage_id;
+    if (['set_field', 'increment_field'].includes(data.action_name)) {
+      return !params.field_key;
+    }
+    return false;
+  });
+
+  if (!invalidNode) return null;
+
+  const validationKey = {
+    send_message: 'MESSAGE',
+    wait_until_field: 'DATE_WAIT',
+    condition: 'CONDITION',
+    webhook: 'WEBHOOK',
+    action: 'ACTION',
+  }[invalidNode.type];
+
+  return t(`KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.${validationKey}`);
+};
+
 const payload = () => ({
   kanban_automation_rule: {
     name: form.name.trim(),
     description: form.description.trim() || null,
     event_name: form.eventName,
     active: form.active,
+    reentry_enabled: form.reentryEnabled,
+    cancel_waiting_executions: form.cancelWaitingExecutions,
     conditions: {
       stage_ids: form.stageId ? [Number(form.stageId)] : [],
       owner_ids: form.ownerId ? [Number(form.ownerId)] : [],
@@ -677,18 +884,27 @@ const payload = () => ({
           ]
         : [],
     },
-    actions: form.actions
-      .filter(action => action.actionName)
-      .map(action => ({
-        action_name: action.actionName,
-        action_params: actionParams(action),
-      })),
+    actions: form.flowDefinition?.nodes?.length
+      ? []
+      : form.actions
+          .filter(action => action.actionName)
+          .map(action => ({
+            action_name: action.actionName,
+            action_params: actionParams(action),
+          })),
     flow_definition: form.flowDefinition,
   },
 });
 
 const save = async () => {
   if (!form.name.trim() || isSaving.value) return;
+
+  const validationError = visualFlowValidationError();
+  if (validationError) {
+    error.value = validationError;
+    useAlert(validationError);
+    return;
+  }
 
   isSaving.value = true;
   error.value = '';
@@ -798,7 +1014,7 @@ onMounted(load);
           type="button"
           data-testid="kanban-automations-save-flow"
           icon="i-lucide-save"
-          :label="t('KANBAN.ACTIONS.SAVE')"
+          :label="t('KANBAN.SETTINGS.SAVE')"
           color="blue"
           size="sm"
           :is-loading="isSaving"
@@ -808,12 +1024,139 @@ onMounted(load);
     </header>
 
     <div
-      v-if="showEditor"
+      v-if="showBirthdayEditor"
+      data-testid="kanban-birthday-editor"
+      class="mx-auto grid w-full max-w-3xl gap-4 px-4 py-6 lg:px-6"
+    >
+      <div>
+        <h2 class="m-0 text-base font-semibold text-n-slate-12">
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.TITLE') }}
+        </h2>
+        <p class="m-0 mt-1 text-sm text-n-slate-11">
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.DESCRIPTION') }}
+        </p>
+      </div>
+      <p v-if="isLoadingBirthday" class="m-0 text-sm text-n-slate-11">
+        {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.LOADING') }}
+      </p>
+      <template v-else>
+        <label
+          class="flex items-center gap-2 text-sm font-medium text-n-slate-12"
+        >
+          <input
+            v-model="birthdayAutomation.active"
+            type="checkbox"
+            class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+          />
+          {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.ACTIVE') }}
+        </label>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.DAYS_BEFORE') }}
+            <input
+              v-model.number="birthdayAutomation.daysBefore"
+              type="number"
+              min="0"
+              max="30"
+              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            />
+          </label>
+          <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.MESSAGE_LOCALE') }}
+            <select
+              v-model="birthdayAutomation.messageLocale"
+              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            >
+              <option value="pt_BR">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.PT_BR') }}
+              </option>
+              <option value="pt_PT">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.PT_PT') }}
+              </option>
+            </select>
+          </label>
+          <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SEND_TIME') }}
+            <input
+              v-model="birthdayAutomation.sendTime"
+              type="time"
+              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            />
+          </label>
+          <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.TIMEZONE') }}
+            <input
+              v-model="birthdayAutomation.timezone"
+              type="text"
+              :placeholder="birthdayAutomation.timezoneName"
+              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            />
+          </label>
+        </div>
+        <fieldset class="flex flex-wrap gap-4 border-0 p-0">
+          <legend class="mb-1 text-xs font-medium text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.CHANNELS') }}
+          </legend>
+          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+            <input
+              v-model="birthdayAutomation.deliveryChannels"
+              value="whatsapp"
+              type="checkbox"
+              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+            />
+            <span>{{
+              t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.WHATSAPP')
+            }}</span>
+          </label>
+          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+            <input
+              v-model="birthdayAutomation.deliveryChannels"
+              value="email"
+              type="checkbox"
+              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+            />
+            <span>{{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.EMAIL') }}</span>
+          </label>
+        </fieldset>
+        <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+          {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.OPT_IN_KEY') }}
+          <input
+            v-model="birthdayAutomation.optInAttributeKey"
+            type="text"
+            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          />
+        </label>
+        <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+          {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.MESSAGE') }}
+          <textarea
+            v-model="birthdayAutomation.messageTemplate"
+            rows="4"
+            class="resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          />
+        </label>
+        <p v-if="birthdayError" class="m-0 text-sm text-n-ruby-11" role="alert">
+          {{ birthdayError }}
+        </p>
+        <div class="flex justify-end">
+          <Button
+            type="button"
+            icon="i-lucide-save"
+            :label="t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.SAVE')"
+            color="blue"
+            size="sm"
+            :is-loading="isSavingBirthday"
+            @click="saveBirthdayAutomation"
+          />
+        </div>
+      </template>
+    </div>
+    <div
+      v-else-if="showEditor"
       data-testid="kanban-automation-editor"
       class="flex min-h-0 flex-1 flex-col"
     >
       <section
-        class="grid gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_13rem_11rem_auto] lg:px-6"
+        class="grid gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_13rem_11rem_auto_auto] lg:px-6"
       >
         <label class="grid gap-1 text-xs font-medium text-n-slate-11">
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NAME') }}
@@ -862,6 +1205,40 @@ onMounted(load);
             class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
           />
           {{ t('KANBAN.AUTOMATIONS_WORKSPACE.ACTIVE') }}
+        </label>
+        <label
+          class="grid max-w-52 gap-1 text-xs font-medium text-n-slate-11"
+          :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY_HINT')"
+        >
+          <span class="flex items-center gap-2">
+            <input
+              v-model="form.reentryEnabled"
+              type="checkbox"
+              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+            />
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY') }}
+          </span>
+        </label>
+        <label
+          v-if="waitingExecutionsForSelectedRule.length"
+          class="grid max-w-60 gap-1 text-xs font-medium text-n-ruby-11"
+        >
+          <span class="flex items-center gap-2">
+            <input
+              v-model="form.cancelWaitingExecutions"
+              type="checkbox"
+              data-testid="kanban-automations-cancel-pending"
+              class="size-4 rounded border-n-weak text-n-ruby-11 focus:ring-n-ruby-11"
+            />
+            {{
+              t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING', {
+                count: waitingExecutionsForSelectedRule.length,
+              })
+            }}
+          </span>
+          <span class="font-normal text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING_HINT') }}
+          </span>
         </label>
       </section>
       <KanbanWorkflowBuilder
@@ -965,6 +1342,7 @@ onMounted(load);
             <div class="flex items-center justify-between gap-3 px-4 py-3">
               <button
                 type="button"
+                :data-testid="`kanban-automation-rule-${rule.id}`"
                 class="min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-n-brand"
                 @click="openRule(rule)"
               >
@@ -1461,7 +1839,21 @@ onMounted(load);
         </div>
       </template>
       <template v-else>
-        <div class="grid max-w-5xl gap-2">
+        <div class="grid max-w-5xl gap-3">
+          <dl
+            class="flex flex-wrap gap-x-5 gap-y-2 border-b border-n-weak pb-3"
+          >
+            <div
+              v-for="item in executionSummary"
+              :key="item.value"
+              class="flex items-baseline gap-1 text-xs"
+            >
+              <dt class="text-n-slate-11">{{ item.label }}</dt>
+              <dd class="m-0 font-semibold text-n-slate-12">
+                {{ item.count }}
+              </dd>
+            </div>
+          </dl>
           <article
             v-for="execution in executions"
             :key="execution.id"
@@ -1490,7 +1882,7 @@ onMounted(load);
               <span
                 class="rounded-full bg-n-surface-2 px-2 py-1 text-xs font-medium text-n-slate-11"
               >
-                {{ execution.status }}
+                {{ executionStatusLabel(execution.status) }}
               </span>
               <Button
                 v-if="execution.status === 'waiting'"
