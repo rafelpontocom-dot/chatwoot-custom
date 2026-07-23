@@ -26,6 +26,10 @@ const appointmentReminders = ref([]);
 const settings = ref({});
 const selectedRuleId = ref(null);
 const showEditor = ref(false);
+const showCadenceForm = ref(false);
+const showReminderForm = ref(false);
+const isSavingCadence = ref(false);
+const isSavingReminder = ref(false);
 
 const blankAction = () => ({
   actionName: 'move_stage',
@@ -51,6 +55,25 @@ const form = reactive({
   actions: [blankAction()],
   flowDefinition: {},
 });
+
+const blankCadenceStep = () => ({ delayHours: 0, actionType: '', note: '' });
+const cadenceForm = reactive({
+  name: '',
+  pauseOnIncomingMessage: true,
+  triggerType: 'manual',
+  triggerStageId: '',
+  steps: [blankCadenceStep()],
+});
+const reminderForm = reactive({
+  triggerStageId: '',
+  fieldKey: 'system_starts_at',
+  offsets: '48,24,2',
+  channels: ['whatsapp'],
+  optInAttributeKey: 'appointment_reminders_opt_in',
+  messageTemplates: {},
+});
+const defaultReminderMessage =
+  'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.';
 
 const eventOptions = computed(() => [
   {
@@ -119,6 +142,20 @@ const dateFields = computed(() =>
     ['date', 'datetime'].includes(field.fieldType)
   )
 );
+const reminderDateFields = computed(() => [
+  {
+    key: 'system_starts_at',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SYSTEM_DATE'),
+  },
+  ...dateFields.value,
+]);
+const reminderOffsets = computed(() =>
+  reminderForm.offsets
+    .split(',')
+    .map(value => Number(value.trim()))
+    .filter(value => Number.isInteger(value) && value > 0)
+    .filter((value, index, values) => values.indexOf(value) === index)
+);
 
 const normalize = value => camelcaseKeys(value || {}, { deep: true });
 const resetForm = () => {
@@ -167,6 +204,125 @@ const openRule = rule => {
 const closeEditor = () => {
   showEditor.value = false;
   resetForm();
+};
+
+const resetCadenceForm = () => {
+  cadenceForm.name = '';
+  cadenceForm.pauseOnIncomingMessage = true;
+  cadenceForm.triggerType = 'manual';
+  cadenceForm.triggerStageId = '';
+  cadenceForm.steps.splice(0, cadenceForm.steps.length, blankCadenceStep());
+};
+
+const saveCadence = async () => {
+  if (!cadenceForm.name.trim() || isSavingCadence.value) return;
+
+  const steps = cadenceForm.steps
+    .map(step => ({
+      delay_hours: Number(step.delayHours) || 0,
+      action_type: step.actionType.trim(),
+      note: step.note.trim() || null,
+    }))
+    .filter(step => step.action_type);
+  if (!steps.length) return;
+
+  isSavingCadence.value = true;
+  try {
+    const response = await KanbanBoardsAPI.createCadence(boardId.value, {
+      cadence: {
+        name: cadenceForm.name.trim(),
+        pause_on_incoming_message: cadenceForm.pauseOnIncomingMessage,
+        trigger_type: cadenceForm.triggerType,
+        trigger_stage_id: cadenceForm.triggerStageId
+          ? Number(cadenceForm.triggerStageId)
+          : null,
+        steps,
+      },
+    });
+    cadences.value.push(normalize(response.data));
+    resetCadenceForm();
+    showCadenceForm.value = false;
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE_SUCCESS'));
+  } catch (saveError) {
+    error.value = t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE_ERROR');
+  } finally {
+    isSavingCadence.value = false;
+  }
+};
+
+const deleteCadence = async cadence => {
+  if (!cadence?.id || isSavingCadence.value) return;
+
+  isSavingCadence.value = true;
+  try {
+    await KanbanBoardsAPI.deleteCadence(boardId.value, cadence.id);
+    cadences.value = cadences.value.filter(item => item.id !== cadence.id);
+  } catch (deleteError) {
+    error.value = t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELETE_ERROR');
+  } finally {
+    isSavingCadence.value = false;
+  }
+};
+
+const saveReminder = async () => {
+  if (
+    isSavingReminder.value ||
+    !reminderForm.triggerStageId ||
+    !reminderOffsets.value.length ||
+    !reminderForm.channels.length
+  )
+    return;
+
+  isSavingReminder.value = true;
+  try {
+    const response = await KanbanBoardsAPI.createAppointmentReminderRule(
+      boardId.value,
+      {
+        appointment_reminder_rule: {
+          trigger_type: 'stage_entered',
+          trigger_stage_id: Number(reminderForm.triggerStageId),
+          field_key: reminderForm.fieldKey,
+          offsets: reminderOffsets.value,
+          channels: reminderForm.channels,
+          opt_in_attribute_key: reminderForm.optInAttributeKey,
+          message_templates: Object.fromEntries(
+            reminderOffsets.value.map(offset => [
+              String(offset),
+              reminderForm.messageTemplates[offset]?.trim() ||
+                defaultReminderMessage,
+            ])
+          ),
+          active: true,
+        },
+      }
+    );
+    appointmentReminders.value.push(normalize(response.data));
+    showReminderForm.value = false;
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SAVE_SUCCESS'));
+  } catch (saveError) {
+    error.value = t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SAVE_ERROR');
+  } finally {
+    isSavingReminder.value = false;
+  }
+};
+
+const deleteReminder = async reminder => {
+  if (!reminder?.id || isSavingReminder.value) return;
+
+  isSavingReminder.value = true;
+  try {
+    await KanbanBoardsAPI.deleteAppointmentReminderRule(
+      boardId.value,
+      reminder.id
+    );
+    appointmentReminders.value = appointmentReminders.value.filter(
+      item => item.id !== reminder.id
+    );
+  } catch (deleteError) {
+    error.value = t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DISABLE_ERROR');
+  } finally {
+    isSavingReminder.value = false;
+  }
 };
 
 const actionParams = action => {
@@ -271,13 +427,6 @@ const load = async () => {
     isLoading.value = false;
   }
 };
-
-const goToSettings = section =>
-  router.push({
-    name: 'kanban_board_settings',
-    params: { accountId: route.params.accountId, boardId: boardId.value },
-    query: { section },
-  });
 
 onMounted(load);
 </script>
@@ -501,40 +650,340 @@ onMounted(load);
           />
         </div>
       </template>
-      <template v-else>
-        <div class="grid max-w-3xl gap-2">
-          <article
-            v-for="item in activeTab === 'cadences'
-              ? cadences
-              : appointmentReminders"
-            :key="item.id"
-            class="rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+      <template v-else-if="activeTab === 'cadences'">
+        <div class="grid max-w-3xl gap-3">
+          <div class="flex justify-end">
+            <Button
+              type="button"
+              data-testid="kanban-automations-new-cadence"
+              icon="i-lucide-plus"
+              :label="t('KANBAN.AUTOMATIONS_WORKSPACE.NEW_CADENCE')"
+              color="blue"
+              size="sm"
+              @click="showCadenceForm = !showCadenceForm"
+            />
+          </div>
+          <section
+            v-if="showCadenceForm"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-4"
           >
-            <p class="m-0 text-sm font-medium text-n-slate-12">
-              {{
-                item.name ||
-                item.triggerStageName ||
-                t('KANBAN.AUTOMATIONS_WORKSPACE.UNTITLED')
-              }}
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.NAME_PLACEHOLDER') }}
+              <input
+                v-model="cadenceForm.name"
+                data-testid="kanban-automations-cadence-name"
+                type="text"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_STAGE') }}
+                <select
+                  v-model="cadenceForm.triggerType"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="manual">
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_MANUAL')
+                    }}
+                  </option>
+                  <option value="stage_entered">
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TRIGGER_STAGE')
+                    }}
+                  </option>
+                </select>
+              </label>
+              <label
+                v-if="cadenceForm.triggerType === 'stage_entered'"
+                class="grid gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SELECT_STAGE') }}
+                <select
+                  v-model="cadenceForm.triggerStageId"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SELECT_STAGE') }}
+                  </option>
+                  <option
+                    v-for="stage in stages"
+                    :key="stage.id"
+                    :value="stage.id"
+                  >
+                    {{ stage.name }}
+                  </option>
+                </select>
+              </label>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-n-slate-12">
+              <input
+                v-model="cadenceForm.pauseOnIncomingMessage"
+                type="checkbox"
+                class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+              />
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.PAUSE_ON_INCOMING') }}
+            </label>
+            <div class="grid gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <p class="m-0 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.STEPS') }}
+                </p>
+                <Button
+                  type="button"
+                  icon="i-lucide-plus"
+                  :label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.ADD_STEP')"
+                  color="slate"
+                  size="xs"
+                  @click="cadenceForm.steps.push(blankCadenceStep())"
+                />
+              </div>
+              <div
+                v-for="(step, index) in cadenceForm.steps"
+                :key="index"
+                class="grid gap-2 md:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)_auto]"
+              >
+                <input
+                  v-model.number="step.delayHours"
+                  type="number"
+                  min="0"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELAY_HOURS')
+                  "
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <input
+                  v-model="step.actionType"
+                  data-testid="kanban-automations-cadence-action"
+                  type="text"
+                  :placeholder="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.ACTION_PLACEHOLDER')
+                  "
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <input
+                  v-model="step.note"
+                  type="text"
+                  :placeholder="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.NOTE_PLACEHOLDER')
+                  "
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                />
+                <Button
+                  v-if="cadenceForm.steps.length > 1"
+                  type="button"
+                  icon="i-lucide-trash-2"
+                  color="ruby"
+                  size="xs"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.REMOVE_STEP')
+                  "
+                  @click="cadenceForm.steps.splice(index, 1)"
+                />
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <Button
+                type="button"
+                data-testid="kanban-automations-save-cadence"
+                icon="i-lucide-save"
+                :label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SAVE')"
+                color="blue"
+                size="sm"
+                :is-loading="isSavingCadence"
+                @click="saveCadence"
+              />
+            </div>
+          </section>
+          <article
+            v-for="item in cadences"
+            :key="item.id"
+            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+          >
+            <div>
+              <p class="m-0 text-sm font-medium text-n-slate-12">
+                {{ item.name }}
+              </p>
+              <p class="m-0 mt-1 text-xs text-n-slate-11">
+                {{ item.steps?.length || 0 }}
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.STEP_COUNT') }}
+              </p>
+            </div>
+            <Button
+              type="button"
+              icon="i-lucide-trash-2"
+              color="ruby"
+              size="xs"
+              :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.DELETE')"
+              @click="deleteCadence(item)"
+            />
+          </article>
+          <p v-if="!cadences.length" class="m-0 text-sm text-n-slate-11">
+            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.NO_ITEMS') }}
+          </p>
+        </div>
+      </template>
+      <template v-else>
+        <div class="grid max-w-3xl gap-3">
+          <div class="flex justify-end">
+            <Button
+              type="button"
+              icon="i-lucide-plus"
+              :label="t('KANBAN.AUTOMATIONS_WORKSPACE.NEW_REMINDER')"
+              color="blue"
+              size="sm"
+              @click="showReminderForm = !showReminderForm"
+            />
+          </div>
+          <section
+            v-if="showReminderForm"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-4"
+          >
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.TRIGGER_STAGE') }}
+                <select
+                  v-model="reminderForm.triggerStageId"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SELECT_STAGE')
+                    }}
+                  </option>
+                  <option
+                    v-for="stage in stages"
+                    :key="stage.id"
+                    :value="stage.id"
+                  >
+                    {{ stage.name }}
+                  </option>
+                </select>
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DATE_FIELD') }}
+                <select
+                  v-model="reminderForm.fieldKey"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option
+                    v-for="field in reminderDateFields"
+                    :key="field.key"
+                    :value="field.key"
+                  >
+                    {{ field.label }}
+                  </option>
+                </select>
+              </label>
+            </div>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.ADVANCE_HOURS') }}
+              <input
+                v-model="reminderForm.offsets"
+                type="text"
+                :placeholder="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.PLACEHOLDER_HOURS')
+                "
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <div class="flex flex-wrap gap-3 text-sm text-n-slate-12">
+              <label class="flex items-center gap-2">
+                <input
+                  v-model="reminderForm.channels"
+                  value="whatsapp"
+                  type="checkbox"
+                  class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                />
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.WHATSAPP') }}
+              </label>
+              <label class="flex items-center gap-2">
+                <input
+                  v-model="reminderForm.channels"
+                  value="email"
+                  type="checkbox"
+                  class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                />
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.EMAIL') }}
+              </label>
+            </div>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.OPT_IN') }}
+              <input
+                v-model="reminderForm.optInAttributeKey"
+                type="text"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <div
+              v-if="reminderOffsets.length"
+              class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+            >
+              <p class="m-0 text-xs font-medium text-n-slate-11">
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.MESSAGES_TITLE')
+                }}
+              </p>
+              <label
+                v-for="offset in reminderOffsets"
+                :key="offset"
+                class="grid gap-1 text-xs font-medium text-n-slate-11"
+                >{{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.MESSAGE_FOR', {
+                    hours: offset,
+                  })
+                }}<textarea
+                  :value="
+                    reminderForm.messageTemplates[offset] ||
+                    defaultReminderMessage
+                  "
+                  rows="2"
+                  class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @input="
+                    reminderForm.messageTemplates[offset] = $event.target.value
+                  "
+                />
+              </label>
+            </div>
+            <div class="flex justify-end">
+              <Button
+                type="button"
+                data-testid="kanban-automations-save-reminder"
+                icon="i-lucide-calendar-clock"
+                :label="t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.ACTIVATE')"
+                color="blue"
+                size="sm"
+                :is-loading="isSavingReminder"
+                @click="saveReminder"
+              />
+            </div>
+          </section>
+          <article
+            v-for="item in appointmentReminders"
+            :key="item.id"
+            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+          >
+            <p class="m-0 text-sm text-n-slate-12">
+              {{ item.offsets.join(', ')
+              }}{{ t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.HOURS_BEFORE') }}
+              {{ item.channels.join(', ') }}
             </p>
+            <Button
+              type="button"
+              icon="i-lucide-trash-2"
+              color="ruby"
+              size="xs"
+              :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.DISABLE')"
+              @click="deleteReminder(item)"
+            />
           </article>
           <p
-            v-if="
-              !(activeTab === 'cadences' ? cadences : appointmentReminders)
-                .length
-            "
+            v-if="!appointmentReminders.length"
             class="m-0 text-sm text-n-slate-11"
           >
             {{ t('KANBAN.AUTOMATIONS_WORKSPACE.NO_ITEMS') }}
           </p>
-          <Button
-            type="button"
-            icon="i-lucide-settings-2"
-            :label="t('KANBAN.AUTOMATIONS_WORKSPACE.MANAGE')"
-            color="slate"
-            size="sm"
-            @click="goToSettings('automation')"
-          />
         </div>
       </template>
     </section>

@@ -4,6 +4,8 @@
       "TITLE": "Pipeline automations",
       "BACK": "Back to board",
       "NEW_FLOW": "New automation",
+      "NEW_CADENCE": "New cadence",
+      "NEW_REMINDER": "New reminder",
       "ANY_STAGE": "Any stage",
       "ACTIVE": "Active",
       "DRAFT": "Draft",

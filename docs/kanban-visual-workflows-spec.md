@@ -140,7 +140,7 @@ Erros de validação respondem `422` com `message` e `errors`. O frontend deve m
 
 ## Frontend
 
-`KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, cadências e lembretes existentes. A aba Fluxos lista regras e abre o editor dedicado; as demais abas deixam cadências e lembretes visíveis durante a migração dos seus formulários.
+`KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, cadências e lembretes existentes. A aba Fluxos lista regras e abre o editor dedicado; as abas Cadências e Lembretes permitem criar, listar e remover suas respectivas configurações usando os mesmos endpoints já validados.
 
 `KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados, cadências ativas e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo e resumo. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas e o painel de propriedades permanecem lado a lado em telas largas e empilham em telas menores.
 

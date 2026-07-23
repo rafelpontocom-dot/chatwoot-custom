@@ -43,8 +43,8 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 - O canvas é uma área de trabalho, não um bloco dentro de um formulário longo.
 - O botão `+` apresenta opções somente quando a pessoa quer acrescentar uma etapa.
 - O painel lateral aparece apenas para o nó selecionado e concentra suas propriedades.
-- Cadências e lembretes são visíveis na mesma central, sem misturar seus formulários à edição do fluxo.
-- A configuração legada permanece acessível temporariamente durante a migração para preservar operações já configuradas.
+- Cadências e lembretes são configurados e listados nas próprias abas da central, sem misturar seus formulários à edição do fluxo.
+- A configuração legada pode permanecer disponível como compatibilidade, mas o fluxo operacional recomendado é a central.
 
 ## Nós Da Primeira Entrega
 
