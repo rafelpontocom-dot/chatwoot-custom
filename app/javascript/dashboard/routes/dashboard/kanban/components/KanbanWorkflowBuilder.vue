@@ -42,6 +42,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  connections: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -50,13 +54,16 @@ const nodes = ref([]);
 const edges = ref([]);
 const selectedNodeId = ref(null);
 const showNodeMenu = ref(false);
+const insertAfterNodeId = ref(null);
 const nodeTypes = {
   trigger: markRaw(KanbanWorkflowNode),
   delay: markRaw(KanbanWorkflowNode),
   wait_until_field: markRaw(KanbanWorkflowNode),
+  wait_for_response: markRaw(KanbanWorkflowNode),
   send_message: markRaw(KanbanWorkflowNode),
   action: markRaw(KanbanWorkflowNode),
   condition: markRaw(KanbanWorkflowNode),
+  webhook: markRaw(KanbanWorkflowNode),
   end: markRaw(KanbanWorkflowNode),
 };
 
@@ -64,18 +71,24 @@ const nodeLabels = computed(() => ({
   trigger: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.TRIGGER'),
   delay: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.DELAY'),
   wait_until_field: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.DATE_WAIT'),
+  wait_for_response: t(
+    'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.RESPONSE_WAIT'
+  ),
   send_message: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.MESSAGE'),
   action: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.ACTION'),
   condition: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CONDITION'),
+  webhook: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.WEBHOOK'),
   end: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
 }));
 
 const addableNodeTypes = computed(() => [
   'delay',
   'wait_until_field',
+  'wait_for_response',
   'condition',
   'send_message',
   'action',
+  'webhook',
 ]);
 
 const conditionOperatorOptions = computed(() => [
@@ -132,6 +145,18 @@ const actionOptions = computed(() => [
     value: 'enroll_cadence',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ENROLL_CADENCE'),
   },
+  {
+    value: 'add_label',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ADD_LABEL'),
+  },
+  {
+    value: 'remove_label',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.REMOVE_LABEL'),
+  },
+  {
+    value: 'add_note',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ADD_NOTE'),
+  },
 ]);
 
 const selectedNode = computed(() =>
@@ -149,6 +174,7 @@ const selectedConditionOptions = computed(
 const defaultData = type => {
   if (type === 'delay') return { delay_hours: 24 };
   if (type === 'wait_until_field') return { field_key: '', offset_hours: -24 };
+  if (type === 'wait_for_response') return { timeout_hours: 24 };
   if (type === 'send_message') {
     return {
       channel: 'whatsapp',
@@ -168,6 +194,7 @@ const defaultData = type => {
   if (type === 'condition') {
     return { field_key: '', operator: 'equals', value: '' };
   }
+  if (type === 'webhook') return { connection_id: '' };
   return {};
 };
 
@@ -186,6 +213,11 @@ const nodeSummary = node => {
         })
       : '';
   }
+  if (node.type === 'wait_for_response') {
+    return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RESPONSE_TIMEOUT', {
+      hours: data.timeout_hours || 0,
+    });
+  }
   if (node.type === 'send_message')
     return data.channel === 'email'
       ? t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.EMAIL')
@@ -200,8 +232,50 @@ const nodeSummary = node => {
     return props.conditionFields.find(field => field.key === data.field_key)
       ?.label;
   }
+  if (node.type === 'webhook') {
+    return props.connections.find(
+      item => item.id === Number(data.connection_id)
+    )?.name;
+  }
   return '';
 };
+
+function openNodeMenuAfter(nodeId) {
+  insertAfterNodeId.value = nodeId;
+  showNodeMenu.value = true;
+}
+
+function nodePosition() {
+  const source = nodes.value.find(node => node.id === insertAfterNodeId.value);
+  if (!source)
+    return {
+      x: 220 + nodes.value.length * 36,
+      y: 80 + nodes.value.length * 28,
+    };
+
+  return { x: source.position.x + 220, y: source.position.y };
+}
+
+function insertNodeAfter(node) {
+  const sourceId = insertAfterNodeId.value;
+  if (!sourceId) return;
+
+  const outgoing = edges.value.filter(
+    edge => edge.source === sourceId && !edge.sourceHandle
+  );
+  const sourceEdge = outgoing[0];
+  if (!sourceEdge) return;
+
+  edges.value = [
+    ...edges.value.filter(edge => edge.id !== sourceEdge.id),
+    { id: `${sourceId}-${node.id}`, source: sourceId, target: node.id },
+    {
+      id: `${node.id}-${sourceEdge.target}`,
+      source: node.id,
+      target: sourceEdge.target,
+    },
+  ];
+}
 
 const decorateNode = node => ({
   ...node,
@@ -213,6 +287,9 @@ const decorateNode = node => ({
     summary: nodeSummary(node),
     yesLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.YES'),
     noLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO'),
+    canAddAfter: !['condition', 'end'].includes(node.type),
+    addAfterLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_AFTER'),
+    addAfter: openNodeMenuAfter,
   },
 });
 
@@ -249,7 +326,16 @@ const emitFlow = () => {
       data: Object.fromEntries(
         Object.entries(data).filter(
           ([key]) =>
-            !['kind', 'label', 'summary', 'yesLabel', 'noLabel'].includes(key)
+            ![
+              'kind',
+              'label',
+              'summary',
+              'yesLabel',
+              'noLabel',
+              'canAddAfter',
+              'addAfterLabel',
+              'addAfter',
+            ].includes(key)
         )
       ),
     })),
@@ -280,15 +366,14 @@ const addNodeOfType = type => {
   const node = decorateNode({
     id,
     type,
-    position: {
-      x: 220 + nodes.value.length * 36,
-      y: 80 + nodes.value.length * 28,
-    },
+    position: nodePosition(type),
     data: defaultData(type),
   });
   nodes.value.push(node);
+  insertNodeAfter(node);
   selectedNodeId.value = id;
   showNodeMenu.value = false;
+  insertAfterNodeId.value = null;
 };
 
 const onConnect = connection => {
@@ -494,6 +579,21 @@ const removeSelectedNode = () => {
             </label>
           </template>
 
+          <template v-else-if="selectedNode.type === 'wait_for_response'">
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{
+                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RESPONSE_TIMEOUT_HOURS')
+              }}
+              <input
+                v-model.number="selectedNode.data.timeout_hours"
+                min="1"
+                type="number"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              />
+            </label>
+          </template>
+
           <template v-else-if="selectedNode.type === 'condition'">
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
@@ -645,6 +745,33 @@ const removeSelectedNode = () => {
             </label>
           </template>
 
+          <template v-else-if="selectedNode.type === 'webhook'">
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_CONNECTION') }}
+              <select
+                v-model="selectedNode.data.connection_id"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option value="">
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_CONNECTION')
+                  }}
+                </option>
+                <option
+                  v-for="connection in connections.filter(item => item.active)"
+                  :key="connection.id"
+                  :value="connection.id"
+                >
+                  {{ connection.name }}
+                </option>
+              </select>
+            </label>
+            <p class="m-0 text-xs text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_HINT') }}
+            </p>
+          </template>
+
           <template v-else-if="selectedNode.type === 'action'">
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ACTION') }}
@@ -794,6 +921,34 @@ const removeSelectedNode = () => {
                   v-model="selectedNode.data.action_params.value"
                   type="text"
                   class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+            </template>
+            <template
+              v-else-if="
+                ['add_label', 'remove_label'].includes(
+                  selectedNode.data.action_name
+                )
+              "
+            >
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.LABEL') }}
+                <input
+                  v-model="selectedNode.data.action_params.label"
+                  type="text"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+            </template>
+            <template v-else-if="selectedNode.data.action_name === 'add_note'">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NOTE_CONTENT') }}
+                <textarea
+                  v-model="selectedNode.data.action_params.content"
+                  rows="3"
+                  class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"
                 />
               </label>

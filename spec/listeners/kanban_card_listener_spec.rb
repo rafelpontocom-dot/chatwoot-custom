@@ -90,6 +90,38 @@ RSpec.describe KanbanCardListener do
       expect(enrollment.last_error).to include('incoming customer message')
       expect(independent_enrollment.reload).to be_active
     end
+
+    it 'resumes response waits and triggers matching customer-message rules' do
+      conversation = create(:conversation)
+      card = create(:kanban_card, :conversation_origin, conversation: conversation)
+      rule = create(
+        :kanban_automation_rule,
+        account: card.account,
+        kanban_board: card.kanban_board,
+        event_name: Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED
+      )
+      execution = create(
+        :kanban_automation_execution,
+        account: card.account,
+        kanban_automation_rule: rule,
+        kanban_card: card,
+        status: 'waiting',
+        scheduled_at: 1.day.from_now,
+        workflow_state: { 'next_node_id' => 'end', 'waiting_for' => 'customer_message' }
+      )
+      message = create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox)
+      event = Events::Base.new(Events::Types::MESSAGE_CREATED, Time.zone.now, message: message)
+
+      expect do
+        listener.message_created(event)
+      end.to have_enqueued_job(KanbanAutomations::ContinueWorkflowJob)
+        .with(execution.id, card.id)
+        .and have_enqueued_job(KanbanAutomations::ExecuteRuleJob)
+        .with(rule.id, Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED, "message:#{message.id}:card:#{card.id}", card.id)
+
+      expect(execution.reload).to have_attributes(scheduled_at: nil)
+      expect(execution.workflow_state).not_to have_key('waiting_for')
+    end
   end
 
   describe '#kanban_card_next_action_completed' do

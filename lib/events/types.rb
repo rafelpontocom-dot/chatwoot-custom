@@ -83,4 +83,6 @@ module Events::Types
   KANBAN_CARD_REOPENED = 'kanban.card.reopened'
   KANBAN_CARD_ARCHIVED = 'kanban.card.archived'
   KANBAN_CARD_RESTORED = 'kanban.card.restored'
+  KANBAN_CARD_MANUAL_STARTED = 'kanban.card.manual_started'
+  KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED = 'kanban.card.customer_message_received'
 end

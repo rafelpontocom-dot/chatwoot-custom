@@ -14,10 +14,33 @@
       "UNTITLED": "Untitled",
       "NO_ITEMS": "No items configured.",
       "MANAGE": "Manage settings",
+      "CONNECTIONS": {
+        "NEW": "New connection",
+        "NAME": "Connection name",
+        "URL": "Webhook URL",
+        "URL_PLACEHOLDER": "https://",
+        "EMPTY": "No webhook connections configured.",
+        "SECRET_TITLE": "Signing secret",
+        "RESET_SECRET": "Generate new secret",
+        "SECRET_RESET_SUCCESS": "New secret generated. Save it now: it will not be shown again.",
+        "SECRET_RESET_ERROR": "Could not generate a new secret.",
+        "SAVE_SUCCESS": "Webhook connection created. Save the secret now: it will not be shown again.",
+        "SAVE_ERROR": "Could not create the webhook connection.",
+        "DELETE_ERROR": "Could not delete the webhook connection."
+      },
+      "EXECUTIONS": {
+        "EMPTY": "There are no executions for this funnel yet.",
+        "DETAILS": "{event} · #{id}",
+        "RETRY": "Retry",
+        "RETRY_SUCCESS": "Execution was scheduled again.",
+        "RETRY_ERROR": "Could not retry this execution."
+      },
       "TABS": {
         "FLOWS": "Flows",
         "CADENCES": "Cadences",
-        "REMINDERS": "Reminders"
+        "REMINDERS": "Reminders",
+        "CONNECTIONS": "Connections",
+        "EXECUTIONS": "Executions"
       }
     },
     "ARCHIVE": {
@@ -550,10 +573,17 @@
           "DATE_FIELD": "Date and time field",
           "DATE_OFFSET_HOURS": "Offset in hours",
           "DATE_OFFSET": "{field} ({hours}h)",
+          "ADD_AFTER": "Add after this step",
+          "RESPONSE_TIMEOUT": "Wait for a response for up to {hours}h",
+          "RESPONSE_TIMEOUT_HOURS": "Response timeout in hours",
           "CHANNEL": "Channel",
           "OPT_IN": "Contact opt-in field",
           "MESSAGE": "Message",
           "ACTION": "Action",
+          "LABEL": "Label",
+          "NOTE_CONTENT": "Internal note",
+          "WEBHOOK_CONNECTION": "Webhook connection",
+          "WEBHOOK_HINT": "The signed payload includes the opportunity, contact, and conversation. Redirects are not followed.",
           "OPERATOR": "Condition",
           "YES": "Yes",
           "NO": "No",
@@ -565,9 +595,11 @@
             "TRIGGER": "Trigger",
             "DELAY": "Wait",
             "DATE_WAIT": "Wait until date",
+            "RESPONSE_WAIT": "Wait for response",
             "MESSAGE": "Send message",
             "ACTION": "Commercial action",
             "CONDITION": "Condition",
+            "WEBHOOK": "Send webhook",
             "END": "End"
           }
         },
@@ -621,9 +653,18 @@
         "EVENTS": {
           "CREATED": "Opportunity created",
           "STAGE_CHANGED": "Stage changed",
+          "CUSTOMER_MESSAGE_RECEIVED": "Customer replied",
+          "OWNER_CHANGED": "Owner changed",
+          "AMOUNT_CHANGED": "Amount changed",
+          "CUSTOM_FIELDS_CHANGED": "Fields changed",
+          "NEXT_ACTION_SCHEDULED": "Next action scheduled",
           "NEXT_ACTION_COMPLETED": "Next action completed",
           "WON": "Opportunity won",
-          "LOST": "Opportunity lost"
+          "LOST": "Opportunity lost",
+          "REOPENED": "Opportunity reopened",
+          "ARCHIVED": "Opportunity archived",
+          "RESTORED": "Opportunity restored",
+          "MANUAL_STARTED": "Started manually"
         },
         "ACTIONS": {
           "MOVE_STAGE": "Move to stage",
@@ -631,7 +672,10 @@
           "SET_NEXT_ACTION": "Set next action",
           "SET_FIELD": "Set field",
           "ARCHIVE_CARD": "Archive opportunity",
-          "ENROLL_CADENCE": "Enroll in cadence"
+          "ENROLL_CADENCE": "Enroll in cadence",
+          "ADD_LABEL": "Add label",
+          "REMOVE_LABEL": "Remove label",
+          "ADD_NOTE": "Add internal note"
         },
         "RULES": {
           "NEW": "New rule",

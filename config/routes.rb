@@ -146,9 +146,15 @@ Rails.application.routes.draw do
               get 'reports/activities', to: 'reports#activities'
               get 'reports/export', to: 'reports#export'
               resources :automation_rules, only: [:index, :create, :update, :destroy] do
+                get 'executions', on: :collection, to: 'automation_rules#all_executions'
                 post :test, on: :member
+                post :run, on: :member
                 get :executions, on: :member
                 post 'executions/:execution_id/cancel', to: 'automation_rules#cancel_execution', on: :member
+                post 'executions/:execution_id/retry', to: 'automation_rules#retry_execution', on: :member
+              end
+              resources :automation_connections, only: [:index, :create, :update, :destroy] do
+                post :reset_secret, on: :member
               end
               resources :cadences, only: [:index, :create, :update, :destroy]
               resources :appointment_reminder_rules, only: [:index, :create, :update, :destroy]

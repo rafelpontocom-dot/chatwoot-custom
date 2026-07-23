@@ -144,6 +144,49 @@ class KanbanBoardsAPI extends ApiClient {
     );
   }
 
+  retryAutomationExecution(boardId, ruleId, executionId) {
+    return axios.post(
+      `${this.url}/${boardId}/automation_rules/${ruleId}/executions/${executionId}/retry`
+    );
+  }
+
+  runAutomationRule(boardId, ruleId, cardId) {
+    return axios.post(`${this.url}/${boardId}/automation_rules/${ruleId}/run`, {
+      card_id: cardId,
+    });
+  }
+
+  getAllAutomationExecutions(boardId) {
+    return axios.get(`${this.url}/${boardId}/automation_rules/executions`);
+  }
+
+  getAutomationConnections(boardId) {
+    return axios.get(`${this.url}/${boardId}/automation_connections`);
+  }
+
+  createAutomationConnection(boardId, payload) {
+    return axios.post(`${this.url}/${boardId}/automation_connections`, payload);
+  }
+
+  updateAutomationConnection(boardId, connectionId, payload) {
+    return axios.patch(
+      `${this.url}/${boardId}/automation_connections/${connectionId}`,
+      payload
+    );
+  }
+
+  deleteAutomationConnection(boardId, connectionId) {
+    return axios.delete(
+      `${this.url}/${boardId}/automation_connections/${connectionId}`
+    );
+  }
+
+  resetAutomationConnectionSecret(boardId, connectionId) {
+    return axios.post(
+      `${this.url}/${boardId}/automation_connections/${connectionId}/reset_secret`
+    );
+  }
+
   getCadences(boardId) {
     return axios.get(`${this.url}/${boardId}/cadences`);
   }

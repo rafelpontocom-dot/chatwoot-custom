@@ -1,7 +1,7 @@
 class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Accounts::BaseController
   before_action :fetch_kanban_board
   before_action :authorize_kanban_board
-  before_action :fetch_rule, only: [:update, :destroy, :test, :executions, :cancel_execution]
+  before_action :fetch_rule, only: [:update, :destroy, :test, :executions, :cancel_execution, :run, :retry_execution]
 
   def index
     render json: @kanban_board.kanban_automation_rules.ordered.map { |rule| rule_payload(rule) }
@@ -38,6 +38,16 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
     }
   end
 
+  def all_executions
+    executions = KanbanAutomationExecution
+                 .joins(:kanban_automation_rule)
+                 .where(kanban_automation_rules: { kanban_board_id: @kanban_board.id })
+                 .includes(:kanban_automation_rule, :kanban_card_event)
+                 .order(created_at: :desc, id: :desc)
+                 .limit(100)
+    render json: executions.map { |execution| execution_payload(execution) }
+  end
+
   def executions
     executions = @rule.kanban_automation_executions.order(created_at: :desc, id: :desc).limit(50)
     render json: executions.map { |execution| execution_payload(execution) }
@@ -54,6 +64,30 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       )
     end
     render json: execution_payload(execution)
+  end
+
+  def run
+    card = @kanban_board.kanban_cards.active.find(params[:card_id])
+    KanbanAutomations::ExecuteRuleJob.perform_later(
+      @rule.id,
+      Events::Types::KANBAN_CARD_MANUAL_STARTED,
+      "manual:#{SecureRandom.uuid}",
+      card.id
+    )
+    head :accepted
+  end
+
+  def retry_execution
+    execution = @rule.kanban_automation_executions.find(params[:execution_id])
+    unless execution.failed? || execution.skipped?
+      return render json: { message: 'Only failed or skipped executions can be retried' }, status: :unprocessable_entity
+    end
+
+    card = execution.kanban_card || execution.kanban_card_event&.kanban_card
+    return render json: { message: 'Opportunity is no longer available' }, status: :unprocessable_entity if card.blank?
+
+    KanbanAutomations::ExecuteRuleJob.perform_later(@rule.id, execution.event_name, "retry:#{execution.id}:#{SecureRandom.uuid}", card.id)
+    head :accepted
   end
 
   private
@@ -112,7 +146,10 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       scheduled_at: execution.scheduled_at&.iso8601,
       started_at: execution.started_at&.iso8601,
       completed_at: execution.completed_at&.iso8601,
-      created_at: execution.created_at.iso8601
+      created_at: execution.created_at.iso8601,
+      card_id: execution.kanban_card_id || execution.kanban_card_event&.kanban_card_id,
+      rule_id: execution.kanban_automation_rule_id,
+      rule_name: execution.kanban_automation_rule.name
     }
   end
 end

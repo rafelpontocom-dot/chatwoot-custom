@@ -23,13 +23,18 @@ const error = ref('');
 const rules = ref([]);
 const cadences = ref([]);
 const appointmentReminders = ref([]);
+const connections = ref([]);
+const executions = ref([]);
 const settings = ref({});
 const selectedRuleId = ref(null);
 const showEditor = ref(false);
 const showCadenceForm = ref(false);
 const showReminderForm = ref(false);
+const showConnectionForm = ref(false);
 const isSavingCadence = ref(false);
 const isSavingReminder = ref(false);
+const isSavingConnection = ref(false);
+const connectionSecret = ref('');
 
 const blankAction = () => ({
   actionName: 'move_stage',
@@ -72,6 +77,7 @@ const reminderForm = reactive({
   optInAttributeKey: 'appointment_reminders_opt_in',
   messageTemplates: {},
 });
+const connectionForm = reactive({ name: '', webhookUrl: '' });
 const defaultReminderMessage =
   'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.';
 
@@ -85,6 +91,26 @@ const eventOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.STAGE_CHANGED'),
   },
   {
+    value: 'kanban.card.customer_message_received',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.CUSTOMER_MESSAGE_RECEIVED'),
+  },
+  {
+    value: 'kanban.card.owner_changed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.OWNER_CHANGED'),
+  },
+  {
+    value: 'kanban.card.amount_changed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.AMOUNT_CHANGED'),
+  },
+  {
+    value: 'kanban.card.custom_fields_changed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.CUSTOM_FIELDS_CHANGED'),
+  },
+  {
+    value: 'kanban.card.next_action_scheduled',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.NEXT_ACTION_SCHEDULED'),
+  },
+  {
     value: 'kanban.card.next_action_completed',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.NEXT_ACTION_COMPLETED'),
   },
@@ -95,6 +121,22 @@ const eventOptions = computed(() => [
   {
     value: 'kanban.card.lost',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.LOST'),
+  },
+  {
+    value: 'kanban.card.reopened',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.REOPENED'),
+  },
+  {
+    value: 'kanban.card.archived',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.ARCHIVED'),
+  },
+  {
+    value: 'kanban.card.restored',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.RESTORED'),
+  },
+  {
+    value: 'kanban.card.manual_started',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.MANUAL_STARTED'),
   },
 ]);
 
@@ -107,6 +149,14 @@ const automationTabs = computed(() => [
   {
     key: 'reminders',
     label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.REMINDERS'),
+  },
+  {
+    key: 'connections',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.CONNECTIONS'),
+  },
+  {
+    key: 'executions',
+    label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.EXECUTIONS'),
   },
 ]);
 
@@ -325,6 +375,119 @@ const deleteReminder = async reminder => {
   }
 };
 
+const resetConnectionForm = () => {
+  connectionForm.name = '';
+  connectionForm.webhookUrl = '';
+  connectionSecret.value = '';
+};
+
+const toggleConnectionForm = () => {
+  if (!showConnectionForm.value) resetConnectionForm();
+  showConnectionForm.value = !showConnectionForm.value;
+};
+
+const saveConnection = async () => {
+  if (
+    isSavingConnection.value ||
+    !connectionForm.name.trim() ||
+    !connectionForm.webhookUrl.trim()
+  )
+    return;
+
+  isSavingConnection.value = true;
+  try {
+    const response = await KanbanBoardsAPI.createAutomationConnection(
+      boardId.value,
+      {
+        automation_connection: {
+          name: connectionForm.name.trim(),
+          webhook_url: connectionForm.webhookUrl.trim(),
+        },
+      }
+    );
+    const connection = normalize(response.data);
+    connections.value.push(connection);
+    connectionSecret.value = connection.secret || '';
+    showConnectionForm.value = false;
+    useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SAVE_SUCCESS'));
+  } catch (saveError) {
+    error.value =
+      saveError?.response?.data?.message ||
+      t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SAVE_ERROR');
+  } finally {
+    isSavingConnection.value = false;
+  }
+};
+
+const deleteConnection = async connection => {
+  if (!connection?.id || isSavingConnection.value) return;
+
+  isSavingConnection.value = true;
+  try {
+    await KanbanBoardsAPI.deleteAutomationConnection(
+      boardId.value,
+      connection.id
+    );
+    connections.value = connections.value.filter(
+      item => item.id !== connection.id
+    );
+  } catch (deleteError) {
+    error.value = t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.DELETE_ERROR');
+  } finally {
+    isSavingConnection.value = false;
+  }
+};
+
+const retryExecution = async execution => {
+  if (!execution?.ruleId || !execution?.id) return;
+
+  try {
+    await KanbanBoardsAPI.retryAutomationExecution(
+      boardId.value,
+      execution.ruleId,
+      execution.id
+    );
+    useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.RETRY_SUCCESS'));
+  } catch (retryError) {
+    error.value = t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.RETRY_ERROR');
+  }
+};
+
+const cancelExecution = async execution => {
+  if (!execution?.ruleId || !execution?.id) return;
+
+  try {
+    await KanbanBoardsAPI.cancelAutomationExecution(
+      boardId.value,
+      execution.ruleId,
+      execution.id
+    );
+    execution.status = 'skipped';
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION_SUCCESS'));
+  } catch (cancelError) {
+    error.value = t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION_ERROR');
+  }
+};
+
+const resetConnectionSecret = async connection => {
+  if (!connection?.id) return;
+
+  try {
+    const response = await KanbanBoardsAPI.resetAutomationConnectionSecret(
+      boardId.value,
+      connection.id
+    );
+    connectionSecret.value = normalize(response.data).secret || '';
+    useAlert(
+      t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SECRET_RESET_SUCCESS')
+    );
+  } catch (resetError) {
+    error.value = t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SECRET_RESET_ERROR'
+    );
+  }
+};
+
 const actionParams = action => {
   switch (action.actionName) {
     case 'move_stage':
@@ -411,16 +574,22 @@ const load = async () => {
       rulesResponse,
       cadencesResponse,
       remindersResponse,
+      connectionsResponse,
+      executionsResponse,
     ] = await Promise.all([
       KanbanBoardsAPI.getSettings(boardId.value),
       KanbanBoardsAPI.getAutomationRules(boardId.value),
       KanbanBoardsAPI.getCadences(boardId.value),
       KanbanBoardsAPI.getAppointmentReminderRules(boardId.value),
+      KanbanBoardsAPI.getAutomationConnections(boardId.value),
+      KanbanBoardsAPI.getAllAutomationExecutions(boardId.value),
     ]);
     settings.value = normalize(settingsResponse.data);
     rules.value = normalize(rulesResponse.data);
     cadences.value = normalize(cadencesResponse.data);
     appointmentReminders.value = normalize(remindersResponse.data);
+    connections.value = normalize(connectionsResponse.data);
+    executions.value = normalize(executionsResponse.data);
   } catch (loadError) {
     error.value = t('KANBAN.SETTINGS.LOAD_ERROR');
   } finally {
@@ -554,6 +723,7 @@ onMounted(load);
         :condition-fields="conditionFields"
         :date-fields="dateFields"
         :cadences="cadences"
+        :connections="connections"
       />
       <p
         v-if="error"
@@ -812,6 +982,16 @@ onMounted(load);
             </div>
             <Button
               type="button"
+              icon="i-lucide-key-round"
+              color="slate"
+              size="xs"
+              :aria-label="
+                t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.RESET_SECRET')
+              "
+              @click="resetConnectionSecret(connection)"
+            />
+            <Button
+              type="button"
               icon="i-lucide-trash-2"
               color="ruby"
               size="xs"
@@ -824,7 +1004,7 @@ onMounted(load);
           </p>
         </div>
       </template>
-      <template v-else>
+      <template v-else-if="activeTab === 'reminders'">
         <div class="grid max-w-3xl gap-3">
           <div class="flex justify-end">
             <Button
@@ -983,6 +1163,153 @@ onMounted(load);
             class="m-0 text-sm text-n-slate-11"
           >
             {{ t('KANBAN.AUTOMATIONS_WORKSPACE.NO_ITEMS') }}
+          </p>
+        </div>
+      </template>
+      <template v-else-if="activeTab === 'connections'">
+        <div class="grid max-w-3xl gap-3">
+          <div class="flex justify-end">
+            <Button
+              type="button"
+              icon="i-lucide-plus"
+              :label="t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.NEW')"
+              color="blue"
+              size="sm"
+              @click="toggleConnectionForm"
+            />
+          </div>
+          <section
+            v-if="showConnectionForm"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+          >
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.NAME') }}
+              <input
+                v-model="connectionForm.name"
+                data-testid="kanban-automation-connection-name"
+                type="text"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.URL') }}
+              <input
+                v-model="connectionForm.webhookUrl"
+                type="url"
+                inputmode="url"
+                :placeholder="
+                  t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.URL_PLACEHOLDER')
+                "
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <div class="flex items-end">
+              <Button
+                type="button"
+                icon="i-lucide-save"
+                :label="t('KANBAN.ACTIONS.SAVE')"
+                color="blue"
+                size="sm"
+                :is-loading="isSavingConnection"
+                @click="saveConnection"
+              />
+            </div>
+          </section>
+          <section
+            v-if="connectionSecret"
+            class="grid gap-1 rounded-md border border-n-weak bg-n-surface-2 p-3"
+            role="status"
+          >
+            <p class="m-0 text-xs font-medium text-n-slate-12">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SECRET_TITLE') }}
+            </p>
+            <code class="break-all text-xs text-n-slate-11">{{
+              connectionSecret
+            }}</code>
+          </section>
+          <article
+            v-for="connection in connections"
+            :key="connection.id"
+            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+          >
+            <div class="min-w-0">
+              <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                {{ connection.name }}
+              </p>
+              <p class="m-0 mt-1 truncate text-xs text-n-slate-11">
+                {{ connection.webhookUrl }}
+              </p>
+            </div>
+            <Button
+              type="button"
+              icon="i-lucide-trash-2"
+              color="ruby"
+              size="xs"
+              :aria-label="t('KANBAN.ACTIONS.DELETE')"
+              @click="deleteConnection(connection)"
+            />
+          </article>
+          <p v-if="!connections.length" class="m-0 text-sm text-n-slate-11">
+            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.EMPTY') }}
+          </p>
+        </div>
+      </template>
+      <template v-else>
+        <div class="grid max-w-5xl gap-2">
+          <article
+            v-for="execution in executions"
+            :key="execution.id"
+            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+          >
+            <div class="min-w-0">
+              <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                {{ execution.ruleName }}
+              </p>
+              <p class="m-0 mt-1 text-xs text-n-slate-11">
+                {{
+                  t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.DETAILS', {
+                    event: execution.eventName,
+                    id: execution.cardId || '-',
+                  })
+                }}
+              </p>
+              <p
+                v-if="execution.errorMessage"
+                class="m-0 mt-1 text-xs text-n-ruby-11"
+              >
+                {{ execution.errorMessage }}
+              </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <span
+                class="rounded-full bg-n-surface-2 px-2 py-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ execution.status }}
+              </span>
+              <Button
+                v-if="execution.status === 'waiting'"
+                type="button"
+                icon="i-lucide-ban"
+                color="slate"
+                size="xs"
+                :aria-label="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION')
+                "
+                @click="cancelExecution(execution)"
+              />
+              <Button
+                v-if="['failed', 'skipped'].includes(execution.status)"
+                type="button"
+                icon="i-lucide-rotate-cw"
+                color="slate"
+                size="xs"
+                :aria-label="t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.RETRY')"
+                @click="retryExecution(execution)"
+              />
+            </div>
+          </article>
+          <p v-if="!executions.length" class="m-0 text-sm text-n-slate-11">
+            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.EMPTY') }}
           </p>
         </div>
       </template>

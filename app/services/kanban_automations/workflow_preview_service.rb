@@ -4,9 +4,11 @@ class KanbanAutomations::WorkflowPreviewService
     'trigger' => :preview_trigger,
     'delay' => :preview_delay,
     'wait_until_field' => :preview_date_wait,
+    'wait_for_response' => :preview_response_wait,
     'condition' => :preview_condition,
     'action' => :preview_action,
     'send_message' => :preview_message,
+    'webhook' => :preview_webhook,
     'end' => :preview_end
   }.freeze
 
@@ -65,6 +67,11 @@ class KanbanAutomations::WorkflowPreviewService
     next_node_id(node)
   end
 
+  def preview_response_wait(node, steps)
+    steps << node.fetch('data', {}).slice('timeout_hours').merge('node_id' => node.fetch('id'), 'type' => 'wait_for_response')
+    next_node_id(node)
+  end
+
   def preview_condition(node, steps)
     branch = condition_matches?(node) ? 'yes' : 'no'
     steps << { 'node_id' => node.fetch('id'), 'type' => 'condition', 'branch' => branch }
@@ -78,6 +85,11 @@ class KanbanAutomations::WorkflowPreviewService
 
   def preview_message(node, steps)
     steps << node.fetch('data', {}).slice('channel', 'content').merge('node_id' => node.fetch('id'), 'type' => 'send_message')
+    next_node_id(node)
+  end
+
+  def preview_webhook(node, steps)
+    steps << node.fetch('data', {}).slice('connection_id').merge('node_id' => node.fetch('id'), 'type' => 'webhook')
     next_node_id(node)
   end
 

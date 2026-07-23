@@ -17,6 +17,7 @@
 #  account_id                :bigint           not null
 #  kanban_automation_rule_id :bigint           not null
 #  kanban_card_event_id      :bigint
+#  kanban_card_id            :bigint
 #
 # Indexes
 #
@@ -26,12 +27,14 @@
 #  idx_on_kanban_automation_rule_id_fc8facec2f                 (kanban_automation_rule_id)
 #  index_kanban_automation_executions_on_account_id            (account_id)
 #  index_kanban_automation_executions_on_kanban_card_event_id  (kanban_card_event_id)
+#  index_kanban_automation_executions_on_kanban_card_id        (kanban_card_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (account_id => accounts.id)
 #  fk_rails_...  (kanban_automation_rule_id => kanban_automation_rules.id)
 #  fk_rails_...  (kanban_card_event_id => kanban_card_events.id)
+#  fk_rails_...  (kanban_card_id => kanban_cards.id)
 #
 class KanbanAutomationExecution < ApplicationRecord
   STATUSES = %w[queued running waiting succeeded failed skipped].freeze
@@ -39,6 +42,7 @@ class KanbanAutomationExecution < ApplicationRecord
   belongs_to :account
   belongs_to :kanban_automation_rule
   belongs_to :kanban_card_event, optional: true
+  belongs_to :kanban_card, optional: true
 
   enum :status, STATUSES.index_by(&:itself), validate: true
 

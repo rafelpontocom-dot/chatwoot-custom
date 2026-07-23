@@ -28,6 +28,33 @@ RSpec.describe KanbanAutomations::WorkflowService do
     expect(result[:workflow_state]).to include('next_node_id' => 'end')
   end
 
+  it 'waits for a customer response and stores the next node' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'reply', type: 'wait_for_response', data: { timeout_hours: 48 } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'reply' },
+          { source: 'reply', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+    now = Time.zone.parse('2026-07-23 10:00:00')
+
+    result = described_class.new(execution: execution, rule: rule, card: card, now: now).perform!
+
+    expect(result).to include(status: :waiting, scheduled_at: now + 48.hours)
+    expect(result[:workflow_state]).to include('next_node_id' => 'end', 'waiting_for' => 'customer_message')
+  end
+
   it 'executes an internal action node before completing the workflow' do
     board = create(:kanban_board, custom_field_definitions: [{ key: 'origem', label: 'Origem', field_type: 'text' }])
     card = create(:kanban_card, account: board.account, kanban_board: board, custom_field_values: {})
@@ -114,6 +141,33 @@ RSpec.describe KanbanAutomations::WorkflowService do
     expect(result.fetch(:status)).to eq(:waiting)
     expect(result.fetch(:scheduled_at)).to be_within(1.second).of(scheduled_at)
     expect(result[:workflow_state]).to include('next_node_id' => 'message')
+  end
+
+  it 'waits for a customer response before continuing the flow' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'response', type: 'wait_for_response', data: { timeout_hours: 12 } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'response' },
+          { source: 'response', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+    now = Time.zone.parse('2026-08-01 12:00:00')
+
+    result = described_class.new(execution: execution, rule: rule, card: card, now: now).perform!
+
+    expect(result).to include(status: :waiting, scheduled_at: now + 12.hours)
+    expect(result[:workflow_state]).to include('next_node_id' => 'end', 'waiting_for' => 'customer_message')
   end
 
   # rubocop:disable RSpec/ExampleLength
@@ -242,5 +296,76 @@ RSpec.describe KanbanAutomations::WorkflowService do
     expect(result[:status]).to eq(:succeeded)
     expect(card.kanban_cadence_enrollments.find_by(kanban_cadence: cadence)).to be_active
     expect(result[:action_results]).to include(hash_including('node_id' => 'cadence', 'action_name' => 'enroll_cadence'))
+  end
+
+  it 'adds a label and an internal note through action nodes' do
+    conversation = create(:conversation)
+    card = create(:kanban_card, :conversation_origin, conversation: conversation)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'label', type: 'action', data: { action_name: 'add_label', action_params: { label: 'prioridade' } } },
+          { id: 'note', type: 'action', data: { action_name: 'add_note', action_params: { content: 'Revisar proposta comercial.' } } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'label' },
+          { source: 'label', target: 'note' },
+          { source: 'note', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+
+    expect do
+      result = described_class.new(execution: execution, rule: rule, card: card).perform!
+      expect(result[:status]).to eq(:succeeded)
+    end.to change { conversation.messages.where(private: true).count }.by(1)
+
+    expect(card.reload.label_list).to include('prioridade')
+    expect(conversation.messages.where(private: true).last.content).to eq('Revisar proposta comercial.')
+  end
+
+  it 'delivers a signed webhook node without exposing its secret in the execution log' do
+    board = create(:kanban_board)
+    card = create(:kanban_card, account: board.account, kanban_board: board)
+    connection = create(
+      :kanban_automation_connection,
+      account: board.account,
+      kanban_board: board,
+      webhook_url: 'https://automacao.example.test/hooks/lead'
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'webhook', type: 'webhook', data: { connection_id: connection.id } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'webhook' },
+          { source: 'webhook', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule, kanban_card: card)
+    delivery = instance_double(KanbanAutomations::WebhookDeliveryService)
+    allow(KanbanAutomations::WebhookDeliveryService).to receive(:new).and_return(delivery)
+    allow(delivery).to receive(:perform!).and_return(
+      { 'action_name' => 'webhook', 'status' => 'succeeded', 'connection_id' => connection.id, 'status_code' => 202 }
+    )
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(hash_including('node_id' => 'webhook', 'status_code' => 202))
+    expect(result.to_json).not_to include(connection.secret)
   end
 end

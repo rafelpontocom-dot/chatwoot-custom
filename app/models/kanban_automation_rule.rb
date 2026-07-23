@@ -42,11 +42,13 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::KANBAN_CARD_LOST,
     Events::Types::KANBAN_CARD_REOPENED,
     Events::Types::KANBAN_CARD_ARCHIVED,
-    Events::Types::KANBAN_CARD_RESTORED
+    Events::Types::KANBAN_CARD_RESTORED,
+    Events::Types::KANBAN_CARD_MANUAL_STARTED,
+    Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
-  ACTION_NAMES = %w[move_stage assign_owner set_next_action set_field archive_card enroll_cadence].freeze
-  FLOW_NODE_TYPES = %w[trigger delay wait_until_field send_message action condition end].freeze
+  ACTION_NAMES = %w[move_stage assign_owner set_next_action set_field archive_card enroll_cadence add_label remove_label add_note].freeze
+  FLOW_NODE_TYPES = %w[trigger delay wait_until_field wait_for_response send_message action condition webhook end].freeze
   belongs_to :account
   belongs_to :kanban_board
   has_many :kanban_automation_executions, dependent: :destroy

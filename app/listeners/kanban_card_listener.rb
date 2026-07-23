@@ -18,6 +18,8 @@ class KanbanCardListener < BaseListener
         reason: 'Paused after an incoming customer message',
         only_if_pause_on_incoming: true
       )
+      resume_response_waits(card)
+      dispatch_customer_message_automation(card, message)
     end
   end
 
@@ -66,6 +68,39 @@ class KanbanCardListener < BaseListener
       KanbanCadences::CompleteStepService.call_for_card(card)
     when 'card_won', 'card_lost', 'card_archived'
       KanbanCadences::PauseService.call_for_card(card, reason: "Paused after #{data[:event_type]}")
+    end
+  end
+
+  def dispatch_customer_message_automation(card, message)
+    KanbanAutomationRule.active
+                        .where(
+                          account_id: card.account_id,
+                          kanban_board_id: card.kanban_board_id,
+                          event_name: Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED
+                        )
+                        .find_each do |rule|
+      KanbanAutomations::ExecuteRuleJob.perform_later(
+        rule.id,
+        Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED,
+        "message:#{message.id}:card:#{card.id}",
+        card.id
+      )
+    end
+  end
+
+  def resume_response_waits(card)
+    KanbanAutomationExecution.waiting.where(kanban_card: card).find_each do |execution|
+      next unless execution.workflow_state.to_h['waiting_for'] == 'customer_message'
+
+      execution.with_lock do
+        next unless execution.waiting? && execution.workflow_state.to_h['waiting_for'] == 'customer_message'
+
+        execution.update!(
+          scheduled_at: nil,
+          workflow_state: execution.workflow_state.to_h.except('waiting_for')
+        )
+      end
+      KanbanAutomations::ContinueWorkflowJob.perform_later(execution.id, card.id)
     end
   end
 end

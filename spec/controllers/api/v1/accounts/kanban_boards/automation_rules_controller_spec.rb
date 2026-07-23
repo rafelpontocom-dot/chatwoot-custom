@@ -133,4 +133,30 @@ RSpec.describe 'Kanban automation rules API', type: :request do
     expect(response.parsed_body).to include('status' => 'skipped')
     expect(execution.reload).to have_attributes(status: 'skipped', scheduled_at: nil)
   end
+
+  it 'lists board executions and lets an administrator start a rule manually' do
+    card = create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage)
+    rule = create(:kanban_automation_rule, account: account, kanban_board: board)
+    execution = create(
+      :kanban_automation_execution,
+      account: account,
+      kanban_automation_rule: rule,
+      kanban_card: card,
+      status: 'failed'
+    )
+
+    get "#{rules_url}/executions", headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body.first).to include('id' => execution.id, 'card_id' => card.id)
+
+    expect do
+      post "#{rules_url}/#{rule.id}/run",
+           headers: administrator.create_new_auth_token,
+           params: { card_id: card.id },
+           as: :json
+    end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob)
+
+    expect(response).to have_http_status(:accepted)
+  end
 end

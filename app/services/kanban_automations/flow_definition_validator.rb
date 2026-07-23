@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength -- Node validations are intentionally centralized with the board reference checks.
 class KanbanAutomations::FlowDefinitionValidator
   DATE_FIELD_TYPES = %w[date datetime].freeze
   def initialize(rule:)
@@ -35,7 +36,6 @@ class KanbanAutomations::FlowDefinitionValidator
   def validate_nodes
     add_error('must have one trigger node') unless nodes.count { |node| node[:type] == 'trigger' } == 1
     add_error('node ids must be unique') unless node_ids.uniq.length == node_ids.length
-
     unsupported_types = nodes.pluck(:type).map(&:to_s) - KanbanAutomationRule::FLOW_NODE_TYPES
     add_error("unsupported node types: #{unsupported_types.join(', ')}") if unsupported_types.present?
   end
@@ -75,8 +75,10 @@ class KanbanAutomations::FlowDefinitionValidator
       validate_message_node(node, data)
       validate_delay_node(node, data)
       validate_wait_until_field_node(node, data)
+      validate_wait_for_response_node(node, data)
       validate_action_node(node, data)
       validate_condition_node(node, data)
+      validate_webhook_node(node, data)
       validate_condition_paths(node)
     end
   end
@@ -126,6 +128,12 @@ class KanbanAutomations::FlowDefinitionValidator
     add_error("Date wait node #{node[:id]} is incomplete")
   end
 
+  def validate_wait_for_response_node(node, data)
+    return unless node[:type] == 'wait_for_response'
+
+    add_error("Response wait node #{node[:id]} needs positive timeout hours") unless data[:timeout_hours].to_f.positive?
+  end
+
   def validate_action_node(node, data)
     return unless node[:type] == 'action'
 
@@ -142,6 +150,13 @@ class KanbanAutomations::FlowDefinitionValidator
     return if valid_field && valid_operator
 
     add_error("Condition node #{node[:id]} is incomplete")
+  end
+
+  def validate_webhook_node(node, data)
+    return unless node[:type] == 'webhook'
+
+    connection = rule.kanban_board.kanban_automation_connections.active.find_by(id: data[:connection_id])
+    add_error("Webhook node #{node[:id]} references an active connection on this board") if connection.blank?
   end
 
   def validate_condition_paths(node)
@@ -174,6 +189,8 @@ class KanbanAutomations::FlowDefinitionValidator
     validate_action_owner(node, params) if action_name == 'assign_owner'
     validate_action_field(node, params) if action_name == 'set_field'
     validate_action_cadence(node, params) if action_name == 'enroll_cadence'
+    validate_action_label(node, params) if %w[add_label remove_label].include?(action_name)
+    validate_action_note(node, params) if action_name == 'add_note'
   end
 
   def validate_action_stage(node, params)
@@ -201,7 +218,20 @@ class KanbanAutomations::FlowDefinitionValidator
     add_error("Action node #{node[:id]} references a cadence outside this board")
   end
 
+  def validate_action_label(node, params)
+    return if params[:label].present?
+
+    add_error("Action node #{node[:id]} needs a label")
+  end
+
+  def validate_action_note(node, params)
+    return if params[:content].present?
+
+    add_error("Action node #{node[:id]} needs note content")
+  end
+
   def add_error(message)
     rule.errors.add(:flow_definition, message)
   end
 end
+# rubocop:enable Metrics/ClassLength

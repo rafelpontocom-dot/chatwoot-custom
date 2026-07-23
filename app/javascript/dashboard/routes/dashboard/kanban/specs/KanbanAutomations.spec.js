@@ -29,6 +29,11 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     getAppointmentReminderRules: vi.fn(),
     createAppointmentReminderRule: vi.fn(),
     deleteAppointmentReminderRule: vi.fn(),
+    getAutomationConnections: vi.fn(),
+    createAutomationConnection: vi.fn(),
+    deleteAutomationConnection: vi.fn(),
+    getAllAutomationExecutions: vi.fn(),
+    retryAutomationExecution: vi.fn(),
   },
 }));
 
@@ -39,6 +44,8 @@ const mountWorkspace = async () => {
   KanbanBoardsAPI.getAutomationRules.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getAppointmentReminderRules.mockResolvedValue({ data: [] });
+  KanbanBoardsAPI.getAutomationConnections.mockResolvedValue({ data: [] });
+  KanbanBoardsAPI.getAllAutomationExecutions.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.createCadence.mockResolvedValue({
     data: { id: 1, name: 'Contato inicial', steps: [] },
   });

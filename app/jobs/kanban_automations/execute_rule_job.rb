@@ -23,7 +23,8 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
       execution.assign_attributes(
         account: @rule.account,
         event_name: event_name,
-        kanban_card_event_id: event_id
+        kanban_card_event_id: event_id,
+        kanban_card: @card
       )
     end
   end

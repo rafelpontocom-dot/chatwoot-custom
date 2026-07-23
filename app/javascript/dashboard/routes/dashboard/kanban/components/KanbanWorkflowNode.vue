@@ -50,6 +50,15 @@ defineProps({
       class="!bottom-4 !top-auto !size-3 !border-2 !border-n-surface-1 !bg-n-ruby-9"
     />
   </template>
+  <button
+    v-else-if="data.canAddAfter"
+    type="button"
+    class="nodrag nopan absolute -right-5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+    :aria-label="data.addAfterLabel"
+    @click.stop="data.addAfter(data.id)"
+  >
+    <i class="i-lucide-plus size-3" />
+  </button>
   <Handle
     v-else-if="data.kind !== 'end'"
     type="source"

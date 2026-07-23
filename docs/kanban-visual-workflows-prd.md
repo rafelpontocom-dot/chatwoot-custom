@@ -29,13 +29,13 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 ## Fluxo Da Experiência
 
 1. O administrador abre Kanban > Automações do funil pelo ícone de raio no cabeçalho.
-2. A central mostra as abas Fluxos, Cadências e Lembretes, com os fluxos existentes em uma lista curta e escaneável.
+2. A central mostra Fluxos, Cadências, Lembretes, Conexões e Execuções, com os itens existentes em listas curtas e escaneáveis.
 3. Seleciona uma automação ou usa Nova automação para abrir o construtor em uma área dedicada.
 4. Define nome, evento, etapa de origem e estado ativo no cabeçalho compacto do fluxo.
 5. Usa o botão `+` para escolher uma etapa a acrescentar ao canvas, sem uma paleta permanente ocupando espaço.
 6. Seleciona um nó para configurar seu conteúdo no painel lateral.
 7. Salva. O backend valida todos os nós antes de ativar a regra.
-8. Quando o evento ocorre, a execução fica registrada no histórico da regra.
+8. Quando o evento ocorre, a execução fica registrada no histórico do funil, com estado, oportunidade e motivo de falha.
 9. Se houver uma espera, o card segue operando normalmente; a execução retoma no horário salvo.
 
 ## Princípios Da Central De Automações
@@ -44,19 +44,27 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 - O botão `+` apresenta opções somente quando a pessoa quer acrescentar uma etapa.
 - O painel lateral aparece apenas para o nó selecionado e concentra suas propriedades.
 - Cadências e lembretes são configurados e listados nas próprias abas da central, sem misturar seus formulários à edição do fluxo.
+- Conexões externas têm configuração própria: o fluxo apenas escolhe uma conexão já aprovada.
+- Execuções permitem retry de falhas, cancelamento de esperas e leitura rápida do impacto na oportunidade.
+- O inseridor contextual `+` acrescenta e conecta o próximo passo no caminho selecionado; uma paleta fixa não deve roubar espaço do canvas.
+- O fluxo nasce como rascunho e só é ativado depois de validado e revisado por um administrador.
 - A configuração legada pode permanecer disponível como compatibilidade, mas o fluxo operacional recomendado é a central.
 
 ## Nós Da Primeira Entrega
 
-| Nó | Finalidade | Configuração obrigatória |
-| --- | --- | --- |
-| Gatilho | Início visual do fluxo; o evento continua configurado na regra. | Um por fluxo. |
-| Aguardar | Pausa a execução por horas. | Número positivo de horas. |
-| Enviar mensagem | Envia WhatsApp ou e-mail na conversa compatível do contato. | Canal, opt-in e texto. |
-| Ação comercial | Atualiza a oportunidade ou inscreve em uma cadência interna. | Tipo e parâmetros da ação. |
-| Fim | Encerra o caminho. | Nenhuma. |
+| Nó                | Finalidade                                                         | Configuração obrigatória   |
+| ----------------- | ------------------------------------------------------------------ | -------------------------- |
+| Gatilho           | Início visual do fluxo; o evento continua configurado na regra.    | Um por fluxo.              |
+| Aguardar          | Pausa a execução por horas.                                        | Número positivo de horas.  |
+| Aguardar até data | Agenda em relação a um campo de data/hora da oportunidade.         | Campo e deslocamento.      |
+| Aguardar resposta | Pausa até uma resposta recebida do cliente, ou até vencer o prazo. | Limite positivo em horas.  |
+| Enviar mensagem   | Envia WhatsApp ou e-mail na conversa compatível do contato.        | Canal, opt-in e texto.     |
+| Ação comercial    | Atualiza a oportunidade ou inscreve em uma cadência interna.       | Tipo e parâmetros da ação. |
+| Enviar webhook    | Envia dados da oportunidade para uma conexão HTTPS já configurada. | Conexão ativa.             |
+| Condição          | Separa o fluxo em caminhos Sim e Não.                              | Campo, operador e valor.   |
+| Fim               | Encerra o caminho.                                                 | Nenhuma.                   |
 
-As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher campo personalizado, arquivar oportunidade e inscrever em uma cadência de follow-up ativa do mesmo board.
+As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher campo personalizado, arquivar oportunidade, inscrever em uma cadência de follow-up ativa do mesmo board, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
 
 A cadência continua sendo exclusivamente interna: ela cria próximas ações para o time comercial e pode pausar quando o contato responde. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
 
@@ -77,21 +85,27 @@ A cadência continua sendo exclusivamente interna: ela cria próximas ações pa
 - Desativar a regra antes da retomada impede a continuidade e registra a execução como ignorada.
 - Arquivar a oportunidade antes da retomada também interrompe o fluxo.
 - A configuração deve rejeitar referências a etapas, agentes e campos fora do board ou conta.
+- Webhooks só aceitam HTTPS sem credenciais na URL, têm timeout curto, não seguem redirecionamentos e usam assinatura HMAC.
+- Um fluxo possui no máximo 50 nós executáveis por rodada, não aceita ciclos e não executa código do usuário.
+- Ao alterar gatilho, condições ou nós de uma regra com execuções aguardando, o produto deve pedir uma decisão explícita: manter a versão iniciada ou cancelar pendências. Até haver versionamento, cancelar é o padrão seguro.
+- Uma oportunidade não pode reentrar na mesma automação enquanto já houver execução ativa. Reentrada após conclusão precisa ser configurada por gatilho; nunca acontece por acidente.
 
 ## Estados Visíveis
 
-| Estado | Significado |
-| --- | --- |
-| Em fila | Evento recebido, ainda não iniciado. |
-| Executando | Um job está processando os nós. |
-| Aguardando | Parado em um nó de espera, com data agendada. |
-| Concluído | Chegou ao nó Fim. |
-| Ignorado | Regra desativada, oportunidade inativa ou envio sem pré-requisito. |
-| Falhou | Erro técnico registrado para diagnóstico. |
+| Estado     | Significado                                                        |
+| ---------- | ------------------------------------------------------------------ |
+| Em fila    | Evento recebido, ainda não iniciado.                               |
+| Executando | Um job está processando os nós.                                    |
+| Aguardando | Parado em um nó de espera, com data agendada.                      |
+| Concluído  | Chegou ao nó Fim.                                                  |
+| Ignorado   | Regra desativada, oportunidade inativa ou envio sem pré-requisito. |
+| Falhou     | Erro técnico registrado para diagnóstico.                          |
 
 ## Critérios De Aceite P0
 
 - Criar, editar e salvar um fluxo linear válido.
+- Criar uma conexão HTTPS e receber a chave de assinatura uma única vez.
+- Inserir um nó pelo `+` e manter as conexões válidas depois da inserção.
 - Rejeitar fluxo com nó desconhecido, ids duplicados ou conexão inválida.
 - Aguardar e retomar na data persistida.
 - Executar cada ação comercial com referências válidas.
@@ -110,6 +124,7 @@ A cadência continua sendo exclusivamente interna: ela cria próximas ações pa
 - Horários silenciosos e limite de frequência. Implementado para mensagens do fluxo.
 - Template oficial de WhatsApp e seleção de idioma.
 - Histórico visual por oportunidade, com ator e horário.
+- Recepção de webhook de entrada, somente com assinatura, rate limit e mapeamento explícito para oportunidade.
 
 ### P2
 
@@ -119,6 +134,34 @@ A cadência continua sendo exclusivamente interna: ela cria próximas ações pa
 - Inscrição em cadência de follow-up ativa do board no mesmo canvas. Implementado.
 - Ações de lembrete de consulta reutilizáveis no mesmo canvas.
 - Importação assistida de workflows do N8N, sempre desativada até revisão humana.
+
+## Referências E Estratégia
+
+### Sistemas que orientam a experiência
+
+| Referência | O que adotar | O que evitar |
+| --- | --- | --- |
+| HubSpot Workflows | Separar gatilho de inscrição, condições de reentrada, agenda e saída do fluxo. | Um catálogo enorme de objetos e regras que não existem no Chatwoot. |
+| Pipedrive Automations | Inserção progressiva por `+`, sequência clara de condição/ação/espera e decisão explícita sobre execuções pendentes. | Limites de produto arbitrários e editor espalhado em muitos painéis. |
+| n8n | Histórico de execução por etapa, conexões fora do canvas e disciplina para nós de risco. | Código, shell, arquivos e HTTP arbitrário dentro de um funil comercial. |
+
+HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrada como uma configuração explícita. Pipedrive limita a próxima escolha útil a condição, ação ou espera e pede o tratamento das execuções pendentes quando a automação muda. O n8n mostra a importância de registrar execuções e de auditar nós potencialmente perigosos. [HubSpot: criar workflows](https://knowledge.hubspot.com/workflows/create-workflows), [Pipedrive: atraso e pendências](https://support.pipedrive.com/en/article/workflow-automations-delay-feature), [n8n: auditoria de segurança](https://docs.n8n.io/hosting/securing/security-audit/).
+
+### Três lentes de produto
+
+- **Luke Wroblewski:** divulgação progressiva. O administrador vê a próxima escolha útil, não uma parede de blocos e propriedades.
+- **Erika Hall:** linguagem e evidência. Cada nó diz o que fará, quais dados utiliza e por que foi ignorado ou falhou.
+- **Ryan Singer:** escopo fechado. O módulo resolve processos comerciais recorrentes e delega integrações complexas ao N8N por webhook assinado.
+
+### Plano de produto revisado
+
+**P0 operacional:** gatilhos de oportunidade e de resposta do cliente; nós de espera, condição, mensagem, ação, nota, etiqueta e webhook; conexões HTTPS aprovadas; histórico de execução; canvas com inserção contextual e propriedades laterais.
+
+**P1 de governança:** versão publicada da regra, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com variáveis resolvidas, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente.
+
+**P2 de escala:** tarefas internas com prazo, rodízio de responsáveis, templates por segmento, painel de saúde das automações e integrações declarativas adicionais, sempre por conexão aprovada.
+
+O Vue Flow é a infraestrutura de interação: oferece zoom, seleção, nós/arestas customizados, controles e minimapa. O produto continua responsável pela linguagem comercial, validação e segurança. [Vue Flow](https://vueflow.dev/)
 
 ## Métricas
 
@@ -130,4 +173,4 @@ A cadência continua sendo exclusivamente interna: ela cria próximas ações pa
 
 ## Riscos E Decisões
 
-Um canvas permite desenhar fluxos muito mais rápido do que escrever regras, mas também pode esconder complexidade. Por isso, a primeira versão é linear, não permite código e valida tudo no servidor. Condições, ramificações e integrações externas só entram com prévia, limites e trilha de auditoria.
+Um canvas permite desenhar fluxos muito mais rápido do que escrever regras, mas também pode esconder complexidade. Por isso, não permite código, valida tudo no servidor e limita o grafo a 50 nós sem ciclos. Integrações externas usam conexões HTTPS separadas e assinadas; não há URL ou segredo solto dentro de um card do fluxo.

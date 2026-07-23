@@ -5,7 +5,10 @@ class KanbanAutomations::ActionService
     'set_next_action' => :update_next_action,
     'set_field' => :update_field,
     'archive_card' => :archive_card,
-    'enroll_cadence' => :enroll_cadence
+    'enroll_cadence' => :enroll_cadence,
+    'add_label' => :add_label,
+    'remove_label' => :remove_label,
+    'add_note' => :add_note
   }.freeze
 
   def initialize(rule:, card:, actions: nil)
@@ -76,6 +79,40 @@ class KanbanAutomations::ActionService
 
     KanbanCadences::EnrollService.new(card: @card, cadence: cadence, user: @card.owner).call
     result('enroll_cadence', 'succeeded', cadence_id: cadence.id)
+  end
+
+  def add_label(params)
+    label = params.fetch(:label).to_s.strip
+    raise ArgumentError, 'Label cannot be blank' if label.blank?
+
+    @card.add_labels([label])
+    result('add_label', 'succeeded', label: label)
+  end
+
+  def remove_label(params)
+    label = params.fetch(:label).to_s.strip
+    raise ArgumentError, 'Label cannot be blank' if label.blank?
+
+    @card.label_list.remove(label)
+    @card.save!
+    result('remove_label', 'succeeded', label: label)
+  end
+
+  def add_note(params)
+    content = params.fetch(:content).to_s.strip
+    raise ArgumentError, 'Internal note cannot be blank' if content.blank?
+    raise ArgumentError, 'Opportunity has no conversation for an internal note' if @card.conversation.blank?
+
+    message = Messages::MessageBuilder.new(
+      nil,
+      @card.conversation,
+      {
+        content: content,
+        message_type: 'outgoing',
+        private: true
+      }
+    ).perform
+    result('add_note', 'succeeded', message_id: message.id)
   end
 
   def parse_time(value)

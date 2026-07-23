@@ -77,6 +77,7 @@ class KanbanBoard < ApplicationRecord
   has_many :kanban_board_inboxes, dependent: :destroy_async
   has_many :kanban_saved_filters, dependent: :destroy_async
   has_many :kanban_automation_rules, dependent: :destroy_async
+  has_many :kanban_automation_connections, dependent: :destroy_async
   has_many :kanban_cadences, dependent: :destroy
   has_many :kanban_appointment_reminder_rules, dependent: :destroy
   has_many :allowed_inboxes, through: :kanban_board_inboxes, source: :inbox

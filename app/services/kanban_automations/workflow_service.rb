@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength -- Node handlers share the same execution state and transaction boundary.
 class KanbanAutomations::WorkflowService
   MAX_NODES_PER_EXECUTION = 50
   SYSTEM_DATE_FIELD_METHODS = {
@@ -9,9 +10,11 @@ class KanbanAutomations::WorkflowService
     'trigger' => :advance_node,
     'delay' => :delay_node,
     'wait_until_field' => :date_wait_node,
+    'wait_for_response' => :response_wait_node,
     'action' => :action_node,
     'send_message' => :message_node,
     'condition' => :condition_node,
+    'webhook' => :webhook_node,
     'end' => :end_node
   }.freeze
 
@@ -80,6 +83,33 @@ class KanbanAutomations::WorkflowService
     outcome ? [nil, outcome] : [next_node_id(node), nil]
   end
 
+  # rubocop:disable Metrics/MethodLength -- The persisted wait state must remain visible as one atomic outcome.
+  def response_wait_node(node, results)
+    timeout_hours = node.fetch('data', {}).fetch('timeout_hours').to_f
+    raise ArgumentError, 'Workflow response timeout must be positive' unless timeout_hours.positive?
+
+    [
+      nil,
+      {
+        status: :waiting,
+        scheduled_at: now + timeout_hours.hours,
+        workflow_state: {
+          'next_node_id' => next_node_id(node),
+          'waiting_for' => 'customer_message'
+        },
+        action_results: results + [
+          {
+            'node_id' => node.fetch('id'),
+            'status' => 'waiting',
+            'timeout_hours' => timeout_hours,
+            'waiting_for' => 'customer_message'
+          }
+        ]
+      }
+    ]
+  end
+  # rubocop:enable Metrics/MethodLength
+
   def action_node(node, results)
     results.concat(execute_action(node))
     [next_node_id(node), nil]
@@ -97,6 +127,17 @@ class KanbanAutomations::WorkflowService
     branch = condition_matches?(node) ? 'yes' : 'no'
     results << { 'node_id' => node.fetch('id'), 'status' => 'succeeded', 'branch' => branch }
     [next_node_id(node, source_handle: branch), nil]
+  end
+
+  def webhook_node(node, results)
+    result = KanbanAutomations::WebhookDeliveryService.new(
+      execution: execution,
+      rule: rule,
+      card: card,
+      node: node
+    ).perform!
+    results << result.merge('node_id' => node.fetch('id'))
+    [next_node_id(node), nil]
   end
 
   def end_node(_node, results)
@@ -178,3 +219,4 @@ class KanbanAutomations::WorkflowService
     { status: :succeeded, scheduled_at: nil, workflow_state: {}, action_results: results }
   end
 end
+# rubocop:enable Metrics/ClassLength
