@@ -46,8 +46,7 @@
         },
         "NPS_GOOGLE": {
           "TITLE": "Request a review",
-          "DESCRIPTION": "After an opportunity is won, prepares an opt-in review request.",
-          "MESSAGE": "Hello, {{contact_name}}! Your feedback matters to us. Could you review your experience on Google?"
+          "DESCRIPTION": "After an opportunity is won, prepares an opt-in review request."
         },
         "BIRTHDAY": {
           "TITLE": "Birthday message",

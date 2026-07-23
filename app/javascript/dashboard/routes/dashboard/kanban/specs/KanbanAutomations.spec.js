@@ -175,6 +175,23 @@ describe('KanbanAutomations', () => {
     ).toBe('Follow-up comercial');
   });
 
+  it('keeps the Google review contact token outside the i18n catalog', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-template-nps-google"]')
+      .trigger('click');
+
+    const messageNode = wrapper.vm.form.flowDefinition.nodes.find(
+      node => node.type === 'send_message'
+    );
+
+    expect(messageNode.data.content).toContain('{{contact_name}}');
+    expect(messageNode.data.content).not.toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.NPS_GOOGLE.MESSAGE'
+    );
+  });
+
   it('opens birthday configuration from the ready-made template', async () => {
     const wrapper = await mountWorkspace();
 

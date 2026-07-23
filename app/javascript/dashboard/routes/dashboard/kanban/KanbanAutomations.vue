@@ -78,6 +78,8 @@ const reminderForm = reactive({
 const connectionForm = reactive({ name: '', webhookUrl: '' });
 const defaultReminderMessage =
   'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.';
+const defaultGoogleReviewMessage =
+  'Olá, {{contact_name}}! Sua opinião é muito importante para nós. Você poderia avaliar sua experiência no Google?';
 
 const eventOptions = computed(() => [
   {
@@ -251,7 +253,7 @@ const automationTemplates = computed(() => [
     ),
     eventName: 'kanban.card.won',
     flowDefinition: flowTemplate({
-      message: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.NPS_GOOGLE.MESSAGE'),
+      message: defaultGoogleReviewMessage,
       waitForResponse: true,
     }),
   },
