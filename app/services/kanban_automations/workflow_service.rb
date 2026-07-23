@@ -86,7 +86,10 @@ class KanbanAutomations::WorkflowService
   end
 
   def message_node(node, results)
-    results << send_message(node)
+    result = send_message(node)
+    return [nil, wait_for_message_node(node, results, result)] if result['status'] == 'waiting'
+
+    results << result
     [next_node_id(node), nil]
   end
 
@@ -151,8 +154,18 @@ class KanbanAutomations::WorkflowService
   end
 
   def send_message(node)
-    result = KanbanAutomations::WorkflowMessageService.new(card: card, data: node.fetch('data', {})).perform!
+    result = KanbanAutomations::WorkflowMessageService.new(card: card, data: node.fetch('data', {}), now: now).perform!
     result.merge('node_id' => node.fetch('id'))
+  end
+
+  def wait_for_message_node(node, results, result)
+    scheduled_at = Time.zone.parse(result.fetch('scheduled_at'))
+    {
+      status: :waiting,
+      scheduled_at: scheduled_at,
+      workflow_state: { 'next_node_id' => node.fetch('id') },
+      action_results: results + [result]
+    }
   end
 
   def condition_matches?(node)

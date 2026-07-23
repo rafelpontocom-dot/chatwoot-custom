@@ -8,7 +8,7 @@ O produto não é um clone genérico de ferramentas de automação. Ele é um co
 
 ## Objetivo
 
-Permitir que administradores criem automações lineares e seguras para oportunidades: iniciar por um evento comercial, esperar, enviar uma mensagem compatível ou executar uma ação no card.
+Permitir que administradores criem automações seguras para oportunidades: iniciar por um evento comercial, esperar, avaliar condições, enviar uma mensagem compatível ou executar uma ação no card.
 
 ## Não Objetivos
 
@@ -43,10 +43,12 @@ Permitir que administradores criem automações lineares e seguras para oportuni
 | Gatilho | Início visual do fluxo; o evento continua configurado na regra. | Um por fluxo. |
 | Aguardar | Pausa a execução por horas. | Número positivo de horas. |
 | Enviar mensagem | Envia WhatsApp ou e-mail na conversa compatível do contato. | Canal, opt-in e texto. |
-| Ação comercial | Atualiza a oportunidade. | Tipo e parâmetros da ação. |
+| Ação comercial | Atualiza a oportunidade ou inscreve em uma cadência interna. | Tipo e parâmetros da ação. |
 | Fim | Encerra o caminho. | Nenhuma. |
 
-As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher campo personalizado e arquivar oportunidade.
+As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher campo personalizado, arquivar oportunidade e inscrever em uma cadência de follow-up ativa do mesmo board.
+
+A cadência continua sendo exclusivamente interna: ela cria próximas ações para o time comercial e pode pausar quando o contato responde. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
 
 ## Regras De Mensagem Externa
 
@@ -56,6 +58,7 @@ As ações comerciais disponíveis são: mover etapa, definir responsável, cria
 - E-mail exige uma conversa de e-mail compatível.
 - Ausência de conversa, opt-in ou janela não causa repetição infinita: fica registrada como `skipped` no histórico e o fluxo continua.
 - A mensagem permite a variável inicial `{{contact_name}}`.
+- Horário silencioso e intervalo mínimo entre mensagens podem ser configurados no nó. Quando aplicáveis, a execução fica aguardando e retoma automaticamente no próximo horário permitido.
 
 ## Regras De Confiabilidade
 
@@ -94,7 +97,7 @@ As ações comerciais disponíveis são: mover etapa, definir responsável, cria
 - Prévia do que será alterado ou enviado antes de salvar. Implementado pela ação Testar, sem efeitos colaterais.
 - Teste da regra com uma oportunidade selecionada e relatório por nó. Implementado.
 - Cancelamento manual de uma execução em espera. Implementado.
-- Horários silenciosos e limite de frequência.
+- Horários silenciosos e limite de frequência. Implementado para mensagens do fluxo.
 - Template oficial de WhatsApp e seleção de idioma.
 - Histórico visual por oportunidade, com ator e horário.
 
@@ -103,7 +106,8 @@ As ações comerciais disponíveis são: mover etapa, definir responsável, cria
 - Nó Condição com caminhos Sim e Não. Implementado.
 - Ramificação explícita, sem ciclos implícitos. Implementado para caminhos Sim/Não.
 - Nó de data de campo: por exemplo, `Data e hora da consulta - 24h`. Implementado.
-- Ações de cadência de follow-up e lembrete de consulta no mesmo canvas.
+- Inscrição em cadência de follow-up ativa do board no mesmo canvas. Implementado.
+- Ações de lembrete de consulta reutilizáveis no mesmo canvas.
 - Importação assistida de workflows do N8N, sempre desativada até revisão humana.
 
 ## Métricas

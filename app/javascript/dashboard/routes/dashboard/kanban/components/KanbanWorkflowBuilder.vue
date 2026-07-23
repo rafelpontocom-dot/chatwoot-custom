@@ -38,6 +38,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  cadences: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -83,6 +87,17 @@ const conditionOperatorOptions = computed(() => [
   },
 ]);
 
+const quietHoursTimezoneOptions = computed(() => [
+  {
+    value: 'America/Sao_Paulo',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TIMEZONES.SAO_PAULO'),
+  },
+  {
+    value: 'Europe/Lisbon',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TIMEZONES.LISBON'),
+  },
+]);
+
 const actionOptions = computed(() => [
   {
     value: 'move_stage',
@@ -103,6 +118,10 @@ const actionOptions = computed(() => [
   {
     value: 'archive_card',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ARCHIVE_CARD'),
+  },
+  {
+    value: 'enroll_cadence',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ENROLL_CADENCE'),
   },
 ]);
 
@@ -126,6 +145,9 @@ const defaultData = type => {
       channel: 'whatsapp',
       opt_in_attribute_key: 'marketing_messages_opt_in',
       content: '',
+      frequency_limit_hours: '',
+      quiet_hours: { start: '', end: '', timezone: 'America/Sao_Paulo' },
+      whatsapp_template_params: {},
     };
   }
   if (type === 'action') {
@@ -395,6 +417,56 @@ const removeSelectedNode = () => {
                 </option>
               </select>
             </label>
+            <template v-if="selectedNode.data.channel === 'whatsapp'">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME') }}
+                <input
+                  v-model="selectedNode.data.whatsapp_template_params.name"
+                  type="text"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_LANGUAGE')
+                  }}
+                  <input
+                    v-model="
+                      selectedNode.data.whatsapp_template_params.language
+                    "
+                    type="text"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="updateNode"
+                  />
+                </label>
+                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_CATEGORY')
+                  }}
+                  <input
+                    v-model="
+                      selectedNode.data.whatsapp_template_params.category
+                    "
+                    type="text"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    @change="updateNode"
+                  />
+                </label>
+              </div>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAMESPACE')
+                }}
+                <input
+                  v-model="selectedNode.data.whatsapp_template_params.namespace"
+                  type="text"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+            </template>
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_OFFSET_HOURS') }}
               <input
@@ -508,6 +580,53 @@ const removeSelectedNode = () => {
                 @change="updateNode"
               />
             </label>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.FREQUENCY_LIMIT') }}
+              <input
+                v-model="selectedNode.data.frequency_limit_hours"
+                type="number"
+                min="1"
+                max="720"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              />
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_START') }}
+                <input
+                  v-model="selectedNode.data.quiet_hours.start"
+                  type="time"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_END') }}
+                <input
+                  v-model="selectedNode.data.quiet_hours.end"
+                  type="time"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+              </label>
+            </div>
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_TIMEZONE') }}
+              <select
+                v-model="selectedNode.data.quiet_hours.timezone"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option
+                  v-for="timezone in quietHoursTimezoneOptions"
+                  :key="timezone.value"
+                  :value="timezone.value"
+                >
+                  {{ timezone.label }}
+                </option>
+              </select>
+            </label>
           </template>
 
           <template v-else-if="selectedNode.type === 'action'">
@@ -565,6 +684,28 @@ const removeSelectedNode = () => {
                   :value="agent.value"
                 >
                   {{ agent.label }}
+                </option>
+              </select>
+            </label>
+            <label
+              v-else-if="selectedNode.data.action_name === 'enroll_cadence'"
+              class="grid gap-1 text-xs font-medium text-n-slate-11"
+            >
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.TITLE') }}
+              <select
+                v-model="selectedNode.data.action_params.cadence_id"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option value="">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.CADENCES.SELECT') }}
+                </option>
+                <option
+                  v-for="cadence in cadences.filter(item => item.active)"
+                  :key="cadence.id"
+                  :value="cadence.id"
+                >
+                  {{ cadence.name }}
                 </option>
               </select>
             </label>

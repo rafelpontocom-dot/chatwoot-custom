@@ -86,7 +86,26 @@ class KanbanAutomations::FlowDefinitionValidator
 
     valid_channel = KanbanAppointmentReminderRule::CHANNELS.include?(data[:channel].to_s)
     valid_message = data[:content].present? && data[:opt_in_attribute_key].present?
-    add_error("Message node #{node[:id]} is incomplete") unless valid_channel && valid_message
+    valid_policy = message_policy_valid?(data)
+    add_error("Message node #{node[:id]} is incomplete") unless valid_channel && valid_message && valid_policy
+  end
+
+  def message_policy_valid?(data)
+    frequency_limit_valid?(data[:frequency_limit_hours]) && quiet_hours_valid?(data[:quiet_hours])
+  end
+
+  def frequency_limit_valid?(value)
+    return true if value.blank?
+
+    value.to_f.positive? && value.to_f <= 24 * 30
+  end
+
+  def quiet_hours_valid?(value)
+    source = value.to_h.with_indifferent_access
+    return true if source.blank?
+    return false unless source[:start].match?(/\A\d{2}:\d{2}\z/) && source[:end].match?(/\A\d{2}:\d{2}\z/)
+
+    source[:start] != source[:end] && ActiveSupport::TimeZone[source[:timezone]].present?
   end
 
   def validate_delay_node(node, data)
@@ -154,6 +173,7 @@ class KanbanAutomations::FlowDefinitionValidator
     validate_action_stage(node, params) if action_name == 'move_stage'
     validate_action_owner(node, params) if action_name == 'assign_owner'
     validate_action_field(node, params) if action_name == 'set_field'
+    validate_action_cadence(node, params) if action_name == 'enroll_cadence'
   end
 
   def validate_action_stage(node, params)
@@ -173,6 +193,12 @@ class KanbanAutomations::FlowDefinitionValidator
     return if field.present?
 
     add_error("Action node #{node[:id]} references a field outside this board")
+  end
+
+  def validate_action_cadence(node, params)
+    return if rule.kanban_board.kanban_cadences.active.exists?(id: params[:cadence_id])
+
+    add_error("Action node #{node[:id]} references a cadence outside this board")
   end
 
   def add_error(message)

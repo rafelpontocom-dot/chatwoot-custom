@@ -75,7 +75,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def timeline
-    render json: @kanban_card.kanban_card_events.order(occurred_at: :asc, id: :asc).map { |event| timeline_event_payload(event) }
+    events = @kanban_card.kanban_card_events.includes(kanban_automation_executions: :kanban_automation_rule).order(occurred_at: :asc, id: :asc)
+    render json: events.map { |event| timeline_event_payload(event) }
   end
 
   def destroy
@@ -470,7 +471,20 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       occurred_at: event.occurred_at.iso8601,
       changes: event.change_set,
       actor: event.actor && { id: event.actor_id, type: event.actor_type, name: event.actor.try(:name) },
-      metadata: event.metadata
+      metadata: event.metadata,
+      automations: event.kanban_automation_executions.order(created_at: :asc, id: :asc).map { |execution| automation_execution_payload(execution) }
+    }
+  end
+
+  def automation_execution_payload(execution)
+    {
+      id: execution.id,
+      rule_name: execution.kanban_automation_rule.name,
+      status: execution.status,
+      scheduled_at: execution.scheduled_at&.iso8601,
+      completed_at: execution.completed_at&.iso8601,
+      error_message: execution.error_message,
+      action_results: execution.action_results
     }
   end
 

@@ -489,8 +489,20 @@
           "CHANNELS": "Canais",
           "OPT_IN": "Campo de opt-in do contato",
           "MESSAGE": "Mensagem",
+          "FREQUENCY_LIMIT": "Intervalo mínimo entre mensagens (horas)",
+          "QUIET_START": "Não enviar depois de",
+          "QUIET_END": "Voltar a enviar às",
+          "QUIET_TIMEZONE": "Fuso do horário silencioso",
+          "TEMPLATE_NAME": "Template oficial do WhatsApp",
+          "TEMPLATE_LANGUAGE": "Idioma do template",
+          "TEMPLATE_CATEGORY": "Categoria do template",
+          "TEMPLATE_NAMESPACE": "Namespace do template",
+          "TIMEZONES": {
+            "SAO_PAULO": "São Paulo (Brasil)",
+            "LISBON": "Lisboa (Portugal)"
+          },
           "MESSAGES_TITLE": "Mensagens por antecedência",
-          "MESSAGE_FOR": "Mensagem {{hours}} horas antes",
+          "MESSAGE_FOR": "Mensagem {hours} horas antes",
           "PLACEHOLDER_HOURS": "48, 24, 2",
           "ACTIVATE": "Ativar lembrete",
           "DISABLE": "Desativar lembrete",
@@ -574,6 +586,7 @@
           "DELETE_SUCCESS": "Cadência de follow-up excluída.",
           "DELETE_ERROR": "Não foi possível excluir a cadência de follow-up.",
           "STEP_COUNT": "passos",
+          "SELECT": "Selecione uma cadência",
           "LOADING": "Carregando cadências...",
           "LOAD_ERROR": "Não foi possível carregar as cadências de follow-up.",
           "TRIGGER_MANUAL": "Iniciar manualmente",
@@ -592,7 +605,8 @@
           "ASSIGN_OWNER": "Definir responsável",
           "SET_NEXT_ACTION": "Definir próxima ação",
           "SET_FIELD": "Preencher campo",
-          "ARCHIVE_CARD": "Arquivar oportunidade"
+          "ARCHIVE_CARD": "Arquivar oportunidade",
+          "ENROLL_CADENCE": "Inscrever em cadência"
         },
         "RULES": {
           "NEW": "Nova regra",

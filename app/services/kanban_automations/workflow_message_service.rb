@@ -1,7 +1,8 @@
 class KanbanAutomations::WorkflowMessageService
-  def initialize(card:, data:)
+  def initialize(card:, data:, now: Time.current)
     @card = card
     @data = data.to_h.deep_stringify_keys
+    @now = now
   end
 
   def perform!
@@ -9,6 +10,8 @@ class KanbanAutomations::WorkflowMessageService
     return skipped('no_compatible_conversation') if conversation.blank?
     return skipped('opt_in_required') unless opted_in?
     return skipped('outside_whatsapp_window') if whatsapp_outside_window?(conversation)
+    return deferred('quiet_hours', quiet_hours_resume_at) if quiet_hours_resume_at.present?
+    return deferred('frequency_limit', frequency_limit_resume_at) if frequency_limit_resume_at.present?
 
     message = Messages::MessageBuilder.new(nil, conversation, message_params).perform
     { 'action_name' => 'send_message', 'status' => 'succeeded', 'message_id' => message.id }
@@ -16,7 +19,7 @@ class KanbanAutomations::WorkflowMessageService
 
   private
 
-  attr_reader :card, :data
+  attr_reader :card, :data, :now
 
   def compatible_conversation
     inbox_type = data.fetch('channel') == 'email' ? 'Email' : 'Whatsapp'
@@ -31,7 +34,7 @@ class KanbanAutomations::WorkflowMessageService
   end
 
   def whatsapp_outside_window?(conversation)
-    conversation.inbox&.inbox_type == 'Whatsapp' && !conversation.can_reply?
+    conversation.inbox&.inbox_type == 'Whatsapp' && !conversation.can_reply? && whatsapp_template_params.blank?
   end
 
   def message_params
@@ -40,14 +43,99 @@ class KanbanAutomations::WorkflowMessageService
       message_type: 'outgoing',
       private: false,
       content_attributes: { kanban_workflow_message: true }
-    }
+    }.tap do |params|
+      params[:template_params] = whatsapp_template_params if whatsapp_template_params.present?
+    end
+  end
+
+  def whatsapp_template_params
+    @whatsapp_template_params ||= data['whatsapp_template_params'].to_h.with_indifferent_access.presence
   end
 
   def rendered_content
     data.fetch('content').to_s.gsub('{{contact_name}}', card.contact.name.to_s)
   end
 
+  def quiet_hours_resume_at
+    return unless quiet_hours_configured?
+
+    quiet_hours_same_day? ? same_day_quiet_hours_resume_at : overnight_quiet_hours_resume_at
+  end
+
+  def frequency_limit_resume_at
+    hours = data['frequency_limit_hours'].to_f
+    return unless hours.positive?
+
+    last_message_at = last_workflow_message_at
+    return if last_message_at.blank?
+
+    resume_at = last_message_at + hours.hours
+    resume_at if resume_at > now
+  end
+
+  def last_workflow_message_at
+    Message.joins(:conversation)
+           .where(account_id: card.account_id, message_type: :outgoing, conversations: { contact_id: card.contact_id })
+           .where("messages.content_attributes ->> 'kanban_workflow_message' = 'true'")
+           .order(created_at: :desc)
+           .pick(:created_at)
+  end
+
+  def quiet_hours
+    @quiet_hours ||= data['quiet_hours'].to_h.with_indifferent_access
+  end
+
+  def quiet_hours_configured?
+    quiet_hours[:start].present? && quiet_hours[:end].present? && quiet_hours_start_time != quiet_hours_end_time
+  end
+
+  def quiet_hours_timezone
+    @quiet_hours_timezone ||= ActiveSupport::TimeZone[quiet_hours[:timezone]] || Time.zone
+  end
+
+  def current_quiet_time
+    @current_quiet_time ||= now.in_time_zone(quiet_hours_timezone)
+  end
+
+  def quiet_hours_start_time
+    @quiet_hours_start_time ||= quiet_hours_timezone.parse("#{current_quiet_time.to_date} #{quiet_hours[:start]}")
+  end
+
+  def quiet_hours_end_time
+    @quiet_hours_end_time ||= quiet_hours_timezone.parse("#{current_quiet_time.to_date} #{quiet_hours[:end]}")
+  end
+
+  def quiet_hours_same_day?
+    quiet_hours_start_time < quiet_hours_end_time
+  end
+
+  def quiet_hours_overnight?
+    quiet_hours_start_time > quiet_hours_end_time
+  end
+
+  def within_quiet_hours?
+    current_quiet_time >= quiet_hours_start_time && current_quiet_time < quiet_hours_end_time
+  end
+
+  def same_day_quiet_hours_resume_at
+    quiet_hours_end_time if within_quiet_hours?
+  end
+
+  def overnight_quiet_hours_resume_at
+    return quiet_hours_end_time + 1.day if current_quiet_time >= quiet_hours_start_time
+    return quiet_hours_end_time if current_quiet_time < quiet_hours_end_time
+  end
+
   def skipped(reason)
     { 'action_name' => 'send_message', 'status' => 'skipped', 'reason' => reason }
+  end
+
+  def deferred(reason, scheduled_at)
+    {
+      'action_name' => 'send_message',
+      'status' => 'waiting',
+      'reason' => reason,
+      'scheduled_at' => scheduled_at.iso8601
+    }
   end
 end

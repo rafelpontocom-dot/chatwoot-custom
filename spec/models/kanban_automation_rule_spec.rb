@@ -82,6 +82,29 @@ RSpec.describe KanbanAutomationRule do
     expect(rule.errors[:flow_definition]).to be_present
   end
 
+  it 'rejects incomplete quiet hours on a message node' do
+    rule = build(
+      :kanban_automation_rule,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          {
+            id: 'message',
+            type: 'send_message',
+            data: {
+              channel: 'whatsapp', content: 'Olá', opt_in_attribute_key: 'marketing_messages_opt_in',
+              quiet_hours: { start: '20:00', end: '', timezone: 'America/Sao_Paulo' }
+            }
+          }
+        ],
+        edges: [{ source: 'trigger', target: 'message' }]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include('Message node message is incomplete')
+  end
+
   it 'rejects visual actions that reference another board' do
     board = create(:kanban_board)
     rule = build(
@@ -99,6 +122,38 @@ RSpec.describe KanbanAutomationRule do
 
     expect(rule).not_to be_valid
     expect(rule.errors[:flow_definition]).to include('Action node move references a stage outside this board')
+  end
+
+  it 'rejects a visual cadence action outside the board' do
+    board = create(:kanban_board)
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          { id: 'cadence', type: 'action', data: { action_name: 'enroll_cadence', action_params: { cadence_id: 999_999 } } }
+        ],
+        edges: [{ source: 'trigger', target: 'cadence' }]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include('Action node cadence references a cadence outside this board')
+  end
+
+  it 'rejects a legacy cadence action outside the board' do
+    board = create(:kanban_board)
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      actions: [{ action_name: 'enroll_cadence', action_params: { cadence_id: 999_999 } }]
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:actions]).to include('Reference 999999 does not belong to this board')
   end
 
   it 'requires yes and no paths for a condition node' do

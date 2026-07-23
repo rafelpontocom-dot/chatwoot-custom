@@ -83,6 +83,39 @@ RSpec.describe KanbanAutomations::WorkflowService do
                                                               'reason' => 'no_compatible_conversation'))
   end
 
+  it 'waits at a message node when a delivery policy defers it' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'message', type: 'send_message', data: { channel: 'whatsapp', opt_in_attribute_key: 'marketing_messages_opt_in', content: 'Olá' } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'message' },
+          { source: 'message', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+    scheduled_at = 2.hours.from_now
+    message_service = instance_double(KanbanAutomations::WorkflowMessageService)
+    allow(KanbanAutomations::WorkflowMessageService).to receive(:new).and_return(message_service)
+    allow(message_service).to receive(:perform!).and_return(
+      { 'action_name' => 'send_message', 'status' => 'waiting', 'reason' => 'quiet_hours', 'scheduled_at' => scheduled_at.iso8601 }
+    )
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result.fetch(:status)).to eq(:waiting)
+    expect(result.fetch(:scheduled_at)).to be_within(1.second).of(scheduled_at)
+    expect(result[:workflow_state]).to include('next_node_id' => 'message')
+  end
+
   # rubocop:disable RSpec/ExampleLength
   it 'follows the yes branch of a condition node' do
     board = create(
@@ -176,5 +209,38 @@ RSpec.describe KanbanAutomations::WorkflowService do
 
     expect(result).to include(status: :waiting, scheduled_at: appointment_at - 24.hours)
     expect(result[:workflow_state]).to include('next_node_id' => 'end')
+  end
+
+  it 'enrolls the opportunity in a board cadence from an action node' do
+    board = create(:kanban_board)
+    card = create(:kanban_card, account: board.account, kanban_board: board)
+    cadence = create(:kanban_cadence, account: board.account, kanban_board: board)
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'cadence',
+            type: 'action',
+            data: { action_name: 'enroll_cadence', action_params: { cadence_id: cadence.id } }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'cadence' },
+          { source: 'cadence', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(card.kanban_cadence_enrollments.find_by(kanban_cadence: cadence)).to be_active
+    expect(result[:action_results]).to include(hash_including('node_id' => 'cadence', 'action_name' => 'enroll_cadence'))
   end
 end

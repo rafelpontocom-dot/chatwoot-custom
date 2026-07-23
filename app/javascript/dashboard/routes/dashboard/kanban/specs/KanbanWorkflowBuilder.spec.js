@@ -37,4 +37,31 @@ describe('KanbanWorkflowBuilder', () => {
       'KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ARCHIVE_CARD'
     );
   });
+
+  it('offers active follow-up cadences to the cadence action node', () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        cadences: [
+          { id: 1, name: 'Contato inicial', active: true },
+          { id: 2, name: 'Legada', active: false },
+        ],
+        modelValue: {
+          nodes: [
+            {
+              id: 'cadence',
+              type: 'action',
+              data: {
+                action_name: 'enroll_cadence',
+                action_params: { cadence_id: '' },
+              },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Contato inicial');
+    expect(wrapper.text()).not.toContain('Legada');
+  });
 });

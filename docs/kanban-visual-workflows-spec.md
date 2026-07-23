@@ -65,7 +65,7 @@ Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `send_message`, `actio
 - espera por data sem um campo `date`/`datetime` válido ou ajuste numérico;
 - mensagem sem canal permitido, conteúdo ou chave de opt-in;
 - ação fora de `KanbanAutomationRule::ACTION_NAMES`;
-- etapa, agente ou campo personalizados que não pertencem ao board ou conta.
+- etapa, agente, campo personalizado ou cadência que não pertencem ao board ou conta.
 - condição sem saídas `yes` e `no`;
 - ciclos no grafo.
 
@@ -111,9 +111,11 @@ O endpoint de teste usa `WorkflowPreviewService`, que percorre os nós e devolve
 | Não há conversa compatível | `skipped: no_compatible_conversation` |
 | Opt-in falso ou ausente | `skipped: opt_in_required` |
 | WhatsApp fora da janela | `skipped: outside_whatsapp_window` |
+| Horário silencioso | `waiting: quiet_hours`, retomada no horário configurado |
+| Intervalo mínimo ativo | `waiting: frequency_limit`, retomada após a última mensagem de workflow |
 | Envio aceito | `succeeded` com `message_id` |
 
-O conteúdo substitui somente `{{contact_name}}`. Novas variáveis exigem lista permitida e testes próprios.
+O conteúdo substitui somente `{{contact_name}}`. O nó pode receber `frequency_limit_hours` (até 720 horas) e `quiet_hours` com `start`, `end` e `timezone`. Novas variáveis exigem lista permitida e testes próprios.
 
 ## Nó De Ação
 
@@ -124,6 +126,7 @@ O nó utiliza o mesmo serviço das regras comerciais legadas. Ações aceitas:
 - `set_next_action`: aceita tipo, data/hora e observação;
 - `set_field`: exige chave de campo existente e valor;
 - `archive_card`: não requer parâmetro.
+- `enroll_cadence`: exige `action_params.cadence_id` de uma cadência ativa do mesmo board. A inscrição é idempotente enquanto a oportunidade já estiver ativa ou aguardando conclusão nessa cadência.
 
 ## API
 
@@ -137,7 +140,7 @@ Erros de validação respondem `422` com `message` e `errors`. O frontend deve m
 
 ## Frontend
 
-`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo e resumo.
+`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados, cadências ativas e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo e resumo.
 
 O painel lateral configura o nó selecionado. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
 

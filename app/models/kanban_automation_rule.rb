@@ -45,7 +45,7 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::KANBAN_CARD_RESTORED
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
-  ACTION_NAMES = %w[move_stage assign_owner set_next_action set_field archive_card].freeze
+  ACTION_NAMES = %w[move_stage assign_owner set_next_action set_field archive_card enroll_cadence].freeze
   FLOW_NODE_TYPES = %w[trigger delay wait_until_field send_message action condition end].freeze
   belongs_to :account
   belongs_to :kanban_board
@@ -131,6 +131,7 @@ class KanbanAutomationRule < ApplicationRecord
       validate_action_stage(source, params)
       validate_action_owner(source, params)
       validate_action_field(source, params)
+      validate_action_cadence(source, params)
     end
   end
 
@@ -150,6 +151,12 @@ class KanbanAutomationRule < ApplicationRecord
     return unless source[:action_name].to_s == 'set_field'
 
     validate_field_reference(params[:field_key])
+  end
+
+  def validate_action_cadence(source, params)
+    return unless source[:action_name].to_s == 'enroll_cadence'
+
+    validate_reference_ids([params[:cadence_id]], kanban_board.kanban_cadences.active, :actions)
   end
 
   def validate_reference_ids(ids, relation, attribute)

@@ -4,7 +4,8 @@ class KanbanAutomations::ActionService
     'assign_owner' => :assign_owner,
     'set_next_action' => :update_next_action,
     'set_field' => :update_field,
-    'archive_card' => :archive_card
+    'archive_card' => :archive_card,
+    'enroll_cadence' => :enroll_cadence
   }.freeze
 
   def initialize(rule:, card:, actions: nil)
@@ -66,6 +67,15 @@ class KanbanAutomations::ActionService
 
     @card.archive!
     result('archive_card', 'succeeded')
+  end
+
+  def enroll_cadence(params)
+    cadence = @board.kanban_cadences.active.find(params.fetch(:cadence_id))
+    existing = @card.kanban_cadence_enrollments.find_by(kanban_cadence: cadence)
+    return result('enroll_cadence', 'skipped', cadence_id: cadence.id) if existing&.active? || existing&.awaiting_completion?
+
+    KanbanCadences::EnrollService.new(card: @card, cadence: cadence, user: @card.owner).call
+    result('enroll_cadence', 'succeeded', cadence_id: cadence.id)
   end
 
   def parse_time(value)

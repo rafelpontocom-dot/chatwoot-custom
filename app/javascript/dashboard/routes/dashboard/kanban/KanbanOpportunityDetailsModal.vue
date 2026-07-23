@@ -994,6 +994,31 @@ watch(showUnsavedChanges, async visible => {
                   <span class="text-xs text-n-slate-11">
                     {{ timelineEventMeta(event) }}
                   </span>
+                  <div
+                    v-for="automation in event.automations || []"
+                    :key="automation.id"
+                    class="mt-1 grid gap-1 rounded-md bg-n-surface-2 px-2 py-1.5 text-xs text-n-slate-11"
+                  >
+                    <span class="font-medium text-n-slate-12">
+                      {{ automation.rule_name }}
+                    </span>
+                    <span>
+                      {{ automation.status }}
+                      <template v-if="automation.scheduled_at">
+                        {{
+                          ` - ${new Date(
+                            automation.scheduled_at
+                          ).toLocaleString()}`
+                        }}
+                      </template>
+                    </span>
+                    <span
+                      v-if="automation.error_message"
+                      class="text-n-ruby-11"
+                    >
+                      {{ automation.error_message }}
+                    </span>
+                  </div>
                 </article>
               </template>
             </section>

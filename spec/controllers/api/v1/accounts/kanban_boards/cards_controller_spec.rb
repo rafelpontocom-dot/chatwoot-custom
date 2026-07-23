@@ -262,6 +262,7 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(response).to have_http_status(:success)
       expect(response.parsed_body.pluck('event_type')).to include('card_created', 'amount_changed')
       expect(response.parsed_body.last).to include('occurred_at', 'changes', 'actor')
+      expect(response.parsed_body.last).to include('automations')
     end
 
     it 'returns stable sales fields' do

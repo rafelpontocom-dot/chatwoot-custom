@@ -4855,6 +4855,7 @@ onMounted(async () => {
                   ['date', 'datetime'].includes(field.fieldType)
                 )
               "
+              :cadences="cadences"
             />
 
             <div class="grid gap-3 md:grid-cols-2">

@@ -493,8 +493,20 @@
           "CHANNELS": "Channels",
           "OPT_IN": "Contact opt-in field",
           "MESSAGE": "Message",
+          "FREQUENCY_LIMIT": "Minimum message interval (hours)",
+          "QUIET_START": "Do not send after",
+          "QUIET_END": "Resume sending at",
+          "QUIET_TIMEZONE": "Quiet hours timezone",
+          "TEMPLATE_NAME": "Official WhatsApp template",
+          "TEMPLATE_LANGUAGE": "Template language",
+          "TEMPLATE_CATEGORY": "Template category",
+          "TEMPLATE_NAMESPACE": "Template namespace",
+          "TIMEZONES": {
+            "SAO_PAULO": "São Paulo (Brazil)",
+            "LISBON": "Lisbon (Portugal)"
+          },
           "MESSAGES_TITLE": "Messages by advance notice",
-          "MESSAGE_FOR": "Message {{hours}} hours before",
+          "MESSAGE_FOR": "Message {hours} hours before",
           "PLACEHOLDER_HOURS": "48, 24, 2",
           "ACTIVATE": "Activate reminder",
           "DISABLE": "Disable reminder",
@@ -578,6 +590,7 @@
           "DELETE_SUCCESS": "Follow-up cadence deleted.",
           "DELETE_ERROR": "Could not delete follow-up cadence.",
           "STEP_COUNT": "steps",
+          "SELECT": "Select a cadence",
           "LOADING": "Loading cadences...",
           "LOAD_ERROR": "Could not load follow-up cadences.",
           "TRIGGER_MANUAL": "Start manually",
@@ -596,7 +609,8 @@
           "ASSIGN_OWNER": "Assign owner",
           "SET_NEXT_ACTION": "Set next action",
           "SET_FIELD": "Set field",
-          "ARCHIVE_CARD": "Archive opportunity"
+          "ARCHIVE_CARD": "Archive opportunity",
+          "ENROLL_CADENCE": "Enroll in cadence"
         },
         "RULES": {
           "NEW": "New rule",
