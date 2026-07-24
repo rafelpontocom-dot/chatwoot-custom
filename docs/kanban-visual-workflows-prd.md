@@ -66,7 +66,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 | Condição          | Separa o fluxo em caminhos Sim e Não.                              | Campo, operador e valor.   |
 | Fim               | Encerra o caminho.                                                 | Nenhuma.                   |
 
-As ações comerciais disponíveis são: mover etapa, definir responsável, criar próxima ação, preencher ou incrementar campo personalizado numérico, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
+As ações comerciais disponíveis são: mover etapa, definir responsável, distribuir novos cards em rodízio, criar próxima ação, preencher ou incrementar campo personalizado numérico, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
 
 O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima ação`, mantendo todo o processo em um único fluxo auditável. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
 
@@ -127,6 +127,7 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 - Cancelamento manual de uma execução em espera. Implementado.
 - Horários silenciosos e limite de frequência. Implementado para mensagens do fluxo.
 - Template oficial de WhatsApp e seleção de idioma. Implementado no nó de mensagem.
+- Compositor de mensagem com emoji, busca de variáveis, preview de balão e imagem. Implementado para nós de fluxo e mensagens de aniversário; imagens usam upload assinado, nunca URL externa.
 - Histórico visual por oportunidade, com ator e horário. Implementado na linha do tempo da oportunidade.
 - Recepção de webhook de entrada, somente com assinatura e mapeamento explícito para oportunidade. Implementado sem código arbitrário: uma conexão inicia somente regras do evento `Webhook recebido` para o card informado. O limite de taxa é configurado na borda de produção (Traefik/API gateway).
 
@@ -159,13 +160,13 @@ HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrad
 
 ### Plano de produto revisado
 
-**P0 operacional:** gatilhos de oportunidade e de resposta do cliente; nós de espera, horário comercial, condição, mensagem, ação, nota, etiqueta e webhook; conexões HTTPS aprovadas; histórico de execução; canvas com inserção contextual e propriedades laterais.
+**P0 operacional:** gatilhos de oportunidade e de resposta do cliente; nós de espera, horário comercial, condição, mensagem, ação, nota, etiqueta e webhook; conexões HTTPS aprovadas; histórico de execução; canvas com inserção contextual e modal de configuração do nó. O compositor de mensagem permite texto, emoji, campos pesquisáveis e uma imagem com prévia.
 
 Erros de configuração não podem exigir que o administrador procure pelo canvas: a validação seleciona, destaca e abre a etapa que precisa ser corrigida.
 
 **P1 de governança:** snapshot por execução, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com uma oportunidade ativa e passos previstos sem efeitos externos, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente. A publicação formal com rascunho/versionamento visível continua pendente.
 
-**P2 de escala:** tarefas internas com prazo, rodízio de responsáveis, templates por segmento e integrações declarativas adicionais, sempre por conexão aprovada. A central já exibe saúde operacional com falhas e esperas vencidas.
+**P2 de escala:** tarefas internas com prazo, templates por segmento e integrações declarativas adicionais, sempre por conexão aprovada. O rodízio de responsáveis está implementado como uma ação atômica do fluxo; a central já exibe saúde operacional com falhas e esperas vencidas.
 
 O Vue Flow é a infraestrutura de interação: oferece zoom, seleção, nós/arestas customizados, controles e minimapa. O produto continua responsável pela linguagem comercial, validação e segurança. [Vue Flow](https://vueflow.dev/)
 

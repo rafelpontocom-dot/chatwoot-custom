@@ -562,6 +562,48 @@ describe('KanbanAutomations', () => {
     ).toBe(true);
   });
 
+  it('persists the birthday message image as a signed upload', async () => {
+    KanbanBoardsAPI.updateBirthdayAutomation.mockResolvedValue({
+      data: {
+        active: false,
+        days_before: 0,
+        delivery_channels: ['whatsapp'],
+        opt_in_attribute_key: 'birthday_messages_opt_in',
+        message_locale: 'pt_BR',
+        timezone: 'America/Sao_Paulo',
+        timezone_name: 'America/Sao_Paulo',
+        send_time: '09:00',
+        message_template: 'Feliz aniversário, {{contact_name}}!',
+        message_attachment: {
+          signed_id: 'signed-image',
+          filename: 'aniversario.png',
+          content_type: 'image/png',
+        },
+      },
+    });
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-template-birthday"]')
+      .trigger('click');
+    wrapper.vm.birthdayAutomation.messageAttachment = {
+      signedId: 'signed-image',
+      filename: 'aniversario.png',
+      contentType: 'image/png',
+    };
+    await wrapper.vm.saveBirthdayAutomation();
+
+    expect(KanbanBoardsAPI.updateBirthdayAutomation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        birthday_automation: expect.objectContaining({
+          message_attachment: expect.objectContaining({
+            signed_id: 'signed-image',
+          }),
+        }),
+      })
+    );
+  });
+
   it('tests a flow with a selected opportunity without executing it', async () => {
     KanbanBoardsAPI.testAutomationRule.mockResolvedValue({
       data: {

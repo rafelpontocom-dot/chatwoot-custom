@@ -1,6 +1,15 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
+import { DirectUpload } from 'activestorage';
+import { vOnClickOutside } from '@vueuse/components';
 import { useRoute, useRouter } from 'vue-router';
 import camelcaseKeys from 'camelcase-keys';
 
@@ -46,6 +55,15 @@ const invalidNodeIds = ref([]);
 const isLoadingBirthday = ref(false);
 const isSavingBirthday = ref(false);
 const birthdayError = ref('');
+const birthdayMessageInput = ref(null);
+const showBirthdayEmojiPicker = ref(false);
+const showBirthdayVariableMenu = ref(false);
+const birthdayVariableQuery = ref('');
+const isUploadingBirthdayAttachment = ref(false);
+const EmojiIconPicker = defineAsyncComponent(
+  () =>
+    import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
+);
 const birthdayAutomation = reactive({
   active: false,
   daysBefore: 0,
@@ -56,6 +74,7 @@ const birthdayAutomation = reactive({
   timezoneName: 'America/Sao_Paulo',
   sendTime: '09:00',
   messageTemplate: '',
+  messageAttachment: {},
 });
 
 const blankAction = () => ({
@@ -105,6 +124,41 @@ const defaultReminderMessage =
   'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.';
 const defaultGoogleReviewMessage =
   'Olá, {{contact_name}}! Sua opinião é muito importante para nós. Você poderia avaliar sua experiência no Google?';
+const birthdayVariables = computed(() => [
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.CONTACT_NAME'),
+    token: '{{contact_name}}',
+  },
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.BIRTHDAY_DATE'),
+    token: '{{birthday_date}}',
+  },
+]);
+const filteredBirthdayVariables = computed(() => {
+  const query = birthdayVariableQuery.value.trim().toLocaleLowerCase();
+  if (!query) return birthdayVariables.value;
+
+  return birthdayVariables.value.filter(variable =>
+    `${variable.label} ${variable.token}`.toLocaleLowerCase().includes(query)
+  );
+});
+const birthdayAttachmentUrl = computed(() => {
+  const attachment = birthdayAutomation.messageAttachment || {};
+  if (!attachment.signedId || !attachment.filename) return '';
+
+  return `/rails/active_storage/blobs/redirect/${encodeURIComponent(attachment.signedId)}/${encodeURIComponent(attachment.filename)}`;
+});
+const birthdayPreview = computed(() =>
+  birthdayAutomation.messageTemplate
+    .replaceAll(
+      '{{contact_name}}',
+      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_CONTACT')
+    )
+    .replaceAll(
+      '{{birthday_date}}',
+      t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.PREVIEW_DATE')
+    )
+);
 
 const eventOptions = computed(() => [
   {
@@ -520,6 +574,57 @@ const applyBirthdayAutomation = source => {
   birthdayAutomation.timezoneName = automation.timezoneName || '';
   birthdayAutomation.sendTime = automation.sendTime || '09:00';
   birthdayAutomation.messageTemplate = automation.messageTemplate || '';
+  birthdayAutomation.messageAttachment = automation.messageAttachment || {};
+};
+
+const insertBirthdayMessageText = value => {
+  const input = birthdayMessageInput.value;
+  const content = birthdayAutomation.messageTemplate || '';
+  const start = input?.selectionStart ?? content.length;
+  const end = input?.selectionEnd ?? content.length;
+  birthdayAutomation.messageTemplate = `${content.slice(0, start)}${value}${content.slice(end)}`;
+  showBirthdayEmojiPicker.value = false;
+  showBirthdayVariableMenu.value = false;
+  birthdayVariableQuery.value = '';
+
+  nextTick(() => {
+    input?.focus();
+    input?.setSelectionRange(start + value.length, start + value.length);
+  });
+};
+
+const uploadBirthdayAttachment = event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
+    birthdayError.value = t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.IMAGE_ERROR');
+    event.target.value = '';
+    return;
+  }
+
+  isUploadingBirthdayAttachment.value = true;
+  const upload = new DirectUpload(file, '/rails/active_storage/direct_uploads');
+  upload.create((uploadError, blob) => {
+    isUploadingBirthdayAttachment.value = false;
+    event.target.value = '';
+    if (uploadError) {
+      birthdayError.value = t(
+        'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.IMAGE_UPLOAD_ERROR'
+      );
+      return;
+    }
+
+    birthdayAutomation.messageAttachment = {
+      signedId: blob.signed_id,
+      filename: blob.filename,
+      contentType: blob.content_type,
+    };
+  });
+};
+
+const removeBirthdayAttachment = () => {
+  birthdayAutomation.messageAttachment = {};
 };
 
 async function loadBirthdayAutomation() {
@@ -556,6 +661,11 @@ const saveBirthdayAutomation = async () => {
         timezone: birthdayAutomation.timezone.trim() || null,
         send_time: birthdayAutomation.sendTime,
         message_template: birthdayAutomation.messageTemplate.trim(),
+        message_attachment: {
+          signed_id: birthdayAutomation.messageAttachment.signedId,
+          filename: birthdayAutomation.messageAttachment.filename,
+          content_type: birthdayAutomation.messageAttachment.contentType,
+        },
       },
     });
     applyBirthdayAutomation(response.data);
@@ -1246,12 +1356,127 @@ onMounted(load);
         </label>
         <label class="grid gap-1 text-xs font-medium text-n-slate-11">
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.MESSAGE') }}
-          <textarea
-            v-model="birthdayAutomation.messageTemplate"
-            rows="4"
-            class="resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-          />
+          <div class="rounded-md border border-n-weak bg-n-surface-1">
+            <textarea
+              ref="birthdayMessageInput"
+              v-model="birthdayAutomation.messageTemplate"
+              rows="4"
+              class="block w-full resize-y border-0 bg-transparent px-3 py-2 text-sm text-n-slate-12 outline-none focus:ring-0"
+            />
+            <div
+              class="flex items-center gap-1 border-t border-n-weak px-2 py-1.5"
+            >
+              <div
+                v-on-click-outside="() => (showBirthdayEmojiPicker = false)"
+                class="relative"
+              >
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_EMOJI')
+                  "
+                  @click="showBirthdayEmojiPicker = !showBirthdayEmojiPicker"
+                >
+                  <i class="i-lucide-smile size-4" />
+                </button>
+                <EmojiIconPicker
+                  v-if="showBirthdayEmojiPicker"
+                  mode="emoji"
+                  class="!bottom-full !left-0 !top-auto mb-2"
+                  @select="insertBirthdayMessageText($event.value)"
+                />
+              </div>
+              <div
+                v-on-click-outside="() => (showBirthdayVariableMenu = false)"
+                class="relative"
+              >
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_VARIABLE')
+                  "
+                  @click="showBirthdayVariableMenu = !showBirthdayVariableMenu"
+                >
+                  <i class="i-lucide-braces size-4" />
+                </button>
+                <div
+                  v-if="showBirthdayVariableMenu"
+                  class="absolute bottom-full left-0 z-20 grid max-h-64 w-64 gap-1 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-xl"
+                >
+                  <input
+                    v-model="birthdayVariableQuery"
+                    type="search"
+                    class="h-8 rounded border border-n-weak bg-n-surface-2 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    :placeholder="
+                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.SEARCH_VARIABLE')
+                    "
+                  />
+                  <button
+                    v-for="variable in filteredBirthdayVariables"
+                    :key="variable.token"
+                    type="button"
+                    class="grid gap-0.5 rounded px-2 py-1.5 text-left hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                    @click="insertBirthdayMessageText(variable.token)"
+                  >
+                    <span class="text-sm font-medium text-n-slate-12">{{
+                      variable.label
+                    }}</span>
+                    <span class="font-mono text-xs text-n-slate-10">{{
+                      variable.token
+                    }}</span>
+                  </button>
+                </div>
+              </div>
+              <label
+                class="flex size-8 cursor-pointer items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus-within:ring-2 focus-within:ring-n-brand"
+                :aria-label="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UPLOAD_IMAGE')
+                "
+              >
+                <i class="i-lucide-image-plus size-4" />
+                <input
+                  class="sr-only"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  :disabled="isUploadingBirthdayAttachment"
+                  @change="uploadBirthdayAttachment"
+                />
+              </label>
+            </div>
+          </div>
         </label>
+        <div
+          class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-3"
+        >
+          <p class="m-0 text-xs font-medium text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW') }}
+          </p>
+          <img
+            v-if="birthdayAttachmentUrl"
+            :src="birthdayAttachmentUrl"
+            :alt="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ATTACHMENT_PREVIEW')"
+            class="max-h-56 w-auto rounded-md object-cover"
+          />
+          <div
+            class="max-w-[85%] rounded-lg rounded-tl-sm bg-n-brand px-3 py-2 text-sm text-white"
+          >
+            {{
+              birthdayPreview ||
+              t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_EMPTY')
+            }}
+          </div>
+          <div v-if="birthdayAttachmentUrl" class="flex justify-end">
+            <button
+              type="button"
+              class="text-xs font-medium text-n-ruby-11 hover:underline focus:outline-none focus:ring-2 focus:ring-n-brand"
+              @click="removeBirthdayAttachment"
+            >
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_IMAGE') }}
+            </button>
+          </div>
+        </div>
         <p v-if="birthdayError" class="m-0 text-sm text-n-ruby-11" role="alert">
           {{ birthdayError }}
         </p>

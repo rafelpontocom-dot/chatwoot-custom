@@ -11,6 +11,7 @@ import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { addEdge, VueFlow } from '@vue-flow/core';
 import { vOnClickOutside } from '@vueuse/components';
+import { DirectUpload } from 'activestorage';
 import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/core/dist/style.css';
 import { useI18n } from 'vue-i18n';
@@ -68,6 +69,8 @@ const inspector = ref(null);
 const messageContentInput = ref(null);
 const showEmojiPicker = ref(false);
 const showMessageVariableMenu = ref(false);
+const messageVariableQuery = ref('');
+const isUploadingMessageAttachment = ref(false);
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -152,6 +155,10 @@ const actionOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ASSIGN_OWNER'),
   },
   {
+    value: 'assign_round_robin',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ASSIGN_ROUND_ROBIN'),
+  },
+  {
     value: 'set_next_action',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.SET_NEXT_ACTION'),
   },
@@ -218,6 +225,36 @@ const messageVariables = computed(() => [
     token: `{{field.${field.key}}}`,
   })),
 ]);
+const filteredMessageVariables = computed(() => {
+  const query = messageVariableQuery.value.trim().toLocaleLowerCase();
+  if (!query) return messageVariables.value;
+
+  return messageVariables.value.filter(variable =>
+    `${variable.label} ${variable.token}`.toLocaleLowerCase().includes(query)
+  );
+});
+const messageAttachmentUrl = computed(() => {
+  const attachment = selectedNode.value?.data?.message_attachment || {};
+  if (!attachment.signed_id || !attachment.filename) return '';
+
+  return `/rails/active_storage/blobs/redirect/${encodeURIComponent(attachment.signed_id)}/${encodeURIComponent(attachment.filename)}`;
+});
+const messagePreview = computed(() => {
+  const content = selectedNode.value?.data?.content || '';
+  return content
+    .replaceAll(
+      '{{contact_name}}',
+      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_CONTACT')
+    )
+    .replaceAll(
+      '{{opportunity_subject}}',
+      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_OPPORTUNITY')
+    )
+    .replaceAll(
+      '{{opportunity_amount}}',
+      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_AMOUNT')
+    );
+});
 const businessDays = computed(() => [
   { value: 1, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.MON') },
   { value: 2, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.TUE') },
@@ -247,6 +284,7 @@ const defaultData = type => {
       content: '',
       frequency_limit_hours: '',
       quiet_hours: { start: '', end: '', timezone: 'America/Sao_Paulo' },
+      message_attachment: {},
       whatsapp_template_params: {},
     };
   }
@@ -496,6 +534,7 @@ const closeInspector = () => {
   selectedEdgeId.value = null;
   showEmojiPicker.value = false;
   showMessageVariableMenu.value = false;
+  messageVariableQuery.value = '';
 };
 
 const handleInspectorKeydown = event => {
@@ -544,6 +583,7 @@ const insertMessageText = value => {
   emit('clearValidation');
   showEmojiPicker.value = false;
   showMessageVariableMenu.value = false;
+  messageVariableQuery.value = '';
 
   nextTick(() => {
     input?.focus();
@@ -551,12 +591,55 @@ const insertMessageText = value => {
   });
 };
 
-const updateNode = () => {
+const refreshSelectedNode = () => {
   const node = selectedNode.value;
   if (!node) return;
 
   node.data = decorateNode(node).data;
   emit('clearValidation');
+};
+
+const uploadMessageAttachment = async event => {
+  const file = event.target.files?.[0];
+  if (
+    !file ||
+    !selectedNode.value ||
+    selectedNode.value.type !== 'send_message'
+  ) {
+    return;
+  }
+
+  if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
+    emit('clearValidation');
+    event.target.value = '';
+    return;
+  }
+
+  isUploadingMessageAttachment.value = true;
+  const upload = new DirectUpload(file, '/rails/active_storage/direct_uploads');
+  upload.create((uploadError, blob) => {
+    isUploadingMessageAttachment.value = false;
+    event.target.value = '';
+    if (uploadError) return;
+
+    selectedNode.value.data.message_attachment = {
+      signed_id: blob.signed_id,
+      filename: blob.filename,
+      content_type: blob.content_type,
+    };
+    refreshSelectedNode();
+  });
+};
+
+const removeMessageAttachment = () => {
+  if (!selectedNode.value || selectedNode.value.type !== 'send_message') return;
+
+  selectedNode.value.data.message_attachment = {};
+  refreshSelectedNode();
+};
+
+const updateNode = () => {
+  refreshSelectedNode();
 };
 
 const removeSelectedNode = () => {
@@ -647,7 +730,7 @@ const removeSelectedNode = () => {
             ? 'kanban-workflow-node-drawer'
             : 'kanban-workflow-connection-dialog'
         "
-        class="fixed inset-y-0 right-0 z-50 grid w-full max-w-xl content-start gap-4 overflow-y-auto border-l border-n-weak bg-n-surface-1 p-5 shadow-2xl outline-none"
+        class="fixed inset-x-4 top-1/2 z-50 grid max-h-[calc(100vh-2rem)] w-auto max-w-3xl -translate-y-1/2 content-start gap-4 overflow-y-auto rounded-lg border border-n-weak bg-n-surface-1 p-5 shadow-2xl outline-none sm:inset-x-auto sm:right-1/2 sm:w-[min(46rem,calc(100vw-2rem))] sm:translate-x-1/2"
         role="dialog"
         aria-modal="true"
         tabindex="-1"
@@ -976,10 +1059,20 @@ const removeSelectedNode = () => {
                     <div
                       v-if="showMessageVariableMenu"
                       data-testid="kanban-message-variable-menu"
-                      class="absolute bottom-full left-0 z-20 mb-2 grid max-h-64 w-64 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-xl"
+                      class="absolute bottom-full left-0 z-20 grid max-h-72 w-72 gap-1 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-xl"
                     >
+                      <input
+                        v-model="messageVariableQuery"
+                        type="search"
+                        class="h-8 rounded border border-n-weak bg-n-surface-2 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        :placeholder="
+                          t(
+                            'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.SEARCH_VARIABLE'
+                          )
+                        "
+                      />
                       <button
-                        v-for="variable in messageVariables"
+                        v-for="variable in filteredMessageVariables"
                         :key="variable.token"
                         type="button"
                         class="grid gap-0.5 rounded px-2 py-1.5 text-left hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
@@ -992,8 +1085,34 @@ const removeSelectedNode = () => {
                           {{ variable.token }}
                         </span>
                       </button>
+                      <p
+                        v-if="!filteredMessageVariables.length"
+                        class="m-0 px-2 py-3 text-xs text-n-slate-10"
+                      >
+                        {{
+                          t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO_VARIABLES')
+                        }}
+                      </p>
                     </div>
                   </div>
+                  <label
+                    class="flex size-8 cursor-pointer items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus-within:ring-2 focus-within:ring-n-brand"
+                    :aria-label="
+                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UPLOAD_IMAGE')
+                    "
+                    :title="
+                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UPLOAD_IMAGE')
+                    "
+                  >
+                    <i class="i-lucide-image-plus size-4" />
+                    <input
+                      class="sr-only"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      :disabled="isUploadingMessageAttachment"
+                      @change="uploadMessageAttachment"
+                    />
+                  </label>
                   <span class="ml-auto text-xs font-normal text-n-slate-10">
                     {{
                       t(
@@ -1004,6 +1123,39 @@ const removeSelectedNode = () => {
                 </div>
               </div>
             </label>
+            <div
+              class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-3"
+              data-testid="kanban-message-preview"
+            >
+              <p class="m-0 text-xs font-medium text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW') }}
+              </p>
+              <img
+                v-if="messageAttachmentUrl"
+                :src="messageAttachmentUrl"
+                :alt="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ATTACHMENT_PREVIEW')
+                "
+                class="max-h-56 w-auto rounded-md object-cover"
+              />
+              <div
+                class="max-w-[85%] rounded-lg rounded-tl-sm bg-n-brand px-3 py-2 text-sm text-white"
+              >
+                {{
+                  messagePreview ||
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_EMPTY')
+                }}
+              </div>
+              <div v-if="messageAttachmentUrl" class="flex justify-end">
+                <button
+                  type="button"
+                  class="text-xs font-medium text-n-ruby-11 hover:underline focus:outline-none focus:ring-2 focus:ring-n-brand"
+                  @click="removeMessageAttachment"
+                >
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_IMAGE') }}
+                </button>
+              </div>
+            </div>
             <template v-if="selectedNode.data.channel === 'whatsapp'">
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME') }}
@@ -1179,6 +1331,26 @@ const removeSelectedNode = () => {
                 <option value="">
                   {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
                 </option>
+                <option
+                  v-for="agent in agents"
+                  :key="agent.value"
+                  :value="agent.value"
+                >
+                  {{ agent.label }}
+                </option>
+              </select>
+            </label>
+            <label
+              v-else-if="selectedNode.data.action_name === 'assign_round_robin'"
+              class="grid gap-1 text-xs font-medium text-n-slate-11"
+            >
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNERS') }}
+              <select
+                v-model="selectedNode.data.action_params.owner_ids"
+                multiple
+                class="min-h-24 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
                 <option
                   v-for="agent in agents"
                   :key="agent.value"

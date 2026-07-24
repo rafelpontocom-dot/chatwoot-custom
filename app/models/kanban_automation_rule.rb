@@ -2,22 +2,22 @@
 #
 # Table name: kanban_automation_rules
 #
-#  id              :bigint           not null, primary key
-#  actions         :jsonb            not null
-#  active          :boolean          default(TRUE), not null
-#  conditions      :jsonb            not null
-#  description     :text
-#  event_name      :string           not null
-#  flow_definition :jsonb            not null
-#  lock_version    :integer          default(0), not null
-#  name            :string           not null
-#  position        :integer          default(0), not null
-#  reentry_enabled :boolean          default(FALSE), not null
-#  reentry_enabled :boolean          default(FALSE), not null
-#  created_at      :datetime         not null
-#  updated_at      :datetime         not null
-#  account_id      :bigint           not null
-#  kanban_board_id :bigint           not null
+#  id                 :bigint           not null, primary key
+#  actions            :jsonb            not null
+#  active             :boolean          default(TRUE), not null
+#  conditions         :jsonb            not null
+#  description        :text
+#  event_name         :string           not null
+#  flow_definition    :jsonb            not null
+#  lock_version       :integer          default(0), not null
+#  name               :string           not null
+#  position           :integer          default(0), not null
+#  reentry_enabled    :boolean          default(FALSE), not null
+#  round_robin_cursor :integer          default(0), not null
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#  account_id         :bigint           not null
+#  kanban_board_id    :bigint           not null
 #
 # Indexes
 #
@@ -51,7 +51,7 @@ class KanbanAutomationRule < ApplicationRecord
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
   ACTION_NAMES = %w[
-    move_stage assign_owner set_next_action set_field increment_field archive_card
+    move_stage assign_owner assign_round_robin set_next_action set_field increment_field archive_card
     enroll_cadence add_label remove_label add_note
   ].freeze
   FLOW_NODE_TYPES = %w[trigger delay wait_until_field wait_for_response wait_for_business_hours send_message action condition webhook end].freeze
@@ -142,6 +142,7 @@ class KanbanAutomationRule < ApplicationRecord
       params = source[:action_params].to_h.with_indifferent_access
       validate_action_stage(source, params)
       validate_action_owner(source, params)
+      validate_action_round_robin(source, params)
       validate_action_field(source, params)
       validate_action_cadence(source, params)
     end
@@ -157,6 +158,13 @@ class KanbanAutomationRule < ApplicationRecord
     return unless source[:action_name].to_s == 'assign_owner'
 
     validate_reference_ids([params[:owner_id]], account.users, :actions)
+  end
+
+  def validate_action_round_robin(source, params)
+    return unless source[:action_name].to_s == 'assign_round_robin'
+
+    validate_reference_ids(params[:owner_ids], account.users, :actions)
+    errors.add(:actions, 'Round-robin needs at least one owner') if Array(params[:owner_ids]).blank?
   end
 
   def validate_action_field(source, params)

@@ -97,8 +97,16 @@ class KanbanBirthdayAutomations::ProcessService
       content_attributes: { birthday_automation_id: automation.id }
     }
     params[:template_params] = automation.whatsapp_template_params if channel == 'whatsapp'
+    attachment_signed_id = message_attachment_signed_id
+    params[:attachments] = [attachment_signed_id] if attachment_signed_id.present?
 
     Messages::MessageBuilder.new(nil, conversation, params).perform
+  end
+
+  def message_attachment_signed_id
+    @message_attachment_signed_id ||= KanbanAutomations::MessageAttachmentService.new(
+      data: { message_attachment: automation.message_attachment }
+    ).signed_id
   end
 
   def compatible_conversation(contact, channel)

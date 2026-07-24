@@ -91,6 +91,25 @@ RSpec.describe KanbanBirthdayAutomations::ProcessService do
     )
   end
 
+  it 'passes a validated image upload with the birthday message' do
+    attachment_service = instance_double(
+      KanbanAutomations::MessageAttachmentService,
+      signed_id: 'signed-image',
+      valid?: true
+    )
+    allow(KanbanAutomations::MessageAttachmentService).to receive(:new).and_return(attachment_service)
+    message = instance_double(Message, id: 47)
+    allow(Messages::MessageBuilder).to receive(:new).and_return(instance_double(Messages::MessageBuilder, perform: message))
+
+    described_class.new(automation: automation).perform!
+
+    expect(Messages::MessageBuilder).to have_received(:new).with(
+      nil,
+      conversation,
+      hash_including(attachments: ['signed-image'])
+    )
+  end
+
   it 'selects an email conversation for email delivery' do
     automation.update!(delivery_channels: ['email'])
     email_inbox = create(:inbox, account: account, channel: create(:channel_email, account: account))

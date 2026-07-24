@@ -64,6 +64,15 @@ RSpec.describe KanbanAutomations::WorkflowMessageService do
     )
   end
 
+  it 'passes a validated image upload to the message builder' do
+    attachment_service = instance_double(KanbanAutomations::MessageAttachmentService, signed_id: 'signed-image')
+    allow(KanbanAutomations::MessageAttachmentService).to receive(:new).and_return(attachment_service)
+
+    expect(build_service({ message_attachment: { signed_id: 'signed-image' } }).send(:message_params)).to include(
+      attachments: ['signed-image']
+    )
+  end
+
   def build_service(data, now: self.now)
     described_class.new(
       card: card,

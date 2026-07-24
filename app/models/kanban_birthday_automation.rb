@@ -8,6 +8,7 @@
 #  delivery_channels        :string           default([]), not null, is an Array
 #  message_template         :text             default("Feliz aniversário, {{contact_name}}! Desejamos um dia especial para você."), not null
 #  message_locale           :string           default("pt_BR"), not null
+#  message_attachment       :jsonb            not null
 #  opt_in_attribute_key     :string           default("birthday_messages_opt_in"), not null
 #  send_time                :string           default("09:00"), not null
 #  timezone                 :string
@@ -41,6 +42,7 @@ class KanbanBirthdayAutomation < ApplicationRecord
   validate :delivery_channels_are_supported
   validates :opt_in_attribute_key, format: { with: /\A[a-z][a-z0-9_]*\z/ }, allow_blank: false
   validates :message_template, presence: true, length: { maximum: 4_000 }
+  validate :message_attachment_must_be_valid
   validates :message_locale, inclusion: { in: MESSAGE_LOCALES }
   validates :send_time, format: { with: /\A(?:[01]\d|2[0-3]):[0-5]\d\z/ }
   validate :timezone_must_exist
@@ -61,7 +63,12 @@ class KanbanBirthdayAutomation < ApplicationRecord
     self.send_time = send_time.to_s.strip.presence || DEFAULT_SEND_TIME
     self.message_template = message_template.to_s.strip.presence || DEFAULT_MESSAGE_TEMPLATE
     normalize_message_locale
+    normalize_message_configuration
+  end
+
+  def normalize_message_configuration
     self.whatsapp_template_params = whatsapp_template_params.to_h
+    self.message_attachment = message_attachment.to_h
   end
 
   def normalize_message_locale
@@ -75,5 +82,11 @@ class KanbanBirthdayAutomation < ApplicationRecord
   def delivery_channels_are_supported
     unsupported = Array(delivery_channels) - CHANNELS
     errors.add(:delivery_channels, "contains unsupported channels: #{unsupported.join(', ')}") if unsupported.present?
+  end
+
+  def message_attachment_must_be_valid
+    return if KanbanAutomations::MessageAttachmentService.new(data: { message_attachment: message_attachment }).valid?
+
+    errors.add(:message_attachment, 'must be a valid image upload')
   end
 end

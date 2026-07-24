@@ -2,6 +2,7 @@ class KanbanAutomations::ActionService
   ACTION_HANDLERS = {
     'move_stage' => :move_stage,
     'assign_owner' => :assign_owner,
+    'assign_round_robin' => :assign_round_robin,
     'set_next_action' => :update_next_action,
     'set_field' => :update_field,
     'increment_field' => :increment_field,
@@ -44,6 +45,26 @@ class KanbanAutomations::ActionService
     owner = owner_id && @rule.account.users.find(owner_id)
     @card.update!(owner: owner)
     result('assign_owner', 'succeeded', owner_id: owner&.id)
+  end
+
+  def assign_round_robin(params)
+    @rule.with_lock do
+      owner = next_round_robin_owner(params)
+      @card.update!(owner: owner)
+      @rule.update!(round_robin_cursor: @rule.round_robin_cursor + 1)
+      result('assign_round_robin', 'succeeded', owner_id: owner.id)
+    end
+  end
+
+  def next_round_robin_owner(params)
+    owner_ids = Array(params[:owner_ids]).filter_map { |owner_id| Integer(owner_id, exception: false) }
+    raise ArgumentError, 'Round-robin needs at least one owner' if owner_ids.blank?
+
+    owners = @rule.account.users.where(id: owner_ids).index_by(&:id)
+    ordered_owners = owner_ids.filter_map { |owner_id| owners[owner_id] }
+    raise ActiveRecord::RecordNotFound, 'Round-robin owner was not found' unless ordered_owners.length == owner_ids.length
+
+    ordered_owners[@rule.round_robin_cursor % ordered_owners.length]
   end
 
   def update_next_action(params)

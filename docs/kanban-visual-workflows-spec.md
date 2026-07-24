@@ -163,6 +163,7 @@ O nó utiliza o mesmo serviço das regras comerciais legadas. Ações aceitas:
 
 - `move_stage`: exige `action_params.stage_id` do board;
 - `assign_owner`: recebe `action_params.owner_id` da conta, ou vazio para remover responsável;
+- `assign_round_robin`: recebe `action_params.owner_ids` em ordem; o cursor da regra é atualizado sob lock para distribuir execuções concorrentes sem repetir indevidamente o agente;
 - `set_next_action`: aceita tipo, data/hora e observação;
 - `set_field`: exige chave de campo existente e valor;
 - `increment_field`: exige campo personalizado numérico e incremento finito;
@@ -209,9 +210,9 @@ Erros de validação respondem `422` com `message` e `errors`. O frontend deve m
 
 `KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, lembretes, conexões e execuções. A aba Fluxos lista regras, oferece modelos em rascunho e abre o editor dedicado; Conexões cria URLs assinadas sem colocar segredos no canvas; Execuções permite diagnóstico, retry de falhas e cancelamento de esperas. Cadências existentes são legadas e não aparecem como opção no novo editor.
 
-`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas preserva toda a largura; clicar em nó ou conexão abre um drawer sobreposto, sem reduzir a área do fluxo.
+`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas preserva toda a largura; clicar em nó ou conexão abre um modal central sobreposto, sem reduzir a área do fluxo.
 
-O drawer configura o nó selecionado. Quando a validação local encontra um nó inválido, ele é destacado, selecionado e aberto para correção. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
+O modal configura o nó selecionado. O nó de mensagem oferece emoji, busca de variáveis, imagem de até 10 MB, preview e remoção da mídia. O upload persiste somente o `signed_id` do Active Storage e o backend aceita exclusivamente blobs de imagem válidos. A mesma estrutura de mensagem está disponível na automação anual de aniversário. Quando a validação local encontra um nó inválido, ele é destacado, selecionado e aberto para correção. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
 
 Para fluxos maiores, o minimapa só deve ser exibido quando o conteúdo extrapolar a área visível. Controles devem ter rótulo acessível, foco visível e uma alternativa sem arrastar: selecionar um nó, usar o inseridor `+` e escolher o próximo passo pelo teclado.
 

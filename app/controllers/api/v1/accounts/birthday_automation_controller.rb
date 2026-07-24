@@ -32,7 +32,8 @@ class Api::V1::Accounts::BirthdayAutomationController < Api::V1::Accounts::BaseC
       :send_time,
       :message_template,
       delivery_channels: [],
-      whatsapp_template_params: {}
+      whatsapp_template_params: {},
+      message_attachment: %i[signed_id filename content_type]
     )
   end
 
@@ -47,6 +48,7 @@ class Api::V1::Accounts::BirthdayAutomationController < Api::V1::Accounts::BaseC
       timezone_name: @automation.timezone_name,
       send_time: @automation.send_time,
       message_template: @automation.message_template,
+      message_attachment: @automation.message_attachment,
       whatsapp_template_params: @automation.whatsapp_template_params
     }
   end

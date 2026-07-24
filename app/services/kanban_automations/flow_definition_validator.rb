@@ -1,6 +1,17 @@
 # rubocop:disable Metrics/ClassLength -- Node validations are intentionally centralized with the board reference checks.
 class KanbanAutomations::FlowDefinitionValidator
   DATE_FIELD_TYPES = %w[date datetime].freeze
+  ACTION_REFERENCE_VALIDATORS = {
+    'move_stage' => :validate_action_stage,
+    'assign_owner' => :validate_action_owner,
+    'assign_round_robin' => :validate_action_round_robin,
+    'set_field' => :validate_action_field,
+    'increment_field' => :validate_action_field,
+    'enroll_cadence' => :validate_action_cadence,
+    'add_label' => :validate_action_label,
+    'remove_label' => :validate_action_label,
+    'add_note' => :validate_action_note
+  }.freeze
   def initialize(rule:)
     @rule = rule
   end
@@ -90,7 +101,8 @@ class KanbanAutomations::FlowDefinitionValidator
     valid_channel = KanbanAppointmentReminderRule::CHANNELS.include?(data[:channel].to_s)
     valid_message = data[:content].present? && data[:opt_in_attribute_key].present?
     valid_policy = message_policy_valid?(data)
-    add_error("Message node #{node[:id]} is incomplete") unless valid_channel && valid_message && valid_policy
+    valid_attachment = KanbanAutomations::MessageAttachmentService.new(data: data).valid?
+    add_error("Message node #{node[:id]} is incomplete") unless valid_channel && valid_message && valid_policy && valid_attachment
   end
 
   def message_policy_valid?(data)
@@ -210,12 +222,8 @@ class KanbanAutomations::FlowDefinitionValidator
   end
 
   def validate_action_references(node, action_name, params)
-    validate_action_stage(node, params) if action_name == 'move_stage'
-    validate_action_owner(node, params) if action_name == 'assign_owner'
-    validate_action_field(node, params) if %w[set_field increment_field].include?(action_name)
-    validate_action_cadence(node, params) if action_name == 'enroll_cadence'
-    validate_action_label(node, params) if %w[add_label remove_label].include?(action_name)
-    validate_action_note(node, params) if action_name == 'add_note'
+    validator = ACTION_REFERENCE_VALIDATORS[action_name]
+    send(validator, node, params) if validator
   end
 
   def validate_action_stage(node, params)
@@ -228,6 +236,12 @@ class KanbanAutomations::FlowDefinitionValidator
     return if params[:owner_id].blank? || rule.account.users.exists?(id: params[:owner_id])
 
     add_error("Action node #{node[:id]} references an agent outside this account")
+  end
+
+  def validate_action_round_robin(node, params)
+    owner_ids = Array(params[:owner_ids]).filter_map { |value| Integer(value, exception: false) }
+    valid_owners = owner_ids.present? && rule.account.users.where(id: owner_ids).count == owner_ids.uniq.count
+    add_error("Action node #{node[:id]} needs valid round-robin owners") unless valid_owners
   end
 
   def validate_action_field(node, params)

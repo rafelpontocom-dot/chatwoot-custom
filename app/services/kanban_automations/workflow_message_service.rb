@@ -45,7 +45,12 @@ class KanbanAutomations::WorkflowMessageService
       content_attributes: { kanban_workflow_message: true }
     }.tap do |params|
       params[:template_params] = whatsapp_template_params if whatsapp_template_params.present?
+      params[:attachments] = [message_attachment_signed_id] if message_attachment_signed_id.present?
     end
+  end
+
+  def message_attachment_signed_id
+    @message_attachment_signed_id ||= KanbanAutomations::MessageAttachmentService.new(data: data).signed_id
   end
 
   def whatsapp_template_params

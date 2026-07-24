@@ -72,6 +72,30 @@ RSpec.describe KanbanAutomations::ActionService do
     expect(result).to include(hash_including('action_name' => 'increment_field', 'amount' => 1))
   end
 
+  it 'assigns owners in the configured round-robin order' do
+    board = create(:kanban_board)
+    first_owner = create(:user, account: board.account)
+    second_owner = create(:user, account: board.account)
+    first_card = create(:kanban_card, account: board.account, kanban_board: board)
+    second_card = create(:kanban_card, account: board.account, kanban_board: board)
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      actions: [
+        { action_name: 'assign_round_robin', action_params: { owner_ids: [first_owner.id, second_owner.id] } }
+      ]
+    )
+
+    first_result = described_class.new(rule: rule, card: first_card).perform!
+    second_result = described_class.new(rule: rule, card: second_card).perform!
+
+    expect(first_card.reload.owner).to eq(first_owner)
+    expect(second_card.reload.owner).to eq(second_owner)
+    expect(first_result).to include(hash_including('action_name' => 'assign_round_robin', 'owner_id' => first_owner.id))
+    expect(second_result).to include(hash_including('action_name' => 'assign_round_robin', 'owner_id' => second_owner.id))
+  end
+
   it 'records an internal note only in the linked conversation' do
     conversation = create(:conversation)
     card = create(:kanban_card, :conversation_origin, conversation: conversation)
