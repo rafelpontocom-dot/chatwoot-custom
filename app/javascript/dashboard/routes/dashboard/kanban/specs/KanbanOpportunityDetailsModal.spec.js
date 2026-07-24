@@ -282,7 +282,7 @@ const mountModal = async ({
 };
 
 const subjectInput = wrapper =>
-  wrapper.find('[data-testid="kanban-opportunity-subject"]');
+  wrapper.find('[data-testid="kanban-opportunity-header-subject"]');
 const descriptionInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-description"]');
 const amountInput = wrapper =>
@@ -397,7 +397,7 @@ describe('KanbanOpportunityDetailsModal', () => {
   it('renders a responsive two-column layout', async () => {
     const wrapper = await mountModal();
 
-    expect(wrapper.text()).toContain('Edit opportunity in Sales funnel');
+    expect(wrapper.text()).toContain('Enterprise expansion');
     expect(wrapper.classes()).toEqual(
       expect.arrayContaining([
         'mx-auto',
@@ -417,6 +417,10 @@ describe('KanbanOpportunityDetailsModal', () => {
   it('renders title, compact description, and amount controls', async () => {
     const wrapper = await mountModal();
 
+    expect(wrapper.find('h2').text()).toContain('Enterprise expansion');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-edit-subject"]')
+      .trigger('click');
     expect(subjectInput(wrapper).classes()).toContain('w-full');
     expect(descriptionInput(wrapper).classes()).toEqual(
       expect.arrayContaining(['max-w-full', 'w-full', 'min-h-20'])
@@ -432,12 +436,9 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
 
     expect(group.exists()).toBe(true);
-    expect(
-      group.find('[data-testid="kanban-opportunity-subject"]').exists()
-    ).toBe(true);
     await group.find('button').trigger('click');
     expect(
-      group.find('[data-testid="kanban-opportunity-subject"]').element
+      group.find('[data-testid="kanban-opportunity-description"]').element
         .parentElement.parentElement.style.display
     ).toBe('none');
   });
@@ -516,7 +517,7 @@ describe('KanbanOpportunityDetailsModal', () => {
   it('loads board-specific custom fields', async () => {
     const wrapper = await mountModal();
 
-    expect(wrapper.text()).toContain('Custom fields');
+    expect(wrapper.text()).not.toContain('Custom fields');
     expect(customFieldInput(wrapper, 'consulta_realizada').element.value).toBe(
       'Sim'
     );
@@ -1117,4 +1118,12 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(wrapper.emitted('close')).toHaveLength(1);
   });
+});
+it('does not load or display the legacy follow-up cadence in opportunity details', async () => {
+  const wrapper = await mountModal();
+
+  expect(KanbanBoardsAPI.getCadences).not.toHaveBeenCalled();
+  expect(
+    wrapper.find('[data-testid="kanban-opportunity-cadence"]').exists()
+  ).toBe(false);
 });

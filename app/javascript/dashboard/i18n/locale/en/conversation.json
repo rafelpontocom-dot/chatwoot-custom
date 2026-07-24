@@ -436,7 +436,9 @@
       "SAVE": "Save",
       "SAVING": "Saving...",
       "UPDATE_ERROR": "Could not update opportunity",
-      "UPDATED": "Opportunity updated"
+      "UPDATED": "Opportunity updated",
+      "GENERAL_FIELDS": "Other fields",
+      "MARKETING_FIELDS": "Marketing"
     },
     "SHARED_FILES": {
       "EMPTY": "No attachments yet",

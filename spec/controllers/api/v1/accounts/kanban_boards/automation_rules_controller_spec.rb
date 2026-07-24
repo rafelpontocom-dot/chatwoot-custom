@@ -56,6 +56,7 @@ RSpec.describe 'Kanban automation rules API', type: :request do
 
     expect(response).to have_http_status(:created)
     expect(response.parsed_body['flow_definition']).to eq(flow_definition.deep_stringify_keys)
+    expect(response.parsed_body['version']).to eq(1)
   end
 
   it 'rejects rule configuration for agents' do

@@ -46,6 +46,24 @@ RSpec.describe KanbanAutomations::WorkflowMessageService do
     )
   end
 
+  it 'renders supported contact, opportunity, and custom field variables' do
+    card.update!(
+      subject: 'Avaliação inicial',
+      amount_cents: 15_900
+    )
+    card.contact.update!(name: 'Ana Paula')
+    allow(card).to receive(:custom_field_values).and_return({ 'origem' => 'Google' })
+    service = build_service(
+      {
+        content: 'Olá {{contact_name}}, {{opportunity_subject}}: {{opportunity_amount}} via {{field.origem}}.'
+      }
+    )
+
+    expect(service.send(:rendered_content)).to eq(
+      'Olá Ana Paula, Avaliação inicial: 159.00 via Google.'
+    )
+  end
+
   def build_service(data, now: self.now)
     described_class.new(
       card: card,

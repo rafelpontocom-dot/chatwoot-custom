@@ -579,6 +579,34 @@ describe('KanbanBoardSettings', () => {
     );
   });
 
+  it('shows a reorderable compact card preview in the field manager', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-add-custom-field"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-custom-field-label"]')
+      .setValue('Procedimento');
+    await wrapper
+      .find('[data-testid="kanban-settings-custom-field-show-on-card"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-compact-card-layout"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-compact-card-preview"]')
+        .text()
+    ).toContain('Procedimento');
+  });
+
   it('keeps the custom field row mounted while deriving its key from the label', async () => {
     const { wrapper } = await mountSettings();
 

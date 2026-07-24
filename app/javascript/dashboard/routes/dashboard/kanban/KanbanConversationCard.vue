@@ -302,7 +302,7 @@ const moveToStage = event => {
 
       <div
         v-if="nextActionStatusConfig || amountLabel || hasConversation"
-        class="mt-1 flex min-w-0 items-center justify-between gap-2"
+        class="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1"
       >
         <div
           v-if="nextActionStatusConfig"
@@ -332,7 +332,7 @@ const moveToStage = event => {
           v-if="hasConversation"
           type="button"
           data-testid="kanban-card-open-conversation"
-          class="no-drag flex size-8 shrink-0 items-center justify-center rounded-md text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          class="no-drag flex size-8 shrink-0 items-center justify-center justify-self-start rounded-md text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
           :title="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
           @click.stop="openConversation"
@@ -343,7 +343,7 @@ const moveToStage = event => {
         <select
           v-if="moveStageOptions.length"
           data-testid="kanban-card-move-stage"
-          class="no-drag h-8 max-w-28 rounded-md border border-n-weak bg-n-surface-1 px-1.5 text-xs text-n-slate-11 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          class="no-drag h-8 max-w-28 justify-self-end rounded-md border border-n-weak bg-n-surface-1 px-1.5 text-xs text-n-slate-11 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           :aria-label="t('KANBAN.CARD.MOVE_TO_STAGE')"
           :disabled="!!activeActionKey"
           @click.stop

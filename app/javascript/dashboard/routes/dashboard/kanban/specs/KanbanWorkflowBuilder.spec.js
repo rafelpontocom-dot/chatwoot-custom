@@ -36,7 +36,7 @@ describe('KanbanWorkflowBuilder', () => {
     ]);
   });
 
-  it('selects and removes a connection from the inspector', () => {
+  it('opens a connection pop-up and removes the selected connection', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
         modelValue: {
@@ -49,7 +49,11 @@ describe('KanbanWorkflowBuilder', () => {
       },
     });
 
-    wrapper.vm.onEdgeClick({ edge: { id: 'trigger-end' } });
+    await wrapper.vm.onEdgeClick({ edge: { id: 'trigger-end' } });
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-connection-dialog"]').exists()
+    ).toBe(true);
     wrapper.vm.removeSelectedEdge();
 
     expect(wrapper.vm.edges).toEqual([]);
@@ -71,9 +75,94 @@ describe('KanbanWorkflowBuilder', () => {
       },
     });
 
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-drawer"]').exists()
+    ).toBe(true);
     expect(wrapper.text()).toContain(
       'KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ARCHIVE_CARD'
     );
+  });
+
+  it('focuses the invalid step so its configuration can be corrected', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [
+            { id: 'trigger', type: 'trigger', data: {} },
+            {
+              id: 'message',
+              type: 'send_message',
+              data: { content: '', opt_in_attribute_key: '' },
+            },
+          ],
+          edges: [
+            { id: 'trigger-message', source: 'trigger', target: 'message' },
+          ],
+        },
+        invalidNodeIds: ['message'],
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.selectedNode.id).toBe('message');
+    expect(wrapper.vm.selectedNode.data.invalid).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-drawer"]').exists()
+    ).toBe(true);
+  });
+
+  it('closes the configuration drawer with Escape', () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [{ id: 'trigger', type: 'trigger', data: {} }],
+          edges: [],
+        },
+      },
+    });
+    const preventDefault = vi.fn();
+
+    wrapper.vm.handleInspectorKeydown({ key: 'Escape', preventDefault });
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(wrapper.vm.selectedNode).toBeUndefined();
+  });
+
+  it('inserts emoji and opportunity variables in a message node', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [
+            {
+              id: 'message',
+              type: 'send_message',
+              data: {
+                channel: 'whatsapp',
+                content: 'Olá ',
+                opt_in_attribute_key: 'marketing_messages_opt_in',
+                quiet_hours: {},
+                whatsapp_template_params: {},
+              },
+            },
+          ],
+          edges: [],
+        },
+        customFields: [{ key: 'origem', label: 'Origem', fieldType: 'text' }],
+      },
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-message-emoji-button"]').exists()
+    ).toBe(true);
+    await wrapper
+      .find('[data-testid="kanban-message-variable-button"]')
+      .trigger('click');
+    expect(wrapper.text()).toContain('Origem');
+
+    wrapper.vm.insertMessageText('{{field.origem}}');
+
+    expect(wrapper.vm.selectedNode.data.content).toContain('{{field.origem}}');
   });
 
   it('does not expose the legacy cadence action in the visual builder', () => {
@@ -165,5 +254,37 @@ describe('KanbanWorkflowBuilder', () => {
     expect(wrapper.text()).toContain(
       'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME'
     );
+  });
+
+  it('does not persist an empty quiet-hours configuration on a message node', () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [
+            {
+              id: 'message',
+              type: 'send_message',
+              data: {
+                channel: 'whatsapp',
+                content: 'Olá',
+                opt_in_attribute_key: 'marketing_messages_opt_in',
+                quiet_hours: {
+                  start: '',
+                  end: '',
+                  timezone: 'America/Sao_Paulo',
+                },
+              },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.emitFlow();
+
+    expect(
+      wrapper.emitted('update:modelValue').at(-1)[0].nodes[0].data
+    ).not.toHaveProperty('quiet_hours');
   });
 });

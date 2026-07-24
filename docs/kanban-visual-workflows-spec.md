@@ -97,7 +97,7 @@ O backend não confia no canvas para validar autorização, referências nem reg
 
 ## Contrato De Governança
 
-Cada execução recebe um snapshot da regra no início. Uma atualização, portanto, não modifica passos já agendados. Na edição, o administrador pode cancelar todas as execuções `waiting`; quando não cancela, elas terminam com o snapshot original. A publicação formal de versões e rascunhos permanece uma evolução de produto, não uma dependência de segurança.
+Cada execução recebe um snapshot da regra no início. Uma atualização, portanto, não modifica passos já agendados. Na edição, o administrador pode cancelar todas as execuções `waiting`; quando não cancela, elas terminam com o snapshot original. A API expõe uma versão humana, derivada do optimistic locking, e o canvas inicia em rascunho até ser publicado.
 
 | Conceito           | Regra técnica                                                                                                                                                         |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -203,15 +203,15 @@ Os endpoints existentes de regras recebem e devolvem `flow_definition`:
 - `GET|POST|PATCH|DELETE /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_connections`
 - `POST /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_connections/:id/reset_secret`
 
-Erros de validação respondem `422` com `message` e `errors`. O frontend deve mostrar o erro sem limpar o canvas do usuário.
+Erros de validação respondem `422` com `message` e `errors`. O frontend deve mostrar o erro sem limpar o canvas do usuário; quando a mensagem identifica um `node_id`, deve selecionar, destacar e abrir esse nó.
 
 ## Frontend
 
 `KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, lembretes, conexões e execuções. A aba Fluxos lista regras, oferece modelos em rascunho e abre o editor dedicado; Conexões cria URLs assinadas sem colocar segredos no canvas; Execuções permite diagnóstico, retry de falhas e cancelamento de esperas. Cadências existentes são legadas e não aparecem como opção no novo editor.
 
-`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo e resumo. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas e o painel de propriedades permanecem lado a lado em telas largas e empilham em telas menores.
+`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas preserva toda a largura; clicar em nó ou conexão abre um drawer sobreposto, sem reduzir a área do fluxo.
 
-O painel lateral configura o nó selecionado. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
+O drawer configura o nó selecionado. Quando a validação local encontra um nó inválido, ele é destacado, selecionado e aberto para correção. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
 
 Para fluxos maiores, o minimapa só deve ser exibido quando o conteúdo extrapolar a área visível. Controles devem ter rótulo acessível, foco visível e uma alternativa sem arrastar: selecionar um nó, usar o inseridor `+` e escolher o próximo passo pelo teclado.
 

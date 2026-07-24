@@ -54,6 +54,10 @@ const editSubject = ref('');
 const editStageId = ref('');
 const editDueAt = ref('');
 const editLabelTitles = ref([]);
+const editCustomFieldDefinitions = ref([]);
+const editCustomFieldSections = ref([]);
+const editCustomFieldValues = ref({});
+const expandedEditFieldGroups = ref({});
 const editError = ref('');
 const isLoadingEditStages = ref(false);
 const isSavingEdit = ref(false);
@@ -97,6 +101,70 @@ const canSaveEdit = computed(
 const hasOpenLocalForm = computed(
   () => isFormOpen.value || editingCardId.value !== null
 );
+
+const customFieldLayout = definition => definition.layout || {};
+const customFieldSectionKey = definition =>
+  customFieldLayout(definition).section || 'details';
+const customFieldGroupKey = definition =>
+  customFieldLayout(definition).group || 'ungrouped';
+const customFieldType = definition =>
+  definition.fieldType || definition.field_type || 'text';
+const isEditCustomFieldVisible = definition => {
+  const condition = definition.condition || {};
+  const fieldKey = condition.fieldKey || condition.field_key;
+  if (!fieldKey) return true;
+
+  return (
+    String(editCustomFieldValues.value[fieldKey] ?? '') ===
+    String(condition.equals ?? '')
+  );
+};
+const customFieldSectionLabel = sectionKey => {
+  if (sectionKey === 'details') {
+    return t('CONVERSATION_SIDEBAR.KANBAN.GENERAL_FIELDS');
+  }
+  if (sectionKey === 'marketing') {
+    return t('CONVERSATION_SIDEBAR.KANBAN.MARKETING_FIELDS');
+  }
+
+  return sectionKey.replace(/[_-]+/g, ' ');
+};
+const editCustomFieldGroups = computed(() => {
+  const sectionsByKey = new Map(
+    editCustomFieldSections.value.map(section => [section.key, section])
+  );
+  const groups = new Map();
+
+  [...editCustomFieldDefinitions.value]
+    .filter(isEditCustomFieldVisible)
+    .sort(
+      (firstDefinition, secondDefinition) =>
+        Number(customFieldLayout(firstDefinition).position || 0) -
+        Number(customFieldLayout(secondDefinition).position || 0)
+    )
+    .forEach(definition => {
+      const sectionKey = customFieldSectionKey(definition);
+      const groupKey = customFieldGroupKey(definition);
+      const id = `${sectionKey}:${groupKey}`;
+      const section = sectionsByKey.get(sectionKey);
+      const configuredGroup = section?.groups?.find(
+        group => group.key === groupKey
+      );
+      const group = groups.get(id) || {
+        id,
+        label:
+          configuredGroup?.label ||
+          section?.label ||
+          customFieldSectionLabel(sectionKey),
+        definitions: [],
+      };
+
+      group.definitions.push(definition);
+      groups.set(id, group);
+    });
+
+  return [...groups.values()];
+});
 
 const contactId = computed(() => currentChat.value?.meta?.sender?.id);
 const inboxId = computed(
@@ -194,6 +262,10 @@ const resetEditState = () => {
   editStageId.value = '';
   editDueAt.value = '';
   editLabelTitles.value = [];
+  editCustomFieldDefinitions.value = [];
+  editCustomFieldSections.value = [];
+  editCustomFieldValues.value = {};
+  expandedEditFieldGroups.value = {};
   editError.value = '';
   isLoadingEditStages.value = false;
   isSavingEdit.value = false;
@@ -349,6 +421,14 @@ const loadEditStages = async boardId => {
     }
 
     editStages.value = response.data?.stages || [];
+    editCustomFieldDefinitions.value =
+      response.data?.customFieldDefinitions ||
+      response.data?.custom_field_definitions ||
+      [];
+    editCustomFieldSections.value =
+      response.data?.customFieldSections ||
+      response.data?.custom_field_sections ||
+      [];
   } catch (error) {
     if (isAbortError(error) || editStagesRequestId.value !== currentRequestId) {
       return;
@@ -469,6 +549,10 @@ const startEdit = async card => {
   editStageId.value = cardStageId(card) || '';
   editDueAt.value = formatDateTimeInput(card.due_at);
   editLabelTitles.value = (card.labels || []).map(label => label.title);
+  editCustomFieldValues.value = {
+    ...(card.customFieldValues || card.custom_field_values || {}),
+  };
+  expandedEditFieldGroups.value = {};
   editError.value = '';
   store.dispatch('labels/get');
   await loadEditStages(cardBoardId(card));
@@ -539,6 +623,7 @@ const submitEdit = async card => {
         subject: editSubject.value.trim(),
         due_at: editDueAtPayload(),
         labels: editLabelTitles.value,
+        custom_field_values: editCustomFieldValues.value,
       }
     );
 
@@ -564,6 +649,26 @@ const submitEdit = async card => {
     }
   }
 };
+
+const isEditFieldGroupExpanded = groupId =>
+  expandedEditFieldGroups.value[groupId] === true;
+const toggleEditFieldGroup = groupId => {
+  expandedEditFieldGroups.value = {
+    ...expandedEditFieldGroups.value,
+    [groupId]: !isEditFieldGroupExpanded(groupId),
+  };
+};
+const editCustomFieldValue = definition =>
+  editCustomFieldValues.value[definition.key] ?? '';
+const updateEditCustomField = (card, definition, value) => {
+  editCustomFieldValues.value = {
+    ...editCustomFieldValues.value,
+    [definition.key]: value,
+  };
+  submitEdit(card);
+};
+const selectedMultiselectValues = event =>
+  Array.from(event.target.selectedOptions).map(option => option.value);
 
 const onAddEditLabel = (card, label) => {
   const title = label?.title || label;
@@ -874,6 +979,140 @@ onBeforeUnmount(() => {
               @change="submitEdit(card)"
             />
           </label>
+
+          <section
+            v-for="group in editCustomFieldGroups"
+            :key="group.id"
+            :data-testid="`kanban-opportunity-field-group-${group.id.replace(':', '-')}`"
+            class="overflow-hidden rounded-md border border-n-weak bg-n-surface-2"
+          >
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left outline-none hover:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+              :aria-expanded="isEditFieldGroupExpanded(group.id)"
+              @click="toggleEditFieldGroup(group.id)"
+            >
+              <span
+                class="min-w-0 truncate text-xs font-medium text-n-slate-12"
+              >
+                {{ group.label }}
+              </span>
+              <span
+                class="flex shrink-0 items-center gap-2 text-xs text-n-slate-10"
+              >
+                {{ group.definitions.length }}
+                <i
+                  class="size-4"
+                  :class="
+                    isEditFieldGroupExpanded(group.id)
+                      ? 'i-lucide-chevron-up'
+                      : 'i-lucide-chevron-down'
+                  "
+                />
+              </span>
+            </button>
+            <div
+              v-if="isEditFieldGroupExpanded(group.id)"
+              class="grid gap-3 border-t border-n-weak bg-n-surface-1 p-3"
+            >
+              <label
+                v-for="definition in group.definitions"
+                :key="definition.key"
+                class="grid gap-1"
+              >
+                <span class="text-xs font-medium text-n-slate-11">
+                  {{ definition.label }}
+                </span>
+                <select
+                  v-if="customFieldType(definition) === 'select'"
+                  :value="editCustomFieldValue(definition)"
+                  :data-testid="`kanban-opportunity-field-${definition.key}`"
+                  class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
+                  @change="
+                    updateEditCustomField(card, definition, $event.target.value)
+                  "
+                >
+                  <option value="" />
+                  <option
+                    v-for="option in definition.options || []"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+                <select
+                  v-else-if="customFieldType(definition) === 'multiselect'"
+                  multiple
+                  :value="editCustomFieldValue(definition)"
+                  :data-testid="`kanban-opportunity-field-${definition.key}`"
+                  class="min-h-20 rounded-md border border-n-strong bg-n-alpha-1 px-2 py-1 text-sm text-n-slate-12"
+                  @change="
+                    updateEditCustomField(
+                      card,
+                      definition,
+                      selectedMultiselectValues($event)
+                    )
+                  "
+                >
+                  <option
+                    v-for="option in definition.options || []"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+                <textarea
+                  v-else-if="customFieldType(definition) === 'textarea'"
+                  :value="editCustomFieldValue(definition)"
+                  rows="2"
+                  :data-testid="`kanban-opportunity-field-${definition.key}`"
+                  class="min-h-16 rounded-md border border-n-strong bg-n-alpha-1 px-2 py-1.5 text-sm text-n-slate-12"
+                  @change="
+                    updateEditCustomField(card, definition, $event.target.value)
+                  "
+                />
+                <input
+                  v-else-if="customFieldType(definition) === 'boolean'"
+                  type="checkbox"
+                  :checked="Boolean(editCustomFieldValue(definition))"
+                  :data-testid="`kanban-opportunity-field-${definition.key}`"
+                  class="size-4 rounded border-n-strong text-n-brand"
+                  @change="
+                    updateEditCustomField(
+                      card,
+                      definition,
+                      $event.target.checked
+                    )
+                  "
+                />
+                <input
+                  v-else
+                  :value="editCustomFieldValue(definition)"
+                  :type="
+                    ['integer', 'decimal', 'currency', 'formula'].includes(
+                      customFieldType(definition)
+                    )
+                      ? 'number'
+                      : customFieldType(definition) === 'date'
+                        ? 'date'
+                        : customFieldType(definition) === 'datetime'
+                          ? 'datetime-local'
+                          : customFieldType(definition) === 'url'
+                            ? 'url'
+                            : 'text'
+                  "
+                  :disabled="customFieldType(definition) === 'formula'"
+                  :data-testid="`kanban-opportunity-field-${definition.key}`"
+                  class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12 disabled:opacity-70"
+                  @change="
+                    updateEditCustomField(card, definition, $event.target.value)
+                  "
+                />
+              </label>
+            </div>
+          </section>
 
           <label class="flex flex-col gap-2">
             <span class="text-xs font-medium text-n-slate-11">

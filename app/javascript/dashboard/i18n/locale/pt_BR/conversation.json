@@ -416,7 +416,9 @@
       "SAVE": "Salvar",
       "SAVING": "Salvando...",
       "UPDATE_ERROR": "Não foi possível atualizar a oportunidade",
-      "UPDATED": "Oportunidade atualizada"
+      "UPDATED": "Oportunidade atualizada",
+      "GENERAL_FIELDS": "Outros campos",
+      "MARKETING_FIELDS": "Marketing"
     },
     "SHARED_FILES": {
       "EMPTY": "Nenhum anexo ainda",

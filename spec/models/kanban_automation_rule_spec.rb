@@ -1,6 +1,16 @@
 require 'rails_helper'
 
 RSpec.describe KanbanAutomationRule do
+  it 'exposes a human-readable version from optimistic locking' do
+    rule = create(:kanban_automation_rule)
+
+    expect(rule.version_number).to eq(1)
+
+    rule.update!(description: 'Revisada pelo administrador')
+
+    expect(rule.version_number).to eq(2)
+  end
+
   it 'accepts board-scoped conditions and internal actions' do
     board = create(
       :kanban_board,

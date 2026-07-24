@@ -42,6 +42,7 @@ const testResult = ref(null);
 const isLoadingTestCards = ref(false);
 const isTestingRule = ref(false);
 const testError = ref('');
+const invalidNodeIds = ref([]);
 const isLoadingBirthday = ref(false);
 const isSavingBirthday = ref(false);
 const birthdayError = ref('');
@@ -79,7 +80,7 @@ const form = reactive({
   name: '',
   description: '',
   eventName: 'kanban.card.stage_changed',
-  active: true,
+  active: false,
   reentryEnabled: false,
   cancelWaitingExecutions: false,
   stageId: '',
@@ -213,6 +214,24 @@ const executionSummary = computed(() =>
     ).length,
   }))
 );
+const automationHealth = computed(() => {
+  const now = Date.now();
+  const failedCount = executions.value.filter(
+    execution => execution.status === 'failed'
+  ).length;
+  const overdueCount = executions.value.filter(execution => {
+    if (execution.status !== 'waiting' || !execution.scheduledAt) return false;
+
+    const scheduledAt = new Date(execution.scheduledAt).getTime();
+    return Number.isFinite(scheduledAt) && scheduledAt < now;
+  }).length;
+
+  return {
+    failedCount,
+    overdueCount,
+    needsAttention: failedCount > 0 || overdueCount > 0,
+  };
+});
 
 const flowTemplate = ({ message, waitForResponse = false }) => {
   const nodes = [
@@ -331,6 +350,11 @@ const waitingExecutionsForSelectedRule = computed(() =>
       execution.status === 'waiting'
   )
 );
+const saveFlowLabel = computed(() =>
+  form.active
+    ? t('KANBAN.AUTOMATIONS_WORKSPACE.PUBLISH')
+    : t('KANBAN.AUTOMATIONS_WORKSPACE.SAVE_DRAFT')
+);
 const opportunityStatusOptions = computed(() => [
   {
     value: 'open',
@@ -425,7 +449,7 @@ const resetForm = () => {
   form.name = '';
   form.description = '';
   form.eventName = 'kanban.card.stage_changed';
-  form.active = true;
+  form.active = false;
   form.reentryEnabled = false;
   form.cancelWaitingExecutions = false;
   form.stageId = '';
@@ -827,6 +851,36 @@ const actionParams = action => {
   }
 };
 
+const positiveNumber = value =>
+  Number.isFinite(Number(value)) && Number(value) > 0;
+const validMessagePolicy = data => {
+  const frequencyLimit = data.frequency_limit_hours;
+  const validFrequency =
+    frequencyLimit === '' ||
+    frequencyLimit === undefined ||
+    (positiveNumber(frequencyLimit) && Number(frequencyLimit) <= 24 * 30);
+  const quietHours = data.quiet_hours || {};
+  const hasQuietHours = quietHours.start || quietHours.end;
+  const validQuietHours =
+    !hasQuietHours ||
+    (quietHours.start &&
+      quietHours.end &&
+      quietHours.start !== quietHours.end &&
+      quietHours.timezone);
+
+  return validFrequency && validQuietHours;
+};
+const validConditionPaths = nodeId => {
+  const handles = (form.flowDefinition?.edges || [])
+    .filter(edge => edge.source === nodeId)
+    .map(edge => edge.sourceHandle);
+
+  return (
+    handles.filter(handle => handle === 'yes').length === 1 &&
+    handles.filter(handle => handle === 'no').length === 1
+  );
+};
+
 const visualFlowValidationError = () => {
   const nodes = form.flowDefinition?.nodes || [];
   if (!nodes.length) return null;
@@ -835,10 +889,31 @@ const visualFlowValidationError = () => {
     const data = node.data || {};
 
     if (node.type === 'send_message') {
-      return !data.content?.trim() || !data.opt_in_attribute_key?.trim();
+      return (
+        !['whatsapp', 'email'].includes(data.channel) ||
+        !data.content?.trim() ||
+        !data.opt_in_attribute_key?.trim() ||
+        !validMessagePolicy(data)
+      );
     }
+    if (node.type === 'delay') return !positiveNumber(data.delay_hours);
     if (node.type === 'wait_until_field') return !data.field_key;
-    if (node.type === 'condition') return !data.field_key;
+    if (node.type === 'wait_for_response') {
+      return !positiveNumber(data.timeout_hours);
+    }
+    if (node.type === 'wait_for_business_hours') {
+      return (
+        !Array.isArray(data.weekdays) ||
+        !data.weekdays.length ||
+        !data.start_time ||
+        !data.end_time ||
+        data.start_time >= data.end_time ||
+        !data.timezone
+      );
+    }
+    if (node.type === 'condition') {
+      return !data.field_key || !validConditionPaths(node.id);
+    }
     if (node.type === 'webhook') return !data.connection_id;
     if (node.type !== 'action') return false;
 
@@ -853,14 +928,41 @@ const visualFlowValidationError = () => {
   if (!invalidNode) return null;
 
   const validationKey = {
-    send_message: 'MESSAGE',
+    send_message: validMessagePolicy(invalidNode.data || {})
+      ? 'MESSAGE'
+      : 'MESSAGE_POLICY',
+    delay: 'DELAY',
     wait_until_field: 'DATE_WAIT',
-    condition: 'CONDITION',
+    wait_for_response: 'RESPONSE_WAIT',
+    wait_for_business_hours: 'BUSINESS_HOURS',
+    condition: validConditionPaths(invalidNode.id)
+      ? 'CONDITION'
+      : 'CONDITION_PATH',
     webhook: 'WEBHOOK',
     action: 'ACTION',
   }[invalidNode.type];
 
-  return t(`KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.${validationKey}`);
+  return {
+    nodeId: invalidNode.id,
+    message: {
+      MESSAGE: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.MESSAGE'),
+      MESSAGE_POLICY: t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.MESSAGE_POLICY'
+      ),
+      DELAY: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.DELAY'),
+      DATE_WAIT: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.DATE_WAIT'),
+      RESPONSE_WAIT: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.RESPONSE_WAIT'),
+      BUSINESS_HOURS: t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.BUSINESS_HOURS'
+      ),
+      CONDITION: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.CONDITION'),
+      CONDITION_PATH: t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.CONDITION_PATH'
+      ),
+      WEBHOOK: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.WEBHOOK'),
+      ACTION: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.ACTION'),
+    }[validationKey],
+  };
 };
 
 const payload = () => ({
@@ -896,17 +998,26 @@ const payload = () => ({
   },
 });
 
+const invalidNodeIdFromApiError = message => {
+  const nodeId = message?.match(/\bnode\s+([^\s]+)/i)?.[1];
+  return form.flowDefinition?.nodes?.some(node => node.id === nodeId)
+    ? nodeId
+    : null;
+};
+
 const save = async () => {
   if (!form.name.trim() || isSaving.value) return;
 
   const validationError = visualFlowValidationError();
   if (validationError) {
-    error.value = validationError;
-    useAlert(validationError);
+    invalidNodeIds.value = [validationError.nodeId];
+    error.value = validationError.message;
+    useAlert(validationError.message);
     return;
   }
 
   isSaving.value = true;
+  invalidNodeIds.value = [];
   error.value = '';
   try {
     const response = selectedRuleId.value
@@ -925,13 +1036,20 @@ const save = async () => {
     activeTab.value = 'flows';
     useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_SUCCESS'));
   } catch (saveError) {
-    error.value =
+    const message =
       saveError?.response?.data?.message ||
       t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_ERROR');
+    const invalidNodeId = invalidNodeIdFromApiError(message);
+    if (invalidNodeId) invalidNodeIds.value = [invalidNodeId];
+    error.value = message;
     useAlert(error.value);
   } finally {
     isSaving.value = false;
   }
+};
+
+const clearFlowValidation = () => {
+  invalidNodeIds.value = [];
 };
 
 const load = async () => {
@@ -1014,7 +1132,7 @@ onMounted(load);
           type="button"
           data-testid="kanban-automations-save-flow"
           icon="i-lucide-save"
-          :label="t('KANBAN.SETTINGS.SAVE')"
+          :label="saveFlowLabel"
           color="blue"
           size="sm"
           :is-loading="isSaving"
@@ -1251,6 +1369,8 @@ onMounted(load);
         :condition-fields="conditionFields"
         :date-fields="dateFields"
         :connections="connections"
+        :invalid-node-ids="invalidNodeIds"
+        @clear-validation="clearFlowValidation"
       />
       <p
         v-if="error"
@@ -1351,8 +1471,17 @@ onMounted(load);
                 </p>
                 <p class="m-0 mt-1 text-xs text-n-slate-11">
                   {{
-                    eventOptions.find(item => item.value === rule.eventName)
-                      ?.label
+                    rule.version
+                      ? t('KANBAN.AUTOMATIONS_WORKSPACE.EVENT_VERSION', {
+                          event: eventOptions.find(
+                            item => item.value === rule.eventName
+                          )?.label,
+                          version: t('KANBAN.AUTOMATIONS_WORKSPACE.VERSION', {
+                            version: rule.version,
+                          }),
+                        })
+                      : eventOptions.find(item => item.value === rule.eventName)
+                          ?.label
                   }}
                 </p>
               </button>
@@ -1687,7 +1816,7 @@ onMounted(load);
               <Button
                 type="button"
                 icon="i-lucide-save"
-                :label="t('KANBAN.ACTIONS.SAVE')"
+                :label="t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SAVE')"
                 color="blue"
                 size="sm"
                 :is-loading="isSavingConnection"
@@ -1854,6 +1983,44 @@ onMounted(load);
               </dd>
             </div>
           </dl>
+          <section
+            data-testid="kanban-automations-health"
+            class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-n-weak pb-3 text-xs"
+          >
+            <p class="m-0 font-medium text-n-slate-12">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.TITLE') }}
+            </p>
+            <span
+              class="rounded-full px-2 py-1 font-medium"
+              :class="
+                automationHealth.needsAttention
+                  ? 'bg-n-ruby-3 text-n-ruby-11'
+                  : 'bg-n-green-3 text-n-green-11'
+              "
+            >
+              {{
+                automationHealth.needsAttention
+                  ? t(
+                      'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.ATTENTION'
+                    )
+                  : t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.HEALTHY')
+              }}
+            </span>
+            <p v-if="automationHealth.failedCount" class="m-0 text-n-ruby-11">
+              {{
+                t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.FAILED', {
+                  count: automationHealth.failedCount,
+                })
+              }}
+            </p>
+            <p v-if="automationHealth.overdueCount" class="m-0 text-n-ruby-11">
+              {{
+                t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.OVERDUE', {
+                  count: automationHealth.overdueCount,
+                })
+              }}
+            </p>
+          </section>
           <article
             v-for="execution in executions"
             :key="execution.id"

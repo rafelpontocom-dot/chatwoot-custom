@@ -122,6 +122,7 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
           'origin' => 'conversation',
           'subject' => 'Maria Silva - Sales Inbox',
           'due_at' => card.due_at.iso8601,
+          'custom_field_values' => {},
           'labels' => [
             { 'id' => label.id, 'title' => 'urgente', 'color' => '#ff0000', 'description' => nil }
           ],
@@ -143,6 +144,22 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
       card_payload = response.parsed_body['payload'].first
       expect(card_payload['due_at']).to be_nil
       expect(card_payload['labels']).to eq([])
+    end
+
+    it 'includes custom field values for inline opportunity updates' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          { key: 'procedimento', label: 'Procedimento', field_type: 'text' }
+        ]
+      )
+      card = create_conversation_card
+      card.update!(custom_field_values: { 'procedimento' => 'Avaliação' })
+
+      request_conversation_kanban_cards
+
+      expect(response.parsed_body['payload'].first['custom_field_values']).to eq(
+        { 'procedimento' => 'Avaliação' }
+      )
     end
 
     it 'does not run label queries per linked card' do

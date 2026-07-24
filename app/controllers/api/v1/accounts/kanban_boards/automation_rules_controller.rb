@@ -135,6 +135,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       description: rule.description,
       event_name: rule.event_name,
       active: rule.active,
+      version: rule.version_number,
       reentry_enabled: rule.reentry_enabled,
       position: rule.position,
       conditions: rule.conditions,

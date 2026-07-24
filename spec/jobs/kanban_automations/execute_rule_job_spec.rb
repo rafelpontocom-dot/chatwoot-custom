@@ -59,7 +59,7 @@ RSpec.describe KanbanAutomations::ExecuteRuleJob do
     execution = rule.kanban_automation_executions.sole
     expect(execution).to have_attributes(status: 'waiting', workflow_state: { 'next_node_id' => 'end' })
     expect(execution.automation_snapshot).to include(
-      'version' => rule.lock_version,
+      'version' => rule.version_number,
       'flow_definition' => rule.flow_definition
     )
     expect(KanbanAutomations::ContinueWorkflowJob).to have_been_enqueued.with(execution.id, card.id)

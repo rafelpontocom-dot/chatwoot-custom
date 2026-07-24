@@ -53,7 +53,24 @@ class KanbanAutomations::WorkflowMessageService
   end
 
   def rendered_content
-    data.fetch('content').to_s.gsub('{{contact_name}}', card.contact.name.to_s)
+    data.fetch('content').to_s.gsub(/\{\{(?<token>[^}]+)\}\}/) do
+      message_variable_value(Regexp.last_match[:token])
+    end
+  end
+
+  def message_variable_value(token)
+    case token
+    when 'contact_name'
+      card.contact.name.to_s
+    when 'opportunity_subject'
+      card.subject.to_s
+    when 'opportunity_amount'
+      format('%.2f', card.amount_cents.to_i / 100.0)
+    when /\Afield\.(?<key>[a-zA-Z_][a-zA-Z0-9_]*)\z/
+      card.custom_field_values.fetch(Regexp.last_match[:key], '').to_s
+    else
+      "{{#{token}}}"
+    end
   end
 
   def quiet_hours_resume_at

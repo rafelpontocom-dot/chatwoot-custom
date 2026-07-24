@@ -211,6 +211,40 @@ describe('KanbanAutomations', () => {
     );
   });
 
+  it('creates a new visual flow as a draft until an administrator publishes it', async () => {
+    KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+      data: {
+        id: 45,
+        name: 'Revisar proposta',
+        event_name: 'kanban.card.stage_changed',
+        active: false,
+        position: 0,
+        conditions: {},
+        actions: [],
+        flow_definition: {},
+      },
+    });
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Revisar proposta');
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({ active: false }),
+      })
+    );
+  });
+
   it('keeps an incomplete message flow in the editor with a clear validation error', async () => {
     const wrapper = await mountWorkspace();
 
@@ -239,6 +273,171 @@ describe('KanbanAutomations', () => {
     expect(KanbanBoardsAPI.createAutomationRule).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain(
       'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.MESSAGE'
+    );
+    expect(
+      wrapper
+        .findComponent({ name: 'KanbanWorkflowBuilder' })
+        .props('invalidNodeIds')
+    ).toEqual(['message']);
+  });
+
+  it('keeps an incomplete response wait in the editor before it reaches the API', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Aguardar resposta');
+    wrapper.vm.form.flowDefinition = {
+      nodes: [
+        { id: 'trigger', type: 'trigger', data: {} },
+        {
+          id: 'response',
+          type: 'wait_for_response',
+          data: { timeout_hours: 0 },
+        },
+      ],
+      edges: [{ source: 'trigger', target: 'response' }],
+    };
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.RESPONSE_WAIT'
+    );
+  });
+
+  it('focuses the node identified by a backend validation error', async () => {
+    KanbanBoardsAPI.createAutomationRule.mockRejectedValue({
+      response: {
+        data: {
+          message: 'Action node action references a stage outside this board',
+        },
+      },
+    });
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Etapa inválida');
+    wrapper.vm.form.flowDefinition = {
+      nodes: [
+        { id: 'trigger', type: 'trigger', data: {} },
+        {
+          id: 'action',
+          type: 'action',
+          data: {
+            action_name: 'move_stage',
+            action_params: { stage_id: 999 },
+          },
+        },
+        { id: 'end', type: 'end', data: {} },
+      ],
+      edges: [
+        { source: 'trigger', target: 'action' },
+        { source: 'action', target: 'end' },
+      ],
+    };
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper
+        .findComponent({ name: 'KanbanWorkflowBuilder' })
+        .props('invalidNodeIds')
+    ).toEqual(['action']);
+  });
+
+  it('keeps a partial quiet-hours policy in the editor before it reaches the API', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Mensagem com horário silencioso');
+    wrapper.vm.form.flowDefinition = {
+      nodes: [
+        { id: 'trigger', type: 'trigger', data: {} },
+        {
+          id: 'message',
+          type: 'send_message',
+          data: {
+            channel: 'whatsapp',
+            content: 'Olá',
+            opt_in_attribute_key: 'marketing_messages_opt_in',
+            quiet_hours: {
+              start: '20:00',
+              end: '',
+              timezone: 'America/Sao_Paulo',
+            },
+          },
+        },
+      ],
+      edges: [{ source: 'trigger', target: 'message' }],
+    };
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.MESSAGE_POLICY'
+    );
+  });
+
+  it('requires both paths from a condition before saving a flow', async () => {
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [],
+        custom_field_definitions: [
+          { key: 'origem', label: 'Origem', field_type: 'text' },
+        ],
+        next_action_types: [],
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Qualificar origem');
+    wrapper.vm.form.flowDefinition = {
+      nodes: [
+        { id: 'trigger', type: 'trigger', data: {} },
+        {
+          id: 'condition',
+          type: 'condition',
+          data: { field_key: 'origem', operator: 'equals', value: 'Google' },
+        },
+        { id: 'end', type: 'end', data: {} },
+      ],
+      edges: [
+        { source: 'trigger', target: 'condition' },
+        { source: 'condition', sourceHandle: 'yes', target: 'end' },
+      ],
+    };
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.CONDITION_PATH'
     );
   });
 
@@ -291,6 +490,30 @@ describe('KanbanAutomations', () => {
         }),
       })
     );
+  });
+
+  it('summarizes failed and overdue automation executions for the administrator', async () => {
+    const wrapper = await mountWorkspace({
+      executions: [
+        { id: 1, status: 'failed' },
+        {
+          id: 2,
+          status: 'waiting',
+          scheduled_at: '2020-01-01T09:00:00.000Z',
+        },
+        {
+          id: 3,
+          status: 'waiting',
+          scheduled_at: '2999-01-01T09:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(wrapper.vm.automationHealth).toMatchObject({
+      failedCount: 1,
+      overdueCount: 1,
+      needsAttention: true,
+    });
   });
 
   it('uses a follow-up template in the visual builder instead of a separate cadence', async () => {

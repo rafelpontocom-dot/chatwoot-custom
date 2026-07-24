@@ -78,6 +78,10 @@ class KanbanAutomationRule < ApplicationRecord
     flow_definition.to_h['nodes'].present?
   end
 
+  def version_number
+    lock_version + 1
+  end
+
   private
 
   def board_belongs_to_account

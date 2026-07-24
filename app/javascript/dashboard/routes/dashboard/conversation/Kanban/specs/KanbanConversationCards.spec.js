@@ -468,7 +468,7 @@ describe('KanbanConversationCards', () => {
     expect(wrapper.text()).toContain('New');
     expect(wrapper.find('select').element.value).toBe('20');
     expect(wrapper.find('input[type="datetime-local"]').element.value).toBe(
-      '2026-06-07T21:00'
+      '2026-06-07T18:00'
     );
     expect(wrapper.text()).toContain('urgente');
     expect(wrapper.text()).toContain('vendas');
@@ -820,9 +820,67 @@ describe('KanbanConversationCards', () => {
         subject: 'Updated renewal',
         due_at: new Date('2026-06-08T10:30').toISOString(),
         labels: ['vendas'],
+        custom_field_values: {},
       }
     );
     expect(KanbanBoardsAPI.updateCardLabels).not.toHaveBeenCalled();
+  });
+
+  it('edits custom fields inside collapsed opportunity groups', async () => {
+    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
+      data: {
+        payload: [
+          buildCard({ custom_field_values: { procedimento: 'Avaliação' } }),
+        ],
+      },
+    });
+    KanbanBoardsAPI.showBoard.mockResolvedValue({
+      data: {
+        stages: [buildStage()],
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: ['Avaliação', 'Retorno'],
+            layout: { section: 'details', group: 'consulta', position: 1 },
+          },
+        ],
+        custom_field_sections: [
+          {
+            key: 'details',
+            label: 'Geral',
+            groups: [{ key: 'consulta', label: 'Consulta', color: 'blue' }],
+          },
+        ],
+      },
+    });
+    const wrapper = mountComponent();
+    await flushPromises();
+
+    const group = wrapper.find(
+      '[data-testid="kanban-opportunity-field-group-details-consulta"]'
+    );
+    expect(group.exists()).toBe(true);
+    expect(
+      group
+        .find('[data-testid="kanban-opportunity-field-procedimento"]')
+        .exists()
+    ).toBe(false);
+
+    await group.find('button').trigger('click');
+    await group
+      .find('[data-testid="kanban-opportunity-field-procedimento"]')
+      .setValue('Retorno');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      123,
+      expect.objectContaining({
+        custom_field_values: { procedimento: 'Retorno' },
+      })
+    );
   });
 
   it('keeps inline edit values when saving fails', async () => {

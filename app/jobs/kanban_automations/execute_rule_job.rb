@@ -109,7 +109,7 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
 
   def automation_snapshot
     @automation_snapshot ||= {
-      'version' => @rule.lock_version,
+      'version' => @rule.version_number,
       'conditions' => @rule.conditions,
       'actions' => @rule.actions,
       'flow_definition' => @rule.flow_definition

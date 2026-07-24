@@ -1,8 +1,16 @@
 <script setup>
-import { computed, markRaw, ref, watch } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  markRaw,
+  nextTick,
+  ref,
+  watch,
+} from 'vue';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { addEdge, VueFlow } from '@vue-flow/core';
+import { vOnClickOutside } from '@vueuse/components';
 import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/core/dist/style.css';
 import { useI18n } from 'vue-i18n';
@@ -42,9 +50,13 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  invalidNodeIds: {
+    type: Array,
+    default: () => [],
+  },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'clearValidation']);
 const { t } = useI18n();
 const nodes = ref([]);
 const edges = ref([]);
@@ -52,6 +64,14 @@ const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
 const showNodeMenu = ref(false);
 const insertAfterNodeId = ref(null);
+const inspector = ref(null);
+const messageContentInput = ref(null);
+const showEmojiPicker = ref(false);
+const showMessageVariableMenu = ref(false);
+const EmojiIconPicker = defineAsyncComponent(
+  () =>
+    import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
+);
 const nodeTypes = {
   trigger: markRaw(KanbanWorkflowNode),
   delay: markRaw(KanbanWorkflowNode),
@@ -180,6 +200,24 @@ const numericCustomFields = computed(() =>
     ['integer', 'decimal', 'currency', 'formula'].includes(field.fieldType)
   )
 );
+const messageVariables = computed(() => [
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.CONTACT_NAME'),
+    token: '{{contact_name}}',
+  },
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.OPPORTUNITY'),
+    token: '{{opportunity_subject}}',
+  },
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.AMOUNT'),
+    token: '{{opportunity_amount}}',
+  },
+  ...props.customFields.map(field => ({
+    label: field.label || field.key,
+    token: `{{field.${field.key}}}`,
+  })),
+]);
 const businessDays = computed(() => [
   { value: 1, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.MON') },
   { value: 2, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.TUE') },
@@ -318,6 +356,7 @@ const decorateNode = node => ({
     kind: node.type,
     label: nodeLabels.value[node.type] || node.type,
     summary: nodeSummary(node),
+    invalid: props.invalidNodeIds.includes(node.id),
     yesLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.YES'),
     noLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO'),
     canAddAfter: !['condition', 'end'].includes(node.type),
@@ -325,6 +364,17 @@ const decorateNode = node => ({
     addAfter: openNodeMenuAfter,
   },
 });
+
+function focusFirstInvalidNode() {
+  const invalidNodeId = props.invalidNodeIds.find(id =>
+    nodes.value.some(node => node.id === id)
+  );
+  if (!invalidNodeId) return;
+
+  selectedNodeId.value = invalidNodeId;
+  selectedEdgeId.value = null;
+  nextTick(() => inspector.value?.focus());
+}
 
 const defaultFlow = () => ({
   nodes: [
@@ -339,6 +389,31 @@ const applyFlow = flow => {
   nodes.value = source.nodes.map(decorateNode);
   edges.value = source.edges || [];
   selectedNodeId.value = nodes.value[0]?.id || null;
+  focusFirstInvalidNode();
+};
+
+const persistedNodeData = data => {
+  const persisted = Object.fromEntries(
+    Object.entries(data).filter(
+      ([key]) =>
+        ![
+          'kind',
+          'label',
+          'summary',
+          'yesLabel',
+          'noLabel',
+          'canAddAfter',
+          'addAfterLabel',
+          'addAfter',
+          'invalid',
+        ].includes(key)
+    )
+  );
+  const quietHours = persisted.quiet_hours || {};
+
+  if (!quietHours.start && !quietHours.end) delete persisted.quiet_hours;
+
+  return persisted;
 };
 
 const emitFlow = () => {
@@ -347,21 +422,7 @@ const emitFlow = () => {
       id,
       type,
       position,
-      data: Object.fromEntries(
-        Object.entries(data).filter(
-          ([key]) =>
-            ![
-              'kind',
-              'label',
-              'summary',
-              'yesLabel',
-              'noLabel',
-              'canAddAfter',
-              'addAfterLabel',
-              'addAfter',
-            ].includes(key)
-        )
-      ),
+      data: persistedNodeData(data),
     })),
     edges: edges.value.map(
       ({ id, source, target, sourceHandle, targetHandle }) => ({
@@ -382,6 +443,14 @@ watch(
   () => props.modelValue,
   flow => applyFlow(flow),
   { deep: true, immediate: true }
+);
+watch(
+  () => props.invalidNodeIds,
+  () => {
+    nodes.value = nodes.value.map(decorateNode);
+    focusFirstInvalidNode();
+  },
+  { deep: true }
 );
 watch([nodes, edges], emitFlow, { deep: true });
 
@@ -413,12 +482,73 @@ const onConnect = connection => {
 const onEdgeClick = ({ edge }) => {
   selectedNodeId.value = null;
   selectedEdgeId.value = edge.id;
+  nextTick(() => inspector.value?.focus());
+};
+
+const selectNode = node => {
+  selectedNodeId.value = node.id;
+  selectedEdgeId.value = null;
+  nextTick(() => inspector.value?.focus());
+};
+
+const closeInspector = () => {
+  selectedNodeId.value = null;
+  selectedEdgeId.value = null;
+  showEmojiPicker.value = false;
+  showMessageVariableMenu.value = false;
+};
+
+const handleInspectorKeydown = event => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeInspector();
+    return;
+  }
+
+  if (event.key !== 'Tab') return;
+
+  const focusable = [
+    ...event.currentTarget.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+    ),
+  ];
+  if (!focusable.length) return;
+
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
 };
 
 const removeSelectedEdge = () => {
   if (!selectedEdgeId.value) return;
   edges.value = edges.value.filter(edge => edge.id !== selectedEdgeId.value);
-  selectedEdgeId.value = null;
+  closeInspector();
+};
+
+const insertMessageText = value => {
+  const node = selectedNode.value;
+  if (!node || node.type !== 'send_message') return;
+
+  const input = messageContentInput.value;
+  const content = node.data.content || '';
+  const start = input?.selectionStart ?? content.length;
+  const end = input?.selectionEnd ?? content.length;
+  node.data.content = `${content.slice(0, start)}${value}${content.slice(end)}`;
+  node.data = decorateNode(node).data;
+  emit('clearValidation');
+  showEmojiPicker.value = false;
+  showMessageVariableMenu.value = false;
+
+  nextTick(() => {
+    input?.focus();
+    input?.setSelectionRange(start + value.length, start + value.length);
+  });
 };
 
 const updateNode = () => {
@@ -426,6 +556,7 @@ const updateNode = () => {
   if (!node) return;
 
   node.data = decorateNode(node).data;
+  emit('clearValidation');
 };
 
 const removeSelectedNode = () => {
@@ -435,7 +566,7 @@ const removeSelectedNode = () => {
   edges.value = edges.value.filter(
     edge => edge.source !== node.id && edge.target !== node.id
   );
-  selectedNodeId.value = nodes.value[0]?.id || null;
+  closeInspector();
 };
 </script>
 
@@ -482,7 +613,7 @@ const removeSelectedNode = () => {
       </div>
     </div>
 
-    <div class="grid min-h-[30rem] gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div class="relative min-h-[30rem]">
       <div
         class="min-h-96 overflow-hidden rounded-md border border-n-weak bg-n-surface-1"
         :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CANVAS_LABEL')"
@@ -496,34 +627,69 @@ const removeSelectedNode = () => {
           fit-view-on-init
           @connect="onConnect"
           @edge-click="onEdgeClick"
-          @node-click="
-            ({ node }) => {
-              selectedNodeId = node.id;
-              selectedEdgeId = null;
-            }
-          "
+          @node-click="({ node }) => selectNode(node)"
         >
           <Background pattern-color="var(--color-n-slate-5)" :gap="16" />
           <Controls :show-interactive="false" />
         </VueFlow>
       </div>
 
+      <div
+        v-if="selectedNode || selectedEdge"
+        class="fixed inset-0 z-40 bg-n-slate-12/30 backdrop-blur-[1px]"
+        @click="closeInspector"
+      />
       <aside
-        class="grid min-w-0 content-start gap-3 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-3"
+        v-if="selectedNode || selectedEdge"
+        ref="inspector"
+        :data-testid="
+          selectedNode
+            ? 'kanban-workflow-node-drawer'
+            : 'kanban-workflow-connection-dialog'
+        "
+        class="fixed inset-y-0 right-0 z-50 grid w-full max-w-xl content-start gap-4 overflow-y-auto border-l border-n-weak bg-n-surface-1 p-5 shadow-2xl outline-none"
+        role="dialog"
+        aria-modal="true"
+        tabindex="-1"
+        @keydown="handleInspectorKeydown"
       >
         <template v-if="selectedNode">
-          <div class="flex items-center justify-between gap-2">
-            <p class="m-0 text-sm font-medium text-n-slate-12">
-              {{ selectedNode.data.label }}
-            </p>
-            <button
-              v-if="!['trigger', 'end'].includes(selectedNode.type)"
-              type="button"
-              class="text-xs font-medium text-n-ruby-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
-              @click="removeSelectedNode"
-            >
-              {{ t('KANBAN.ACTIONS.DELETE') }}
-            </button>
+          <div
+            class="flex items-center justify-between gap-3 border-b border-n-weak pb-4"
+          >
+            <div class="min-w-0">
+              <p class="m-0 text-xs font-medium uppercase text-n-slate-10">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODE_SETTINGS') }}
+              </p>
+              <p
+                class="m-0 mt-1 truncate text-base font-semibold text-n-slate-12"
+              >
+                {{ selectedNode.data.label }}
+              </p>
+            </div>
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                :aria-label="t('KANBAN.ACTIONS.CLOSE')"
+                :title="t('KANBAN.ACTIONS.CLOSE')"
+                @click="closeInspector"
+              >
+                <i class="i-lucide-x size-4" />
+              </button>
+              <button
+                v-if="!['trigger', 'end'].includes(selectedNode.type)"
+                type="button"
+                class="flex size-8 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                :aria-label="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_NODE')
+                "
+                :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_NODE')"
+                @click="removeSelectedNode"
+              >
+                <i class="i-lucide-trash-2 size-4" />
+              </button>
+            </div>
           </div>
 
           <template v-if="selectedNode.type === 'delay'">
@@ -742,12 +908,101 @@ const removeSelectedNode = () => {
             </label>
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE') }}
-              <textarea
-                v-model="selectedNode.data.content"
-                rows="4"
-                class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
+              <div class="rounded-md border border-n-weak bg-n-surface-2">
+                <textarea
+                  ref="messageContentInput"
+                  v-model="selectedNode.data.content"
+                  rows="5"
+                  class="block min-h-28 w-full resize-y border-0 bg-transparent px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-0"
+                  :placeholder="
+                    t(
+                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_PLACEHOLDER'
+                    )
+                  "
+                  @change="updateNode"
+                />
+                <div
+                  class="flex items-center gap-1 border-t border-n-weak px-2 py-1.5"
+                >
+                  <div
+                    v-on-click-outside="() => (showEmojiPicker = false)"
+                    class="relative"
+                  >
+                    <button
+                      type="button"
+                      data-testid="kanban-message-emoji-button"
+                      class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                      :aria-label="
+                        t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_EMOJI')
+                      "
+                      :title="
+                        t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_EMOJI')
+                      "
+                      @click="showEmojiPicker = !showEmojiPicker"
+                    >
+                      <i class="i-lucide-smile size-4" />
+                    </button>
+                    <EmojiIconPicker
+                      v-if="showEmojiPicker"
+                      mode="emoji"
+                      class="!bottom-full !left-0 !top-auto mb-2"
+                      @select="insertMessageText($event.value)"
+                    />
+                  </div>
+                  <div
+                    v-on-click-outside="() => (showMessageVariableMenu = false)"
+                    class="relative"
+                  >
+                    <button
+                      type="button"
+                      data-testid="kanban-message-variable-button"
+                      class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                      :aria-label="
+                        t(
+                          'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_VARIABLE'
+                        )
+                      "
+                      :title="
+                        t(
+                          'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_VARIABLE'
+                        )
+                      "
+                      @click="
+                        showMessageVariableMenu = !showMessageVariableMenu
+                      "
+                    >
+                      <i class="i-lucide-braces size-4" />
+                    </button>
+                    <div
+                      v-if="showMessageVariableMenu"
+                      data-testid="kanban-message-variable-menu"
+                      class="absolute bottom-full left-0 z-20 mb-2 grid max-h-64 w-64 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-xl"
+                    >
+                      <button
+                        v-for="variable in messageVariables"
+                        :key="variable.token"
+                        type="button"
+                        class="grid gap-0.5 rounded px-2 py-1.5 text-left hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                        @click="insertMessageText(variable.token)"
+                      >
+                        <span class="text-sm font-medium text-n-slate-12">
+                          {{ variable.label }}
+                        </span>
+                        <span class="font-mono text-xs text-n-slate-10">
+                          {{ variable.token }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <span class="ml-auto text-xs font-normal text-n-slate-10">
+                    {{
+                      t(
+                        'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_VARIABLE_HINT'
+                      )
+                    }}
+                  </span>
+                </div>
+              </div>
             </label>
             <template v-if="selectedNode.data.channel === 'whatsapp'">
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
@@ -1065,15 +1320,39 @@ const removeSelectedNode = () => {
           </p>
         </template>
         <template v-else-if="selectedEdge">
-          <p class="m-0 text-sm font-medium text-n-slate-12">
-            {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECTION') }}
+          <div
+            class="flex items-center justify-between gap-3 border-b border-n-weak pb-4"
+          >
+            <div>
+              <p class="m-0 text-xs font-medium uppercase text-n-slate-10">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECTION') }}
+              </p>
+              <p class="m-0 mt-1 text-base font-semibold text-n-slate-12">
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECTION_SELECTED')
+                }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+              :aria-label="t('KANBAN.ACTIONS.CLOSE')"
+              :title="t('KANBAN.ACTIONS.CLOSE')"
+              @click="closeInspector"
+            >
+              <i class="i-lucide-x size-4" />
+            </button>
+          </div>
+          <p class="m-0 text-sm text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECTION_HINT') }}
           </p>
           <button
             type="button"
-            class="justify-self-start text-xs font-medium text-n-ruby-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="flex h-9 w-fit items-center gap-2 rounded-md px-3 text-sm font-medium text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
             @click="removeSelectedEdge"
           >
-            {{ t('KANBAN.ACTIONS.DELETE') }}
+            <i class="i-lucide-trash-2 size-4" />
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_CONNECTION') }}
           </button>
         </template>
       </aside>

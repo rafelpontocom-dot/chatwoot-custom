@@ -494,11 +494,11 @@ Cada campo deve ter:
 - `details`: aba Geral;
 - `marketing`: aba Marketing.
 
-Abas adicionais são persistidas em `custom_field_sections`, no formato `{ key, label }`. As chaves `details`, `marketing` e `timeline` são reservadas. Campos sem `layout.section` permanecem em `details` para manter compatibilidade com boards existentes.
+Abas adicionais são persistidas em `custom_field_sections`, no formato `{ key, label }`. As chaves `details`, `marketing` e `timeline` são reservadas. Campos sem `layout.section` permanecem em `details` para manter compatibilidade com boards existentes. A ordem de `compact_card_field_keys` define a leitura do card: apenas os dois primeiros campos ficam visíveis no modo compacto, preservando densidade no funil.
 
-O card apresenta `Geral`, `Marketing`, as abas personalizadas e `Linha do tempo`. Para administradores, uma engrenagem abre o gerenciador do board e o botão `+` inicia a criação de uma aba sem exigir saída manual do contexto da oportunidade.
+O card apresenta `Geral`, `Marketing`, as abas personalizadas e `Linha do tempo`. O título da oportunidade aparece no cabeçalho e entra em edição somente pelo botão de lápis. Para administradores, uma engrenagem abre o gerenciador do board e o botão `+` inicia a criação de uma aba sem exigir saída manual do contexto da oportunidade.
 
-As configurações do board devem oferecer um editor visual com `vuedraggable`. Mover um campo entre áreas atualiza `layout.section`; reordenar um campo atualiza `layout.position`. `layout.width` continua controlando a largura do campo dentro da aba.
+As configurações do board devem oferecer um editor visual com `vuedraggable`. Mover um campo entre áreas atualiza `layout.section`; reordenar um campo atualiza `layout.position`. `layout.width` continua controlando a largura do campo dentro da aba. O mesmo gerenciador mostra uma prévia do card compacto e permite ordenar ou remover seus campos visíveis sem editar JSON.
 
 O botão de preset de Marketing substitui somente campos conhecidos do preset na seção Marketing, remove chaves obsoletas e preserva campos desconhecidos criados pelo cliente. A ordem e as chaves canônicas são: `origem_do_lead`, `sub_origem`, `campaign`, `adset`, `ad`, `utm_content`, `utm_medium`, `utm_campaign`, `utm_source`, `utm_term`, `utm_referrer`, `referrer`, `gclientid`, `gclid`, `fvclid`, `ttad_name`, `ttad_id`, `fbc`, `fbp`, `ttclid`, `campaign_id`, `adset_id`, `ad_id`, `landing_page`, `event_id` e `landing_page_full`.
 
@@ -631,6 +631,12 @@ Deve permitir:
 - marcar perdido com motivo configurado no board;
 - abrir conversa;
 - editar campos personalizados quando existirem.
+
+Cadências e mensagens automáticas não são configuradas no detalhe da oportunidade. O detalhe mostra o histórico de execuções; a criação e manutenção dos fluxos ficam centralizadas em `Automações`.
+
+### Oportunidade Na Conversa
+
+A lateral `Oportunidades` da conversa é a superfície operacional do atendente. Ao existir uma oportunidade vinculada, ela abre em edição inline e mantém sempre visíveis funil, assunto, etapa, data e etiquetas. Os campos personalizados são carregados a partir da configuração do board e agrupados em blocos recolhidos. Cada bloco mostra os campos em uma única coluna e só é expandido quando o atendente precisa alterar algum dado. A alteração é salva ao sair do campo, preservando os demais valores; falhas mantêm o valor digitado e mostram o erro no próprio card.
 
 P0 de experiência:
 

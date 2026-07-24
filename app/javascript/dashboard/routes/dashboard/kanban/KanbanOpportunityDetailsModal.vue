@@ -77,12 +77,6 @@ const customFieldValues = ref({});
 const timeline = ref([]);
 const isLoadingTimeline = ref(false);
 const timelineError = ref('');
-const cadenceOptions = ref([]);
-const cadenceEnrollment = ref(null);
-const selectedCadenceId = ref('');
-const isLoadingCadence = ref(false);
-const isSavingCadence = ref(false);
-const cadenceError = ref('');
 const startsAt = ref('');
 const dueAt = ref('');
 const nextActionType = ref('');
@@ -98,6 +92,8 @@ const saveError = ref('');
 const formSnapshot = ref('');
 const showUnsavedChanges = ref(false);
 const keepEditingButton = ref(null);
+const headerSubjectInput = ref(null);
+const isEditingSubject = ref(false);
 const labelsLoadError = ref('');
 const labelsSaveError = ref('');
 const subjectError = ref('');
@@ -113,6 +109,7 @@ const modalTitle = computed(() =>
       })
     : t('KANBAN.OPPORTUNITY_DETAILS.TITLE')
 );
+const headerTitle = computed(() => subject.value || modalTitle.value);
 const cardDisplayId = computed(() => card.value?.id || props.cardId);
 const hasConversation = computed(() => !!card.value?.conversationId);
 const conversationDisplayId = computed(
@@ -497,70 +494,6 @@ const loadTimeline = async () => {
   }
 };
 
-const loadCadence = async () => {
-  isLoadingCadence.value = true;
-  cadenceError.value = '';
-
-  try {
-    const [cadencesResponse, enrollmentResponse] = await Promise.all([
-      KanbanBoardsAPI.getCadences(props.boardId),
-      KanbanBoardsAPI.getCardCadence(props.boardId, props.cardId),
-    ]);
-    cadenceOptions.value = (cadencesResponse?.data || []).filter(
-      cadence => cadence.active !== false
-    );
-    cadenceEnrollment.value = enrollmentResponse?.data?.enrollment || null;
-  } catch (error) {
-    cadenceError.value = getErrorMessage(
-      error,
-      t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.LOAD_ERROR')
-    );
-  } finally {
-    isLoadingCadence.value = false;
-  }
-};
-
-const startCadence = async () => {
-  if (!selectedCadenceId.value || isSavingCadence.value) return;
-
-  isSavingCadence.value = true;
-  cadenceError.value = '';
-  try {
-    const response = await KanbanBoardsAPI.enrollCardInCadence(
-      props.boardId,
-      props.cardId,
-      selectedCadenceId.value
-    );
-    cadenceEnrollment.value = response?.data?.enrollment || null;
-    selectedCadenceId.value = '';
-  } catch (error) {
-    cadenceError.value = getErrorMessage(
-      error,
-      t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.SAVE_ERROR')
-    );
-  } finally {
-    isSavingCadence.value = false;
-  }
-};
-
-const cancelCadence = async () => {
-  if (isSavingCadence.value) return;
-
-  isSavingCadence.value = true;
-  cadenceError.value = '';
-  try {
-    await KanbanBoardsAPI.cancelCardCadence(props.boardId, props.cardId);
-    cadenceEnrollment.value = null;
-  } catch (error) {
-    cadenceError.value = getErrorMessage(
-      error,
-      t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.SAVE_ERROR')
-    );
-  } finally {
-    isSavingCadence.value = false;
-  }
-};
-
 const timelineEventLabel = eventType =>
   String(eventType || '')
     .replaceAll('_', ' ')
@@ -737,13 +670,18 @@ const handleModalKeydown = event => {
   showUnsavedChanges.value = true;
 };
 
+const editSubject = async () => {
+  isEditingSubject.value = true;
+  await nextTick();
+  headerSubjectInput.value?.focus();
+};
+
 defineExpose({ requestClose });
 
 onMounted(() => {
   loadCard();
   loadLabels();
   loadTimeline();
-  loadCadence();
 });
 
 watch(showUnsavedChanges, async visible => {
@@ -769,8 +707,21 @@ watch(showUnsavedChanges, async visible => {
     >
       <div class="min-w-0">
         <h2 class="mb-1 truncate text-base font-semibold text-n-slate-12">
-          {{ modalTitle }}
+          <input
+            v-show="isEditingSubject"
+            ref="headerSubjectInput"
+            v-model="subject"
+            data-testid="kanban-opportunity-header-subject"
+            class="w-full rounded-md border border-n-weak bg-n-surface-1 px-2 py-1 text-base font-semibold text-n-slate-12 outline-none focus:border-n-brand"
+            @input="subjectError = ''"
+            @blur="isEditingSubject = false"
+            @keydown.enter.prevent="isEditingSubject = false"
+          />
+          <span v-show="!isEditingSubject">{{ headerTitle }}</span>
         </h2>
+        <p v-if="subjectError" class="mb-1 text-xs text-n-ruby-11" role="alert">
+          {{ subjectError }}
+        </p>
         <p
           v-if="cardDisplayId"
           data-testid="kanban-opportunity-card-id"
@@ -780,6 +731,16 @@ watch(showUnsavedChanges, async visible => {
         </p>
       </div>
       <div class="flex flex-shrink-0 items-center gap-1">
+        <button
+          type="button"
+          data-testid="kanban-opportunity-edit-subject"
+          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.EDIT_TITLE')"
+          :title="t('KANBAN.OPPORTUNITY_DETAILS.EDIT_TITLE')"
+          @click="editSubject"
+        >
+          <i class="i-lucide-pencil size-4" />
+        </button>
         <button
           v-if="canManageFields"
           type="button"
@@ -910,17 +871,6 @@ watch(showUnsavedChanges, async visible => {
                   />
                 </button>
                 <div v-show="isGroupExpanded('commercial')" class="grid gap-4">
-                  <NextInput
-                    v-model="subject"
-                    data-testid="kanban-opportunity-subject"
-                    class="w-full"
-                    :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_TITLE')"
-                    :message="subjectError"
-                    :message-type="subjectError ? 'error' : 'info'"
-                    autofocus
-                    @input="subjectError = ''"
-                  />
-
                   <label class="grid gap-1.5">
                     <span class="text-sm font-medium text-n-slate-12">
                       {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION') }}
@@ -1028,10 +978,6 @@ watch(showUnsavedChanges, async visible => {
               data-testid="kanban-opportunity-custom-fields"
               class="grid gap-3"
             >
-              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS') }}
-              </h3>
-
               <div class="grid gap-3">
                 <section
                   v-for="group in activeTabGroups"
@@ -1521,112 +1467,6 @@ watch(showUnsavedChanges, async visible => {
                 :disabled="isSaving"
                 @click="markLost"
               />
-            </section>
-
-            <section
-              data-testid="kanban-opportunity-cadence"
-              class="grid gap-3 rounded-lg border border-n-weak p-3"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <h3 class="mb-1 text-sm font-medium text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.TITLE') }}
-                  </h3>
-                  <p class="mb-0 text-xs text-n-slate-11">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.DESCRIPTION') }}
-                  </p>
-                </div>
-                <i class="i-lucide-list-checks size-4 text-n-slate-10" />
-              </div>
-
-              <p
-                v-if="cadenceError"
-                data-testid="kanban-opportunity-cadence-error"
-                class="mb-0 text-xs text-n-ruby-11"
-                role="alert"
-              >
-                {{ cadenceError }}
-              </p>
-
-              <template v-if="cadenceEnrollment">
-                <div class="grid gap-1 rounded-md bg-n-alpha-1 p-2">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ cadenceEnrollment.cadence.name }}
-                  </span>
-                  <span class="text-xs text-n-slate-11">
-                    {{
-                      t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.STATUS', {
-                        status: cadenceEnrollment.status,
-                      })
-                    }}
-                  </span>
-                  <span
-                    v-if="cadenceEnrollment.next_run_at"
-                    class="text-xs text-n-slate-10"
-                  >
-                    {{
-                      t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.NEXT_STEP', {
-                        date: new Date(
-                          cadenceEnrollment.next_run_at
-                        ).toLocaleString(),
-                      })
-                    }}
-                  </span>
-                </div>
-                <NextButton
-                  v-if="
-                    ['active', 'awaiting_completion'].includes(
-                      cadenceEnrollment.status
-                    )
-                  "
-                  type="button"
-                  xs
-                  outline
-                  ruby
-                  data-testid="kanban-opportunity-cancel-cadence"
-                  icon="i-lucide-pause"
-                  :label="t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.CANCEL')"
-                  :disabled="isSavingCadence"
-                  @click="cancelCadence"
-                />
-              </template>
-
-              <template v-else-if="!isLoadingCadence">
-                <select
-                  v-model="selectedCadenceId"
-                  data-testid="kanban-opportunity-cadence-select"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  :disabled="!cadenceOptions.length || isSavingCadence"
-                >
-                  <option value="">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.SELECT') }}
-                  </option>
-                  <option
-                    v-for="cadence in cadenceOptions"
-                    :key="cadence.id"
-                    :value="String(cadence.id)"
-                  >
-                    {{ cadence.name }}
-                  </option>
-                </select>
-                <NextButton
-                  type="button"
-                  xs
-                  outline
-                  slate
-                  data-testid="kanban-opportunity-start-cadence"
-                  icon="i-lucide-play"
-                  :label="t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.START')"
-                  :disabled="!selectedCadenceId || isSavingCadence"
-                  @click="startCadence"
-                />
-                <p
-                  v-if="!cadenceOptions.length"
-                  class="mb-0 text-xs text-n-slate-10"
-                >
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.CADENCE.NONE') }}
-                </p>
-              </template>
             </section>
           </aside>
         </div>

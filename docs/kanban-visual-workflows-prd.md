@@ -47,7 +47,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 - Conexões externas têm configuração própria: o fluxo apenas escolhe uma conexão já aprovada.
 - Execuções permitem retry de falhas, cancelamento de esperas e leitura rápida do impacto na oportunidade.
 - O inseridor contextual `+` acrescenta e conecta o próximo passo no caminho selecionado; uma paleta fixa não deve roubar espaço do canvas.
-- O fluxo nasce como rascunho e só é ativado depois de validado e revisado por um administrador.
+- O fluxo nasce como rascunho e só é ativado depois de validado e revisado por um administrador. Cada salvamento cria uma versão visível para auditoria; execuções mantêm o snapshot da versão que as iniciou.
 - Cadências legadas permanecem somente para preservar histórico e regras existentes; novas cadências não são criadas pela central.
 - `Follow-up comercial` e `NPS e avaliação Google` são sempre abertos como rascunho. `Mensagem de aniversário` abre sua configuração específica, desativada por padrão, pois depende da data de nascimento do contato.
 
@@ -116,6 +116,7 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 - Interromper execução pendente quando a regra for desativada ou o card arquivado.
 - Mostrar textos da interface em Português Brasil e manter traduções em inglês para a base do produto.
 - Funcionar com mouse, teclado e foco visível nos controles do construtor.
+- Ao tentar salvar um fluxo inválido, destacar o nó responsável, abrir sua configuração e preservar o restante do canvas para correção.
 
 ## Evolução Planejada
 
@@ -160,9 +161,11 @@ HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrad
 
 **P0 operacional:** gatilhos de oportunidade e de resposta do cliente; nós de espera, horário comercial, condição, mensagem, ação, nota, etiqueta e webhook; conexões HTTPS aprovadas; histórico de execução; canvas com inserção contextual e propriedades laterais.
 
+Erros de configuração não podem exigir que o administrador procure pelo canvas: a validação seleciona, destaca e abre a etapa que precisa ser corrigida.
+
 **P1 de governança:** snapshot por execução, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com uma oportunidade ativa e passos previstos sem efeitos externos, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente. A publicação formal com rascunho/versionamento visível continua pendente.
 
-**P2 de escala:** tarefas internas com prazo, rodízio de responsáveis, templates por segmento, painel de saúde das automações e integrações declarativas adicionais, sempre por conexão aprovada.
+**P2 de escala:** tarefas internas com prazo, rodízio de responsáveis, templates por segmento e integrações declarativas adicionais, sempre por conexão aprovada. A central já exibe saúde operacional com falhas e esperas vencidas.
 
 O Vue Flow é a infraestrutura de interação: oferece zoom, seleção, nós/arestas customizados, controles e minimapa. O produto continua responsável pela linguagem comercial, validação e segurança. [Vue Flow](https://vueflow.dev/)
 

@@ -446,6 +446,21 @@ const automationFieldOptions = computed(() => [
   })),
 ]);
 
+const compactCardFieldDefinitions = computed({
+  get: () =>
+    form.compactCardFieldKeys
+      .map(key =>
+        form.customFieldDefinitions.find(definition => definition.key === key)
+      )
+      .filter(Boolean),
+  set: definitions => {
+    form.compactCardFieldKeys = definitions.map(definition => definition.key);
+  },
+});
+const compactCardPreviewFields = computed(() =>
+  compactCardFieldDefinitions.value.slice(0, 2)
+);
+
 const customFieldTypeOptions = computed(() => [
   { value: 'text', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.TEXT') },
   {
@@ -1723,6 +1738,14 @@ const toggleCompactCardField = (fieldKey, checked) => {
     ? [...new Set([...form.compactCardFieldKeys, fieldKey])]
     : form.compactCardFieldKeys.filter(key => key !== fieldKey);
 };
+
+const removeCompactCardField = fieldKey => {
+  form.compactCardFieldKeys = form.compactCardFieldKeys.filter(
+    key => key !== fieldKey
+  );
+};
+
+const compactCardFieldLabel = definition => definition.label || definition.key;
 
 const normalizedStaleStageThresholds = () =>
   Object.fromEntries(
@@ -3588,6 +3611,148 @@ onMounted(async () => {
                             </p>
                           </template>
                         </Draggable>
+                      </div>
+                    </section>
+
+                    <section
+                      data-testid="kanban-settings-compact-card-layout"
+                      class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+                    >
+                      <div class="grid gap-1">
+                        <h4 class="mb-0 text-sm font-medium text-n-slate-12">
+                          {{ t('KANBAN.SETTINGS.SALES.CARD_LAYOUT') }}
+                        </h4>
+                        <p class="mb-0 text-xs text-n-slate-11">
+                          {{
+                            t('KANBAN.SETTINGS.SALES.CARD_LAYOUT_DESCRIPTION')
+                          }}
+                        </p>
+                      </div>
+                      <div
+                        class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_15rem]"
+                      >
+                        <div class="grid content-start gap-1.5">
+                          <p class="mb-0 text-xs font-medium text-n-slate-11">
+                            {{ t('KANBAN.SETTINGS.SALES.CARD_LAYOUT_FIELDS') }}
+                          </p>
+                          <Draggable
+                            v-model="compactCardFieldDefinitions"
+                            item-key="clientId"
+                            handle=".compact-card-drag-handle"
+                            ghost-class="opacity-60"
+                            :animation="180"
+                            class="grid min-h-12 content-start gap-1 rounded-md border border-dashed border-n-weak bg-n-surface-1 p-1.5"
+                          >
+                            <template #item="{ element }">
+                              <div
+                                :data-testid="`kanban-settings-compact-card-field-${element.key}`"
+                                class="flex min-w-0 items-center gap-2 rounded-md border border-n-weak bg-n-surface-2 px-2 py-1.5 text-sm text-n-slate-12"
+                              >
+                                <i
+                                  class="compact-card-drag-handle i-lucide-grip-vertical size-4 shrink-0 cursor-grab text-n-slate-10"
+                                />
+                                <span class="min-w-0 flex-1 truncate">{{
+                                  element.label || element.key
+                                }}</span>
+                                <button
+                                  type="button"
+                                  class="flex size-6 shrink-0 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-brand/40"
+                                  :aria-label="
+                                    t(
+                                      'KANBAN.SETTINGS.SALES.CARD_LAYOUT_REMOVE_FIELD',
+                                      { field: element.label || element.key }
+                                    )
+                                  "
+                                  @click="removeCompactCardField(element.key)"
+                                >
+                                  <i class="i-lucide-x size-3.5" />
+                                </button>
+                              </div>
+                            </template>
+                            <template #footer>
+                              <p
+                                v-if="!compactCardFieldDefinitions.length"
+                                class="m-0 px-2 py-3 text-xs text-n-slate-10"
+                              >
+                                {{
+                                  t('KANBAN.SETTINGS.SALES.CARD_LAYOUT_EMPTY')
+                                }}
+                              </p>
+                            </template>
+                          </Draggable>
+                        </div>
+                        <div class="grid content-start gap-1.5">
+                          <p class="mb-0 text-xs font-medium text-n-slate-11">
+                            {{ t('KANBAN.SETTINGS.SALES.CARD_LAYOUT_PREVIEW') }}
+                          </p>
+                          <article
+                            data-testid="kanban-settings-compact-card-preview"
+                            class="grid min-h-32 content-start gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+                          >
+                            <div class="flex items-start justify-between gap-2">
+                              <div class="min-w-0">
+                                <p
+                                  class="mb-0 truncate text-sm font-medium text-n-slate-12"
+                                >
+                                  {{
+                                    form.name ||
+                                    t(
+                                      'KANBAN.SETTINGS.SALES.CARD_LAYOUT_SAMPLE_TITLE'
+                                    )
+                                  }}
+                                </p>
+                                <p
+                                  class="mb-0 mt-0.5 truncate text-xs text-n-slate-10"
+                                >
+                                  {{
+                                    t(
+                                      'KANBAN.SETTINGS.SALES.CARD_LAYOUT_SAMPLE_CONTACT'
+                                    )
+                                  }}
+                                </p>
+                              </div>
+                              <span
+                                class="size-2 shrink-0 rounded-full bg-n-amber-9"
+                              />
+                            </div>
+                            <div
+                              v-if="compactCardPreviewFields.length"
+                              class="grid gap-1"
+                            >
+                              <div
+                                v-for="definition in compactCardPreviewFields"
+                                :key="definition.clientId"
+                                class="flex min-w-0 items-center justify-between gap-2 text-xs"
+                              >
+                                <span class="min-w-0 truncate text-n-slate-10">
+                                  {{ compactCardFieldLabel(definition) }}
+                                </span>
+                                <span class="shrink-0 text-n-slate-12">{{
+                                  t(
+                                    'KANBAN.SETTINGS.SALES.CARD_LAYOUT_SAMPLE_VALUE'
+                                  )
+                                }}</span>
+                              </div>
+                              <p
+                                v-if="compactCardFieldDefinitions.length > 2"
+                                class="m-0 text-xs text-n-slate-10"
+                              >
+                                {{
+                                  t(
+                                    'KANBAN.SETTINGS.SALES.CARD_LAYOUT_MORE_FIELDS',
+                                    {
+                                      count:
+                                        compactCardFieldDefinitions.length - 2,
+                                    }
+                                  )
+                                }}
+                              </p>
+                            </div>
+                            <p v-else class="m-0 text-xs text-n-slate-10">
+                              {{ t('KANBAN.SETTINGS.SALES.CARD_LAYOUT_EMPTY') }}
+                            </p>
+                          </article>
+                        </div>
                       </div>
                     </section>
 

@@ -17,11 +17,21 @@ defineProps({
     class="!size-3 !border-2 !border-n-surface-1 !bg-n-slate-9"
   />
   <div
-    class="min-w-40 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 shadow-sm"
+    class="min-w-40 rounded-md border bg-n-surface-1 px-3 py-2 shadow-sm"
+    :class="
+      data.invalid ? 'border-n-ruby-9 ring-2 ring-n-ruby-9/20' : 'border-n-weak'
+    "
   >
-    <p class="m-0 text-xs font-medium text-n-slate-12">
-      {{ data.label }}
-    </p>
+    <div class="flex items-center justify-between gap-2">
+      <p class="m-0 text-xs font-medium text-n-slate-12">
+        {{ data.label }}
+      </p>
+      <i
+        v-if="data.invalid"
+        class="i-lucide-circle-alert size-3.5 shrink-0 text-n-ruby-11"
+        aria-hidden="true"
+      />
+    </div>
     <p v-if="data.summary" class="m-0 mt-1 text-xs text-n-slate-10">
       {{ data.summary }}
     </p>
