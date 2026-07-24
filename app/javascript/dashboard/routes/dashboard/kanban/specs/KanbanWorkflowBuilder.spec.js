@@ -1,8 +1,25 @@
 import { shallowMount } from '@vue/test-utils';
 import KanbanWorkflowBuilder from '../components/KanbanWorkflowBuilder.vue';
 
+const translations = {
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_TIMEZONE':
+    'Fuso do horario silencioso',
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME':
+    'Template oficial do WhatsApp',
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_LANGUAGE':
+    'Idioma do template',
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_CATEGORY':
+    'Categoria do template',
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAMESPACE':
+    'Namespace do template',
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.FREQUENCY_LIMIT':
+    'Intervalo minimo entre mensagens (horas)',
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_START': 'Nao enviar depois de',
+  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_END': 'Voltar a enviar as',
+};
+
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: key => key }),
+  useI18n: () => ({ t: key => translations[key] || key }),
 }));
 
 describe('KanbanWorkflowBuilder', () => {
@@ -22,7 +39,7 @@ describe('KanbanWorkflowBuilder', () => {
     ).toBe(true);
     expect(
       wrapper.findAll('[data-testid="kanban-workflow-node-menu"] button')
-    ).toHaveLength(8);
+    ).toHaveLength(9);
   });
 
   it('keeps the add control inside a full-height visual canvas', () => {
@@ -302,6 +319,126 @@ describe('KanbanWorkflowBuilder', () => {
     );
   });
 
+  it('offers a dedicated node for updating an opportunity field', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-workflow-add-node"]')
+      .trigger('click');
+
+    expect(wrapper.text()).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.SET_FIELD'
+    );
+  });
+
+  it('opens field selection directly from the dedicated update-field node', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        customFields: [
+          { key: 'origem', label: 'Origem', fieldType: 'select', options: [] },
+        ],
+        modelValue: {
+          nodes: [
+            {
+              id: 'set-field',
+              type: 'set_field',
+              data: { action_params: { field_key: '', value: '' } },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD'
+    );
+  });
+
+  it('offers selection values when a field-update action targets a select field', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        customFields: [
+          {
+            key: 'origem',
+            label: 'Origem',
+            fieldType: 'select',
+            options: ['Orgânico', 'Mídia Paga'],
+          },
+        ],
+        modelValue: {
+          nodes: [
+            {
+              id: 'action',
+              type: 'action',
+              data: {
+                action_name: 'set_field',
+                action_params: { field_key: 'origem', value: '' },
+              },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    const valueSelect = wrapper.find(
+      '[data-testid="kanban-workflow-action-field-value"]'
+    );
+    expect(valueSelect.element.tagName).toBe('SELECT');
+    expect(valueSelect.text()).toContain('Mídia Paga');
+  });
+
+  it('edits condition rules with an AND or OR match mode', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        conditionFields: [
+          { key: 'origem', label: 'Origem' },
+          { key: 'valor', label: 'Valor' },
+        ],
+        modelValue: {
+          nodes: [
+            {
+              id: 'condition',
+              type: 'condition',
+              data: {
+                match_mode: 'all',
+                conditions: [
+                  { field_key: 'origem', operator: 'equals', value: '' },
+                ],
+              },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-condition-match-mode"]')
+        .exists()
+    ).toBe(true);
+    await wrapper
+      .find('[data-testid="kanban-workflow-add-condition"]')
+      .trigger('click');
+
+    expect(
+      wrapper.findAll('[data-testid="kanban-workflow-condition-row"]')
+    ).toHaveLength(2);
+  });
+
   it('configures official WhatsApp templates on the message node', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
@@ -332,8 +469,42 @@ describe('KanbanWorkflowBuilder', () => {
     wrapper.vm.selectNode(wrapper.vm.nodes[0]);
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.text()).toContain(
-      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME'
+    expect(wrapper.text()).toContain('Template oficial do WhatsApp');
+  });
+
+  it('uses translated message policy labels in the message node', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [
+            {
+              id: 'message',
+              type: 'send_message',
+              data: {
+                channel: 'whatsapp',
+                content: 'Ola',
+                opt_in_attribute_key: 'marketing_messages_opt_in',
+                quiet_hours: {
+                  start: '',
+                  end: '',
+                  timezone: 'America/Sao_Paulo',
+                },
+                whatsapp_template_params: {},
+              },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('Fuso do horario silencioso');
+    expect(wrapper.text()).toContain('Template oficial do WhatsApp');
+    expect(wrapper.text()).not.toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_TIMEZONE'
     );
   });
 

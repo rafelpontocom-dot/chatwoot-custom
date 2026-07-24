@@ -95,6 +95,7 @@ const nodeTypes = {
   wait_for_business_hours: markRaw(KanbanWorkflowNode),
   send_message: markRaw(KanbanWorkflowNode),
   action: markRaw(KanbanWorkflowNode),
+  set_field: markRaw(KanbanWorkflowNode),
   condition: markRaw(KanbanWorkflowNode),
   webhook: markRaw(KanbanWorkflowNode),
   end: markRaw(KanbanWorkflowNode),
@@ -112,6 +113,7 @@ const nodeLabels = computed(() => ({
   ),
   send_message: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.MESSAGE'),
   action: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.ACTION'),
+  set_field: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.SET_FIELD'),
   condition: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CONDITION'),
   webhook: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.WEBHOOK'),
   end: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
@@ -125,6 +127,7 @@ const addableNodeTypes = computed(() => [
   'condition',
   'send_message',
   'action',
+  'set_field',
   'webhook',
 ]);
 
@@ -206,14 +209,22 @@ const selectedNode = computed(() =>
 const selectedEdge = computed(() =>
   edges.value.find(edge => edge.id === selectedEdgeId.value)
 );
-const selectedConditionField = computed(() =>
-  props.conditionFields.find(
-    field => field.key === selectedNode.value?.data?.field_key
+const selectedActionField = computed(() =>
+  props.customFields.find(
+    field => field.key === selectedNode.value?.data?.action_params?.field_key
   )
 );
-const selectedConditionOptions = computed(
-  () => selectedConditionField.value?.conditionOptions || []
+const selectedActionFieldOptions = computed(
+  () => selectedActionField.value?.options || []
 );
+const selectedActionName = computed(() =>
+  selectedNode.value?.type === 'set_field'
+    ? 'set_field'
+    : selectedNode.value?.data?.action_name
+);
+const conditionOptionsFor = condition =>
+  props.conditionFields.find(field => field.key === condition.field_key)
+    ?.conditionOptions || [];
 const numericCustomFields = computed(() =>
   props.customFields.filter(field =>
     ['integer', 'decimal', 'currency', 'formula'].includes(field.fieldType)
@@ -306,8 +317,14 @@ const defaultData = type => {
       action_params: { next_action_type: '', next_action_note: '' },
     };
   }
+  if (type === 'set_field') {
+    return { action_params: { field_key: '', value: '' } };
+  }
   if (type === 'condition') {
-    return { field_key: '', operator: 'equals', value: '' };
+    return {
+      match_mode: 'all',
+      conditions: [{ field_key: '', operator: 'equals', value: '' }],
+    };
   }
   if (type === 'webhook') return { connection_id: '' };
   return {};
@@ -349,9 +366,15 @@ const nodeSummary = node => {
         ?.label || ''
     );
   }
+  if (node.type === 'set_field') {
+    const field = props.customFields.find(
+      item => item.key === data.action_params?.field_key
+    );
+    return field?.label || '';
+  }
   if (node.type === 'condition') {
-    return props.conditionFields.find(field => field.key === data.field_key)
-      ?.label;
+    const fieldKey = data.conditions?.[0]?.field_key || data.field_key;
+    return props.conditionFields.find(field => field.key === fieldKey)?.label;
   }
   if (node.type === 'webhook') {
     return props.connections.find(
@@ -398,22 +421,37 @@ function insertNodeAfter(node) {
   ];
 }
 
-const decorateNode = node => ({
-  ...node,
-  data: {
+const decorateNode = node => {
+  const data = {
     ...defaultData(node.type),
     ...(node.data || {}),
-    kind: node.type,
-    label: nodeLabels.value[node.type] || node.type,
-    summary: nodeSummary(node),
-    invalid: props.invalidNodeIds.includes(node.id),
-    yesLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.YES'),
-    noLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO'),
-    canAddAfter: !['condition', 'end'].includes(node.type),
-    addAfterLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_AFTER'),
-    addAfter: openNodeMenuAfter,
-  },
-});
+  };
+  if (node.type === 'condition' && !Array.isArray(node.data?.conditions)) {
+    data.conditions = [
+      {
+        field_key: node.data?.field_key || '',
+        operator: node.data?.operator || 'equals',
+        value: node.data?.value || '',
+      },
+    ];
+  }
+
+  return {
+    ...node,
+    data: {
+      ...data,
+      kind: node.type,
+      label: nodeLabels.value[node.type] || node.type,
+      summary: nodeSummary({ ...node, data }),
+      invalid: props.invalidNodeIds.includes(node.id),
+      yesLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.YES'),
+      noLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO'),
+      canAddAfter: !['condition', 'end'].includes(node.type),
+      addAfterLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_AFTER'),
+      addAfter: openNodeMenuAfter,
+    },
+  };
+};
 
 function focusFirstInvalidNode() {
   const invalidNodeId = props.invalidNodeIds.find(id =>
@@ -657,6 +695,29 @@ const removeMessageAttachment = () => {
 
 const updateNode = () => {
   refreshSelectedNode();
+};
+
+const addCondition = () => {
+  if (selectedNode.value?.type !== 'condition') return;
+
+  selectedNode.value.data.conditions.push({
+    field_key: '',
+    operator: 'equals',
+    value: '',
+  });
+  updateNode();
+};
+
+const removeCondition = index => {
+  if (
+    selectedNode.value?.type !== 'condition' ||
+    selectedNode.value.data.conditions.length === 1
+  ) {
+    return;
+  }
+
+  selectedNode.value.data.conditions.splice(index, 1);
+  updateNode();
 };
 
 const removeSelectedNode = () => {
@@ -929,10 +990,30 @@ const removeSelectedNode = () => {
 
           <template v-else-if="selectedNode.type === 'condition'">
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPERATOR') }}
               <select
-                v-model="selectedNode.data.field_key"
+                v-model="selectedNode.data.match_mode"
+                data-testid="kanban-workflow-condition-match-mode"
                 class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="updateNode"
+              >
+                <option value="all">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ALL') }}
+                </option>
+                <option value="any">
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ANY') }}
+                </option>
+              </select>
+            </label>
+            <div
+              v-for="(condition, index) in selectedNode.data.conditions"
+              :key="`${index}-${condition.field_key}`"
+              data-testid="kanban-workflow-condition-row"
+              class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-3 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)_2rem]"
+            >
+              <select
+                v-model="condition.field_key"
+                class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                 @change="updateNode"
               >
                 <option value="">
@@ -946,12 +1027,9 @@ const removeSelectedNode = () => {
                   {{ field.label }}
                 </option>
               </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPERATOR') }}
               <select
-                v-model="selectedNode.data.operator"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                v-model="condition.operator"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                 @change="updateNode"
               >
                 <option
@@ -962,23 +1040,20 @@ const removeSelectedNode = () => {
                   {{ option.label }}
                 </option>
               </select>
-            </label>
-            <label
-              v-if="selectedNode.data.operator !== 'exists'"
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
               <select
-                v-if="selectedConditionOptions.length"
-                v-model="selectedNode.data.value"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                v-if="
+                  conditionOptionsFor(condition).length &&
+                  condition.operator !== 'exists'
+                "
+                v-model="condition.value"
+                class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                 @change="updateNode"
               >
                 <option value="">
                   {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
                 </option>
                 <option
-                  v-for="option in selectedConditionOptions"
+                  v-for="option in conditionOptionsFor(condition)"
                   :key="option.value"
                   :value="option.value"
                 >
@@ -986,13 +1061,39 @@ const removeSelectedNode = () => {
                 </option>
               </select>
               <input
-                v-else
-                v-model="selectedNode.data.value"
+                v-else-if="condition.operator !== 'exists'"
+                v-model="condition.value"
                 type="text"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                 @change="updateNode"
               />
-            </label>
+              <span v-else />
+              <button
+                type="button"
+                class="flex size-9 items-center justify-center self-end rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+                :aria-label="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_CONDITION')
+                "
+                :title="
+                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_CONDITION')
+                "
+                :disabled="selectedNode.data.conditions.length === 1"
+                @click="removeCondition(index)"
+              >
+                <i class="i-lucide-trash-2 size-4" />
+              </button>
+            </div>
+            <div>
+              <button
+                type="button"
+                data-testid="kanban-workflow-add-condition"
+                class="flex h-8 items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                @click="addCondition"
+              >
+                <i class="i-lucide-plus size-3.5" />
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_CONDITION') }}
+              </button>
+            </div>
           </template>
 
           <template v-else-if="selectedNode.type === 'send_message'">
@@ -1313,8 +1414,13 @@ const removeSelectedNode = () => {
             </p>
           </template>
 
-          <template v-else-if="selectedNode.type === 'action'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+          <template
+            v-else-if="['action', 'set_field'].includes(selectedNode.type)"
+          >
+            <label
+              v-if="selectedNode.type === 'action'"
+              class="grid gap-1 text-xs font-medium text-n-slate-11"
+            >
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ACTION') }}
               <select
                 v-model="selectedNode.data.action_name"
@@ -1331,7 +1437,7 @@ const removeSelectedNode = () => {
               </select>
             </label>
             <label
-              v-if="selectedNode.data.action_name === 'move_stage'"
+              v-if="selectedActionName === 'move_stage'"
               class="grid gap-1 text-xs font-medium text-n-slate-11"
             >
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.STAGE') }}
@@ -1350,7 +1456,7 @@ const removeSelectedNode = () => {
               </select>
             </label>
             <label
-              v-else-if="selectedNode.data.action_name === 'assign_owner'"
+              v-else-if="selectedActionName === 'assign_owner'"
               class="grid gap-1 text-xs font-medium text-n-slate-11"
             >
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
@@ -1372,7 +1478,7 @@ const removeSelectedNode = () => {
               </select>
             </label>
             <label
-              v-else-if="selectedNode.data.action_name === 'assign_round_robin'"
+              v-else-if="selectedActionName === 'assign_round_robin'"
               class="grid gap-1 text-xs font-medium text-n-slate-11"
             >
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNERS') }}
@@ -1391,9 +1497,7 @@ const removeSelectedNode = () => {
                 </option>
               </select>
             </label>
-            <template
-              v-else-if="selectedNode.data.action_name === 'set_next_action'"
-            >
+            <template v-else-if="selectedActionName === 'set_next_action'">
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_NEXT_ACTION') }}
                 <select
@@ -1436,9 +1540,7 @@ const removeSelectedNode = () => {
             </template>
             <template
               v-else-if="
-                ['set_field', 'increment_field'].includes(
-                  selectedNode.data.action_name
-                )
+                ['set_field', 'increment_field'].includes(selectedActionName)
               "
             >
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
@@ -1452,8 +1554,7 @@ const removeSelectedNode = () => {
                     {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
                   </option>
                   <option
-                    v-for="field in selectedNode.data.action_name ===
-                    'increment_field'
+                    v-for="field in selectedActionName === 'increment_field'
                       ? numericCustomFields
                       : customFields"
                     :key="field.key"
@@ -1465,24 +1566,43 @@ const removeSelectedNode = () => {
               </label>
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
+                <select
+                  v-if="
+                    selectedActionFieldOptions.length &&
+                    selectedActionName === 'set_field'
+                  "
+                  v-model="selectedNode.data.action_params.value"
+                  data-testid="kanban-workflow-action-field-value"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
+                  </option>
+                  <option
+                    v-for="option in selectedActionFieldOptions"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
                 <input
+                  v-else
                   v-model="
                     selectedNode.data.action_params[
-                      selectedNode.data.action_name === 'increment_field'
+                      selectedActionName === 'increment_field'
                         ? 'amount'
                         : 'value'
                     ]
                   "
                   :type="
-                    selectedNode.data.action_name === 'increment_field'
-                      ? 'number'
-                      : 'text'
+                    selectedActionName === 'increment_field' ? 'number' : 'text'
                   "
                   :step="
-                    selectedNode.data.action_name === 'increment_field'
-                      ? 'any'
-                      : undefined
+                    selectedActionName === 'increment_field' ? 'any' : undefined
                   "
+                  data-testid="kanban-workflow-action-field-value"
                   class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"
                 />
@@ -1490,9 +1610,7 @@ const removeSelectedNode = () => {
             </template>
             <template
               v-else-if="
-                ['add_label', 'remove_label'].includes(
-                  selectedNode.data.action_name
-                )
+                ['add_label', 'remove_label'].includes(selectedActionName)
               "
             >
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
@@ -1505,7 +1623,7 @@ const removeSelectedNode = () => {
                 />
               </label>
             </template>
-            <template v-else-if="selectedNode.data.action_name === 'add_note'">
+            <template v-else-if="selectedActionName === 'add_note'">
               <label class="grid gap-1 text-xs font-medium text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NOTE_CONTENT') }}
                 <textarea

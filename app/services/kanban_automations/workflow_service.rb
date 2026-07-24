@@ -13,6 +13,7 @@ class KanbanAutomations::WorkflowService
     'wait_for_response' => :response_wait_node,
     'wait_for_business_hours' => :business_hours_node,
     'action' => :action_node,
+    'set_field' => :action_node,
     'send_message' => :message_node,
     'condition' => :condition_node,
     'webhook' => :webhook_node,
@@ -244,7 +245,7 @@ class KanbanAutomations::WorkflowService
   def execute_action(node)
     data = node.fetch('data', {}).deep_stringify_keys
     action = {
-      'action_name' => data.fetch('action_name'),
+      'action_name' => node['type'] == 'set_field' ? 'set_field' : data.fetch('action_name'),
       'action_params' => data.fetch('action_params', {})
     }
     KanbanAutomations::ActionService.new(rule: rule, card: card, actions: [action]).perform!.map do |result|
@@ -269,8 +270,18 @@ class KanbanAutomations::WorkflowService
 
   def condition_matches?(node)
     data = node.fetch('data', {}).deep_stringify_keys
-    condition = data.slice('field_key', 'operator', 'value')
-    KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(condition)
+    matches = condition_entries(data).map do |condition|
+      KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(condition)
+    end
+
+    data['match_mode'] == 'any' ? matches.any? : matches.all?
+  end
+
+  def condition_entries(data)
+    entries = Array(data['conditions']).filter_map(&:presence)
+    return entries if entries.present?
+
+    [data.slice('field_key', 'operator', 'value')]
   end
 
   def completed(results)

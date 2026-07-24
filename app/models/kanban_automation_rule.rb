@@ -54,7 +54,9 @@ class KanbanAutomationRule < ApplicationRecord
     move_stage assign_owner assign_round_robin set_next_action set_field increment_field archive_card
     enroll_cadence add_label remove_label add_note
   ].freeze
-  FLOW_NODE_TYPES = %w[trigger delay wait_until_field wait_for_response wait_for_business_hours send_message action condition webhook end].freeze
+  FLOW_NODE_TYPES = %w[
+    trigger delay wait_until_field wait_for_response wait_for_business_hours send_message action set_field condition webhook end
+  ].freeze
   belongs_to :account
   belongs_to :kanban_board
   has_many :kanban_automation_executions, dependent: :destroy

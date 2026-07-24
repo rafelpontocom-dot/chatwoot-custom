@@ -172,9 +172,9 @@ class KanbanAutomations::FlowDefinitionValidator
   end
 
   def validate_action_node(node, data)
-    return unless node[:type] == 'action'
+    return unless %w[action set_field].include?(node[:type])
 
-    action_name = data[:action_name].to_s
+    action_name = node[:type] == 'set_field' ? 'set_field' : data[:action_name].to_s
     add_error("Action node #{node[:id]} has an unsupported action") unless KanbanAutomationRule::ACTION_NAMES.include?(action_name)
     validate_action_references(node, action_name, data[:action_params].to_h.with_indifferent_access)
   end
@@ -182,11 +182,31 @@ class KanbanAutomations::FlowDefinitionValidator
   def validate_condition_node(node, data)
     return unless node[:type] == 'condition'
 
-    valid_field = condition_field_exists?(data[:field_key])
-    valid_operator = KanbanAutomationRule::FIELD_OPERATORS.include?(data[:operator].to_s)
-    return if valid_field && valid_operator
+    return if valid_condition_match_mode?(data) && condition_entries_valid?(data)
 
     add_error("Condition node #{node[:id]} is incomplete")
+  end
+
+  def valid_condition_match_mode?(data)
+    %w[all any].include?(data[:match_mode].presence || 'all')
+  end
+
+  def condition_entries_valid?(data)
+    entries = condition_entries(data)
+    entries.present? && entries.all? { |condition| valid_condition_entry?(condition) }
+  end
+
+  def valid_condition_entry?(condition)
+    condition_field_exists?(condition[:field_key]) && KanbanAutomationRule::FIELD_OPERATORS.include?(condition[:operator].to_s)
+  end
+
+  def condition_entries(data)
+    entries = Array(data[:conditions]).filter_map do |condition|
+      condition.to_h.with_indifferent_access.presence
+    end
+    return entries if entries.present?
+
+    [data.slice(:field_key, :operator, :value)]
   end
 
   def validate_webhook_node(node, data)

@@ -7,6 +7,7 @@ class KanbanAutomations::WorkflowPreviewService
     'wait_for_response' => :preview_response_wait,
     'condition' => :preview_condition,
     'action' => :preview_action,
+    'set_field' => :preview_action,
     'send_message' => :preview_message,
     'webhook' => :preview_webhook,
     'end' => :preview_end
@@ -79,7 +80,12 @@ class KanbanAutomations::WorkflowPreviewService
   end
 
   def preview_action(node, steps)
-    steps << node.fetch('data', {}).slice('action_name', 'action_params').merge('node_id' => node.fetch('id'), 'type' => 'action')
+    action_name = node['type'] == 'set_field' ? 'set_field' : node.dig('data', 'action_name')
+    steps << node.fetch('data', {}).slice('action_params').merge(
+      'node_id' => node.fetch('id'),
+      'type' => 'action',
+      'action_name' => action_name
+    )
     next_node_id(node)
   end
 
@@ -99,7 +105,18 @@ class KanbanAutomations::WorkflowPreviewService
 
   def condition_matches?(node)
     data = node.fetch('data', {}).deep_stringify_keys
-    KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(data.slice('field_key', 'operator', 'value'))
+    matches = condition_entries(data).map do |condition|
+      KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(condition)
+    end
+
+    data['match_mode'] == 'any' ? matches.any? : matches.all?
+  end
+
+  def condition_entries(data)
+    entries = Array(data['conditions']).filter_map(&:presence)
+    return entries if entries.present?
+
+    [data.slice('field_key', 'operator', 'value')]
   end
 
   def next_node_id(node, source_handle: nil)

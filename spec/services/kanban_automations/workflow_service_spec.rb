@@ -265,6 +265,68 @@ RSpec.describe KanbanAutomations::WorkflowService do
   end
   # rubocop:enable RSpec/ExampleLength
 
+  # rubocop:disable RSpec/ExampleLength
+  it 'evaluates multiple condition rules with an OR match mode' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [
+        { key: 'origem', label: 'Origem', field_type: 'select', options: ['Orgânico', 'Mídia Paga'] },
+        { key: 'resultado', label: 'Resultado', field_type: 'text' }
+      ]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { origem: 'Mídia Paga' }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'condition',
+            type: 'condition',
+            data: {
+              match_mode: 'any',
+              conditions: [
+                { field_key: 'origem', operator: 'equals', value: 'Orgânico' },
+                { field_key: 'origem', operator: 'equals', value: 'Mídia Paga' }
+              ]
+            }
+          },
+          {
+            id: 'yes-action',
+            type: 'action',
+            data: { action_name: 'set_field', action_params: { field_key: 'resultado', value: 'Qualificado' } }
+          },
+          {
+            id: 'no-action',
+            type: 'action',
+            data: { action_name: 'set_field', action_params: { field_key: 'resultado', value: 'Revisar' } }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'condition' },
+          { source: 'condition', sourceHandle: 'yes', target: 'yes-action' },
+          { source: 'condition', sourceHandle: 'no', target: 'no-action' },
+          { source: 'yes-action', target: 'end' },
+          { source: 'no-action', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+
+    described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(card.reload.custom_field_values).to include('resultado' => 'Qualificado')
+  end
+  # rubocop:enable RSpec/ExampleLength
+
   it 'waits until a datetime field minus the configured offset' do
     board = create(
       :kanban_board,
