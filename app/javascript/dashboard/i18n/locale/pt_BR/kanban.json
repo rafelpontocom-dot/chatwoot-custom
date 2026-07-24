@@ -730,6 +730,9 @@
           "MATCH_ANY": "Qualquer condição (OU)",
           "ADD_CONDITION": "Adicionar condição",
           "REMOVE_CONDITION": "Remover condição",
+          "ROUND_ROBIN_ADD_OPTION": "Adicionar outra opção",
+          "ROUND_ROBIN_REMOVE_OPTION": "Remover opção",
+          "ROUND_ROBIN_RESET_HINT": "Ao adicionar ou remover uma opção, a fila reinicia pela primeira.",
           "YES": "Sim",
           "NO": "Não",
           "CREATE_TASK": "Criar próxima ação",
@@ -746,6 +749,7 @@
             "ACTION": "Ação comercial",
             "SET_FIELD": "Alterar campo",
             "CONDITION": "Condição",
+            "ROUND_ROBIN": "Round Robin",
             "WEBHOOK": "Enviar webhook",
             "END": "Fim"
           },

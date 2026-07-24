@@ -16,6 +16,7 @@ class KanbanAutomations::WorkflowService
     'set_field' => :action_node,
     'send_message' => :message_node,
     'condition' => :condition_node,
+    'round_robin' => :round_robin_node,
     'webhook' => :webhook_node,
     'end' => :end_node
   }.freeze
@@ -154,6 +155,16 @@ class KanbanAutomations::WorkflowService
     [next_node_id(node, source_handle: branch), nil]
   end
 
+  def round_robin_node(node, results)
+    option = next_round_robin_option(node)
+    results << {
+      'node_id' => node.fetch('id'),
+      'status' => 'succeeded',
+      'option_id' => option.fetch('id')
+    }
+    [next_node_id(node, source_handle: option.fetch('id')), nil]
+  end
+
   def webhook_node(node, results)
     result = KanbanAutomations::WebhookDeliveryService.new(
       execution: execution,
@@ -250,6 +261,17 @@ class KanbanAutomations::WorkflowService
     }
     KanbanAutomations::ActionService.new(rule: rule, card: card, actions: [action]).perform!.map do |result|
       result.merge('node_id' => node.fetch('id'))
+    end
+  end
+
+  def next_round_robin_option(node)
+    options = Array(node.dig('data', 'options'))
+    raise ArgumentError, 'Round-robin needs at least two options' if options.length < 2
+
+    rule.with_lock do
+      option = options[rule.round_robin_cursor % options.length]
+      rule.update!(round_robin_cursor: rule.round_robin_cursor + 1)
+      option
     end
   end
 

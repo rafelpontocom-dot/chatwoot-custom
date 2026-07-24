@@ -327,6 +327,60 @@ RSpec.describe KanbanAutomations::WorkflowService do
   end
   # rubocop:enable RSpec/ExampleLength
 
+  it 'rotates round-robin options across executions of the same rule' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [{ key: 'resultado', label: 'Resultado', field_type: 'text' }]
+    )
+    card = create(:kanban_card, account: board.account, kanban_board: board)
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'round-robin',
+            type: 'round_robin',
+            data: {
+              options: [
+                { id: 'first', label: 'Primeira opção' },
+                { id: 'second', label: 'Segunda opção' }
+              ]
+            }
+          },
+          {
+            id: 'first-action',
+            type: 'set_field',
+            data: { action_params: { field_key: 'resultado', value: 'Primeira' } }
+          },
+          {
+            id: 'second-action',
+            type: 'set_field',
+            data: { action_params: { field_key: 'resultado', value: 'Segunda' } }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'round-robin' },
+          { source: 'round-robin', sourceHandle: 'first', target: 'first-action' },
+          { source: 'round-robin', sourceHandle: 'second', target: 'second-action' },
+          { source: 'first-action', target: 'end' },
+          { source: 'second-action', target: 'end' }
+        ]
+      }
+    )
+
+    first_execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+    described_class.new(execution: first_execution, rule: rule, card: card).perform!
+    expect(card.reload.custom_field_values).to include('resultado' => 'Primeira')
+
+    second_execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+    described_class.new(execution: second_execution, rule: rule, card: card).perform!
+    expect(card.reload.custom_field_values).to include('resultado' => 'Segunda')
+  end
+
   it 'waits until a datetime field minus the configured offset' do
     board = create(
       :kanban_board,

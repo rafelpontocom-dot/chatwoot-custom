@@ -734,6 +734,9 @@
           "MATCH_ANY": "Any condition (OR)",
           "ADD_CONDITION": "Add condition",
           "REMOVE_CONDITION": "Remove condition",
+          "ROUND_ROBIN_ADD_OPTION": "Add another option",
+          "ROUND_ROBIN_REMOVE_OPTION": "Remove option",
+          "ROUND_ROBIN_RESET_HINT": "Adding or removing an option resets the queue to the first option.",
           "YES": "Yes",
           "NO": "No",
           "CREATE_TASK": "Create next action",
@@ -750,6 +753,7 @@
             "ACTION": "Commercial action",
             "SET_FIELD": "Update field",
             "CONDITION": "Condition",
+            "ROUND_ROBIN": "Round robin",
             "WEBHOOK": "Send webhook",
             "END": "End"
           },

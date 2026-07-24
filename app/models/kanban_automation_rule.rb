@@ -55,7 +55,7 @@ class KanbanAutomationRule < ApplicationRecord
     enroll_cadence add_label remove_label add_note
   ].freeze
   FLOW_NODE_TYPES = %w[
-    trigger delay wait_until_field wait_for_response wait_for_business_hours send_message action set_field condition webhook end
+    trigger delay wait_until_field wait_for_response wait_for_business_hours send_message action set_field condition round_robin webhook end
   ].freeze
   belongs_to :account
   belongs_to :kanban_board
@@ -67,6 +67,7 @@ class KanbanAutomationRule < ApplicationRecord
   validates :name, presence: true, uniqueness: { scope: :kanban_board_id }
   validates :event_name, inclusion: { in: EVENT_NAMES }
   validates :account, :kanban_board, presence: true
+  before_validation :reset_round_robin_cursor, if: :will_save_change_to_flow_definition?
   validate :board_belongs_to_account
   validate :conditions_are_supported
   validate :actions_are_supported
@@ -119,6 +120,10 @@ class KanbanAutomationRule < ApplicationRecord
     return if account_id == kanban_board.account_id
 
     errors.add(:kanban_board, :invalid)
+  end
+
+  def reset_round_robin_cursor
+    self.round_robin_cursor = 0
   end
 
   def conditions_are_supported

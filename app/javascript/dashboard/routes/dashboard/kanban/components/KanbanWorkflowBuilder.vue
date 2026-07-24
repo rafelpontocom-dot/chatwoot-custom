@@ -77,6 +77,7 @@ const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
 const showNodeMenu = ref(false);
 const insertAfterNodeId = ref(null);
+const insertAfterHandle = ref(null);
 const inspector = ref(null);
 const messageContentInput = ref(null);
 const showEmojiPicker = ref(false);
@@ -97,6 +98,7 @@ const nodeTypes = {
   action: markRaw(KanbanWorkflowNode),
   set_field: markRaw(KanbanWorkflowNode),
   condition: markRaw(KanbanWorkflowNode),
+  round_robin: markRaw(KanbanWorkflowNode),
   webhook: markRaw(KanbanWorkflowNode),
   end: markRaw(KanbanWorkflowNode),
 };
@@ -115,6 +117,7 @@ const nodeLabels = computed(() => ({
   action: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.ACTION'),
   set_field: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.SET_FIELD'),
   condition: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CONDITION'),
+  round_robin: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.ROUND_ROBIN'),
   webhook: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.WEBHOOK'),
   end: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
 }));
@@ -125,6 +128,7 @@ const addableNodeTypes = computed(() => [
   'wait_for_response',
   'wait_for_business_hours',
   'condition',
+  'round_robin',
   'send_message',
   'action',
   'set_field',
@@ -326,6 +330,14 @@ const defaultData = type => {
       conditions: [{ field_key: '', operator: 'equals', value: '' }],
     };
   }
+  if (type === 'round_robin') {
+    return {
+      options: [
+        { id: 'option-1', label: 'Opção 1' },
+        { id: 'option-2', label: 'Opção 2' },
+      ],
+    };
+  }
   if (type === 'webhook') return { connection_id: '' };
   return {};
 };
@@ -376,6 +388,9 @@ const nodeSummary = node => {
     const fieldKey = data.conditions?.[0]?.field_key || data.field_key;
     return props.conditionFields.find(field => field.key === fieldKey)?.label;
   }
+  if (node.type === 'round_robin') {
+    return `${data.options?.length || 0}`;
+  }
   if (node.type === 'webhook') {
     return props.connections.find(
       item => item.id === Number(data.connection_id)
@@ -384,8 +399,9 @@ const nodeSummary = node => {
   return '';
 };
 
-function openNodeMenuAfter(nodeId) {
+function openNodeMenuAfter(nodeId, sourceHandle = null) {
   insertAfterNodeId.value = nodeId;
+  insertAfterHandle.value = sourceHandle;
   showNodeMenu.value = true;
 }
 
@@ -405,14 +421,31 @@ function insertNodeAfter(node) {
   if (!sourceId) return;
 
   const outgoing = edges.value.filter(
-    edge => edge.source === sourceId && !edge.sourceHandle
+    edge =>
+      edge.source === sourceId &&
+      (insertAfterHandle.value
+        ? edge.sourceHandle === insertAfterHandle.value
+        : !edge.sourceHandle)
   );
   const sourceEdge = outgoing[0];
-  if (!sourceEdge) return;
+  if (!sourceEdge) {
+    edges.value.push({
+      id: `${sourceId}-${insertAfterHandle.value || 'default'}-${node.id}`,
+      source: sourceId,
+      sourceHandle: insertAfterHandle.value || undefined,
+      target: node.id,
+    });
+    return;
+  }
 
   edges.value = [
     ...edges.value.filter(edge => edge.id !== sourceEdge.id),
-    { id: `${sourceId}-${node.id}`, source: sourceId, target: node.id },
+    {
+      id: `${sourceId}-${insertAfterHandle.value || 'default'}-${node.id}`,
+      source: sourceId,
+      sourceHandle: insertAfterHandle.value || undefined,
+      target: node.id,
+    },
     {
       id: `${node.id}-${sourceEdge.target}`,
       source: node.id,
@@ -446,9 +479,10 @@ const decorateNode = node => {
       invalid: props.invalidNodeIds.includes(node.id),
       yesLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.YES'),
       noLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO'),
-      canAddAfter: !['condition', 'end'].includes(node.type),
+      canAddAfter: !['condition', 'round_robin', 'end'].includes(node.type),
       addAfterLabel: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_AFTER'),
       addAfter: openNodeMenuAfter,
+      addAfterOption: openNodeMenuAfter,
     },
   };
 };
@@ -560,6 +594,7 @@ const addNodeOfType = type => {
   selectedNodeId.value = id;
   showNodeMenu.value = false;
   insertAfterNodeId.value = null;
+  insertAfterHandle.value = null;
 };
 
 const onConnect = connection => {
@@ -717,6 +752,29 @@ const removeCondition = index => {
   }
 
   selectedNode.value.data.conditions.splice(index, 1);
+  updateNode();
+};
+
+const addRoundRobinOption = () => {
+  if (selectedNode.value?.type !== 'round_robin') return;
+
+  const number = selectedNode.value.data.options.length + 1;
+  selectedNode.value.data.options.push({
+    id: `option-${Date.now()}`,
+    label: `Opção ${number}`,
+  });
+  updateNode();
+};
+
+const removeRoundRobinOption = index => {
+  if (
+    selectedNode.value?.type !== 'round_robin' ||
+    selectedNode.value.data.options.length <= 2
+  ) {
+    return;
+  }
+
+  selectedNode.value.data.options.splice(index, 1);
   updateNode();
 };
 
@@ -1092,6 +1150,61 @@ const removeSelectedNode = () => {
               >
                 <i class="i-lucide-plus size-3.5" />
                 {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_CONDITION') }}
+              </button>
+            </div>
+          </template>
+
+          <template v-else-if="selectedNode.type === 'round_robin'">
+            <div class="grid gap-2">
+              <div
+                v-for="(option, index) in selectedNode.data.options"
+                :key="option.id"
+                class="grid grid-cols-[minmax(0,1fr)_2rem] gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2"
+              >
+                <input
+                  v-model="option.label"
+                  type="text"
+                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                />
+                <button
+                  type="button"
+                  class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+                  :aria-label="
+                    t(
+                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_REMOVE_OPTION'
+                    )
+                  "
+                  :title="
+                    t(
+                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_REMOVE_OPTION'
+                    )
+                  "
+                  :disabled="selectedNode.data.options.length <= 2"
+                  @click="removeRoundRobinOption(index)"
+                >
+                  <i class="i-lucide-trash-2 size-4" />
+                </button>
+              </div>
+            </div>
+            <p class="m-0 text-xs text-n-slate-11">
+              {{
+                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_RESET_HINT')
+              }}
+            </p>
+            <div>
+              <button
+                type="button"
+                data-testid="kanban-workflow-add-round-robin-option"
+                class="flex h-8 items-center gap-1 rounded-md border border-n-weak bg-n-surface-2 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                @click="addRoundRobinOption"
+              >
+                <i class="i-lucide-plus size-3.5" />
+                {{
+                  t(
+                    'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_ADD_OPTION'
+                  )
+                }}
               </button>
             </div>
           </template>

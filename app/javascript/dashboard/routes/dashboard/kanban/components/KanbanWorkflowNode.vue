@@ -60,6 +60,29 @@ defineProps({
       class="!bottom-4 !top-auto !size-3 !border-2 !border-n-surface-1 !bg-n-ruby-9"
     />
   </template>
+  <template v-else-if="data.kind === 'round_robin'">
+    <div
+      v-for="option in data.options"
+      :key="option.id"
+      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+    >
+      <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
+      <button
+        type="button"
+        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        :aria-label="data.addAfterLabel"
+        @click.stop="data.addAfterOption(data.id, option.id)"
+      >
+        <i class="i-lucide-plus size-3" />
+      </button>
+      <Handle
+        :id="option.id"
+        type="source"
+        :position="Position.Right"
+        class="!static !size-3 !border-2 !border-n-surface-1 !bg-n-brand"
+      />
+    </div>
+  </template>
   <button
     v-else-if="data.canAddAfter"
     type="button"
@@ -70,7 +93,9 @@ defineProps({
     <i class="i-lucide-plus size-3" />
   </button>
   <Handle
-    v-if="data.kind !== 'end' && data.kind !== 'condition'"
+    v-if="
+      data.kind !== 'end' && !['condition', 'round_robin'].includes(data.kind)
+    "
     type="source"
     :position="Position.Right"
     class="!size-3 !border-2 !border-n-surface-1 !bg-n-brand"

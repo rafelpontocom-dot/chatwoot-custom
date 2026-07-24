@@ -90,8 +90,10 @@ class KanbanAutomations::FlowDefinitionValidator
       validate_wait_for_business_hours_node(node, data)
       validate_action_node(node, data)
       validate_condition_node(node, data)
+      validate_round_robin_node(node, data)
       validate_webhook_node(node, data)
       validate_condition_paths(node)
+      validate_round_robin_paths(node, data)
     end
   end
 
@@ -214,6 +216,30 @@ class KanbanAutomations::FlowDefinitionValidator
 
     connection = rule.kanban_board.kanban_automation_connections.active.find_by(id: data[:connection_id])
     add_error("Webhook node #{node[:id]} references an active connection on this board") if connection.blank?
+  end
+
+  def validate_round_robin_node(node, data)
+    return unless node[:type] == 'round_robin'
+
+    options = round_robin_options(data)
+    valid_options = options.length >= 2 && options.all? { |option| option[:id].present? } && options.pluck(:id).uniq.length == options.length
+    add_error("Round-robin node #{node[:id]} needs at least two options") unless valid_options
+  end
+
+  def validate_round_robin_paths(node, data)
+    return unless node[:type] == 'round_robin'
+
+    handles = edges.filter_map do |edge|
+      edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s
+    end
+    expected = round_robin_options(data).pluck(:id).map(&:to_s).sort
+    return if handles.sort == expected
+
+    add_error("Round-robin node #{node[:id]} needs one path for every option")
+  end
+
+  def round_robin_options(data)
+    Array(data[:options]).map { |option| option.to_h.with_indifferent_access }
   end
 
   def validate_condition_paths(node)

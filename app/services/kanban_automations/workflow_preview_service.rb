@@ -6,6 +6,7 @@ class KanbanAutomations::WorkflowPreviewService
     'wait_until_field' => :preview_date_wait,
     'wait_for_response' => :preview_response_wait,
     'condition' => :preview_condition,
+    'round_robin' => :preview_round_robin,
     'action' => :preview_action,
     'set_field' => :preview_action,
     'send_message' => :preview_message,
@@ -77,6 +78,12 @@ class KanbanAutomations::WorkflowPreviewService
     branch = condition_matches?(node) ? 'yes' : 'no'
     steps << { 'node_id' => node.fetch('id'), 'type' => 'condition', 'branch' => branch }
     next_node_id(node, source_handle: branch)
+  end
+
+  def preview_round_robin(node, steps)
+    option = Array(node.dig('data', 'options')).first || {}
+    steps << { 'node_id' => node.fetch('id'), 'type' => 'round_robin', 'option_id' => option['id'] }
+    next_node_id(node, source_handle: option.fetch('id'))
   end
 
   def preview_action(node, steps)

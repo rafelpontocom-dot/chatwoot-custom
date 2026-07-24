@@ -39,7 +39,7 @@ describe('KanbanWorkflowBuilder', () => {
     ).toBe(true);
     expect(
       wrapper.findAll('[data-testid="kanban-workflow-node-menu"] button')
-    ).toHaveLength(9);
+    ).toHaveLength(10);
   });
 
   it('keeps the add control inside a full-height visual canvas', () => {
@@ -437,6 +437,37 @@ describe('KanbanWorkflowBuilder', () => {
     expect(
       wrapper.findAll('[data-testid="kanban-workflow-condition-row"]')
     ).toHaveLength(2);
+  });
+
+  it('adds round-robin options and keeps each option ready for a next step', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [
+            {
+              id: 'round-robin',
+              type: 'round_robin',
+              data: {
+                options: [
+                  { id: 'first', label: 'Primeira' },
+                  { id: 'second', label: 'Segunda' },
+                ],
+              },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .find('[data-testid="kanban-workflow-add-round-robin-option"]')
+      .trigger('click');
+
+    expect(wrapper.vm.selectedNode.data.options).toHaveLength(3);
+    expect(wrapper.vm.selectedNode.data.options[2].label).toBe('Opção 3');
   });
 
   it('configures official WhatsApp templates on the message node', async () => {
