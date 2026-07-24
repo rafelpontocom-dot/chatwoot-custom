@@ -198,19 +198,22 @@ O detalhamento de produto está em [Kanban Visual Workflows PRD](kanban-visual-w
 
 O board oferece um construtor visual próprio baseado em Vue Flow. Ele é uma interface para regras comerciais do Chatwoot, não um editor genérico de código, integrações arbitrárias ou credenciais externas.
 
-Nós da primeira entrega:
+Nós disponíveis no construtor atual:
 
 - `Gatilho`: usa um evento já publicado pela oportunidade, como criação, mudança de etapa, ganho, perda ou próxima ação concluída;
 - `Aguardar`: pausa a execução por um número positivo de horas e a retoma por job, sem manter processo aberto;
-- `Enviar mensagem`: envia WhatsApp ou e-mail apenas para conversa compatível, com texto, opt-in obrigatório e respeito à janela de 24 horas do WhatsApp;
-- `Ação comercial`: criar próxima ação, mover etapa, arquivar, atribuir responsável ou preencher campo;
+- `Aguardar até data`, `Aguardar resposta` e `Aguardar horário comercial`: pausas comerciais persistidas, com prazo e fuso explícitos;
+- `Condição`: caminhos Sim e Não sobre dados permitidos da oportunidade;
+- `Enviar mensagem`: envia WhatsApp ou e-mail apenas para conversa compatível, com texto, emoji, variáveis, imagem, opt-in obrigatório e respeito à janela de 24 horas do WhatsApp;
+- `Ação comercial`: criar próxima ação, mover etapa, arquivar, atribuir responsável, distribuir em rodízio, preencher/incrementar campo, etiqueta ou nota interna;
+- `Webhook`: entrega HTTPS por conexão aprovada, assinada e auditável;
 - `Fim`: encerra explicitamente o fluxo.
 
-Cada fluxo é versionado como JSON validado pelo backend. O canvas nunca executa código enviado pelo usuário. Execuções possuem chave idempotente por evento, estado persistido ao aguardar e histórico dos nós executados.
+Cada fluxo é versionado como JSON validado pelo backend. Todo salvamento, atualização ou restauração gera um snapshot imutável; restaurar exige confirmação e cria uma nova versão, sem reescrever execuções já iniciadas. O canvas nunca executa código enviado pelo usuário. Execuções possuem chave idempotente por evento, estado persistido ao aguardar e histórico dos nós executados.
 
-Fora da primeira entrega ficam condições com dois caminhos, ramificações, templates oficiais do WhatsApp, horários silenciosos, limites de frequência e migração assistida do N8N. Esses itens devem entrar somente quando houver prévia, simulação e trilha de auditoria adequadas.
+Fora do escopo atual ficam loops, código arbitrário, credenciais soltas no canvas, importação do N8N e integrações complexas. Esses itens só entram quando houver uma experiência de revisão, simulação e trilha de auditoria equivalente.
 
-Estado da primeira entrega: o board já aceita regras de lembrete por entrada em etapa, o scheduler cria entregas idempotentes por agendamento/canal e o serviço de mensagens respeita opt-in e janela do WhatsApp. Cadências podem ser inscritas automaticamente ao entrar em uma etapa, mantendo os passos atuais como tarefas internas.
+Estado atual: o board aceita regras por evento, condição e etapa; o scheduler cria entregas idempotentes por agendamento/canal; e o serviço de mensagens respeita opt-in, janela do WhatsApp, horário silencioso e limite de frequência. Cadências podem ser inscritas automaticamente ao entrar em uma etapa, mantendo os passos atuais como tarefas internas. A central também oferece teste sem efeito colateral, conexões de webhook, execuções, cancelamento/retry e histórico de versões por regra.
 
 ### Lembretes De Consulta
 

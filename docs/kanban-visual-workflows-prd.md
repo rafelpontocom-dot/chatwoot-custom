@@ -33,7 +33,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 3. Seleciona uma automação, usa Nova automação ou parte de um modelo pronto para abrir o construtor em uma área dedicada.
 4. Define nome, evento, etapa de origem e estado ativo no cabeçalho compacto do fluxo.
 5. Usa o botão `+` para escolher uma etapa a acrescentar ao canvas, sem uma paleta permanente ocupando espaço.
-6. Seleciona um nó para configurar seu conteúdo no painel lateral.
+6. Seleciona um nó ou conexão para configurar seu conteúdo em um modal central, sem comprimir o canvas.
 7. Salva. O backend valida todos os nós antes de ativar a regra.
 8. Quando o evento ocorre, a execução fica registrada no histórico do funil, com estado, oportunidade e motivo de falha.
 9. Se houver uma espera, o card segue operando normalmente; a execução retoma no horário salvo.
@@ -42,12 +42,12 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 
 - O canvas é uma área de trabalho, não um bloco dentro de um formulário longo.
 - O botão `+` apresenta opções somente quando a pessoa quer acrescentar uma etapa.
-- O painel lateral aparece apenas para o nó selecionado e concentra suas propriedades.
+- O modal de configuração aparece somente para o nó ou conexão selecionado, concentra suas propriedades e preserva a largura do canvas.
 - Lembretes de consulta são configurados em uma aba própria; follow-up comercial é um fluxo visual, nunca uma segunda configuração paralela.
 - Conexões externas têm configuração própria: o fluxo apenas escolhe uma conexão já aprovada.
 - Execuções permitem retry de falhas, cancelamento de esperas e leitura rápida do impacto na oportunidade.
 - O inseridor contextual `+` acrescenta e conecta o próximo passo no caminho selecionado; uma paleta fixa não deve roubar espaço do canvas.
-- O fluxo nasce como rascunho e só é ativado depois de validado e revisado por um administrador. Cada salvamento cria uma versão visível para auditoria; execuções mantêm o snapshot da versão que as iniciou.
+- O fluxo nasce como rascunho e só é ativado depois de validado e revisado por um administrador. Cada salvamento cria uma versão visível para auditoria; execuções mantêm o snapshot da versão que as iniciou. Restaurar uma versão pede confirmação explícita, cria uma nova versão e só afeta execuções futuras.
 - Cadências legadas permanecem somente para preservar histórico e regras existentes; novas cadências não são criadas pela central.
 - `Follow-up comercial` e `NPS e avaliação Google` são sempre abertos como rascunho. `Mensagem de aniversário` abre sua configuração específica, desativada por padrão, pois depende da data de nascimento do contato.
 
@@ -74,10 +74,10 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 
 - Mensagem exige opt-in explícito no atributo do contato configurado pelo administrador.
 - WhatsApp usa uma conversa compatível e somente envia quando ela pode receber resposta livre.
-- Fora da janela de 24 horas, a execução é marcada como ignorada. Templates oficiais entram em etapa posterior.
+- Fora da janela de 24 horas, o envio livre é bloqueado; a execução só prossegue quando o nó possui um template oficial de WhatsApp configurado.
 - E-mail exige uma conversa de e-mail compatível.
 - Ausência de conversa, opt-in ou janela não causa repetição infinita: fica registrada como `skipped` no histórico e o fluxo continua.
-- A mensagem permite a variável inicial `{{contact_name}}`.
+- A mensagem permite nome do contato, título e valor da oportunidade e campos personalizados autorizados. O inseridor pesquisável mostra apenas variáveis disponíveis para aquele board; tokens desconhecidos permanecem literais e nunca executam código.
 - Horário silencioso e intervalo mínimo entre mensagens podem ser configurados no nó. Quando aplicáveis, a execução fica aguardando e retoma automaticamente no próximo horário permitido.
 
 ## Regras De Confiabilidade
@@ -91,6 +91,7 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 - Um fluxo possui no máximo 50 nós executáveis por rodada, não aceita ciclos e não executa código do usuário.
 - Cada execução recebe um snapshot imutável do gatilho, condições, ações e canvas no momento em que é criada. Edições posteriores não mudam uma mensagem já agendada.
 - Ao alterar uma regra com execuções aguardando, o administrador pode cancelá-las explicitamente. Sem essa opção, elas terminam com o snapshot da versão que as iniciou.
+- O histórico de versões permite restaurar uma configuração anterior, mas a ação precisa de confirmação e sempre cria outro snapshot, preservando a auditoria linear.
 - Uma oportunidade não pode reentrar na mesma automação enquanto já houver execução ativa. Depois de concluída, a reentrada só acontece se o administrador habilitar a opção correspondente na regra.
 
 ## Estados Visíveis

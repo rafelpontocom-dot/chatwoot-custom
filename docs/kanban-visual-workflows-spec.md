@@ -36,6 +36,17 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 | `active`        | boolean         | Uma conexão inativa não pode ser escolhida por um nó.                |
 | `inbound_token` | string secreta  | Identifica o endpoint de entrada e nunca dispensa a assinatura HMAC. |
 
+### `kanban_automation_rule_versions`
+
+| Campo                       | Tipo      | Uso                                                                                         |
+| --------------------------- | --------- | ------------------------------------------------------------------------------------------- |
+| `kanban_automation_rule_id` | referência | Regra a que a versão pertence.                                                              |
+| `account_id`                | referência | Mantém o isolamento de conta e permite validar a associação da regra.                      |
+| `version_number`            | inteiro   | Número humano, único por regra e maior que zero.                                            |
+| `snapshot`                  | `jsonb`   | Cópia imutável de nome, evento, estado, reentrada, ordem, condições, ações e canvas.       |
+
+Índice único: `(kanban_automation_rule_id, version_number)`.
+
 ## Contrato JSON
 
 ```json
@@ -99,6 +110,8 @@ O backend não confia no canvas para validar autorização, referências nem reg
 
 Cada execução recebe um snapshot da regra no início. Uma atualização, portanto, não modifica passos já agendados. Na edição, o administrador pode cancelar todas as execuções `waiting`; quando não cancela, elas terminam com o snapshot original. A API expõe uma versão humana, derivada do optimistic locking, e o canvas inicia em rascunho até ser publicado.
 
+Após criar, atualizar ou restaurar a regra, o controlador grava um registro imutável em `kanban_automation_rule_versions`. A restauração só aceita uma versão da própria regra e da mesma conta, aplica o snapshot em transação e grava imediatamente uma nova versão. O frontend exige uma segunda confirmação antes do `POST`; não há restauração silenciosa.
+
 | Conceito           | Regra técnica                                                                                                                                                         |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Reentrada          | Bloqueada enquanto existir execução `queued`, `running` ou `waiting` para a mesma regra e oportunidade. Após conclusão, depende de `reentry_enabled` explícito na regra. |
@@ -155,7 +168,7 @@ O endpoint de teste usa `WorkflowPreviewService`, que percorre os nós e devolve
 | Intervalo mínimo ativo     | `waiting: frequency_limit`, retomada após a última mensagem de workflow |
 | Envio aceito               | `succeeded` com `message_id`                                            |
 
-O conteúdo substitui somente `{{contact_name}}`. O nó pode receber `frequency_limit_hours` (até 720 horas) e `quiet_hours` com `start`, `end` e `timezone`. Novas variáveis exigem lista permitida e testes próprios.
+O conteúdo substitui somente variáveis permitidas: `{{contact_name}}`, `{{opportunity_subject}}`, `{{opportunity_amount}}` e `{{field.<chave_do_campo>}}`. Token desconhecido permanece literal. O nó pode receber `frequency_limit_hours` (até 720 horas), `quiet_hours` com `start`, `end` e `timezone`, `whatsapp_template_params` para mensagem oficial e `message_attachment_signed_id` de uma imagem do Active Storage validada pelo backend.
 
 ## Nó De Ação
 
@@ -201,6 +214,8 @@ Os endpoints existentes de regras recebem e devolvem `flow_definition`:
 - `POST /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_rules/:id/run`
 - `POST /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_rules/:id/executions/:execution_id/retry`
 - `POST /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_rules/:id/executions/:execution_id/cancel`
+- `GET /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_rules/:id/versions`
+- `POST /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_rules/:id/versions/:version_id/restore`
 - `GET|POST|PATCH|DELETE /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_connections`
 - `POST /api/v1/accounts/:account_id/kanban_boards/:kanban_board_id/automation_connections/:id/reset_secret`
 
@@ -210,7 +225,7 @@ Erros de validação respondem `422` com `message` e `errors`. O frontend deve m
 
 `KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, lembretes, conexões e execuções. A aba Fluxos lista regras, oferece modelos em rascunho e abre o editor dedicado; Conexões cria URLs assinadas sem colocar segredos no canvas; Execuções permite diagnóstico, retry de falhas e cancelamento de esperas. Cadências existentes são legadas e não aparecem como opção no novo editor.
 
-Cada criação, atualização ou restauração registra um snapshot imutável em `kanban_automation_rule_versions`. O histórico é acessado pelo ícone de relógio na regra. Restaurar uma versão gera uma nova versão e só muda inscrições futuras: `KanbanAutomationExecution#automation_snapshot` continua sendo a fonte de verdade para execuções já iniciadas.
+Cada criação, atualização ou restauração registra um snapshot imutável em `kanban_automation_rule_versions`. O histórico é acessado pelo ícone de relógio na regra. Restaurar uma versão pede confirmação contextual, gera uma nova versão e só muda inscrições futuras: `KanbanAutomationExecution#automation_snapshot` continua sendo a fonte de verdade para execuções já iniciadas.
 
 `KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas preserva toda a largura; clicar em nó ou conexão abre um modal central sobreposto, sem reduzir a área do fluxo.
 
@@ -240,11 +255,12 @@ Para fluxos maiores, o minimapa só deve ser exibido quando o conteúdo extrapol
 - navegação por teclado, foco e responsividade devem entrar na suíte E2E antes de P2.
 - duas edições concorrentes da mesma oportunidade e reexecução idempotente de webhook;
 - alteração/desativação de regra com execuções aguardando, nas opções manter e cancelar;
+- criação, listagem e restauração de versões; incluindo rejeição de versão pertencente a outra regra ou conta;
 - execução de fluxo longo, volume alto de cards e fuso horário de espera por data.
 
 ## Migrations E Deploy
 
-Aplicar as migrations de fluxos e conexões uma única vez, no container `chatwoot_api`:
+Aplicar as migrations de fluxos, conexões e versões uma única vez, no container `chatwoot_api`:
 
 ```sh
 bundle exec rails db:migrate
