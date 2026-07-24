@@ -19,6 +19,8 @@
         "LOADING": "Carregando versões...",
         "EMPTY": "Ainda não há versões salvas.",
         "RESTORE": "Restaurar",
+        "CONFIRM_RESTORE": "Confirmar restauração",
+        "CONFIRM_HINT": "A restauração cria uma nova versão.",
         "RESTORE_SUCCESS": "Versão restaurada. Uma nova versão foi registrada.",
         "RESTORE_ERROR": "Não foi possível restaurar esta versão.",
         "LOAD_ERROR": "Não foi possível carregar o histórico de versões."

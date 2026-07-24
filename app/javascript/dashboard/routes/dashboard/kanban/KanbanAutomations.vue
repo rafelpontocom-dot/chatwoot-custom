@@ -17,6 +17,7 @@ import { useAlert } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import Button from 'dashboard/components-next/button/Button.vue';
+import ConfirmButton from 'dashboard/components-next/button/ConfirmButton.vue';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanWorkflowBuilder from './components/KanbanWorkflowBuilder.vue';
 
@@ -1831,12 +1832,19 @@ onMounted(load);
                     {{ new Date(version.createdAt).toLocaleString() }}
                   </p>
                 </div>
-                <Button
+                <ConfirmButton
                   type="button"
                   icon="i-lucide-rotate-ccw"
                   color="slate"
+                  confirm-color="ruby"
                   size="xs"
                   :label="t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.RESTORE')"
+                  :confirm-label="
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.CONFIRM_RESTORE')
+                  "
+                  :confirm-hint="
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.CONFIRM_HINT')
+                  "
                   :is-loading="restoringVersionId === version.id"
                   @click="restoreRuleVersion(version)"
                 />

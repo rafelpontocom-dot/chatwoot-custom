@@ -19,6 +19,8 @@
         "LOADING": "Loading versions...",
         "EMPTY": "No saved versions yet.",
         "RESTORE": "Restore",
+        "CONFIRM_RESTORE": "Confirm restore",
+        "CONFIRM_HINT": "Restoring creates a new version.",
         "RESTORE_SUCCESS": "Version restored. A new version was recorded.",
         "RESTORE_ERROR": "Could not restore this version.",
         "LOAD_ERROR": "Could not load version history."
