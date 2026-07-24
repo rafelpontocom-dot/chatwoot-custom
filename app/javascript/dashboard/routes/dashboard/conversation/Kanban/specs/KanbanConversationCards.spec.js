@@ -188,6 +188,13 @@ const formLabels = wrapper =>
     .map(node => node.text())
     .filter(Boolean);
 
+const localDateTimeInputValue = value => {
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+
+  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+};
+
 describe('KanbanConversationCards', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -468,7 +475,7 @@ describe('KanbanConversationCards', () => {
     expect(wrapper.text()).toContain('New');
     expect(wrapper.find('select').element.value).toBe('20');
     expect(wrapper.find('input[type="datetime-local"]').element.value).toBe(
-      '2026-06-07T18:00'
+      localDateTimeInputValue('2026-06-07T18:00:00-03:00')
     );
     expect(wrapper.text()).toContain('urgente');
     expect(wrapper.text()).toContain('vendas');
