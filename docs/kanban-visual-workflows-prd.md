@@ -164,7 +164,7 @@ HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrad
 
 Erros de configuração não podem exigir que o administrador procure pelo canvas: a validação seleciona, destaca e abre a etapa que precisa ser corrigida.
 
-**P1 de governança:** snapshot por execução, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com uma oportunidade ativa e passos previstos sem efeitos externos, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente. A publicação formal com rascunho/versionamento visível continua pendente.
+**P1 de governança:** snapshot por execução, decisão ao alterar execuções pendentes, reentrada configurável, supressão/saída, teste guiado com uma oportunidade ativa e passos previstos sem efeitos externos, histórico por oportunidade e webhook de entrada autenticado e mapeado a uma oportunidade existente. Cada salvamento agora cria uma versão imutável, exibida na central e restaurável sem alterar execuções já em andamento.
 
 **P2 de escala:** tarefas internas com prazo, templates por segmento e integrações declarativas adicionais, sempre por conexão aprovada. O rodízio de responsáveis está implementado como uma ação atômica do fluxo; a central já exibe saúde operacional com falhas e esperas vencidas.
 

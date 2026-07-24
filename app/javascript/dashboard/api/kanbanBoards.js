@@ -125,6 +125,18 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.delete(`${this.url}/${boardId}/automation_rules/${ruleId}`);
   }
 
+  getAutomationRuleVersions(boardId, ruleId) {
+    return axios.get(
+      `${this.url}/${boardId}/automation_rules/${ruleId}/versions`
+    );
+  }
+
+  restoreAutomationRuleVersion(boardId, ruleId, versionId) {
+    return axios.post(
+      `${this.url}/${boardId}/automation_rules/${ruleId}/versions/${versionId}/restore`
+    );
+  }
+
   testAutomationRule(boardId, ruleId, cardId) {
     return axios.post(
       `${this.url}/${boardId}/automation_rules/${ruleId}/test`,

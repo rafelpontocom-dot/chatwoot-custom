@@ -58,6 +58,7 @@ class KanbanAutomationRule < ApplicationRecord
   belongs_to :account
   belongs_to :kanban_board
   has_many :kanban_automation_executions, dependent: :destroy
+  has_many :kanban_automation_rule_versions, dependent: :destroy
   scope :active, -> { where(active: true) }
   scope :for_event, ->(event_name) { where(event_name: event_name) }
   scope :ordered, -> { order(position: :asc, id: :asc) }
@@ -80,6 +81,33 @@ class KanbanAutomationRule < ApplicationRecord
 
   def version_number
     lock_version + 1
+  end
+
+  def version_snapshot
+    attributes.slice(
+      'name',
+      'description',
+      'event_name',
+      'active',
+      'reentry_enabled',
+      'position',
+      'conditions',
+      'actions',
+      'flow_definition'
+    )
+  end
+
+  def record_version!
+    kanban_automation_rule_versions.create!(
+      account: account,
+      version_number: version_number,
+      snapshot: version_snapshot
+    )
+  end
+
+  def restore_version!(version)
+    update!(version.snapshot.slice(*version_snapshot.keys))
+    record_version!
   end
 
   private

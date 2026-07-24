@@ -1,7 +1,8 @@
+# rubocop:disable Metrics/ClassLength -- Rule lifecycle, execution diagnostics, and version recovery share one authorization boundary.
 class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Accounts::BaseController
   before_action :fetch_kanban_board
   before_action :authorize_kanban_board
-  before_action :fetch_rule, only: [:update, :destroy, :test, :executions, :cancel_execution, :run, :retry_execution]
+  before_action :fetch_rule, only: [:update, :destroy, :test, :executions, :versions, :restore_version, :cancel_execution, :run, :retry_execution]
 
   def index
     render json: @kanban_board.kanban_automation_rules.ordered.map { |rule| rule_payload(rule) }
@@ -10,6 +11,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
   def create
     rule = @kanban_board.kanban_automation_rules.new(rule_attributes.merge(account: Current.account))
     rule.save!
+    rule.record_version!
     render json: rule_payload(rule), status: :created
   rescue ActiveRecord::RecordInvalid => e
     render json: { message: e.record.errors.full_messages.to_sentence, errors: e.record.errors }, status: :unprocessable_entity
@@ -19,6 +21,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
     @rule.transaction do
       @rule.update!(rule_attributes)
       cancel_waiting_executions if cancel_waiting_executions?
+      @rule.record_version!
     end
     render json: rule_payload(@rule)
   rescue ActiveRecord::RecordInvalid => e
@@ -28,6 +31,18 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
   def destroy
     @rule.destroy!
     head :no_content
+  end
+
+  def versions
+    render json: @rule.kanban_automation_rule_versions.order(version_number: :desc).map { |version| version_payload(version) }
+  end
+
+  def restore_version
+    version = @rule.kanban_automation_rule_versions.find(params[:version_id])
+    @rule.transaction { @rule.restore_version!(version) }
+    render json: rule_payload(@rule)
+  rescue ActiveRecord::RecordInvalid => e
+    render json: { message: e.record.errors.full_messages.to_sentence, errors: e.record.errors }, status: :unprocessable_entity
   end
 
   def test
@@ -183,4 +198,17 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       rule_name: execution.kanban_automation_rule.name
     }
   end
+
+  def version_payload(version)
+    snapshot = version.snapshot.to_h
+    {
+      id: version.id,
+      version: version.version_number,
+      name: snapshot['name'],
+      event_name: snapshot['event_name'],
+      active: snapshot['active'],
+      created_at: version.created_at.iso8601
+    }
+  end
 end
+# rubocop:enable Metrics/ClassLength

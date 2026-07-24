@@ -23,6 +23,8 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     createAutomationRule: vi.fn(),
     updateAutomationRule: vi.fn(),
     deleteAutomationRule: vi.fn(),
+    getAutomationRuleVersions: vi.fn(),
+    restoreAutomationRuleVersion: vi.fn(),
     getCadences: vi.fn(),
     getAppointmentReminderRules: vi.fn(),
     createAppointmentReminderRule: vi.fn(),
@@ -79,6 +81,7 @@ const mountWorkspace = async ({
   KanbanBoardsAPI.getStageCards.mockResolvedValue({
     data: { cards: stageCards },
   });
+  KanbanBoardsAPI.getAutomationRuleVersions.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.createAppointmentReminderRule.mockResolvedValue({
     data: { id: 2, offsets: [24], channels: ['whatsapp'] },
   });
@@ -175,6 +178,60 @@ describe('KanbanAutomations', () => {
       wrapper.find('[data-testid="kanban-automation-editor"]').exists()
     ).toBe(false);
     expect(wrapper.text()).toContain('Retomar orçamento');
+  });
+
+  it('shows rule versions and restores a selected snapshot', async () => {
+    KanbanBoardsAPI.getAutomationRuleVersions.mockResolvedValue({
+      data: [
+        {
+          id: 31,
+          version: 2,
+          name: 'Follow-up comercial',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+          created_at: '2026-08-01T10:00:00Z',
+        },
+      ],
+    });
+    KanbanBoardsAPI.restoreAutomationRuleVersion.mockResolvedValue({
+      data: {
+        id: 44,
+        name: 'Follow-up comercial',
+        event_name: 'kanban.card.stage_changed',
+        active: true,
+        version: 3,
+      },
+    });
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Follow-up comercial',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+          version: 2,
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-versions-rule-44"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-automation-versions-panel-44"]')
+        .exists()
+    ).toBe(true);
+    await wrapper.vm.restoreRuleVersion({ id: 31 });
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.restoreAutomationRuleVersion).toHaveBeenCalledWith(
+      10,
+      44,
+      31
+    );
   });
 
   it('does not send legacy actions when a visual flow is saved', async () => {

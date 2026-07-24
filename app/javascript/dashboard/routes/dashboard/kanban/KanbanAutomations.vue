@@ -51,6 +51,10 @@ const testResult = ref(null);
 const isLoadingTestCards = ref(false);
 const isTestingRule = ref(false);
 const testError = ref('');
+const versionRuleId = ref(null);
+const ruleVersions = ref([]);
+const isLoadingVersions = ref(false);
+const restoringVersionId = ref(null);
 const invalidNodeIds = ref([]);
 const isLoadingBirthday = ref(false);
 const isSavingBirthday = ref(false);
@@ -409,6 +413,9 @@ const saveFlowLabel = computed(() =>
     ? t('KANBAN.AUTOMATIONS_WORKSPACE.PUBLISH')
     : t('KANBAN.AUTOMATIONS_WORKSPACE.SAVE_DRAFT')
 );
+const selectedRuleVersions = computed(() =>
+  versionRuleId.value ? ruleVersions.value : []
+);
 const opportunityStatusOptions = computed(() => [
   {
     value: 'open',
@@ -555,6 +562,55 @@ const openRule = rule => {
   applyRule(rule);
   activeTab.value = 'flows';
   showEditor.value = true;
+};
+
+const loadRuleVersions = async ruleId => {
+  isLoadingVersions.value = true;
+  try {
+    const response = await KanbanBoardsAPI.getAutomationRuleVersions(
+      boardId.value,
+      ruleId
+    );
+    ruleVersions.value = response.data.map(normalize);
+  } catch (versionsError) {
+    error.value = t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.LOAD_ERROR');
+  } finally {
+    isLoadingVersions.value = false;
+  }
+};
+
+const toggleRuleVersions = async rule => {
+  if (versionRuleId.value === rule.id) {
+    versionRuleId.value = null;
+    ruleVersions.value = [];
+    return;
+  }
+
+  versionRuleId.value = rule.id;
+  await loadRuleVersions(rule.id);
+};
+
+const restoreRuleVersion = async version => {
+  if (!versionRuleId.value || restoringVersionId.value) return;
+
+  restoringVersionId.value = version.id;
+  try {
+    const response = await KanbanBoardsAPI.restoreAutomationRuleVersion(
+      boardId.value,
+      versionRuleId.value,
+      version.id
+    );
+    const restoredRule = normalize(response.data);
+    rules.value = rules.value.map(rule =>
+      rule.id === restoredRule.id ? restoredRule : rule
+    );
+    await loadRuleVersions(restoredRule.id);
+    useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.RESTORE_SUCCESS'));
+  } catch (restoreError) {
+    error.value = t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.RESTORE_ERROR');
+  } finally {
+    restoringVersionId.value = null;
+  }
 };
 const closeEditor = () => {
   showEditor.value = false;
@@ -1735,8 +1791,63 @@ onMounted(load);
                   :label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.OPEN')"
                   @click="toggleRuleTest(rule)"
                 />
+                <Button
+                  type="button"
+                  icon="i-lucide-history"
+                  color="slate"
+                  size="xs"
+                  :data-testid="`kanban-automation-versions-rule-${rule.id}`"
+                  :aria-expanded="versionRuleId === rule.id"
+                  :label="t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.OPEN')"
+                  @click="toggleRuleVersions(rule)"
+                />
               </div>
             </div>
+            <section
+              v-if="versionRuleId === rule.id"
+              class="grid gap-2 border-t border-n-weak bg-n-surface-2 px-4 py-3"
+              :data-testid="`kanban-automation-versions-panel-${rule.id}`"
+            >
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.DESCRIPTION') }}
+              </p>
+              <p v-if="isLoadingVersions" class="m-0 text-sm text-n-slate-11">
+                {{ t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.LOADING') }}
+              </p>
+              <div
+                v-for="version in selectedRuleVersions"
+                :key="version.id"
+                class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2"
+              >
+                <div>
+                  <p class="m-0 text-sm font-medium text-n-slate-12">
+                    {{
+                      t('KANBAN.AUTOMATIONS_WORKSPACE.VERSION', {
+                        version: version.version,
+                      })
+                    }}
+                  </p>
+                  <p class="m-0 mt-0.5 text-xs text-n-slate-11">
+                    {{ new Date(version.createdAt).toLocaleString() }}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  icon="i-lucide-rotate-ccw"
+                  color="slate"
+                  size="xs"
+                  :label="t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.RESTORE')"
+                  :is-loading="restoringVersionId === version.id"
+                  @click="restoreRuleVersion(version)"
+                />
+              </div>
+              <p
+                v-if="!isLoadingVersions && !selectedRuleVersions.length"
+                class="m-0 text-sm text-n-slate-11"
+              >
+                {{ t('KANBAN.AUTOMATIONS_WORKSPACE.VERSIONS.EMPTY') }}
+              </p>
+            </section>
             <section
               v-if="testRuleId === rule.id"
               class="grid gap-3 border-t border-n-weak bg-n-surface-2 px-4 py-3"

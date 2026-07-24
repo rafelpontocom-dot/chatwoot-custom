@@ -150,6 +150,8 @@ Rails.application.routes.draw do
                 post :test, on: :member
                 post :run, on: :member
                 get :executions, on: :member
+                get :versions, on: :member
+                post 'versions/:version_id/restore', to: 'automation_rules#restore_version', on: :member
                 post 'executions/:execution_id/cancel', to: 'automation_rules#cancel_execution', on: :member
                 post 'executions/:execution_id/retry', to: 'automation_rules#retry_execution', on: :member
               end

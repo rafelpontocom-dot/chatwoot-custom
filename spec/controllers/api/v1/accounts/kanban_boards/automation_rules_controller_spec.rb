@@ -59,6 +59,25 @@ RSpec.describe 'Kanban automation rules API', type: :request do
     expect(response.parsed_body['version']).to eq(1)
   end
 
+  it 'keeps immutable rule versions and restores a selected version' do
+    rule = create(:kanban_automation_rule, account: account, kanban_board: board, name: 'Primeira versão')
+    rule.record_version!
+    first_version = rule.kanban_automation_rule_versions.first
+    rule.update!(name: 'Segunda versão')
+    rule.record_version!
+
+    get "#{rules_url}/#{rule.id}/versions", headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body.map { |version| version['version'] }).to eq([2, 1])
+
+    post "#{rules_url}/#{rule.id}/versions/#{first_version.id}/restore", headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(rule.reload.name).to eq('Primeira versão')
+    expect(rule.kanban_automation_rule_versions.count).to eq(3)
+  end
+
   it 'rejects rule configuration for agents' do
     post rules_url,
          headers: agent.create_new_auth_token,

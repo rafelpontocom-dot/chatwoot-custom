@@ -13,6 +13,16 @@
       "EVENT_VERSION": "{event} · {version}",
       "SAVE_DRAFT": "Save draft",
       "PUBLISH": "Publish automation",
+      "VERSIONS": {
+        "OPEN": "Version history",
+        "DESCRIPTION": "Restoring a version changes only future executions. In-progress executions keep their original snapshot.",
+        "LOADING": "Loading versions...",
+        "EMPTY": "No saved versions yet.",
+        "RESTORE": "Restore",
+        "RESTORE_SUCCESS": "Version restored. A new version was recorded.",
+        "RESTORE_ERROR": "Could not restore this version.",
+        "LOAD_ERROR": "Could not load version history."
+      },
       "EMPTY_TITLE": "No automations yet",
       "EMPTY_DESCRIPTION": "Create a flow to automate the next sales step.",
       "UNTITLED": "Untitled",

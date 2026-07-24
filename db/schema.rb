@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_01_123000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_01_130000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1059,6 +1059,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_01_123000) do
     t.index ["status", "scheduled_at"], name: "idx_kanban_automation_executions_on_schedule"
   end
 
+  create_table "kanban_automation_rule_versions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_automation_rule_id", null: false
+    t.integer "version_number", null: false
+    t.jsonb "snapshot", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_automation_rule_versions_on_account_id"
+    t.index ["kanban_automation_rule_id", "version_number"], name: "idx_kanban_rule_versions_unique", unique: true
+  end
+
   create_table "kanban_automation_rules", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "kanban_board_id", null: false
@@ -1757,6 +1768,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_01_123000) do
   add_foreign_key "kanban_automation_executions", "kanban_automation_rules"
   add_foreign_key "kanban_automation_executions", "kanban_card_events"
   add_foreign_key "kanban_automation_executions", "kanban_cards"
+  add_foreign_key "kanban_automation_rule_versions", "accounts"
+  add_foreign_key "kanban_automation_rule_versions", "kanban_automation_rules"
   add_foreign_key "kanban_automation_rules", "accounts"
   add_foreign_key "kanban_automation_rules", "kanban_boards"
   add_foreign_key "kanban_birthday_automations", "accounts"

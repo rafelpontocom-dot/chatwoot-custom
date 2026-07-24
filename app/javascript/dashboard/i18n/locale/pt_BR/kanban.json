@@ -13,6 +13,16 @@
       "EVENT_VERSION": "{event} · {version}",
       "SAVE_DRAFT": "Salvar rascunho",
       "PUBLISH": "Publicar automação",
+      "VERSIONS": {
+        "OPEN": "Histórico de versões",
+        "DESCRIPTION": "Restaurar uma versão altera apenas as próximas execuções. As execuções em andamento mantêm o snapshot original.",
+        "LOADING": "Carregando versões...",
+        "EMPTY": "Ainda não há versões salvas.",
+        "RESTORE": "Restaurar",
+        "RESTORE_SUCCESS": "Versão restaurada. Uma nova versão foi registrada.",
+        "RESTORE_ERROR": "Não foi possível restaurar esta versão.",
+        "LOAD_ERROR": "Não foi possível carregar o histórico de versões."
+      },
       "EMPTY_TITLE": "Nenhuma automação criada",
       "EMPTY_DESCRIPTION": "Crie um fluxo para automatizar o próximo passo comercial.",
       "UNTITLED": "Sem nome",
