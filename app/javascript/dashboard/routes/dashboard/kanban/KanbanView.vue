@@ -1595,26 +1595,73 @@ onUnmounted(() => {
             </OnClickOutside>
           </div>
           <template v-if="selectedBoard">
-            <label class="order-3 grid min-w-0 flex-1 gap-1 md:order-2">
-              <span class="text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.FILTERS.SEARCH_LABEL') }}
-              </span>
-              <div
-                class="relative z-10 flex h-10 min-w-0 w-full items-center overflow-hidden rounded-md border border-n-weak bg-n-surface-1 px-2 shadow-sm"
-              >
-                <i
-                  class="i-lucide-search size-4 flex-shrink-0 text-n-slate-10"
-                />
-                <input
-                  v-model="searchInput"
-                  type="search"
-                  data-testid="kanban-search-input"
-                  class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/30"
-                  :placeholder="t('KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
-                  @keyup.enter="applySearch"
-                />
-              </div>
-            </label>
+            <div
+              class="order-3 grid min-w-0 gap-2 md:order-2 lg:grid-cols-[minmax(14rem,1fr)_11rem_12rem] lg:items-end"
+            >
+              <label class="grid min-w-0 gap-1 lg:max-w-lg">
+                <span class="text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.FILTERS.SEARCH_LABEL') }}
+                </span>
+                <div
+                  class="relative z-10 flex h-9 min-w-0 w-full items-center overflow-hidden rounded-md border border-n-weak bg-n-surface-1 px-2 shadow-sm"
+                >
+                  <i
+                    class="i-lucide-search size-4 flex-shrink-0 text-n-slate-10"
+                  />
+                  <input
+                    v-model="searchInput"
+                    type="search"
+                    data-testid="kanban-search-input"
+                    class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/30"
+                    :placeholder="t('KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
+                    @keyup.enter="applySearch"
+                  />
+                </div>
+              </label>
+              <label class="grid min-w-0 gap-1">
+                <span class="text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.FILTERS.SORT_LABEL') }}
+                </span>
+                <select
+                  :value="selectedSort"
+                  data-testid="kanban-sort-select"
+                  class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :aria-label="t('KANBAN.FILTERS.SORT_LABEL')"
+                  @change="updateSort"
+                >
+                  <option
+                    v-for="option in sortOptions"
+                    :key="option.value || 'default'"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </label>
+              <label class="grid min-w-0 gap-1">
+                <span class="text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
+                </span>
+                <select
+                  :value="selectedSavedFilterId"
+                  data-testid="kanban-saved-filter-select"
+                  class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :aria-label="t('KANBAN.FILTERS.SAVED_FILTERS')"
+                  @change="applySavedFilter"
+                >
+                  <option value="">
+                    {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
+                  </option>
+                  <option
+                    v-for="savedFilter in savedFilters"
+                    :key="savedFilter.id"
+                    :value="String(savedFilter.id)"
+                  >
+                    {{ savedFilter.name }}
+                  </option>
+                </select>
+              </label>
+            </div>
           </template>
           <template v-if="selectedBoard">
             <div class="order-2 flex items-center gap-1 md:order-3">
@@ -1679,49 +1726,6 @@ onUnmounted(() => {
             data-testid="kanban-workspace-secondary-row"
             class="flex min-w-0 flex-wrap items-end gap-2 border-t border-n-weak pt-3"
           >
-            <label class="grid min-w-40 gap-1">
-              <span class="text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.FILTERS.SORT_LABEL') }}
-              </span>
-              <select
-                :value="selectedSort"
-                data-testid="kanban-sort-select"
-                class="h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-                :aria-label="t('KANBAN.FILTERS.SORT_LABEL')"
-                @change="updateSort"
-              >
-                <option
-                  v-for="option in sortOptions"
-                  :key="option.value || 'default'"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </label>
-            <label class="grid min-w-48 gap-1">
-              <span class="text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
-              </span>
-              <select
-                :value="selectedSavedFilterId"
-                data-testid="kanban-saved-filter-select"
-                class="h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-                :aria-label="t('KANBAN.FILTERS.SAVED_FILTERS')"
-                @change="applySavedFilter"
-              >
-                <option value="">
-                  {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
-                </option>
-                <option
-                  v-for="savedFilter in savedFilters"
-                  :key="savedFilter.id"
-                  :value="String(savedFilter.id)"
-                >
-                  {{ savedFilter.name }}
-                </option>
-              </select>
-            </label>
             <div class="ml-auto flex min-h-10 items-center justify-start gap-1">
               <div
                 class="flex items-center rounded-md border border-n-weak bg-n-surface-1 p-0.5"

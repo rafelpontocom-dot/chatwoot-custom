@@ -1651,7 +1651,10 @@ onMounted(load);
         :condition-fields="conditionFields"
         :date-fields="dateFields"
         :connections="connections"
+        :trigger-options="eventOptions"
+        :trigger-value="form.eventName"
         :invalid-node-ids="invalidNodeIds"
+        @update:trigger-value="form.eventName = $event"
         @clear-validation="clearFlowValidation"
       />
       <p

@@ -2005,8 +2005,11 @@ describe('KanbanView header navigation', () => {
     expect(
       primaryRow.find('[data-testid="kanban-search-input"]').exists()
     ).toBe(true);
+    expect(primaryRow.find('[data-testid="kanban-sort-select"]').exists()).toBe(
+      true
+    );
     expect(
-      secondaryRow.find('[data-testid="kanban-sort-select"]').exists()
+      primaryRow.find('[data-testid="kanban-saved-filter-select"]').exists()
     ).toBe(true);
     expect(secondaryRow.find('[data-testid="kanban-view-list"]').exists()).toBe(
       true

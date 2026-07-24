@@ -223,6 +223,43 @@ RSpec.describe 'Kanban board settings API', type: :request do
       expect(board.reload.custom_field_definitions).to eq([])
     end
 
+    it 'preserves card values when a legacy marketing key is replaced by its canonical key' do
+      stage = create(:kanban_stage, account: account, kanban_board: board)
+      board.update!(
+        custom_field_definitions: [
+          {
+            key: 'fbclid', label: 'fbclid', field_type: 'text',
+            layout: { section: 'marketing', position: 1 }
+          }
+        ]
+      )
+      card = create(
+        :kanban_card,
+        account: account,
+        kanban_board: board,
+        kanban_stage: stage,
+        custom_field_values: { fbclid: 'legacy-click-id' }
+      )
+
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: {
+              kanban_board: {
+                custom_field_definitions: [
+                  {
+                    key: 'fvclid', label: 'fvclid', field_type: 'text',
+                    layout: { section: 'marketing', position: 1 }
+                  }
+                ]
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload.custom_field_definitions.pluck('key')).to eq(['fvclid'])
+      expect(card.reload.custom_field_values).to eq('fvclid' => 'legacy-click-id')
+    end
+
     it 'rejects a stale settings update without overwriting the newer configuration' do
       stale_version = board.lock_version
       board.update!(description: 'Atualizada em outra sessão')

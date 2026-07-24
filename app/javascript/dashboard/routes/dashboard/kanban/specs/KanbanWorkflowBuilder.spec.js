@@ -36,6 +36,58 @@ describe('KanbanWorkflowBuilder', () => {
     ]);
   });
 
+  it('keeps the trigger inspector closed until the user selects a node', () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-drawer"]').exists()
+    ).toBe(false);
+  });
+
+  it('lets the user choose the rule trigger from the trigger node', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {},
+        triggerValue: 'kanban.card.stage_changed',
+        triggerOptions: [
+          {
+            value: 'kanban.card.stage_changed',
+            label: 'Stage changed',
+          },
+          { value: 'kanban.card.won', label: 'Card won' },
+        ],
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .find('[data-testid="kanban-workflow-trigger-select"]')
+      .setValue('kanban.card.won');
+
+    expect(wrapper.emitted('update:triggerValue')).toEqual([
+      ['kanban.card.won'],
+    ]);
+  });
+
+  it('keeps the newly added node selected after the parent syncs the flow', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    wrapper.vm.addNodeOfType('send_message');
+    await wrapper.vm.$nextTick();
+    const emittedFlow = wrapper.emitted('update:modelValue').at(-1)[0];
+    await wrapper.setProps({ modelValue: emittedFlow });
+
+    expect(wrapper.vm.selectedNode.type).toBe('send_message');
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-drawer"]').text()
+    ).toContain('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.MESSAGE');
+  });
+
   it('opens a connection pop-up and removes the selected connection', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
@@ -59,7 +111,7 @@ describe('KanbanWorkflowBuilder', () => {
     expect(wrapper.vm.edges).toEqual([]);
   });
 
-  it('renders the action inspector for a selected node', () => {
+  it('renders the action inspector for a selected node', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
         modelValue: {
@@ -74,6 +126,9 @@ describe('KanbanWorkflowBuilder', () => {
         },
       },
     });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
 
     expect(
       wrapper.find('[data-testid="kanban-workflow-node-drawer"]').exists()
@@ -152,6 +207,9 @@ describe('KanbanWorkflowBuilder', () => {
       },
     });
 
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
     expect(
       wrapper.find('[data-testid="kanban-message-emoji-button"]').exists()
     ).toBe(true);
@@ -203,7 +261,7 @@ describe('KanbanWorkflowBuilder', () => {
     );
   });
 
-  it('offers a field increment action for commercial follow-ups', () => {
+  it('offers a field increment action for commercial follow-ups', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
         modelValue: {
@@ -219,12 +277,15 @@ describe('KanbanWorkflowBuilder', () => {
       },
     });
 
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
     expect(wrapper.text()).toContain(
       'KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.INCREMENT_FIELD'
     );
   });
 
-  it('configures official WhatsApp templates on the message node', () => {
+  it('configures official WhatsApp templates on the message node', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
         modelValue: {
@@ -250,6 +311,9 @@ describe('KanbanWorkflowBuilder', () => {
         },
       },
     });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).toContain(
       'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME'

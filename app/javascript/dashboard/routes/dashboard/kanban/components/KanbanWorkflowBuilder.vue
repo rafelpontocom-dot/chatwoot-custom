@@ -51,13 +51,25 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  triggerOptions: {
+    type: Array,
+    default: () => [],
+  },
+  triggerValue: {
+    type: String,
+    default: '',
+  },
   invalidNodeIds: {
     type: Array,
     default: () => [],
   },
 });
 
-const emit = defineEmits(['update:modelValue', 'clearValidation']);
+const emit = defineEmits([
+  'update:modelValue',
+  'update:triggerValue',
+  'clearValidation',
+]);
 const { t } = useI18n();
 const nodes = ref([]);
 const edges = ref([]);
@@ -424,9 +436,14 @@ const defaultFlow = () => ({
 
 const applyFlow = flow => {
   const source = flow?.nodes?.length ? flow : defaultFlow();
+  const previousSelectedNodeId = selectedNodeId.value;
   nodes.value = source.nodes.map(decorateNode);
   edges.value = source.edges || [];
-  selectedNodeId.value = nodes.value[0]?.id || null;
+  selectedNodeId.value = nodes.value.some(
+    node => node.id === previousSelectedNodeId
+  )
+    ? previousSelectedNodeId
+    : null;
   focusFirstInvalidNode();
 };
 
@@ -775,7 +792,29 @@ const removeSelectedNode = () => {
             </div>
           </div>
 
-          <template v-if="selectedNode.type === 'delay'">
+          <template
+            v-if="selectedNode.type === 'trigger' && triggerOptions.length"
+          >
+            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
+              <select
+                :value="triggerValue"
+                data-testid="kanban-workflow-trigger-select"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="emit('update:triggerValue', $event.target.value)"
+              >
+                <option
+                  v-for="option in triggerOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+          </template>
+
+          <template v-else-if="selectedNode.type === 'delay'">
             <label class="grid gap-1 text-xs font-medium text-n-slate-11">
               {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELAY_HOURS') }}
               <input

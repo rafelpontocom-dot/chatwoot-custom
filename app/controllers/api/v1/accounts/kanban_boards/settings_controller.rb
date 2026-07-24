@@ -1,4 +1,15 @@
+# rubocop:disable Metrics/ClassLength -- Settings compatibility and membership updates share the same authorization boundary.
 class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::BaseController
+  LEGACY_MARKETING_FIELD_ALIASES = {
+    'campaign_name' => 'campaign',
+    'adset_name' => 'adset',
+    'ad_name' => 'ad',
+    'google_client_id' => 'gclientid',
+    'tiktok_ad_id' => 'ttad_id',
+    'tiktok_ad_name' => 'ttad_name',
+    'fbclid' => 'fvclid'
+  }.freeze
+
   before_action :fetch_kanban_board
   before_action :authorize_kanban_board
 
@@ -8,8 +19,10 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
     return render_stale_settings if stale_settings?
     return render_data_loss_confirmation if removed_field_usage.present? && !data_loss_confirmed?
 
+    legacy_field_renames = legacy_marketing_field_renames
     ActiveRecord::Base.transaction do
       @kanban_board.update!(settings_params.except(:visible_user_ids, :allowed_inbox_ids))
+      migrate_legacy_marketing_field_values!(legacy_field_renames)
       replace_memberships!
       replace_inboxes!
     end
@@ -107,10 +120,54 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
     return [] unless settings_params.key?(:custom_field_definitions)
 
     current_keys = @kanban_board.configured_custom_field_definitions.pluck('key')
-    incoming_keys = Array(settings_params[:custom_field_definitions]).pluck(:key).map(&:to_s)
-    @kanban_board.custom_field_usage(current_keys - incoming_keys).filter_map do |key, count|
+    incoming_keys = incoming_custom_field_keys
+    retained_legacy_keys = legacy_marketing_field_renames.keys
+    @kanban_board.custom_field_usage(current_keys - incoming_keys - retained_legacy_keys).filter_map do |key, count|
       { key: key, count: count } if count.positive?
     end
+  end
+
+  def legacy_marketing_field_renames
+    return {} unless settings_params.key?(:custom_field_definitions)
+
+    current_keys = @kanban_board.configured_custom_field_definitions.pluck('key')
+    incoming_keys = incoming_custom_field_keys
+    LEGACY_MARKETING_FIELD_ALIASES.select do |legacy_key, canonical_key|
+      current_keys.include?(legacy_key) && incoming_keys.include?(canonical_key)
+    end
+  end
+
+  def migrate_legacy_marketing_field_values!(renames)
+    return if renames.empty?
+
+    @kanban_board.kanban_cards.find_each do |card|
+      values = card.custom_field_values.to_h.stringify_keys
+      next unless renames.keys.any? { |legacy_key| values.key?(legacy_key) }
+
+      renames.each do |legacy_key, canonical_key|
+        next unless values.key?(legacy_key)
+
+        values[canonical_key] = values[legacy_key] if values[canonical_key].blank?
+        values.delete(legacy_key)
+      end
+      # Preserve existing opportunity values while converting the deprecated key.
+      # rubocop:disable Rails/SkipsModelValidations
+      card.update_columns(custom_field_values: values, updated_at: Time.current)
+      # rubocop:enable Rails/SkipsModelValidations
+    end
+  end
+
+  def incoming_custom_field_keys
+    incoming_custom_field_definitions.filter_map do |definition|
+      definition.to_h.with_indifferent_access[:key].to_s.presence
+    end
+  end
+
+  def incoming_custom_field_definitions
+    definitions = settings_params[:custom_field_definitions]
+    return definitions.to_unsafe_h.values if definitions.is_a?(ActionController::Parameters)
+
+    Array(definitions)
   end
 
   def replace_memberships!
@@ -170,3 +227,4 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
     )
   end
 end
+# rubocop:enable Metrics/ClassLength

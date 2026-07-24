@@ -158,7 +158,7 @@ class KanbanBoard < ApplicationRecord
   end
 
   def custom_field_usage(field_keys = nil)
-    keys = Array(field_keys.presence || configured_custom_field_definitions.pluck('key'))
+    keys = field_keys.nil? ? configured_custom_field_definitions.pluck('key') : Array(field_keys)
     keys.index_with do |key|
       kanban_cards.where(
         "custom_field_values ? :key AND custom_field_values -> :key NOT IN ('null'::jsonb, '\"\"'::jsonb, '[]'::jsonb)",
