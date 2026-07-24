@@ -89,7 +89,8 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
     KanbanAutomations::ConditionsMatcher.new(
       rule: @rule,
       card: @card,
-      conditions: automation_snapshot['conditions']
+      conditions: automation_snapshot['conditions'],
+      event: @execution.kanban_card_event
     ).matches?
   end
 

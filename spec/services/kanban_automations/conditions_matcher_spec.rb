@@ -36,4 +36,92 @@ RSpec.describe KanbanAutomations::ConditionsMatcher do
 
     expect(described_class.new(rule: rule, card: card).matches?).to be(false)
   end
+
+  it 'treats an exists condition without a value as a populated field' do
+    card = create(:kanban_card, subject: 'Orçamento')
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      conditions: { fields: [{ field_key: 'system_subject', operator: 'exists', value: '' }] }
+    )
+
+    expect(described_class.new(rule: rule, card: card).matches?).to be(true)
+  end
+
+  it 'matches a custom-field trigger only when the selected field changed' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [
+        { key: 'origem', label: 'Origem', field_type: 'select', options: ['Orgânico', 'Mídia Paga'] },
+        { key: 'campanha', label: 'Campanha', field_type: 'text' }
+      ]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { origem: 'Mídia Paga', campanha: 'Inverno' }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      event_name: Events::Types::KANBAN_CARD_CUSTOM_FIELDS_CHANGED,
+      conditions: { changed_field_keys: ['origem'] }
+    )
+    event = create(
+      :kanban_card_event,
+      account: board.account,
+      kanban_board: board,
+      kanban_card: card,
+      event_type: 'custom_fields_changed',
+      change_set: {
+        custom_field_values: [
+          { origem: 'Orgânico', campanha: 'Inverno' },
+          { origem: 'Mídia Paga', campanha: 'Inverno' }
+        ]
+      }
+    )
+
+    expect(described_class.new(rule: rule, card: card, event: event).matches?).to be(true)
+  end
+
+  it 'does not match a selected custom-field trigger when another field changed' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [
+        { key: 'origem', label: 'Origem', field_type: 'select', options: ['Orgânico', 'Mídia Paga'] },
+        { key: 'campanha', label: 'Campanha', field_type: 'text' }
+      ]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { origem: 'Mídia Paga', campanha: 'Inverno' }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      event_name: Events::Types::KANBAN_CARD_CUSTOM_FIELDS_CHANGED,
+      conditions: { changed_field_keys: ['origem'] }
+    )
+    event = create(
+      :kanban_card_event,
+      account: board.account,
+      kanban_board: board,
+      kanban_card: card,
+      event_type: 'custom_fields_changed',
+      change_set: {
+        custom_field_values: [
+          { origem: 'Mídia Paga', campanha: 'Outono' },
+          { origem: 'Mídia Paga', campanha: 'Inverno' }
+        ]
+      }
+    )
+
+    expect(described_class.new(rule: rule, card: card, event: event).matches?).to be(false)
+  end
 end

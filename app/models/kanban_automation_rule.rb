@@ -121,7 +121,7 @@ class KanbanAutomationRule < ApplicationRecord
 
   def conditions_are_supported
     source = trigger_conditions
-    unsupported = source.keys.map(&:to_s) - %w[inbox_ids stage_ids owner_ids fields]
+    unsupported = source.keys.map(&:to_s) - %w[inbox_ids stage_ids owner_ids fields changed_field_keys]
     errors.add(:conditions, "Unsupported keys: #{unsupported.join(', ')}") if unsupported.present?
 
     Array(source[:fields]).each_with_index do |condition, index|
@@ -161,6 +161,9 @@ class KanbanAutomationRule < ApplicationRecord
 
     Array(conditions[:fields]).each do |condition|
       validate_field_reference(condition.to_h.with_indifferent_access[:field_key])
+    end
+    Array(conditions[:changed_field_keys]).each do |field_key|
+      validate_changed_field_reference(field_key)
     end
   end
 
@@ -219,6 +222,13 @@ class KanbanAutomationRule < ApplicationRecord
     return if kanban_board.configured_custom_field_definitions.any? { |field| field['key'] == field_key.to_s }
 
     errors.add(attribute, "Field #{field_key} does not belong to this board")
+  end
+
+  def validate_changed_field_reference(field_key)
+    return if field_key.blank?
+    return if kanban_board.configured_custom_field_definitions.any? { |field| field['key'] == field_key.to_s }
+
+    errors.add(:conditions, "Field #{field_key} does not belong to this board")
   end
 
   def flow_definition_is_supported

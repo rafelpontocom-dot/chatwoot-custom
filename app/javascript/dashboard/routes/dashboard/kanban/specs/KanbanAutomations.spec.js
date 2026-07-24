@@ -134,6 +134,81 @@ describe('KanbanAutomations', () => {
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
   });
 
+  it('shows the exact custom field selector for a field-change trigger', async () => {
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [],
+        custom_field_definitions: [
+          { key: 'origem', label: 'Origem', field_type: 'select' },
+        ],
+        next_action_types: [],
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-trigger-event"]')
+      .setValue('kanban.card.custom_fields_changed');
+
+    expect(
+      wrapper.find('[data-testid="kanban-automations-changed-field"]').exists()
+    ).toBe(true);
+  });
+
+  it('persists the selected field as the field-change trigger', async () => {
+    KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+      data: {
+        id: 48,
+        name: 'Atualizar origem',
+        event_name: 'kanban.card.custom_fields_changed',
+        active: false,
+        position: 0,
+        conditions: { changed_field_keys: ['origem'] },
+        actions: [],
+        flow_definition: {},
+      },
+    });
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [],
+        custom_field_definitions: [
+          { key: 'origem', label: 'Origem', field_type: 'select' },
+        ],
+        next_action_types: [],
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Atualizar origem');
+    await wrapper
+      .find('[data-testid="kanban-automations-trigger-event"]')
+      .setValue('kanban.card.custom_fields_changed');
+    await wrapper
+      .find('[data-testid="kanban-automations-changed-field"]')
+      .setValue('origem');
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({
+          conditions: expect.objectContaining({
+            changed_field_keys: ['origem'],
+          }),
+        }),
+      })
+    );
+  });
+
   it('returns to the automation list with a newly saved flow', async () => {
     KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
       data: {

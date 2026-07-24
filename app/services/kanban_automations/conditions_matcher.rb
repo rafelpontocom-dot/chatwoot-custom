@@ -28,20 +28,19 @@ class KanbanAutomations::ConditionsMatcher
     'less_or_equal' => :matches_less_or_equal?
   }.freeze
 
-  def initialize(rule:, card:, conditions: nil)
+  def initialize(rule:, card:, conditions: nil, event: nil)
     @rule = rule
     @card = card
     @conditions = conditions
+    @event = event
   end
 
   def matches?
     return false unless @rule.kanban_board_id == @card.kanban_board_id
 
     conditions = (@conditions.presence || @rule.trigger_conditions).to_h.with_indifferent_access
-    ids_match?(conditions[:inbox_ids], @card.inbox_id) &&
-      ids_match?(conditions[:stage_ids], @card.kanban_stage_id) &&
-      ids_match?(conditions[:owner_ids], @card.owner_id) &&
-      Array(conditions[:fields]).all? { |condition| field_condition_matches?(condition) }
+    base_conditions_match?(conditions) && changed_fields_match?(conditions[:changed_field_keys]) &&
+      field_conditions_match?(conditions[:fields])
   end
 
   def matches_field_condition?(condition)
@@ -53,6 +52,32 @@ class KanbanAutomations::ConditionsMatcher
   def ids_match?(expected_ids, actual_id)
     expected_ids = Array(expected_ids).filter_map { |value| Integer(value, exception: false) }
     expected_ids.blank? || expected_ids.include?(actual_id)
+  end
+
+  def base_conditions_match?(conditions)
+    ids_match?(conditions[:inbox_ids], @card.inbox_id) &&
+      ids_match?(conditions[:stage_ids], @card.kanban_stage_id) &&
+      ids_match?(conditions[:owner_ids], @card.owner_id)
+  end
+
+  def field_conditions_match?(conditions)
+    Array(conditions).all? { |condition| field_condition_matches?(condition) }
+  end
+
+  def changed_fields_match?(expected_keys)
+    expected_keys = Array(expected_keys).map(&:to_s).reject(&:blank?)
+    return true if expected_keys.blank?
+
+    expected_keys.any? { |field_key| changed_custom_field_keys.include?(field_key) }
+  end
+
+  def changed_custom_field_keys
+    changes = @event&.change_set.to_h.with_indifferent_access
+    before, after = Array(changes[:custom_field_values])
+    before = before.to_h.stringify_keys
+    after = after.to_h.stringify_keys
+
+    (before.keys | after.keys).reject { |key| before[key] == after[key] }
   end
 
   def field_condition_matches?(condition)
@@ -155,7 +180,8 @@ class KanbanAutomations::ConditionsMatcher
   end
 
   def matches_existence?(value, expected)
-    value_present?(value) == ActiveModel::Type::Boolean.new.cast(expected)
+    expected_present = expected.blank? || ActiveModel::Type::Boolean.new.cast(expected)
+    value_present?(value) == expected_present
   end
 
   def matches_greater_than?(value, expected)
@@ -172,12 +198,6 @@ class KanbanAutomations::ConditionsMatcher
 
   def matches_less_or_equal?(value, expected)
     compare(value, expected) <= 0
-  end
-
-  def contains?(value, expected)
-    return value.include?(expected) if value.is_a?(Array)
-
-    value.to_s.downcase.include?(expected.to_s.downcase)
   end
 
   def value_present?(value)

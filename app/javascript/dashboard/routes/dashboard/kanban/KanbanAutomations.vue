@@ -109,6 +109,10 @@ const form = reactive({
   cancelWaitingExecutions: false,
   stageId: '',
   ownerId: '',
+  changedFieldKey: '',
+  triggerNextActionType: '',
+  triggerAmountOperator: 'greater_than',
+  triggerAmountValue: '',
   fieldKey: '',
   fieldOperator: 'equals',
   fieldValue: '',
@@ -227,6 +231,18 @@ const eventOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.MANUAL_STARTED'),
   },
 ]);
+const triggerContext = computed(() => {
+  const contexts = {
+    'kanban.card.stage_changed': 'stage',
+    'kanban.card.owner_changed': 'owner',
+    'kanban.card.custom_fields_changed': 'changed_field',
+    'kanban.card.next_action_scheduled': 'next_action',
+    'kanban.card.next_action_completed': 'next_action',
+    'kanban.card.amount_changed': 'amount',
+  };
+
+  return contexts[form.eventName] || null;
+});
 
 const automationTabs = computed(() => [
   { key: 'flows', label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.FLOWS') },
@@ -516,6 +532,10 @@ const resetForm = () => {
   form.cancelWaitingExecutions = false;
   form.stageId = '';
   form.ownerId = '';
+  form.changedFieldKey = '';
+  form.triggerNextActionType = '';
+  form.triggerAmountOperator = 'greater_than';
+  form.triggerAmountValue = '';
   form.fieldKey = '';
   form.fieldOperator = 'equals';
   form.fieldValue = '';
@@ -526,7 +546,11 @@ const resetForm = () => {
 const applyRule = rule => {
   const normalized = normalize(rule);
   const conditions = normalized.conditions || {};
-  const field = conditions.fields?.[0] || {};
+  const field =
+    conditions.fields?.find(
+      item =>
+        !['system_next_action_type', 'system_amount'].includes(item.fieldKey)
+    ) || {};
   selectedRuleId.value = normalized.id;
   form.name = normalized.name || '';
   form.description = normalized.description || '';
@@ -536,6 +560,16 @@ const applyRule = rule => {
   form.cancelWaitingExecutions = false;
   form.stageId = conditions.stageIds?.[0] || '';
   form.ownerId = conditions.ownerIds?.[0] || '';
+  form.changedFieldKey = conditions.changedFieldKeys?.[0] || '';
+  const nextActionCondition = conditions.fields?.find(
+    item => item.fieldKey === 'system_next_action_type'
+  );
+  const amountCondition = conditions.fields?.find(
+    item => item.fieldKey === 'system_amount'
+  );
+  form.triggerNextActionType = nextActionCondition?.value || '';
+  form.triggerAmountOperator = amountCondition?.operator || 'greater_than';
+  form.triggerAmountValue = amountCondition?.value || '';
   form.fieldKey = field.fieldKey || '';
   form.fieldOperator = field.operator || 'equals';
   form.fieldValue = field.value || '';
@@ -1141,17 +1175,47 @@ const payload = () => ({
     reentry_enabled: form.reentryEnabled,
     cancel_waiting_executions: form.cancelWaitingExecutions,
     conditions: {
-      stage_ids: form.stageId ? [Number(form.stageId)] : [],
-      owner_ids: form.ownerId ? [Number(form.ownerId)] : [],
-      fields: form.fieldKey
-        ? [
-            {
-              field_key: form.fieldKey,
-              operator: form.fieldOperator,
-              value: form.fieldValue,
-            },
-          ]
-        : [],
+      stage_ids:
+        triggerContext.value === 'stage' && form.stageId
+          ? [Number(form.stageId)]
+          : [],
+      owner_ids:
+        triggerContext.value === 'owner' && form.ownerId
+          ? [Number(form.ownerId)]
+          : [],
+      changed_field_keys:
+        triggerContext.value === 'changed_field' && form.changedFieldKey
+          ? [form.changedFieldKey]
+          : [],
+      fields: [
+        ...(form.fieldKey
+          ? [
+              {
+                field_key: form.fieldKey,
+                operator: form.fieldOperator,
+                value: form.fieldValue,
+              },
+            ]
+          : []),
+        ...(triggerContext.value === 'next_action' && form.triggerNextActionType
+          ? [
+              {
+                field_key: 'system_next_action_type',
+                operator: 'equals',
+                value: form.triggerNextActionType,
+              },
+            ]
+          : []),
+        ...(triggerContext.value === 'amount' && form.triggerAmountValue !== ''
+          ? [
+              {
+                field_key: 'system_amount',
+                operator: form.triggerAmountOperator,
+                value: form.triggerAmountValue,
+              },
+            ]
+          : []),
+      ],
     },
     actions: form.flowDefinition?.nodes?.length
       ? []
@@ -1556,7 +1620,7 @@ onMounted(load);
       class="flex min-h-0 flex-1 flex-col"
     >
       <section
-        class="grid gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_13rem_11rem_auto_auto] lg:px-6"
+        class="grid gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 lg:grid-cols-[minmax(14rem,1fr)_13rem_12rem_auto_auto] lg:px-6"
       >
         <label class="grid gap-1 text-xs font-medium text-n-slate-11">
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NAME') }}
@@ -1571,6 +1635,7 @@ onMounted(load);
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
           <select
             v-model="form.eventName"
+            data-testid="kanban-automations-trigger-event"
             class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
           >
             <option
@@ -1582,10 +1647,14 @@ onMounted(load);
             </option>
           </select>
         </label>
-        <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+        <label
+          v-if="triggerContext === 'stage'"
+          class="grid gap-1 text-xs font-medium text-n-slate-11"
+        >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.STAGE') }}
           <select
             v-model="form.stageId"
+            data-testid="kanban-automations-trigger-stage"
             class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
           >
             <option value="">
@@ -1596,6 +1665,100 @@ onMounted(load);
             </option>
           </select>
         </label>
+        <label
+          v-else-if="triggerContext === 'owner'"
+          class="grid gap-1 text-xs font-medium text-n-slate-11"
+        >
+          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
+          <select
+            v-model="form.ownerId"
+            data-testid="kanban-automations-trigger-owner"
+            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          >
+            <option value="">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_OWNER') }}
+            </option>
+            <option
+              v-for="agent in agentOptions"
+              :key="agent.value"
+              :value="agent.value"
+            >
+              {{ agent.label }}
+            </option>
+          </select>
+        </label>
+        <label
+          v-else-if="triggerContext === 'changed_field'"
+          class="grid gap-1 text-xs font-medium text-n-slate-11"
+        >
+          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+          <select
+            v-model="form.changedFieldKey"
+            data-testid="kanban-automations-changed-field"
+            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          >
+            <option value="">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
+            </option>
+            <option
+              v-for="field in customFields"
+              :key="field.key"
+              :value="field.key"
+            >
+              {{ field.label || field.key }}
+            </option>
+          </select>
+        </label>
+        <label
+          v-else-if="triggerContext === 'next_action'"
+          class="grid gap-1 text-xs font-medium text-n-slate-11"
+        >
+          {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE') }}
+          <select
+            v-model="form.triggerNextActionType"
+            data-testid="kanban-automations-trigger-next-action"
+            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          >
+            <option value="">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
+            </option>
+            <option
+              v-for="actionType in nextActionTypes"
+              :key="actionType"
+              :value="actionType"
+            >
+              {{ actionType }}
+            </option>
+          </select>
+        </label>
+        <div
+          v-else-if="triggerContext === 'amount'"
+          class="grid grid-cols-[9rem_minmax(0,1fr)] gap-2 self-end"
+        >
+          <select
+            v-model="form.triggerAmountOperator"
+            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          >
+            <option value="equals">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') }}
+            </option>
+            <option value="greater_than">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN') }}
+            </option>
+            <option value="less_than">
+              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN') }}
+            </option>
+          </select>
+          <input
+            v-model="form.triggerAmountValue"
+            data-testid="kanban-automations-trigger-amount"
+            type="number"
+            min="0"
+            inputmode="decimal"
+            :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
+            class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          />
+        </div>
         <label
           class="flex items-end gap-2 pb-2 text-xs font-medium text-n-slate-11"
         >
@@ -1640,6 +1803,63 @@ onMounted(load);
             {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING_HINT') }}
           </span>
         </label>
+        <details class="lg:col-span-full">
+          <summary
+            class="cursor-pointer text-xs font-medium text-n-slate-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
+          >
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONDITIONS') }}
+          </summary>
+          <div
+            class="mt-2 grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 lg:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)]"
+          >
+            <select
+              v-model="form.fieldKey"
+              data-testid="kanban-automations-condition-field"
+              class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            >
+              <option value="">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+              </option>
+              <option
+                v-for="field in conditionFields"
+                :key="field.key"
+                :value="field.key"
+              >
+                {{ field.label }}
+              </option>
+            </select>
+            <select
+              v-model="form.fieldOperator"
+              class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            >
+              <option value="equals">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') }}
+              </option>
+              <option value="not_equals">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NOT_EQUALS') }}
+              </option>
+              <option value="contains">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONTAINS') }}
+              </option>
+              <option value="exists">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EXISTS') }}
+              </option>
+              <option value="greater_than">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN') }}
+              </option>
+              <option value="less_than">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN') }}
+              </option>
+            </select>
+            <input
+              v-model="form.fieldValue"
+              type="text"
+              :disabled="form.fieldOperator === 'exists'"
+              :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
+              class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+        </details>
       </section>
       <KanbanWorkflowBuilder
         v-model="form.flowDefinition"
