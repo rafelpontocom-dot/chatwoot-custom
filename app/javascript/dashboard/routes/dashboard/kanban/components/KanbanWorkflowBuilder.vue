@@ -673,18 +673,13 @@ const removeSelectedNode = () => {
 <template>
   <section
     data-testid="kanban-workflow-builder"
-    class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
+    class="relative flex h-full min-h-[34rem] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-n-weak bg-n-surface-2"
   >
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <h4 class="m-0 text-sm font-medium text-n-slate-12">
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TITLE') }}
-        </h4>
-        <p class="m-0 mt-1 text-xs text-n-slate-11">
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DESCRIPTION') }}
-        </p>
-      </div>
-      <div class="relative">
+    <div
+      data-testid="kanban-workflow-canvas"
+      class="relative h-full min-h-[34rem] flex-1"
+    >
+      <div class="absolute right-3 top-3 z-20">
         <button
           type="button"
           data-testid="kanban-workflow-add-node"
@@ -698,7 +693,7 @@ const removeSelectedNode = () => {
         <div
           v-if="showNodeMenu"
           data-testid="kanban-workflow-node-menu"
-          class="absolute right-0 z-10 mt-2 grid min-w-48 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-lg"
+          class="absolute right-0 top-10 grid min-w-48 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-lg"
         >
           <button
             v-for="type in addableNodeTypes"
@@ -711,11 +706,8 @@ const removeSelectedNode = () => {
           </button>
         </div>
       </div>
-    </div>
-
-    <div class="relative min-h-[30rem]">
       <div
-        class="min-h-96 overflow-hidden rounded-md border border-n-weak bg-n-surface-1"
+        class="h-full min-h-[34rem] overflow-hidden bg-n-surface-1"
         :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CANVAS_LABEL')"
       >
         <VueFlow

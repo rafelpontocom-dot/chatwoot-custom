@@ -25,6 +25,23 @@ describe('KanbanWorkflowBuilder', () => {
     ).toHaveLength(8);
   });
 
+  it('keeps the add control inside a full-height visual canvas', () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    const canvas = wrapper.find('[data-testid="kanban-workflow-canvas"]');
+
+    expect(canvas.exists()).toBe(true);
+    expect(canvas.classes()).toContain('h-full');
+    expect(
+      canvas.find('[data-testid="kanban-workflow-add-node"]').exists()
+    ).toBe(true);
+    expect(wrapper.text()).not.toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TITLE'
+    );
+  });
+
   it('starts with a valid trigger-to-end flow instead of an incomplete message', () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: { modelValue: {} },
