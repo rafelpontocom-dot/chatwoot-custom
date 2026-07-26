@@ -141,12 +141,18 @@ describe('KanbanAutomations', () => {
     expect(
       wrapper.find('[data-testid="kanban-automation-editor"]').exists()
     ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-automation-editor-header"]').exists()
+    ).toBe(true);
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
   });
 
   it('offers commercial workflow drafts without activating them', async () => {
     const wrapper = await mountWorkspace();
 
+    expect(
+      wrapper.find('[data-testid="kanban-automations-template-icon"]').exists()
+    ).toBe(true);
     expect(
       wrapper
         .find('[data-testid="kanban-automations-template-whatsapp-sales"]')

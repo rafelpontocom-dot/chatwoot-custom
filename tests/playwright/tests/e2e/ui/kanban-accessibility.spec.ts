@@ -172,5 +172,36 @@ test.describe('Kanban accessibility and responsive workspace', () => {
     await firstControl.focus();
     await page.keyboard.press('Shift+Tab');
     await expect(lastControl).toBeFocused();
+
+    const configureTab = page.getByTestId(
+      'kanban-workflow-inspector-tab-configure'
+    );
+    await configureTab.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(
+      page.getByTestId('kanban-workflow-inspector-tab-test')
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('opens and closes the categorized workflow palette on mobile', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await openFirstBoard(page);
+
+    await page.getByTestId('kanban-board-automations-button').click();
+    await page.getByTestId('kanban-automations-new-flow').click();
+
+    const mobilePaletteButton = page.getByTestId(
+      'kanban-workflow-open-mobile-palette'
+    );
+    await expect(mobilePaletteButton).toBeVisible();
+    await mobilePaletteButton.click();
+
+    const palette = page.getByTestId('kanban-workflow-mobile-palette');
+    await expect(palette).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(palette).toBeHidden();
+    await expect(mobilePaletteButton).toBeFocused();
   });
 });

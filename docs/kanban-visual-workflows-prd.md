@@ -41,7 +41,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 ## Princípios Da Central De Automações
 
 - O canvas é uma área de trabalho, não um bloco dentro de um formulário longo.
-- A paleta lateral é recolhível, pesquisável e organizada por categorias; ela não despeja todos os nós de uma vez.
+- A paleta lateral é recolhível, pesquisável e organizada por categorias; ela não despeja todos os nós de uma vez e preserva as categorias abertas pela pessoa enquanto a tela é atualizada.
 - O botão `+` é uma alternativa contextual: insere e conecta o próximo passo no caminho selecionado.
 - O painel de configuração aparece somente para o nó ou conexão selecionado, concentra suas propriedades e preserva a largura do canvas.
 - Lembretes de consulta são configurados em uma aba própria; follow-up comercial é um fluxo visual, nunca uma segunda configuração paralela.
@@ -206,6 +206,20 @@ O Vue Flow é a infraestrutura de interação: oferece zoom, seleção, nós/are
 ### Modelo Do Editor Visual
 
 O editor combina a arquitetura do Node-RED com a leitura visual do n8n, sem reutilizar código de produtos com licença incompatível. A paleta lateral é um catálogo independente, pesquisável e recolhível por categoria: Gatilhos, Decisão, Tempo, Cliente, Oportunidade, Integrações e Operação. Um bloco pode ser clicado ou arrastado para o canvas; clique continua sendo a alternativa acessível ao arraste.
+
+#### Direção visual aprovada: Fusão CRM
+
+Esta é a direção única para as próximas entregas, e não uma referência opcional. Ela combina a arquitetura de descoberta do Node-RED com a clareza de configuração do n8n, adaptadas ao dashboard do Chatwoot:
+
+- **Esquerda:** paleta compacta de aproximadamente 208 px, com busca, categorias recolhíveis, ícones e uma linha por bloco. Ela existe para descobrir e adicionar passos, não para explicar cada configuração.
+- **Centro:** canvas é a superfície dominante. Mantém fundo discreto, controles agrupados, zoom, minimapa apenas quando necessário e espaço suficiente para montar caminhos reais sem uma coluna permanente de formulário.
+- **Nós:** cards densos e estáveis, com faixa semântica de categoria, ícone, título, resumo de uma linha e estado. Condições detalhadas, formulários e textos longos ficam fora do card; saídas continuam rotuladas e acessíveis.
+- **Configuração:** clicar em nó ou conexão abre um inspector flutuante no lado direito, com largura limitada a 416 px em desktop e tela cheia em mobile. Ele sobrepõe o canvas, não reduz seu espaço. O cabeçalho mostra categoria, título e estado da etapa; `Configurar`, `Testar` e `Histórico` são abas igualmente distribuídas do mesmo contexto e aceitam setas, Home e End no teclado.
+- **Ações:** inserir, conectar, excluir, desfazer, refazer e organizar ficam junto ao canvas. O `+` abre um seletor contextual e não depende de hover ou arraste; no mobile, abre a paleta categorizada em drawer. Ao selecionar uma conexão, o inspector mostra origem e destino reais, em vez de um título genérico.
+- **Linguagem:** a UI usa termos comerciais curtos, estado compreensível e dados da oportunidade. Não expõe jargão de automação, chaves técnicas ou formulários completos no canvas.
+- **Entrada:** modelos comerciais usam ícone, título e descrição curta; regras existentes mantêm estado, edição explícita, teste e histórico em uma linha compacta, sem virar uma lista de formulários.
+
+O resultado precisa parecer uma ferramenta CRM nativa e densa: a eficiência estrutural do Node-RED, a legibilidade e configuração por contexto do n8n e a linguagem do Kanban comercial. Não é permitido copiar componentes ou código do n8n.
 
 As conexões aprovadas para webhook possuem uma trilha administrativa independente da execução do fluxo. A equipe consegue verificar criação, alteração, remoção e regeneração de segredo sem transformar URLs, tokens ou conteúdo externo em dados visíveis no CRM.
 

@@ -25,6 +25,7 @@ Entregar um editor visual profissional, seguro e simples para as automações co
 - Vue Flow é o motor de canvas, conexões, seleção, zoom e minimapa.
 - A paleta segue o modelo Node-RED: busca e categorias recolhíveis.
 - A configuração segue o modelo n8n: painel contextual flutuante, canvas preservado e histórico sob demanda.
+- A direção visual aprovada é uma fusão CRM: paleta Node-RED compacta à esquerda, canvas dominante com leitura n8n e inspector contextual de até 26rem sobreposto à direita; o editor nunca usa uma coluna fixa de formulário.
 - Não copiar código do n8n; usar apenas como referência de produto e arquitetura.
 - N8N continua responsável por IA ampla, integrações entre sistemas, HTTP arbitrário, banco, código e processos externos.
 - A primeira correspondência do Router vence; existe sempre a saída `Caso contrário`.
@@ -53,15 +54,16 @@ Aceite:
 
 Objetivo: transformar a tela atual em uma área de trabalho clara e densa.
 
-- [x] Paleta pesquisável com categorias recolhíveis e alternativa por clique ao arraste.
-- [x] Cabeçalho compacto: nome, gatilho e estado permanecem visíveis; filtros específicos do gatilho foram movidos para `Opções do gatilho`, há validação local explícita, estado de publicação ao lado de salvar e teste guiado seguro para uma oportunidade em regras já salvas.
+- [x] Aplicar a fusão CRM aprovada: paleta compacta com categorias progressivas e ícones semânticos, seletor `+` agrupado por categoria, toolbar de canvas agrupada, cards de nó com geometria estável e inspector contextual lateral com cabeçalho fixo. O contrato visual foi registrado no PRD e Spec; falta validação real em Chrome depois do deploy.
+- [x] Paleta pesquisável com categorias recolhíveis, estado de abertura preservado após nova renderização e alternativa por clique ao arraste.
+- [x] Cabeçalho compacto: nome, gatilho e estado permanecem visíveis em uma faixa responsiva acima do canvas; filtros específicos do gatilho foram movidos para `Opções do gatilho`, há validação local explícita, estado de publicação ao lado de salvar e teste guiado seguro para uma oportunidade em regras já salvas. A entrada usa modelos comerciais com ícones e regras compactas com estado, edição explícita, teste e histórico.
 - [x] Canvas dominante com minimapa condicional, zoom, auto-organizar, desfazer e refazer. Minimapa condicional, auto-organizar, desfazer/refazer e atalhos locais preservam o snapshot anterior também ao entrar na edição dos campos do inspector.
 - [x] Nós padronizados: ícone, faixa/cor de categoria, título, resumo, chips de configuração e estado visual. A validação do servidor continua apontando o nó inválido no canvas.
-- [x] Arestas com rótulo de saída, foco visível, ação de excluir, inserção contextual e destaque da rota executada.
-- [x] Painel flutuante com abas `Configurar`, `Testar` e `Histórico`: as abas mantêm o canvas livre, mostram prévia e exibem os resultados seguros do nó para a regra aberta; o editor permite filtrar por uma execução específica e destaca nós e conexões da rota selecionada.
+- [x] Arestas com rótulo de saída, foco visível, ação de excluir, inserção contextual e destaque da rota executada; o inspector de conexão identifica origem e destino reais em vez de um título genérico.
+- [x] Painel flutuante com abas `Configurar`, `Testar` e `Histórico`: o cabeçalho apresenta categoria, título e estado da etapa; as três abas têm ícone, largura equilibrada e navegação por setas/Home/End, mantêm o canvas livre, mostram prévia e exibem os resultados seguros do nó para a regra aberta; o editor permite filtrar por uma execução específica e destaca nós e conexões da rota selecionada.
 - [x] Remover rótulos genéricos como `Configurações da etapa` e usar o nome real do nó.
 - [x] Estados vazios, carregamento, salvamento, validação e recuperação de erro no workspace e no inspector.
-- [-] Responsividade: a paleta abre como drawer pesquisável e categorizado no mobile; falta validação visual em viewport real para o canvas em tela cheia.
+- [-] Responsividade: o controle do canvas abre a paleta pesquisável e categorizada em drawer no mobile, enquanto o seletor contextual continua no desktop; falta validação visual em viewport real para o canvas em tela cheia.
 
 Aceite:
 
@@ -169,7 +171,7 @@ Aceite:
 
 ## Fase 6 - Qualidade, Acessibilidade E Produção P2
 
-- [-] E2E desktop, tablet e mobile: a suíte Playwright cobre entrada no Kanban, abertura do workspace, rascunho, paleta, inspector, Escape, retorno de foco e ciclo de Tab; inclui viewport de 320 px. `KANBAN_E2E_BOARD_ID` torna a escolha do quadro determinística e o helper de login aguarda apenas `domcontentloaded`, compatível com Vite. A tentativa local de 2026-07-26 autenticou e consultou o board, mas serviu a tela legada `Funnels`; falta executar contra ambiente provisionado com o bundle atual, `KANBAN_E2E=1`, e registrar as capturas reais.
+- [-] E2E desktop, tablet e mobile: a suíte Playwright cobre entrada no Kanban, abertura do workspace, rascunho, paleta, inspector, Escape, retorno de foco, ciclo de Tab, navegação das abas do inspector por seta e o drawer categorizado em viewport de 320 px. `KANBAN_E2E_BOARD_ID` torna a escolha do quadro determinística e o helper de login aguarda apenas `domcontentloaded`, compatível com Vite. A tentativa local de 2026-07-26 autenticou e consultou o board, mas serviu a tela legada `Funnels`; falta executar contra ambiente provisionado com o bundle atual, `KANBAN_E2E=1`, e registrar as capturas reais.
 - [-] Navegação por teclado: paleta, criação, seleção de nó por Enter/Espaço, conexão pelo inspector, edição e publicação possuem alternativa sem arraste. O canvas é uma região nomeada e o inspector anuncia seu título. Falta validar a sequência completa em navegador real, incluindo leitor de tela.
 - [-] Foco preso e retorno de foco em painéis; Escape fecha o inspector e o foco retorna ao editor. O inspector possui nome programático vinculado ao título do nó ou conexão. Falta validação manual com leitor de tela em ambiente real.
 - [x] Alternativa sem arraste para criar, mover, conectar e remover nós: paleta por clique, setas para mover, inspector para conectar nós existentes e ações acessíveis para remover nós ou arestas. O inspector bloqueia ciclos antes de salvar, mantendo a mesma regra do validador do backend.

@@ -36,6 +36,12 @@ describe('KanbanWorkflowNode', () => {
     expect(
       wrapper.findAll('[data-testid="kanban-workflow-node-chip"]')
     ).toHaveLength(2);
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-category"]').text()
+    ).toBe('CUSTOMER');
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-chips"]').classes()
+    ).not.toContain('flex-wrap');
   });
 
   it('opens its contextual configuration with Enter or Space', async () => {

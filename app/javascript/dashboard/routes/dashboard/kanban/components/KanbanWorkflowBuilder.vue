@@ -113,6 +113,7 @@ const {
 const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
 const inspectorTab = ref('configure');
+const inspectorTabs = ['configure', 'test', 'history'];
 const showNodeMenu = ref(false);
 const showMobilePalette = ref(false);
 const showConnectionForm = ref(false);
@@ -125,6 +126,7 @@ const insertAfterNodeId = ref(null);
 const insertAfterHandle = ref(null);
 const inspector = ref(null);
 const builder = ref(null);
+const mobilePaletteTrigger = ref(null);
 const messageContentInput = ref(null);
 const showEmojiPicker = ref(false);
 const showMessageVariableMenu = ref(false);
@@ -170,6 +172,16 @@ const nodeLabels = computed(() =>
 );
 
 const paletteGroups = computed(() => getKanbanWorkflowPaletteGroups(t));
+const nodeCategoryLabels = computed(() => ({
+  TRIGGER: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.TRIGGER'),
+  DECISION: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.DECISION'),
+  TIME: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.TIME'),
+  CUSTOMER: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.CUSTOMER'),
+  OPPORTUNITY: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.OPPORTUNITY'),
+  OPERATION: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.OPERATION'),
+  INTEGRATION: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.INTEGRATION'),
+  CONTROL: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
+}));
 const addableNodeTypes = computed(() =>
   paletteGroups.value.flatMap(group => group.nodes.map(node => node.type))
 );
@@ -282,6 +294,20 @@ const showMiniMap = computed(() => nodes.value.length > 4);
 const selectedEdge = computed(() =>
   edges.value.find(edge => edge.id === selectedEdgeId.value)
 );
+const selectedEdgeSummary = computed(() => {
+  if (!selectedEdge.value) return '';
+
+  const source = nodes.value.find(
+    node => node.id === selectedEdge.value.source
+  );
+  const target = nodes.value.find(
+    node => node.id === selectedEdge.value.target
+  );
+
+  return `${source?.data?.label || selectedEdge.value.source} → ${
+    target?.data?.label || selectedEdge.value.target
+  }`;
+});
 const contactAttributeOptions = computed(() => [
   {
     value: 'date_of_birth',
@@ -806,6 +832,45 @@ const inspectorTabLabel = tab => {
   }
 };
 
+const inspectorTabIcon = tab =>
+  ({
+    configure: 'i-lucide-sliders-horizontal',
+    test: 'i-lucide-flask-conical',
+    history: 'i-lucide-history',
+  })[tab];
+
+const inspectorStateTone = state =>
+  ({
+    draft: 'bg-n-slate-3 text-n-slate-11',
+    valid: 'bg-n-green-3 text-n-green-11',
+    invalid: 'bg-n-ruby-3 text-n-ruby-11',
+    waiting: 'bg-n-amber-3 text-n-amber-11',
+    completed: 'bg-n-green-3 text-n-green-11',
+    skipped: 'bg-n-slate-3 text-n-slate-11',
+    failed: 'bg-n-ruby-3 text-n-ruby-11',
+  })[state] || 'bg-n-slate-3 text-n-slate-11';
+
+const handleInspectorTabKeydown = (event, tab) => {
+  const currentIndex = inspectorTabs.indexOf(tab);
+  const nextIndex = {
+    ArrowRight: (currentIndex + 1) % inspectorTabs.length,
+    ArrowDown: (currentIndex + 1) % inspectorTabs.length,
+    ArrowLeft: (currentIndex - 1 + inspectorTabs.length) % inspectorTabs.length,
+    ArrowUp: (currentIndex - 1 + inspectorTabs.length) % inspectorTabs.length,
+    Home: 0,
+    End: inspectorTabs.length - 1,
+  }[event.key];
+
+  if (nextIndex === undefined) return;
+
+  event.preventDefault();
+  const nextTab = inspectorTabs[nextIndex];
+  inspectorTab.value = nextTab;
+  nextTick(() =>
+    inspector.value?.querySelector(`[data-inspector-tab="${nextTab}"]`)?.focus()
+  );
+};
+
 const historyStatusLabel = status => {
   const state = status === 'succeeded' ? 'completed' : status;
   return nodeStateLabels.value[state] || nodeStateLabels.value.skipped;
@@ -1118,6 +1183,10 @@ const decorateNode = node => {
       ...data,
       kind: node.type,
       category: getKanbanWorkflowNodeDefinition(node.type)?.category,
+      categoryLabel:
+        nodeCategoryLabels.value[
+          getKanbanWorkflowNodeDefinition(node.type)?.category
+        ],
       icon: getKanbanWorkflowNodeDefinition(node.type)?.icon,
       terminal: getKanbanWorkflowNodeDefinition(node.type)?.terminal,
       label: nodeLabel({ ...node, data }),
@@ -1194,6 +1263,7 @@ const persistedNodeData = data => {
         ![
           'kind',
           'category',
+          'categoryLabel',
           'icon',
           'terminal',
           'label',
@@ -1371,6 +1441,11 @@ const addNodeOfType = (type, position = null) => {
 const addNodeFromMobilePalette = type => {
   showMobilePalette.value = false;
   addNodeOfType(type);
+};
+
+const closeMobilePalette = () => {
+  showMobilePalette.value = false;
+  nextTick(() => mobilePaletteTrigger.value?.focus());
 };
 
 const startPaletteDrag = type => {
@@ -1750,6 +1825,20 @@ const moveSelectedNode = event => {
 };
 
 const handleBuilderKeydown = event => {
+  if (event.key === 'Escape' && showMobilePalette.value) {
+    event.preventDefault();
+    closeMobilePalette();
+    return;
+  }
+
+  if (event.key === 'Escape' && showNodeMenu.value) {
+    event.preventDefault();
+    showNodeMenu.value = false;
+    insertAfterNodeId.value = null;
+    insertAfterHandle.value = null;
+    return;
+  }
+
   const target = event.target;
   if (
     target instanceof HTMLElement &&
@@ -1809,7 +1898,10 @@ const handleBuilderKeydown = event => {
       class="relative h-full min-h-[34rem] flex-1"
       :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CANVAS_LABEL')"
     >
-      <div class="absolute right-3 top-3 z-20 flex items-center gap-1">
+      <div
+        data-testid="kanban-workflow-canvas-toolbar"
+        class="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-sm"
+      >
         <button
           type="button"
           data-testid="kanban-workflow-undo"
@@ -1843,33 +1935,66 @@ const handleBuilderKeydown = event => {
           <i class="i-lucide-layout-dashboard size-4" aria-hidden="true" />
         </button>
         <button
+          ref="mobilePaletteTrigger"
+          type="button"
+          data-testid="kanban-workflow-open-mobile-palette"
+          class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:hidden"
+          :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
+          :aria-expanded="showMobilePalette"
+          aria-controls="kanban-workflow-mobile-palette"
+          @click="showMobilePalette = true"
+        >
+          <i class="i-lucide-plus size-4" aria-hidden="true" />
+        </button>
+        <button
           type="button"
           data-testid="kanban-workflow-add-node"
-          class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand"
+          class="hidden size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:flex"
           :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
           :aria-expanded="showNodeMenu"
+          aria-controls="kanban-workflow-node-menu"
           @click="openNodeMenuAfter(null)"
         >
           <i class="i-lucide-plus size-4" />
         </button>
         <div
           v-if="showNodeMenu"
+          id="kanban-workflow-node-menu"
           data-testid="kanban-workflow-node-menu"
-          class="absolute right-0 top-10 grid min-w-48 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-lg"
+          class="absolute right-0 top-10 grid max-h-[min(28rem,calc(100vh-7rem))] min-w-56 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1.5 shadow-lg"
         >
-          <button
-            v-for="type in addableNodeTypes"
-            :key="type"
-            type="button"
-            class="flex h-9 items-center rounded px-2 text-left text-sm font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-            @click="addNodeOfType(type)"
+          <div
+            v-for="group in paletteGroups"
+            :key="group.key"
+            data-testid="kanban-workflow-node-menu-group"
+            class="border-b border-n-weak py-1.5 first:pt-0 last:border-b-0 last:pb-0"
           >
-            {{ nodeLabels[type] }}
-          </button>
+            <p
+              class="m-0 flex h-6 items-center gap-1.5 px-1.5 text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+            >
+              <i class="size-3" :class="group.icon" aria-hidden="true" />
+              {{ group.label }}
+            </p>
+            <button
+              v-for="node in group.nodes"
+              :key="node.type"
+              type="button"
+              class="flex h-8 w-full items-center gap-2 rounded px-1.5 text-left text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+              @click="addNodeOfType(node.type)"
+            >
+              <i
+                class="size-3.5 text-n-slate-10"
+                :class="node.icon"
+                aria-hidden="true"
+              />
+              <span class="truncate">{{ node.label }}</span>
+            </button>
+          </div>
         </div>
       </div>
       <div
         v-if="showMobilePalette"
+        id="kanban-workflow-mobile-palette"
         data-testid="kanban-workflow-mobile-palette"
         class="absolute inset-3 z-30 flex flex-col overflow-hidden rounded-md border border-n-weak bg-n-surface-1 shadow-xl lg:hidden"
       >
@@ -1881,7 +2006,7 @@ const handleBuilderKeydown = event => {
             class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
             :aria-label="t('KANBAN.ACTIONS.CLOSE')"
             :title="t('KANBAN.ACTIONS.CLOSE')"
-            @click="showMobilePalette = false"
+            @click="closeMobilePalette"
           >
             <i class="i-lucide-x size-4" aria-hidden="true" />
           </button>
@@ -1929,7 +2054,8 @@ const handleBuilderKeydown = event => {
 
       <div
         v-if="selectedNode || selectedEdge"
-        class="fixed inset-0 z-40 bg-n-slate-12/30 backdrop-blur-[1px]"
+        data-testid="kanban-workflow-inspector-backdrop"
+        class="fixed inset-0 z-40 bg-n-slate-12/10"
         @click="closeInspector"
       />
       <aside
@@ -1940,7 +2066,7 @@ const handleBuilderKeydown = event => {
             ? 'kanban-workflow-node-drawer'
             : 'kanban-workflow-connection-dialog'
         "
-        class="fixed inset-x-4 top-1/2 z-50 grid max-h-[calc(100vh-2rem)] w-auto max-w-4xl -translate-y-1/2 content-start gap-4 overflow-y-auto rounded-lg border border-n-weak bg-n-surface-1 p-5 shadow-2xl outline-none sm:inset-x-auto sm:right-1/2 sm:w-[min(56rem,calc(100vw-2rem))] sm:translate-x-1/2"
+        class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-lg border border-n-weak bg-n-surface-1 p-4 shadow-2xl outline-none sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-6 sm:w-[min(26rem,calc(100vw-3rem))] sm:p-5"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="
@@ -1954,27 +2080,41 @@ const handleBuilderKeydown = event => {
       >
         <template v-if="selectedNode">
           <div
-            class="flex items-center justify-between gap-3 border-b border-n-weak pb-4"
+            data-testid="kanban-workflow-inspector-header"
+            class="sticky top-0 z-10 -mx-4 -mt-4 flex items-center justify-between gap-3 border-b border-n-weak bg-n-surface-1 px-4 pb-3 pt-4 sm:-mx-5 sm:-mt-5 sm:px-5 sm:pt-5"
           >
-            <div class="min-w-0">
-              <div class="flex min-w-0 items-center gap-2">
-                <span
-                  class="flex size-7 shrink-0 items-center justify-center rounded bg-n-surface-2 text-n-slate-11"
+            <div class="flex min-w-0 items-center gap-2.5">
+              <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-n-surface-2 text-n-slate-11"
+              >
+                <i
+                  v-if="selectedNode.data.icon"
+                  data-testid="kanban-workflow-inspector-icon"
+                  class="size-4"
+                  :class="selectedNode.data.icon"
+                  aria-hidden="true"
+                />
+              </span>
+              <div class="min-w-0">
+                <p
+                  data-testid="kanban-workflow-inspector-category"
+                  class="m-0 truncate text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
                 >
-                  <i
-                    v-if="selectedNode.data.icon"
-                    data-testid="kanban-workflow-inspector-icon"
-                    class="size-4"
-                    :class="selectedNode.data.icon"
-                    aria-hidden="true"
-                  />
-                </span>
+                  {{ selectedNode.data.categoryLabel }}
+                </p>
                 <p
                   id="kanban-workflow-inspector-title"
                   class="m-0 truncate text-base font-semibold text-n-slate-12"
                 >
                   {{ selectedNode.data.label }}
                 </p>
+                <span
+                  data-testid="kanban-workflow-inspector-state"
+                  class="mt-1 inline-flex rounded px-1.5 py-0.5 text-2xs font-medium"
+                  :class="inspectorStateTone(selectedNode.data.state)"
+                >
+                  {{ selectedNode.data.stateLabel }}
+                </span>
               </div>
             </div>
             <div class="flex items-center gap-1">
@@ -2075,27 +2215,36 @@ const handleBuilderKeydown = event => {
           </section>
 
           <div
-            class="flex w-fit items-center gap-1 rounded-md bg-n-surface-2 p-1"
+            data-testid="kanban-workflow-inspector-tabs"
+            class="grid w-full grid-cols-3 items-center gap-1 rounded-md bg-n-surface-2 p-1"
             role="tablist"
             :aria-label="
               t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.TABS_LABEL')
             "
           >
             <button
-              v-for="tab in ['configure', 'test', 'history']"
+              v-for="tab in inspectorTabs"
               :key="tab"
               type="button"
               :data-testid="`kanban-workflow-inspector-tab-${tab}`"
+              :data-inspector-tab="tab"
               role="tab"
               :aria-selected="inspectorTab === tab"
-              class="h-8 rounded px-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-n-brand"
+              :tabindex="inspectorTab === tab ? 0 : -1"
+              class="flex h-8 items-center justify-center gap-1.5 rounded px-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-n-brand"
               :class="
                 inspectorTab === tab
                   ? 'bg-n-surface-1 text-n-slate-12 shadow-sm'
                   : 'text-n-slate-11 hover:text-n-slate-12'
               "
               @click="inspectorTab = tab"
+              @keydown="handleInspectorTabKeydown($event, tab)"
             >
+              <i
+                :class="inspectorTabIcon(tab)"
+                class="size-3.5 shrink-0"
+                aria-hidden="true"
+              />
               {{ inspectorTabLabel(tab) }}
             </button>
           </div>
@@ -3725,9 +3874,9 @@ const handleBuilderKeydown = event => {
                 id="kanban-workflow-connection-title"
                 class="m-0 mt-1 text-base font-semibold text-n-slate-12"
               >
-                {{
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECTION_SELECTED')
-                }}
+                <span data-testid="kanban-workflow-connection-summary">
+                  {{ selectedEdgeSummary }}
+                </span>
               </p>
             </div>
             <button

@@ -554,6 +554,7 @@ const flowTemplate = ({ message, waitForResponse = false }) => {
 const automationTemplates = computed(() => [
   {
     id: 'whatsapp-sales',
+    icon: 'i-lucide-message-circle',
     defaultName: t(
       'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.WHATSAPP_SALES.TITLE'
     ),
@@ -566,6 +567,7 @@ const automationTemplates = computed(() => [
   },
   {
     id: 'clinic-appointment',
+    icon: 'i-lucide-calendar-clock',
     defaultName: t(
       'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.CLINIC_APPOINTMENT.TITLE'
     ),
@@ -578,6 +580,7 @@ const automationTemplates = computed(() => [
   },
   {
     id: 'b2b-sales',
+    icon: 'i-lucide-briefcase-business',
     defaultName: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.B2B_SALES.TITLE'),
     name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.B2B_SALES.TITLE'),
     description: t(
@@ -588,6 +591,7 @@ const automationTemplates = computed(() => [
   },
   {
     id: 'blank',
+    icon: 'i-lucide-file-plus-2',
     defaultName: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BLANK.TITLE'),
     name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BLANK.TITLE'),
     description: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BLANK.DESCRIPTION'),
@@ -596,6 +600,7 @@ const automationTemplates = computed(() => [
   },
   {
     id: 'follow-up',
+    icon: 'i-lucide-repeat-2',
     defaultName: 'Follow-up comercial',
     name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.FOLLOW_UP.TITLE'),
     description: t(
@@ -606,6 +611,7 @@ const automationTemplates = computed(() => [
   },
   {
     id: 'nps-google-review',
+    icon: 'i-lucide-star',
     defaultName: 'Pedir avaliação no Google',
     name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.NPS_GOOGLE.TITLE'),
     description: t(
@@ -2092,9 +2098,12 @@ onMounted(load);
       class="flex min-h-0 flex-1 flex-col"
     >
       <section
-        class="grid gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 lg:grid-cols-[minmax(14rem,1fr)_13rem_12rem_auto_auto] lg:px-6"
+        data-testid="kanban-automation-editor-header"
+        class="relative z-10 flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-n-weak bg-n-surface-2 px-4 py-3 shadow-sm lg:px-6"
       >
-        <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+        <label
+          class="grid min-w-[16rem] flex-1 gap-1 text-xs font-medium text-n-slate-11"
+        >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NAME') }}
           <input
             v-model="form.name"
@@ -2103,7 +2112,9 @@ onMounted(load);
             class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
           />
         </label>
-        <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+        <label
+          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
+        >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
           <select
             v-model="form.eventName"
@@ -2132,7 +2143,7 @@ onMounted(load);
         />
         <label
           v-if="showAdvancedTrigger && triggerContext === 'stage'"
-          class="grid gap-1 text-xs font-medium text-n-slate-11"
+          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
         >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.STAGE') }}
           <select
@@ -2150,7 +2161,7 @@ onMounted(load);
         </label>
         <label
           v-else-if="showAdvancedTrigger && triggerContext === 'owner'"
-          class="grid gap-1 text-xs font-medium text-n-slate-11"
+          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
         >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
           <select
@@ -2172,7 +2183,7 @@ onMounted(load);
         </label>
         <label
           v-else-if="showAdvancedTrigger && triggerContext === 'changed_field'"
-          class="grid gap-1 text-xs font-medium text-n-slate-11"
+          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
         >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
           <select
@@ -2194,7 +2205,7 @@ onMounted(load);
         </label>
         <label
           v-else-if="showAdvancedTrigger && triggerContext === 'next_action'"
-          class="grid gap-1 text-xs font-medium text-n-slate-11"
+          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
         >
           {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE') }}
           <select
@@ -2216,7 +2227,7 @@ onMounted(load);
         </label>
         <div
           v-else-if="showAdvancedTrigger && triggerContext === 'amount'"
-          class="grid grid-cols-[9rem_minmax(0,1fr)] gap-2 self-end"
+          class="grid w-full grid-cols-[9rem_minmax(0,1fr)] gap-2 self-end sm:w-[23rem]"
         >
           <select
             v-model="form.triggerAmountOperator"
@@ -2243,7 +2254,7 @@ onMounted(load);
           />
         </div>
         <label
-          class="grid max-w-52 gap-1 text-xs font-medium text-n-slate-11"
+          class="grid max-w-52 gap-1 self-center text-xs font-medium text-n-slate-11"
           :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY_HINT')"
         >
           <span class="flex items-center gap-2">
@@ -2257,7 +2268,7 @@ onMounted(load);
         </label>
         <label
           v-if="waitingExecutionsForSelectedRule.length"
-          class="grid max-w-60 gap-1 text-xs font-medium text-n-ruby-11"
+          class="grid max-w-60 gap-1 self-center text-xs font-medium text-n-ruby-11"
         >
           <span class="flex items-center gap-2">
             <input
@@ -2276,7 +2287,7 @@ onMounted(load);
             {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING_HINT') }}
           </span>
         </label>
-        <details class="lg:col-span-full">
+        <details class="w-full">
           <summary
             class="cursor-pointer text-xs font-medium text-n-slate-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
           >
@@ -2514,53 +2525,79 @@ onMounted(load);
           </h2>
         </div>
         <section
-          class="mb-4 grid max-w-5xl gap-2 md:grid-cols-3"
+          class="mb-5 grid max-w-6xl gap-2 sm:grid-cols-2 xl:grid-cols-3"
           :aria-label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.TITLE')"
         >
           <button
             v-for="template in automationTemplates"
             :key="template.id"
             type="button"
-            class="grid min-h-20 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="group grid min-h-[5.5rem] grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
             :data-testid="`kanban-automations-template-${template.id === 'nps-google-review' ? 'nps-google' : template.id}`"
             @click="openTemplate(template)"
           >
-            <span class="text-sm font-medium text-n-slate-12">{{
-              template.name
-            }}</span>
-            <span class="text-xs text-n-slate-11">{{
-              template.description
-            }}</span>
+            <i
+              :class="template.icon"
+              data-testid="kanban-automations-template-icon"
+              class="mt-0.5 flex size-8 items-center justify-center rounded-md bg-n-brand/10 p-2 text-n-brand"
+              aria-hidden="true"
+            />
+            <span class="grid min-w-0 gap-1">
+              <span class="truncate text-sm font-medium text-n-slate-12">{{
+                template.name
+              }}</span>
+              <span class="line-clamp-2 text-xs leading-5 text-n-slate-11">{{
+                template.description
+              }}</span>
+            </span>
+            <i
+              class="i-lucide-arrow-up-right mt-1 size-4 text-n-slate-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              aria-hidden="true"
+            />
           </button>
           <button
             type="button"
             data-testid="kanban-automations-template-birthday"
-            class="grid min-h-20 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="group grid min-h-[5.5rem] grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
             @click="openBirthdayAutomation"
           >
-            <span class="text-sm font-medium text-n-slate-12">
-              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.TITLE') }}
+            <i
+              class="i-lucide-cake flex size-8 items-center justify-center rounded-md bg-n-brand/10 p-2 text-n-brand"
+              data-testid="kanban-automations-template-icon"
+              aria-hidden="true"
+            />
+            <span class="grid min-w-0 gap-1">
+              <span class="truncate text-sm font-medium text-n-slate-12">
+                {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.TITLE') }}
+              </span>
+              <span class="line-clamp-2 text-xs leading-5 text-n-slate-11">
+                {{
+                  t(
+                    'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.DESCRIPTION'
+                  )
+                }}
+              </span>
             </span>
-            <span class="text-xs text-n-slate-11">
-              {{
-                t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.DESCRIPTION')
-              }}
-            </span>
+            <i
+              class="i-lucide-arrow-up-right mt-1 size-4 text-n-slate-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              aria-hidden="true"
+            />
           </button>
         </section>
-        <div v-if="rules.length" class="grid max-w-5xl gap-2">
+        <div v-if="rules.length" class="grid max-w-6xl gap-2">
           <article
             v-for="rule in rules"
             :key="rule.id"
-            class="rounded-md border border-n-weak bg-n-surface-1"
+            class="group overflow-hidden rounded-md border border-n-weak bg-n-surface-1 transition-colors hover:border-n-brand"
           >
-            <div class="flex items-center justify-between gap-3 px-4 py-3">
-              <button
-                type="button"
-                :data-testid="`kanban-automation-rule-${rule.id}`"
-                class="min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-n-brand"
-                @click="openRule(rule)"
+            <div class="flex items-center gap-3 px-3 py-3 sm:px-4">
+              <span
+                class="flex size-8 shrink-0 items-center justify-center rounded-md bg-n-surface-2 text-n-slate-10"
+                aria-hidden="true"
               >
+                <i class="i-lucide-git-branch size-4" />
+              </span>
+              <div class="min-w-0 flex-1">
                 <p class="m-0 truncate text-sm font-medium text-n-slate-12">
                   {{ rule.name }}
                 </p>
@@ -2579,10 +2616,10 @@ onMounted(load);
                           ?.label
                   }}
                 </p>
-              </button>
+              </div>
               <div class="flex shrink-0 items-center gap-2">
                 <span
-                  class="rounded-full px-2 py-1 text-xs font-medium"
+                  class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
                   :class="
                     rule.active
                       ? 'bg-n-green-3 text-n-green-11'
@@ -2595,6 +2632,15 @@ onMounted(load);
                       : t('KANBAN.AUTOMATIONS_WORKSPACE.DRAFT')
                   }}
                 </span>
+                <button
+                  type="button"
+                  :data-testid="`kanban-automation-rule-${rule.id}`"
+                  class="flex size-7 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                  :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EDIT')"
+                  @click="openRule(rule)"
+                >
+                  <i class="i-lucide-pencil size-3.5" aria-hidden="true" />
+                </button>
                 <Button
                   type="button"
                   icon="i-lucide-flask-conical"

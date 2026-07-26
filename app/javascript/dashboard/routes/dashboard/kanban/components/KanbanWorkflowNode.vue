@@ -50,7 +50,7 @@ const stateTone = state =>
     :aria-label="data.label"
     role="group"
     tabindex="0"
-    class="min-w-52 rounded-md border-l-4 border-y border-r border-n-weak bg-n-surface-1 px-3 py-2 shadow-sm"
+    class="w-[13.5rem] rounded-md border-l-4 border-y border-r border-n-weak bg-n-surface-1 px-3 py-2 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-n-brand"
     :class="
       data.invalid
         ? 'border-n-ruby-9 ring-2 ring-n-ruby-9/20'
@@ -72,9 +72,17 @@ const stateTone = state =>
             aria-hidden="true"
           />
         </span>
-        <p class="m-0 truncate text-xs font-semibold text-n-slate-12">
-          {{ data.label }}
-        </p>
+        <div class="min-w-0">
+          <p
+            data-testid="kanban-workflow-node-category"
+            class="m-0 truncate text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+          >
+            {{ data.categoryLabel || data.category }}
+          </p>
+          <p class="m-0 truncate text-xs font-semibold text-n-slate-12">
+            {{ data.label }}
+          </p>
+        </div>
       </div>
       <i
         v-if="data.invalid"
@@ -82,7 +90,7 @@ const stateTone = state =>
         aria-hidden="true"
       />
     </div>
-    <p v-if="data.summary" class="m-0 mt-1 text-xs text-n-slate-10">
+    <p v-if="data.summary" class="m-0 mt-1 truncate text-xs text-n-slate-10">
       {{ data.summary }}
     </p>
     <span
@@ -93,12 +101,16 @@ const stateTone = state =>
     >
       {{ data.stateLabel }}
     </span>
-    <div v-if="data.chips?.length" class="mt-2 flex flex-wrap gap-1">
+    <div
+      v-if="data.chips?.length"
+      data-testid="kanban-workflow-node-chips"
+      class="mt-2 flex max-w-full gap-1 overflow-hidden"
+    >
       <span
         v-for="chip in data.chips"
         :key="chip"
         data-testid="kanban-workflow-node-chip"
-        class="max-w-full truncate rounded bg-n-surface-2 px-1.5 py-0.5 text-2xs text-n-slate-11"
+        class="max-w-full shrink-0 truncate rounded bg-n-surface-2 px-1.5 py-0.5 text-2xs text-n-slate-11"
       >
         {{ chip }}
       </span>
@@ -108,7 +120,7 @@ const stateTone = state =>
     <div
       v-for="branch in data.branches"
       :key="branch.id"
-      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ branch.label }}</span>
       <button
@@ -127,7 +139,7 @@ const stateTone = state =>
       />
     </div>
     <div
-      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
+      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
     >
       <span class="min-w-0 flex-1 truncate">{{ data.fallbackLabel }}</span>
       <button
@@ -150,7 +162,7 @@ const stateTone = state =>
     <div
       v-for="option in data.options"
       :key="option.id"
-      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
       <button
@@ -185,7 +197,7 @@ const stateTone = state =>
     <div
       v-for="output in data.outputs"
       :key="output.id"
-      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ output.label }}</span>
       <button

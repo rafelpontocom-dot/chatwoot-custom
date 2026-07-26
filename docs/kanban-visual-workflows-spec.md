@@ -279,11 +279,21 @@ Erros de validação respondem `422` com `message` e `errors`. O frontend deve m
 
 ## Frontend
 
+### Contrato Visual Do Workspace
+
+O layout desktop do editor tem três camadas: paleta lateral compacta (`13rem`), canvas flexível e inspector contextual sobreposto. A paleta nunca cresce com o conteúdo dos blocos; categorias são recolhíveis, preservam a escolha de abertura após nova renderização e o texto de cada item é truncado. O canvas recebe toda a largura restante e tem altura mínima de `34rem`. O inspector é `fixed`, fica à direita com largura máxima de `26rem` e não participa do fluxo de layout do canvas. Em telas pequenas, ele ocupa a viewport com margens seguras.
+
+`KanbanWorkflowNode` não pode renderizar formulários, condições completas ou múltiplas linhas de chips no canvas. O card mostra, no máximo, categoria, ícone, título, resumo curto, estado e os indicadores indispensáveis para compreender a rota. As regras completas pertencem ao inspector. Cada saída continua com rótulo, handle e inserção contextual acessível. Ao selecionar uma aresta, o inspector resolve e mostra o resumo `origem → destino`, evitando o rótulo técnico genérico de conexão selecionada.
+
+O toolbar do canvas agrupa desfazer, refazer, organizar e inserir em um único bloco identificado por `data-testid="kanban-workflow-canvas-toolbar"`. Ações de configuração, teste e histórico pertencem ao inspector do elemento selecionado. O inspector preserva foco, fecha por Escape, devolve foco ao editor e usa título ligado por `aria-labelledby`. Seu cabeçalho apresenta categoria, título e estado do nó; a navegação é uma grade de três abas com ícones e `data-testid="kanban-workflow-inspector-tabs"`. As abas implementam roving tabindex e respondem a setas, Home e End, preservando o foco no item ativado. Escape também fecha os seletores de criação de desktop e mobile sem alterar o fluxo.
+
+A faixa de configuração imediata é identificada por `data-testid="kanban-automation-editor-header"`, usa `flex-wrap` e mantém nome, gatilho e opções contextuais compactos antes do canvas. Em telas pequenas, os campos quebram em linhas sem comprimir o editor. Modelos e regras existentes usam cartões compactos com ícone semântico, título truncável, informação secundária e ação explícita de editar; teste e versões seguem como ações adjacentes de menor ênfase.
+
 `KanbanAutomations.vue` é a central dedicada do board, disponível em `/app/accounts/:accountId/kanban/:boardId/automations`. Ela carrega configuração, regras, lembretes, conexões e execuções. A aba Fluxos lista regras, oferece modelos em rascunho e abre o editor dedicado; Conexões cria URLs assinadas sem colocar segredos no canvas; Execuções permite diagnóstico, retry de falhas e cancelamento de esperas. Cadências existentes são legadas e não aparecem como opção no novo editor.
 
 Cada criação, atualização ou restauração registra um snapshot imutável em `kanban_automation_rule_versions`. O histórico é acessado pelo ícone de relógio na regra. Restaurar uma versão pede confirmação contextual, gera uma nova versão e só muda inscrições futuras: `KanbanAutomationExecution#automation_snapshot` continua sendo a fonte de verdade para execuções já iniciadas.
 
-`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. `KanbanWorkflowPalette.vue` é o catálogo visual independente: agrupa tipos por categoria, filtra por texto e emite a escolha por clique ou início de arraste. O builder converte o ponto de drop por `screenToFlowCoordinate`, preserva a alternativa por clique e insere o nó no canvas.
+`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. `KanbanWorkflowPalette.vue` é o catálogo visual independente: agrupa tipos por categoria, filtra por texto e emite a escolha por clique ou início de arraste. O builder converte o ponto de drop por `screenToFlowCoordinate`, preserva a alternativa por clique e insere o nó no canvas. Em viewport menor que `lg`, o controle `data-testid="kanban-workflow-open-mobile-palette"` substitui o seletor compacto de desktop e abre a paleta no drawer; Escape o fecha sem alterar o canvas e devolve foco ao controle que o abriu.
 
 O editor deve evoluir para estes componentes, sem concentrar todo o estado em um arquivo de tela:
 

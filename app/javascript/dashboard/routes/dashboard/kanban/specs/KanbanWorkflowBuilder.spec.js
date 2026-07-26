@@ -36,9 +36,25 @@ describe('KanbanWorkflowBuilder', () => {
       .find('[data-testid="kanban-workflow-add-node"]')
       .trigger('click');
     expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-add-node"]')
+        .attributes('aria-controls')
+    ).toBe('kanban-workflow-node-menu');
+    expect(
       wrapper.find('[data-testid="kanban-workflow-node-menu"]').exists()
     ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-menu-group"]').exists()
+    ).toBe(true);
     expect(wrapper.findAllComponents(KanbanWorkflowPalette)).toHaveLength(1);
+
+    await wrapper
+      .find('[data-testid="kanban-workflow-builder"]')
+      .trigger('keydown', { key: 'Escape' });
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-menu"]').exists()
+    ).toBe(false);
   });
 
   it('keeps the add control inside a full-height visual canvas', () => {
@@ -56,6 +72,78 @@ describe('KanbanWorkflowBuilder', () => {
     expect(wrapper.text()).not.toContain(
       'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TITLE'
     );
+    expect(
+      canvas.find('[data-testid="kanban-workflow-canvas-toolbar"]').exists()
+    ).toBe(true);
+  });
+
+  it('opens the categorized palette from the mobile canvas control', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+      attachTo: document.body,
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-workflow-open-mobile-palette"]')
+      .trigger('click');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-open-mobile-palette"]')
+        .attributes('aria-controls')
+    ).toBe('kanban-workflow-mobile-palette');
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-mobile-palette"]').exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-workflow-builder"]')
+      .trigger('keydown', { key: 'Escape' });
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-mobile-palette"]').exists()
+    ).toBe(false);
+    expect(document.activeElement).toBe(
+      wrapper.find('[data-testid="kanban-workflow-open-mobile-palette"]')
+        .element
+    );
+    wrapper.unmount();
+  });
+
+  it('keeps the inspector as a floating contextual surface over the canvas', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    const inspector = wrapper.find(
+      '[data-testid="kanban-workflow-node-drawer"]'
+    );
+    expect(inspector.classes()).toContain('sm:right-6');
+    expect(inspector.classes()).toContain('sm:w-[min(26rem,calc(100vw-3rem))]');
+    expect(
+      inspector
+        .find('[data-testid="kanban-workflow-inspector-header"]')
+        .classes()
+    ).toContain('sticky');
+    expect(
+      inspector
+        .find('[data-testid="kanban-workflow-inspector-category"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      inspector.find('[data-testid="kanban-workflow-inspector-state"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-inspector-backdrop"]')
+        .classes()
+    ).not.toContain('backdrop-blur-[1px]');
+    expect(
+      inspector.find('[data-testid="kanban-workflow-inspector-tabs"]').classes()
+    ).toContain('grid-cols-3');
   });
 
   it('exposes the visual canvas as a named region for assistive technology', () => {
@@ -305,6 +393,36 @@ describe('KanbanWorkflowBuilder', () => {
     expect(
       wrapper.find('[data-testid="kanban-workflow-inspector-history"]').exists()
     ).toBe(true);
+  });
+
+  it('moves between inspector tabs with the keyboard', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    const configureTab = wrapper.find(
+      '[data-testid="kanban-workflow-inspector-tab-configure"]'
+    );
+    await configureTab.trigger('keydown', { key: 'ArrowRight' });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-inspector-tab-test"]')
+        .attributes('aria-selected')
+    ).toBe('true');
+
+    await wrapper
+      .find('[data-testid="kanban-workflow-inspector-tab-test"]')
+      .trigger('keydown', { key: 'End' });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-inspector-tab-history"]')
+        .attributes('aria-selected')
+    ).toBe('true');
   });
 
   it('shows safe execution history for the selected node only', async () => {
@@ -601,6 +719,19 @@ describe('KanbanWorkflowBuilder', () => {
     expect(wrapper.vm.edges).toEqual([]);
   });
 
+  it('names the selected connection with its source and destination', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    wrapper.vm.selectedEdgeId = wrapper.vm.edges[0].id;
+    await wrapper.vm.$nextTick();
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-connection-summary"]').text()
+    ).toContain('→');
+  });
+
   it('connects existing nodes through the keyboard-accessible inspector control', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
@@ -687,7 +818,7 @@ describe('KanbanWorkflowBuilder', () => {
     ).toBe(true);
     expect(
       wrapper.find('[data-testid="kanban-workflow-node-drawer"]').classes()
-    ).toContain('max-w-4xl');
+    ).toContain('sm:w-[min(26rem,calc(100vw-3rem))]');
     expect(
       wrapper.find('[data-testid="kanban-workflow-inspector-icon"]').classes()
     ).toContain('i-lucide-briefcase-business');

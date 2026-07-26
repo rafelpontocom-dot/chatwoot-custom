@@ -35,6 +35,9 @@ describe('KanbanWorkflowPalette', () => {
     await wrapper
       .find('[data-testid="kanban-workflow-palette-search"]')
       .setValue('mensagem');
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-palette-header"]').exists()
+    ).toBe(true);
     expect(wrapper.text()).toContain('Enviar mensagem');
     expect(wrapper.text()).not.toContain('Webhook');
     expect(
@@ -42,6 +45,11 @@ describe('KanbanWorkflowPalette', () => {
         .find('[data-testid="kanban-workflow-palette-node-icon"]')
         .classes()
     ).toContain('i-lucide-message-square-text');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-palette-group-icon"]')
+        .classes()
+    ).toContain('text-n-blue-11');
 
     await wrapper
       .find('[data-testid="kanban-workflow-palette-node"]')
@@ -110,5 +118,77 @@ describe('KanbanWorkflowPalette', () => {
 
     expect(wrapper.text()).toContain('Operação');
     expect(wrapper.text()).not.toContain('KANBAN.SETTINGS');
+  });
+
+  it('keeps non-primary categories collapsed until the user needs them', () => {
+    const wrapper = shallowMount(KanbanWorkflowPalette, {
+      props: {
+        groups: [
+          {
+            key: 'DECISION',
+            label: 'Decisão',
+            icon: 'i-lucide-git-branch',
+            nodes: [{ type: 'condition', label: 'Condição' }],
+          },
+          {
+            key: 'CUSTOMER',
+            label: 'Cliente',
+            icon: 'i-lucide-message-circle',
+            nodes: [{ type: 'send_message', label: 'Enviar mensagem' }],
+          },
+        ],
+        title: 'Blocos',
+        searchPlaceholder: 'Buscar bloco',
+        emptyLabel: 'Nenhum bloco encontrado.',
+      },
+    });
+
+    const groups = wrapper.findAll(
+      '[data-testid="kanban-workflow-palette-group"]'
+    );
+    expect(groups[0].attributes('open')).toBe('');
+    expect(groups[1].attributes('open')).toBeUndefined();
+  });
+
+  it('preserves a category opened by the user after the palette rerenders', async () => {
+    const wrapper = shallowMount(KanbanWorkflowPalette, {
+      props: {
+        groups: [
+          {
+            key: 'DECISION',
+            label: 'Decisão',
+            icon: 'i-lucide-git-branch',
+            nodes: [{ type: 'condition', label: 'Condição' }],
+          },
+          {
+            key: 'CUSTOMER',
+            label: 'Cliente',
+            icon: 'i-lucide-message-circle',
+            nodes: [{ type: 'send_message', label: 'Enviar mensagem' }],
+          },
+        ],
+        title: 'Blocos',
+        searchPlaceholder: 'Buscar bloco',
+        emptyLabel: 'Nenhum bloco encontrado.',
+      },
+    });
+
+    const customerGroup = wrapper.findAll(
+      '[data-testid="kanban-workflow-palette-group"]'
+    )[1];
+    customerGroup.element.open = true;
+    await customerGroup.trigger('toggle');
+    await wrapper
+      .find('[data-testid="kanban-workflow-palette-search"]')
+      .setValue('mensagem');
+    await wrapper
+      .find('[data-testid="kanban-workflow-palette-search"]')
+      .setValue('');
+
+    expect(
+      wrapper
+        .findAll('[data-testid="kanban-workflow-palette-group"]')[1]
+        .attributes('open')
+    ).toBe('');
   });
 });
