@@ -8,6 +8,7 @@ RSpec.describe 'Kanban board settings API', type: :request do
 
   describe 'GET /api/v1/accounts/{account.id}/kanban_boards/{board.id}/settings' do
     it 'returns commercial configuration options' do
+      stage = create(:kanban_stage, account: account, kanban_board: board, name: 'Qualificação')
       board.update!(
         next_action_types: ['Cobrar retorno', 'Enviar link de pagamento'],
         lost_reason_options: ['Preço', 'Sem resposta']
@@ -19,6 +20,9 @@ RSpec.describe 'Kanban board settings API', type: :request do
       expect(response.parsed_body).to include(
         'next_action_types' => ['Cobrar retorno', 'Enviar link de pagamento'],
         'lost_reason_options' => ['Preço', 'Sem resposta']
+      )
+      expect(response.parsed_body['stages']).to include(
+        a_hash_including('id' => stage.id, 'name' => 'Qualificação')
       )
     end
   end

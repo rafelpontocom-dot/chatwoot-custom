@@ -737,6 +737,7 @@
             "TIME": "Time",
             "CUSTOMER": "Customer",
             "OPPORTUNITY": "Opportunity",
+            "OPERATION": "Operation",
             "INTEGRATION": "Integrations"
           },
           "CONNECTION": "Connection",

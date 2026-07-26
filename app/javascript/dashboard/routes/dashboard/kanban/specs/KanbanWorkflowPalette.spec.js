@@ -84,4 +84,31 @@ describe('KanbanWorkflowPalette', () => {
     );
     expect(wrapper.emitted('drag-start')).toEqual([['send_message']]);
   });
+
+  it('renders a translated label for the operation category', () => {
+    const wrapper = shallowMount(KanbanWorkflowPalette, {
+      props: {
+        groups: [
+          {
+            key: 'OPERATION',
+            label: 'Operação',
+            icon: 'i-lucide-notebook-pen',
+            nodes: [
+              {
+                type: 'audit_log',
+                label: 'Adicionar nota interna à linha do tempo',
+                icon: 'i-lucide-notebook-pen',
+              },
+            ],
+          },
+        ],
+        title: 'Blocos',
+        searchPlaceholder: 'Buscar bloco',
+        emptyLabel: 'Nenhum bloco encontrado.',
+      },
+    });
+
+    expect(wrapper.text()).toContain('Operação');
+    expect(wrapper.text()).not.toContain('KANBAN.SETTINGS');
+  });
 });
