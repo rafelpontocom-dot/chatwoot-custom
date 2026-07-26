@@ -395,9 +395,35 @@ const selectedWaitTimeoutLabel = computed(() => {
 
   return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RESPONSE_TIMEOUT_HOURS');
 });
+const conditionFieldsForWorkflow = computed(() => {
+  const stageField = {
+    key: 'system_stage_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STAGE'),
+    conditionOptions: props.stages.map(stage => ({
+      value: String(stage.id),
+      label: stage.name,
+    })),
+  };
+  const fields = [...props.conditionFields];
+  const stageFieldIndex = fields.findIndex(
+    field => field.key === stageField.key
+  );
+
+  if (stageFieldIndex === -1) {
+    fields.splice(0, 0, stageField);
+  } else {
+    fields.splice(stageFieldIndex, 1, {
+      ...fields[stageFieldIndex],
+      conditionOptions: stageField.conditionOptions,
+    });
+  }
+
+  return fields;
+});
 const conditionOptionsFor = condition =>
-  props.conditionFields.find(field => field.key === condition.field_key)
-    ?.conditionOptions || [];
+  conditionFieldsForWorkflow.value.find(
+    field => field.key === condition.field_key
+  )?.conditionOptions || [];
 const numericCustomFields = computed(() =>
   props.customFields.filter(field =>
     ['integer', 'decimal', 'currency', 'formula'].includes(field.fieldType)
@@ -656,16 +682,12 @@ const nodeSummary = node => {
     return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.COMPLETE_NEXT_ACTION_HINT');
   }
   if (node.type === 'mark_lost') return data.action_params?.lost_reason;
-  if (node.type === 'condition') {
-    const fieldKey =
-      data.branches?.[0]?.conditions?.[0]?.field_key ||
-      data.conditions?.[0]?.field_key ||
-      data.field_key;
-    return props.conditionFields.find(field => field.key === fieldKey)?.label;
-  }
+  if (node.type === 'condition') return '';
   if (node.type === 'filter') {
     const fieldKey = data.conditions?.[0]?.field_key || data.field_key;
-    return props.conditionFields.find(field => field.key === fieldKey)?.label;
+    return conditionFieldsForWorkflow.value.find(
+      field => field.key === fieldKey
+    )?.label;
   }
   if (node.type === 'message_eligibility') return data.channel;
   if (node.type === 'round_robin') {
@@ -908,20 +930,6 @@ const nodeChips = node => {
         : null,
     ].filter(Boolean);
   }
-  if (node.type === 'condition') {
-    return (data.branches || [])
-      .filter(branch => branch.label)
-      .map(branch =>
-        t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BRANCH_SUMMARY', {
-          label: branch.label,
-          count: branch.conditions?.length || 0,
-          mode:
-            branch.match_mode === 'any'
-              ? t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ANY')
-              : t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ALL'),
-        })
-      );
-  }
   if (node.type === 'round_robin') {
     return (data.options || []).map(option => option.label).filter(Boolean);
   }
@@ -990,6 +998,33 @@ const decorateNode = node => {
       },
     ];
     data.fallback_id = 'no';
+  }
+  if (node.type === 'condition') {
+    data.branches = data.branches.map(branch => ({
+      ...branch,
+      conditions: (branch.conditions || []).map((condition, index) =>
+        index === 0
+          ? condition
+          : {
+              ...condition,
+              join_operator:
+                condition.join_operator ||
+                (branch.match_mode === 'any' ? 'or' : 'and'),
+            }
+      ),
+    }));
+  }
+  if (node.type === 'filter') {
+    data.conditions = (data.conditions || []).map((condition, index) =>
+      index === 0
+        ? condition
+        : {
+            ...condition,
+            join_operator:
+              condition.join_operator ||
+              (data.match_mode === 'any' ? 'or' : 'and'),
+          }
+    );
   }
   if (node.type === 'message_eligibility') {
     data.outputs = [
@@ -1559,6 +1594,7 @@ const addCondition = branch => {
   if (!['condition', 'filter'].includes(selectedNode.value?.type)) return;
 
   branch.conditions.push({
+    join_operator: branch.match_mode === 'any' ? 'or' : 'and',
     field_key: '',
     operator: 'equals',
     value: '',
@@ -1585,7 +1621,6 @@ const addConditionBranch = () => {
   selectedNode.value.data.branches.push({
     id: `branch-${Date.now()}`,
     label: `${t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BRANCH')} ${number}`,
-    match_mode: 'all',
     conditions: [{ field_key: '', operator: 'equals', value: '' }],
   });
   updateNode();
@@ -1812,15 +1847,15 @@ const handleBuilderKeydown = event => {
           data-testid="kanban-workflow-add-node"
           class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand"
           :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
-          :aria-expanded="showMobilePalette"
-          @click="showMobilePalette = true"
+          :aria-expanded="showNodeMenu"
+          @click="openNodeMenuAfter(null)"
         >
           <i class="i-lucide-plus size-4" />
         </button>
         <div
           v-if="showNodeMenu"
           data-testid="kanban-workflow-node-menu"
-          class="absolute right-0 top-10 grid min-w-48 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-lg lg:hidden"
+          class="absolute right-0 top-10 grid min-w-48 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-lg"
         >
           <button
             v-for="type in addableNodeTypes"
@@ -2414,9 +2449,7 @@ const handleBuilderKeydown = event => {
                   t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BRANCH')
                 }}
               </legend>
-              <div
-                class="grid gap-2 sm:grid-cols-[2rem_minmax(0,1fr)_11rem_4.5rem]"
-              >
+              <div class="grid gap-2 sm:grid-cols-[2rem_minmax(0,1fr)_4.5rem]">
                 <button
                   type="button"
                   draggable="true"
@@ -2435,19 +2468,6 @@ const handleBuilderKeydown = event => {
                   class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-medium text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"
                 />
-                <select
-                  v-model="branch.match_mode"
-                  data-testid="kanban-workflow-condition-match-mode"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="all">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ALL') }}
-                  </option>
-                  <option value="any">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ANY') }}
-                  </option>
-                </select>
                 <div class="flex items-center justify-end gap-1">
                   <button
                     type="button"
@@ -2492,8 +2512,23 @@ const handleBuilderKeydown = event => {
                 v-for="(condition, index) in branch.conditions"
                 :key="`${branch.id}-${index}`"
                 data-testid="kanban-workflow-condition-row"
-                class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)_2rem]"
+                class="grid gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)_10rem_minmax(0,1fr)_2rem]"
               >
+                <select
+                  v-if="index > 0"
+                  v-model="condition.join_operator"
+                  data-testid="kanban-workflow-condition-join-operator"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  @change="updateNode"
+                >
+                  <option value="and">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.JOIN_AND') }}
+                  </option>
+                  <option value="or">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.JOIN_OR') }}
+                  </option>
+                </select>
+                <span v-else />
                 <select
                   v-model="condition.field_key"
                   class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
@@ -2503,7 +2538,7 @@ const handleBuilderKeydown = event => {
                     {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
                   </option>
                   <option
-                    v-for="field in conditionFields"
+                    v-for="field in conditionFieldsForWorkflow"
                     :key="field.key"
                     :value="field.key"
                   >
@@ -2529,6 +2564,7 @@ const handleBuilderKeydown = event => {
                     condition.operator !== 'exists'
                   "
                   v-model="condition.value"
+                  data-testid="kanban-workflow-condition-value"
                   class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"
                 >
@@ -2546,6 +2582,7 @@ const handleBuilderKeydown = event => {
                 <input
                   v-else-if="condition.operator !== 'exists'"
                   v-model="condition.value"
+                  data-testid="kanban-workflow-condition-value"
                   type="text"
                   class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"
@@ -2621,7 +2658,7 @@ const handleBuilderKeydown = event => {
                     {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
                   </option>
                   <option
-                    v-for="field in conditionFields"
+                    v-for="field in conditionFieldsForWorkflow"
                     :key="field.key"
                     :value="field.key"
                   >
@@ -2647,6 +2684,7 @@ const handleBuilderKeydown = event => {
                     condition.operator !== 'exists'
                   "
                   v-model="condition.value"
+                  data-testid="kanban-workflow-filter-condition-value"
                   class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"
                 >
@@ -2664,6 +2702,7 @@ const handleBuilderKeydown = event => {
                 <input
                   v-else-if="condition.operator !== 'exists'"
                   v-model="condition.value"
+                  data-testid="kanban-workflow-filter-condition-value"
                   type="text"
                   class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                   @change="updateNode"

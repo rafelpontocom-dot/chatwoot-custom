@@ -797,6 +797,65 @@ RSpec.describe KanbanAutomations::WorkflowService do
 
     expect(card.reload.custom_field_values).to include('resultado' => 'Qualificado')
   end
+
+  it 'evaluates condition connectors in their configured order' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [
+        { key: 'origem', label: 'Origem', field_type: 'select', options: %w[Google Meta] },
+        { key: 'qualificado', label: 'Qualificado', field_type: 'boolean' },
+        { key: 'resultado', label: 'Resultado', field_type: 'text' }
+      ]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { origem: 'Meta', qualificado: true }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'condition',
+            type: 'condition',
+            data: {
+              branches: [
+                {
+                  id: 'matching',
+                  label: 'Correspondente',
+                  conditions: [
+                    { field_key: 'origem', operator: 'equals', value: 'Google' },
+                    { join_operator: 'or', field_key: 'qualificado', operator: 'equals', value: true }
+                  ]
+                }
+              ],
+              fallback_id: 'otherwise'
+            }
+          },
+          { id: 'match', type: 'set_field', data: { action_params: { field_key: 'resultado', value: 'Correspondente' } } },
+          { id: 'otherwise', type: 'set_field', data: { action_params: { field_key: 'resultado', value: 'Outro' } } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'condition' },
+          { source: 'condition', sourceHandle: 'matching', target: 'match' },
+          { source: 'condition', sourceHandle: 'otherwise', target: 'otherwise' },
+          { source: 'match', target: 'end' },
+          { source: 'otherwise', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+
+    described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(card.reload.custom_field_values).to include('resultado' => 'Correspondente')
+  end
   # rubocop:enable RSpec/ExampleLength
 
   it 'rotates round-robin options across executions of the same rule' do

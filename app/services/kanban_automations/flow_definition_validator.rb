@@ -421,7 +421,14 @@ class KanbanAutomations::FlowDefinitionValidator
 
   def condition_entries_valid?(data)
     entries = condition_entries(data)
-    entries.present? && entries.all? { |condition| valid_condition_entry?(condition) }
+    entries.present? && entries.each_with_index.all? do |condition, index|
+      valid_condition_entry?(condition) && (index.zero? || valid_condition_join_operator?(condition, data))
+    end
+  end
+
+  def valid_condition_join_operator?(condition, data)
+    join_operator = condition[:join_operator].presence || (data[:match_mode] == 'any' ? 'or' : 'and')
+    %w[and or].include?(join_operator)
   end
 
   def valid_condition_entry?(condition)

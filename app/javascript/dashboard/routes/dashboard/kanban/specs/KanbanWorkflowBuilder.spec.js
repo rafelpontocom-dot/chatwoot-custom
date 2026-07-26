@@ -24,7 +24,7 @@ vi.mock('vue-i18n', () => ({
 }));
 
 describe('KanbanWorkflowBuilder', () => {
-  it('renders the visual canvas and opens the categorized mobile palette', async () => {
+  it('renders the visual canvas and opens the node selector', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: { modelValue: {} },
     });
@@ -36,9 +36,9 @@ describe('KanbanWorkflowBuilder', () => {
       .find('[data-testid="kanban-workflow-add-node"]')
       .trigger('click');
     expect(
-      wrapper.find('[data-testid="kanban-workflow-mobile-palette"]').exists()
+      wrapper.find('[data-testid="kanban-workflow-node-menu"]').exists()
     ).toBe(true);
-    expect(wrapper.findAllComponents(KanbanWorkflowPalette)).toHaveLength(2);
+    expect(wrapper.findAllComponents(KanbanWorkflowPalette)).toHaveLength(1);
   });
 
   it('keeps the add control inside a full-height visual canvas', () => {
@@ -761,7 +761,7 @@ describe('KanbanWorkflowBuilder', () => {
     ).toEqual(['Ana Paula']);
   });
 
-  it('summarizes each conditional output with its match mode and rule count', () => {
+  it('keeps conditional rules inside the inspector instead of exposing them on the card', () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
         modelValue: {
@@ -798,9 +798,8 @@ describe('KanbanWorkflowBuilder', () => {
       },
     });
 
-    expect(wrapper.vm.nodes[0].data.chips).toEqual([
-      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BRANCH_SUMMARY',
-    ]);
+    expect(wrapper.vm.nodes[0].data.chips).toEqual([]);
+    expect(wrapper.vm.nodes[0].data.summary).toBe('');
   });
 
   it('offers known contact attributes before a custom attribute key', async () => {
@@ -1465,10 +1464,16 @@ describe('KanbanWorkflowBuilder', () => {
     expect(valueSelect.text()).toContain('Mídia Paga');
   });
 
-  it('edits condition rules with an AND or OR match mode', async () => {
+  it('uses a selectable stage value and a connector for each condition', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: {
+        stages: [{ id: 9, name: 'Qualificação' }],
         conditionFields: [
+          {
+            key: 'system_stage_id',
+            label: 'Etapa',
+            conditionOptions: [],
+          },
           { key: 'origem', label: 'Origem' },
           { key: 'valor', label: 'Valor' },
         ],
@@ -1493,11 +1498,23 @@ describe('KanbanWorkflowBuilder', () => {
     wrapper.vm.selectNode(wrapper.vm.nodes[0]);
     await wrapper.vm.$nextTick();
 
+    const fieldSelect = wrapper
+      .find('[data-testid="kanban-workflow-condition-row"]')
+      .find('select');
+    expect(fieldSelect.find('option[value="system_stage_id"]').exists()).toBe(
+      true
+    );
+
+    await fieldSelect.setValue('system_stage_id');
+    await wrapper.vm.$nextTick();
     expect(
-      wrapper
-        .find('[data-testid="kanban-workflow-condition-match-mode"]')
-        .exists()
-    ).toBe(true);
+      wrapper.find('[data-testid="kanban-workflow-condition-value"]').element
+        .tagName
+    ).toBe('SELECT');
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-condition-value"]').text()
+    ).toContain('Qualificação');
+
     await wrapper
       .find('[data-testid="kanban-workflow-add-condition"]')
       .trigger('click');
@@ -1505,6 +1522,25 @@ describe('KanbanWorkflowBuilder', () => {
     expect(
       wrapper.findAll('[data-testid="kanban-workflow-condition-row"]')
     ).toHaveLength(2);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-condition-join-operator"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('opens the node selector from the canvas add button', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: { modelValue: {} },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-workflow-add-node"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-menu"]').exists()
+    ).toBe(true);
   });
 
   it('configures a filter with a single continuation path', async () => {

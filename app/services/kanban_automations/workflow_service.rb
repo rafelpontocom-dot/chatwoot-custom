@@ -489,11 +489,18 @@ class KanbanAutomations::WorkflowService
   end
 
   def condition_matches?(data)
-    matches = condition_entries(data).map do |condition|
-      KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(condition)
-    end
+    conditions = condition_entries(data)
+    return false if conditions.blank?
 
-    data['match_mode'] == 'any' ? matches.any? : matches.all?
+    matcher = KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card)
+    conditions.drop(1).reduce(matcher.matches_field_condition?(conditions.first)) do |matches, condition|
+      condition_matches = matcher.matches_field_condition?(condition)
+      condition_join_operator(condition, data) == 'or' ? matches || condition_matches : matches && condition_matches
+    end
+  end
+
+  def condition_join_operator(condition, data)
+    condition['join_operator'].presence || (data['match_mode'] == 'any' ? 'or' : 'and')
   end
 
   def condition_entries(data)

@@ -878,6 +878,8 @@
           "ELIGIBLE": "Pode enviar",
           "CHANNEL_WHATSAPP": "WhatsApp",
           "CHANNEL_EMAIL": "E-mail",
+          "MESSAGE_CHANNEL": "Canal da mensagem",
+          "OPT_IN_ATTRIBUTE": "Atributo de consentimento",
           "MESSAGE_ELIGIBILITY_HINT": "Verifica consentimento, conversa compatível e a janela de resposta do WhatsApp antes de enviar.",
           "COMPLETE_NEXT_ACTION_HINT": "Conclui a próxima ação atual e registra o histórico da oportunidade.",
           "COMPLETION_NOTE": "Nota de conclusão",
@@ -890,6 +892,8 @@
           "OPERATOR": "Condição",
           "MATCH_ALL": "Todas as condições (E)",
           "MATCH_ANY": "Qualquer condição (OU)",
+          "JOIN_AND": "E",
+          "JOIN_OR": "OU",
           "ADD_CONDITION": "Adicionar condição",
           "REMOVE_CONDITION": "Remover condição",
           "BRANCH": "Saída",
@@ -1050,6 +1054,7 @@
           "ADD_NOTE": "Registrar nota interna"
         },
         "RULES": {
+          "SELECT_AGENT": "Selecione um agente",
           "NEW": "Nova regra",
           "NEW_TITLE": "Criar regra comercial",
           "EDIT_TITLE": "Editar regra comercial",

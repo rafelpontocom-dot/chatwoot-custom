@@ -316,6 +316,41 @@ RSpec.describe KanbanAutomationRule do
     expect(rule).to be_valid
   end
 
+  it 'rejects an unsupported connector between workflow conditions' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [{ key: 'origem', label: 'Origem', field_type: 'text' }]
+    )
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          {
+            id: 'filter',
+            type: 'filter',
+            data: {
+              conditions: [
+                { field_key: 'origem', operator: 'equals', value: 'Google' },
+                { join_operator: 'xor', field_key: 'origem', operator: 'equals', value: 'Meta' }
+              ]
+            }
+          },
+          { id: 'end', type: 'end' }
+        ],
+        edges: [
+          { source: 'trigger', target: 'filter' },
+          { source: 'filter', target: 'end' }
+        ]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include('Filter node filter is incomplete')
+  end
+
   it 'requires an internal note for an audit log node' do
     board = create(:kanban_board)
     rule = build(
