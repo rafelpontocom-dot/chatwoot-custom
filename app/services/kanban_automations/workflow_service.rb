@@ -11,12 +11,21 @@ class KanbanAutomations::WorkflowService
     'delay' => :delay_node,
     'wait_until_field' => :date_wait_node,
     'wait_for_response' => :response_wait_node,
+    'wait_for_inactivity' => :inactivity_wait_node,
     'wait_for_business_hours' => :business_hours_node,
     'action' => :action_node,
     'set_field' => :action_node,
+    'update_contact' => :action_node,
+    'complete_next_action' => :action_node,
+    'mark_won' => :action_node,
+    'mark_lost' => :action_node,
     'send_message' => :message_node,
     'condition' => :condition_node,
+    'filter' => :filter_node,
+    'message_eligibility' => :message_eligibility_node,
     'round_robin' => :round_robin_node,
+    'human_handoff' => :human_handoff_node,
+    'audit_log' => :audit_log_node,
     'webhook' => :webhook_node,
     'end' => :end_node
   }.freeze
@@ -33,9 +42,12 @@ class KanbanAutomations::WorkflowService
     results = Array(execution.action_results).dup
 
     MAX_NODES_PER_EXECUTION.times do
+      results_count = results.length
       node = nodes.fetch(node_id)
       node_id, outcome = execute_node(node, results)
-      return outcome if outcome
+      return stamp_outcome(outcome, results_count) if outcome
+
+      stamp_results(results, results_count)
     end
 
     raise ArgumentError, 'Workflow exceeded the maximum number of nodes per execution'
@@ -84,10 +96,19 @@ class KanbanAutomations::WorkflowService
 
   def date_wait_node(node, results)
     outcome = wait_until_field(node, results)
-    outcome ? [nil, outcome] : [next_node_id(node), nil]
+    outcome ? [nil, outcome] : [next_date_wait_node_id(node), nil]
+  rescue ArgumentError
+    raise unless node.dig('data', 'failure_mode') == 'route'
+
+    results << { 'node_id' => node.fetch('id'), 'status' => 'failed', 'reason' => 'date_field_unavailable' }
+    [next_node_id(node, source_handle: 'failed'), nil]
   end
 
-  # rubocop:disable Metrics/MethodLength -- The persisted wait state must remain visible as one atomic outcome.
+  def next_date_wait_node_id(node)
+    handle = node.dig('data', 'failure_mode') == 'route' ? 'succeeded' : nil
+    next_node_id(node, source_handle: handle)
+  end
+
   def response_wait_node(node, results)
     timeout_hours = node.fetch('data', {}).fetch('timeout_hours').to_f
     raise ArgumentError, 'Workflow response timeout must be positive' unless timeout_hours.positive?
@@ -97,10 +118,7 @@ class KanbanAutomations::WorkflowService
       {
         status: :waiting,
         scheduled_at: now + timeout_hours.hours,
-        workflow_state: {
-          'next_node_id' => next_node_id(node),
-          'waiting_for' => 'customer_message'
-        },
+        workflow_state: response_wait_state(node),
         action_results: results + [
           {
             'node_id' => node.fetch('id'),
@@ -112,28 +130,89 @@ class KanbanAutomations::WorkflowService
       }
     ]
   end
-  # rubocop:enable Metrics/MethodLength
+
+  def response_wait_state(node)
+    state = {
+      'next_node_id' => next_response_wait_node_id(node, 'received'),
+      'waiting_for' => 'customer_message'
+    }
+    state['timeout_node_id'] = next_response_wait_node_id(node, 'timeout') if node.dig('data', 'timeout_mode') == 'route'
+    state
+  end
+
+  def next_response_wait_node_id(node, source_handle)
+    handle = node.dig('data', 'timeout_mode') == 'route' ? source_handle : nil
+    next_node_id(node, source_handle: handle)
+  end
+
+  def inactivity_wait_node(node, results)
+    timeout_hours = node.fetch('data', {}).fetch('timeout_hours').to_f
+    raise ArgumentError, 'Workflow inactivity timeout must be positive' unless timeout_hours.positive?
+
+    [nil, inactivity_wait_result(node, results, timeout_hours)]
+  end
+
+  def inactivity_wait_result(node, results, timeout_hours)
+    {
+      status: :waiting,
+      scheduled_at: now + timeout_hours.hours,
+      workflow_state: inactivity_wait_state(node),
+      action_results: results + [
+        {
+          'node_id' => node.fetch('id'),
+          'status' => 'waiting',
+          'timeout_hours' => timeout_hours,
+          'waiting_for' => 'customer_inactivity'
+        }
+      ]
+    }
+  end
+
+  def inactivity_wait_state(node)
+    state = {
+      'next_node_id' => next_inactivity_wait_node_id(node, 'inactive'),
+      'waiting_for' => 'customer_inactivity'
+    }
+    state['response_node_id'] = next_inactivity_wait_node_id(node, 'responded') if node.dig('data', 'interruption_mode') == 'route'
+    state
+  end
+
+  def next_inactivity_wait_node_id(node, source_handle)
+    handle = node.dig('data', 'interruption_mode') == 'route' ? source_handle : nil
+    next_node_id(node, source_handle: handle)
+  end
 
   def business_hours_node(node, results)
     scheduled_at = next_business_time(node.fetch('data', {}).deep_stringify_keys)
-    return [next_node_id(node), nil] if scheduled_at.blank?
+    return [next_business_hours_node_id(node), nil] if scheduled_at.blank?
 
-    [
-      nil,
-      {
-        status: :waiting,
-        scheduled_at: scheduled_at,
-        workflow_state: { 'next_node_id' => next_node_id(node) },
-        action_results: results + [
-          {
-            'node_id' => node.fetch('id'),
-            'status' => 'waiting',
-            'reason' => 'outside_business_hours',
-            'scheduled_at' => scheduled_at.iso8601
-          }
-        ]
-      }
-    ]
+    [nil, business_hours_wait_result(node, results, scheduled_at)]
+  rescue ArgumentError
+    raise unless node.dig('data', 'failure_mode') == 'route'
+
+    results << { 'node_id' => node.fetch('id'), 'status' => 'failed', 'reason' => 'business_hours_unavailable' }
+    [next_node_id(node, source_handle: 'failed'), nil]
+  end
+
+  def business_hours_wait_result(node, results, scheduled_at)
+    {
+      status: :waiting,
+      scheduled_at: scheduled_at,
+      workflow_state: { 'next_node_id' => next_business_hours_node_id(node) },
+      action_results: results + [
+        {
+          'node_id' => node.fetch('id'),
+          'status' => 'waiting',
+          'reason' => 'outside_business_hours',
+          'scheduled_at' => scheduled_at.iso8601
+        }
+      ]
+    }
+  end
+
+  def next_business_hours_node_id(node)
+    handle = node.dig('data', 'failure_mode') == 'route' ? 'succeeded' : nil
+    next_node_id(node, source_handle: handle)
   end
 
   def action_node(node, results)
@@ -146,12 +225,41 @@ class KanbanAutomations::WorkflowService
     return [nil, wait_for_message_node(node, results, result)] if result['status'] == 'waiting'
 
     results << result
-    [next_node_id(node), nil]
+    [next_message_node_id(node, result), nil]
+  end
+
+  def next_message_node_id(node, result)
+    return next_node_id(node) unless node.dig('data', 'failure_mode') == 'route'
+
+    handle = result['status'] == 'succeeded' ? 'succeeded' : 'failed'
+    next_node_id(node, source_handle: handle)
   end
 
   def condition_node(node, results)
-    branch = condition_matches?(node) ? 'yes' : 'no'
+    branch = matching_condition_branch(node)
     results << { 'node_id' => node.fetch('id'), 'status' => 'succeeded', 'branch' => branch }
+    [next_node_id(node, source_handle: branch), nil]
+  end
+
+  def filter_node(node, results)
+    if condition_matches?(node.fetch('data', {}).deep_stringify_keys)
+      results << { 'node_id' => node.fetch('id'), 'status' => 'succeeded' }
+      return [next_node_id(node), nil]
+    end
+
+    results << {
+      'node_id' => node.fetch('id'),
+      'status' => 'skipped',
+      'reason' => 'filter_not_matched'
+    }
+    [nil, completed(results)]
+  end
+
+  def message_eligibility_node(node, results)
+    data = node.fetch('data', {})
+    result = KanbanAutomations::WorkflowMessageService.new(card: card, data: data, now: now).eligibility
+    branch = result['status'] == 'eligible' ? 'eligible' : 'otherwise'
+    results << result.merge('node_id' => node.fetch('id'), 'branch' => branch).except('conversation')
     [next_node_id(node, source_handle: branch), nil]
   end
 
@@ -165,6 +273,58 @@ class KanbanAutomations::WorkflowService
     [next_node_id(node, source_handle: option.fetch('id')), nil]
   end
 
+  def human_handoff_node(node, results)
+    data = node.fetch('data', {}).deep_stringify_keys
+    action_results = KanbanAutomations::ActionService.new(rule: rule, card: card, actions: human_handoff_actions(data)).perform!
+    results.concat(action_results.map { |result| result.merge('node_id' => node.fetch('id')) })
+    [nil, completed(results)]
+  end
+
+  def human_handoff_actions(data)
+    [
+      handoff_action('assign_team', 'team_id', data),
+      handoff_action('assign_owner', 'owner_id', data),
+      handoff_action('add_note', 'note', data, parameter: 'content')
+    ].compact
+  end
+
+  def handoff_action(action_name, data_key, data, parameter: data_key)
+    return if data[data_key].blank?
+
+    { 'action_name' => action_name, 'action_params' => { parameter => data.fetch(data_key) } }
+  end
+
+  def audit_log_node(node, results)
+    event = create_audit_log_event(node)
+    results << {
+      'node_id' => node.fetch('id'),
+      'status' => 'succeeded',
+      'event_id' => event.id,
+      'event_type' => event.event_type
+    }
+    [next_node_id(node), nil]
+  end
+
+  def create_audit_log_event(node)
+    card.kanban_card_events.create!(
+      account: card.account,
+      kanban_board: card.kanban_board,
+      event_type: 'automation_logged',
+      occurred_at: now,
+      change_set: {},
+      metadata: audit_log_metadata(node)
+    )
+  end
+
+  def audit_log_metadata(node)
+    {
+      'content' => node.dig('data', 'content').to_s.strip,
+      'automation_rule_id' => rule.id,
+      'automation_execution_id' => execution.id,
+      'node_id' => node.fetch('id')
+    }
+  end
+
   def webhook_node(node, results)
     result = KanbanAutomations::WebhookDeliveryService.new(
       execution: execution,
@@ -173,11 +333,30 @@ class KanbanAutomations::WorkflowService
       node: node
     ).perform!
     results << result.merge('node_id' => node.fetch('id'))
-    [next_node_id(node), nil]
+    [next_webhook_node_id(node), nil]
+  rescue KanbanAutomations::WebhookDeliveryError
+    raise unless node.dig('data', 'failure_mode') == 'route'
+
+    results << { 'node_id' => node.fetch('id'), 'status' => 'failed', 'reason' => 'webhook_delivery_failed' }
+    [next_node_id(node, source_handle: 'failed'), nil]
   end
 
-  def end_node(_node, results)
-    [nil, completed(results)]
+  def next_webhook_node_id(node)
+    handle = node.dig('data', 'failure_mode') == 'route' ? 'succeeded' : nil
+    next_node_id(node, source_handle: handle)
+  end
+
+  def end_node(node, results)
+    outcome = node.dig('data', 'outcome').presence || 'completed'
+    result = {
+      'node_id' => node.fetch('id'),
+      'status' => outcome == 'failed' ? 'failed' : 'succeeded',
+      'outcome' => outcome
+    }
+
+    return [nil, failed(results + [result])] if outcome == 'failed'
+
+    [nil, completed(results + [result])]
   end
 
   def wait_for_node(node, results)
@@ -228,7 +407,7 @@ class KanbanAutomations::WorkflowService
 
   def wait_until_field(node, results)
     data = node.fetch('data', {}).deep_stringify_keys
-    scheduled_at = date_field_value(data.fetch('field_key')) + data.fetch('offset_hours').to_f.hours
+    scheduled_at = date_field_value(data.fetch('field_key'), data['timezone']) + data.fetch('offset_hours').to_f.hours
     if scheduled_at <= now
       results << { 'node_id' => node.fetch('id'), 'status' => 'skipped', 'reason' => 'scheduled_time_in_past' }
       return nil
@@ -237,31 +416,38 @@ class KanbanAutomations::WorkflowService
     {
       status: :waiting,
       scheduled_at: scheduled_at,
-      workflow_state: { 'next_node_id' => next_node_id(node) },
+      workflow_state: { 'next_node_id' => next_date_wait_node_id(node) },
       action_results: results + [{ 'node_id' => node.fetch('id'), 'status' => 'waiting', 'scheduled_at' => scheduled_at.iso8601 }]
     }
   end
 
-  def date_field_value(field_key)
+  def date_field_value(field_key, timezone_name = nil)
     value = if field_key.start_with?('system_')
               card.public_send(SYSTEM_DATE_FIELD_METHODS.fetch(field_key))
             else
               card.custom_field_values.to_h[field_key]
             end
-    return value if value.is_a?(Time) || value.is_a?(ActiveSupport::TimeWithZone)
+    timezone = timezone_name.present? ? ActiveSupport::TimeZone[timezone_name] : Time.zone
+    return value.in_time_zone(timezone) if value.is_a?(Time) || value.is_a?(ActiveSupport::TimeWithZone)
 
-    Time.zone.parse(value.to_s) || raise(ArgumentError, "Workflow date field #{field_key} is blank or invalid")
+    timezone.parse(value.to_s) || raise(ArgumentError, "Workflow date field #{field_key} is blank or invalid")
   end
 
   def execute_action(node)
     data = node.fetch('data', {}).deep_stringify_keys
     action = {
-      'action_name' => node['type'] == 'set_field' ? 'set_field' : data.fetch('action_name'),
+      'action_name' => workflow_action_name(node, data),
       'action_params' => data.fetch('action_params', {})
     }
     KanbanAutomations::ActionService.new(rule: rule, card: card, actions: [action]).perform!.map do |result|
       result.merge('node_id' => node.fetch('id'))
     end
+  end
+
+  def workflow_action_name(node, data)
+    return node['type'] if %w[set_field update_contact complete_next_action mark_won mark_lost].include?(node['type'])
+
+    data.fetch('action_name')
   end
 
   def next_round_robin_option(node)
@@ -290,8 +476,19 @@ class KanbanAutomations::WorkflowService
     }
   end
 
-  def condition_matches?(node)
+  def matching_condition_branch(node)
     data = node.fetch('data', {}).deep_stringify_keys
+    branches = Array(data['branches']).filter_map(&:presence)
+    return condition_matches?(data) ? 'yes' : 'no' if branches.blank?
+
+    branches.each do |branch|
+      return branch.fetch('id') if condition_matches?(branch.deep_stringify_keys)
+    end
+
+    data.fetch('fallback_id', 'otherwise')
+  end
+
+  def condition_matches?(data)
     matches = condition_entries(data).map do |condition|
       KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(condition)
     end
@@ -308,6 +505,22 @@ class KanbanAutomations::WorkflowService
 
   def completed(results)
     { status: :succeeded, scheduled_at: nil, workflow_state: {}, action_results: results }
+  end
+
+  def failed(results)
+    { status: :failed, scheduled_at: nil, workflow_state: {}, action_results: results }
+  end
+
+  def stamp_outcome(outcome, results_count)
+    action_results = outcome.fetch(:action_results, [])
+    stamp_results(action_results, results_count)
+    outcome
+  end
+
+  def stamp_results(results, start_index)
+    results.drop(start_index).each do |result|
+      result['executed_at'] ||= now.iso8601
+    end
   end
 end
 # rubocop:enable Metrics/ClassLength

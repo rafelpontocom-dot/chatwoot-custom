@@ -19,6 +19,26 @@ class KanbanBoardPolicy < ApplicationPolicy
     administrator? || custom_role_permission?('kanban_configure')
   end
 
+  def automate?
+    automation_configure?
+  end
+
+  def automation_configure?
+    administrator? || custom_role_permission?('kanban_automate') || custom_role_permission?('kanban_configure')
+  end
+
+  def automation_publish?
+    administrator? || custom_role_permission?('kanban_automate') || custom_role_permission?('kanban_automation_publish')
+  end
+
+  def automation_test?
+    administrator? || custom_role_permission?('kanban_automate') || custom_role_permission?('kanban_automation_test')
+  end
+
+  def automation_execution?
+    administrator? || custom_role_permission?('kanban_automate') || custom_role_permission?('kanban_automation_execution')
+  end
+
   def destroy?
     administrator? || custom_role_permission?('kanban_manage')
   end

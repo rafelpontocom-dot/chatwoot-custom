@@ -1,16 +1,28 @@
 # rubocop:disable Metrics/ClassLength -- Node validations are intentionally centralized with the board reference checks.
 class KanbanAutomations::FlowDefinitionValidator
   DATE_FIELD_TYPES = %w[date datetime].freeze
+  END_OUTCOMES = %w[completed handed_off stopped failed].freeze
+  ROUND_ROBIN_AVAILABILITY_POLICIES = %w[any online_only online_or_busy].freeze
+  CONTACT_BOOLEAN_ATTRIBUTE_KEYS = %w[
+    marketing_messages_opt_in
+    birthday_messages_opt_in
+    appointment_reminders_opt_in
+  ].freeze
+  CONTACT_DATE_ATTRIBUTE_KEYS = %w[date_of_birth].freeze
   ACTION_REFERENCE_VALIDATORS = {
     'move_stage' => :validate_action_stage,
     'assign_owner' => :validate_action_owner,
     'assign_round_robin' => :validate_action_round_robin,
     'set_field' => :validate_action_field,
     'increment_field' => :validate_action_field,
+    'clear_field' => :validate_action_field,
     'enroll_cadence' => :validate_action_cadence,
     'add_label' => :validate_action_label,
     'remove_label' => :validate_action_label,
-    'add_note' => :validate_action_note
+    'add_note' => :validate_action_note,
+    'update_contact' => :validate_action_contact,
+    'complete_next_action' => :validate_action_next_action,
+    'mark_lost' => :validate_action_lost_reason
   }.freeze
   def initialize(rule:)
     @rule = rule
@@ -87,14 +99,137 @@ class KanbanAutomations::FlowDefinitionValidator
       validate_delay_node(node, data)
       validate_wait_until_field_node(node, data)
       validate_wait_for_response_node(node, data)
+      validate_wait_for_inactivity_node(node, data)
       validate_wait_for_business_hours_node(node, data)
       validate_action_node(node, data)
-      validate_condition_node(node, data)
-      validate_round_robin_node(node, data)
+      validate_decision_nodes(node, data)
+      validate_operation_nodes(node, data)
       validate_webhook_node(node, data)
-      validate_condition_paths(node)
-      validate_round_robin_paths(node, data)
+      validate_end_node(node, data)
+      validate_node_paths(node, data)
     end
+  end
+
+  def validate_end_node(node, data)
+    return unless node[:type].to_s == 'end'
+
+    outcome = data[:outcome].presence || 'completed'
+    return if END_OUTCOMES.include?(outcome)
+
+    add_error("End node #{node[:id]} has an unsupported outcome")
+  end
+
+  def validate_decision_nodes(node, data)
+    validate_condition_node(node, data)
+    validate_filter_node(node, data)
+    validate_message_eligibility_node(node, data)
+    validate_round_robin_node(node, data)
+  end
+
+  def validate_operation_nodes(node, data)
+    validate_human_handoff_node(node, data)
+    validate_audit_log_node(node, data)
+  end
+
+  def validate_node_paths(node, data)
+    validate_condition_paths(node)
+    validate_message_eligibility_paths(node)
+    validate_message_paths(node, data)
+    validate_date_wait_paths(node, data)
+    validate_response_wait_paths(node, data)
+    validate_inactivity_wait_paths(node, data)
+    validate_business_hours_paths(node, data)
+    validate_webhook_paths(node, data)
+    validate_round_robin_paths(node, data)
+  end
+
+  def validate_date_wait_paths(node, data)
+    return unless node[:type] == 'wait_until_field'
+
+    unless date_wait_failure_mode_valid?(data)
+      add_error("Date wait node #{node[:id]} has an unsupported failure policy")
+      return
+    end
+    return unless date_wait_failure_mode(data) == 'route'
+
+    handles = edges.filter_map { |edge| edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s }
+    return if handles.tally.slice('succeeded', 'failed') == { 'succeeded' => 1, 'failed' => 1 }
+
+    add_error("Date wait node #{node[:id]} needs available and unavailable paths")
+  end
+
+  def date_wait_failure_mode(data)
+    data[:failure_mode].presence || 'stop'
+  end
+
+  def date_wait_failure_mode_valid?(data)
+    %w[stop route].include?(date_wait_failure_mode(data))
+  end
+
+  def validate_response_wait_paths(node, data)
+    return unless node[:type] == 'wait_for_response'
+    return if response_wait_timeout_mode(data) == 'continue'
+
+    unless %w[continue route].include?(response_wait_timeout_mode(data))
+      add_error("Response wait node #{node[:id]} has an unsupported timeout policy")
+      return
+    end
+    return if response_wait_paths_valid?(node)
+
+    add_error("Response wait node #{node[:id]} needs received and timeout paths")
+  end
+
+  def response_wait_timeout_mode(data)
+    data[:timeout_mode].presence || 'continue'
+  end
+
+  def response_wait_paths_valid?(node)
+    handles = edges.filter_map { |edge| edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s }
+    handles.tally.slice('received', 'timeout') == { 'received' => 1, 'timeout' => 1 }
+  end
+
+  def validate_inactivity_wait_paths(node, data)
+    return unless node[:type] == 'wait_for_inactivity'
+    return if inactivity_wait_interruption_mode(data) == 'stop'
+
+    unless %w[stop route].include?(inactivity_wait_interruption_mode(data))
+      add_error("Inactivity wait node #{node[:id]} has an unsupported interruption policy")
+      return
+    end
+    return if inactivity_wait_paths_valid?(node)
+
+    add_error("Inactivity wait node #{node[:id]} needs inactivity and response paths")
+  end
+
+  def inactivity_wait_interruption_mode(data)
+    data[:interruption_mode].presence || 'stop'
+  end
+
+  def inactivity_wait_paths_valid?(node)
+    handles = edges.filter_map { |edge| edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s }
+    handles.tally.slice('inactive', 'responded') == { 'inactive' => 1, 'responded' => 1 }
+  end
+
+  def validate_business_hours_paths(node, data)
+    return unless node[:type] == 'wait_for_business_hours'
+    return if business_hours_failure_mode(data) == 'stop'
+
+    unless %w[stop route].include?(business_hours_failure_mode(data))
+      add_error("Business-hours node #{node[:id]} has an unsupported failure policy")
+      return
+    end
+    return if business_hours_paths_valid?(node)
+
+    add_error("Business-hours node #{node[:id]} needs available and unavailable paths")
+  end
+
+  def business_hours_failure_mode(data)
+    data[:failure_mode].presence || 'stop'
+  end
+
+  def business_hours_paths_valid?(node)
+    handles = edges.filter_map { |edge| edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s }
+    handles.tally.slice('succeeded', 'failed') == { 'succeeded' => 1, 'failed' => 1 }
   end
 
   def validate_message_node(node, data)
@@ -105,6 +240,31 @@ class KanbanAutomations::FlowDefinitionValidator
     valid_policy = message_policy_valid?(data)
     valid_attachment = KanbanAutomations::MessageAttachmentService.new(data: data).valid?
     add_error("Message node #{node[:id]} is incomplete") unless valid_channel && valid_message && valid_policy && valid_attachment
+  end
+
+  def validate_message_paths(node, data)
+    return unless node[:type] == 'send_message'
+
+    mode = message_failure_mode(data)
+    unless %w[stop route].include?(mode)
+      add_error("Message node #{node[:id]} has an unsupported failure policy")
+      return
+    end
+    return unless mode == 'route'
+    return if message_failure_paths_valid?(node)
+
+    add_error("Message node #{node[:id]} needs sent and not-sent paths")
+  end
+
+  def message_failure_mode(data)
+    data[:failure_mode].presence || 'stop'
+  end
+
+  def message_failure_paths_valid?(node)
+    handles = edges.filter_map do |edge|
+      edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s
+    end
+    handles.tally.slice('succeeded', 'failed') == { 'succeeded' => 1, 'failed' => 1 }
   end
 
   def message_policy_valid?(data)
@@ -136,7 +296,8 @@ class KanbanAutomations::FlowDefinitionValidator
 
     valid_field = datetime_field?(data[:field_key])
     valid_offset = Float(data[:offset_hours])
-    return if valid_field && valid_offset.finite?
+    valid_timezone = data[:timezone].blank? || ActiveSupport::TimeZone[data[:timezone]].present?
+    return if valid_field && valid_offset.finite? && valid_timezone
 
     add_error("Date wait node #{node[:id]} is incomplete")
   rescue ArgumentError, TypeError
@@ -147,6 +308,12 @@ class KanbanAutomations::FlowDefinitionValidator
     return unless node[:type] == 'wait_for_response'
 
     add_error("Response wait node #{node[:id]} needs positive timeout hours") unless data[:timeout_hours].to_f.positive?
+  end
+
+  def validate_wait_for_inactivity_node(node, data)
+    return unless node[:type] == 'wait_for_inactivity'
+
+    add_error("Inactivity wait node #{node[:id]} needs positive timeout hours") unless data[:timeout_hours].to_f.positive?
   end
 
   def validate_wait_for_business_hours_node(node, data)
@@ -174,9 +341,9 @@ class KanbanAutomations::FlowDefinitionValidator
   end
 
   def validate_action_node(node, data)
-    return unless %w[action set_field].include?(node[:type])
+    return unless %w[action set_field update_contact complete_next_action mark_won mark_lost].include?(node[:type])
 
-    action_name = node[:type] == 'set_field' ? 'set_field' : data[:action_name].to_s
+    action_name = workflow_action_name(node, data)
     add_error("Action node #{node[:id]} has an unsupported action") unless KanbanAutomationRule::ACTION_NAMES.include?(action_name)
     validate_action_references(node, action_name, data[:action_params].to_h.with_indifferent_access)
   end
@@ -184,9 +351,68 @@ class KanbanAutomations::FlowDefinitionValidator
   def validate_condition_node(node, data)
     return unless node[:type] == 'condition'
 
-    return if valid_condition_match_mode?(data) && condition_entries_valid?(data)
+    return if condition_branches_valid?(data) || (valid_condition_match_mode?(data) && condition_entries_valid?(data))
 
     add_error("Condition node #{node[:id]} is incomplete")
+  end
+
+  def validate_filter_node(node, data)
+    return unless node[:type] == 'filter'
+    return if valid_condition_match_mode?(data) && condition_entries_valid?(data)
+
+    add_error("Filter node #{node[:id]} is incomplete")
+  end
+
+  def validate_message_eligibility_node(node, data)
+    return unless node[:type] == 'message_eligibility'
+
+    valid_channel = KanbanAppointmentReminderRule::CHANNELS.include?(data[:channel].to_s)
+    add_error("Message eligibility node #{node[:id]} is incomplete") unless valid_channel && data[:opt_in_attribute_key].present?
+  end
+
+  def validate_human_handoff_node(node, data)
+    return unless node[:type] == 'human_handoff'
+
+    references = human_handoff_references(data)
+    validate_human_handoff_destinations(node, data, references)
+    add_error("Human handoff node #{node[:id]} cannot have an outgoing path") if outgoing_node_ids(node[:id].to_s).present?
+  end
+
+  def human_handoff_references(data)
+    {
+      owner: rule.account.users.find_by(id: data[:owner_id]),
+      team: rule.account.teams.find_by(id: data[:team_id])
+    }
+  end
+
+  def validate_human_handoff_destinations(node, data, references)
+    owner = references[:owner]
+    team = references[:team]
+    add_error("Human handoff node #{node[:id]} needs an agent or team from this account") if owner.blank? && team.blank?
+    add_error("Human handoff node #{node[:id]} references a team outside this account") if data[:team_id].present? && team.blank?
+    add_error("Human handoff node #{node[:id]} references an agent outside this account") if data[:owner_id].present? && owner.blank?
+  end
+
+  def validate_audit_log_node(node, data)
+    return unless node[:type] == 'audit_log'
+
+    add_error("Audit log node #{node[:id]} needs a note") if data[:content].to_s.strip.blank?
+  end
+
+  def condition_branches_valid?(data)
+    branches = condition_branches(data)
+    return false if branches.blank? || data[:fallback_id].blank?
+
+    condition_branch_ids_valid?(branches, data[:fallback_id]) && branches.all? { |branch| condition_branch_valid?(branch) }
+  end
+
+  def condition_branch_ids_valid?(branches, fallback_id)
+    branch_ids = branches.pluck(:id).map(&:to_s)
+    branch_ids.all?(&:present?) && branch_ids.uniq.length == branch_ids.length && branch_ids.exclude?(fallback_id.to_s)
+  end
+
+  def condition_branch_valid?(branch)
+    valid_condition_match_mode?(branch) && condition_entries_valid?(branch)
   end
 
   def valid_condition_match_mode?(data)
@@ -211,11 +437,29 @@ class KanbanAutomations::FlowDefinitionValidator
     [data.slice(:field_key, :operator, :value)]
   end
 
+  def condition_branches(data)
+    Array(data[:branches]).map { |branch| branch.to_h.with_indifferent_access }
+  end
+
   def validate_webhook_node(node, data)
     return unless node[:type] == 'webhook'
 
     connection = rule.kanban_board.kanban_automation_connections.active.find_by(id: data[:connection_id])
     add_error("Webhook node #{node[:id]} references an active connection on this board") if connection.blank?
+    return if data[:failure_mode].blank? || %w[stop route].include?(data[:failure_mode])
+
+    add_error("Webhook node #{node[:id]} has an unsupported failure policy")
+  end
+
+  def validate_webhook_paths(node, data)
+    return unless node[:type] == 'webhook' && data[:failure_mode] == 'route'
+
+    handles = edges.filter_map do |edge|
+      edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s
+    end
+    return if handles.tally.slice('succeeded', 'failed') == { 'succeeded' => 1, 'failed' => 1 }
+
+    add_error("Webhook node #{node[:id]} needs succeeded and failed paths")
   end
 
   def validate_round_robin_node(node, data)
@@ -248,9 +492,30 @@ class KanbanAutomations::FlowDefinitionValidator
     handles = edges.filter_map do |edge|
       edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s
     end
+    branches = condition_branches(node[:data].to_h.with_indifferent_access)
+    return validate_condition_branch_paths(node, handles, branches) if branches.present?
+
     return if handles.tally.slice('yes', 'no') == { 'yes' => 1, 'no' => 1 }
 
     add_error("Condition node #{node[:id]} needs yes and no paths")
+  end
+
+  def validate_message_eligibility_paths(node)
+    return unless node[:type] == 'message_eligibility'
+
+    handles = edges.filter_map do |edge|
+      edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s
+    end
+    return if handles.tally.slice('eligible', 'otherwise') == { 'eligible' => 1, 'otherwise' => 1 }
+
+    add_error("Message eligibility node #{node[:id]} needs eligible and otherwise paths")
+  end
+
+  def validate_condition_branch_paths(node, handles, branches)
+    expected = branches.pluck(:id).map(&:to_s) + [node[:data].to_h.with_indifferent_access[:fallback_id].to_s]
+    return if handles.sort == expected.sort
+
+    add_error("Condition node #{node[:id]} needs one path for every output")
   end
 
   def condition_field_exists?(field_key)
@@ -272,6 +537,12 @@ class KanbanAutomations::FlowDefinitionValidator
     send(validator, node, params) if validator
   end
 
+  def workflow_action_name(node, data)
+    return node[:type].to_s if %w[set_field update_contact complete_next_action mark_won mark_lost].include?(node[:type].to_s)
+
+    data[:action_name].to_s
+  end
+
   def validate_action_stage(node, params)
     return if rule.kanban_board.kanban_stages.exists?(id: params[:stage_id])
 
@@ -288,6 +559,9 @@ class KanbanAutomations::FlowDefinitionValidator
     owner_ids = Array(params[:owner_ids]).filter_map { |value| Integer(value, exception: false) }
     valid_owners = owner_ids.present? && rule.account.users.where(id: owner_ids).count == owner_ids.uniq.count
     add_error("Action node #{node[:id]} needs valid round-robin owners") unless valid_owners
+    return if ROUND_ROBIN_AVAILABILITY_POLICIES.include?(params[:availability_policy].presence || 'any')
+
+    add_error("Action node #{node[:id]} has an unsupported availability policy")
   end
 
   def validate_action_field(node, params)
@@ -313,6 +587,57 @@ class KanbanAutomations::FlowDefinitionValidator
     return if params[:content].present?
 
     add_error("Action node #{node[:id]} needs note content")
+  end
+
+  def validate_action_lost_reason(node, params)
+    reason = params[:lost_reason].to_s
+    return if rule.kanban_board.configured_lost_reason_options.include?(reason)
+
+    add_error("Action node #{node[:id]} needs a configured lost reason")
+  end
+
+  def validate_action_contact(node, params)
+    attribute_key = params[:attribute_key].to_s
+    unless safe_contact_attribute_key?(attribute_key)
+      add_error("Contact update node #{node[:id]} needs a safe custom attribute key")
+      return
+    end
+
+    validate_contact_attribute_value(node, attribute_key, params[:value])
+  end
+
+  def validate_action_next_action(node, params)
+    return if params[:schedule_next_action] == false
+
+    has_type = params[:next_action_type].present?
+    has_date = params[:next_action_at].present?
+    unless has_type == has_date
+      add_error("Completion node #{node[:id]} needs a next action type and date together")
+      return
+    end
+
+    return unless has_date && Time.zone.parse(params[:next_action_at].to_s).blank?
+
+    add_error("Completion node #{node[:id]} needs a valid next action date")
+  end
+
+  def safe_contact_attribute_key?(attribute_key)
+    attribute_key.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/) && Contact.column_names.exclude?(attribute_key)
+  end
+
+  def validate_contact_attribute_value(node, attribute_key, value)
+    if CONTACT_BOOLEAN_ATTRIBUTE_KEYS.include?(attribute_key)
+      return if [true, false].include?(value) || %w[true false 1 0].include?(value.to_s)
+
+      add_error("Contact update node #{node[:id]} needs a true or false consent value")
+      return
+    end
+
+    return unless CONTACT_DATE_ATTRIBUTE_KEYS.include?(attribute_key)
+
+    Date.iso8601(value.to_s)
+  rescue Date::Error
+    add_error("Contact update node #{node[:id]} needs a valid ISO date")
   end
 
   def add_error(message)

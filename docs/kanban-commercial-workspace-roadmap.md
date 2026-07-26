@@ -7,6 +7,7 @@ Documentos relacionados:
 - [PRD do Kanban Comercial](./kanban-sales-prd.md)
 - [Spec do Kanban Comercial](./kanban-sales-spec.md)
 - [Auditoria tecnica de UI/UX](./kanban-ui-ux-technical-audit.md)
+- [Roadmap do Editor de Automações](./kanban-visual-workflows-roadmap.md)
 
 ## Objetivo
 

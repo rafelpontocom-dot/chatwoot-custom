@@ -13,6 +13,10 @@ export const AVAILABLE_CUSTOM_ROLE_PERMISSIONS = [
   'kanban_close',
   'kanban_bulk',
   'kanban_configure',
+  'kanban_automate',
+  'kanban_automation_publish',
+  'kanban_automation_test',
+  'kanban_automation_execution',
   'kanban_manage',
   'kanban_report',
 ];

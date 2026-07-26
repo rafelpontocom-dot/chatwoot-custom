@@ -18,6 +18,17 @@ RSpec.describe KanbanAutomations::WorkflowMessageService do
     expect(result.fetch('scheduled_at')).to eq(ActiveSupport::TimeZone['America/Sao_Paulo'].parse('2026-08-02 08:00:00').iso8601)
   end
 
+  it 'reports why a message is not eligible without sending it' do
+    service = build_service({})
+    allow(service).to receive(:compatible_conversation).and_return(nil)
+
+    expect(service.eligibility).to eq(
+      'action_name' => 'send_message',
+      'status' => 'skipped',
+      'reason' => 'no_compatible_conversation'
+    )
+  end
+
   it 'defers a message until the configured frequency window expires' do
     now = Time.zone.parse('2026-08-01 15:00:00')
     service = build_service({ frequency_limit_hours: 24 }, now: now)

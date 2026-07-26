@@ -126,6 +126,8 @@ class KanbanCard < ApplicationRecord
   belongs_to :closed_by, class_name: 'User', optional: true
   belongs_to :archived_by, class_name: 'User', optional: true
 
+  attr_accessor :next_action_completion_note
+
   has_many :kanban_card_events, dependent: :restrict_with_exception
   has_many :kanban_cadence_enrollments, dependent: :destroy
 
@@ -686,6 +688,7 @@ class KanbanCard < ApplicationRecord
       'note' => next_action_note,
       'completed_at' => next_action_completed_at.iso8601(3)
     }
+    entry['completion_note'] = next_action_completion_note if next_action_completion_note.present?
     self.next_action_history = [*Array(next_action_history), entry].last(100)
   end
 

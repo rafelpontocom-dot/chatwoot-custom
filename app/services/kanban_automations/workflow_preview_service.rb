@@ -1,14 +1,30 @@
+# rubocop:disable Metrics/ClassLength -- Preview handlers stay together to mirror the executable workflow contract.
 class KanbanAutomations::WorkflowPreviewService
   MAX_NODES = 50
+  SYSTEM_DATE_FIELD_METHODS = {
+    'system_starts_at' => :starts_at,
+    'system_due_at' => :due_at,
+    'system_next_action_at' => :next_action_at
+  }.freeze
   NODE_HANDLERS = {
     'trigger' => :preview_trigger,
     'delay' => :preview_delay,
     'wait_until_field' => :preview_date_wait,
     'wait_for_response' => :preview_response_wait,
+    'wait_for_inactivity' => :preview_inactivity_wait,
+    'wait_for_business_hours' => :preview_business_hours,
     'condition' => :preview_condition,
+    'filter' => :preview_filter,
+    'message_eligibility' => :preview_message_eligibility,
     'round_robin' => :preview_round_robin,
+    'human_handoff' => :preview_human_handoff,
+    'audit_log' => :preview_audit_log,
     'action' => :preview_action,
     'set_field' => :preview_action,
+    'update_contact' => :preview_action,
+    'complete_next_action' => :preview_action,
+    'mark_won' => :preview_action,
+    'mark_lost' => :preview_action,
     'send_message' => :preview_message,
     'webhook' => :preview_webhook,
     'end' => :preview_end
@@ -65,8 +81,33 @@ class KanbanAutomations::WorkflowPreviewService
   end
 
   def preview_date_wait(node, steps)
-    steps << { 'node_id' => node.fetch('id'), 'type' => 'wait_until_field', 'field_key' => node.dig('data', 'field_key') }
+    data = node.fetch('data', {}).deep_stringify_keys
+    scheduled_at = preview_date_wait_time(data)
+    steps << {
+      'node_id' => node.fetch('id'),
+      'type' => 'wait_until_field',
+      'field_key' => data['field_key'],
+      'scheduled_at' => scheduled_at.iso8601,
+      'status' => scheduled_at <= now ? 'skipped' : 'waiting',
+      'reason' => scheduled_at <= now ? 'scheduled_time_in_past' : nil
+    }.compact
     next_node_id(node)
+  end
+
+  def preview_date_wait_time(data)
+    preview_date_field_value(data.fetch('field_key'), data['timezone']) + data.fetch('offset_hours').to_f.hours
+  end
+
+  def preview_date_field_value(field_key, timezone_name)
+    value = if field_key.start_with?('system_')
+              card.public_send(SYSTEM_DATE_FIELD_METHODS.fetch(field_key))
+            else
+              card.custom_field_values.to_h[field_key]
+            end
+    timezone = timezone_name.present? ? Time.find_zone!(timezone_name) : Time.zone
+    return value.in_time_zone(timezone) if value.is_a?(Time) || value.is_a?(ActiveSupport::TimeWithZone)
+
+    timezone.parse(value.to_s) || raise(ArgumentError, "Workflow date field #{field_key} is blank or invalid")
   end
 
   def preview_response_wait(node, steps)
@@ -74,10 +115,46 @@ class KanbanAutomations::WorkflowPreviewService
     next_node_id(node)
   end
 
+  def preview_inactivity_wait(node, steps)
+    steps << node.fetch('data', {}).slice('timeout_hours').merge('node_id' => node.fetch('id'), 'type' => 'wait_for_inactivity')
+    next_node_id(node)
+  end
+
+  def preview_business_hours(node, steps)
+    steps << node.fetch('data', {}).slice('weekdays', 'start_time', 'end_time', 'timezone').merge(
+      'node_id' => node.fetch('id'),
+      'type' => 'wait_for_business_hours'
+    )
+    next_node_id(node)
+  end
+
   def preview_condition(node, steps)
-    branch = condition_matches?(node) ? 'yes' : 'no'
+    branch = matching_condition_branch(node)
     steps << { 'node_id' => node.fetch('id'), 'type' => 'condition', 'branch' => branch }
     next_node_id(node, source_handle: branch)
+  end
+
+  def preview_filter(node, steps)
+    matched = condition_matches?(node.fetch('data', {}).deep_stringify_keys)
+    steps << { 'node_id' => node.fetch('id'), 'type' => 'filter', 'matched' => matched }
+    matched ? next_node_id(node) : nil
+  end
+
+  def preview_message_eligibility(node, steps)
+    result = KanbanAutomations::WorkflowMessageService.new(card: card, data: node.fetch('data', {}), now: now).eligibility
+    branch = result['status'] == 'eligible' ? 'eligible' : 'otherwise'
+    steps << result.except('conversation').merge('node_id' => node.fetch('id'), 'type' => 'message_eligibility', 'branch' => branch)
+    next_node_id(node, source_handle: branch)
+  end
+
+  def preview_human_handoff(node, steps)
+    steps << node.fetch('data', {}).slice('team_id', 'owner_id', 'note').merge('node_id' => node.fetch('id'), 'type' => 'human_handoff')
+    nil
+  end
+
+  def preview_audit_log(node, steps)
+    steps << node.fetch('data', {}).slice('content').merge('node_id' => node.fetch('id'), 'type' => 'audit_log')
+    next_node_id(node)
   end
 
   def preview_round_robin(node, steps)
@@ -87,7 +164,11 @@ class KanbanAutomations::WorkflowPreviewService
   end
 
   def preview_action(node, steps)
-    action_name = node['type'] == 'set_field' ? 'set_field' : node.dig('data', 'action_name')
+    action_name = if %w[set_field update_contact complete_next_action mark_won mark_lost].include?(node['type'])
+                    node['type']
+                  else
+                    node.dig('data', 'action_name')
+                  end
     steps << node.fetch('data', {}).slice('action_params').merge(
       'node_id' => node.fetch('id'),
       'type' => 'action',
@@ -97,12 +178,24 @@ class KanbanAutomations::WorkflowPreviewService
   end
 
   def preview_message(node, steps)
-    steps << node.fetch('data', {}).slice('channel', 'content').merge('node_id' => node.fetch('id'), 'type' => 'send_message')
+    data = node.fetch('data', {})
+    steps << data.slice('channel').merge(
+      'node_id' => node.fetch('id'),
+      'type' => 'send_message',
+      'rendered_content' => KanbanAutomations::WorkflowMessageService.new(card: card, data: data, now: now).preview_content
+    )
     next_node_id(node)
   end
 
   def preview_webhook(node, steps)
-    steps << node.fetch('data', {}).slice('connection_id').merge('node_id' => node.fetch('id'), 'type' => 'webhook')
+    connection = rule.kanban_board.kanban_automation_connections.active.find_by(
+      id: node.dig('data', 'connection_id')
+    )
+    steps << {
+      'node_id' => node.fetch('id'),
+      'type' => 'webhook',
+      'connection_name' => connection&.name
+    }
     next_node_id(node)
   end
 
@@ -110,8 +203,19 @@ class KanbanAutomations::WorkflowPreviewService
     nil
   end
 
-  def condition_matches?(node)
+  def matching_condition_branch(node)
     data = node.fetch('data', {}).deep_stringify_keys
+    branches = Array(data['branches']).filter_map(&:presence)
+    return condition_matches?(data) ? 'yes' : 'no' if branches.blank?
+
+    branches.each do |branch|
+      return branch.fetch('id') if condition_matches?(branch.deep_stringify_keys)
+    end
+
+    data.fetch('fallback_id', 'otherwise')
+  end
+
+  def condition_matches?(data)
     matches = condition_entries(data).map do |condition|
       KanbanAutomations::ConditionsMatcher.new(rule: rule, card: card).matches_field_condition?(condition)
     end
@@ -133,3 +237,4 @@ class KanbanAutomations::WorkflowPreviewService
     edge&.fetch('target') || raise(ArgumentError, "Workflow node #{node.fetch('id')} has no next node")
   end
 end
+# rubocop:enable Metrics/ClassLength

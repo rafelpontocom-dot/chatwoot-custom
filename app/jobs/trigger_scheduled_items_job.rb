@@ -29,6 +29,9 @@ class TriggerScheduledItemsJob < ApplicationJob
     # Send opt-in birthday messages through the existing conversation channels.
     KanbanBirthdayAutomations::ProcessJob.perform_later
 
+    # Trigger commercial automations for open opportunities with overdue next actions.
+    KanbanAutomations::DispatchOverdueNextActionsJob.perform_later
+
     # Job to sync whatsapp templates
     Channels::Whatsapp::TemplatesSyncSchedulerJob.perform_later
   end

@@ -34,7 +34,7 @@ class KanbanCardEvent < ApplicationRecord
   EVENT_TYPES = %w[
     card_created stage_changed owner_changed amount_changed custom_fields_changed
     next_action_scheduled next_action_completed card_won card_lost card_reopened
-    card_archived card_restored
+    card_archived card_restored automation_logged
   ].freeze
   DOMAIN_EVENT_TYPES = {
     'stage_changed' => Events::Types::KANBAN_CARD_STAGE_CHANGED,

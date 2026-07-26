@@ -1,17 +1,22 @@
 class KanbanAutomations::ContinueWorkflowJob < ApplicationJob
   queue_as :critical
 
-  retry_on StandardError, wait: :polynomially_longer, attempts: 3
+  retry_on StandardError, wait: :polynomially_longer, attempts: 3 do |job, error|
+    KanbanAutomations::MarkExecutionFailedService.new(
+      execution_id: job.arguments.first,
+      error: error
+    ).perform!
+  end
 
   def perform(execution_id, card_id)
     execution = KanbanAutomationExecution.find_by(id: execution_id)
     card = KanbanCard.find_by(id: card_id)
     return unless execution&.waiting? && card.present?
 
-    execution.with_lock { resume_workflow(execution, card) }
-  rescue StandardError => e
-    execution&.update(status: :failed, error_message: e.message, completed_at: Time.current)
-    raise
+    execution.with_lock do
+      route_expired_response_wait(execution)
+      resume_workflow(execution, card)
+    end
   end
 
   private
@@ -28,6 +33,19 @@ class KanbanAutomations::ContinueWorkflowJob < ApplicationJob
     result = workflow_result(execution, card)
     persist_result(execution, result)
     schedule_continuation(execution, card, result) if result[:status] == :waiting
+  end
+
+  def route_expired_response_wait(execution)
+    state = execution.workflow_state.to_h
+    timeout_node_id = state['timeout_node_id']
+    return unless state['waiting_for'] == 'customer_message' && timeout_node_id.present?
+
+    execution.update!(
+      workflow_state: state.except('waiting_for', 'timeout_node_id').merge('next_node_id' => timeout_node_id),
+      action_results: Array(execution.action_results) + [
+        { 'status' => 'skipped', 'reason' => 'response_timeout', 'waiting_for' => 'customer_message' }
+      ]
+    )
   end
 
   def workflow_result(execution, card)

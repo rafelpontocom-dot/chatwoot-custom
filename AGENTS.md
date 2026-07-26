@@ -130,6 +130,23 @@ For Kanban, opportunity, and CRM-facing UI work, load these project skills toget
 
 Apply them as a single review workflow. Keep the board header compact, use progressive disclosure for filters and configuration, and separate field administration from opportunity editing. Cards and dialogs must preserve stable dimensions, readable hierarchy, and clear empty/loading/error states. Drag-and-drop must distinguish click from drag, show a drop target, update optimistically, and restore the original position with an actionable error when the request fails. Every important action must also have a keyboard-accessible alternative.
 
+## Kanban Visual Automations
+
+The Kanban automation editor is a commercial workflow product, not a general-purpose automation engine. Keep complex integrations, arbitrary HTTP, code, database access, loops, merge/join, and broad AI orchestration in N8N behind approved webhooks.
+
+- Use Vue Flow only as the canvas engine. Keep domain behavior in Vue composables and Rails services, never in custom node presentation components.
+- Every workflow node must be registered in `kanbanWorkflowNodeDefinitions.js` with its type, category, Lucide icon, i18n label, and palette availability. Do not duplicate node catalogues in the builder, palette, or inspector.
+- A new node is incomplete until it has: backend type/validator support, server-side authorization and board-scoped reference checks, executor and preview behavior, i18n, node definition, contextual inspector form, and focused backend/frontend tests.
+- Persist only node id, type, position, edge data, and domain configuration. Icons, labels, summaries, colors, interaction callbacks, and validation decoration are derived UI state and must never be persisted in `flow_definition`.
+- Use the Node-RED information architecture: searchable, collapsible palette categories and labeled branch outputs. Use n8n only as a UX reference for contextual configuration, validation, preview, and execution history; do not copy n8n source code or components.
+- The canvas is the dominant surface. Do not add a permanent inspector that reduces the canvas width. Selecting a node or edge opens a contextual floating panel with `Configurar`, `Testar`, and `Historico` as applicable.
+- Node cards have stable dimensions, a category icon, concise commercial summary, visible validation state, and accessible handles. Do not place full forms inside canvas cards.
+- Router behavior is ordered first-match only. Each branch owns an E/OU group and a unique labeled output; every Router has a `Caso contrario` output. Keep `Distribuir caminhos` separate from the commercial action `Distribuir responsavel`.
+- Every mouse/drag action needs a keyboard alternative: add from palette, insert after edge, connect, remove edge, reorder branches, open inspector, and publish. Preserve focus on close/error and announce validation results accessibly.
+- Use Composition API with small focused components/composables. Do not expand `KanbanWorkflowBuilder.vue` with new node-specific business logic; extract inspectors and shared canvas operations when a second consumer or complex behavior appears.
+- Use Tailwind utility classes and existing semantic color tokens only. Keep visual state understandable without color, maintain visible focus rings, and use Lucide icons rather than custom SVG markup.
+- Follow TDD: write and run a failing focused test before new node behavior, then implement the smallest change, run affected suites, lint, and `git diff --check`.
+
 ## Ruby Best Practices
 
 - Use compact `module/class` definitions; avoid nested styles

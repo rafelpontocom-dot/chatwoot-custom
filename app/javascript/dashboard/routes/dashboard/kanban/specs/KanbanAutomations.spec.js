@@ -30,12 +30,14 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     createAppointmentReminderRule: vi.fn(),
     deleteAppointmentReminderRule: vi.fn(),
     getAutomationConnections: vi.fn(),
+    getAutomationConnectionAudits: vi.fn(),
     getBirthdayAutomation: vi.fn(),
     updateBirthdayAutomation: vi.fn(),
     createAutomationConnection: vi.fn(),
     deleteAutomationConnection: vi.fn(),
     resetAutomationConnectionSecret: vi.fn(),
     getAllAutomationExecutions: vi.fn(),
+    getAutomationMetrics: vi.fn(),
     retryAutomationExecution: vi.fn(),
     getStageCards: vi.fn(),
     testAutomationRule: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
 
 const mountWorkspace = async ({
   connections = [],
+  connectionAudits = [],
   executions = [],
   rules = [],
   stageCards = [],
@@ -62,9 +65,13 @@ const mountWorkspace = async ({
   KanbanBoardsAPI.getAutomationConnections.mockResolvedValue({
     data: connections,
   });
+  KanbanBoardsAPI.getAutomationConnectionAudits.mockResolvedValue({
+    data: connectionAudits,
+  });
   KanbanBoardsAPI.getAllAutomationExecutions.mockResolvedValue({
     data: executions,
   });
+  KanbanBoardsAPI.getAutomationMetrics.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getBirthdayAutomation.mockResolvedValue({
     data: {
       active: false,
@@ -102,7 +109,10 @@ const mountWorkspace = async ({
 };
 
 describe('KanbanAutomations', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
 
   it('starts in the flows workspace and opens a dedicated visual editor', async () => {
     const wrapper = await mountWorkspace({
@@ -134,6 +144,49 @@ describe('KanbanAutomations', () => {
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
   });
 
+  it('offers commercial workflow drafts without activating them', async () => {
+    const wrapper = await mountWorkspace();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-automations-template-whatsapp-sales"]')
+        .exists()
+    ).toBe(true);
+    await wrapper
+      .find('[data-testid="kanban-automations-template-blank"]')
+      .trigger('click');
+
+    expect(wrapper.vm.form.active).toBe(false);
+    expect(wrapper.vm.form.flowDefinition.nodes).toHaveLength(2);
+  });
+
+  it('validates a visual flow locally without saving it', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-validate-flow"]')
+      .trigger('click');
+
+    expect(KanbanBoardsAPI.createAutomationRule).not.toHaveBeenCalled();
+    expect(wrapper.vm.invalidNodeIds).toEqual([]);
+  });
+
+  it('keeps publication state beside validation and saving controls', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-publish-flow"]')
+      .setValue(true);
+
+    expect(wrapper.vm.form.active).toBe(true);
+  });
+
   it('shows the exact custom field selector for a field-change trigger', async () => {
     const wrapper = await mountWorkspace({
       settings: {
@@ -151,6 +204,9 @@ describe('KanbanAutomations', () => {
     await wrapper
       .find('[data-testid="kanban-automations-trigger-event"]')
       .setValue('kanban.card.custom_fields_changed');
+    await wrapper
+      .find('[data-testid="kanban-automations-trigger-options"]')
+      .trigger('click');
 
     expect(
       wrapper.find('[data-testid="kanban-automations-changed-field"]').exists()
@@ -189,6 +245,9 @@ describe('KanbanAutomations', () => {
     await wrapper
       .find('[data-testid="kanban-automations-trigger-event"]')
       .setValue('kanban.card.custom_fields_changed');
+    await wrapper
+      .find('[data-testid="kanban-automations-trigger-options"]')
+      .trigger('click');
     await wrapper
       .find('[data-testid="kanban-automations-changed-field"]')
       .setValue('origem');
@@ -619,9 +678,96 @@ describe('KanbanAutomations', () => {
       expect.objectContaining({
         kanban_automation_rule: expect.objectContaining({
           cancel_waiting_executions: true,
+          lock_version: 0,
         }),
       })
     );
+  });
+
+  it('keeps the editor open and explains a concurrent-save conflict', async () => {
+    KanbanBoardsAPI.updateAutomationRule.mockRejectedValue({
+      response: { status: 409, data: { message: 'technical conflict' } },
+    });
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+          lock_version: 3,
+          conditions: {},
+          actions: [],
+          flow_definition: {},
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-rule-44"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.showEditor).toBe(true);
+    expect(wrapper.vm.error).toBe(
+      'KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_CONFLICT'
+    );
+    expect(KanbanBoardsAPI.updateAutomationRule).toHaveBeenCalledWith(
+      10,
+      44,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({ lock_version: 3 }),
+      })
+    );
+  });
+
+  it('restores a local draft only when the rule version still matches', async () => {
+    window.localStorage.setItem(
+      'chatwoot:kanban-automation-rule:10:44',
+      JSON.stringify({
+        name: 'Rascunho local',
+        description: '',
+        eventName: 'kanban.card.stage_changed',
+        active: true,
+        lockVersion: 3,
+        reentryEnabled: false,
+        cancelWaitingExecutions: false,
+        stageId: '',
+        ownerId: '',
+        changedFieldKey: '',
+        triggerNextActionType: '',
+        triggerAmountOperator: 'greater_than',
+        triggerAmountValue: '',
+        fieldKey: '',
+        fieldOperator: 'equals',
+        fieldValue: '',
+        actions: [],
+        flowDefinition: {},
+      })
+    );
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Versão salva',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+          lock_version: 3,
+          conditions: {},
+          actions: [],
+          flow_definition: {},
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-rule-44"]')
+      .trigger('click');
+
+    expect(wrapper.vm.form.name).toBe('Rascunho local');
   });
 
   it('summarizes failed and overdue automation executions for the administrator', async () => {
@@ -638,14 +784,192 @@ describe('KanbanAutomations', () => {
           status: 'waiting',
           scheduled_at: '2999-01-01T09:00:00.000Z',
         },
+        {
+          id: 4,
+          status: 'running',
+          created_at: '2020-01-01T09:00:00.000Z',
+        },
       ],
     });
 
     expect(wrapper.vm.automationHealth).toMatchObject({
       failedCount: 1,
       overdueCount: 1,
+      abandonedCount: 1,
       needsAttention: true,
     });
+  });
+
+  it('summarizes the workflow steps with the most failures', async () => {
+    const wrapper = await mountWorkspace({
+      executions: [
+        {
+          id: 1,
+          action_results: [
+            {
+              node_id: 'message',
+              action_name: 'send_message',
+              status: 'failed',
+            },
+            { node_id: 'webhook', action_name: 'webhook', status: 'failed' },
+          ],
+        },
+        {
+          id: 2,
+          action_results: [
+            {
+              node_id: 'message',
+              action_name: 'send_message',
+              status: 'failed',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(wrapper.vm.nodeFailureSummary).toEqual([
+      { key: 'send_message', count: 2 },
+      { key: 'webhook', count: 1 },
+    ]);
+    expect(wrapper.vm.nodeErrorRates).toEqual([
+      { key: 'send_message', percentage: 100 },
+      { key: 'webhook', percentage: 100 },
+    ]);
+  });
+
+  it('summarizes node usage without exposing opportunity data', async () => {
+    const wrapper = await mountWorkspace({
+      executions: [
+        {
+          id: 1,
+          action_results: [
+            {
+              node_id: 'message',
+              action_name: 'send_message',
+              status: 'succeeded',
+            },
+            {
+              node_id: 'message',
+              action_name: 'send_message',
+              status: 'failed',
+            },
+            { node_id: 'wait', type: 'delay', status: 'waiting' },
+          ],
+        },
+      ],
+    });
+
+    expect(wrapper.vm.nodeUsageSummary).toEqual([
+      { key: 'send_message', total: 2, failed: 1 },
+      { key: 'delay', total: 1, failed: 0 },
+    ]);
+  });
+
+  it('counts messages blocked by commercial delivery safeguards', async () => {
+    const wrapper = await mountWorkspace({
+      executions: [
+        {
+          id: 1,
+          action_results: [
+            {
+              action_name: 'send_message',
+              status: 'skipped',
+              reason: 'opt_in_required',
+            },
+            {
+              action_name: 'send_message',
+              status: 'skipped',
+              reason: 'outside_whatsapp_window',
+            },
+            {
+              action_name: 'send_message',
+              status: 'skipped',
+              reason: 'quiet_hours',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(wrapper.vm.blockedMessageCount).toBe(2);
+  });
+
+  it('shows a safe, readable history for each automation execution', async () => {
+    const wrapper = await mountWorkspace({
+      executions: [
+        {
+          id: 12,
+          rule_id: 44,
+          rule_name: 'Distribuir novos contatos',
+          event_name: 'kanban.card.created',
+          card_id: 8,
+          status: 'succeeded',
+          action_results: [
+            {
+              node_id: 'assign',
+              action_name: 'assign_round_robin',
+              status: 'succeeded',
+              executed_at: '2026-07-25T22:00:00.000Z',
+            },
+            {
+              node_id: 'message',
+              action_name: 'send_message',
+              status: 'skipped',
+              reason: 'no_compatible_conversation',
+              authorization: 'must-not-be-rendered',
+            },
+          ],
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-tab-executions"]')
+      .trigger('click');
+
+    const steps = wrapper.find(
+      '[data-testid="kanban-automation-execution-steps-12"]'
+    );
+    expect(steps.exists()).toBe(true);
+    expect(steps.text()).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ASSIGN_ROUND_ROBIN'
+    );
+    expect(steps.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.SEND_MESSAGE'
+    );
+    expect(steps.text()).toContain(
+      'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_REASON.NO_COMPATIBLE_CONVERSATION'
+    );
+    expect(steps.find('time').attributes('datetime')).toBe(
+      '2026-07-25T22:00:00.000Z'
+    );
+    expect(steps.text()).not.toContain('must-not-be-rendered');
+  });
+
+  it('names every commercial workflow step in the rule preview', async () => {
+    const wrapper = await mountWorkspace();
+
+    expect(wrapper.vm.previewStepLabel({ type: 'wait_for_inactivity' })).toBe(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_INACTIVITY'
+    );
+    expect(wrapper.vm.previewStepLabel({ type: 'message_eligibility' })).toBe(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.MESSAGE_ELIGIBILITY'
+    );
+    expect(wrapper.vm.previewStepLabel({ type: 'audit_log' })).toBe(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.AUDIT_LOG'
+    );
+  });
+
+  it('explains when a date wait is already in the past in the rule preview', async () => {
+    const wrapper = await mountWorkspace();
+
+    expect(
+      wrapper.vm.previewStepContent({
+        type: 'wait_until_field',
+        reason: 'scheduled_time_in_past',
+        scheduledAt: '2026-07-19T10:00:00-03:00',
+      })
+    ).toBe('KANBAN.AUTOMATIONS_WORKSPACE.TEST.DATE_WAIT_PAST');
   });
 
   it('uses a follow-up template in the visual builder instead of a separate cadence', async () => {
@@ -746,6 +1070,11 @@ describe('KanbanAutomations', () => {
             type: 'delay',
             scheduled_at: '2026-07-24T12:00:00Z',
           },
+          {
+            node_id: 'message',
+            type: 'send_message',
+            rendered_content: 'Olá, Ana. Sua consulta está confirmada.',
+          },
         ],
       },
     });
@@ -788,6 +1117,120 @@ describe('KanbanAutomations', () => {
     expect(wrapper.text()).toContain(
       'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.DELAY'
     );
+    expect(wrapper.text()).toContain('Olá, Ana. Sua consulta está confirmada.');
+  });
+
+  it('opens the safe flow test from a saved flow editor', async () => {
+    KanbanBoardsAPI.testAutomationRule.mockResolvedValue({
+      data: { matches: true, steps: [] },
+    });
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [{ id: 2, name: 'Qualificação' }],
+        custom_field_definitions: [],
+        next_action_types: [],
+      },
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+      stageCards: [
+        { id: 70, subject: 'Proposta Ana', contact: { name: 'Ana' } },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-rule-44"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-test-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-automation-editor-test-panel"]')
+        .exists()
+    ).toBe(true);
+    await wrapper
+      .find('[data-testid="kanban-automation-editor-test-card"]')
+      .setValue('70');
+    await wrapper
+      .find('[data-testid="kanban-automation-editor-run-test"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.testAutomationRule).toHaveBeenCalledWith(10, 44, 70);
+    expect(KanbanBoardsAPI.updateAutomationRule).not.toHaveBeenCalled();
+  });
+
+  it('filters canvas history by the selected execution', async () => {
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+      executions: [
+        { id: 12, rule_id: 44, event_name: 'kanban.card.created' },
+        { id: 13, rule_id: 44, event_name: 'kanban.card.won' },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-rule-44"]')
+      .trigger('click');
+
+    const executionSelect = wrapper.find(
+      '[data-testid="kanban-automations-execution-history-filter"]'
+    );
+    expect(executionSelect.exists()).toBe(true);
+    expect(executionSelect.findAll('option')).toHaveLength(3);
+    await executionSelect.setValue('13');
+
+    expect(wrapper.vm.selectedRuleExecutionHistory).toEqual([]);
+    expect(wrapper.vm.selectedExecutionId).toBe('13');
+  });
+
+  it('opens an execution in its workflow canvas', async () => {
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+      executions: [
+        {
+          id: 13,
+          rule_id: 44,
+          rule_name: 'Retomar orçamento',
+          event_name: 'kanban.card.won',
+          status: 'succeeded',
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-tab-executions"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automation-open-execution-13"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-automation-editor"]').exists()
+    ).toBe(true);
+    expect(wrapper.vm.selectedExecutionId).toBe('13');
   });
 
   it('reveals compact inbound webhook instructions only when requested', async () => {
@@ -816,5 +1259,26 @@ describe('KanbanAutomations', () => {
         .exists()
     ).toBe(true);
     expect(wrapper.text()).toContain('INBOUND_HEADERS');
+  });
+
+  it('shows the safe connection audit in the integrations workspace', async () => {
+    const wrapper = await mountWorkspace({
+      connectionAudits: [
+        {
+          id: 19,
+          connection_id: 7,
+          action: 'secret_reset',
+          actor_id: 2,
+          created_at: '2026-08-01T12:00:00Z',
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-tab-connections"]')
+      .trigger('click');
+
+    expect(wrapper.text()).toContain('CONNECTIONS.AUDIT_TITLE');
+    expect(wrapper.text()).toContain('AUDIT_ACTIONS.secret_reset');
   });
 });

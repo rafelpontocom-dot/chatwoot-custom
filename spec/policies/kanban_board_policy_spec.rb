@@ -28,6 +28,46 @@ RSpec.describe KanbanBoardPolicy, type: :policy do
     it { is_expected.not_to permit(agent_context, KanbanBoard) }
   end
 
+  permissions :automate? do
+    it { is_expected.to permit(admin_context, KanbanBoard) }
+    it { is_expected.not_to permit(agent_context, KanbanBoard) }
+
+    context 'when an agent has an automation role', if: defined?(CustomRole) do
+      let(:custom_role) { create(:custom_role, account: account, permissions: %w[kanban_view kanban_automate]) }
+
+      before { agent_context[:account_user].update!(custom_role: custom_role) }
+
+      it { is_expected.to permit(agent_context, KanbanBoard) }
+    end
+  end
+
+  describe 'automation role separation', if: defined?(CustomRole) do
+    let(:board) { build(:kanban_board, account: account) }
+    let(:custom_role) { create(:custom_role, account: account, permissions: %w[kanban_view kanban_configure]) }
+
+    before { agent_context[:account_user].update!(custom_role: custom_role) }
+
+    it 'separates configuring, publishing, testing and execution access' do
+      policy = described_class.new(agent_context, board)
+
+      expect(policy.automation_configure?).to be true
+      expect(policy.automation_publish?).to be false
+      expect(policy.automation_test?).to be false
+      expect(policy.automation_execution?).to be false
+
+      custom_role.update!(
+        permissions: %w[
+          kanban_view kanban_configure kanban_automation_publish
+          kanban_automation_test kanban_automation_execution
+        ]
+      )
+
+      expect(policy.automation_publish?).to be true
+      expect(policy.automation_test?).to be true
+      expect(policy.automation_execution?).to be true
+    end
+  end
+
   permissions :report? do
     it { is_expected.to permit(admin_context, KanbanBoard) }
     it { is_expected.to permit(agent_context, KanbanBoard) }

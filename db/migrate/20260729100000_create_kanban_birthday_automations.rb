@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
 class CreateKanbanBirthdayAutomations < ActiveRecord::Migration[7.0]
   def change
     create_table :kanban_birthday_automations do |t|
@@ -39,3 +40,4 @@ class CreateKanbanBirthdayAutomations < ActiveRecord::Migration[7.0]
               name: 'idx_kanban_birthday_deliveries_processing'
   end
 end
+# rubocop:enable Metrics/AbcSize, Metrics/MethodLength

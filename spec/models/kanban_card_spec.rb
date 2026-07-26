@@ -1,6 +1,21 @@
 require 'rails_helper'
 
 RSpec.describe KanbanCard do
+  describe 'scheduled automation indexes' do
+    it 'has a partial index for open cards with an overdue next action' do
+      index = ActiveRecord::Base.connection.indexes(:kanban_cards).find do |candidate|
+        candidate.name == 'index_open_kanban_cards_on_next_action_at'
+      end
+
+      expect(index).to be_present
+      expect(index.columns).to eq(['next_action_at'])
+      expect(index.where).to include('active')
+      expect(index.where).to include('next_action_completed_at')
+      expect(index.where).to include('won_at')
+      expect(index.where).to include('lost_at')
+    end
+  end
+
   describe 'commercial lifecycle' do
     it 'records immutable events for creation and relevant commercial changes' do
       card = create(:kanban_card, amount_cents: 100_00)

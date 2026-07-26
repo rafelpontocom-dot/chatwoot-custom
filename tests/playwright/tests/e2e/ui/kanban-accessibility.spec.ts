@@ -4,6 +4,7 @@ import { Login } from '@components/ui';
 
 const TEST_EMAIL = process.env.TEST_USER_EMAIL || 'admin@chatwoot.com';
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'Password123@#';
+const TEST_BOARD_ID = process.env.KANBAN_E2E_BOARD_ID;
 
 test.describe('Kanban accessibility and responsive workspace', () => {
   test.skip(
@@ -17,7 +18,11 @@ test.describe('Kanban accessibility and responsive workspace', () => {
     expect(accountId).toBeTruthy();
 
     await page.goto(`/app/accounts/${accountId}/kanban`);
-    const board = page.getByTestId('overview-board-card').first();
+    const board = TEST_BOARD_ID
+      ? page.locator(
+          `[data-testid="overview-board-card"][data-kanban-board-id="${TEST_BOARD_ID}"]`
+        )
+      : page.getByTestId('overview-board-card').first();
     await expect(board).toBeVisible();
     await board.click();
     await expect(page.getByTestId('kanban-workspace-header')).toBeVisible();
@@ -26,7 +31,10 @@ test.describe('Kanban accessibility and responsive workspace', () => {
   test.beforeEach(async ({ page }) => {
     const login = new Login(page);
     await login.navigate();
-    await login.login(TEST_EMAIL, TEST_PASSWORD);
+    await Promise.all([
+      page.waitForURL(/\/app\/accounts\/\d+\//),
+      login.login(TEST_EMAIL, TEST_PASSWORD),
+    ]);
   });
 
   test('exposes the main workflow through accessible controls and keyboard focus', async ({
@@ -78,6 +86,7 @@ test.describe('Kanban accessibility and responsive workspace', () => {
   test('keeps the workspace header inside the mobile viewport', async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
     await openFirstBoard(page);
 
     const header = page.getByTestId('kanban-workspace-header');
@@ -91,5 +100,77 @@ test.describe('Kanban accessibility and responsive workspace', () => {
     const accessibleButtons = header.getByRole('button');
     await expect(accessibleButtons.first()).toBeVisible();
     await expect(accessibleButtons.first()).toHaveAccessibleName(/.+/);
+  });
+
+  test('keeps the board actions usable at tablet width', async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await openFirstBoard(page);
+
+    const header = page.getByTestId('kanban-workspace-header');
+    const filters = page.getByTestId('kanban-toggle-filters');
+    const automations = page.getByTestId('kanban-board-automations-button');
+
+    await expect(header).toBeVisible();
+    await expect
+      .poll(() =>
+        header.evaluate(element => element.scrollWidth <= element.clientWidth)
+      )
+      .toBe(true);
+    await expect(filters).toBeVisible();
+    await expect(automations).toBeVisible();
+
+    await filters.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('kanban-filter-panel')).toBeVisible();
+  });
+
+  test('opens the visual workflow canvas with a keyboard-dismissible inspector', async ({
+    page,
+  }) => {
+    await openFirstBoard(page);
+
+    await page.getByTestId('kanban-board-automations-button').click();
+    await expect(page.getByTestId('kanban-automations-workspace')).toBeVisible();
+    await page.getByTestId('kanban-automations-new-flow').click();
+
+    const builder = page.getByTestId('kanban-workflow-builder');
+    await expect(builder).toBeVisible();
+    await expect(page.getByTestId('kanban-workflow-canvas')).toBeVisible();
+    await page.getByTestId('kanban-workflow-add-node').click();
+
+    const palette = page.locator(
+      '[data-testid="kanban-workflow-palette"]:visible'
+    );
+    await expect(palette).toBeVisible();
+    await palette.getByTestId('kanban-workflow-palette-search').fill('Aguardar');
+    await palette.getByTestId('kanban-workflow-palette-node').first().click();
+
+    const inspector = page.getByTestId('kanban-workflow-node-drawer');
+    await expect(inspector).toBeVisible();
+    await expect(inspector).toHaveAttribute('role', 'dialog');
+    await page.keyboard.press('Escape');
+    await expect(inspector).toBeHidden();
+    await expect(builder).toBeFocused();
+
+    const canvasNode = page
+      .getByTestId('kanban-workflow-node-card')
+      .first();
+    await canvasNode.focus();
+    await page.keyboard.press('Enter');
+    await expect(inspector).toBeVisible();
+
+    const focusable = inspector.locator(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+    );
+    const firstControl = focusable.first();
+    const lastControl = focusable.last();
+
+    await lastControl.focus();
+    await page.keyboard.press('Tab');
+    await expect(firstControl).toBeFocused();
+
+    await firstControl.focus();
+    await page.keyboard.press('Shift+Tab');
+    await expect(lastControl).toBeFocused();
   });
 });

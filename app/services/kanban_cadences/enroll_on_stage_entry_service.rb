@@ -5,11 +5,23 @@ class KanbanCadences::EnrollOnStageEntryService
   end
 
   def call
-    cadence = card.kanban_board.kanban_cadences.active.find_by(
+    enrollments = cadences.filter_map { |cadence| enroll(cadence) }
+    return if enrollments.empty?
+
+    enrollments.one? ? enrollments.first : enrollments
+  end
+
+  private
+
+  attr_reader :card, :stage
+
+  def cadences
+    card.kanban_board.kanban_cadences.active.where(
       trigger_type: 'stage_entered', trigger_stage_id: stage.id
     )
-    return unless cadence
+  end
 
+  def enroll(cadence)
     existing = card.kanban_cadence_enrollments.find_by(kanban_cadence: cadence)
     return existing if existing&.active? || existing&.awaiting_completion?
 
@@ -18,9 +30,7 @@ class KanbanCadences::EnrollOnStageEntryService
       cadence: cadence,
       user: card.owner || card.account.users.first
     ).call
+  rescue ActiveRecord::RecordNotUnique
+    card.kanban_cadence_enrollments.find_by!(kanban_cadence: cadence)
   end
-
-  private
-
-  attr_reader :card, :stage
 end

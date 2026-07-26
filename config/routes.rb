@@ -147,6 +147,7 @@ Rails.application.routes.draw do
               get 'reports/export', to: 'reports#export'
               resources :automation_rules, only: [:index, :create, :update, :destroy] do
                 get 'executions', on: :collection, to: 'automation_rules#all_executions'
+                get 'metrics', on: :collection, to: 'automation_rules#metrics'
                 post :test, on: :member
                 post :run, on: :member
                 get :executions, on: :member
@@ -156,6 +157,7 @@ Rails.application.routes.draw do
                 post 'executions/:execution_id/retry', to: 'automation_rules#retry_execution', on: :member
               end
               resources :automation_connections, only: [:index, :create, :update, :destroy] do
+                get :audits, on: :collection
                 post :reset_secret, on: :member
               end
               resources :cadences, only: [:index, :create, :update, :destroy]

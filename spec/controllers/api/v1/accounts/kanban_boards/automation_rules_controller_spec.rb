@@ -78,6 +78,27 @@ RSpec.describe 'Kanban automation rules API', type: :request do
     expect(rule.kanban_automation_rule_versions.count).to eq(3)
   end
 
+  it 'rejects a stale edit instead of overwriting a newer automation rule' do
+    rule = create(:kanban_automation_rule, account: account, kanban_board: board, name: 'Versão atual')
+    stale_lock_version = rule.lock_version
+    rule.update!(name: 'Atualizada por outro administrador')
+
+    patch "#{rules_url}/#{rule.id}",
+          headers: administrator.create_new_auth_token,
+          params: {
+            kanban_automation_rule: {
+              name: 'Edição antiga',
+              event_name: rule.event_name,
+              lock_version: stale_lock_version
+            }
+          },
+          as: :json
+
+    expect(response).to have_http_status(:conflict)
+    expect(response.parsed_body['message']).to eq('This automation changed while you were editing it.')
+    expect(rule.reload.name).to eq('Atualizada por outro administrador')
+  end
+
   it 'rejects rule configuration for agents' do
     post rules_url,
          headers: agent.create_new_auth_token,
@@ -205,5 +226,63 @@ RSpec.describe 'Kanban automation rules API', type: :request do
     end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob)
 
     expect(response).to have_http_status(:accepted)
+  end
+
+  it 'returns historical node metrics without operational payloads' do
+    rule = create(:kanban_automation_rule, account: account, kanban_board: board)
+    create(
+      :kanban_automation_execution,
+      account: account,
+      kanban_automation_rule: rule,
+      action_results: [
+        { 'node_id' => 'message', 'action_name' => 'send_message', 'status' => 'succeeded', 'content' => 'private' },
+        { 'node_id' => 'message', 'action_name' => 'send_message', 'status' => 'failed', 'authorization' => 'secret' },
+        { 'node_id' => 'wait', 'type' => 'delay', 'status' => 'waiting' }
+      ]
+    )
+
+    get "#{rules_url}/metrics", headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to eq(
+      [
+        { 'node_type' => 'send_message', 'total' => 2, 'failed' => 1 },
+        { 'node_type' => 'delay', 'total' => 1, 'failed' => 0 }
+      ]
+    )
+  end
+
+  it 'returns only safe step details in the execution history' do
+    rule = create(:kanban_automation_rule, account: account, kanban_board: board)
+    create(
+      :kanban_automation_execution,
+      account: account,
+      kanban_automation_rule: rule,
+      status: 'failed',
+      action_results: [
+        {
+          'node_id' => 'message',
+          'action_name' => 'send_message',
+          'status' => 'skipped',
+          'reason' => 'no_compatible_conversation',
+          'conversation' => { 'id' => 20, 'contact' => { 'email' => 'private@example.com' } },
+          'authorization' => 'secret-token'
+        }
+      ]
+    )
+
+    get "#{rules_url}/executions", headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body.first['action_results']).to eq(
+      [
+        {
+          'node_id' => 'message',
+          'action_name' => 'send_message',
+          'status' => 'skipped',
+          'reason' => 'no_compatible_conversation'
+        }
+      ]
+    )
   end
 end

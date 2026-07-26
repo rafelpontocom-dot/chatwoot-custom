@@ -1,7 +1,7 @@
 # rubocop:disable Metrics/ClassLength -- Rule lifecycle, execution diagnostics, and version recovery share one authorization boundary.
 class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Accounts::BaseController
   before_action :fetch_kanban_board
-  before_action :authorize_kanban_board
+  before_action :authorize_automation_action
   before_action :fetch_rule, only: [:update, :destroy, :test, :executions, :versions, :restore_version, :cancel_execution, :run, :retry_execution]
 
   def index
@@ -10,6 +10,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
 
   def create
     rule = @kanban_board.kanban_automation_rules.new(rule_attributes.merge(account: Current.account))
+    authorize @kanban_board, :automation_publish? if rule.active?
     rule.save!
     rule.record_version!
     render json: rule_payload(rule), status: :created
@@ -18,6 +19,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
   end
 
   def update
+    authorize @kanban_board, :automation_publish? if @rule.active? || ActiveModel::Type::Boolean.new.cast(rule_attributes[:active])
     @rule.transaction do
       @rule.update!(rule_attributes)
       cancel_waiting_executions if cancel_waiting_executions?
@@ -26,6 +28,8 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
     render json: rule_payload(@rule)
   rescue ActiveRecord::RecordInvalid => e
     render json: { message: e.record.errors.full_messages.to_sentence, errors: e.record.errors }, status: :unprocessable_entity
+  rescue ActiveRecord::StaleObjectError
+    render json: { message: 'This automation changed while you were editing it.' }, status: :conflict
   end
 
   def destroy
@@ -64,6 +68,10 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
                  .order(created_at: :desc, id: :desc)
                  .limit(100)
     render json: executions.map { |execution| execution_payload(execution) }
+  end
+
+  def metrics
+    render json: node_metrics
   end
 
   def executions
@@ -110,12 +118,43 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
 
   private
 
+  def scoped_automation_executions
+    KanbanAutomationExecution.joins(:kanban_automation_rule)
+                             .where(kanban_automation_rules: { kanban_board_id: @kanban_board.id })
+                             .where(created_at: 90.days.ago..Time.current)
+  end
+
+  def node_metrics
+    metrics = Hash.new do |summary, key|
+      summary[key] = { node_type: key, total: 0, failed: 0 }
+    end
+    scoped_automation_executions.find_each { |execution| add_execution_metrics(metrics, execution) }
+    metrics.values.sort_by { |item| [-item[:total], item[:node_type]] }
+  end
+
+  def add_execution_metrics(metrics, execution)
+    Array(execution.action_results).each do |result|
+      node_type = result['action_name'].presence || result['type'].presence || result['node_id'].presence
+      next if node_type.blank?
+
+      metrics[node_type][:total] += 1
+      metrics[node_type][:failed] += 1 if result['status'] == 'failed'
+    end
+  end
+
   def fetch_kanban_board
     @kanban_board = policy_scope(KanbanBoard).find(params[:kanban_board_id])
   end
 
-  def authorize_kanban_board
-    authorize @kanban_board, :update?
+  def authorize_automation_action
+    authorize @kanban_board, automation_policy_action
+  end
+
+  def automation_policy_action
+    return :automation_test? if action_name == 'test'
+    return :automation_execution? if %w[all_executions metrics executions cancel_execution retry_execution run].include?(action_name)
+
+    :automation_configure?
   end
 
   def fetch_rule
@@ -130,6 +169,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       :active,
       :reentry_enabled,
       :cancel_waiting_executions,
+      :lock_version,
       :position,
       flow_definition: {},
       conditions: [
@@ -150,6 +190,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       description: rule.description,
       event_name: rule.event_name,
       active: rule.active,
+      lock_version: rule.lock_version,
       version: rule.version_number,
       reentry_enabled: rule.reentry_enabled,
       position: rule.position,
@@ -187,7 +228,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       event_name: execution.event_name,
       event_key: execution.event_key,
       status: execution.status,
-      action_results: execution.action_results,
+      action_results: safe_action_results(execution.action_results),
       error_message: execution.error_message,
       scheduled_at: execution.scheduled_at&.iso8601,
       started_at: execution.started_at&.iso8601,
@@ -209,6 +250,23 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       active: snapshot['active'],
       created_at: version.created_at.iso8601
     }
+  end
+
+  def safe_action_results(action_results)
+    Array(action_results).filter_map do |result|
+      result.to_h.stringify_keys.slice(
+        'node_id',
+        'action_name',
+        'status',
+        'reason',
+        'branch',
+        'scheduled_at',
+        'executed_at',
+        'option_id',
+        'outcome',
+        'event_type'
+      ).presence
+    end
   end
 end
 # rubocop:enable Metrics/ClassLength

@@ -6,15 +6,28 @@ class KanbanAutomations::WorkflowMessageService
   end
 
   def perform!
-    conversation = compatible_conversation
-    return skipped('no_compatible_conversation') if conversation.blank?
-    return skipped('opt_in_required') unless opted_in?
-    return skipped('outside_whatsapp_window') if whatsapp_outside_window?(conversation)
+    eligibility_result = eligibility
+    return eligibility_result unless eligibility_result['status'] == 'eligible'
+
+    conversation = eligibility_result.fetch('conversation')
     return deferred('quiet_hours', quiet_hours_resume_at) if quiet_hours_resume_at.present?
     return deferred('frequency_limit', frequency_limit_resume_at) if frequency_limit_resume_at.present?
 
     message = Messages::MessageBuilder.new(nil, conversation, message_params).perform
     { 'action_name' => 'send_message', 'status' => 'succeeded', 'message_id' => message.id }
+  end
+
+  def eligibility
+    conversation = compatible_conversation
+    return skipped('no_compatible_conversation') if conversation.blank?
+    return skipped('opt_in_required') unless opted_in?
+    return skipped('outside_whatsapp_window') if whatsapp_outside_window?(conversation)
+
+    { 'action_name' => 'send_message', 'status' => 'eligible', 'conversation' => conversation }
+  end
+
+  def preview_content
+    rendered_content
   end
 
   private

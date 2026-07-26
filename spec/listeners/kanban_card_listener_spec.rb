@@ -107,7 +107,11 @@ RSpec.describe KanbanCardListener do
         kanban_card: card,
         status: 'waiting',
         scheduled_at: 1.day.from_now,
-        workflow_state: { 'next_node_id' => 'end', 'waiting_for' => 'customer_message' }
+        workflow_state: {
+          'next_node_id' => 'end',
+          'timeout_node_id' => 'expired',
+          'waiting_for' => 'customer_message'
+        }
       )
       message = create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox)
       event = Events::Base.new(Events::Types::MESSAGE_CREATED, Time.zone.now, message: message)
@@ -121,6 +125,72 @@ RSpec.describe KanbanCardListener do
 
       expect(execution.reload).to have_attributes(scheduled_at: nil)
       expect(execution.workflow_state).not_to have_key('waiting_for')
+      expect(execution.workflow_state).not_to have_key('timeout_node_id')
+    end
+
+    it 'skips inactivity waits when the customer responds before the timeout' do
+      conversation = create(:conversation)
+      card = create(:kanban_card, :conversation_origin, conversation: conversation)
+      rule = create(
+        :kanban_automation_rule,
+        account: card.account,
+        kanban_board: card.kanban_board
+      )
+      execution = create(
+        :kanban_automation_execution,
+        account: card.account,
+        kanban_automation_rule: rule,
+        kanban_card: card,
+        status: 'waiting',
+        scheduled_at: 1.day.from_now,
+        workflow_state: { 'next_node_id' => 'end', 'waiting_for' => 'customer_inactivity' }
+      )
+      message = create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox)
+      event = Events::Base.new(Events::Types::MESSAGE_CREATED, Time.zone.now, message: message)
+
+      listener.message_created(event)
+
+      expect(execution.reload).to have_attributes(status: 'skipped', scheduled_at: nil)
+      expect(execution.workflow_state).to eq({})
+      expect(execution.action_results).to include(
+        hash_including('reason' => 'customer_message_received', 'waiting_for' => 'customer_inactivity')
+      )
+    end
+
+    it 'continues through the response path when a routed inactivity wait receives a message' do
+      conversation = create(:conversation)
+      card = create(:kanban_card, :conversation_origin, conversation: conversation)
+      rule = create(
+        :kanban_automation_rule,
+        account: card.account,
+        kanban_board: card.kanban_board
+      )
+      execution = create(
+        :kanban_automation_execution,
+        account: card.account,
+        kanban_automation_rule: rule,
+        kanban_card: card,
+        status: 'waiting',
+        scheduled_at: 1.day.from_now,
+        workflow_state: {
+          'next_node_id' => 'idle',
+          'response_node_id' => 'responded',
+          'waiting_for' => 'customer_inactivity'
+        }
+      )
+      message = create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox)
+      event = Events::Base.new(Events::Types::MESSAGE_CREATED, Time.zone.now, message: message)
+
+      expect do
+        listener.message_created(event)
+      end.to have_enqueued_job(KanbanAutomations::ContinueWorkflowJob)
+        .with(execution.id, card.id)
+
+      expect(execution.reload).to have_attributes(status: 'waiting', scheduled_at: nil)
+      expect(execution.workflow_state).to eq('next_node_id' => 'responded')
+      expect(execution.action_results).to include(
+        hash_including('reason' => 'customer_message_received', 'waiting_for' => 'customer_inactivity')
+      )
     end
   end
 

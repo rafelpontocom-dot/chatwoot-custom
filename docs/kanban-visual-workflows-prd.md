@@ -15,7 +15,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 - executar JavaScript, código Liquid arbitrário ou scripts de usuário;
 - armazenar chaves de serviços externos no fluxo;
 - substituir o N8N em integrações complexas nesta fase;
-- criar ramificações, loops ou jornadas multicanal sem simulação e auditoria;
+- executar loops, junções paralelas, código ou jornadas multicanal genéricas sem simulação e auditoria;
 - enviar WhatsApp fora da janela de atendimento sem template aprovado.
 
 ## Perfis
@@ -32,8 +32,8 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 2. A central mostra Fluxos, Lembretes, Conexões e Execuções, com os itens existentes em listas curtas e escaneáveis.
 3. Seleciona uma automação, usa Nova automação ou parte de um modelo pronto para abrir o construtor em uma área dedicada.
 4. Define nome, evento, etapa de origem e estado ativo no cabeçalho compacto do fluxo.
-5. Usa o botão `+` para escolher uma etapa a acrescentar ao canvas, sem uma paleta permanente ocupando espaço.
-6. Seleciona um nó ou conexão para configurar seu conteúdo em um modal central, sem comprimir o canvas.
+5. Usa a paleta pesquisável à esquerda para escolher um bloco por categoria, ou arrasta o bloco para o canvas. O botão `+` permanece como atalho contextual e alternativa em telas pequenas.
+6. Seleciona um nó ou conexão para configurar seu conteúdo em um painel flutuante, sem comprimir o canvas.
 7. Salva. O backend valida todos os nós antes de ativar a regra.
 8. Quando o evento ocorre, a execução fica registrada no histórico do funil, com estado, oportunidade e motivo de falha.
 9. Se houver uma espera, o card segue operando normalmente; a execução retoma no horário salvo.
@@ -41,32 +41,62 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 ## Princípios Da Central De Automações
 
 - O canvas é uma área de trabalho, não um bloco dentro de um formulário longo.
-- O botão `+` apresenta opções somente quando a pessoa quer acrescentar uma etapa.
-- O modal de configuração aparece somente para o nó ou conexão selecionado, concentra suas propriedades e preserva a largura do canvas.
+- A paleta lateral é recolhível, pesquisável e organizada por categorias; ela não despeja todos os nós de uma vez.
+- O botão `+` é uma alternativa contextual: insere e conecta o próximo passo no caminho selecionado.
+- O painel de configuração aparece somente para o nó ou conexão selecionado, concentra suas propriedades e preserva a largura do canvas.
 - Lembretes de consulta são configurados em uma aba própria; follow-up comercial é um fluxo visual, nunca uma segunda configuração paralela.
 - Conexões externas têm configuração própria: o fluxo apenas escolhe uma conexão já aprovada.
 - Execuções permitem retry de falhas, cancelamento de esperas e leitura rápida do impacto na oportunidade.
-- O inseridor contextual `+` acrescenta e conecta o próximo passo no caminho selecionado; uma paleta fixa não deve roubar espaço do canvas.
+- O inseridor contextual `+` acrescenta e conecta o próximo passo no caminho selecionado; a paleta pode ser recolhida para o canvas ocupar toda a tela quando necessário.
 - O fluxo nasce como rascunho e só é ativado depois de validado e revisado por um administrador. Cada salvamento cria uma versão visível para auditoria; execuções mantêm o snapshot da versão que as iniciou. Restaurar uma versão pede confirmação explícita, cria uma nova versão e só afeta execuções futuras.
 - Cadências legadas permanecem somente para preservar histórico e regras existentes; novas cadências não são criadas pela central.
 - `Follow-up comercial` e `NPS e avaliação Google` são sempre abertos como rascunho. `Mensagem de aniversário` abre sua configuração específica, desativada por padrão, pois depende da data de nascimento do contato.
 
-## Nós Da Primeira Entrega
+## Catálogo De Nós Do Produto
+
+O catálogo não replica o n8n. Ele cobre eventos, decisões e ações comerciais que existem no Chatwoot/Kanban; integrações, IA, transformação extensa de dados e processos entre sistemas continuam no N8N por uma conexão aprovada.
+
+### Implementados Ou Em Consolidação
 
 | Nó                | Finalidade                                                         | Configuração obrigatória   |
 | ----------------- | ------------------------------------------------------------------ | -------------------------- |
 | Gatilho           | Início visual do fluxo; o evento continua configurado na regra.    | Um por fluxo.              |
 | Aguardar          | Pausa a execução por horas.                                        | Número positivo de horas.  |
-| Aguardar até data | Agenda em relação a um campo de data/hora da oportunidade.         | Campo e deslocamento.      |
-| Aguardar resposta | Pausa até uma resposta recebida do cliente, ou até vencer o prazo. | Limite positivo em horas.  |
+| Aguardar até data | Agenda em relação a um campo de data/hora da oportunidade; pode parar ou seguir por `Data indisponível` quando o valor não puder ser usado. | Campo, deslocamento e política de falha. |
+| Aguardar resposta | Pausa até uma resposta recebida do cliente, ou até vencer o prazo; opcionalmente divide o fluxo entre `Resposta recebida` e `Prazo da resposta vencido`. | Limite positivo em horas e política de prazo. |
 | Aguardar horário comercial | Mantém a execução até a próxima janela de trabalho configurada. | Dias, horário inicial/final e fuso. |
 | Enviar mensagem   | Envia WhatsApp ou e-mail na conversa compatível do contato.        | Canal, opt-in e texto.     |
 | Ação comercial    | Atualiza a oportunidade ou registra o próximo trabalho do time.    | Tipo e parâmetros da ação. |
 | Enviar webhook    | Envia dados da oportunidade para uma conexão HTTPS já configurada. | Conexão ativa.             |
-| Condição          | Separa o fluxo em caminhos Sim e Não.                              | Campo, operador e valor.   |
+| Roteador          | Avalia regras ordenadas e segue a primeira saída correspondente.   | Saídas, regras E/OU e rota `Caso contrário`. |
+| Distribuir caminhos | Alterna saídas sequencialmente para testes ou campanhas.          | Duas ou mais saídas.       |
 | Fim               | Encerra o caminho.                                                 | Nenhuma.                   |
 
-As ações comerciais disponíveis são: mover etapa, definir responsável, distribuir novos cards em rodízio, criar próxima ação, preencher ou incrementar campo personalizado numérico, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
+As ações comerciais disponíveis são: mover etapa, definir responsável, distribuir novos cards em rodízio, criar próxima ação, preencher, incrementar ou limpar campo personalizado, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
+
+### Próximos Nós Comerciais
+
+| Categoria | Nó | Resultado para o operador |
+| --- | --- | --- |
+| Gatilhos | Agenda recorrente | Executa uma verificação diária, por exemplo aniversário ou tarefas vencidas. |
+| Decisão | Filtro | Atalho de uma rota condicional com uma única continuação válida. |
+| Decisão | Elegibilidade de mensagem | Verifica consentimento, canal, janela de 24 horas e etapa antes de qualquer envio; o nó de mensagem pode seguir por uma saída explícita de não enviada. |
+| Tempo | Aguardar inatividade | Continua somente após o cliente não responder pelo período configurado; opcionalmente divide o fluxo entre `Nenhuma resposta recebida` e `Cliente respondeu`. |
+| Tempo | Horário comercial | Aguarda a próxima janela válida; opcionalmente divide o fluxo entre `Janela de atendimento disponível` e `indisponível` quando a janela não puder ser calculada. |
+| Cliente | Transferir para humano | Encaminha a conversa para uma equipe comercial, um responsável ou ambos; adiciona contexto e interrompe mensagens automáticas. |
+| Cliente | Atualizar contato | Atualiza atributo permitido, como opt-in ou data de nascimento. |
+| Oportunidade | Ganhar ou perder | Fecha a oportunidade com dados obrigatórios e motivo quando aplicável. |
+| Oportunidade | Concluir próxima ação | Registra a nota de conclusão e pode agendar a próxima atividade comercial. |
+| Operação | Registrar execução | Adiciona uma observação imutável à linha do tempo, sem expor dados técnicos ao cliente. |
+| Operação | Tratar falha | Define parar, tentar novamente ou seguir pela saída de falha para nós permitidos. |
+
+### Fora Do Escopo Do Construtor
+
+- código JavaScript, shell ou expressões arbitrárias;
+- requisição HTTP arbitrária, banco de dados, arquivo e credencial no fluxo;
+- loop/iteração genérico, merge/join, paralelismo e subworkflows;
+- IA de propósito geral sem contrato de entrada, saída, custo e revisão humana;
+- integrações entre sistemas que não usam conexão declarada e aprovada.
 
 O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima ação`, mantendo todo o processo em um único fluxo auditável. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
 
@@ -134,12 +164,13 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 
 ### P2
 
-- Nó Condição com caminhos Sim e Não. Implementado.
-- Ramificação explícita, sem ciclos implícitos. Implementado para caminhos Sim/Não.
+- Roteador com saídas ordenadas, regras E/OU por saída e rota `Caso contrário`. Implementado.
+- Ramificação explícita, sem ciclos implícitos e com uma única rota ativa por execução. Implementado.
 - Nó de data de campo: por exemplo, `Data e hora da consulta - 24h`. Implementado.
 - Modelos comerciais por objetivo, iniciados em rascunho e adaptados pelo administrador. Implementado para follow-up, NPS/Google e aniversário.
 - Ações de lembrete de consulta reutilizáveis no mesmo canvas. Implementado com nós de data, atraso e horário comercial.
-- Importação assistida de workflows do N8N, sempre desativada até revisão humana.
+- Agenda recorrente, inatividade, transferência humana, atualização de contato e resultado terminal da oportunidade.
+- Histórico de execução por nó, tratamento de falha e simulação rica. O histórico mostra passo, saída, estado, horário e motivo seguro no inspector contextual; a simulação resolve condições, rotas e variáveis sem efeitos externos.
 
 ## Referências E Estratégia
 
@@ -149,7 +180,8 @@ O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima a�
 | --------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | HubSpot Workflows     | Separar gatilho de inscrição, condições de reentrada, agenda e saída do fluxo.                                       | Um catálogo enorme de objetos e regras que não existem no Chatwoot.     |
 | Pipedrive Automations | Inserção progressiva por `+`, sequência clara de condição/ação/espera e decisão explícita sobre execuções pendentes. | Limites de produto arbitrários e editor espalhado em muitos painéis.    |
-| n8n                   | Histórico de execução por etapa, conexões fora do canvas e disciplina para nós de risco.                             | Código, shell, arquivos e HTTP arbitrário dentro de um funil comercial. |
+| n8n                   | Nó compacto com estado, configuração contextual, preview/teste e histórico por etapa.                                | Código, shell, arquivos e HTTP arbitrário dentro de um funil comercial. |
+| Node-RED              | Paleta pesquisável por categorias, composição por blocos e roteador com regras ordenadas e rota padrão.               | Visual técnico e painel permanente que reduz o espaço do canvas.        |
 
 HubSpot documenta gatilhos por evento, filtro, agenda e webhook e trata reentrada como uma configuração explícita. Pipedrive limita a próxima escolha útil a condição, ação ou espera e pede o tratamento das execuções pendentes quando a automação muda. O n8n mostra a importância de registrar execuções e de auditar nós potencialmente perigosos. [HubSpot: criar workflows](https://knowledge.hubspot.com/workflows/create-workflows), [Pipedrive: atraso e pendências](https://support.pipedrive.com/en/article/workflow-automations-delay-feature), [n8n: auditoria de segurança](https://docs.n8n.io/hosting/securing/security-audit/).
 
@@ -170,6 +202,18 @@ Erros de configuração não podem exigir que o administrador procure pelo canva
 **P2 de escala:** tarefas internas com prazo, templates por segmento e integrações declarativas adicionais, sempre por conexão aprovada. O rodízio de responsáveis está implementado como uma ação atômica do fluxo; a central já exibe saúde operacional com falhas e esperas vencidas.
 
 O Vue Flow é a infraestrutura de interação: oferece zoom, seleção, nós/arestas customizados, controles e minimapa. O produto continua responsável pela linguagem comercial, validação e segurança. [Vue Flow](https://vueflow.dev/)
+
+### Modelo Do Editor Visual
+
+O editor combina a arquitetura do Node-RED com a leitura visual do n8n, sem reutilizar código de produtos com licença incompatível. A paleta lateral é um catálogo independente, pesquisável e recolhível por categoria: Gatilhos, Decisão, Tempo, Cliente, Oportunidade, Integrações e Operação. Um bloco pode ser clicado ou arrastado para o canvas; clique continua sendo a alternativa acessível ao arraste.
+
+As conexões aprovadas para webhook possuem uma trilha administrativa independente da execução do fluxo. A equipe consegue verificar criação, alteração, remoção e regeneração de segredo sem transformar URLs, tokens ou conteúdo externo em dados visíveis no CRM.
+
+O canvas é a área dominante. Clicar em um nó abre uma configuração contextual flutuante, sem comprimir o fluxo. O histórico de teste e execução é solicitado pelo administrador, em vez de ocupar uma coluna fixa. Nós exibem ícone, categoria, título, resumo, estado de validação e conectores de entrada/saída. O Router avalia saídas em ordem; cada saída tem seu próprio grupo E/OU e existe uma rota final `Caso contrário`.
+
+Cada nó usa tamanho estável, cabeçalho com ícone e cor semântica de categoria, uma linha de resumo e chips para a configuração principal. Formulários não aparecem dentro do canvas. Arestas mostram o nome da saída e, ao foco ou hover, oferecem ações de remover ou inserir um bloco no meio. A cor nunca é o único indicador de estado: erro, rascunho, aguardando e concluído também usam texto e ícone.
+
+O painel do nó possui as abas `Configurar`, `Testar` e `Histórico`. O primeiro campo sempre explica o efeito comercial do nó; opções avançadas ficam recolhidas. O painel usa o título real do nó, por exemplo `Configurar roteador`, e nunca um rótulo genérico como `Configurações da etapa`.
 
 ## Métricas
 

@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
 class CreateKanbanCadences < ActiveRecord::Migration[7.1]
   def change
     create_table :kanban_cadences do |t|
@@ -44,3 +45,4 @@ class CreateKanbanCadences < ActiveRecord::Migration[7.1]
               name: 'idx_kanban_cadence_enrollments_account_status'
   end
 end
+# rubocop:enable Metrics/AbcSize, Metrics/MethodLength

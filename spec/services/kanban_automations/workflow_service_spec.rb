@@ -1,6 +1,28 @@
 require 'rails_helper'
 
 RSpec.describe KanbanAutomations::WorkflowService do
+  it 'records a semantic failed end state without raising an execution error' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'end', type: 'end', data: { outcome: 'failed' } }
+        ],
+        edges: [{ source: 'trigger', target: 'end' }]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:failed)
+    expect(result[:action_results]).to include(hash_including('outcome' => 'failed'))
+  end
+
   it 'pauses at a delay node and stores the next node to execute' do
     card = create(:kanban_card)
     rule = create(
@@ -26,6 +48,9 @@ RSpec.describe KanbanAutomations::WorkflowService do
 
     expect(result).to include(status: :waiting, scheduled_at: now + 24.hours)
     expect(result[:workflow_state]).to include('next_node_id' => 'end')
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'wait', 'executed_at' => now.iso8601)
+    )
   end
 
   it 'waits for a customer response and stores the next node' do
@@ -53,6 +78,256 @@ RSpec.describe KanbanAutomations::WorkflowService do
 
     expect(result).to include(status: :waiting, scheduled_at: now + 48.hours)
     expect(result[:workflow_state]).to include('next_node_id' => 'end', 'waiting_for' => 'customer_message')
+  end
+
+  it 'stores separate response and timeout paths when the response wait is routed' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'reply',
+            type: 'wait_for_response',
+            data: { timeout_hours: 48, timeout_mode: 'route' }
+          },
+          { id: 'received', type: 'end', data: {} },
+          { id: 'expired', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'reply' },
+          { source: 'reply', sourceHandle: 'received', target: 'received' },
+          { source: 'reply', sourceHandle: 'timeout', target: 'expired' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:workflow_state]).to include(
+      'next_node_id' => 'received',
+      'timeout_node_id' => 'expired',
+      'waiting_for' => 'customer_message'
+    )
+  end
+
+  it 'stops a workflow at a filter when the opportunity does not match' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [{ key: 'origem', label: 'Origem', field_type: 'text' }]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { origem: 'Parceria' }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'filter', type: 'filter', data: { field_key: 'origem', operator: 'equals', value: 'Google' } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'filter' },
+          { source: 'filter', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'filter', 'status' => 'skipped', 'reason' => 'filter_not_matched')
+    )
+  end
+
+  it 'adds an immutable internal audit event and continues the workflow' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'audit', type: 'audit_log', data: { content: 'Lead passou pela triagem.' } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'audit' },
+          { source: 'audit', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(card.kanban_card_events.order(:id).last).to have_attributes(
+      event_type: 'automation_logged',
+      metadata: hash_including('content' => 'Lead passou pela triagem.', 'automation_rule_id' => rule.id)
+    )
+  end
+
+  it 'follows the otherwise path when a message is not eligible' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'eligible',
+            type: 'message_eligibility',
+            data: { channel: 'whatsapp', opt_in_attribute_key: 'marketing_messages_opt_in' }
+          },
+          { id: 'eligible-end', type: 'end', data: {} },
+          { id: 'otherwise-end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'eligible' },
+          { source: 'eligible', sourceHandle: 'eligible', target: 'eligible-end' },
+          { source: 'eligible', sourceHandle: 'otherwise', target: 'otherwise-end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'eligible', 'branch' => 'otherwise', 'reason' => 'no_compatible_conversation')
+    )
+  end
+
+  it 'waits for customer inactivity before continuing the workflow' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'inactive', type: 'wait_for_inactivity', data: { timeout_hours: 24 } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'inactive' },
+          { source: 'inactive', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+    now = Time.zone.parse('2026-08-01 12:00:00')
+
+    result = described_class.new(execution: execution, rule: rule, card: card, now: now).perform!
+
+    expect(result).to include(status: :waiting, scheduled_at: now + 24.hours)
+    expect(result[:workflow_state]).to include('next_node_id' => 'end', 'waiting_for' => 'customer_inactivity')
+  end
+
+  it 'stores separate inactivity and response paths when the inactivity wait is routed' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'inactive',
+            type: 'wait_for_inactivity',
+            data: { timeout_hours: 24, interruption_mode: 'route' }
+          },
+          { id: 'idle', type: 'end', data: {} },
+          { id: 'responded', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'inactive' },
+          { source: 'inactive', sourceHandle: 'inactive', target: 'idle' },
+          { source: 'inactive', sourceHandle: 'responded', target: 'responded' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:workflow_state]).to include(
+      'next_node_id' => 'idle',
+      'response_node_id' => 'responded',
+      'waiting_for' => 'customer_inactivity'
+    )
+  end
+
+  it 'hands the opportunity to an agent and ends the workflow' do
+    card = create(:kanban_card)
+    owner = create(:user, account: card.account)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'handoff', type: 'human_handoff', data: { owner_id: owner.id } }
+        ],
+        edges: [{ source: 'trigger', target: 'handoff' }]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(card.reload.owner).to eq(owner)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'handoff', 'action_name' => 'assign_owner')
+    )
+  end
+
+  it 'hands a linked conversation to a commercial team and ends the workflow' do
+    conversation = create(:conversation)
+    card = create(:kanban_card, :conversation_origin, conversation: conversation)
+    team = create(:team, account: card.account)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'handoff', type: 'human_handoff', data: { team_id: team.id } }
+        ],
+        edges: [{ source: 'trigger', target: 'handoff' }]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(conversation.reload.team).to eq(team)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'handoff', 'action_name' => 'assign_team')
+    )
   end
 
   it 'waits until the next configured business window before a follow-up message' do
@@ -90,6 +365,45 @@ RSpec.describe KanbanAutomations::WorkflowService do
     expect(result).to include(status: :waiting)
     expect(result[:scheduled_at]).to eq(Time.find_zone!('America/Sao_Paulo').parse('2026-08-03 09:00:00'))
     expect(result[:workflow_state]).to include('next_node_id' => 'end')
+  end
+
+  it 'follows the unavailable branch when a routed business-hours wait cannot calculate a window' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'business-hours',
+            type: 'wait_for_business_hours',
+            data: {
+              weekdays: [1, 2, 3, 4, 5], start_time: '09:00', end_time: '18:00',
+              timezone: 'America/Sao_Paulo', failure_mode: 'route'
+            }
+          },
+          { id: 'available', type: 'end', data: {} },
+          { id: 'unavailable', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'business-hours' },
+          { source: 'business-hours', sourceHandle: 'succeeded', target: 'available' },
+          { source: 'business-hours', sourceHandle: 'failed', target: 'unavailable' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+    service = described_class.new(execution: execution, rule: rule, card: card)
+    allow(service).to receive(:next_business_time).and_raise(ArgumentError, 'no future window')
+
+    result = service.perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'business-hours', 'status' => 'failed', 'reason' => 'business_hours_unavailable')
+    )
   end
 
   it 'executes an internal action node before completing the workflow' do
@@ -145,6 +459,92 @@ RSpec.describe KanbanAutomations::WorkflowService do
     expect(result[:status]).to eq(:succeeded)
     expect(result[:action_results]).to include(hash_including('node_id' => 'message', 'status' => 'skipped',
                                                               'reason' => 'no_compatible_conversation'))
+  end
+
+  it 'routes a blocked message through the configured not-sent path' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'message',
+            type: 'send_message',
+            data: {
+              channel: 'whatsapp',
+              opt_in_attribute_key: 'marketing_messages_opt_in',
+              content: 'Olá',
+              failure_mode: 'route'
+            }
+          },
+          { id: 'not-sent', type: 'audit_log', data: { content: 'Mensagem não enviada' } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'message' },
+          { source: 'message', sourceHandle: 'succeeded', target: 'end' },
+          { source: 'message', sourceHandle: 'failed', target: 'not-sent' },
+          { source: 'not-sent', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'message', 'status' => 'skipped', 'reason' => 'no_compatible_conversation'),
+      hash_including('node_id' => 'not-sent', 'status' => 'succeeded')
+    )
+  end
+
+  it 'routes an unavailable date field through the configured date path' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [{ key: 'consultation_at', label: 'Consulta', field_type: 'datetime' }]
+    )
+    card = create(:kanban_card, account: board.account, kanban_board: board, custom_field_values: { 'consultation_at' => 'invalid' })
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'wait',
+            type: 'wait_until_field',
+            data: {
+              field_key: 'consultation_at',
+              offset_hours: 0,
+              timezone: 'America/Sao_Paulo',
+              failure_mode: 'route'
+            }
+          },
+          { id: 'unavailable', type: 'audit_log', data: { content: 'Data indisponível' } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'wait' },
+          { source: 'wait', sourceHandle: 'succeeded', target: 'end' },
+          { source: 'wait', sourceHandle: 'failed', target: 'unavailable' },
+          { source: 'unavailable', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'wait', 'status' => 'failed', 'reason' => 'date_field_unavailable'),
+      hash_including('node_id' => 'unavailable', 'status' => 'succeeded')
+    )
   end
 
   it 'waits at a message node when a delivery policy defers it' do
@@ -262,6 +662,78 @@ RSpec.describe KanbanAutomations::WorkflowService do
     expect(result[:status]).to eq(:succeeded)
     expect(card.reload.custom_field_values).to include('resultado' => 'Qualificado')
     expect(result[:action_results]).to include(hash_including('node_id' => 'condition', 'branch' => 'yes'))
+  end
+  # rubocop:enable RSpec/ExampleLength
+
+  # rubocop:disable RSpec/ExampleLength
+  it 'routes the first matching conditional output and falls back when none match' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [
+        { key: 'origem', label: 'Origem', field_type: 'select', options: %w[Google Meta Indicação] },
+        { key: 'qualificado', label: 'Qualificado', field_type: 'boolean' },
+        { key: 'resultado', label: 'Resultado', field_type: 'text' }
+      ]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { origem: 'Google', qualificado: true }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'condition',
+            type: 'condition',
+            data: {
+              branches: [
+                {
+                  id: 'google-qualified',
+                  label: 'Google qualificado',
+                  match_mode: 'all',
+                  conditions: [
+                    { field_key: 'origem', operator: 'equals', value: 'Google' },
+                    { field_key: 'qualificado', operator: 'equals', value: true }
+                  ]
+                },
+                {
+                  id: 'meta',
+                  label: 'Meta',
+                  match_mode: 'all',
+                  conditions: [{ field_key: 'origem', operator: 'equals', value: 'Meta' }]
+                }
+              ],
+              fallback_id: 'otherwise'
+            }
+          },
+          { id: 'google-action', type: 'set_field', data: { action_params: { field_key: 'resultado', value: 'Google qualificado' } } },
+          { id: 'meta-action', type: 'set_field', data: { action_params: { field_key: 'resultado', value: 'Meta' } } },
+          { id: 'otherwise-action', type: 'set_field', data: { action_params: { field_key: 'resultado', value: 'Outros' } } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'condition' },
+          { source: 'condition', sourceHandle: 'google-qualified', target: 'google-action' },
+          { source: 'condition', sourceHandle: 'meta', target: 'meta-action' },
+          { source: 'condition', sourceHandle: 'otherwise', target: 'otherwise-action' },
+          { source: 'google-action', target: 'end' },
+          { source: 'meta-action', target: 'end' },
+          { source: 'otherwise-action', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(card.reload.custom_field_values).to include('resultado' => 'Google qualificado')
+    expect(result[:action_results]).to include(hash_including('node_id' => 'condition', 'branch' => 'google-qualified'))
   end
   # rubocop:enable RSpec/ExampleLength
 
@@ -416,6 +888,47 @@ RSpec.describe KanbanAutomations::WorkflowService do
 
     expect(result).to include(status: :waiting, scheduled_at: appointment_at - 24.hours)
     expect(result[:workflow_state]).to include('next_node_id' => 'end')
+  end
+
+  it 'interprets a local datetime field in the timezone selected by the wait node' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [{ key: 'data_consulta', label: 'Data da consulta', field_type: 'datetime' }]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: {}
+    )
+    allow(card).to receive(:custom_field_values).and_return({ 'data_consulta' => '2026-08-10 15:00:00' })
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'appointment',
+            type: 'wait_until_field',
+            data: { field_key: 'data_consulta', offset_hours: -24, timezone: 'Europe/Lisbon' }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'appointment' },
+          { source: 'appointment', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+    now = Time.zone.parse('2026-08-01 12:00:00')
+
+    result = described_class.new(execution: execution, rule: rule, card: card, now: now).perform!
+
+    expected = ActiveSupport::TimeZone['Europe/Lisbon'].parse('2026-08-10 15:00:00') - 24.hours
+    expect(result).to include(status: :waiting, scheduled_at: expected)
   end
 
   it 'enrolls the opportunity in a board cadence from an action node' do

@@ -265,6 +265,7 @@ onMounted(async () => {
           :key="board.id"
           type="button"
           data-testid="overview-board-card"
+          :data-kanban-board-id="board.id"
           class="group flex w-full flex-col gap-3 border-b border-n-weak bg-n-solid-1 p-3 text-left transition-colors last:border-b-0 hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
           @click="openBoard(board.id)"
         >

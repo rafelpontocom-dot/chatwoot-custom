@@ -1,12 +1,40 @@
 <script setup>
 import { Handle, Position } from '@vue-flow/core';
 
-defineProps({
+const props = defineProps({
   data: {
     type: Object,
     required: true,
   },
 });
+
+const selectNode = event => {
+  event.preventDefault();
+  props.data.select?.(props.data.id);
+};
+
+const categoryTone = category =>
+  ({
+    TRIGGER: 'border-n-teal-5',
+    TIME: 'border-n-amber-5',
+    DECISION: 'border-n-violet-4',
+    OPERATION: 'border-n-cyan-5',
+    CUSTOMER: 'border-n-blue-5',
+    OPPORTUNITY: 'border-n-iris-4',
+    INTEGRATION: 'border-n-slate-7',
+    CONTROL: 'border-n-green-5',
+  })[category] || 'border-n-weak';
+
+const stateTone = state =>
+  ({
+    draft: 'bg-n-slate-3 text-n-slate-11',
+    valid: 'bg-n-green-3 text-n-green-11',
+    invalid: 'bg-n-ruby-3 text-n-ruby-11',
+    waiting: 'bg-n-amber-3 text-n-amber-11',
+    completed: 'bg-n-green-3 text-n-green-11',
+    skipped: 'bg-n-slate-3 text-n-slate-11',
+    failed: 'bg-n-ruby-3 text-n-ruby-11',
+  })[state] || 'bg-n-slate-3 text-n-slate-11';
 </script>
 
 <template>
@@ -17,15 +45,37 @@ defineProps({
     class="!size-3 !border-2 !border-n-surface-1 !bg-n-slate-9"
   />
   <div
-    class="min-w-40 rounded-md border bg-n-surface-1 px-3 py-2 shadow-sm"
+    data-testid="kanban-workflow-node-card"
+    :data-category="data.category"
+    :aria-label="data.label"
+    role="group"
+    tabindex="0"
+    class="min-w-52 rounded-md border-l-4 border-y border-r border-n-weak bg-n-surface-1 px-3 py-2 shadow-sm"
     :class="
-      data.invalid ? 'border-n-ruby-9 ring-2 ring-n-ruby-9/20' : 'border-n-weak'
+      data.invalid
+        ? 'border-n-ruby-9 ring-2 ring-n-ruby-9/20'
+        : categoryTone(data.category)
     "
+    @keydown.enter="selectNode"
+    @keydown.space="selectNode"
   >
-    <div class="flex items-center justify-between gap-2">
-      <p class="m-0 text-xs font-medium text-n-slate-12">
-        {{ data.label }}
-      </p>
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex min-w-0 items-center gap-2">
+        <span
+          class="flex size-6 shrink-0 items-center justify-center rounded bg-n-surface-2 text-n-slate-11"
+        >
+          <i
+            v-if="data.icon"
+            data-testid="kanban-workflow-node-icon"
+            class="size-3.5"
+            :class="data.icon"
+            aria-hidden="true"
+          />
+        </span>
+        <p class="m-0 truncate text-xs font-semibold text-n-slate-12">
+          {{ data.label }}
+        </p>
+      </div>
       <i
         v-if="data.invalid"
         class="i-lucide-circle-alert size-3.5 shrink-0 text-n-ruby-11"
@@ -35,30 +85,66 @@ defineProps({
     <p v-if="data.summary" class="m-0 mt-1 text-xs text-n-slate-10">
       {{ data.summary }}
     </p>
+    <span
+      v-if="data.stateLabel"
+      data-testid="kanban-workflow-node-state"
+      class="mt-2 inline-flex rounded px-1.5 py-0.5 text-2xs font-medium"
+      :class="stateTone(data.state)"
+    >
+      {{ data.stateLabel }}
+    </span>
+    <div v-if="data.chips?.length" class="mt-2 flex flex-wrap gap-1">
+      <span
+        v-for="chip in data.chips"
+        :key="chip"
+        data-testid="kanban-workflow-node-chip"
+        class="max-w-full truncate rounded bg-n-surface-2 px-1.5 py-0.5 text-2xs text-n-slate-11"
+      >
+        {{ chip }}
+      </span>
+    </div>
   </div>
   <template v-if="data.kind === 'condition'">
-    <span
-      class="pointer-events-none absolute -right-8 top-3 text-[10px] text-n-slate-10"
+    <div
+      v-for="branch in data.branches"
+      :key="branch.id"
+      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
-      {{ data.yesLabel }}
-    </span>
-    <Handle
-      id="yes"
-      type="source"
-      :position="Position.Right"
-      class="!top-4 !size-3 !border-2 !border-n-surface-1 !bg-n-brand"
-    />
-    <span
-      class="pointer-events-none absolute -right-8 bottom-3 text-[10px] text-n-slate-10"
+      <span class="min-w-0 flex-1 truncate">{{ branch.label }}</span>
+      <button
+        type="button"
+        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        :aria-label="data.addAfterLabel"
+        @click.stop="data.addAfterOption(data.id, branch.id)"
+      >
+        <i class="i-lucide-plus size-3" />
+      </button>
+      <Handle
+        :id="branch.id"
+        type="source"
+        :position="Position.Right"
+        class="!static !size-3 !border-2 !border-n-surface-1 !bg-n-brand"
+      />
+    </div>
+    <div
+      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
     >
-      {{ data.noLabel }}
-    </span>
-    <Handle
-      id="no"
-      type="source"
-      :position="Position.Right"
-      class="!bottom-4 !top-auto !size-3 !border-2 !border-n-surface-1 !bg-n-ruby-9"
-    />
+      <span class="min-w-0 flex-1 truncate">{{ data.fallbackLabel }}</span>
+      <button
+        type="button"
+        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        :aria-label="data.addAfterLabel"
+        @click.stop="data.addAfterOption(data.id, data.fallbackId)"
+      >
+        <i class="i-lucide-plus size-3" />
+      </button>
+      <Handle
+        :id="data.fallbackId"
+        type="source"
+        :position="Position.Right"
+        class="!static !size-3 !border-2 !border-n-surface-1 !bg-n-ruby-9"
+      />
+    </div>
   </template>
   <template v-else-if="data.kind === 'round_robin'">
     <div
@@ -83,6 +169,41 @@ defineProps({
       />
     </div>
   </template>
+  <template
+    v-else-if="
+      [
+        'message_eligibility',
+        'send_message',
+        'wait_until_field',
+        'wait_for_response',
+        'wait_for_inactivity',
+        'wait_for_business_hours',
+        'webhook',
+      ].includes(data.kind) && data.outputs
+    "
+  >
+    <div
+      v-for="output in data.outputs"
+      :key="output.id"
+      class="nodrag nopan relative -mt-px flex min-w-40 items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+    >
+      <span class="min-w-0 flex-1 truncate">{{ output.label }}</span>
+      <button
+        type="button"
+        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        :aria-label="data.addAfterLabel"
+        @click.stop="data.addAfterOption(data.id, output.id)"
+      >
+        <i class="i-lucide-plus size-3" />
+      </button>
+      <Handle
+        :id="output.id"
+        type="source"
+        :position="Position.Right"
+        class="!static !size-3 !border-2 !border-n-surface-1 !bg-n-brand"
+      />
+    </div>
+  </template>
   <button
     v-else-if="data.canAddAfter"
     type="button"
@@ -94,7 +215,19 @@ defineProps({
   </button>
   <Handle
     v-if="
-      data.kind !== 'end' && !['condition', 'round_robin'].includes(data.kind)
+      !data.terminal &&
+      data.kind !== 'end' &&
+      ![
+        'condition',
+        'round_robin',
+        'message_eligibility',
+        'send_message',
+        'wait_for_response',
+        'wait_for_inactivity',
+        'wait_for_business_hours',
+        'webhook',
+      ].includes(data.kind) &&
+      !(data.kind === 'wait_until_field' && data.outputs)
     "
     type="source"
     :position="Position.Right"

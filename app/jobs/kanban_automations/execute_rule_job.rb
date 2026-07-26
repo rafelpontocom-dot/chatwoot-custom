@@ -1,7 +1,13 @@
 class KanbanAutomations::ExecuteRuleJob < ApplicationJob
   queue_as :critical
 
-  retry_on StandardError, wait: :polynomially_longer, attempts: 3
+  retry_on StandardError, wait: :polynomially_longer, attempts: 3 do |job, error|
+    KanbanAutomations::MarkExecutionFailedService.new(
+      rule_id: job.arguments.first,
+      event_key: job.arguments.third,
+      error: error
+    ).perform!
+  end
 
   def perform(rule_id, event_name, event_key, card_id, event_id = nil)
     load_context(rule_id, card_id)
@@ -11,9 +17,6 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
     return if execution_finished?
 
     execute_with_lock
-  rescue StandardError => e
-    @execution&.update(status: :failed, error_message: e.message, completed_at: Time.current)
-    raise
   end
 
   private

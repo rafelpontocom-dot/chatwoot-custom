@@ -31,6 +31,10 @@
 # - 'kanban_close': Can mark opportunities won, lost or reopened.
 # - 'kanban_bulk': Can execute bulk commercial actions.
 # - 'kanban_configure': Can configure commercial boards.
+# - 'kanban_automate': Can create, edit, test and publish commercial automations.
+# - 'kanban_automation_publish': Can publish commercial automations.
+# - 'kanban_automation_test': Can safely test commercial automations.
+# - 'kanban_automation_execution': Can view, retry and cancel automation executions.
 # - 'kanban_manage': Can archive, restore and delete commercial boards.
 # - 'kanban_report': Can view commercial reports and exports.
 
@@ -53,6 +57,10 @@ class CustomRole < ApplicationRecord
     kanban_close
     kanban_bulk
     kanban_configure
+    kanban_automate
+    kanban_automation_publish
+    kanban_automation_test
+    kanban_automation_execution
     kanban_manage
     kanban_report
   ].freeze

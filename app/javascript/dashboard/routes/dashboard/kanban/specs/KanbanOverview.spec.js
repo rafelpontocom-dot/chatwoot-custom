@@ -174,6 +174,11 @@ describe('KanbanOverview', () => {
     expect(wrapper.findAll('[data-testid="overview-board-card"]')).toHaveLength(
       2
     );
+    expect(
+      wrapper
+        .findAll('[data-testid="overview-board-card"]')[0]
+        .attributes('data-kanban-board-id')
+    ).toBe('1');
     expect(wrapper.text()).toContain('KANBAN.OVERVIEW.OPPORTUNITIES_COUNT 3');
     expect(wrapper.text()).not.toContain('KANBAN.OVERVIEW.LOADING');
   });

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_01_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_01_150000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1017,6 +1017,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_01_130000) do
     t.index ["kanban_board_id"], name: "index_kanban_appointment_reminder_rules_on_kanban_board_id"
   end
 
+  create_table "kanban_automation_connection_audits", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id", null: false
+    t.bigint "kanban_automation_connection_id"
+    t.bigint "actor_id"
+    t.string "action", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_automation_connection_audits_on_account_id"
+    t.index ["actor_id"], name: "index_kanban_automation_connection_audits_on_actor_id"
+    t.index ["kanban_automation_connection_id"], name: "idx_on_kanban_automation_connection_id_c72c49a724"
+    t.index ["kanban_board_id", "created_at"], name: "idx_kanban_connection_audits_board_created"
+    t.index ["kanban_board_id"], name: "index_kanban_automation_connection_audits_on_kanban_board_id"
+  end
+
   create_table "kanban_automation_connections", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "kanban_board_id", null: false
@@ -1300,6 +1316,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_01_130000) do
     t.index ["kanban_board_id", "lost_at"], name: "index_kanban_cards_on_kanban_board_id_and_lost_at"
     t.index ["kanban_board_id", "next_action_at"], name: "index_kanban_cards_on_kanban_board_id_and_next_action_at"
     t.index ["kanban_board_id", "won_at"], name: "index_kanban_cards_on_kanban_board_id_and_won_at"
+    t.index ["next_action_at"], name: "index_open_kanban_cards_on_next_action_at", where: "((active = true) AND (next_action_completed_at IS NULL) AND (won_at IS NULL) AND (lost_at IS NULL))"
     t.index ["owner_id", "next_action_at"], name: "index_kanban_cards_on_owner_id_and_next_action_at"
   end
 
@@ -1335,7 +1352,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_01_130000) do
     t.index ["kanban_board_id", "name"], name: "index_active_kanban_stages_on_board_id_and_name", unique: true, where: "(active = true)"
     t.index ["kanban_board_id", "position"], name: "index_kanban_stages_on_kanban_board_id_and_position"
     t.index ["kanban_board_id"], name: "index_kanban_stages_on_kanban_board_id"
-    t.check_constraint "category::text = ANY (ARRAY['open'::character varying, 'won'::character varying, 'lost'::character varying]::text[])", name: "kanban_stages_category_check"
+    t.check_constraint "category::text = ANY (ARRAY['open'::character varying::text, 'won'::character varying::text, 'lost'::character varying::text])", name: "kanban_stages_category_check"
     t.check_constraint "probability >= 0 AND probability <= 100", name: "kanban_stages_probability_check"
     t.check_constraint "wip_limit IS NULL OR wip_limit > 0", name: "kanban_stages_wip_limit_check"
   end
@@ -1762,6 +1779,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_01_130000) do
   add_foreign_key "kanban_appointment_reminder_rules", "accounts"
   add_foreign_key "kanban_appointment_reminder_rules", "kanban_boards"
   add_foreign_key "kanban_appointment_reminder_rules", "kanban_stages", column: "trigger_stage_id"
+  add_foreign_key "kanban_automation_connection_audits", "accounts"
+  add_foreign_key "kanban_automation_connection_audits", "kanban_automation_connections"
+  add_foreign_key "kanban_automation_connection_audits", "kanban_boards"
+  add_foreign_key "kanban_automation_connection_audits", "users", column: "actor_id"
   add_foreign_key "kanban_automation_connections", "accounts"
   add_foreign_key "kanban_automation_connections", "kanban_boards"
   add_foreign_key "kanban_automation_executions", "accounts"

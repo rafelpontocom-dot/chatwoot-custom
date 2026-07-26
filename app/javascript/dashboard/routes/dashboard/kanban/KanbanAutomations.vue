@@ -6,6 +6,7 @@ import {
   onMounted,
   reactive,
   ref,
+  watch,
 } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { DirectUpload } from 'activestorage';
@@ -25,6 +26,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const agents = useMapGetter('agents/getAgents');
+const teams = useMapGetter('teams/getTeams');
 
 const boardId = computed(() => Number(route.params.boardId));
 const activeTab = ref('flows');
@@ -34,10 +36,19 @@ const error = ref('');
 const rules = ref([]);
 const appointmentReminders = ref([]);
 const connections = ref([]);
+const connectionAudits = ref([]);
 const executions = ref([]);
+const historicalNodeMetrics = ref([]);
 const settings = ref({});
+const lostReasonOptions = computed(
+  () =>
+    settings.value.lostReasonOptions || settings.value.lost_reason_options || []
+);
 const selectedRuleId = ref(null);
+const selectedExecutionId = ref('');
 const showEditor = ref(false);
+const showEditorTest = ref(false);
+const showAdvancedTrigger = ref(false);
 const showBirthdayEditor = ref(false);
 const showReminderForm = ref(false);
 const showConnectionForm = ref(false);
@@ -105,6 +116,7 @@ const form = reactive({
   description: '',
   eventName: 'kanban.card.stage_changed',
   active: false,
+  lockVersion: 0,
   reentryEnabled: false,
   cancelWaitingExecutions: false,
   stageId: '',
@@ -120,6 +132,36 @@ const form = reactive({
   flowDefinition: {},
 });
 
+const ruleDraftStorageKey = ruleId =>
+  `chatwoot:kanban-automation-rule:${boardId.value}:${ruleId}`;
+
+const copyDraftForm = source => JSON.parse(JSON.stringify(source));
+
+const restoreRuleDraft = rule => {
+  if (!rule?.id || typeof window === 'undefined') return false;
+
+  try {
+    const draft = JSON.parse(
+      window.localStorage.getItem(ruleDraftStorageKey(rule.id)) || 'null'
+    );
+    if (draft?.lockVersion !== form.lockVersion) return false;
+
+    const { actions, ...draftForm } = draft;
+    Object.assign(form, draftForm);
+    form.actions.splice(0, form.actions.length, ...(actions || []));
+    return true;
+  } catch {
+    window.localStorage.removeItem(ruleDraftStorageKey(rule.id));
+    return false;
+  }
+};
+
+const clearRuleDraft = ruleId => {
+  if (!ruleId || typeof window === 'undefined') return;
+
+  window.localStorage.removeItem(ruleDraftStorageKey(ruleId));
+};
+
 const reminderForm = reactive({
   triggerStageId: '',
   fieldKey: 'system_starts_at',
@@ -129,6 +171,25 @@ const reminderForm = reactive({
   messageTemplates: {},
 });
 const connectionForm = reactive({ name: '', webhookUrl: '' });
+const connectionAuditLabels = computed(() => ({
+  created: t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.AUDIT_ACTIONS.created'),
+  updated: t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.AUDIT_ACTIONS.updated'),
+  deleted: t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.AUDIT_ACTIONS.deleted'),
+  secret_reset: t(
+    'KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.AUDIT_ACTIONS.secret_reset'
+  ),
+}));
+const connectionAuditLabel = action =>
+  connectionAuditLabels.value[action] || action;
+const connectionAuditDescription = audit =>
+  audit.metadata?.connectionName
+    ? `${connectionAuditLabel(audit.action)}: ${audit.metadata.connectionName}`
+    : connectionAuditLabel(audit.action);
+const connectionAuditTime = timestamp =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(timestamp));
 const defaultReminderMessage =
   'Olá, {{contact_name}}! Lembramos que sua consulta será em {{appointment_date}}.';
 const defaultGoogleReviewMessage =
@@ -205,6 +266,10 @@ const eventOptions = computed(() => [
   {
     value: 'kanban.card.next_action_completed',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.NEXT_ACTION_COMPLETED'),
+  },
+  {
+    value: 'kanban.card.next_action_overdue',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.NEXT_ACTION_OVERDUE'),
   },
   {
     value: 'kanban.card.won',
@@ -291,6 +356,7 @@ const executionSummary = computed(() =>
 );
 const automationHealth = computed(() => {
   const now = Date.now();
+  const abandonedBefore = now - 15 * 60 * 1000;
   const failedCount = executions.value.filter(
     execution => execution.status === 'failed'
   ).length;
@@ -300,13 +366,117 @@ const automationHealth = computed(() => {
     const scheduledAt = new Date(execution.scheduledAt).getTime();
     return Number.isFinite(scheduledAt) && scheduledAt < now;
   }).length;
+  const abandonedCount = executions.value.filter(execution => {
+    if (
+      !['queued', 'running'].includes(execution.status) ||
+      !execution.createdAt
+    ) {
+      return false;
+    }
+
+    const createdAt = new Date(execution.createdAt).getTime();
+    return Number.isFinite(createdAt) && createdAt < abandonedBefore;
+  }).length;
 
   return {
     failedCount,
     overdueCount,
-    needsAttention: failedCount > 0 || overdueCount > 0,
+    abandonedCount,
+    needsAttention: failedCount > 0 || overdueCount > 0 || abandonedCount > 0,
   };
 });
+const nodeFailureSummary = computed(() => {
+  const failures = executions.value.flatMap(execution =>
+    (execution.actionResults || []).filter(result => result.status === 'failed')
+  );
+  const counts = failures.reduce((summary, result) => {
+    const key = result.actionName || result.nodeId || 'unknown';
+    summary[key] = (summary[key] || 0) + 1;
+    return summary;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([key, count]) => ({ key, count }))
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 3);
+});
+const nodeErrorRates = computed(() => {
+  const metrics = executions.value
+    .flatMap(execution => execution.actionResults || [])
+    .reduce((summary, result) => {
+      const key = result.actionName || result.nodeId || 'unknown';
+      const metric = summary[key] || { total: 0, failed: 0 };
+      metric.total += 1;
+      metric.failed += result.status === 'failed' ? 1 : 0;
+      summary[key] = metric;
+      return summary;
+    }, {});
+
+  return Object.entries(metrics)
+    .filter(([, metric]) => metric.failed > 0)
+    .map(([key, metric]) => ({
+      key,
+      percentage: Math.round((metric.failed / metric.total) * 100),
+    }))
+    .sort((left, right) => right.percentage - left.percentage)
+    .slice(0, 3);
+});
+const nodeUsageSummary = computed(() => {
+  if (historicalNodeMetrics.value.length) {
+    return historicalNodeMetrics.value.map(metric => ({
+      key: metric.nodeType,
+      total: metric.total,
+      failed: metric.failed,
+    }));
+  }
+
+  const metrics = executions.value
+    .flatMap(execution => execution.actionResults || [])
+    .reduce((summary, result) => {
+      const key =
+        result.actionName || result.type || result.nodeId || 'unknown';
+      const metric = summary[key] || { total: 0, failed: 0 };
+      metric.total += 1;
+      metric.failed += result.status === 'failed' ? 1 : 0;
+      summary[key] = metric;
+      return summary;
+    }, {});
+
+  return Object.entries(metrics)
+    .map(([key, metric]) => ({ key, ...metric }))
+    .sort((left, right) => right.total - left.total)
+    .slice(0, 3);
+});
+const blockedMessageCount = computed(
+  () =>
+    executions.value
+      .flatMap(execution => execution.actionResults || [])
+      .filter(
+        result =>
+          result.actionName === 'send_message' &&
+          result.status === 'skipped' &&
+          [
+            'opt_in_required',
+            'outside_whatsapp_window',
+            'no_compatible_conversation',
+          ].includes(result.reason)
+      ).length
+);
+const selectedRuleExecutionHistory = computed(() =>
+  executions.value
+    .filter(
+      execution =>
+        execution.ruleId === selectedRuleId.value &&
+        (!selectedExecutionId.value ||
+          String(execution.id) === selectedExecutionId.value)
+    )
+    .flatMap(execution =>
+      (execution.actionResults || []).map(result => ({
+        ...result,
+        executionId: execution.id,
+      }))
+    )
+);
 
 const flowTemplate = ({ message, waitForResponse = false }) => {
   const nodes = [
@@ -383,6 +553,48 @@ const flowTemplate = ({ message, waitForResponse = false }) => {
 
 const automationTemplates = computed(() => [
   {
+    id: 'whatsapp-sales',
+    defaultName: t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.WHATSAPP_SALES.TITLE'
+    ),
+    name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.WHATSAPP_SALES.TITLE'),
+    description: t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.WHATSAPP_SALES.DESCRIPTION'
+    ),
+    eventName: 'kanban.card.created',
+    flowDefinition: flowTemplate({ waitForResponse: true }),
+  },
+  {
+    id: 'clinic-appointment',
+    defaultName: t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.CLINIC_APPOINTMENT.TITLE'
+    ),
+    name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.CLINIC_APPOINTMENT.TITLE'),
+    description: t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.CLINIC_APPOINTMENT.DESCRIPTION'
+    ),
+    eventName: 'kanban.card.stage_changed',
+    flowDefinition: flowTemplate({}),
+  },
+  {
+    id: 'b2b-sales',
+    defaultName: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.B2B_SALES.TITLE'),
+    name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.B2B_SALES.TITLE'),
+    description: t(
+      'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.B2B_SALES.DESCRIPTION'
+    ),
+    eventName: 'kanban.card.stage_changed',
+    flowDefinition: flowTemplate({ waitForResponse: true }),
+  },
+  {
+    id: 'blank',
+    defaultName: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BLANK.TITLE'),
+    name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BLANK.TITLE'),
+    description: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BLANK.DESCRIPTION'),
+    eventName: 'kanban.card.created',
+    flowDefinition: blankVisualFlow(),
+  },
+  {
     id: 'follow-up',
     defaultName: 'Follow-up comercial',
     name: t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.FOLLOW_UP.TITLE'),
@@ -423,6 +635,11 @@ const waitingExecutionsForSelectedRule = computed(() =>
     execution =>
       execution.ruleId === selectedRuleId.value &&
       execution.status === 'waiting'
+  )
+);
+const selectedRuleExecutions = computed(() =>
+  executions.value.filter(
+    execution => execution.ruleId === selectedRuleId.value
   )
 );
 const saveFlowLabel = computed(() =>
@@ -520,14 +737,20 @@ const testCardOptions = computed(() =>
     }${card.stageName ? ` · ${card.stageName}` : ''}`,
   }))
 );
+const selectedRule = computed(() =>
+  rules.value.find(rule => rule.id === selectedRuleId.value)
+);
 
 const normalize = value => camelcaseKeys(value || {}, { deep: true });
 const resetForm = () => {
   selectedRuleId.value = null;
+  selectedExecutionId.value = '';
+  showEditorTest.value = false;
   form.name = '';
   form.description = '';
   form.eventName = 'kanban.card.stage_changed';
   form.active = false;
+  form.lockVersion = 0;
   form.reentryEnabled = false;
   form.cancelWaitingExecutions = false;
   form.stageId = '';
@@ -541,6 +764,7 @@ const resetForm = () => {
   form.fieldValue = '';
   form.flowDefinition = {};
   form.actions.splice(0, form.actions.length, blankAction());
+  showAdvancedTrigger.value = false;
 };
 
 const applyRule = rule => {
@@ -552,10 +776,12 @@ const applyRule = rule => {
         !['system_next_action_type', 'system_amount'].includes(item.fieldKey)
     ) || {};
   selectedRuleId.value = normalized.id;
+  selectedExecutionId.value = '';
   form.name = normalized.name || '';
   form.description = normalized.description || '';
   form.eventName = normalized.eventName || 'kanban.card.stage_changed';
   form.active = normalized.active !== false;
+  form.lockVersion = normalized.lockVersion || 0;
   form.reentryEnabled = normalized.reentryEnabled === true;
   form.cancelWaitingExecutions = false;
   form.stageId = conditions.stageIds?.[0] || '';
@@ -575,6 +801,7 @@ const applyRule = rule => {
   form.fieldValue = field.value || '';
   form.flowDefinition = normalized.flowDefinition || {};
   form.actions.splice(0, form.actions.length, ...(normalized.actions || []));
+  showAdvancedTrigger.value = false;
 };
 
 const openNewFlow = () => {
@@ -595,8 +822,20 @@ const openTemplate = template => {
 };
 const openRule = rule => {
   applyRule(rule);
+  showEditorTest.value = false;
+  const restoredDraft = restoreRuleDraft(rule);
   activeTab.value = 'flows';
   showEditor.value = true;
+  if (restoredDraft) {
+    useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.DRAFT_RESTORED'));
+  }
+};
+const openExecutionInCanvas = execution => {
+  const rule = rules.value.find(ruleItem => ruleItem.id === execution.ruleId);
+  if (!rule) return;
+
+  openRule(rule);
+  selectedExecutionId.value = String(execution.id);
 };
 
 const loadRuleVersions = async ruleId => {
@@ -652,6 +891,29 @@ const closeEditor = () => {
   showBirthdayEditor.value = false;
   resetForm();
 };
+
+watch(
+  form,
+  () => {
+    if (
+      !showEditor.value ||
+      !selectedRuleId.value ||
+      typeof window === 'undefined'
+    ) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        ruleDraftStorageKey(selectedRuleId.value),
+        JSON.stringify(copyDraftForm(form))
+      );
+    } catch {
+      // The editor remains usable when browser storage is unavailable.
+    }
+  },
+  { deep: true }
+);
 
 const applyBirthdayAutomation = source => {
   const automation = normalize(source);
@@ -842,6 +1104,13 @@ const toggleConnectionForm = () => {
   showConnectionForm.value = !showConnectionForm.value;
 };
 
+const loadConnectionAudits = async () => {
+  const response = await KanbanBoardsAPI.getAutomationConnectionAudits(
+    boardId.value
+  );
+  connectionAudits.value = normalize(response.data);
+};
+
 const saveConnection = async () => {
   if (
     isSavingConnection.value ||
@@ -863,6 +1132,7 @@ const saveConnection = async () => {
     );
     const connection = normalize(response.data);
     connections.value.push(connection);
+    await loadConnectionAudits();
     connectionSecret.value = connection.secret || '';
     showConnectionForm.value = false;
     useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SAVE_SUCCESS'));
@@ -887,6 +1157,7 @@ const deleteConnection = async connection => {
     connections.value = connections.value.filter(
       item => item.id !== connection.id
     );
+    await loadConnectionAudits();
   } catch (deleteError) {
     error.value = t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.DELETE_ERROR');
   } finally {
@@ -934,6 +1205,7 @@ const resetConnectionSecret = async connection => {
       connection.id
     );
     connectionSecret.value = normalize(response.data).secret || '';
+    await loadConnectionAudits();
     useAlert(
       t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.SECRET_RESET_SUCCESS')
     );
@@ -956,12 +1228,7 @@ const copyConnectionUrl = async url => {
   useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.URL_COPIED'));
 };
 
-const toggleRuleTest = async rule => {
-  if (testRuleId.value === rule.id) {
-    testRuleId.value = null;
-    return;
-  }
-
+const prepareRuleTest = async rule => {
   testRuleId.value = rule.id;
   selectedTestCardId.value = '';
   testResult.value = null;
@@ -986,6 +1253,27 @@ const toggleRuleTest = async rule => {
   } finally {
     isLoadingTestCards.value = false;
   }
+};
+
+const toggleRuleTest = async rule => {
+  if (testRuleId.value === rule.id) {
+    testRuleId.value = null;
+    return;
+  }
+
+  await prepareRuleTest(rule);
+};
+
+const toggleEditorTest = async () => {
+  if (!selectedRule.value) return;
+
+  if (showEditorTest.value) {
+    showEditorTest.value = false;
+    return;
+  }
+
+  showEditorTest.value = true;
+  await prepareRuleTest(selectedRule.value);
 };
 
 const runRuleTest = async rule => {
@@ -1016,22 +1304,149 @@ const previewStepLabel = step => {
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_UNTIL_FIELD');
     case 'wait_for_response':
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_RESPONSE');
+    case 'wait_for_inactivity':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_INACTIVITY');
+    case 'wait_for_business_hours':
+      return t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_BUSINESS_HOURS'
+      );
     case 'condition':
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.CONDITION');
+    case 'filter':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.FILTER');
+    case 'message_eligibility':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.MESSAGE_ELIGIBILITY');
+    case 'round_robin':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.ROUND_ROBIN');
+    case 'human_handoff':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.HUMAN_HANDOFF');
+    case 'update_contact':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.UPDATE_CONTACT');
+    case 'complete_next_action':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.COMPLETE_NEXT_ACTION');
+    case 'mark_won':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.MARK_WON');
+    case 'mark_lost':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.MARK_LOST');
+    case 'audit_log':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.AUDIT_LOG');
     case 'action':
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.ACTION');
     case 'send_message':
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.SEND_MESSAGE');
     case 'webhook':
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WEBHOOK');
+    case 'move_stage':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.MOVE_STAGE');
+    case 'assign_owner':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ASSIGN_OWNER');
+    case 'assign_round_robin':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ASSIGN_ROUND_ROBIN');
+    case 'set_next_action':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.SET_NEXT_ACTION');
+    case 'set_field':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.SET_FIELD');
+    case 'increment_field':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.INCREMENT_FIELD');
+    case 'clear_field':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.CLEAR_FIELD');
+    case 'archive_card':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ARCHIVE_CARD');
+    case 'enroll_cadence':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ENROLL_CADENCE');
+    case 'add_label':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ADD_LABEL');
+    case 'remove_label':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.REMOVE_LABEL');
+    case 'add_note':
+      return t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ADD_NOTE');
     default:
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.UNKNOWN');
   }
 };
 
+const previewStepContent = step => {
+  if (step.renderedContent || step.connectionName) {
+    return step.renderedContent || step.connectionName;
+  }
+
+  if (
+    step.type === 'wait_until_field' &&
+    step.reason === 'scheduled_time_in_past'
+  ) {
+    return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.DATE_WAIT_PAST');
+  }
+
+  if (step.type === 'wait_until_field' && step.scheduledAt) {
+    const scheduledAt = new Date(step.scheduledAt);
+    if (!Number.isNaN(scheduledAt.getTime())) {
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.DATE_WAIT_SCHEDULED', {
+        date: scheduledAt.toLocaleString(),
+      });
+    }
+  }
+
+  return '';
+};
+
 const executionStatusLabel = status =>
   executionStatusOptions.value.find(item => item.value === status)?.label ||
   status;
+
+const executionStepStatusLabel = status => {
+  switch (status) {
+    case 'queued':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_STATUS.QUEUED');
+    case 'running':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_STATUS.RUNNING');
+    case 'waiting':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_STATUS.WAITING');
+    case 'eligible':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_STATUS.ELIGIBLE');
+    case 'succeeded':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_STATUS.SUCCEEDED');
+    case 'failed':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_STATUS.FAILED');
+    default:
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_STATUS.SKIPPED');
+  }
+};
+
+const executionStepReasonLabel = reason => {
+  switch (reason) {
+    case 'no_available_owner':
+      return t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_REASON.NO_AVAILABLE_OWNER'
+      );
+    case 'webhook_delivery_failed':
+      return t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_REASON.WEBHOOK_DELIVERY_FAILED'
+      );
+    case 'no_compatible_conversation':
+      return t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_REASON.NO_COMPATIBLE_CONVERSATION'
+      );
+    case 'quiet_hours':
+      return t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_REASON.QUIET_HOURS'
+      );
+    case 'cancelled_by_administrator':
+      return t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_REASON.CANCELLED_BY_ADMINISTRATOR'
+      );
+    case 'cancelled_after_rule_update':
+      return t(
+        'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_REASON.CANCELLED_AFTER_RULE_UPDATE'
+      );
+    default:
+      return '';
+  }
+};
+
+const executionStepTimestamp = timestamp => {
+  const parsed = new Date(timestamp).getTime();
+  return Number.isFinite(parsed) ? new Date(parsed).toLocaleString() : '';
+};
 
 const actionParams = action => {
   switch (action.actionName) {
@@ -1120,7 +1535,9 @@ const visualFlowValidationError = () => {
 
     const params = data.action_params || {};
     if (data.action_name === 'move_stage') return !params.stage_id;
-    if (['set_field', 'increment_field'].includes(data.action_name)) {
+    if (
+      ['set_field', 'increment_field', 'clear_field'].includes(data.action_name)
+    ) {
       return !params.field_key;
     }
     return false;
@@ -1172,6 +1589,7 @@ const payload = () => ({
     description: form.description.trim() || null,
     event_name: form.eventName,
     active: form.active,
+    ...(selectedRuleId.value ? { lock_version: form.lockVersion } : {}),
     reentry_enabled: form.reentryEnabled,
     cancel_waiting_executions: form.cancelWaitingExecutions,
     conditions: {
@@ -1236,6 +1654,20 @@ const invalidNodeIdFromApiError = message => {
     : null;
 };
 
+const validateVisualFlow = () => {
+  const validationError = visualFlowValidationError();
+  if (validationError) {
+    invalidNodeIds.value = [validationError.nodeId];
+    error.value = validationError.message;
+    useAlert(validationError.message);
+    return;
+  }
+
+  invalidNodeIds.value = [];
+  error.value = '';
+  useAlert(t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.SUCCESS'));
+};
+
 const save = async () => {
   if (!form.name.trim() || isSaving.value) return;
 
@@ -1263,13 +1695,16 @@ const save = async () => {
     if (index < 0) rules.value.push(saved);
     else rules.value.splice(index, 1, saved);
     rules.value.sort((left, right) => left.position - right.position);
+    clearRuleDraft(saved.id);
     closeEditor();
     activeTab.value = 'flows';
     useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_SUCCESS'));
   } catch (saveError) {
     const message =
-      saveError?.response?.data?.message ||
-      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_ERROR');
+      saveError?.response?.status === 409
+        ? t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_CONFLICT')
+        : saveError?.response?.data?.message ||
+          t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_ERROR');
     const invalidNodeId = invalidNodeIdFromApiError(message);
     if (invalidNodeId) invalidNodeIds.value = [invalidNodeId];
     error.value = message;
@@ -1292,19 +1727,25 @@ const load = async () => {
       rulesResponse,
       remindersResponse,
       connectionsResponse,
+      connectionAuditsResponse,
       executionsResponse,
+      metricsResponse,
     ] = await Promise.all([
       KanbanBoardsAPI.getSettings(boardId.value),
       KanbanBoardsAPI.getAutomationRules(boardId.value),
       KanbanBoardsAPI.getAppointmentReminderRules(boardId.value),
       KanbanBoardsAPI.getAutomationConnections(boardId.value),
+      KanbanBoardsAPI.getAutomationConnectionAudits(boardId.value),
       KanbanBoardsAPI.getAllAutomationExecutions(boardId.value),
+      KanbanBoardsAPI.getAutomationMetrics(boardId.value),
     ]);
     settings.value = normalize(settingsResponse.data);
     rules.value = normalize(rulesResponse.data);
     appointmentReminders.value = normalize(remindersResponse.data);
     connections.value = normalize(connectionsResponse.data);
+    connectionAudits.value = normalize(connectionAuditsResponse.data);
     executions.value = normalize(executionsResponse.data);
+    historicalNodeMetrics.value = normalize(metricsResponse.data);
   } catch (loadError) {
     error.value = t('KANBAN.SETTINGS.LOAD_ERROR');
   } finally {
@@ -1352,6 +1793,37 @@ onMounted(load);
         @click="openNewFlow"
       />
       <div v-else class="flex items-center gap-2">
+        <label
+          class="flex h-8 items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 focus-within:ring-2 focus-within:ring-n-brand"
+        >
+          <input
+            v-model="form.active"
+            data-testid="kanban-automations-publish-flow"
+            type="checkbox"
+            class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+          />
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.ACTIVE') }}
+        </label>
+        <Button
+          type="button"
+          data-testid="kanban-automations-validate-flow"
+          icon="i-lucide-check"
+          :label="t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.OPEN')"
+          color="slate"
+          size="sm"
+          @click="validateVisualFlow"
+        />
+        <Button
+          v-if="selectedRule"
+          type="button"
+          data-testid="kanban-automations-test-flow"
+          icon="i-lucide-flask-conical"
+          :label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.OPEN')"
+          color="slate"
+          size="sm"
+          :aria-pressed="showEditorTest"
+          @click="toggleEditorTest"
+        />
         <Button
           type="button"
           :label="t('KANBAN.ACTIONS.CANCEL')"
@@ -1647,8 +2119,19 @@ onMounted(load);
             </option>
           </select>
         </label>
+        <Button
+          v-if="triggerContext"
+          type="button"
+          data-testid="kanban-automations-trigger-options"
+          icon="i-lucide-sliders-horizontal"
+          color="slate"
+          size="sm"
+          :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.TRIGGER_OPTIONS')"
+          :aria-pressed="showAdvancedTrigger"
+          @click="showAdvancedTrigger = !showAdvancedTrigger"
+        />
         <label
-          v-if="triggerContext === 'stage'"
+          v-if="showAdvancedTrigger && triggerContext === 'stage'"
           class="grid gap-1 text-xs font-medium text-n-slate-11"
         >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.STAGE') }}
@@ -1666,7 +2149,7 @@ onMounted(load);
           </select>
         </label>
         <label
-          v-else-if="triggerContext === 'owner'"
+          v-else-if="showAdvancedTrigger && triggerContext === 'owner'"
           class="grid gap-1 text-xs font-medium text-n-slate-11"
         >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
@@ -1688,7 +2171,7 @@ onMounted(load);
           </select>
         </label>
         <label
-          v-else-if="triggerContext === 'changed_field'"
+          v-else-if="showAdvancedTrigger && triggerContext === 'changed_field'"
           class="grid gap-1 text-xs font-medium text-n-slate-11"
         >
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
@@ -1710,7 +2193,7 @@ onMounted(load);
           </select>
         </label>
         <label
-          v-else-if="triggerContext === 'next_action'"
+          v-else-if="showAdvancedTrigger && triggerContext === 'next_action'"
           class="grid gap-1 text-xs font-medium text-n-slate-11"
         >
           {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE') }}
@@ -1732,7 +2215,7 @@ onMounted(load);
           </select>
         </label>
         <div
-          v-else-if="triggerContext === 'amount'"
+          v-else-if="showAdvancedTrigger && triggerContext === 'amount'"
           class="grid grid-cols-[9rem_minmax(0,1fr)] gap-2 self-end"
         >
           <select
@@ -1759,16 +2242,6 @@ onMounted(load);
             class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
           />
         </div>
-        <label
-          class="flex items-end gap-2 pb-2 text-xs font-medium text-n-slate-11"
-        >
-          <input
-            v-model="form.active"
-            type="checkbox"
-            class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-          />
-          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.ACTIVE') }}
-        </label>
         <label
           class="grid max-w-52 gap-1 text-xs font-medium text-n-slate-11"
           :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY_HINT')"
@@ -1861,19 +2334,136 @@ onMounted(load);
           </div>
         </details>
       </section>
+      <section
+        v-if="showEditorTest && selectedRule"
+        data-testid="kanban-automation-editor-test-panel"
+        class="grid gap-3 border-b border-n-weak bg-n-surface-1 px-4 py-3 lg:px-6"
+      >
+        <div class="flex flex-wrap items-end gap-2">
+          <label
+            class="grid min-w-60 flex-1 gap-1 text-xs font-medium text-n-slate-11"
+          >
+            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.CARD') }}
+            <select
+              v-model="selectedTestCardId"
+              data-testid="kanban-automation-editor-test-card"
+              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              :disabled="isLoadingTestCards || !testCardOptions.length"
+            >
+              <option value="">
+                {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.SELECT_CARD') }}
+              </option>
+              <option
+                v-for="card in testCardOptions"
+                :key="card.value"
+                :value="card.value"
+              >
+                {{ card.label }}
+              </option>
+            </select>
+          </label>
+          <Button
+            type="button"
+            data-testid="kanban-automation-editor-run-test"
+            icon="i-lucide-play"
+            color="blue"
+            size="sm"
+            :label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.RUN')"
+            :is-loading="isTestingRule"
+            :disabled="!selectedTestCardId || isLoadingTestCards"
+            @click="runRuleTest(selectedRule)"
+          />
+        </div>
+        <p v-if="isLoadingTestCards" class="m-0 text-xs text-n-slate-11">
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.LOADING_CARDS') }}
+        </p>
+        <p
+          v-else-if="!testCardOptions.length"
+          class="m-0 text-xs text-n-slate-11"
+        >
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.NO_CARDS') }}
+        </p>
+        <p v-if="testError" class="m-0 text-xs text-n-ruby-11" role="alert">
+          {{ testError }}
+        </p>
+        <div
+          v-if="testResult"
+          class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-3"
+          role="status"
+        >
+          <p class="m-0 text-sm font-medium text-n-slate-12">
+            {{
+              testResult.matches
+                ? t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.RESULT_MATCHES')
+                : t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.RESULT_NO_MATCH')
+            }}
+          </p>
+          <ol
+            v-if="testResult.steps?.length"
+            class="m-0 grid gap-1 pl-4 text-xs text-n-slate-11"
+          >
+            <li v-for="step in testResult.steps" :key="step.nodeId">
+              {{ previewStepLabel(step) }}
+              <p
+                v-if="previewStepContent(step)"
+                class="m-0 mt-0.5 break-words text-n-slate-10"
+              >
+                {{ previewStepContent(step) }}
+              </p>
+            </li>
+          </ol>
+          <p v-else class="m-0 text-xs text-n-slate-11">
+            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.NO_STEPS') }}
+          </p>
+        </div>
+      </section>
+      <div
+        v-if="selectedRuleExecutions.length"
+        class="flex items-center justify-end border-b border-n-weak bg-n-surface-1 px-4 py-2 lg:px-6"
+      >
+        <label
+          class="flex items-center gap-2 text-xs font-medium text-n-slate-11"
+        >
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.INSPECT') }}
+          <select
+            v-model="selectedExecutionId"
+            data-testid="kanban-automations-execution-history-filter"
+            class="h-8 max-w-56 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+          >
+            <option value="">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.ALL') }}
+            </option>
+            <option
+              v-for="execution in selectedRuleExecutions"
+              :key="execution.id"
+              :value="String(execution.id)"
+            >
+              {{
+                t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.DETAILS', {
+                  event: execution.eventName,
+                  id: execution.cardId || '-',
+                })
+              }}
+            </option>
+          </select>
+        </label>
+      </div>
       <KanbanWorkflowBuilder
         v-model="form.flowDefinition"
         class="min-h-0 flex-1 rounded-none border-x-0 border-b-0"
         :stages="stages"
         :agents="agentOptions"
+        :teams="teams"
         :custom-fields="customFields"
         :next-action-types="nextActionTypes"
+        :lost-reason-options="lostReasonOptions"
         :condition-fields="conditionFields"
         :date-fields="dateFields"
         :connections="connections"
         :trigger-options="eventOptions"
         :trigger-value="form.eventName"
         :invalid-node-ids="invalidNodeIds"
+        :execution-history="selectedRuleExecutionHistory"
         @update:trigger-value="form.eventName = $event"
         @clear-validation="clearFlowValidation"
       />
@@ -1932,7 +2522,7 @@ onMounted(load);
             :key="template.id"
             type="button"
             class="grid min-h-20 gap-1 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand"
-            :data-testid="`kanban-automations-template-${template.id === 'follow-up' ? 'follow-up' : 'nps-google'}`"
+            :data-testid="`kanban-automations-template-${template.id === 'nps-google-review' ? 'nps-google' : template.id}`"
             @click="openTemplate(template)"
           >
             <span class="text-sm font-medium text-n-slate-12">{{
@@ -2153,6 +2743,12 @@ onMounted(load);
                 >
                   <li v-for="step in testResult.steps" :key="step.nodeId">
                     {{ previewStepLabel(step) }}
+                    <p
+                      v-if="previewStepContent(step)"
+                      class="m-0 mt-0.5 break-words text-n-slate-10"
+                    >
+                      {{ previewStepContent(step) }}
+                    </p>
                   </li>
                 </ol>
                 <p v-else class="m-0 text-xs text-n-slate-11">
@@ -2532,6 +3128,29 @@ onMounted(load);
           <p v-if="!connections.length" class="m-0 text-sm text-n-slate-11">
             {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.EMPTY') }}
           </p>
+          <section class="grid gap-2 border-t border-n-weak pt-4">
+            <h3 class="m-0 text-sm font-medium text-n-slate-12">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.AUDIT_TITLE') }}
+            </h3>
+            <ul
+              v-if="connectionAudits.length"
+              class="m-0 grid list-none gap-1 p-0"
+            >
+              <li
+                v-for="audit in connectionAudits"
+                :key="audit.id"
+                class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-n-slate-11"
+              >
+                <span>{{ connectionAuditDescription(audit) }}</span>
+                <time :datetime="audit.createdAt">{{
+                  connectionAuditTime(audit.createdAt)
+                }}</time>
+              </li>
+            </ul>
+            <p v-else class="m-0 text-xs text-n-slate-11">
+              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.CONNECTIONS.AUDIT_EMPTY') }}
+            </p>
+          </section>
         </div>
       </template>
       <template v-else>
@@ -2587,58 +3206,182 @@ onMounted(load);
                 })
               }}
             </p>
+            <p
+              v-if="automationHealth.abandonedCount"
+              class="m-0 text-n-ruby-11"
+            >
+              {{
+                t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.ABANDONED', {
+                  count: automationHealth.abandonedCount,
+                })
+              }}
+            </p>
+            <p v-if="blockedMessageCount" class="m-0 text-n-amber-11">
+              {{
+                t(
+                  'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.BLOCKED_MESSAGES',
+                  { count: blockedMessageCount }
+                )
+              }}
+            </p>
+            <p
+              v-for="item in nodeFailureSummary"
+              :key="item.key"
+              class="m-0 text-n-ruby-11"
+            >
+              {{
+                t(
+                  'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.NODE_FAILED',
+                  {
+                    node: previewStepLabel({ actionName: item.key }),
+                    count: item.count,
+                  }
+                )
+              }}
+            </p>
+            <p
+              v-for="item in nodeErrorRates"
+              :key="`rate-${item.key}`"
+              class="m-0 text-n-slate-11"
+            >
+              {{
+                t(
+                  'KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.NODE_ERROR_RATE',
+                  {
+                    node: previewStepLabel({ actionName: item.key }),
+                    percentage: item.percentage,
+                  }
+                )
+              }}
+            </p>
+            <p
+              v-for="item in nodeUsageSummary"
+              :key="`usage-${item.key}`"
+              class="m-0 text-n-slate-11"
+            >
+              {{
+                t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.HEALTH.NODE_USAGE', {
+                  node: previewStepLabel({ actionName: item.key }),
+                  count: item.total,
+                  failed: item.failed,
+                })
+              }}
+            </p>
           </section>
           <article
             v-for="execution in executions"
             :key="execution.id"
-            class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
+            class="rounded-md border border-n-weak bg-n-surface-1 px-4 py-3"
           >
-            <div class="min-w-0">
-              <p class="m-0 truncate text-sm font-medium text-n-slate-12">
-                {{ execution.ruleName }}
-              </p>
-              <p class="m-0 mt-1 text-xs text-n-slate-11">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                  {{ execution.ruleName }}
+                </p>
+                <p class="m-0 mt-1 text-xs text-n-slate-11">
+                  {{
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.DETAILS', {
+                      event: execution.eventName,
+                      id: execution.cardId || '-',
+                    })
+                  }}
+                </p>
+                <p
+                  v-if="execution.errorMessage"
+                  class="m-0 mt-1 text-xs text-n-ruby-11"
+                >
+                  {{ execution.errorMessage }}
+                </p>
+              </div>
+              <div class="flex shrink-0 items-center gap-2">
+                <span
+                  class="rounded-full bg-n-surface-2 px-2 py-1 text-xs font-medium text-n-slate-11"
+                >
+                  {{ executionStatusLabel(execution.status) }}
+                </span>
+                <Button
+                  type="button"
+                  icon="i-lucide-workflow"
+                  color="slate"
+                  size="xs"
+                  :data-testid="`kanban-automation-open-execution-${execution.id}`"
+                  :aria-label="
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.INSPECT')
+                  "
+                  @click="openExecutionInCanvas(execution)"
+                />
+                <Button
+                  v-if="execution.status === 'waiting'"
+                  type="button"
+                  icon="i-lucide-ban"
+                  color="slate"
+                  size="xs"
+                  :aria-label="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION')
+                  "
+                  @click="cancelExecution(execution)"
+                />
+                <Button
+                  v-if="['failed', 'skipped'].includes(execution.status)"
+                  type="button"
+                  icon="i-lucide-rotate-cw"
+                  color="slate"
+                  size="xs"
+                  :aria-label="
+                    t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.RETRY')
+                  "
+                  @click="retryExecution(execution)"
+                />
+              </div>
+            </div>
+            <details
+              v-if="execution.actionResults?.length"
+              :data-testid="`kanban-automation-execution-steps-${execution.id}`"
+              class="mt-3 border-t border-n-weak pt-2"
+            >
+              <summary
+                class="cursor-pointer text-xs font-medium text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand"
+              >
                 {{
-                  t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.DETAILS', {
-                    event: execution.eventName,
-                    id: execution.cardId || '-',
+                  t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEPS', {
+                    count: execution.actionResults.length,
                   })
                 }}
-              </p>
-              <p
-                v-if="execution.errorMessage"
-                class="m-0 mt-1 text-xs text-n-ruby-11"
+              </summary>
+              <ol
+                class="m-0 mt-2 grid list-none gap-1 border-l border-n-weak pl-3"
               >
-                {{ execution.errorMessage }}
-              </p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
-              <span
-                class="rounded-full bg-n-surface-2 px-2 py-1 text-xs font-medium text-n-slate-11"
-              >
-                {{ executionStatusLabel(execution.status) }}
-              </span>
-              <Button
-                v-if="execution.status === 'waiting'"
-                type="button"
-                icon="i-lucide-ban"
-                color="slate"
-                size="xs"
-                :aria-label="
-                  t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_EXECUTION')
-                "
-                @click="cancelExecution(execution)"
-              />
-              <Button
-                v-if="['failed', 'skipped'].includes(execution.status)"
-                type="button"
-                icon="i-lucide-rotate-cw"
-                color="slate"
-                size="xs"
-                :aria-label="t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.RETRY')"
-                @click="retryExecution(execution)"
-              />
-            </div>
+                <li
+                  v-for="(step, index) in execution.actionResults"
+                  :key="`${execution.id}-${step.nodeId || index}`"
+                  class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs"
+                >
+                  <span class="text-n-slate-12">
+                    {{ previewStepLabel(step) }}
+                  </span>
+                  <span class="text-n-slate-11">
+                    {{ executionStepStatusLabel(step.status) }}
+                  </span>
+                  <time
+                    v-if="executionStepTimestamp(step.executedAt)"
+                    :datetime="step.executedAt"
+                    class="basis-full text-n-slate-11"
+                  >
+                    {{
+                      t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.STEP_AT', {
+                        time: executionStepTimestamp(step.executedAt),
+                      })
+                    }}
+                  </time>
+                  <span
+                    v-if="executionStepReasonLabel(step.reason)"
+                    class="basis-full text-n-slate-11"
+                  >
+                    {{ executionStepReasonLabel(step.reason) }}
+                  </span>
+                </li>
+              </ol>
+            </details>
           </article>
           <p v-if="!executions.length" class="m-0 text-sm text-n-slate-11">
             {{ t('KANBAN.AUTOMATIONS_WORKSPACE.EXECUTIONS.EMPTY') }}

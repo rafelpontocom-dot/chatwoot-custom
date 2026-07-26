@@ -18,6 +18,7 @@ class KanbanCardListener < BaseListener
         reason: 'Paused after an incoming customer message',
         only_if_pause_on_incoming: true
       )
+      skip_inactivity_waits(card)
       resume_response_waits(card)
       dispatch_customer_message_automation(card, message)
     end
@@ -97,10 +98,54 @@ class KanbanCardListener < BaseListener
 
         execution.update!(
           scheduled_at: nil,
-          workflow_state: execution.workflow_state.to_h.except('waiting_for')
+          workflow_state: execution.workflow_state.to_h.except('waiting_for', 'timeout_node_id')
         )
       end
       KanbanAutomations::ContinueWorkflowJob.perform_later(execution.id, card.id)
     end
+  end
+
+  def skip_inactivity_waits(card)
+    KanbanAutomationExecution.waiting.where(kanban_card: card).find_each do |execution|
+      next unless execution.workflow_state.to_h['waiting_for'] == 'customer_inactivity'
+
+      resume_response_path = false
+      execution.with_lock do
+        next unless execution.waiting? && execution.workflow_state.to_h['waiting_for'] == 'customer_inactivity'
+
+        resume_response_path = execution.workflow_state.to_h['response_node_id'].present?
+        update_inactivity_wait_after_customer_message(execution, resume_response_path)
+      end
+      KanbanAutomations::ContinueWorkflowJob.perform_later(execution.id, card.id) if resume_response_path
+    end
+  end
+
+  def update_inactivity_wait_after_customer_message(execution, resume_response_path)
+    results = inactivity_wait_interruption_results(execution)
+    unless resume_response_path
+      return execution.update!(
+        status: :skipped,
+        scheduled_at: nil,
+        workflow_state: {},
+        completed_at: Time.current,
+        action_results: results
+      )
+    end
+
+    execution.update!(
+      scheduled_at: nil,
+      workflow_state: { 'next_node_id' => execution.workflow_state.to_h['response_node_id'] },
+      action_results: results
+    )
+  end
+
+  def inactivity_wait_interruption_results(execution)
+    Array(execution.action_results) + [
+      {
+        'status' => 'skipped',
+        'reason' => 'customer_message_received',
+        'waiting_for' => 'customer_inactivity'
+      }
+    ]
   end
 end

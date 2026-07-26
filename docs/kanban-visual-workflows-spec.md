@@ -84,7 +84,37 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 }
 ```
 
-Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `wait_for_business_hours`, `send_message`, `action`, `condition`, `webhook`, `end`.
+Tipos permitidos na base atual: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `wait_for_inactivity`, `wait_for_business_hours`, `send_message`, `action`, `set_field`, `update_contact`, `complete_next_action`, `mark_won`, `mark_lost`, `condition`, `filter`, `message_eligibility`, `round_robin`, `human_handoff`, `audit_log`, `webhook`, `end`.
+
+## Catálogo Técnico E Evolução
+
+Todos os nós persistem somente `id`, `type`, `position` e `data`. Ícone, cor, resumo, estado de validação e textos de ajuda são derivados no frontend; não são fonte de verdade no JSON.
+
+| Família | Tipo atual ou planejado | Contrato de `data` | Estado |
+| --- | --- | --- | --- |
+| Gatilho | `trigger` | evento e filtros compatíveis | atual |
+| Gatilho | `scheduled_trigger` | frequência, fuso e critérios de seleção | planejado |
+| Tempo | `delay` | duração positiva | atual |
+| Tempo | `wait_until_field` | campo `date`/`datetime`, deslocamento e fuso | atual |
+| Tempo | `wait_for_response` | prazo, política opcional e saídas `received`/`timeout` | atual |
+| Tempo | `wait_for_business_hours` | agenda e fuso do board | atual |
+| Tempo | `wait_for_inactivity` | prazo e política opcional de interrupção com saídas `inactive`/`responded` | atual |
+| Decisão | `condition` | `branches[]`, regras `all`/`any`, `fallback_id` | atual/em consolidação |
+| Decisão | `filter` | uma condição e saída de continuação | atual, executado pelo mesmo avaliador do Router |
+| Decisão | `message_eligibility` | canal, consentimento, conversa compatível e janela do WhatsApp; saídas `eligible` e `otherwise` | atual |
+| Decisão | `round_robin` | opções ordenadas e cursor da regra | atual; rótulo visual `Distribuir caminhos` |
+| Cliente | `send_message` | canal, conteúdo/template, opt-in, mídia opcional e política `interromper` ou saídas `Enviada`/`Não enviada` | atual |
+| Cliente | `human_handoff` | equipe comercial, responsável e nota opcional; encerra a execução | atual |
+| Cliente | `update_contact` | atributo personalizado seguro e valor explícito | atual |
+| Oportunidade | `action` | ação comercial e parâmetros autorizados | atual |
+| Oportunidade | atualização de campo | definir, incrementar ou limpar um campo configurado | atual |
+| Oportunidade | `mark_won` e `mark_lost` | resultado ganho/perdido, motivo configurado na perda | atual |
+| Operação | `audit_log` | mensagem interna segura e imutável na linha do tempo | atual |
+| Integração | webhook com `failure_mode: route` | mantém retry seguro ou expõe saídas `succeeded` e `failed` | atual |
+| Integração | `webhook` | id de conexão aprovada e mapeamento permitido | atual |
+| Controle | `end` | resultado terminal opcional | atual/em evolução |
+
+Um novo tipo de nó exige, no mesmo pull request: validação no servidor, semântica de execução/preview, autorização, i18n, renderização do canvas e testes de serviço e componente. O contrato detalhado de cada fase fica no [roadmap do editor](./kanban-visual-workflows-roadmap.md).
 
 ## Validação No Servidor
 
@@ -100,8 +130,11 @@ Tipos permitidos: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `
 - mensagem sem canal permitido, conteúdo ou chave de opt-in;
 - ação fora de `KanbanAutomationRule::ACTION_NAMES`;
 - etapa, agente ou campo personalizado que não pertencem ao board ou conta.
-- condição sem saídas `yes` e `no`;
+- Router sem ao menos uma saída, com id de saída duplicado, regra inválida, conexão sem `sourceHandle` ou sem a rota `fallback_id`;
 - webhook sem uma conexão ativa do mesmo board;
+- registro interno sem conteúdo;
+- atualização de contato que tente usar uma coluna nativa, em vez de um atributo personalizado;
+- elegibilidade de mensagem sem canal, opt-in ou as duas conexões obrigatórias;
 - ciclos no grafo.
 
 O backend não confia no canvas para validar autorização, referências nem regras de canal.
@@ -127,22 +160,42 @@ O sistema não terá nós de código, shell, SQL, acesso a arquivo ou requisiç�
 
 `KanbanCardListener` publica o evento comercial e agenda `KanbanAutomations::ExecuteRuleJob` para cada regra ativa compatível. A execução é criada por `event_key`, com unicidade por regra, para evitar duplicidade.
 
-### Caminho Linear
+### Execução Do Grafo
 
 `KanbanAutomations::WorkflowService` inicia no nó salvo em `workflow_state.next_node_id` ou no `trigger`. Em cada nó:
 
 1. `trigger`: segue para a primeira aresta de saída.
 2. `delay`: grava `waiting`, `scheduled_at` e o id do próximo nó; agenda `ContinueWorkflowJob`.
-3. `wait_until_field`: agenda a partir de um campo `date` ou `datetime`, com deslocamento em horas.
-4. `wait_for_response`: grava `waiting_for: customer_message`; uma mensagem recebida retoma o próximo nó, e o prazo encerra a espera pelo job agendado.
-5. `wait_for_business_hours`: agenda a próxima data compatível com dias, horário e fuso configurados; dentro da janela, segue imediatamente.
-6. `condition`: avalia um campo e segue pela saída `yes` ou `no`.
-7. `action`: delega a `KanbanAutomations::ActionService`.
-8. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
-9. `webhook`: delega a `KanbanAutomations::WebhookDeliveryService`.
-10. `end`: conclui a execução.
+3. `wait_until_field`: agenda a partir de um campo `date` ou `datetime`, com deslocamento em horas. A política padrão interrompe a execução quando a data estiver indisponível; a política `route` exige as saídas `succeeded` e `failed`, registra `date_field_unavailable` e segue pela segunda quando aplicável.
+4. `wait_for_response`: grava `waiting_for: customer_message`; uma mensagem recebida retoma o próximo nó, e o prazo encerra a espera pelo job agendado. Com `timeout_mode: route`, a definição exige as saídas `received` e `timeout`; o job escolhe `timeout` somente se o cliente ainda não respondeu sob o lock da execução.
+5. `wait_for_inactivity`: grava `waiting_for: customer_inactivity`; o prazo segue a saída normal. Com `interruption_mode: route`, a definição exige `inactive` e `responded`; uma mensagem do cliente troca a continuidade para `responded` sob lock, em vez de apenas ignorar a execução.
+6. `wait_for_business_hours`: agenda a próxima data compatível com dias, horário e fuso configurados; dentro da janela, segue imediatamente. Com `failure_mode: route`, exige `succeeded` e `failed` e segue a segunda saída se não puder calcular uma janela futura.
+7. `condition`: atua como Router. Avalia suas saídas na ordem salva; cada saída contém condições próprias com modo `all` (E) ou `any` (OU). Segue pela primeira saída verdadeira e, quando nenhuma atende, segue por `fallback_id` (`Caso contrário`). Fluxos legados com `yes` e `no` continuam compatíveis.
+8. `action`: delega a `KanbanAutomations::ActionService`.
+9. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
+10. `webhook`: delega a `KanbanAutomations::WebhookDeliveryService`.
+11. `end`: conclui a execução.
 
-O limite é de 50 nós por execução. O backend rejeita ciclos; o único nó com duas saídas é `condition`, identificado por `sourceHandle: yes` e `sourceHandle: no`.
+O limite é de 50 nós por execução. O backend rejeita ciclos. Router e Round Robin têm uma conexão obrigatória por saída, identificada por `sourceHandle`; o Router também exige a conexão da rota padrão. O motor executa uma única ramificação por vez: paralelismo, merge/join e loop não pertencem a este produto.
+
+### Falhas, Retry E Saídas De Erro
+
+Na base atual, uma falha inesperada mantém a execução em estado reprocessável enquanto o Active Job ainda possui tentativas. Apenas ao esgotá-las, `MarkExecutionFailedService` obtém lock, registra `failed`, a mensagem técnica e o horário de conclusão. Para webhook, mensagem e espera até data, o administrador pode optar por `failure_mode: route`: o nó exige uma saída de sucesso e outra de falha, registra apenas um motivo sanitizado (`webhook_delivery_failed`, bloqueio de mensagem ou `date_field_unavailable`) e segue o caminho de falha sem repetir o envio. Espera por resposta e inatividade têm rotas temporais explícitas e mutuamente exclusivas, sempre selecionadas sob lock. Outros nós continuam usando retry do job até terem uma política explícita e idempotente.
+
+Cada passo deve acrescentar um resultado normalizado em `action_results`:
+
+```json
+{
+  "node_id": "message-1",
+  "status": "succeeded",
+  "started_at": "2026-07-25T15:00:00Z",
+  "finished_at": "2026-07-25T15:00:01Z",
+  "summary": "Mensagem WhatsApp enviada",
+  "next_node_id": "end"
+}
+```
+
+Resultados nunca armazenam segredo, payload integral de webhook, token, mensagem de erro de provedor ou dado pessoal desnecessário.
 
 ### Retomada
 
@@ -153,7 +206,7 @@ O limite é de 50 nós por execução. O backend rejeita ciclos; o único nó co
 
 Caso contrário, muda para `skipped`, remove `scheduled_at` e encerra. Erros inesperados mudam para `failed`, guardam `error_message` e usam o retry padrão do job.
 
-O endpoint de teste usa `WorkflowPreviewService`, que percorre os nós e devolve passos planejados sem chamar `ActionService` ou `WorkflowMessageService`. Na interface, o administrador escolhe uma oportunidade ativa do board, vê se as condições são atendidas e recebe a sequência traduzida dos passos previstos; mensagens, webhooks e ações internas nunca são disparados. Uma execução em estado `waiting` pode ser cancelada individualmente; ela passa para `skipped`, limpa `scheduled_at` e registra o motivo no histórico.
+O endpoint de teste usa `WorkflowPreviewService`, que percorre os nós e devolve passos planejados sem chamar `ActionService` ou criar mensagens. Para o nó de mensagem, ele resolve as variáveis do contato, oportunidade, valor e campos personalizados com o mesmo renderizador do envio. Na interface, o administrador escolhe uma oportunidade ativa do board, vê se as condições são atendidas e recebe a sequência traduzida dos passos previstos; o teste pode ser aberto tanto na lista quanto no cabeçalho de uma regra já salva. Mensagens, webhooks e ações internas nunca são disparados. Uma execução em estado `waiting` pode ser cancelada individualmente; ela passa para `skipped`, limpa `scheduled_at` e registra o motivo no histórico. A lista de execuções mostra por passo a ação, saída, estado e horário; a API limita esse histórico a metadados permitidos e nunca devolve payloads, conversas ou segredos de integrações.
 
 ## Nó De Mensagem
 
@@ -180,6 +233,9 @@ O nó utiliza o mesmo serviço das regras comerciais legadas. Ações aceitas:
 - `set_next_action`: aceita tipo, data/hora e observação;
 - `set_field`: exige chave de campo existente e valor;
 - `increment_field`: exige campo personalizado numérico e incremento finito;
+- `clear_field`: exige chave de campo existente e remove somente o valor daquela chave;
+- `update_contact`: aceita somente atributo personalizado com chave segura. `date_of_birth` exige data ISO (`YYYY-MM-DD`) e os consentimentos de marketing, aniversário e lembrete de consulta são normalizados para booleano; outros atributos permanecem valores explícitos configurados pelo gestor;
+- `complete_next_action`: conclui a atividade atual e pode registrar `completion_note` no histórico. Quando `schedule_next_action` está ativo, exige juntos `next_action_type` e uma data/hora válida em `next_action_at`, com observação opcional, para abrir a próxima atividade sem perder a concluída; a validação ocorre antes de alterar a atividade atual;
 - `archive_card`: não requer parâmetro.
 - `add_label` e `remove_label`: exigem `action_params.label` não vazio.
 - `add_note`: exige `action_params.content` e uma conversa vinculada; cria uma mensagem privada, nunca uma mensagem ao cliente.
@@ -227,11 +283,33 @@ Erros de validação respondem `422` com `message` e `errors`. O frontend deve m
 
 Cada criação, atualização ou restauração registra um snapshot imutável em `kanban_automation_rule_versions`. O histórico é acessado pelo ícone de relógio na regra. Restaurar uma versão pede confirmação contextual, gera uma nova versão e só muda inscrições futuras: `KanbanAutomationExecution#automation_snapshot` continua sendo a fonte de verdade para execuções já iniciadas.
 
-`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. A inserção de nós é acionada por um único botão `+`, que abre um menu de tipos. O canvas preserva toda a largura; clicar em nó ou conexão abre um modal central sobreposto, sem reduzir a área do fluxo.
+`KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. `KanbanWorkflowPalette.vue` é o catálogo visual independente: agrupa tipos por categoria, filtra por texto e emite a escolha por clique ou início de arraste. O builder converte o ponto de drop por `screenToFlowCoordinate`, preserva a alternativa por clique e insere o nó no canvas.
 
-O modal configura o nó selecionado. O nó de mensagem oferece emoji, busca de variáveis, imagem de até 10 MB, preview e remoção da mídia. O upload persiste somente o `signed_id` do Active Storage e o backend aceita exclusivamente blobs de imagem válidos. A mesma estrutura de mensagem está disponível na automação anual de aniversário. Quando a validação local encontra um nó inválido, ele é destacado, selecionado e aberto para correção. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
+O editor deve evoluir para estes componentes, sem concentrar todo o estado em um arquivo de tela:
 
-Para fluxos maiores, o minimapa só deve ser exibido quando o conteúdo extrapolar a área visível. Controles devem ter rótulo acessível, foco visível e uma alternativa sem arrastar: selecionar um nó, usar o inseridor `+` e escolher o próximo passo pelo teclado.
+| Componente/serviço | Responsabilidade |
+| --- | --- |
+| `KanbanWorkflowPalette` | Busca, categorias, favoritos futuros e inserção por clique/arraste. |
+| `KanbanWorkflowCanvas` | Vue Flow, seleção, viewport, minimapa, controles e eventos de canvas. |
+| `KanbanWorkflowNode` | Casca visual comum: categoria, ícone, título, resumo, chips, handles e estado. |
+| `KanbanWorkflowEdge` | Rótulo de saída, foco, inserção contextual e remoção acessível. |
+| `KanbanWorkflowInspector` | Painel flutuante com `Configurar`, `Testar` e `Histórico`. |
+| `useKanbanWorkflowCanvas` | Criar, mover, conectar, remover, inserir, desfazer/refazer e auto-organizar. |
+| `nodeDefinitions` | Registro único de tipos, categoria, ícone, schema local, resumo e ajuda. |
+
+`nodeDefinitions` não substitui a validação Rails. Ele reduz erros antes do salvamento e garante que paleta, canvas, inspector e preview usem a mesma linguagem comercial.
+
+O canvas preserva a maior parte da largura. Clicar em nó ou conexão abre um painel flutuante sobreposto, sem reduzir a área do fluxo. O menu `+` existe como alternativa compacta em telas pequenas e para inserir diretamente após um conector; ele não substitui a paleta. A configuração contextual e o histórico de execução não são colunas permanentes.
+
+O painel configura o nó selecionado e usa o nome do nó na sua abertura. O nó de mensagem oferece emoji, busca de variáveis, imagem de até 10 MB, preview e remoção da mídia. O upload persiste somente o `signed_id` do Active Storage e o backend aceita exclusivamente blobs de imagem válidos. A mesma estrutura de mensagem está disponível na automação anual de aniversário. Quando a validação local encontra um nó inválido, ele é destacado, selecionado e aberto para correção. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade.
+
+Para fluxos maiores, o minimapa só deve ser exibido quando o conteúdo extrapolar a área visível. Controles devem ter rótulo acessível, foco visível e uma alternativa sem arrastar: selecionar um nó, usar o inseridor `+` e escolher o próximo passo pelo teclado. Paleta, canvas, arestas e painel devem ter ordem de foco previsível; Escape fecha o painel e devolve foco ao nó ou à aresta que o abriu.
+
+O nó `Aguardar até data` armazena o fuso da data. Valores locais de campos `date` e `datetime` são interpretados nesse fuso antes de aplicar o ajuste em horas; fluxos antigos sem fuso continuam usando o fuso global do Rails para preservar o comportamento existente.
+
+### Auditoria de conexões
+
+Cada criação, alteração, remoção ou regeneração de segredo de uma conexão aprovada gera um evento administrativo associado à conta, quadro e usuário executor. O evento persiste apenas a ação, os nomes dos atributos alterados e, na remoção, o nome legível da conexão; URL, segredo, token de entrada e payload externo nunca são armazenados nem retornados pela API de auditoria. A aba de Integrações exibe os últimos eventos com hora local do navegador.
 
 ## Segurança E Auditoria
 
@@ -267,3 +345,36 @@ bundle exec rails db:migrate
 ```
 
 O `chatwoot_sidekiq` deve usar a mesma imagem para consumir `ContinueWorkflowJob`.
+
+### Smoke seguro pós-deploy
+
+Execute o smoke somente depois de atualizar `chatwoot_api` e `chatwoot_sidekiq` para a mesma tag da imagem. Ele verifica a estrutura e o carregamento das classes, mas não publica regras nem dispara mensagens:
+
+```sh
+API_ID=$(docker ps --filter name=chatwoot_api --format '{{.ID}}' | head -n 1)
+SIDEKIQ_ID=$(docker ps --filter name=chatwoot_sidekiq --format '{{.ID}}' | head -n 1)
+
+docker exec -it "$API_ID" sh -lc 'bundle exec rails db:migrate'
+docker exec -it "$API_ID" sh -lc 'bundle exec rake kanban_automations:smoke'
+docker exec -it "$SIDEKIQ_ID" sh -lc 'bundle exec rake kanban_automations:smoke'
+```
+
+O primeiro comando deve concluir sem migration pendente; os dois seguintes devem terminar com `Kanban automations smoke passed`. A tarefa confirma o índice parcial de próximas ações vencidas, a tabela de auditoria e as classes de execução em ambos os containers, sem criar ou modificar dados. No dashboard, valide então um rascunho com `Aguardar por data` configurado para `Criar rota de falha`, conectando `Data disponível` e `Data indisponível` por meio do inspector. Publique apenas uma regra de teste, com um contato de teste e sem nó de mensagem, antes de habilitar automações comerciais reais.
+
+As cadências legadas acionadas pela entrada em etapa consultam todas as cadências ativas daquela etapa. A inscrição é única por oportunidade e cadência; em concorrência, a tentativa que perde a criação recupera a inscrição criada pelo outro worker, sem duplicar follow-ups.
+
+### E2E De Homologação
+
+Com uma conta de teste, um quadro ativo e ao menos uma oportunidade de teste, execute a suíte visual contra a URL da homologação. `KANBAN_E2E_BOARD_ID` é opcional, mas recomenda-se defini-lo quando a conta possuir mais de um quadro visível para que a execução não dependa da ordenação da tela inicial.
+
+```sh
+cd tests/playwright
+BASE_URL=https://chatwt.exemplo.com.br \
+TEST_USER_EMAIL=qa@example.com \
+TEST_USER_PASSWORD='senha-de-teste' \
+KANBAN_E2E=1 \
+KANBAN_E2E_BOARD_ID=42 \
+npx playwright test tests/e2e/ui/kanban-accessibility.spec.ts
+```
+
+O cenário executa em desktop e mobile, incluindo viewport de 320 px, abertura e fechamento do drawer de oportunidade, paleta do workflow, inspector e ciclo de foco por Tab. As credenciais devem pertencer a uma conta de teste e nunca a um usuário operacional.

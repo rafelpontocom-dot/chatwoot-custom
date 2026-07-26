@@ -1,6 +1,15 @@
 require 'rails_helper'
 
 RSpec.describe KanbanAutomations::ExecuteRuleJob do
+  self.use_transactional_tests = false
+
+  around do |example|
+    clean_database!
+    example.run
+  ensure
+    clean_database!
+  end
+
   it 'executes a matching rule once for the same event key' do
     card = create(:kanban_card)
     target_stage = create(:kanban_stage, account: card.account, kanban_board: card.kanban_board)
@@ -18,6 +27,53 @@ RSpec.describe KanbanAutomations::ExecuteRuleJob do
 
     expect(card.reload.kanban_stage_id).to eq(target_stage.id)
     expect(rule.kanban_automation_executions.succeeded.count).to eq(1)
+  end
+
+  it 'creates one execution when two workers process the same event concurrently' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board
+    )
+
+    errors = run_concurrently(
+      -> { described_class.perform_now(rule.id, rule.event_name, 'concurrent-event', card.id) },
+      -> { described_class.perform_now(rule.id, rule.event_name, 'concurrent-event', card.id) }
+    )
+
+    expect(errors).to be_empty
+    expect(rule.kanban_automation_executions.where(event_key: 'concurrent-event')).to have_attributes(count: 1)
+    expect(rule.kanban_automation_executions.find_by!(event_key: 'concurrent-event')).to be_succeeded
+  end
+
+  it 'keeps a transient workflow failure reprocessable while Active Job schedules retry' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [{ source: 'trigger', target: 'end' }]
+      }
+    )
+    attempts = 0
+    allow(KanbanAutomations::WorkflowService).to receive(:new).and_wrap_original do |original, *args|
+      attempts += 1
+      raise StandardError, 'temporary database timeout' if attempts == 1
+
+      original.call(*args)
+    end
+
+    described_class.perform_now(rule.id, rule.event_name, 'retryable-event', card.id)
+
+    execution = rule.kanban_automation_executions.find_by!(event_key: 'retryable-event')
+    expect(attempts).to eq(1)
+    expect(execution).to have_attributes(status: 'queued', error_message: nil, completed_at: nil)
   end
 
   it 'records skipped executions when conditions do not match' do
@@ -106,5 +162,37 @@ RSpec.describe KanbanAutomations::ExecuteRuleJob do
 
     skipped_execution = rule.kanban_automation_executions.find_by!(event_key: 'blocked-reentry-event')
     expect(skipped_execution.action_results).to include(hash_including('reason' => 'reentry_not_allowed'))
+  end
+
+  def run_concurrently(*operations)
+    ready = Queue.new
+    start = Queue.new
+    errors = Queue.new
+    threads = operations.map do |operation|
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          operation.call
+        rescue StandardError => e
+          errors << e
+        end
+      end
+    end
+
+    operations.length.times { ready.pop }
+    operations.length.times { start << true }
+    threads.each(&:join)
+    Array.new(errors.size) { errors.pop }
+  end
+
+  def clean_database!
+    ActiveRecord::Base.connection_pool.with_connection do |connection|
+      connection.disable_referential_integrity do
+        (connection.tables - %w[schema_migrations ar_internal_metadata]).each do |table|
+          connection.execute("DELETE FROM #{connection.quote_table_name(table)}")
+        end
+      end
+    end
   end
 end

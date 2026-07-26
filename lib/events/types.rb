@@ -78,6 +78,7 @@ module Events::Types
   KANBAN_CARD_CUSTOM_FIELDS_CHANGED = 'kanban.card.custom_fields_changed'
   KANBAN_CARD_NEXT_ACTION_SCHEDULED = 'kanban.card.next_action_scheduled'
   KANBAN_CARD_NEXT_ACTION_COMPLETED = 'kanban.card.next_action_completed'
+  KANBAN_CARD_NEXT_ACTION_OVERDUE = 'kanban.card.next_action_overdue'
   KANBAN_CARD_WON = 'kanban.card.won'
   KANBAN_CARD_LOST = 'kanban.card.lost'
   KANBAN_CARD_REOPENED = 'kanban.card.reopened'

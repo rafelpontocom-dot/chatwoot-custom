@@ -35,7 +35,14 @@ jobs:
             app/controllers/api/v1/accounts/kanban_boards \
             app/controllers/api/v1/accounts/conversations/kanban_cards_controller.rb \
             app/services/kanban_cards \
+            app/services/kanban_automations \
+            app/services/kanban_cadences \
+            app/services/kanban_appointment_reminders \
             app/jobs/kanban_cards \
+            app/jobs/kanban_automations \
+            app/jobs/kanban_cadences \
+            app/jobs/kanban_appointment_reminders \
+            app/jobs/kanban_boards/schedule_appointment_reminders_job.rb \
             app/policies/kanban_board_policy.rb \
             app/policies/kanban_card_policy.rb \
             app/listeners/kanban_card_listener.rb \
@@ -47,6 +54,16 @@ jobs:
             app/services/whatsapp/providers/whatsapp_cloud_service.rb \
             app/dispatchers/async_dispatcher.rb \
             app/models/conversation.rb \
+            app/models/kanban_automation_connection.rb \
+            app/models/kanban_automation_connection_audit.rb \
+            app/models/kanban_automation_execution.rb \
+            app/models/kanban_automation_rule.rb \
+            app/models/kanban_appointment_reminder_delivery.rb \
+            app/models/kanban_appointment_reminder_rule.rb \
+            app/models/kanban_cadence.rb \
+            app/models/kanban_cadence_enrollment.rb \
+            db/migrate/*kanban* \
+            enterprise/app/models/custom_role.rb \
             config/routes.rb
 
   lint-frontend:
@@ -121,6 +138,10 @@ jobs:
           bundle exec rake db:create
           bundle exec rake db:schema:load
           bundle exec rails db:migrate
+      - name: Smoke test das automações comerciais
+        env:
+          RAILS_ENV: test
+        run: bundle exec rake kanban_automations:smoke
       - name: Run kanban + whatsapp specs
         run: |
           # Exclude the legacy backfill/parity rake spec (spec/lib/tasks/kanban_cards_spec.rb):

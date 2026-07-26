@@ -1,6 +1,16 @@
 require 'rails_helper'
 
 RSpec.describe KanbanCadences::ProcessDueJob do
+  it 'processes due enrollments in bounded batches' do
+    relation = instance_double(ActiveRecord::Relation)
+
+    allow(KanbanCadenceEnrollment).to receive(:due).and_return(relation)
+    allow(relation).to receive(:includes).with(:kanban_card, :kanban_cadence).and_return(relation)
+    expect(relation).to receive(:find_each).with(batch_size: described_class::BATCH_SIZE)
+
+    described_class.perform_now
+  end
+
   it 'processes only due active enrollments' do
     board = create(:kanban_board)
     card = create(:kanban_card, account: board.account, kanban_board: board)

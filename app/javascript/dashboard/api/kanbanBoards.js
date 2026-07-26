@@ -172,8 +172,16 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.get(`${this.url}/${boardId}/automation_rules/executions`);
   }
 
+  getAutomationMetrics(boardId) {
+    return axios.get(`${this.url}/${boardId}/automation_rules/metrics`);
+  }
+
   getAutomationConnections(boardId) {
     return axios.get(`${this.url}/${boardId}/automation_connections`);
+  }
+
+  getAutomationConnectionAudits(boardId) {
+    return axios.get(`${this.url}/${boardId}/automation_connections/audits`);
   }
 
   createAutomationConnection(boardId, payload) {

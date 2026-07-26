@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
 class CreateKanbanAutomationRules < ActiveRecord::Migration[7.1]
   def change
     create_table :kanban_automation_rules do |t|
@@ -45,3 +46,4 @@ class CreateKanbanAutomationRules < ActiveRecord::Migration[7.1]
               name: 'idx_kanban_automation_executions_history'
   end
 end
+# rubocop:enable Metrics/AbcSize, Metrics/MethodLength

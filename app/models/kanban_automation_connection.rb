@@ -32,6 +32,7 @@ class KanbanAutomationConnection < ApplicationRecord
 
   belongs_to :account
   belongs_to :kanban_board
+  has_many :kanban_automation_connection_audits, dependent: :nullify
 
   scope :active, -> { where(active: true) }
 

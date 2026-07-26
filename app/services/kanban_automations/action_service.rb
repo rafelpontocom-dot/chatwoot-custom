@@ -1,11 +1,25 @@
+# rubocop:disable Metrics/ClassLength -- This is the central registry for the supported commercial actions.
 class KanbanAutomations::ActionService
+  CONTACT_BOOLEAN_ATTRIBUTE_KEYS = %w[
+    marketing_messages_opt_in
+    birthday_messages_opt_in
+    appointment_reminders_opt_in
+  ].freeze
+  CONTACT_DATE_ATTRIBUTE_KEYS = %w[date_of_birth].freeze
+
   ACTION_HANDLERS = {
     'move_stage' => :move_stage,
     'assign_owner' => :assign_owner,
+    'assign_team' => :assign_team,
     'assign_round_robin' => :assign_round_robin,
     'set_next_action' => :update_next_action,
+    'complete_next_action' => :complete_next_action,
+    'mark_won' => :mark_won,
+    'mark_lost' => :mark_lost,
     'set_field' => :update_field,
     'increment_field' => :increment_field,
+    'clear_field' => :clear_field,
+    'update_contact' => :update_contact,
     'archive_card' => :archive_card,
     'enroll_cadence' => :enroll_cadence,
     'add_label' => :add_label,
@@ -47,12 +61,24 @@ class KanbanAutomations::ActionService
     result('assign_owner', 'succeeded', owner_id: owner&.id)
   end
 
+  def assign_team(params)
+    conversation = @card.conversation || raise(ActiveRecord::RecordNotFound, 'Conversation was not found for team assignment')
+    team_id = params[:team_id].presence
+    team = team_id && @rule.account.teams.find(team_id)
+    conversation.update!(team: team)
+    result('assign_team', 'succeeded', team_id: team&.id)
+  end
+
   def assign_round_robin(params)
     @rule.with_lock do
       owner = next_round_robin_owner(params)
-      @card.update!(owner: owner)
-      @rule.update!(round_robin_cursor: @rule.round_robin_cursor + 1)
-      result('assign_round_robin', 'succeeded', owner_id: owner.id)
+      if owner.blank?
+        result('assign_round_robin', 'skipped', reason: 'no_available_owner')
+      else
+        @card.update!(owner: owner)
+        @rule.update!(round_robin_cursor: @rule.round_robin_cursor + 1)
+        result('assign_round_robin', 'succeeded', owner_id: owner.id)
+      end
     end
   end
 
@@ -64,7 +90,19 @@ class KanbanAutomations::ActionService
     ordered_owners = owner_ids.filter_map { |owner_id| owners[owner_id] }
     raise ActiveRecord::RecordNotFound, 'Round-robin owner was not found' unless ordered_owners.length == owner_ids.length
 
-    ordered_owners[@rule.round_robin_cursor % ordered_owners.length]
+    available_owners = eligible_round_robin_owners(ordered_owners, params[:availability_policy])
+    return if available_owners.blank?
+
+    available_owners[@rule.round_robin_cursor % available_owners.length]
+  end
+
+  def eligible_round_robin_owners(owners, availability_policy)
+    policy = availability_policy.presence || 'any'
+    return owners if policy == 'any'
+
+    allowed_statuses = policy == 'online_only' ? ['online'] : %w[online busy]
+    statuses = OnlineStatusTracker.get_available_users(@rule.account.id).to_h
+    owners.select { |owner| allowed_statuses.include?(statuses[owner.id.to_s]) }
   end
 
   def update_next_action(params)
@@ -75,6 +113,44 @@ class KanbanAutomations::ActionService
       next_action_note: params[:next_action_note]
     )
     result('set_next_action', 'succeeded', next_action_at: next_action_at&.iso8601)
+  end
+
+  def complete_next_action(params)
+    return result('complete_next_action', 'skipped') if @card.next_action_at.blank? || @card.next_action_completed_at.present?
+
+    follow_up_attributes = follow_up_action_attributes(params)
+    @card.transaction do
+      @card.next_action_completion_note = params[:completion_note].to_s.strip.presence
+      @card.update!(next_action_completed_at: Time.current)
+      @card.update!(follow_up_attributes) if follow_up_attributes.present?
+      result('complete_next_action', 'succeeded', next_action_at: follow_up_attributes&.fetch(:next_action_at)&.iso8601)
+    end
+  end
+
+  def follow_up_action_attributes(params)
+    return if params[:schedule_next_action] == false
+    return unless params[:next_action_type].present? || params[:next_action_at].present?
+
+    raise ArgumentError, 'Next action type and date are required together' if params[:next_action_type].blank? || params[:next_action_at].blank?
+
+    {
+      next_action_type: params[:next_action_type],
+      next_action_at: parse_time(params[:next_action_at]),
+      next_action_note: params[:next_action_note]
+    }
+  end
+
+  def mark_won(_params)
+    @card.update!(won_at: Time.current, lost_at: nil, lost_reason: nil, closed_by: @card.owner)
+    result('mark_won', 'succeeded')
+  end
+
+  def mark_lost(params)
+    reason = params.fetch(:lost_reason).to_s.strip
+    raise ArgumentError, 'Lost reason must be configured for this board' unless @board.configured_lost_reason_options.include?(reason)
+
+    @card.update!(won_at: nil, lost_at: Time.current, lost_reason: reason, closed_by: @card.owner)
+    result('mark_lost', 'succeeded', lost_reason: reason)
   end
 
   def update_field(params)
@@ -96,10 +172,52 @@ class KanbanAutomations::ActionService
     result('increment_field', 'succeeded', field_key: field_key, amount: amount, value: next_value)
   end
 
+  def clear_field(params)
+    field_key = params.fetch(:field_key).to_s
+    configured_field_definition!(field_key)
+    @card.update!(custom_field_values: @card.custom_field_values.to_h.except(field_key))
+    result('clear_field', 'succeeded', field_key: field_key)
+  end
+
+  def update_contact(params)
+    attribute_key = params.fetch(:attribute_key).to_s
+    raise ArgumentError, 'Contact attribute key is not allowed' unless safe_contact_attribute_key?(attribute_key)
+
+    attributes = @card.contact.custom_attributes.to_h.merge(attribute_key => normalized_contact_attribute_value(attribute_key, params[:value]))
+    @card.contact.update!(custom_attributes: attributes)
+    result('update_contact', 'succeeded', attribute_key: attribute_key)
+  end
+
+  def safe_contact_attribute_key?(attribute_key)
+    attribute_key.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/) && Contact.column_names.exclude?(attribute_key)
+  end
+
+  def normalized_contact_attribute_value(attribute_key, value)
+    return normalized_contact_boolean(value) if CONTACT_BOOLEAN_ATTRIBUTE_KEYS.include?(attribute_key)
+    return Date.iso8601(value.to_s).iso8601 if CONTACT_DATE_ATTRIBUTE_KEYS.include?(attribute_key)
+
+    value
+  rescue Date::Error
+    raise ArgumentError, 'Contact date value must be a valid ISO date'
+  end
+
+  def normalized_contact_boolean(value)
+    return true if value == true || %w[true 1].include?(value.to_s)
+    return false if value == false || %w[false 0].include?(value.to_s)
+
+    raise ArgumentError, 'Contact consent value must be true or false'
+  end
+
   def numeric_field_definition!(field_key)
+    definition = configured_field_definition!(field_key)
+    raise ArgumentError, "Custom field #{field_key} must be numeric" unless %w[integer decimal currency].include?(definition['field_type'])
+
+    definition
+  end
+
+  def configured_field_definition!(field_key)
     definition = @board.configured_custom_field_definitions.find { |field| field['key'] == field_key }
     raise ActiveRecord::RecordNotFound, "Custom field #{field_key} was not found" if definition.blank?
-    raise ArgumentError, "Custom field #{field_key} must be numeric" unless %w[integer decimal currency].include?(definition['field_type'])
 
     definition
   end
@@ -171,12 +289,13 @@ class KanbanAutomations::ActionService
   end
 
   def parse_time(value)
-    Time.zone.parse(value.to_s)
+    Time.zone.parse(value.to_s) || raise(ArgumentError)
   rescue ArgumentError, TypeError
-    raise ActiveRecord::RecordInvalid, 'next_action_at is invalid'
+    raise ArgumentError, 'next_action_at is invalid'
   end
 
   def result(action_name, status, details = {})
     { 'action_name' => action_name, 'status' => status }.merge(details.stringify_keys)
   end
 end
+# rubocop:enable Metrics/ClassLength

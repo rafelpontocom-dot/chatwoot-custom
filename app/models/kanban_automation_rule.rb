@@ -39,7 +39,7 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::KANBAN_CARD_AMOUNT_CHANGED,
     Events::Types::KANBAN_CARD_CUSTOM_FIELDS_CHANGED,
     Events::Types::KANBAN_CARD_NEXT_ACTION_SCHEDULED,
-    Events::Types::KANBAN_CARD_NEXT_ACTION_COMPLETED,
+    Events::Types::KANBAN_CARD_NEXT_ACTION_COMPLETED, Events::Types::KANBAN_CARD_NEXT_ACTION_OVERDUE,
     Events::Types::KANBAN_CARD_WON,
     Events::Types::KANBAN_CARD_LOST,
     Events::Types::KANBAN_CARD_REOPENED,
@@ -51,11 +51,14 @@ class KanbanAutomationRule < ApplicationRecord
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
   ACTION_NAMES = %w[
-    move_stage assign_owner assign_round_robin set_next_action set_field increment_field archive_card
+    move_stage assign_owner assign_round_robin set_next_action complete_next_action
+    mark_won mark_lost set_field increment_field clear_field update_contact archive_card
     enroll_cadence add_label remove_label add_note
   ].freeze
   FLOW_NODE_TYPES = %w[
-    trigger delay wait_until_field wait_for_response wait_for_business_hours send_message action set_field condition round_robin webhook end
+    trigger delay wait_until_field wait_for_response wait_for_inactivity wait_for_business_hours
+    send_message action set_field update_contact complete_next_action mark_won mark_lost
+    condition filter message_eligibility round_robin human_handoff audit_log webhook end
   ].freeze
   belongs_to :account
   belongs_to :kanban_board
