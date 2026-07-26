@@ -1,23 +1,21 @@
 <script setup>
-import {
-  computed,
-  defineAsyncComponent,
-  markRaw,
-  nextTick,
-  ref,
-  watch,
-} from 'vue';
-import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
-import { useVueFlow, VueFlow } from '@vue-flow/core';
-import { MiniMap } from '@vue-flow/minimap';
-import { vOnClickOutside } from '@vueuse/components';
+import { computed, markRaw, nextTick, ref, watch } from 'vue';
+import { useVueFlow } from '@vue-flow/core';
 import { DirectUpload } from 'activestorage';
-import '@vue-flow/controls/dist/style.css';
-import '@vue-flow/core/dist/style.css';
-import '@vue-flow/minimap/dist/style.css';
 import { useI18n } from 'vue-i18n';
 
+import KanbanWorkflowCanvas from './KanbanWorkflowCanvas.vue';
+import KanbanWorkflowInspector from './KanbanWorkflowInspector.vue';
+import KanbanWorkflowInspectorHeader from './KanbanWorkflowInspectorHeader.vue';
+import KanbanWorkflowInspectorTabs from './KanbanWorkflowInspectorTabs.vue';
+import KanbanWorkflowTimeInspector from './KanbanWorkflowTimeInspector.vue';
+import KanbanWorkflowRoundRobinInspector from './KanbanWorkflowRoundRobinInspector.vue';
+import KanbanWorkflowDecisionInspector from './KanbanWorkflowDecisionInspector.vue';
+import KanbanWorkflowUtilityInspector from './KanbanWorkflowUtilityInspector.vue';
+import KanbanWorkflowContactInspector from './KanbanWorkflowContactInspector.vue';
+import KanbanWorkflowOutcomeInspector from './KanbanWorkflowOutcomeInspector.vue';
+import KanbanWorkflowMessageInspector from './KanbanWorkflowMessageInspector.vue';
+import KanbanWorkflowActionInspector from './KanbanWorkflowActionInspector.vue';
 import KanbanWorkflowNode from './KanbanWorkflowNode.vue';
 import KanbanWorkflowPalette from './KanbanWorkflowPalette.vue';
 import KanbanWorkflowEdge from './KanbanWorkflowEdge.vue';
@@ -114,6 +112,13 @@ const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
 const inspectorTab = ref('configure');
 const inspectorTabs = ['configure', 'test', 'history'];
+const timeNodeTypes = [
+  'delay',
+  'wait_until_field',
+  'wait_for_response',
+  'wait_for_inactivity',
+  'wait_for_business_hours',
+];
 const showNodeMenu = ref(false);
 const showMobilePalette = ref(false);
 const showConnectionForm = ref(false);
@@ -127,15 +132,7 @@ const insertAfterHandle = ref(null);
 const inspector = ref(null);
 const builder = ref(null);
 const mobilePaletteTrigger = ref(null);
-const messageContentInput = ref(null);
-const showEmojiPicker = ref(false);
-const showMessageVariableMenu = ref(false);
-const messageVariableQuery = ref('');
 const isUploadingMessageAttachment = ref(false);
-const EmojiIconPicker = defineAsyncComponent(
-  () =>
-    import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
-);
 const nodeTypes = {
   trigger: markRaw(KanbanWorkflowNode),
   delay: markRaw(KanbanWorkflowNode),
@@ -182,6 +179,17 @@ const nodeCategoryLabels = computed(() => ({
   INTEGRATION: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.INTEGRATION'),
   CONTROL: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
 }));
+const nodeCategorySurface = category =>
+  ({
+    TRIGGER: 'bg-n-teal-3 text-n-teal-11',
+    TIME: 'bg-n-amber-3 text-n-amber-11',
+    DECISION: 'bg-n-violet-3 text-n-violet-11',
+    OPERATION: 'bg-n-cyan-3 text-n-cyan-11',
+    CUSTOMER: 'bg-n-blue-3 text-n-blue-11',
+    OPPORTUNITY: 'bg-n-iris-3 text-n-iris-11',
+    INTEGRATION: 'bg-n-slate-3 text-n-slate-11',
+    CONTROL: 'bg-n-green-3 text-n-green-11',
+  })[category] || 'bg-n-surface-2 text-n-slate-11';
 const addableNodeTypes = computed(() =>
   paletteGroups.value.flatMap(group => group.nodes.map(node => node.type))
 );
@@ -473,36 +481,6 @@ const messageVariables = computed(() => [
     token: `{{field.${field.key}}}`,
   })),
 ]);
-const filteredMessageVariables = computed(() => {
-  const query = messageVariableQuery.value.trim().toLocaleLowerCase();
-  if (!query) return messageVariables.value;
-
-  return messageVariables.value.filter(variable =>
-    `${variable.label} ${variable.token}`.toLocaleLowerCase().includes(query)
-  );
-});
-const messageAttachmentUrl = computed(() => {
-  const attachment = selectedNode.value?.data?.message_attachment || {};
-  if (!attachment.signed_id || !attachment.filename) return '';
-
-  return `/rails/active_storage/blobs/redirect/${encodeURIComponent(attachment.signed_id)}/${encodeURIComponent(attachment.filename)}`;
-});
-const messagePreview = computed(() => {
-  const content = selectedNode.value?.data?.content || '';
-  return content
-    .replaceAll(
-      '{{contact_name}}',
-      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_CONTACT')
-    )
-    .replaceAll(
-      '{{opportunity_subject}}',
-      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_OPPORTUNITY')
-    )
-    .replaceAll(
-      '{{opportunity_amount}}',
-      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_AMOUNT')
-    );
-});
 const businessDays = computed(() => [
   { value: 1, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.MON') },
   { value: 2, label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEEKDAYS.TUE') },
@@ -850,6 +828,20 @@ const inspectorStateTone = state =>
     failed: 'bg-n-ruby-3 text-n-ruby-11',
   })[state] || 'bg-n-slate-3 text-n-slate-11';
 
+const focusInspector = () => {
+  const target = inspector.value;
+  if (typeof target?.focus === 'function') target.focus();
+  else target?.$el?.focus();
+};
+
+const focusInspectorTab = tab => {
+  const target = inspector.value;
+  const selector = `[data-inspector-tab="${tab}"]`;
+  const tabElement =
+    target?.querySelector?.(selector) || target?.$el?.querySelector(selector);
+  tabElement?.focus();
+};
+
 const handleInspectorTabKeydown = (event, tab) => {
   const currentIndex = inspectorTabs.indexOf(tab);
   const nextIndex = {
@@ -866,9 +858,7 @@ const handleInspectorTabKeydown = (event, tab) => {
   event.preventDefault();
   const nextTab = inspectorTabs[nextIndex];
   inspectorTab.value = nextTab;
-  nextTick(() =>
-    inspector.value?.querySelector(`[data-inspector-tab="${nextTab}"]`)?.focus()
-  );
+  nextTick(() => focusInspectorTab(nextTab));
 };
 
 const historyStatusLabel = status => {
@@ -1023,7 +1013,7 @@ function selectNode(nodeOrId) {
   selectedNodeId.value = typeof nodeOrId === 'string' ? nodeOrId : nodeOrId.id;
   selectedEdgeId.value = null;
   inspectorTab.value = 'configure';
-  nextTick(() => inspector.value?.focus());
+  nextTick(focusInspector);
 }
 
 const decorateNode = node => {
@@ -1187,6 +1177,9 @@ const decorateNode = node => {
         nodeCategoryLabels.value[
           getKanbanWorkflowNodeDefinition(node.type)?.category
         ],
+      categorySurface: nodeCategorySurface(
+        getKanbanWorkflowNodeDefinition(node.type)?.category
+      ),
       icon: getKanbanWorkflowNodeDefinition(node.type)?.icon,
       terminal: getKanbanWorkflowNodeDefinition(node.type)?.terminal,
       label: nodeLabel({ ...node, data }),
@@ -1230,7 +1223,7 @@ function focusFirstInvalidNode() {
 
   selectedNodeId.value = invalidNodeId;
   selectedEdgeId.value = null;
-  nextTick(() => inspector.value?.focus());
+  nextTick(focusInspector);
 }
 
 const defaultFlow = () => ({
@@ -1264,6 +1257,7 @@ const persistedNodeData = data => {
           'kind',
           'category',
           'categoryLabel',
+          'categorySurface',
           'icon',
           'terminal',
           'label',
@@ -1315,9 +1309,6 @@ const restoreCanvasSnapshot = snapshot => {
   edges.value = snapshot.edges.map(decorateEdge);
   selectedNodeId.value = null;
   selectedEdgeId.value = null;
-  showEmojiPicker.value = false;
-  showMessageVariableMenu.value = false;
-  messageVariableQuery.value = '';
 };
 
 function recordCanvasState() {
@@ -1478,16 +1469,13 @@ const onNodeDragStart = () => {
 const onEdgeClick = ({ edge }) => {
   selectedNodeId.value = null;
   selectedEdgeId.value = edge.id;
-  nextTick(() => inspector.value?.focus());
+  nextTick(focusInspector);
 };
 
 function closeInspector() {
   selectedNodeId.value = null;
   selectedEdgeId.value = null;
   inspectorTab.value = 'configure';
-  showEmojiPicker.value = false;
-  showMessageVariableMenu.value = false;
-  messageVariableQuery.value = '';
   showConnectionForm.value = false;
   connectionTargetId.value = '';
   connectionSourceHandle.value = '';
@@ -1591,27 +1579,6 @@ const removeSelectedEdge = () => {
   recordCanvasState();
   removeEdge(selectedEdgeId.value);
   closeInspector();
-};
-
-const insertMessageText = value => {
-  const node = selectedNode.value;
-  if (!node || node.type !== 'send_message') return;
-
-  const input = messageContentInput.value;
-  const content = node.data.content || '';
-  const start = input?.selectionStart ?? content.length;
-  const end = input?.selectionEnd ?? content.length;
-  node.data.content = `${content.slice(0, start)}${value}${content.slice(end)}`;
-  node.data = decorateNode(node).data;
-  emit('clearValidation');
-  showEmojiPicker.value = false;
-  showMessageVariableMenu.value = false;
-  messageVariableQuery.value = '';
-
-  nextTick(() => {
-    input?.focus();
-    input?.setSelectionRange(start + value.length, start + value.length);
-  });
 };
 
 const refreshSelectedNode = () => {
@@ -1878,7 +1845,7 @@ const handleBuilderKeydown = event => {
   <section
     ref="builder"
     data-testid="kanban-workflow-builder"
-    class="relative flex h-full min-h-[34rem] min-w-0 flex-1 overflow-hidden rounded-md border border-n-weak bg-n-surface-2"
+    class="relative flex h-full min-h-[42rem] min-w-0 flex-1 overflow-hidden rounded-lg border border-n-weak bg-n-surface-2 shadow-sm"
     tabindex="0"
     @keydown="handleBuilderKeydown"
   >
@@ -1892,268 +1859,184 @@ const handleBuilderKeydown = event => {
       @add="addNodeOfType"
       @drag-start="startPaletteDrag"
     />
-    <div
-      data-testid="kanban-workflow-canvas"
-      role="region"
-      class="relative h-full min-h-[34rem] flex-1"
-      :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CANVAS_LABEL')"
+    <KanbanWorkflowCanvas
+      v-model:nodes="nodes"
+      v-model:edges="edges"
+      :node-types="nodeTypes"
+      :edge-types="edgeTypes"
+      :canvas-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CANVAS_LABEL')"
+      :show-mini-map="showMiniMap"
+      @connect="onConnect"
+      @node-drag-start="onNodeDragStart"
+      @edge-click="onEdgeClick"
+      @node-click="({ node }) => selectNode(node)"
+      @drop="onCanvasDrop"
     >
-      <div
-        data-testid="kanban-workflow-canvas-toolbar"
-        class="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-sm"
-      >
-        <button
-          type="button"
-          data-testid="kanban-workflow-undo"
-          class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
-          :disabled="!canUndo"
-          :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UNDO')"
-          :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UNDO')"
-          @click="undoCanvas"
-        >
-          <i class="i-lucide-undo-2 size-4" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          data-testid="kanban-workflow-redo"
-          class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
-          :disabled="!canRedo"
-          :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REDO')"
-          :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REDO')"
-          @click="redoCanvas"
-        >
-          <i class="i-lucide-redo-2 size-4" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          data-testid="kanban-workflow-auto-arrange"
-          class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-          :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUTO_ARRANGE')"
-          :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUTO_ARRANGE')"
-          @click="autoArrangeCanvas"
-        >
-          <i class="i-lucide-layout-dashboard size-4" aria-hidden="true" />
-        </button>
-        <button
-          ref="mobilePaletteTrigger"
-          type="button"
-          data-testid="kanban-workflow-open-mobile-palette"
-          class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:hidden"
-          :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
-          :aria-expanded="showMobilePalette"
-          aria-controls="kanban-workflow-mobile-palette"
-          @click="showMobilePalette = true"
-        >
-          <i class="i-lucide-plus size-4" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          data-testid="kanban-workflow-add-node"
-          class="hidden size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:flex"
-          :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
-          :aria-expanded="showNodeMenu"
-          aria-controls="kanban-workflow-node-menu"
-          @click="openNodeMenuAfter(null)"
-        >
-          <i class="i-lucide-plus size-4" />
-        </button>
+      <template #toolbar>
         <div
-          v-if="showNodeMenu"
-          id="kanban-workflow-node-menu"
-          data-testid="kanban-workflow-node-menu"
-          class="absolute right-0 top-10 grid max-h-[min(28rem,calc(100vh-7rem))] min-w-56 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1.5 shadow-lg"
-        >
-          <div
-            v-for="group in paletteGroups"
-            :key="group.key"
-            data-testid="kanban-workflow-node-menu-group"
-            class="border-b border-n-weak py-1.5 first:pt-0 last:border-b-0 last:pb-0"
-          >
-            <p
-              class="m-0 flex h-6 items-center gap-1.5 px-1.5 text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
-            >
-              <i class="size-3" :class="group.icon" aria-hidden="true" />
-              {{ group.label }}
-            </p>
-            <button
-              v-for="node in group.nodes"
-              :key="node.type"
-              type="button"
-              class="flex h-8 w-full items-center gap-2 rounded px-1.5 text-left text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-              @click="addNodeOfType(node.type)"
-            >
-              <i
-                class="size-3.5 text-n-slate-10"
-                :class="node.icon"
-                aria-hidden="true"
-              />
-              <span class="truncate">{{ node.label }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div
-        v-if="showMobilePalette"
-        id="kanban-workflow-mobile-palette"
-        data-testid="kanban-workflow-mobile-palette"
-        class="absolute inset-3 z-30 flex flex-col overflow-hidden rounded-md border border-n-weak bg-n-surface-1 shadow-xl lg:hidden"
-      >
-        <div
-          class="flex h-11 items-center justify-end border-b border-n-weak px-2"
+          data-testid="kanban-workflow-canvas-toolbar"
+          class="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-lg border border-n-weak bg-n-surface-1 p-1 shadow-sm"
         >
           <button
             type="button"
-            class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
-            :aria-label="t('KANBAN.ACTIONS.CLOSE')"
-            :title="t('KANBAN.ACTIONS.CLOSE')"
-            @click="closeMobilePalette"
+            data-testid="kanban-workflow-undo"
+            class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            :disabled="!canUndo"
+            :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UNDO')"
+            :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UNDO')"
+            @click="undoCanvas"
           >
-            <i class="i-lucide-x size-4" aria-hidden="true" />
+            <i class="i-lucide-undo-2 size-4" aria-hidden="true" />
           </button>
+          <button
+            type="button"
+            data-testid="kanban-workflow-redo"
+            class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            :disabled="!canRedo"
+            :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REDO')"
+            :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REDO')"
+            @click="redoCanvas"
+          >
+            <i class="i-lucide-redo-2 size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            data-testid="kanban-workflow-auto-arrange"
+            class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUTO_ARRANGE')"
+            :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUTO_ARRANGE')"
+            @click="autoArrangeCanvas"
+          >
+            <i class="i-lucide-layout-dashboard size-4" aria-hidden="true" />
+          </button>
+          <button
+            ref="mobilePaletteTrigger"
+            type="button"
+            data-testid="kanban-workflow-open-mobile-palette"
+            class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:hidden"
+            :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
+            :aria-expanded="showMobilePalette"
+            aria-controls="kanban-workflow-mobile-palette"
+            @click="showMobilePalette = true"
+          >
+            <i class="i-lucide-plus size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            data-testid="kanban-workflow-add-node"
+            class="hidden size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:flex"
+            :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
+            :aria-expanded="showNodeMenu"
+            aria-controls="kanban-workflow-node-menu"
+            @click="openNodeMenuAfter(null)"
+          >
+            <i class="i-lucide-plus size-4" />
+          </button>
+          <div
+            v-if="showNodeMenu"
+            id="kanban-workflow-node-menu"
+            data-testid="kanban-workflow-node-menu"
+            class="absolute right-0 top-10 grid max-h-[min(28rem,calc(100vh-7rem))] min-w-56 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1.5 shadow-lg"
+          >
+            <div
+              v-for="group in paletteGroups"
+              :key="group.key"
+              data-testid="kanban-workflow-node-menu-group"
+              class="border-b border-n-weak py-1.5 first:pt-0 last:border-b-0 last:pb-0"
+            >
+              <p
+                class="m-0 flex h-6 items-center gap-1.5 px-1.5 text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+              >
+                <i class="size-3" :class="group.icon" aria-hidden="true" />
+                {{ group.label }}
+              </p>
+              <button
+                v-for="node in group.nodes"
+                :key="node.type"
+                type="button"
+                class="flex h-8 w-full items-center gap-2 rounded px-1.5 text-left text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                @click="addNodeOfType(node.type)"
+              >
+                <i
+                  class="size-3.5 text-n-slate-10"
+                  :class="node.icon"
+                  aria-hidden="true"
+                />
+                <span class="truncate">{{ node.label }}</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <KanbanWorkflowPalette
-          mobile
-          :groups="paletteGroups"
-          :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.TITLE')"
-          :search-placeholder="
-            t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.SEARCH')
-          "
-          :empty-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.EMPTY')"
-          @add="addNodeFromMobilePalette"
-          @drag-start="startPaletteDrag"
-        />
-      </div>
-      <div
-        class="h-full min-h-[34rem] overflow-hidden bg-n-surface-1"
-        @dragover.prevent
-        @drop="onCanvasDrop"
-      >
-        <VueFlow
-          v-model:nodes="nodes"
-          v-model:edges="edges"
-          :node-types="nodeTypes"
-          :edge-types="edgeTypes"
-          :min-zoom="0.4"
-          :max-zoom="1.8"
-          fit-view-on-init
-          @connect="onConnect"
-          @node-drag-start="onNodeDragStart"
-          @edge-click="onEdgeClick"
-          @node-click="({ node }) => selectNode(node)"
+      </template>
+      <template #mobile-palette>
+        <div
+          v-if="showMobilePalette"
+          id="kanban-workflow-mobile-palette"
+          data-testid="kanban-workflow-mobile-palette"
+          class="absolute inset-3 z-30 flex flex-col overflow-hidden rounded-md border border-n-weak bg-n-surface-1 shadow-xl lg:hidden"
         >
-          <Background pattern-color="var(--color-n-slate-5)" :gap="16" />
-          <Controls :show-interactive="false" />
-          <MiniMap
-            v-if="showMiniMap"
-            data-testid="kanban-workflow-minimap"
-            pannable
-            zoomable
+          <div
+            class="flex h-11 items-center justify-end border-b border-n-weak px-2"
+          >
+            <button
+              type="button"
+              class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+              :aria-label="t('KANBAN.ACTIONS.CLOSE')"
+              :title="t('KANBAN.ACTIONS.CLOSE')"
+              @click="closeMobilePalette"
+            >
+              <i class="i-lucide-x size-4" aria-hidden="true" />
+            </button>
+          </div>
+          <KanbanWorkflowPalette
+            mobile
+            :groups="paletteGroups"
+            :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.TITLE')"
+            :search-placeholder="
+              t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.SEARCH')
+            "
+            :empty-label="
+              t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.EMPTY')
+            "
+            @add="addNodeFromMobilePalette"
+            @drag-start="startPaletteDrag"
           />
-        </VueFlow>
-      </div>
+        </div>
+      </template>
 
-      <div
-        v-if="selectedNode || selectedEdge"
-        data-testid="kanban-workflow-inspector-backdrop"
-        class="fixed inset-0 z-40 bg-n-slate-12/10"
-        @click="closeInspector"
-      />
-      <aside
+      <KanbanWorkflowInspector
         v-if="selectedNode || selectedEdge"
         ref="inspector"
-        :data-testid="
-          selectedNode
-            ? 'kanban-workflow-node-drawer'
-            : 'kanban-workflow-connection-dialog'
-        "
-        class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-lg border border-n-weak bg-n-surface-1 p-4 shadow-2xl outline-none sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-6 sm:w-[min(26rem,calc(100vw-3rem))] sm:p-5"
-        role="dialog"
-        aria-modal="true"
+        :node-selected="Boolean(selectedNode)"
         :aria-labelledby="
           selectedNode
             ? 'kanban-workflow-inspector-title'
             : 'kanban-workflow-connection-title'
         "
-        tabindex="-1"
+        @close="closeInspector"
         @focusin="recordInspectorState"
         @keydown="handleInspectorKeydown"
       >
         <template v-if="selectedNode">
-          <div
-            data-testid="kanban-workflow-inspector-header"
-            class="sticky top-0 z-10 -mx-4 -mt-4 flex items-center justify-between gap-3 border-b border-n-weak bg-n-surface-1 px-4 pb-3 pt-4 sm:-mx-5 sm:-mt-5 sm:px-5 sm:pt-5"
-          >
-            <div class="flex min-w-0 items-center gap-2.5">
-              <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-n-surface-2 text-n-slate-11"
-              >
-                <i
-                  v-if="selectedNode.data.icon"
-                  data-testid="kanban-workflow-inspector-icon"
-                  class="size-4"
-                  :class="selectedNode.data.icon"
-                  aria-hidden="true"
-                />
-              </span>
-              <div class="min-w-0">
-                <p
-                  data-testid="kanban-workflow-inspector-category"
-                  class="m-0 truncate text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
-                >
-                  {{ selectedNode.data.categoryLabel }}
-                </p>
-                <p
-                  id="kanban-workflow-inspector-title"
-                  class="m-0 truncate text-base font-semibold text-n-slate-12"
-                >
-                  {{ selectedNode.data.label }}
-                </p>
-                <span
-                  data-testid="kanban-workflow-inspector-state"
-                  class="mt-1 inline-flex rounded px-1.5 py-0.5 text-2xs font-medium"
-                  :class="inspectorStateTone(selectedNode.data.state)"
-                >
-                  {{ selectedNode.data.stateLabel }}
-                </span>
-              </div>
-            </div>
-            <div class="flex items-center gap-1">
-              <button
-                v-if="!selectedNode.data.terminal"
-                type="button"
-                data-testid="kanban-workflow-connect-node"
-                class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                :aria-label="
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECT_NODE')
-                "
-                :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECT_NODE')"
-                @click="openConnectionForm"
-              >
-                <i class="i-lucide-link size-4" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                :aria-label="t('KANBAN.ACTIONS.CLOSE')"
-                :title="t('KANBAN.ACTIONS.CLOSE')"
-                @click="closeInspector"
-              >
-                <i class="i-lucide-x size-4" />
-              </button>
-              <button
-                v-if="!['trigger', 'end'].includes(selectedNode.type)"
-                type="button"
-                class="flex size-8 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                :aria-label="
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_NODE')
-                "
-                :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_NODE')"
-                @click="removeSelectedNode"
-              >
-                <i class="i-lucide-trash-2 size-4" />
-              </button>
-            </div>
-          </div>
+          <KanbanWorkflowInspectorHeader
+            :node="selectedNode"
+            :summary="nodeSummary(selectedNode)"
+            :state-tone="inspectorStateTone(selectedNode.data.state)"
+            :surface-class="selectedNode.data.categorySurface"
+            :empty-summary="
+              t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.TEST_EMPTY')
+            "
+            :connect-label="
+              t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONNECT_NODE')
+            "
+            :close-label="t('KANBAN.ACTIONS.CLOSE')"
+            :delete-label="
+              t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_NODE')
+            "
+            @close="closeInspector"
+            @connect="openConnectionForm"
+            @delete="removeSelectedNode"
+          />
 
           <section
             v-if="showConnectionForm"
@@ -2214,40 +2097,17 @@ const handleBuilderKeydown = event => {
             </div>
           </section>
 
-          <div
-            data-testid="kanban-workflow-inspector-tabs"
-            class="grid w-full grid-cols-3 items-center gap-1 rounded-md bg-n-surface-2 p-1"
-            role="tablist"
-            :aria-label="
+          <KanbanWorkflowInspectorTabs
+            :tabs="inspectorTabs"
+            :active-tab="inspectorTab"
+            :label="
               t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.TABS_LABEL')
             "
-          >
-            <button
-              v-for="tab in inspectorTabs"
-              :key="tab"
-              type="button"
-              :data-testid="`kanban-workflow-inspector-tab-${tab}`"
-              :data-inspector-tab="tab"
-              role="tab"
-              :aria-selected="inspectorTab === tab"
-              :tabindex="inspectorTab === tab ? 0 : -1"
-              class="flex h-8 items-center justify-center gap-1.5 rounded px-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-n-brand"
-              :class="
-                inspectorTab === tab
-                  ? 'bg-n-surface-1 text-n-slate-12 shadow-sm'
-                  : 'text-n-slate-11 hover:text-n-slate-12'
-              "
-              @click="inspectorTab = tab"
-              @keydown="handleInspectorTabKeydown($event, tab)"
-            >
-              <i
-                :class="inspectorTabIcon(tab)"
-                class="size-3.5 shrink-0"
-                aria-hidden="true"
-              />
-              {{ inspectorTabLabel(tab) }}
-            </button>
-          </div>
+            :tab-label="inspectorTabLabel"
+            :tab-icon="inspectorTabIcon"
+            @update:active-tab="inspectorTab = $event"
+            @keydown="handleInspectorTabKeydown"
+          />
 
           <section
             v-if="inspectorTab === 'test'"
@@ -2330,1533 +2190,115 @@ const handleBuilderKeydown = event => {
             </label>
           </template>
 
-          <template v-else-if="selectedNode.type === 'delay'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELAY_HOURS') }}
-              <input
-                v-model.number="selectedNode.data.delay_hours"
-                min="1"
-                type="number"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-          </template>
+          <KanbanWorkflowTimeInspector
+            v-else-if="timeNodeTypes.includes(selectedNode.type)"
+            :node="selectedNode"
+            :date-fields="dateFields"
+            :timezones="quietHoursTimezoneOptions"
+            :business-days="businessDays"
+            :timeout-label="selectedWaitTimeoutLabel"
+            :t="t"
+            @update="updateNode"
+          />
 
-          <template v-else-if="selectedNode.type === 'wait_until_field'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FIELD') }}
-              <select
-                v-model="selectedNode.data.field_key"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FIELD') }}
-                </option>
-                <option
-                  v-for="field in dateFields"
-                  :key="field.key"
-                  :value="field.key"
-                >
-                  {{ field.label }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_OFFSET_HOURS') }}
-              <input
-                v-model.number="selectedNode.data.offset_hours"
-                type="number"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_TIMEZONE') }}
-              <select
-                v-model="selectedNode.data.timezone"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-              >
-                <option
-                  v-for="timezone in quietHoursTimezoneOptions"
-                  :key="timezone.value"
-                  :value="timezone.value"
-                >
-                  {{ timezone.label }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FAILURE_POLICY')
-              }}
-              <select
-                v-model="selectedNode.data.failure_mode"
-                data-testid="kanban-workflow-date-failure-mode"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="stop">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FAILURE_STOP')
-                  }}
-                </option>
-                <option value="route">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FAILURE_ROUTE')
-                  }}
-                </option>
-              </select>
-            </label>
-          </template>
+          <KanbanWorkflowDecisionInspector
+            v-else-if="['condition', 'filter'].includes(selectedNode.type)"
+            :node="selectedNode"
+            :fields="conditionFieldsForWorkflow"
+            :operators="conditionOperatorOptions"
+            :options-for="conditionOptionsFor"
+            :t="t"
+            @update="updateNode"
+            @add-condition="addCondition"
+            @remove-condition="removeCondition"
+            @add-branch="addConditionBranch"
+            @remove-branch="removeConditionBranch"
+            @move-branch="moveConditionBranch"
+            @drag-start-branch="startConditionBranchDrag"
+            @drop-branch="dropConditionBranch"
+          />
 
-          <template v-else-if="selectedNode.type === 'wait_for_response'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ selectedWaitTimeoutLabel }}
-              <input
-                v-model.number="selectedNode.data.timeout_hours"
-                min="1"
-                type="number"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{
-                t(
-                  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RESPONSE_TIMEOUT_POLICY'
-                )
-              }}
-              <select
-                v-model="selectedNode.data.timeout_mode"
-                data-testid="kanban-workflow-response-timeout-mode"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="continue">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RESPONSE_TIMEOUT_CONTINUE'
-                    )
-                  }}
-                </option>
-                <option value="route">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RESPONSE_TIMEOUT_ROUTE'
-                    )
-                  }}
-                </option>
-              </select>
-            </label>
-          </template>
+          <KanbanWorkflowRoundRobinInspector
+            v-else-if="selectedNode.type === 'round_robin'"
+            :node="selectedNode"
+            :t="t"
+            @add="addRoundRobinOption"
+            @remove="removeRoundRobinOption"
+            @update="updateNode"
+          />
 
-          <template v-else-if="selectedNode.type === 'wait_for_inactivity'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ selectedWaitTimeoutLabel }}
-              <input
-                v-model.number="selectedNode.data.timeout_hours"
-                min="1"
-                type="number"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{
-                t(
-                  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INACTIVITY_INTERRUPTION_POLICY'
-                )
-              }}
-              <select
-                v-model="selectedNode.data.interruption_mode"
-                data-testid="kanban-workflow-inactivity-interruption-mode"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="stop">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INACTIVITY_INTERRUPTION_STOP'
-                    )
-                  }}
-                </option>
-                <option value="route">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INACTIVITY_INTERRUPTION_ROUTE'
-                    )
-                  }}
-                </option>
-              </select>
-            </label>
-          </template>
+          <KanbanWorkflowMessageInspector
+            v-else-if="selectedNode.type === 'send_message'"
+            :node="selectedNode"
+            :variables="messageVariables"
+            :timezones="quietHoursTimezoneOptions"
+            :t="t"
+            @update="updateNode"
+            @attachment="uploadMessageAttachment"
+            @remove-attachment="removeMessageAttachment"
+          />
 
-          <template v-else-if="selectedNode.type === 'wait_for_business_hours'">
-            <fieldset
-              class="grid gap-1 border-0 p-0 text-xs font-medium text-n-slate-11"
-            >
-              <legend class="p-0">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_DAYS') }}
-              </legend>
-              <div class="grid grid-cols-4 gap-1">
-                <label
-                  v-for="day in businessDays"
-                  :key="day.value"
-                  class="flex items-center gap-1 rounded border border-n-weak px-2 py-1 text-xs"
-                >
-                  <input
-                    v-model="selectedNode.data.weekdays"
-                    :value="day.value"
-                    type="checkbox"
-                    class="size-3 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                    @change="updateNode"
-                  />
-                  {{ day.label }}
-                </label>
-              </div>
-            </fieldset>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_START') }}
-                <input
-                  v-model="selectedNode.data.start_time"
-                  type="time"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_END') }}
-                <input
-                  v-model="selectedNode.data.end_time"
-                  type="time"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </div>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_TIMEZONE') }}
-              <select
-                v-model="selectedNode.data.timezone"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option
-                  v-for="timezone in quietHoursTimezoneOptions"
-                  :key="timezone.value"
-                  :value="timezone.value"
-                >
-                  {{ timezone.label }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{
-                t(
-                  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_HOURS_FAILURE_POLICY'
-                )
-              }}
-              <select
-                v-model="selectedNode.data.failure_mode"
-                data-testid="kanban-workflow-business-hours-failure-mode"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="stop">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_HOURS_FAILURE_STOP'
-                    )
-                  }}
-                </option>
-                <option value="route">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BUSINESS_HOURS_FAILURE_ROUTE'
-                    )
-                  }}
-                </option>
-              </select>
-            </label>
-          </template>
+          <KanbanWorkflowUtilityInspector
+            v-else-if="
+              [
+                'webhook',
+                'end',
+                'human_handoff',
+                'audit_log',
+                'message_eligibility',
+              ].includes(selectedNode.type)
+            "
+            :node="selectedNode"
+            :agents="agents"
+            :teams="teams"
+            :connections="connections"
+            :end-outcomes="endOutcomeOptions"
+            :t="t"
+            @update="updateNode"
+          />
 
-          <template v-else-if="selectedNode.type === 'condition'">
-            <fieldset
-              v-for="(branch, branchIndex) in selectedNode.data.branches"
-              :key="branch.id"
-              data-testid="kanban-workflow-condition-branch"
-              class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
-              @dragover.prevent
-              @drop="dropConditionBranch(branchIndex)"
-            >
-              <legend class="px-1 text-xs font-semibold text-n-slate-11">
-                {{
-                  branch.label ||
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BRANCH')
-                }}
-              </legend>
-              <div class="grid gap-2 sm:grid-cols-[2rem_minmax(0,1fr)_4.5rem]">
-                <button
-                  type="button"
-                  draggable="true"
-                  class="hidden size-9 cursor-grab items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand active:cursor-grabbing sm:flex"
-                  :aria-label="
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DRAG_BRANCH')
-                  "
-                  @dragstart="startConditionBranchDrag(branchIndex)"
-                >
-                  <i class="i-lucide-grip-vertical size-4" aria-hidden="true" />
-                </button>
-                <input
-                  v-model="branch.label"
-                  type="text"
-                  :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BRANCH')"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-medium text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-                <div class="flex items-center justify-end gap-1">
-                  <button
-                    type="button"
-                    :data-testid="`kanban-workflow-move-branch-up-${branchIndex}`"
-                    class="flex size-9 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
-                    :aria-label="
-                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MOVE_BRANCH_UP')
-                    "
-                    :disabled="branchIndex === 0"
-                    @click="moveConditionBranch(branchIndex, -1)"
-                  >
-                    <i class="i-lucide-arrow-up size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    :data-testid="`kanban-workflow-move-branch-down-${branchIndex}`"
-                    class="flex size-9 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
-                    :aria-label="
-                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MOVE_BRANCH_DOWN')
-                    "
-                    :disabled="
-                      branchIndex === selectedNode.data.branches.length - 1
-                    "
-                    @click="moveConditionBranch(branchIndex, 1)"
-                  >
-                    <i class="i-lucide-arrow-down size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                    :aria-label="
-                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_BRANCH')
-                    "
-                    :disabled="selectedNode.data.branches.length === 1"
-                    @click="removeConditionBranch(branchIndex)"
-                  >
-                    <i class="i-lucide-trash-2 size-4" />
-                  </button>
-                </div>
-              </div>
-              <div
-                v-for="(condition, index) in branch.conditions"
-                :key="`${branch.id}-${index}`"
-                data-testid="kanban-workflow-condition-row"
-                class="grid gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)_10rem_minmax(0,1fr)_2rem]"
-              >
-                <select
-                  v-if="index > 0"
-                  v-model="condition.join_operator"
-                  data-testid="kanban-workflow-condition-join-operator"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="and">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.JOIN_AND') }}
-                  </option>
-                  <option value="or">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.JOIN_OR') }}
-                  </option>
-                </select>
-                <span v-else />
-                <select
-                  v-model="condition.field_key"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
-                  </option>
-                  <option
-                    v-for="field in conditionFieldsForWorkflow"
-                    :key="field.key"
-                    :value="field.key"
-                  >
-                    {{ field.label }}
-                  </option>
-                </select>
-                <select
-                  v-model="condition.operator"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option
-                    v-for="option in conditionOperatorOptions"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-                <select
-                  v-if="
-                    conditionOptionsFor(condition).length &&
-                    condition.operator !== 'exists'
-                  "
-                  v-model="condition.value"
-                  data-testid="kanban-workflow-condition-value"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
-                  </option>
-                  <option
-                    v-for="option in conditionOptionsFor(condition)"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-                <input
-                  v-else-if="condition.operator !== 'exists'"
-                  v-model="condition.value"
-                  data-testid="kanban-workflow-condition-value"
-                  type="text"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-                <span v-else />
-                <button
-                  type="button"
-                  class="flex size-9 items-center justify-center self-end rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
-                  :aria-label="
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_CONDITION')
-                  "
-                  :disabled="branch.conditions.length === 1"
-                  @click="removeCondition(branch, index)"
-                >
-                  <i class="i-lucide-trash-2 size-4" />
-                </button>
-              </div>
-              <button
-                type="button"
-                data-testid="kanban-workflow-add-condition"
-                class="flex h-8 w-fit items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                @click="addCondition(branch)"
-              >
-                <i class="i-lucide-plus size-3.5" />{{
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_CONDITION')
-                }}
-              </button>
-            </fieldset>
-            <button
-              type="button"
-              data-testid="kanban-workflow-add-branch"
-              class="flex h-8 w-fit items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-              @click="addConditionBranch"
-            >
-              <i class="i-lucide-plus size-3.5" />{{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_BRANCH')
-              }}
-            </button>
-          </template>
+          <KanbanWorkflowContactInspector
+            v-else-if="selectedNode.type === 'update_contact'"
+            :node="selectedNode"
+            :attributes="contactAttributeOptions"
+            :selected-attribute="selectedContactAttributeOption"
+            :is-boolean="selectedContactAttributeIsBoolean"
+            :boolean-value="selectedContactBooleanValue"
+            :is-date="selectedContactAttributeIsDate"
+            :t="t"
+            @update="updateNode"
+            @select-attribute="selectContactAttribute"
+            @update-boolean="updateContactBooleanValue"
+          />
 
-          <template v-else-if="selectedNode.type === 'filter'">
-            <fieldset
-              class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
-            >
-              <legend class="px-1 text-xs font-semibold text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.FILTER') }}
-              </legend>
-              <select
-                v-model="selectedNode.data.match_mode"
-                data-testid="kanban-workflow-filter-match-mode"
-                class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="all">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ALL') }}
-                </option>
-                <option value="any">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MATCH_ANY') }}
-                </option>
-              </select>
-              <div
-                v-for="(condition, index) in selectedNode.data.conditions"
-                :key="index"
-                data-testid="kanban-workflow-filter-row"
-                class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)_2rem]"
-              >
-                <select
-                  v-model="condition.field_key"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
-                  </option>
-                  <option
-                    v-for="field in conditionFieldsForWorkflow"
-                    :key="field.key"
-                    :value="field.key"
-                  >
-                    {{ field.label }}
-                  </option>
-                </select>
-                <select
-                  v-model="condition.operator"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option
-                    v-for="option in conditionOperatorOptions"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-                <select
-                  v-if="
-                    conditionOptionsFor(condition).length &&
-                    condition.operator !== 'exists'
-                  "
-                  v-model="condition.value"
-                  data-testid="kanban-workflow-filter-condition-value"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
-                  </option>
-                  <option
-                    v-for="option in conditionOptionsFor(condition)"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-                <input
-                  v-else-if="condition.operator !== 'exists'"
-                  v-model="condition.value"
-                  data-testid="kanban-workflow-filter-condition-value"
-                  type="text"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-                <span v-else />
-                <button
-                  type="button"
-                  class="flex size-9 items-center justify-center self-end rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
-                  :aria-label="
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_CONDITION')
-                  "
-                  :disabled="selectedNode.data.conditions.length === 1"
-                  @click="removeCondition(selectedNode.data, index)"
-                >
-                  <i class="i-lucide-trash-2 size-4" />
-                </button>
-              </div>
-              <button
-                type="button"
-                data-testid="kanban-workflow-add-filter-condition"
-                class="flex h-8 w-fit items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                @click="addCondition(selectedNode.data)"
-              >
-                <i class="i-lucide-plus size-3.5" />{{
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_CONDITION')
-                }}
-              </button>
-            </fieldset>
-          </template>
+          <KanbanWorkflowOutcomeInspector
+            v-else-if="
+              ['complete_next_action', 'mark_won', 'mark_lost'].includes(
+                selectedNode.type
+              )
+            "
+            :node="selectedNode"
+            :next-action-types="nextActionTypes"
+            :lost-reasons="lostReasonOptions"
+            :t="t"
+            @update="updateNode"
+          />
 
-          <template v-else-if="selectedNode.type === 'round_robin'">
-            <div class="grid gap-2">
-              <div
-                v-for="(option, index) in selectedNode.data.options"
-                :key="option.id"
-                class="grid grid-cols-[minmax(0,1fr)_2rem] gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2"
-              >
-                <input
-                  v-model="option.label"
-                  type="text"
-                  class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-                <button
-                  type="button"
-                  class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
-                  :aria-label="
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_REMOVE_OPTION'
-                    )
-                  "
-                  :title="
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_REMOVE_OPTION'
-                    )
-                  "
-                  :disabled="selectedNode.data.options.length <= 2"
-                  @click="removeRoundRobinOption(index)"
-                >
-                  <i class="i-lucide-trash-2 size-4" />
-                </button>
-              </div>
-            </div>
-            <p class="m-0 text-xs text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_HINT') }}
-            </p>
-            <p class="m-0 text-xs text-n-slate-11">
-              {{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_RESET_HINT')
-              }}
-            </p>
-            <div>
-              <button
-                type="button"
-                data-testid="kanban-workflow-add-round-robin-option"
-                class="flex h-8 items-center gap-1 rounded-md border border-n-weak bg-n-surface-2 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                @click="addRoundRobinOption"
-              >
-                <i class="i-lucide-plus size-3.5" />
-                {{
-                  t(
-                    'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_ADD_OPTION'
-                  )
-                }}
-              </button>
-            </div>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'send_message'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CHANNEL') }}
-              <select
-                v-model="selectedNode.data.channel"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="whatsapp">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.WHATSAPP') }}
-                </option>
-                <option value="email">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.EMAIL') }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPT_IN') }}
-              <input
-                v-model="selectedNode.data.opt_in_attribute_key"
-                type="text"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_FAILURE_POLICY')
-              }}
-              <select
-                v-model="selectedNode.data.failure_mode"
-                data-testid="kanban-workflow-message-failure-mode"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="stop">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_FAILURE_STOP'
-                    )
-                  }}
-                </option>
-                <option value="route">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_FAILURE_ROUTE'
-                    )
-                  }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE') }}
-              <div class="rounded-md border border-n-weak bg-n-surface-2">
-                <textarea
-                  ref="messageContentInput"
-                  v-model="selectedNode.data.content"
-                  rows="5"
-                  class="block min-h-28 w-full resize-y border-0 bg-transparent px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-0"
-                  :placeholder="
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_PLACEHOLDER'
-                    )
-                  "
-                  @change="updateNode"
-                />
-                <div
-                  class="flex items-center gap-1 border-t border-n-weak px-2 py-1.5"
-                >
-                  <div
-                    v-on-click-outside="() => (showEmojiPicker = false)"
-                    class="relative"
-                  >
-                    <button
-                      type="button"
-                      data-testid="kanban-message-emoji-button"
-                      class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                      :aria-label="
-                        t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_EMOJI')
-                      "
-                      :title="
-                        t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_EMOJI')
-                      "
-                      @click="showEmojiPicker = !showEmojiPicker"
-                    >
-                      <i class="i-lucide-smile size-4" />
-                    </button>
-                    <EmojiIconPicker
-                      v-if="showEmojiPicker"
-                      mode="emoji"
-                      class="!bottom-full !left-0 !top-auto mb-2"
-                      @select="insertMessageText($event.value)"
-                    />
-                  </div>
-                  <div
-                    v-on-click-outside="() => (showMessageVariableMenu = false)"
-                    class="relative"
-                  >
-                    <button
-                      type="button"
-                      data-testid="kanban-message-variable-button"
-                      class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                      :aria-label="
-                        t(
-                          'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_VARIABLE'
-                        )
-                      "
-                      :title="
-                        t(
-                          'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_VARIABLE'
-                        )
-                      "
-                      @click="
-                        showMessageVariableMenu = !showMessageVariableMenu
-                      "
-                    >
-                      <i class="i-lucide-braces size-4" />
-                    </button>
-                    <div
-                      v-if="showMessageVariableMenu"
-                      data-testid="kanban-message-variable-menu"
-                      class="absolute bottom-full left-0 z-20 grid max-h-72 w-72 gap-1 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-xl"
-                    >
-                      <input
-                        v-model="messageVariableQuery"
-                        type="search"
-                        class="h-8 rounded border border-n-weak bg-n-surface-2 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                        :placeholder="
-                          t(
-                            'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.SEARCH_VARIABLE'
-                          )
-                        "
-                      />
-                      <button
-                        v-for="variable in filteredMessageVariables"
-                        :key="variable.token"
-                        type="button"
-                        class="grid gap-0.5 rounded px-2 py-1.5 text-left hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
-                        @click="insertMessageText(variable.token)"
-                      >
-                        <span class="text-sm font-medium text-n-slate-12">
-                          {{ variable.label }}
-                        </span>
-                        <span class="font-mono text-xs text-n-slate-10">
-                          {{ variable.token }}
-                        </span>
-                      </button>
-                      <p
-                        v-if="!filteredMessageVariables.length"
-                        class="m-0 px-2 py-3 text-xs text-n-slate-10"
-                      >
-                        {{
-                          t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NO_VARIABLES')
-                        }}
-                      </p>
-                    </div>
-                  </div>
-                  <label
-                    class="flex size-8 cursor-pointer items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus-within:ring-2 focus-within:ring-n-brand"
-                    :aria-label="
-                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UPLOAD_IMAGE')
-                    "
-                    :title="
-                      t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UPLOAD_IMAGE')
-                    "
-                  >
-                    <i class="i-lucide-image-plus size-4" />
-                    <input
-                      class="sr-only"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,image/gif"
-                      :disabled="isUploadingMessageAttachment"
-                      @change="uploadMessageAttachment"
-                    />
-                  </label>
-                  <span class="ml-auto text-xs font-normal text-n-slate-10">
-                    {{
-                      t(
-                        'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_VARIABLE_HINT'
-                      )
-                    }}
-                  </span>
-                </div>
-              </div>
-            </label>
-            <div
-              class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-3"
-              data-testid="kanban-message-preview"
-            >
-              <p class="m-0 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW') }}
-              </p>
-              <img
-                v-if="messageAttachmentUrl"
-                :src="messageAttachmentUrl"
-                :alt="
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ATTACHMENT_PREVIEW')
-                "
-                class="max-h-56 w-auto rounded-md object-cover"
-              />
-              <div
-                class="max-w-[85%] rounded-lg rounded-tl-sm bg-n-brand px-3 py-2 text-sm text-white"
-              >
-                {{
-                  messagePreview ||
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_EMPTY')
-                }}
-              </div>
-              <div v-if="messageAttachmentUrl" class="flex justify-end">
-                <button
-                  type="button"
-                  class="text-xs font-medium text-n-ruby-11 hover:underline focus:outline-none focus:ring-2 focus:ring-n-brand"
-                  @click="removeMessageAttachment"
-                >
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_IMAGE') }}
-                </button>
-              </div>
-            </div>
-            <template v-if="selectedNode.data.channel === 'whatsapp'">
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAME') }}
-                <input
-                  v-model="selectedNode.data.whatsapp_template_params.name"
-                  type="text"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-              <div class="grid grid-cols-2 gap-2">
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_LANGUAGE')
-                  }}
-                  <input
-                    v-model="
-                      selectedNode.data.whatsapp_template_params.language
-                    "
-                    type="text"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="updateNode"
-                  />
-                </label>
-                <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_CATEGORY')
-                  }}
-                  <input
-                    v-model="
-                      selectedNode.data.whatsapp_template_params.category
-                    "
-                    type="text"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="updateNode"
-                  />
-                </label>
-              </div>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{
-                  t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.TEMPLATE_NAMESPACE')
-                }}
-                <input
-                  v-model="selectedNode.data.whatsapp_template_params.namespace"
-                  type="text"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </template>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.FREQUENCY_LIMIT') }}
-              <input
-                v-model="selectedNode.data.frequency_limit_hours"
-                type="number"
-                min="1"
-                max="720"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_START') }}
-                <input
-                  v-model="selectedNode.data.quiet_hours.start"
-                  type="time"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_END') }}
-                <input
-                  v-model="selectedNode.data.quiet_hours.end"
-                  type="time"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </div>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_TIMEZONE') }}
-              <select
-                v-model="selectedNode.data.quiet_hours.timezone"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option
-                  v-for="timezone in quietHoursTimezoneOptions"
-                  :key="timezone.value"
-                  :value="timezone.value"
-                >
-                  {{ timezone.label }}
-                </option>
-              </select>
-            </label>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'webhook'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_CONNECTION') }}
-              <select
-                v-model="selectedNode.data.connection_id"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_CONNECTION')
-                  }}
-                </option>
-                <option
-                  v-for="connection in connections.filter(item => item.active)"
-                  :key="connection.id"
-                  :value="connection.id"
-                >
-                  {{ connection.name }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_FAILURE_POLICY')
-              }}
-              <select
-                v-model="selectedNode.data.failure_mode"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="stop">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_FAILURE_STOP'
-                    )
-                  }}
-                </option>
-                <option value="route">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_FAILURE_ROUTE'
-                    )
-                  }}
-                </option>
-              </select>
-            </label>
-            <p class="m-0 text-xs text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.WEBHOOK_HINT') }}
-            </p>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'end'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.END_OUTCOME') }}
-              <select
-                v-model="selectedNode.data.outcome"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option
-                  v-for="outcome in endOutcomeOptions"
-                  :key="outcome.value"
-                  :value="outcome.value"
-                >
-                  {{ outcome.label }}
-                </option>
-              </select>
-            </label>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'human_handoff'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HANDOFF_TEAM') }}
-              <select
-                v-model="selectedNode.data.team_id"
-                data-testid="kanban-workflow-handoff-team"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_TEAM') }}
-                </option>
-                <option v-for="team in teams" :key="team.id" :value="team.id">
-                  {{ team.name }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HANDOFF_AGENT') }}
-              <select
-                v-model="selectedNode.data.owner_id"
-                data-testid="kanban-workflow-handoff-owner"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_AGENT') }}
-                </option>
-                <option
-                  v-for="agent in agents"
-                  :key="agent.id"
-                  :value="agent.id"
-                >
-                  {{ agent.name }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HANDOFF_NOTE') }}
-              <textarea
-                v-model="selectedNode.data.note"
-                rows="3"
-                class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <p class="m-0 text-xs text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HANDOFF_HINT') }}
-            </p>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'audit_log'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUDIT_LOG_CONTENT') }}
-              <textarea
-                v-model="selectedNode.data.content"
-                data-testid="kanban-workflow-audit-log-content"
-                rows="3"
-                class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <p class="m-0 text-xs text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUDIT_LOG_HINT') }}
-            </p>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'message_eligibility'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_CHANNEL') }}
-              <select
-                v-model="selectedNode.data.channel"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="whatsapp">
-                  {{
-                    t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CHANNEL_WHATSAPP')
-                  }}
-                </option>
-                <option value="email">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CHANNEL_EMAIL') }}
-                </option>
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPT_IN_ATTRIBUTE') }}
-              <input
-                v-model="selectedNode.data.opt_in_attribute_key"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <p class="m-0 text-xs text-n-slate-11">
-              {{
-                t(
-                  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_ELIGIBILITY_HINT'
-                )
-              }}
-            </p>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'update_contact'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONTACT_ATTRIBUTE') }}
-              <select
-                :value="selectedContactAttributeOption"
-                data-testid="kanban-workflow-contact-attribute-select"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="selectContactAttribute"
-              >
-                <option
-                  v-for="attribute in contactAttributeOptions"
-                  :key="attribute.value"
-                  :value="attribute.value"
-                >
-                  {{ attribute.label }}
-                </option>
-                <option value="__custom__">
-                  {{
-                    t(
-                      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONTACT_ATTRIBUTES.CUSTOM'
-                    )
-                  }}
-                </option>
-              </select>
-            </label>
-            <label
-              v-if="selectedContactAttributeOption === '__custom__'"
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONTACT_ATTRIBUTE_KEY')
-              }}
-              <input
-                v-model="selectedNode.data.action_params.attribute_key"
-                data-testid="kanban-workflow-contact-attribute"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <label
-              v-if="selectedContactAttributeIsBoolean"
-              class="flex min-h-9 items-center gap-2 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONTACT_VALUE') }}
-              <input
-                :checked="selectedContactBooleanValue"
-                data-testid="kanban-workflow-contact-value-boolean"
-                type="checkbox"
-                class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                @change="updateContactBooleanValue"
-              />
-              <span>
-                {{
-                  t(
-                    'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONTACT_VALUE_ENABLED'
-                  )
-                }}
-              </span>
-            </label>
-            <label
-              v-else
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONTACT_VALUE') }}
-              <input
-                v-model="selectedNode.data.action_params.value"
-                data-testid="kanban-workflow-contact-value"
-                :type="selectedContactAttributeIsDate ? 'date' : 'text'"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <p class="m-0 text-xs text-n-slate-11">
-              {{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CONTACT_UPDATE_HINT')
-              }}
-            </p>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'complete_next_action'">
-            <p class="m-0 text-sm text-n-slate-11">
-              {{
-                t(
-                  'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.COMPLETE_NEXT_ACTION_HINT'
-                )
-              }}
-            </p>
-            <label class="mt-3 grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.COMPLETION_NOTE') }}
-              <textarea
-                v-model="selectedNode.data.action_params.completion_note"
-                data-testid="kanban-workflow-completion-note"
-                rows="3"
-                class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              />
-            </label>
-            <label
-              class="mt-3 flex items-center gap-2 text-xs font-medium text-n-slate-11"
-            >
-              <input
-                v-model="selectedNode.data.action_params.schedule_next_action"
-                data-testid="kanban-workflow-schedule-next-action"
-                type="checkbox"
-                class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                @change="updateNode"
-              />
-              {{
-                t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.SCHEDULE_NEXT_ACTION')
-              }}
-            </label>
-            <div
-              v-if="selectedNode.data.action_params.schedule_next_action"
-              class="mt-3 grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3"
-            >
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_NEXT_ACTION') }}
-                <select
-                  v-model="selectedNode.data.action_params.next_action_type"
-                  data-testid="kanban-workflow-next-action-type"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{
-                      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_NEXT_ACTION')
-                    }}
-                  </option>
-                  <option
-                    v-for="type in nextActionTypes"
-                    :key="type"
-                    :value="type"
-                  >
-                    {{ type }}
-                  </option>
-                </select>
-              </label>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_AT') }}
-                <input
-                  v-model="selectedNode.data.action_params.next_action_at"
-                  type="datetime-local"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_NOTE') }}
-                <input
-                  v-model="selectedNode.data.action_params.next_action_note"
-                  type="text"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </div>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'mark_won'">
-            <p class="m-0 text-sm text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MARK_WON_HINT') }}
-            </p>
-          </template>
-
-          <template v-else-if="selectedNode.type === 'mark_lost'">
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.LOST_REASON') }}
-              <select
-                v-model="selectedNode.data.action_params.lost_reason"
-                data-testid="kanban-workflow-lost-reason"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.LOST_REASON') }}
-                </option>
-                <option
-                  v-for="reason in lostReasonOptions"
-                  :key="reason"
-                  :value="reason"
-                >
-                  {{ reason }}
-                </option>
-              </select>
-            </label>
-          </template>
-
-          <template
+          <KanbanWorkflowActionInspector
             v-else-if="['action', 'set_field'].includes(selectedNode.type)"
-          >
-            <label
-              v-if="selectedNode.type === 'action'"
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ACTION') }}
-              <select
-                v-model="selectedNode.data.action_name"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option
-                  v-for="option in actionOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </label>
-            <label
-              v-if="selectedActionName === 'move_stage'"
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.STAGE') }}
-              <select
-                v-model="selectedNode.data.action_params.stage_id"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option
-                  v-for="stage in stages"
-                  :key="stage.id"
-                  :value="stage.id"
-                >
-                  {{ stage.name }}
-                </option>
-              </select>
-            </label>
-            <label
-              v-else-if="selectedActionName === 'assign_owner'"
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
-              <select
-                v-model="selectedNode.data.action_params.owner_id"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option value="">
-                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
-                </option>
-                <option
-                  v-for="agent in agents"
-                  :key="agent.value"
-                  :value="agent.value"
-                >
-                  {{ agent.label }}
-                </option>
-              </select>
-            </label>
-            <label
-              v-else-if="selectedActionName === 'assign_round_robin'"
-              class="grid gap-1 text-xs font-medium text-n-slate-11"
-            >
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNERS') }}
-              <select
-                v-model="selectedNode.data.action_params.owner_ids"
-                multiple
-                class="min-h-24 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option
-                  v-for="agent in agents"
-                  :key="agent.value"
-                  :value="agent.value"
-                >
-                  {{ agent.label }}
-                </option>
-              </select>
-              <select
-                v-model="selectedNode.data.action_params.availability_policy"
-                data-testid="kanban-workflow-round-robin-availability"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="updateNode"
-              >
-                <option
-                  v-for="policy in roundRobinAvailabilityOptions"
-                  :key="policy.value"
-                  :value="policy.value"
-                >
-                  {{ policy.label }}
-                </option>
-              </select>
-            </label>
-            <template v-else-if="selectedActionName === 'set_next_action'">
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_NEXT_ACTION') }}
-                <select
-                  v-model="selectedNode.data.action_params.next_action_type"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{
-                      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_NEXT_ACTION')
-                    }}
-                  </option>
-                  <option
-                    v-for="type in nextActionTypes"
-                    :key="type"
-                    :value="type"
-                  >
-                    {{ type }}
-                  </option>
-                </select>
-              </label>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_AT') }}
-                <input
-                  v-model="selectedNode.data.action_params.next_action_at"
-                  type="datetime-local"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_NOTE') }}
-                <input
-                  v-model="selectedNode.data.action_params.next_action_note"
-                  type="text"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </template>
-            <template
-              v-else-if="
-                ['set_field', 'increment_field', 'clear_field'].includes(
-                  selectedActionName
-                )
-              "
-            >
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
-                <select
-                  v-model="selectedNode.data.action_params.field_key"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
-                  </option>
-                  <option
-                    v-for="field in selectedActionName === 'increment_field'
-                      ? numericCustomFields
-                      : customFields"
-                    :key="field.key"
-                    :value="field.key"
-                  >
-                    {{ field.label || field.key }}
-                  </option>
-                </select>
-              </label>
-              <label
-                v-if="selectedActionName !== 'clear_field'"
-                class="grid gap-1 text-xs font-medium text-n-slate-11"
-              >
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
-                <select
-                  v-if="
-                    selectedActionFieldOptions.length &&
-                    selectedActionName === 'set_field'
-                  "
-                  v-model="selectedNode.data.action_params.value"
-                  data-testid="kanban-workflow-action-field-value"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                >
-                  <option value="">
-                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE') }}
-                  </option>
-                  <option
-                    v-for="option in selectedActionFieldOptions"
-                    :key="option"
-                    :value="option"
-                  >
-                    {{ option }}
-                  </option>
-                </select>
-                <input
-                  v-else
-                  v-model="
-                    selectedNode.data.action_params[
-                      selectedActionName === 'increment_field'
-                        ? 'amount'
-                        : 'value'
-                    ]
-                  "
-                  :type="
-                    selectedActionName === 'increment_field' ? 'number' : 'text'
-                  "
-                  :step="
-                    selectedActionName === 'increment_field' ? 'any' : undefined
-                  "
-                  data-testid="kanban-workflow-action-field-value"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </template>
-            <template
-              v-else-if="
-                ['add_label', 'remove_label'].includes(selectedActionName)
-              "
-            >
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.LABEL') }}
-                <input
-                  v-model="selectedNode.data.action_params.label"
-                  type="text"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </template>
-            <template v-else-if="selectedActionName === 'add_note'">
-              <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NOTE_CONTENT') }}
-                <textarea
-                  v-model="selectedNode.data.action_params.content"
-                  rows="3"
-                  class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  @change="updateNode"
-                />
-              </label>
-            </template>
-          </template>
+            :node="selectedNode"
+            :action-name="selectedActionName"
+            :actions="actionOptions"
+            :stages="stages"
+            :agents="agents"
+            :next-action-types="nextActionTypes"
+            :custom-fields="customFields"
+            :numeric-fields="numericCustomFields"
+            :field-options="selectedActionFieldOptions"
+            :availability-policies="roundRobinAvailabilityOptions"
+            :t="t"
+            @update="updateNode"
+          />
 
           <p v-else class="m-0 text-xs text-n-slate-11">
             {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODE_HINT') }}
@@ -3901,7 +2343,7 @@ const handleBuilderKeydown = event => {
             {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_CONNECTION') }}
           </button>
         </template>
-      </aside>
-    </div>
+      </KanbanWorkflowInspector>
+    </KanbanWorkflowCanvas>
   </section>
 </template>

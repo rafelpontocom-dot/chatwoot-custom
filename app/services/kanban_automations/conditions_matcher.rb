@@ -1,21 +1,23 @@
 class KanbanAutomations::ConditionsMatcher
-  SYSTEM_FIELD_METHODS = {
-    'system_subject' => :system_subject,
-    'system_description' => :system_description,
-    'system_amount' => :system_amount,
-    'system_owner_id' => :system_owner_id,
-    'system_stage_id' => :system_stage_id,
-    'system_inbox_id' => :system_inbox_id,
-    'system_status' => :system_status,
-    'system_starts_at' => :system_starts_at,
-    'system_due_at' => :system_due_at,
-    'system_next_action_type' => :system_next_action_type,
-    'system_next_action_at' => :system_next_action_at,
-    'system_next_action_note' => :system_next_action_note,
-    'system_next_action_completed' => :system_next_action_completed,
-    'system_lost_reason' => :system_lost_reason,
-    'system_contact_id' => :system_contact_id,
-    'system_conversation_id' => :system_conversation_id
+  SYSTEM_CHANGED_FIELD_KEYS = {
+    'subject' => 'system_subject',
+    'description' => 'system_description',
+    'amount_cents' => 'system_amount',
+    'amount_currency' => 'system_amount',
+    'kanban_stage_id' => 'system_stage_id',
+    'owner_id' => 'system_owner_id',
+    'inbox_id' => 'system_inbox_id',
+    'starts_at' => 'system_starts_at',
+    'due_at' => 'system_due_at',
+    'next_action_type' => 'system_next_action_type',
+    'next_action_at' => 'system_next_action_at',
+    'next_action_note' => 'system_next_action_note',
+    'next_action_completed_at' => 'system_next_action_completed',
+    'lost_reason' => 'system_lost_reason',
+    'won_at' => 'system_status',
+    'lost_at' => 'system_status',
+    'contact_id' => 'system_contact_id',
+    'conversation_id' => 'system_conversation_id'
   }.freeze
   FIELD_OPERATOR_HANDLERS = {
     'equals' => :matches_equality?,
@@ -28,11 +30,12 @@ class KanbanAutomations::ConditionsMatcher
     'less_or_equal' => :matches_less_or_equal?
   }.freeze
 
-  def initialize(rule:, card:, conditions: nil, event: nil)
+  def initialize(rule:, card:, conditions: nil, event: nil, event_data: {})
     @rule = rule
     @card = card
     @conditions = conditions
     @event = event
+    @event_data = event_data.to_h.with_indifferent_access
   end
 
   def matches?
@@ -40,6 +43,7 @@ class KanbanAutomations::ConditionsMatcher
 
     conditions = (@conditions.presence || @rule.trigger_conditions).to_h.with_indifferent_access
     base_conditions_match?(conditions) && changed_fields_match?(conditions[:changed_field_keys]) &&
+      customer_message_matches?(conditions[:customer_message_contains]) &&
       field_conditions_match?(conditions[:fields])
   end
 
@@ -68,16 +72,32 @@ class KanbanAutomations::ConditionsMatcher
     expected_keys = Array(expected_keys).map(&:to_s).reject(&:blank?)
     return true if expected_keys.blank?
 
-    expected_keys.any? { |field_key| changed_custom_field_keys.include?(field_key) }
+    expected_keys.any? { |field_key| changed_field_keys.include?(field_key) }
   end
 
-  def changed_custom_field_keys
+  def changed_field_keys
     changes = @event&.change_set.to_h.with_indifferent_access
+    system_changed_field_keys(changes) + changed_custom_field_keys(changes)
+  end
+
+  def system_changed_field_keys(changes)
+    SYSTEM_CHANGED_FIELD_KEYS.filter_map do |attribute, field_key|
+      field_key if changes[attribute].present? && changes[attribute].first != changes[attribute].last
+    end
+  end
+
+  def changed_custom_field_keys(changes)
     before, after = Array(changes[:custom_field_values])
     before = before.to_h.stringify_keys
     after = after.to_h.stringify_keys
 
     (before.keys | after.keys).reject { |key| before[key] == after[key] }
+  end
+
+  def customer_message_matches?(expected_phrase)
+    return true if expected_phrase.blank?
+
+    @event_data[:customer_message_content].to_s.downcase.include?(expected_phrase.to_s.downcase)
   end
 
   def field_condition_matches?(condition)
@@ -97,74 +117,7 @@ class KanbanAutomations::ConditionsMatcher
   end
 
   def system_field_value(field_key)
-    method_name = SYSTEM_FIELD_METHODS[field_key]
-    method_name && send(method_name)
-  end
-
-  def system_subject
-    @card.subject
-  end
-
-  def system_description
-    @card.description
-  end
-
-  def system_amount
-    @card.amount_cents && (@card.amount_cents.to_f / 100)
-  end
-
-  def system_owner_id
-    @card.owner_id
-  end
-
-  def system_stage_id
-    @card.kanban_stage_id
-  end
-
-  def system_inbox_id
-    @card.inbox_id
-  end
-
-  def system_status
-    return 'open' if @card.open_opportunity?
-
-    @card.won_at.present? ? 'won' : 'lost'
-  end
-
-  def system_starts_at
-    @card.starts_at
-  end
-
-  def system_due_at
-    @card.due_at
-  end
-
-  def system_next_action_type
-    @card.next_action_type
-  end
-
-  def system_next_action_at
-    @card.next_action_at
-  end
-
-  def system_next_action_note
-    @card.next_action_note
-  end
-
-  def system_next_action_completed
-    @card.next_action_completed_at.present?
-  end
-
-  def system_lost_reason
-    @card.lost_reason
-  end
-
-  def system_contact_id
-    @card.contact_id
-  end
-
-  def system_conversation_id
-    @card.conversation_id
+    KanbanAutomations::SystemFieldValues.new(card: @card).value(field_key)
   end
 
   def matches_equality?(value, expected)

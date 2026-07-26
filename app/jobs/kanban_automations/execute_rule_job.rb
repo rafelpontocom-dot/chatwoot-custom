@@ -9,17 +9,24 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
     ).perform!
   end
 
-  def perform(rule_id, event_name, event_key, card_id, event_id = nil)
+  def perform(rule_id, event_name, event_key, card_id, event_context = nil)
+    prepare_event_context(event_context)
     load_context(rule_id, card_id)
     return if context_missing?
 
-    @execution = find_or_create_execution(event_name, event_key, event_id)
+    @execution = find_or_create_execution(event_name, event_key, @event_id)
     return if execution_finished?
 
     execute_with_lock
   end
 
   private
+
+  def prepare_event_context(event_context)
+    context = event_context.is_a?(Hash) ? event_context.with_indifferent_access : {}
+    @event_id = event_context.is_a?(Hash) ? context[:event_id] : event_context
+    @event_data = context[:event_data].to_h
+  end
 
   def find_or_create_execution(event_name, event_key, event_id)
     @rule.kanban_automation_executions.create_or_find_by!(event_key: event_key) do |execution|
@@ -93,7 +100,8 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
       rule: @rule,
       card: @card,
       conditions: automation_snapshot['conditions'],
-      event: @execution.kanban_card_event
+      event: @execution.kanban_card_event,
+      event_data: @event_data
     ).matches?
   end
 

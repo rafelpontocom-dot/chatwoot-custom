@@ -124,4 +124,51 @@ RSpec.describe KanbanAutomations::ConditionsMatcher do
 
     expect(described_class.new(rule: rule, card: card, event: event).matches?).to be(false)
   end
+
+  it 'matches a selected native field in the any-field trigger' do
+    card = create(:kanban_card, amount_cents: 150_000)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      event_name: Events::Types::KANBAN_CARD_FIELDS_CHANGED,
+      conditions: { changed_field_keys: ['system_amount'] }
+    )
+    event = create(
+      :kanban_card_event,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      kanban_card: card,
+      event_type: 'amount_changed',
+      change_set: { amount_cents: [100_000, 150_000] }
+    )
+
+    expect(described_class.new(rule: rule, card: card, event: event).matches?).to be(true)
+  end
+
+  it 'matches a customer reply trigger only when the reply contains the configured phrase' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      event_name: Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED,
+      conditions: { customer_message_contains: 'consulta' }
+    )
+
+    expect(
+      described_class.new(
+        rule: rule,
+        card: card,
+        event_data: { customer_message_content: 'Como funciona a consulta?' }
+      ).matches?
+    ).to be(true)
+    expect(
+      described_class.new(
+        rule: rule,
+        card: card,
+        event_data: { customer_message_content: 'Quero saber os valores.' }
+      ).matches?
+    ).to be(false)
+  end
 end

@@ -29,6 +29,31 @@ RSpec.describe KanbanCardEvent do
     )
   end
 
+  it 'also publishes the generic changed-fields event for native opportunity data' do
+    card = create(:kanban_card)
+    allow(Rails.configuration.dispatcher).to receive(:dispatch)
+
+    card.update!(amount_cents: 150_000)
+
+    event = card.reload.kanban_card_events.find_by!(event_type: 'amount_changed')
+    expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+      Events::Types::KANBAN_CARD_FIELDS_CHANGED,
+      event.occurred_at,
+      hash_including(event_id: event.id, change_set: hash_including('amount_cents'))
+    )
+  end
+
+  it 'records a generic field-change event when the opportunity title changes' do
+    card = create(:kanban_card, subject: 'Primeiro contato')
+
+    card.update!(subject: 'Proposta enviada')
+
+    expect(card.kanban_card_events.order(:id).last).to have_attributes(
+      event_type: 'fields_changed',
+      change_set: hash_including('subject' => ['Primeiro contato', 'Proposta enviada'])
+    )
+  end
+
   it 'does not publish the card-created event twice' do
     allow(Rails.configuration.dispatcher).to receive(:dispatch)
 

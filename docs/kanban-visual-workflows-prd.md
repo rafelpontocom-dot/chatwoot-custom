@@ -31,7 +31,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 1. O administrador abre Kanban > Automações do funil pelo ícone de raio no cabeçalho.
 2. A central mostra Fluxos, Lembretes, Conexões e Execuções, com os itens existentes em listas curtas e escaneáveis.
 3. Seleciona uma automação, usa Nova automação ou parte de um modelo pronto para abrir o construtor em uma área dedicada.
-4. Define nome, evento, etapa de origem e estado ativo no cabeçalho compacto do fluxo.
+4. Define nome e abre o resumo do gatilho na única barra operacional do fluxo. Evento e critérios compatíveis ficam no popover contextual; reentrada e condições posteriores são opções avançadas recolhidas. Publicar, validar, testar, cancelar e salvar vivem nessa mesma barra, para o canvas não começar sob cabeçalhos duplicados.
 5. Usa a paleta pesquisável à esquerda para escolher um bloco por categoria, ou arrasta o bloco para o canvas. O botão `+` permanece como atalho contextual e alternativa em telas pequenas.
 6. Seleciona um nó ou conexão para configurar seu conteúdo em um painel flutuante, sem comprimir o canvas.
 7. Salva. O backend valida todos os nós antes de ativar a regra.
@@ -209,12 +209,22 @@ O editor combina a arquitetura do Node-RED com a leitura visual do n8n, sem reut
 
 #### Direção visual aprovada: Fusão CRM
 
+Esta direção não é uma soma de pequenos ajustes sobre a tela de configurações. O editor deve parecer um produto próprio de automação comercial, mantendo os contratos, permissões e tokens do Chatwoot. A composição usa cinco camadas deliberadas:
+
+1. **Chatwoot:** identidade, tokens semânticos, componentes e linguagem já conhecidos pela equipe.
+2. **Frappe CRM:** densidade operacional, superfícies discretas e foco no trabalho repetido de vendas.
+3. **Kommo:** termos comerciais, configuração progressiva e decisões fáceis para quem não é técnico.
+4. **Node-RED:** paleta pesquisável, categorias recolhíveis e construção do fluxo por blocos.
+5. **n8n como referência de UX:** canvas dominante, configuração contextual flutuante e feedback de teste/histórico sem perder o fluxo de vista.
+
+O resultado não deve reproduzir visual ou código de nenhum desses produtos. Ele deve tornar claro, no primeiro olhar, onde descobrir blocos, onde montar o fluxo e onde configurar o passo selecionado.
+
 Esta é a direção única para as próximas entregas, e não uma referência opcional. Ela combina a arquitetura de descoberta do Node-RED com a clareza de configuração do n8n, adaptadas ao dashboard do Chatwoot:
 
-- **Esquerda:** paleta compacta de aproximadamente 208 px, com busca, categorias recolhíveis, ícones e uma linha por bloco. Ela existe para descobrir e adicionar passos, não para explicar cada configuração.
+- **Esquerda:** paleta compacta de aproximadamente 196 px, com busca, categorias recolhíveis, ícones e uma linha por bloco. Ela existe para descobrir e adicionar passos, não para explicar cada configuração.
 - **Centro:** canvas é a superfície dominante. Mantém fundo discreto, controles agrupados, zoom, minimapa apenas quando necessário e espaço suficiente para montar caminhos reais sem uma coluna permanente de formulário.
 - **Nós:** cards densos e estáveis, com faixa semântica de categoria, ícone, título, resumo de uma linha e estado. Condições detalhadas, formulários e textos longos ficam fora do card; saídas continuam rotuladas e acessíveis.
-- **Configuração:** clicar em nó ou conexão abre um inspector flutuante no lado direito, com largura limitada a 416 px em desktop e tela cheia em mobile. Ele sobrepõe o canvas, não reduz seu espaço. O cabeçalho mostra categoria, título e estado da etapa; `Configurar`, `Testar` e `Histórico` são abas igualmente distribuídas do mesmo contexto e aceitam setas, Home e End no teclado.
+- **Configuração:** clicar em nó ou conexão abre um inspector flutuante no lado direito, com largura limitada a 256 px em desktop e tela cheia em mobile. Ele sobrepõe o canvas, não reduz seu espaço. O cabeçalho mostra categoria, título e estado da etapa; `Configurar`, `Testar` e `Histórico` são abas igualmente distribuídas do mesmo contexto e aceitam setas, Home e End no teclado.
 - **Ações:** inserir, conectar, excluir, desfazer, refazer e organizar ficam junto ao canvas. O `+` abre um seletor contextual e não depende de hover ou arraste; no mobile, abre a paleta categorizada em drawer. Ao selecionar uma conexão, o inspector mostra origem e destino reais, em vez de um título genérico.
 - **Linguagem:** a UI usa termos comerciais curtos, estado compreensível e dados da oportunidade. Não expõe jargão de automação, chaves técnicas ou formulários completos no canvas.
 - **Entrada:** modelos comerciais usam ícone, título e descrição curta; regras existentes mantêm estado, edição explícita, teste e histórico em uma linha compacta, sem virar uma lista de formulários.
@@ -228,6 +238,8 @@ O canvas é a área dominante. Clicar em um nó abre uma configuração contextu
 Cada nó usa tamanho estável, cabeçalho com ícone e cor semântica de categoria, uma linha de resumo e chips para a configuração principal. Formulários não aparecem dentro do canvas. Arestas mostram o nome da saída e, ao foco ou hover, oferecem ações de remover ou inserir um bloco no meio. A cor nunca é o único indicador de estado: erro, rascunho, aguardando e concluído também usam texto e ícone.
 
 O painel do nó possui as abas `Configurar`, `Testar` e `Histórico`. O primeiro campo sempre explica o efeito comercial do nó; opções avançadas ficam recolhidas. O painel usa o título real do nó, por exemplo `Configurar roteador`, e nunca um rótulo genérico como `Configurações da etapa`.
+
+A [auditoria do editor e do catálogo n8n](kanban-visual-workflows-editor-audit.md) é a fonte de decisão para a evolução dos nós. Ela separa nós comerciais nativos, integrações que permanecem no n8n por webhook aprovado e capacidades que não entram no produto por segurança, governança ou escopo.
 
 ## Métricas
 

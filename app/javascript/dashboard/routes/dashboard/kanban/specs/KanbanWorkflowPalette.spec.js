@@ -3,6 +3,19 @@ import { shallowMount } from '@vue/test-utils';
 import KanbanWorkflowPalette from '../components/KanbanWorkflowPalette.vue';
 
 describe('KanbanWorkflowPalette', () => {
+  it('uses the compact workbench width reserved for workflow discovery', () => {
+    const wrapper = shallowMount(KanbanWorkflowPalette, {
+      props: {
+        groups: [],
+        title: 'Blocos',
+        searchPlaceholder: 'Buscar bloco',
+        emptyLabel: 'Nenhum bloco encontrado.',
+      },
+    });
+
+    expect(wrapper.classes()).toContain('w-[12.25rem]');
+  });
+
   it('filters categories and emits the selected node type', async () => {
     const wrapper = shallowMount(KanbanWorkflowPalette, {
       props: {
@@ -38,6 +51,9 @@ describe('KanbanWorkflowPalette', () => {
     expect(
       wrapper.find('[data-testid="kanban-workflow-palette-header"]').exists()
     ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-palette-count"]').text()
+    ).toBe('2');
     expect(wrapper.text()).toContain('Enviar mensagem');
     expect(wrapper.text()).not.toContain('Webhook');
     expect(

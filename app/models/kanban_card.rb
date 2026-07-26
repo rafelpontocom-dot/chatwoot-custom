@@ -104,6 +104,7 @@ class KanbanCard < ApplicationRecord
     'system_conversation_id' => :conversation_id
   }.freeze
   EVENT_ATTRIBUTE_GROUPS = {
+    'fields_changed' => %w[subject description inbox_id starts_at due_at contact_id conversation_id],
     'stage_changed' => %w[kanban_stage_id],
     'owner_changed' => %w[owner_id],
     'amount_changed' => %w[amount_cents amount_currency],

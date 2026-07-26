@@ -1,4 +1,4 @@
-import { shallowMount } from '@vue/test-utils';
+import { config, shallowMount } from '@vue/test-utils';
 import KanbanWorkflowBuilder from '../components/KanbanWorkflowBuilder.vue';
 import KanbanWorkflowPalette from '../components/KanbanWorkflowPalette.vue';
 
@@ -22,6 +22,83 @@ const translations = {
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => translations[key] || key }),
 }));
+
+config.global.stubs.KanbanWorkflowCanvas = {
+  props: ['canvasLabel'],
+  template: `
+    <div
+      data-testid="kanban-workflow-canvas"
+      role="region"
+      class="relative h-full min-h-[38rem] flex-1"
+      :aria-label="canvasLabel"
+    >
+      <slot name="toolbar" />
+      <slot name="mobile-palette" />
+      <slot />
+    </div>
+  `,
+};
+
+config.global.stubs.KanbanWorkflowInspector = {
+  props: ['nodeSelected'],
+  template: `
+    <div>
+      <div data-testid="kanban-workflow-inspector-backdrop" />
+      <aside
+        :data-testid="nodeSelected ? 'kanban-workflow-node-drawer' : 'kanban-workflow-connection-dialog'"
+        class="sm:right-4 sm:top-[4.5rem] sm:w-[min(16rem,calc(100vw-2rem))] sm:bottom-auto"
+        role="dialog"
+        aria-labelledby="kanban-workflow-inspector-title"
+        tabindex="-1"
+      >
+        <slot />
+      </aside>
+    </div>
+  `,
+};
+
+config.global.stubs.KanbanWorkflowInspectorHeader = {
+  props: ['node', 'summary'],
+  template: `
+    <div data-testid="kanban-workflow-inspector-header" class="sticky">
+      <i data-testid="kanban-workflow-inspector-icon" :class="node.data.icon" />
+      <span data-testid="kanban-workflow-inspector-category">{{ node.data.categoryLabel }}</span>
+      <span id="kanban-workflow-inspector-title">{{ node.data.label }}</span>
+      <span data-testid="kanban-workflow-inspector-state">{{ node.data.stateLabel }}</span>
+      <span data-testid="kanban-workflow-inspector-summary">{{ summary }}</span>
+      <button data-testid="kanban-workflow-connect-node" @click="$emit('connect')" />
+      <button @click="$emit('close')" />
+      <button @click="$emit('delete')" />
+    </div>
+  `,
+};
+
+config.global.stubs.KanbanWorkflowInspectorTabs = {
+  props: ['tabs', 'activeTab'],
+  emits: ['update:activeTab', 'keydown'],
+  template: `
+    <div data-testid="kanban-workflow-inspector-tabs" class="grid-cols-3">
+      <button
+        v-for="tab in tabs"
+        :key="tab"
+        :data-testid="\`kanban-workflow-inspector-tab-\${tab}\`"
+        :data-inspector-tab="tab"
+        :aria-selected="activeTab === tab"
+        @click="$emit('update:activeTab', tab)"
+        @keydown="$emit('keydown', $event, tab)"
+      />
+    </div>
+  `,
+};
+
+config.global.stubs.KanbanWorkflowTimeInspector = false;
+config.global.stubs.KanbanWorkflowRoundRobinInspector = false;
+config.global.stubs.KanbanWorkflowDecisionInspector = false;
+config.global.stubs.KanbanWorkflowUtilityInspector = false;
+config.global.stubs.KanbanWorkflowContactInspector = false;
+config.global.stubs.KanbanWorkflowOutcomeInspector = false;
+config.global.stubs.KanbanWorkflowMessageInspector = false;
+config.global.stubs.KanbanWorkflowActionInspector = false;
 
 describe('KanbanWorkflowBuilder', () => {
   it('renders the visual canvas and opens the node selector', async () => {
@@ -121,8 +198,14 @@ describe('KanbanWorkflowBuilder', () => {
     const inspector = wrapper.find(
       '[data-testid="kanban-workflow-node-drawer"]'
     );
-    expect(inspector.classes()).toContain('sm:right-6');
-    expect(inspector.classes()).toContain('sm:w-[min(26rem,calc(100vw-3rem))]');
+    expect(inspector.classes()).toContain('sm:right-4');
+    expect(inspector.classes()).toContain('sm:w-[min(16rem,calc(100vw-2rem))]');
+    expect(inspector.classes()).toContain('sm:bottom-auto');
+    expect(
+      inspector
+        .find('[data-testid="kanban-workflow-inspector-summary"]')
+        .exists()
+    ).toBe(true);
     expect(
       inspector
         .find('[data-testid="kanban-workflow-inspector-header"]')
@@ -818,7 +901,7 @@ describe('KanbanWorkflowBuilder', () => {
     ).toBe(true);
     expect(
       wrapper.find('[data-testid="kanban-workflow-node-drawer"]').classes()
-    ).toContain('sm:w-[min(26rem,calc(100vw-3rem))]');
+    ).toContain('sm:w-[min(16rem,calc(100vw-2rem))]');
     expect(
       wrapper.find('[data-testid="kanban-workflow-inspector-icon"]').classes()
     ).toContain('i-lucide-briefcase-business');
@@ -1201,7 +1284,13 @@ describe('KanbanWorkflowBuilder', () => {
       .trigger('click');
     expect(wrapper.text()).toContain('Origem');
 
-    wrapper.vm.insertMessageText('{{field.origem}}');
+    const variableOptions = wrapper.findAll(
+      '[data-testid="kanban-message-variable-option"]'
+    );
+    const originOption = variableOptions.find(option =>
+      option.text().includes('Origem')
+    );
+    await originOption.trigger('click');
 
     expect(wrapper.vm.selectedNode.data.content).toContain('{{field.origem}}');
   });

@@ -25,6 +25,18 @@ const categoryTone = category =>
     CONTROL: 'border-n-green-5',
   })[category] || 'border-n-weak';
 
+const categorySurface = category =>
+  ({
+    TRIGGER: 'bg-n-teal-3 text-n-teal-11',
+    TIME: 'bg-n-amber-3 text-n-amber-11',
+    DECISION: 'bg-n-violet-3 text-n-violet-11',
+    OPERATION: 'bg-n-cyan-3 text-n-cyan-11',
+    CUSTOMER: 'bg-n-blue-3 text-n-blue-11',
+    OPPORTUNITY: 'bg-n-iris-3 text-n-iris-11',
+    INTEGRATION: 'bg-n-slate-3 text-n-slate-11',
+    CONTROL: 'bg-n-green-3 text-n-green-11',
+  })[category] || 'bg-n-surface-2 text-n-slate-11';
+
 const stateTone = state =>
   ({
     draft: 'bg-n-slate-3 text-n-slate-11',
@@ -50,7 +62,7 @@ const stateTone = state =>
     :aria-label="data.label"
     role="group"
     tabindex="0"
-    class="w-[13.5rem] rounded-md border-l-4 border-y border-r border-n-weak bg-n-surface-1 px-3 py-2 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-n-brand"
+    class="w-[9.5rem] rounded-lg border border-n-weak border-t-4 bg-n-surface-1 px-3 py-2 shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-n-brand"
     :class="
       data.invalid
         ? 'border-n-ruby-9 ring-2 ring-n-ruby-9/20'
@@ -62,7 +74,8 @@ const stateTone = state =>
     <div class="flex items-start justify-between gap-2">
       <div class="flex min-w-0 items-center gap-2">
         <span
-          class="flex size-6 shrink-0 items-center justify-center rounded bg-n-surface-2 text-n-slate-11"
+          class="flex size-7 shrink-0 items-center justify-center rounded-md"
+          :class="categorySurface(data.category)"
         >
           <i
             v-if="data.icon"
@@ -96,7 +109,7 @@ const stateTone = state =>
     <span
       v-if="data.stateLabel"
       data-testid="kanban-workflow-node-state"
-      class="mt-2 inline-flex rounded px-1.5 py-0.5 text-2xs font-medium"
+      class="mt-1.5 inline-flex rounded-full px-1.5 py-0.5 text-2xs font-medium"
       :class="stateTone(data.state)"
     >
       {{ data.stateLabel }}
@@ -104,7 +117,7 @@ const stateTone = state =>
     <div
       v-if="data.chips?.length"
       data-testid="kanban-workflow-node-chips"
-      class="mt-2 flex max-w-full gap-1 overflow-hidden"
+      class="mt-1.5 flex max-w-full gap-1 overflow-hidden border-t border-n-weak pt-1.5"
     >
       <span
         v-for="chip in data.chips"
@@ -120,7 +133,7 @@ const stateTone = state =>
     <div
       v-for="branch in data.branches"
       :key="branch.id"
-      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ branch.label }}</span>
       <button
@@ -139,7 +152,7 @@ const stateTone = state =>
       />
     </div>
     <div
-      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
+      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
     >
       <span class="min-w-0 flex-1 truncate">{{ data.fallbackLabel }}</span>
       <button
@@ -162,7 +175,7 @@ const stateTone = state =>
     <div
       v-for="option in data.options"
       :key="option.id"
-      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
       <button
@@ -197,7 +210,7 @@ const stateTone = state =>
     <div
       v-for="output in data.outputs"
       :key="output.id"
-      class="nodrag nopan relative -mt-px flex w-[13.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ output.label }}</span>
       <button

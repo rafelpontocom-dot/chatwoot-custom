@@ -38,9 +38,7 @@ class KanbanCardListener < BaseListener
     return if data[:account_id].blank? || data[:board_id].blank? || data[:card_id].blank?
 
     event_key = data[:event_id].presence || "#{event.name}:#{data[:card_id]}"
-    KanbanAutomationRule.active
-                        .where(account_id: data[:account_id], kanban_board_id: data[:board_id], event_name: event.name)
-                        .find_each do |rule|
+    matching_automation_rules(data, event.name).find_each do |rule|
       KanbanAutomations::ExecuteRuleJob.perform_later(
         rule.id,
         event.name,
@@ -49,6 +47,16 @@ class KanbanCardListener < BaseListener
         data[:event_id]
       )
     end
+  end
+
+  def matching_automation_rules(data, event_name)
+    KanbanAutomationRule.active
+                        .where(account_id: data[:account_id], kanban_board_id: data[:board_id])
+                        .where(
+                          'event_name = :event_name OR conditions @> :trigger_events',
+                          event_name: event_name,
+                          trigger_events: { trigger_event_names: [event_name] }.to_json
+                        )
   end
 
   def process_cadence_event(data)
@@ -84,7 +92,8 @@ class KanbanCardListener < BaseListener
         rule.id,
         Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED,
         "message:#{message.id}:card:#{card.id}",
-        card.id
+        card.id,
+        { event_data: { customer_message_content: message.content.to_s } }
       )
     end
   end

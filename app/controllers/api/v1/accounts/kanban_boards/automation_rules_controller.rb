@@ -172,11 +172,19 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       :lock_version,
       :position,
       flow_definition: {},
-      conditions: [
-        { inbox_ids: [], stage_ids: [], owner_ids: [], fields: [:field_key, :operator, :value] }
-      ],
+      conditions: condition_params,
       actions: [:action_name, { action_params: {} }]
     )
+  end
+
+  def condition_params
+    [
+      :customer_message_contains,
+      {
+        inbox_ids: [], stage_ids: [], owner_ids: [], connection_ids: [], changed_field_keys: [],
+        trigger_event_names: [], fields: %i[field_key operator value]
+      }
+    ]
   end
 
   def rule_attributes

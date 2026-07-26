@@ -101,7 +101,12 @@ const mountWorkspace = async ({
   const wrapper = shallowMount(KanbanAutomations, {
     global: {
       plugins: [store],
-      stubs: { RouterLink: true },
+      stubs: {
+        RouterLink: true,
+        Popover: {
+          template: '<div><slot /><slot name="content" /></div>',
+        },
+      },
     },
   });
   await flushPromises();
@@ -137,6 +142,9 @@ describe('KanbanAutomations', () => {
     await wrapper
       .find('[data-testid="kanban-automations-new-flow"]')
       .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Lembrete de agendamento');
 
     expect(
       wrapper.find('[data-testid="kanban-automation-editor"]').exists()
@@ -144,7 +152,28 @@ describe('KanbanAutomations', () => {
     expect(
       wrapper.find('[data-testid="kanban-automation-editor-header"]').exists()
     ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-automation-editor-identity"]').exists()
+    ).toBe(true);
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
+  });
+
+  it('keeps the editor controls in a compact operational bar', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-automation-editor-header"]').classes()
+    ).toContain('min-h-[54px]');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-automation-editor-header"]')
+        .find('[data-testid="kanban-automations-save-flow"]')
+        .exists()
+    ).toBe(true);
   });
 
   it('offers commercial workflow drafts without activating them', async () => {
@@ -180,6 +209,52 @@ describe('KanbanAutomations', () => {
     expect(wrapper.vm.invalidNodeIds).toEqual([]);
   });
 
+  it('saves one stage automation for creation and entry into a selected stage', async () => {
+    KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+      data: { id: 61, conditions: {}, actions: [], flow_definition: {} },
+    });
+    const wrapper = await mountWorkspace({
+      settings: {
+        stages: [{ id: 2, name: 'Agendado' }],
+        custom_field_definitions: [],
+        next_action_types: [],
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Criar ou mover para agendado');
+    await wrapper
+      .find('[data-testid="kanban-automations-trigger-stage"]')
+      .setValue('2');
+    await wrapper
+      .find('[data-testid="kanban-automations-trigger-created"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({
+          event_name: 'kanban.card.stage_changed',
+          conditions: expect.objectContaining({
+            stage_ids: [2],
+            trigger_event_names: [
+              'kanban.card.stage_changed',
+              'kanban.card.created',
+            ],
+          }),
+        }),
+      })
+    );
+  });
+
   it('keeps publication state beside validation and saving controls', async () => {
     const wrapper = await mountWorkspace();
 
@@ -193,7 +268,7 @@ describe('KanbanAutomations', () => {
     expect(wrapper.vm.form.active).toBe(true);
   });
 
-  it('shows the exact custom field selector for a field-change trigger', async () => {
+  it('lists native and custom fields for the field-change trigger', async () => {
     const wrapper = await mountWorkspace({
       settings: {
         stages: [],
@@ -209,14 +284,13 @@ describe('KanbanAutomations', () => {
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-automations-trigger-event"]')
-      .setValue('kanban.card.custom_fields_changed');
-    await wrapper
-      .find('[data-testid="kanban-automations-trigger-options"]')
-      .trigger('click');
-
+      .setValue('kanban.card.fields_changed');
     expect(
       wrapper.find('[data-testid="kanban-automations-changed-field"]').exists()
     ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-automations-changed-field"]').text()
+    ).toContain('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT');
   });
 
   it('persists the selected field as the field-change trigger', async () => {
@@ -224,7 +298,7 @@ describe('KanbanAutomations', () => {
       data: {
         id: 48,
         name: 'Atualizar origem',
-        event_name: 'kanban.card.custom_fields_changed',
+        event_name: 'kanban.card.fields_changed',
         active: false,
         position: 0,
         conditions: { changed_field_keys: ['origem'] },
@@ -250,10 +324,7 @@ describe('KanbanAutomations', () => {
       .setValue('Atualizar origem');
     await wrapper
       .find('[data-testid="kanban-automations-trigger-event"]')
-      .setValue('kanban.card.custom_fields_changed');
-    await wrapper
-      .find('[data-testid="kanban-automations-trigger-options"]')
-      .trigger('click');
+      .setValue('kanban.card.fields_changed');
     await wrapper
       .find('[data-testid="kanban-automations-changed-field"]')
       .setValue('origem');

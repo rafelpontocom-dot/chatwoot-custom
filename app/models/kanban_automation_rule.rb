@@ -38,6 +38,7 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::KANBAN_CARD_OWNER_CHANGED,
     Events::Types::KANBAN_CARD_AMOUNT_CHANGED,
     Events::Types::KANBAN_CARD_CUSTOM_FIELDS_CHANGED,
+    Events::Types::KANBAN_CARD_FIELDS_CHANGED,
     Events::Types::KANBAN_CARD_NEXT_ACTION_SCHEDULED,
     Events::Types::KANBAN_CARD_NEXT_ACTION_COMPLETED, Events::Types::KANBAN_CARD_NEXT_ACTION_OVERDUE,
     Events::Types::KANBAN_CARD_WON,
@@ -130,21 +131,7 @@ class KanbanAutomationRule < ApplicationRecord
   end
 
   def conditions_are_supported
-    source = trigger_conditions
-    unsupported = source.keys.map(&:to_s) - %w[inbox_ids stage_ids owner_ids fields changed_field_keys]
-    errors.add(:conditions, "Unsupported keys: #{unsupported.join(', ')}") if unsupported.present?
-
-    Array(source[:fields]).each_with_index do |condition, index|
-      validate_field_condition(condition, index)
-    end
-  end
-
-  def validate_field_condition(condition, index)
-    source = condition.to_h.with_indifferent_access
-    errors.add(:conditions, "Field condition #{index + 1} needs a field key") if source[:field_key].blank?
-    return if source[:operator].blank? || FIELD_OPERATORS.include?(source[:operator].to_s)
-
-    errors.add(:conditions, "Field condition #{index + 1} has an unsupported operator")
+    KanbanAutomations::RuleConditionsValidator.new(rule: self).validate
   end
 
   def actions_are_supported
@@ -168,6 +155,7 @@ class KanbanAutomationRule < ApplicationRecord
     validate_reference_ids(conditions[:stage_ids], kanban_board.kanban_stages, :stage_ids)
     validate_reference_ids(conditions[:inbox_ids], account.inboxes, :inbox_ids)
     validate_reference_ids(conditions[:owner_ids], account.users, :owner_ids)
+    validate_connection_references(conditions)
 
     Array(conditions[:fields]).each do |condition|
       validate_field_reference(condition.to_h.with_indifferent_access[:field_key])
@@ -175,6 +163,14 @@ class KanbanAutomationRule < ApplicationRecord
     Array(conditions[:changed_field_keys]).each do |field_key|
       validate_changed_field_reference(field_key)
     end
+  end
+
+  def validate_connection_references(conditions)
+    validate_reference_ids(
+      conditions[:connection_ids],
+      kanban_board.kanban_automation_connections.active,
+      :connection_ids
+    )
   end
 
   def validate_action_references
@@ -236,6 +232,7 @@ class KanbanAutomationRule < ApplicationRecord
 
   def validate_changed_field_reference(field_key)
     return if field_key.blank?
+    return if KanbanAutomations::SystemFieldValues::VALUES.key?(field_key.to_s)
     return if kanban_board.configured_custom_field_definitions.any? { |field| field['key'] == field_key.to_s }
 
     errors.add(:conditions, "Field #{field_key} does not belong to this board")

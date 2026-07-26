@@ -51,6 +51,43 @@ RSpec.describe KanbanCardListener do
     end
   end
 
+  describe '#kanban_card_created' do
+    it 'enqueues a stage rule that also listens to opportunities created in that stage' do
+      card = create(:kanban_card)
+      rule = create(
+        :kanban_automation_rule,
+        account: card.account,
+        kanban_board: card.kanban_board,
+        event_name: Events::Types::KANBAN_CARD_STAGE_CHANGED,
+        conditions: {
+          stage_ids: [card.kanban_stage_id],
+          trigger_event_names: [
+            Events::Types::KANBAN_CARD_CREATED,
+            Events::Types::KANBAN_CARD_STAGE_CHANGED
+          ]
+        }
+      )
+      event = Events::Base.new(
+        Events::Types::KANBAN_CARD_CREATED,
+        Time.zone.now,
+        account_id: card.account_id,
+        board_id: card.kanban_board_id,
+        card_id: card.id,
+        event_id: 124
+      )
+
+      expect do
+        listener.kanban_card_created(event)
+      end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob).with(
+        rule.id,
+        Events::Types::KANBAN_CARD_CREATED,
+        124,
+        card.id,
+        124
+      ).on_queue('critical')
+    end
+  end
+
   describe '#message_created' do
     it 'pauses an active cadence after an incoming customer message' do
       conversation = create(:conversation)
@@ -121,7 +158,13 @@ RSpec.describe KanbanCardListener do
       end.to have_enqueued_job(KanbanAutomations::ContinueWorkflowJob)
         .with(execution.id, card.id)
         .and have_enqueued_job(KanbanAutomations::ExecuteRuleJob)
-        .with(rule.id, Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED, "message:#{message.id}:card:#{card.id}", card.id)
+        .with(
+          rule.id,
+          Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED,
+          "message:#{message.id}:card:#{card.id}",
+          card.id,
+          { event_data: { customer_message_content: message.content.to_s } }
+        )
 
       expect(execution.reload).to have_attributes(scheduled_at: nil)
       expect(execution.workflow_state).not_to have_key('waiting_for')

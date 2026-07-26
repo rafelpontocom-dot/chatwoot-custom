@@ -25,7 +25,7 @@ Entregar um editor visual profissional, seguro e simples para as automações co
 - Vue Flow é o motor de canvas, conexões, seleção, zoom e minimapa.
 - A paleta segue o modelo Node-RED: busca e categorias recolhíveis.
 - A configuração segue o modelo n8n: painel contextual flutuante, canvas preservado e histórico sob demanda.
-- A direção visual aprovada é uma fusão CRM: paleta Node-RED compacta à esquerda, canvas dominante com leitura n8n e inspector contextual de até 26rem sobreposto à direita; o editor nunca usa uma coluna fixa de formulário.
+- A direção visual aprovada é uma fusão CRM: paleta Node-RED compacta de 196 px à esquerda, canvas dominante com leitura n8n e inspector contextual de até 16rem (256 px) sobreposto à direita; o editor nunca usa uma coluna fixa de formulário.
 - Não copiar código do n8n; usar apenas como referência de produto e arquitetura.
 - N8N continua responsável por IA ampla, integrações entre sistemas, HTTP arbitrário, banco, código e processos externos.
 - A primeira correspondência do Router vence; existe sempre a saída `Caso contrário`.
@@ -54,9 +54,9 @@ Aceite:
 
 Objetivo: transformar a tela atual em uma área de trabalho clara e densa.
 
-- [x] Aplicar a fusão CRM aprovada: paleta compacta com categorias progressivas e ícones semânticos, seletor `+` agrupado por categoria, toolbar de canvas agrupada, cards de nó com geometria estável e inspector contextual lateral com cabeçalho fixo. O contrato visual foi registrado no PRD e Spec; falta validação real em Chrome depois do deploy.
+- [x] Aplicar a fusão CRM aprovada: paleta operacional de 196 px, cards de nó de 152 px, canvas de trabalho com altura mínima de 42 rem e inspector contextual de 256 px entregam a composição única entre Chatwoot, Frappe CRM, Kommo, Node-RED e padrões de interação do n8n, sem reproduzir código ou visual de terceiros. A validação visual em viewport real continua pendente na frente de E2E.
 - [x] Paleta pesquisável com categorias recolhíveis, estado de abertura preservado após nova renderização e alternativa por clique ao arraste.
-- [x] Cabeçalho compacto: nome, gatilho e estado permanecem visíveis em uma faixa responsiva acima do canvas; filtros específicos do gatilho foram movidos para `Opções do gatilho`, há validação local explícita, estado de publicação ao lado de salvar e teste guiado seguro para uma oportunidade em regras já salvas. A entrada usa modelos comerciais com ícones e regras compactas com estado, edição explícita, teste e histórico.
+- [x] Cabeçalho operacional: uma única faixa curta acima do canvas reúne nome, resumo do gatilho, opções avançadas, publicação, validação, teste, cancelar e salvar; os critérios específicos vivem em popover contextual e as opções de reentrada/condições adicionais ficam recolhidas em opções avançadas.
 - [x] Canvas dominante com minimapa condicional, zoom, auto-organizar, desfazer e refazer. Minimapa condicional, auto-organizar, desfazer/refazer e atalhos locais preservam o snapshot anterior também ao entrar na edição dos campos do inspector.
 - [x] Nós padronizados: ícone, faixa/cor de categoria, título, resumo, chips de configuração e estado visual. A validação do servidor continua apontando o nó inválido no canvas.
 - [x] Arestas com rótulo de saída, foco visível, ação de excluir, inserção contextual e destaque da rota executada; o inspector de conexão identifica origem e destino reais em vez de um título genérico.
@@ -64,6 +64,7 @@ Objetivo: transformar a tela atual em uma área de trabalho clara e densa.
 - [x] Remover rótulos genéricos como `Configurações da etapa` e usar o nome real do nó.
 - [x] Estados vazios, carregamento, salvamento, validação e recuperação de erro no workspace e no inspector.
 - [-] Responsividade: o controle do canvas abre a paleta pesquisável e categorizada em drawer no mobile, enquanto o seletor contextual continua no desktop; falta validação visual em viewport real para o canvas em tela cheia.
+- [x] Extrair `KanbanWorkflowCanvas` e `KanbanWorkflowInspector` de `KanbanWorkflowBuilder.vue`; canvas, moldura, cabeçalho, abas e todas as famílias de configuração são componentes próprios: Mensagem, Tempo, Decisão, Distribuir caminhos, Contato, Resultado comercial, Ações comerciais e Utilitários. A validação visual em navegador real continua pendente.
 
 Aceite:
 
@@ -77,8 +78,9 @@ Aceite:
 ### Gatilho
 
 - [x] Mostrar evento selecionado no card do gatilho.
-- [x] Mostrar somente filtros compatíveis com o evento: etapa, responsável, campo, valor e próxima ação aparecem apenas nos gatilhos correspondentes.
+- [-] Mostrar somente filtros compatíveis com o evento: etapa, responsável, campo, valor e próxima ação aparecem apenas nos gatilhos correspondentes. Falta explicitar `qualquer` versus critério, filtrar webhook por conexão aprovada e permitir valor/campo anterior ou novo quando o evento disponibilizar essa informação.
 - [x] Separar claramente gatilho de condições posteriores: o gatilho é uma categoria própria, enquanto Router e Filtro pertencem a Decisão e são adicionados como passos posteriores.
+- [-] Implementar os nós comerciais priorizados pela auditoria: notificar equipe, criar oportunidade, atualizar etiqueta do contato, parar execução, checar duplicidade e definir atividade interna. Ver [auditoria do editor](kanban-visual-workflows-editor-audit.md).
 
 ### Tempo
 

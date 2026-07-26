@@ -14,11 +14,14 @@ class KanbanAutomations::InboundWebhookService
                           event_name: Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED
                         )
                         .find_each do |rule|
+      next unless matching_connection?(rule)
+
       KanbanAutomations::ExecuteRuleJob.perform_later(
         rule.id,
         Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED,
         event_key,
-        target_card.id
+        target_card.id,
+        { event_data: { connection_id: connection.id } }
       )
     end
   end
@@ -29,5 +32,12 @@ class KanbanAutomations::InboundWebhookService
 
   def card
     @card ||= connection.kanban_board.kanban_cards.active.find(card_id)
+  end
+
+  def matching_connection?(rule)
+    connection_ids = Array(rule.trigger_conditions[:connection_ids]).filter_map do |value|
+      Integer(value, exception: false)
+    end
+    connection_ids.blank? || connection_ids.include?(connection.id)
   end
 end

@@ -19,6 +19,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ConfirmButton from 'dashboard/components-next/button/ConfirmButton.vue';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanWorkflowBuilder from './components/KanbanWorkflowBuilder.vue';
 
@@ -48,7 +49,6 @@ const selectedRuleId = ref(null);
 const selectedExecutionId = ref('');
 const showEditor = ref(false);
 const showEditorTest = ref(false);
-const showAdvancedTrigger = ref(false);
 const showBirthdayEditor = ref(false);
 const showReminderForm = ref(false);
 const showConnectionForm = ref(false);
@@ -115,6 +115,7 @@ const form = reactive({
   name: '',
   description: '',
   eventName: 'kanban.card.stage_changed',
+  triggerEventNames: ['kanban.card.stage_changed'],
   active: false,
   lockVersion: 0,
   reentryEnabled: false,
@@ -122,9 +123,14 @@ const form = reactive({
   stageId: '',
   ownerId: '',
   changedFieldKey: '',
+  connectionId: '',
+  customerMessageMode: 'any',
+  customerMessageContains: '',
   triggerNextActionType: '',
   triggerAmountOperator: 'greater_than',
   triggerAmountValue: '',
+  triggerAmountMode: 'any',
+  triggerLostReason: '',
   fieldKey: '',
   fieldOperator: 'equals',
   fieldValue: '',
@@ -256,7 +262,7 @@ const eventOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.AMOUNT_CHANGED'),
   },
   {
-    value: 'kanban.card.custom_fields_changed',
+    value: 'kanban.card.fields_changed',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.CUSTOM_FIELDS_CHANGED'),
   },
   {
@@ -298,16 +304,45 @@ const eventOptions = computed(() => [
 ]);
 const triggerContext = computed(() => {
   const contexts = {
+    'kanban.card.created': 'stage',
     'kanban.card.stage_changed': 'stage',
+    'kanban.card.customer_message_received': 'customer_message',
     'kanban.card.owner_changed': 'owner',
-    'kanban.card.custom_fields_changed': 'changed_field',
+    'kanban.card.fields_changed': 'changed_field',
+    'kanban.card.webhook_received': 'webhook',
     'kanban.card.next_action_scheduled': 'next_action',
     'kanban.card.next_action_completed': 'next_action',
+    'kanban.card.next_action_overdue': 'next_action',
     'kanban.card.amount_changed': 'amount',
+    'kanban.card.lost': 'lost_reason',
   };
 
   return contexts[form.eventName] || null;
 });
+
+const stageTriggerEvents = ['kanban.card.created', 'kanban.card.stage_changed'];
+
+const onTriggerEventChanged = () => {
+  if (stageTriggerEvents.includes(form.eventName)) {
+    form.triggerEventNames = [form.eventName];
+    return;
+  }
+
+  form.triggerEventNames = [form.eventName];
+  form.stageId = '';
+};
+
+const setFlowTriggerEvent = eventName => {
+  form.eventName = eventName;
+  onTriggerEventChanged();
+};
+
+const ensureStageTriggerEvent = event => {
+  if (form.triggerEventNames.length) return;
+
+  form.triggerEventNames = [form.eventName];
+  event.target.checked = true;
+};
 
 const automationTabs = computed(() => [
   { key: 'flows', label: t('KANBAN.AUTOMATIONS_WORKSPACE.TABS.FLOWS') },
@@ -700,6 +735,50 @@ const conditionFields = computed(() => [
       label: agent.label,
     })),
   },
+  {
+    key: 'system_inbox_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.INBOX'),
+  },
+  {
+    key: 'system_description',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.DESCRIPTION'),
+  },
+  {
+    key: 'system_starts_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.STARTS_AT'),
+  },
+  {
+    key: 'system_due_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.DUE_AT'),
+  },
+  {
+    key: 'system_next_action_type',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE'),
+  },
+  {
+    key: 'system_next_action_at',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_AT'),
+  },
+  {
+    key: 'system_next_action_note',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_NOTE'),
+  },
+  {
+    key: 'system_next_action_completed',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_COMPLETED'),
+  },
+  {
+    key: 'system_lost_reason',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.LOST_REASON'),
+  },
+  {
+    key: 'system_contact_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.CONTACT'),
+  },
+  {
+    key: 'system_conversation_id',
+    label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.CONVERSATION'),
+  },
   ...customFields.value.map(field => ({
     key: field.key,
     label: field.label || field.key,
@@ -710,6 +789,36 @@ const conditionFields = computed(() => [
     })),
   })),
 ]);
+const triggerSummary = computed(() => {
+  const eventLabel = eventOptions.value.find(
+    event => event.value === form.eventName
+  )?.label;
+  if (triggerContext.value === 'stage' && form.stageId) {
+    const stage = stages.value.find(
+      item => String(item.id) === String(form.stageId)
+    );
+    return `${eventLabel}: ${stage?.name || t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_STAGE')}`;
+  }
+  if (triggerContext.value === 'owner' && form.ownerId) {
+    const owner = agentOptions.value.find(
+      item => String(item.value) === String(form.ownerId)
+    );
+    return `${eventLabel}: ${owner?.label || t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_OWNER')}`;
+  }
+  if (triggerContext.value === 'changed_field' && form.changedFieldKey) {
+    const field = conditionFields.value.find(
+      item => item.key === form.changedFieldKey
+    );
+    return `${eventLabel}: ${field?.label || form.changedFieldKey}`;
+  }
+  if (triggerContext.value === 'webhook' && form.connectionId) {
+    const connection = connections.value.find(
+      item => String(item.id) === String(form.connectionId)
+    );
+    return `${eventLabel}: ${connection?.name || t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_CONNECTION')}`;
+  }
+  return eventLabel || t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT');
+});
 const dateFields = computed(() => [
   {
     key: 'system_starts_at',
@@ -755,6 +864,7 @@ const resetForm = () => {
   form.name = '';
   form.description = '';
   form.eventName = 'kanban.card.stage_changed';
+  form.triggerEventNames = ['kanban.card.stage_changed'];
   form.active = false;
   form.lockVersion = 0;
   form.reentryEnabled = false;
@@ -762,15 +872,19 @@ const resetForm = () => {
   form.stageId = '';
   form.ownerId = '';
   form.changedFieldKey = '';
+  form.connectionId = '';
+  form.customerMessageContains = '';
+  form.customerMessageMode = 'any';
   form.triggerNextActionType = '';
   form.triggerAmountOperator = 'greater_than';
   form.triggerAmountValue = '';
+  form.triggerAmountMode = 'any';
+  form.triggerLostReason = '';
   form.fieldKey = '';
   form.fieldOperator = 'equals';
   form.fieldValue = '';
   form.flowDefinition = {};
   form.actions.splice(0, form.actions.length, blankAction());
-  showAdvancedTrigger.value = false;
 };
 
 const applyRule = rule => {
@@ -779,13 +893,20 @@ const applyRule = rule => {
   const field =
     conditions.fields?.find(
       item =>
-        !['system_next_action_type', 'system_amount'].includes(item.fieldKey)
+        ![
+          'system_next_action_type',
+          'system_amount',
+          'system_lost_reason',
+        ].includes(item.fieldKey)
     ) || {};
   selectedRuleId.value = normalized.id;
   selectedExecutionId.value = '';
   form.name = normalized.name || '';
   form.description = normalized.description || '';
   form.eventName = normalized.eventName || 'kanban.card.stage_changed';
+  form.triggerEventNames = conditions.triggerEventNames?.length
+    ? conditions.triggerEventNames
+    : [form.eventName];
   form.active = normalized.active !== false;
   form.lockVersion = normalized.lockVersion || 0;
   form.reentryEnabled = normalized.reentryEnabled === true;
@@ -793,6 +914,11 @@ const applyRule = rule => {
   form.stageId = conditions.stageIds?.[0] || '';
   form.ownerId = conditions.ownerIds?.[0] || '';
   form.changedFieldKey = conditions.changedFieldKeys?.[0] || '';
+  form.connectionId = conditions.connectionIds?.[0] || '';
+  form.customerMessageContains = conditions.customerMessageContains || '';
+  form.customerMessageMode = conditions.customerMessageContains
+    ? 'contains'
+    : 'any';
   const nextActionCondition = conditions.fields?.find(
     item => item.fieldKey === 'system_next_action_type'
   );
@@ -802,12 +928,16 @@ const applyRule = rule => {
   form.triggerNextActionType = nextActionCondition?.value || '';
   form.triggerAmountOperator = amountCondition?.operator || 'greater_than';
   form.triggerAmountValue = amountCondition?.value || '';
+  form.triggerAmountMode = amountCondition ? 'new_value' : 'any';
+  const lostReasonCondition = conditions.fields?.find(
+    item => item.fieldKey === 'system_lost_reason'
+  );
+  form.triggerLostReason = lostReasonCondition?.value || '';
   form.fieldKey = field.fieldKey || '';
   form.fieldOperator = field.operator || 'equals';
   form.fieldValue = field.value || '';
   form.flowDefinition = normalized.flowDefinition || {};
   form.actions.splice(0, form.actions.length, ...(normalized.actions || []));
-  showAdvancedTrigger.value = false;
 };
 
 const openNewFlow = () => {
@@ -821,6 +951,7 @@ const openTemplate = template => {
   form.name = template.defaultName || template.name;
   form.description = template.description;
   form.eventName = template.eventName;
+  form.triggerEventNames = [template.eventName];
   form.active = false;
   form.flowDefinition = template.flowDefinition;
   activeTab.value = 'flows';
@@ -1593,7 +1724,10 @@ const payload = () => ({
   kanban_automation_rule: {
     name: form.name.trim(),
     description: form.description.trim() || null,
-    event_name: form.eventName,
+    event_name:
+      triggerContext.value === 'stage'
+        ? form.triggerEventNames[0] || form.eventName
+        : form.eventName,
     active: form.active,
     ...(selectedRuleId.value ? { lock_version: form.lockVersion } : {}),
     reentry_enabled: form.reentryEnabled,
@@ -1603,14 +1737,27 @@ const payload = () => ({
         triggerContext.value === 'stage' && form.stageId
           ? [Number(form.stageId)]
           : [],
+      trigger_event_names:
+        triggerContext.value === 'stage'
+          ? form.triggerEventNames
+          : [form.eventName],
       owner_ids:
         triggerContext.value === 'owner' && form.ownerId
           ? [Number(form.ownerId)]
+          : [],
+      connection_ids:
+        triggerContext.value === 'webhook' && form.connectionId
+          ? [Number(form.connectionId)]
           : [],
       changed_field_keys:
         triggerContext.value === 'changed_field' && form.changedFieldKey
           ? [form.changedFieldKey]
           : [],
+      customer_message_contains:
+        triggerContext.value === 'customer_message' &&
+        form.customerMessageMode === 'contains'
+          ? form.customerMessageContains.trim()
+          : '',
       fields: [
         ...(form.fieldKey
           ? [
@@ -1630,12 +1777,23 @@ const payload = () => ({
               },
             ]
           : []),
-        ...(triggerContext.value === 'amount' && form.triggerAmountValue !== ''
+        ...(triggerContext.value === 'amount' &&
+        form.triggerAmountMode === 'new_value' &&
+        form.triggerAmountValue !== ''
           ? [
               {
                 field_key: 'system_amount',
                 operator: form.triggerAmountOperator,
                 value: form.triggerAmountValue,
+              },
+            ]
+          : []),
+        ...(triggerContext.value === 'lost_reason' && form.triggerLostReason
+          ? [
+              {
+                field_key: 'system_lost_reason',
+                operator: 'equals',
+                value: form.triggerLostReason,
               },
             ]
           : []),
@@ -1768,6 +1926,7 @@ onMounted(load);
     class="flex h-full min-h-0 w-full flex-col bg-n-surface-1 text-n-slate-12"
   >
     <header
+      v-if="!showEditor"
       class="flex flex-wrap items-center justify-between gap-3 border-b border-n-weak px-4 py-3 lg:px-6"
     >
       <div class="min-w-0">
@@ -1789,7 +1948,6 @@ onMounted(load);
         </h1>
       </div>
       <Button
-        v-if="!showEditor"
         type="button"
         data-testid="kanban-automations-new-flow"
         icon="i-lucide-plus"
@@ -1798,56 +1956,6 @@ onMounted(load);
         size="sm"
         @click="openNewFlow"
       />
-      <div v-else class="flex items-center gap-2">
-        <label
-          class="flex h-8 items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 focus-within:ring-2 focus-within:ring-n-brand"
-        >
-          <input
-            v-model="form.active"
-            data-testid="kanban-automations-publish-flow"
-            type="checkbox"
-            class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-          />
-          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.ACTIVE') }}
-        </label>
-        <Button
-          type="button"
-          data-testid="kanban-automations-validate-flow"
-          icon="i-lucide-check"
-          :label="t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.OPEN')"
-          color="slate"
-          size="sm"
-          @click="validateVisualFlow"
-        />
-        <Button
-          v-if="selectedRule"
-          type="button"
-          data-testid="kanban-automations-test-flow"
-          icon="i-lucide-flask-conical"
-          :label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.OPEN')"
-          color="slate"
-          size="sm"
-          :aria-pressed="showEditorTest"
-          @click="toggleEditorTest"
-        />
-        <Button
-          type="button"
-          :label="t('KANBAN.ACTIONS.CANCEL')"
-          color="slate"
-          size="sm"
-          @click="closeEditor"
-        />
-        <Button
-          type="button"
-          data-testid="kanban-automations-save-flow"
-          icon="i-lucide-save"
-          :label="saveFlowLabel"
-          color="blue"
-          size="sm"
-          :is-loading="isSaving"
-          @click="save"
-        />
-      </div>
     </header>
 
     <div
@@ -2099,251 +2207,485 @@ onMounted(load);
     >
       <section
         data-testid="kanban-automation-editor-header"
-        class="relative z-10 flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-n-weak bg-n-surface-2 px-4 py-3 shadow-sm lg:px-6"
+        class="relative z-10 flex min-h-[54px] flex-wrap items-center gap-2 border-b border-n-weak bg-n-surface-1 px-4 py-2 shadow-sm lg:flex-nowrap lg:px-6"
       >
-        <label
-          class="grid min-w-[16rem] flex-1 gap-1 text-xs font-medium text-n-slate-11"
+        <div
+          data-testid="kanban-automation-editor-identity"
+          class="hidden shrink-0 items-center gap-2 lg:flex"
         >
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NAME') }}
+          <span
+            class="flex size-7 shrink-0 items-center justify-center rounded-md bg-n-brand/10 text-n-brand"
+          >
+            <i class="i-lucide-workflow size-3.5" aria-hidden="true" />
+          </span>
+        </div>
+        <label class="min-w-[12rem] flex-1 text-xs font-medium text-n-slate-11">
+          <span class="sr-only">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NAME') }}
+          </span>
           <input
             v-model="form.name"
             data-testid="kanban-automations-flow-name"
             type="text"
-            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            class="h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm font-semibold text-n-slate-12 outline-none hover:border-n-weak hover:bg-n-surface-2 focus:border-n-brand focus:bg-n-surface-1 focus:ring-2 focus:ring-n-brand/20"
           />
         </label>
-        <label
-          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
-        >
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
-          <select
-            v-model="form.eventName"
-            data-testid="kanban-automations-trigger-event"
-            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+        <Popover align="start" :show-content-border="false">
+          <button
+            type="button"
+            data-testid="kanban-automations-trigger-popover"
+            class="flex h-8 min-w-0 max-w-56 items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2.5 text-left text-xs text-n-slate-12 outline-none hover:bg-n-surface-2 focus:ring-2 focus:ring-n-brand"
           >
-            <option
-              v-for="event in eventOptions"
-              :key="event.value"
-              :value="event.value"
+            <i
+              class="i-lucide-zap size-4 shrink-0 text-n-brand"
+              aria-hidden="true"
+            />
+            <span class="min-w-0 flex-1 truncate">{{ triggerSummary }}</span>
+            <i
+              class="i-lucide-chevron-down size-4 text-n-slate-10"
+              aria-hidden="true"
+            />
+          </button>
+          <template #content>
+            <div
+              class="grid w-[min(28rem,calc(100vw-2rem))] gap-3 bg-n-surface-1 p-4"
             >
-              {{ event.label }}
-            </option>
-          </select>
-        </label>
-        <Button
-          v-if="triggerContext"
-          type="button"
-          data-testid="kanban-automations-trigger-options"
-          icon="i-lucide-sliders-horizontal"
-          color="slate"
-          size="sm"
-          :label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.TRIGGER_OPTIONS')"
-          :aria-pressed="showAdvancedTrigger"
-          @click="showAdvancedTrigger = !showAdvancedTrigger"
-        />
-        <label
-          v-if="showAdvancedTrigger && triggerContext === 'stage'"
-          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
-        >
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.STAGE') }}
-          <select
-            v-model="form.stageId"
-            data-testid="kanban-automations-trigger-stage"
-            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              <p class="m-0 text-sm font-semibold text-n-slate-12">
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
+              </p>
+              <label
+                class="grid w-full gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
+                <select
+                  v-model="form.eventName"
+                  data-testid="kanban-automations-trigger-event"
+                  class="h-10 rounded-lg border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  @change="onTriggerEventChanged"
+                >
+                  <option
+                    v-for="event in eventOptions"
+                    :key="event.value"
+                    :value="event.value"
+                  >
+                    {{ event.label }}
+                  </option>
+                </select>
+              </label>
+              <label
+                v-if="triggerContext === 'stage'"
+                class="grid w-full gap-2 text-xs font-medium text-n-slate-11"
+              >
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.RULES.STAGE_TRIGGER_EVENTS')
+                }}
+                <span class="flex flex-wrap gap-x-3 gap-y-1.5">
+                  <label
+                    class="flex items-center gap-1.5 text-xs font-normal text-n-slate-12"
+                  >
+                    <input
+                      v-model="form.triggerEventNames"
+                      data-testid="kanban-automations-trigger-created"
+                      type="checkbox"
+                      value="kanban.card.created"
+                      class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                      @change="ensureStageTriggerEvent"
+                    />
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CREATED_IN_STAGE')
+                    }}
+                  </label>
+                  <label
+                    class="flex items-center gap-1.5 text-xs font-normal text-n-slate-12"
+                  >
+                    <input
+                      v-model="form.triggerEventNames"
+                      data-testid="kanban-automations-trigger-stage-changed"
+                      type="checkbox"
+                      value="kanban.card.stage_changed"
+                      class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                      @change="ensureStageTriggerEvent"
+                    />
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.MOVED_TO_STAGE') }}
+                  </label>
+                </span>
+                <select
+                  v-model="form.stageId"
+                  data-testid="kanban-automations-trigger-stage"
+                  class="h-10 rounded-lg border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_STAGE') }}
+                  </option>
+                  <option
+                    v-for="stage in stages"
+                    :key="stage.id"
+                    :value="stage.id"
+                  >
+                    {{ stage.name }}
+                  </option>
+                </select>
+              </label>
+              <label
+                v-else-if="triggerContext === 'customer_message'"
+                class="grid w-full gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{
+                  t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CUSTOMER_MESSAGE_PHRASE')
+                }}
+                <select
+                  v-model="form.customerMessageMode"
+                  data-testid="kanban-automations-customer-message-mode"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="any">
+                    {{
+                      t(
+                        'KANBAN.SETTINGS.AUTOMATIONS.RULES.CUSTOMER_MESSAGE_ANY'
+                      )
+                    }}
+                  </option>
+                  <option value="contains">
+                    {{
+                      t(
+                        'KANBAN.SETTINGS.AUTOMATIONS.RULES.CUSTOMER_MESSAGE_CONTAINS'
+                      )
+                    }}
+                  </option>
+                </select>
+                <input
+                  v-if="form.customerMessageMode === 'contains'"
+                  v-model="form.customerMessageContains"
+                  data-testid="kanban-automations-customer-message-contains"
+                  type="text"
+                  :placeholder="
+                    t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CUSTOMER_MESSAGE_ANY')
+                  "
+                  class="h-10 rounded-lg border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                />
+              </label>
+              <label
+                v-else-if="triggerContext === 'owner'"
+                class="grid w-full gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
+                <select
+                  v-model="form.ownerId"
+                  data-testid="kanban-automations-trigger-owner"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_OWNER') }}
+                  </option>
+                  <option
+                    v-for="agent in agentOptions"
+                    :key="agent.value"
+                    :value="agent.value"
+                  >
+                    {{ agent.label }}
+                  </option>
+                </select>
+              </label>
+              <label
+                v-else-if="triggerContext === 'changed_field'"
+                class="grid w-full gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+                <select
+                  v-model="form.changedFieldKey"
+                  data-testid="kanban-automations-changed-field"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
+                  </option>
+                  <option
+                    v-for="field in conditionFields"
+                    :key="field.key"
+                    :value="field.key"
+                  >
+                    {{ field.label }}
+                  </option>
+                </select>
+              </label>
+              <label
+                v-else-if="triggerContext === 'next_action'"
+                class="grid w-full gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE') }}
+                <select
+                  v-model="form.triggerNextActionType"
+                  data-testid="kanban-automations-trigger-next-action"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
+                  </option>
+                  <option
+                    v-for="actionType in nextActionTypes"
+                    :key="actionType"
+                    :value="actionType"
+                  >
+                    {{ actionType }}
+                  </option>
+                </select>
+              </label>
+              <div
+                v-else-if="triggerContext === 'amount'"
+                class="grid w-full gap-2"
+              >
+                <select
+                  v-model="form.triggerAmountMode"
+                  data-testid="kanban-automations-trigger-amount-mode"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="any">
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_AMOUNT_CHANGE')
+                    }}
+                  </option>
+                  <option value="new_value">
+                    {{
+                      t('KANBAN.SETTINGS.AUTOMATIONS.RULES.AMOUNT_NEW_VALUE')
+                    }}
+                  </option>
+                </select>
+                <div
+                  v-if="form.triggerAmountMode === 'new_value'"
+                  class="grid grid-cols-[9rem_minmax(0,1fr)] gap-2"
+                >
+                  <select
+                    v-model="form.triggerAmountOperator"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option value="equals">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') }}
+                    </option>
+                    <option value="greater_than">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN') }}
+                    </option>
+                    <option value="less_than">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN') }}
+                    </option>
+                  </select>
+                  <input
+                    v-model="form.triggerAmountValue"
+                    data-testid="kanban-automations-trigger-amount"
+                    type="number"
+                    min="0"
+                    inputmode="decimal"
+                    :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
+                    class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  />
+                </div>
+              </div>
+              <label
+                v-else-if="triggerContext === 'webhook'"
+                class="grid w-full gap-1 text-xs font-medium text-n-slate-11"
+              >
+                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_CONNECTION') }}
+                <select
+                  v-model="form.connectionId"
+                  data-testid="kanban-automations-trigger-connection"
+                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_CONNECTION') }}
+                  </option>
+                  <option
+                    v-for="connection in connections"
+                    :key="connection.id"
+                    :value="connection.id"
+                  >
+                    {{ connection.name }}
+                  </option>
+                </select>
+              </label>
+              <label
+                v-else-if="triggerContext === 'lost_reason'"
+                class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-64"
+              >
+                {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.LOST_REASON') }}
+                <select
+                  v-model="form.triggerLostReason"
+                  data-testid="kanban-automations-trigger-lost-reason"
+                  class="h-10 rounded-lg border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                >
+                  <option value="">
+                    {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
+                  </option>
+                  <option
+                    v-for="reason in lostReasonOptions"
+                    :key="reason"
+                    :value="reason"
+                  >
+                    {{ reason }}
+                  </option>
+                </select>
+              </label>
+            </div>
+          </template>
+        </Popover>
+        <Popover align="end" :show-content-border="false">
+          <button
+            type="button"
+            data-testid="kanban-automations-advanced-popover"
+            class="flex size-8 shrink-0 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 outline-none hover:bg-n-surface-2 focus:ring-2 focus:ring-n-brand"
+            :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ADVANCED')"
+            :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ADVANCED')"
           >
-            <option value="">
-              {{ t('KANBAN.AUTOMATIONS_WORKSPACE.ANY_STAGE') }}
-            </option>
-            <option v-for="stage in stages" :key="stage.id" :value="stage.id">
-              {{ stage.name }}
-            </option>
-          </select>
-        </label>
-        <label
-          v-else-if="showAdvancedTrigger && triggerContext === 'owner'"
-          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
-        >
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_OWNER') }}
-          <select
-            v-model="form.ownerId"
-            data-testid="kanban-automations-trigger-owner"
-            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-          >
-            <option value="">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_OWNER') }}
-            </option>
-            <option
-              v-for="agent in agentOptions"
-              :key="agent.value"
-              :value="agent.value"
+            <i class="i-lucide-sliders-horizontal size-4" aria-hidden="true" />
+          </button>
+          <template #content>
+            <div
+              class="grid w-[min(32rem,calc(100vw-2rem))] gap-3 bg-n-surface-1 p-4"
             >
-              {{ agent.label }}
-            </option>
-          </select>
-        </label>
-        <label
-          v-else-if="showAdvancedTrigger && triggerContext === 'changed_field'"
-          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
-        >
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
-          <select
-            v-model="form.changedFieldKey"
-            data-testid="kanban-automations-changed-field"
-            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              <label
+                class="grid max-w-52 gap-1 self-center text-xs font-medium text-n-slate-11"
+                :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY_HINT')"
+              >
+                <span class="flex items-center gap-2">
+                  <input
+                    v-model="form.reentryEnabled"
+                    type="checkbox"
+                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                  />
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY') }}
+                </span>
+              </label>
+              <label
+                v-if="waitingExecutionsForSelectedRule.length"
+                class="grid max-w-60 gap-1 self-center text-xs font-medium text-n-ruby-11"
+              >
+                <span class="flex items-center gap-2">
+                  <input
+                    v-model="form.cancelWaitingExecutions"
+                    type="checkbox"
+                    data-testid="kanban-automations-cancel-pending"
+                    class="size-4 rounded border-n-weak text-n-ruby-11 focus:ring-n-ruby-11"
+                  />
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING', {
+                      count: waitingExecutionsForSelectedRule.length,
+                    })
+                  }}
+                </span>
+                <span class="font-normal text-n-slate-11">
+                  {{
+                    t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING_HINT')
+                  }}
+                </span>
+              </label>
+              <details class="w-full">
+                <summary
+                  class="cursor-pointer text-xs font-medium text-n-slate-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                >
+                  {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONDITIONS') }}
+                </summary>
+                <div
+                  class="mt-2 grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 lg:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)]"
+                >
+                  <select
+                    v-model="form.fieldKey"
+                    data-testid="kanban-automations-condition-field"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option value="">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+                    </option>
+                    <option
+                      v-for="field in conditionFields"
+                      :key="field.key"
+                      :value="field.key"
+                    >
+                      {{ field.label }}
+                    </option>
+                  </select>
+                  <select
+                    v-model="form.fieldOperator"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  >
+                    <option value="equals">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') }}
+                    </option>
+                    <option value="not_equals">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NOT_EQUALS') }}
+                    </option>
+                    <option value="contains">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONTAINS') }}
+                    </option>
+                    <option value="exists">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EXISTS') }}
+                    </option>
+                    <option value="greater_than">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN') }}
+                    </option>
+                    <option value="less_than">
+                      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN') }}
+                    </option>
+                  </select>
+                  <input
+                    v-model="form.fieldValue"
+                    type="text"
+                    :disabled="form.fieldOperator === 'exists'"
+                    :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
+                    class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
+              </details>
+            </div>
+          </template>
+        </Popover>
+        <div class="ml-auto flex shrink-0 items-center gap-2">
+          <label
+            class="flex h-8 items-center gap-1.5 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 focus-within:ring-2 focus-within:ring-n-brand"
           >
-            <option value="">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
-            </option>
-            <option
-              v-for="field in customFields"
-              :key="field.key"
-              :value="field.key"
-            >
-              {{ field.label || field.key }}
-            </option>
-          </select>
-        </label>
-        <label
-          v-else-if="showAdvancedTrigger && triggerContext === 'next_action'"
-          class="grid w-full gap-1 text-xs font-medium text-n-slate-11 sm:w-56"
-        >
-          {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE') }}
-          <select
-            v-model="form.triggerNextActionType"
-            data-testid="kanban-automations-trigger-next-action"
-            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-          >
-            <option value="">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
-            </option>
-            <option
-              v-for="actionType in nextActionTypes"
-              :key="actionType"
-              :value="actionType"
-            >
-              {{ actionType }}
-            </option>
-          </select>
-        </label>
-        <div
-          v-else-if="showAdvancedTrigger && triggerContext === 'amount'"
-          class="grid w-full grid-cols-[9rem_minmax(0,1fr)] gap-2 self-end sm:w-[23rem]"
-        >
-          <select
-            v-model="form.triggerAmountOperator"
-            class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-          >
-            <option value="equals">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') }}
-            </option>
-            <option value="greater_than">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN') }}
-            </option>
-            <option value="less_than">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN') }}
-            </option>
-          </select>
-          <input
-            v-model="form.triggerAmountValue"
-            data-testid="kanban-automations-trigger-amount"
-            type="number"
-            min="0"
-            inputmode="decimal"
-            :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
-            class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+            <input
+              v-model="form.active"
+              data-testid="kanban-automations-publish-flow"
+              type="checkbox"
+              class="size-3.5 rounded border-n-weak text-n-brand focus:ring-n-brand"
+            />
+            {{ t('KANBAN.AUTOMATIONS_WORKSPACE.ACTIVE') }}
+          </label>
+          <Button
+            type="button"
+            data-testid="kanban-automations-validate-flow"
+            icon="i-lucide-check"
+            :label="t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.OPEN')"
+            color="slate"
+            size="sm"
+            @click="validateVisualFlow"
+          />
+          <Button
+            v-if="selectedRule"
+            type="button"
+            data-testid="kanban-automations-test-flow"
+            icon="i-lucide-flask-conical"
+            :label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.OPEN')"
+            color="slate"
+            size="sm"
+            :aria-pressed="showEditorTest"
+            @click="toggleEditorTest"
+          />
+          <Button
+            type="button"
+            :label="t('KANBAN.ACTIONS.CANCEL')"
+            color="slate"
+            size="sm"
+            @click="closeEditor"
+          />
+          <Button
+            type="button"
+            data-testid="kanban-automations-save-flow"
+            icon="i-lucide-save"
+            :label="saveFlowLabel"
+            color="blue"
+            size="sm"
+            :is-loading="isSaving"
+            @click="save"
           />
         </div>
-        <label
-          class="grid max-w-52 gap-1 self-center text-xs font-medium text-n-slate-11"
-          :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY_HINT')"
-        >
-          <span class="flex items-center gap-2">
-            <input
-              v-model="form.reentryEnabled"
-              type="checkbox"
-              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-            />
-            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.REENTRY') }}
-          </span>
-        </label>
-        <label
-          v-if="waitingExecutionsForSelectedRule.length"
-          class="grid max-w-60 gap-1 self-center text-xs font-medium text-n-ruby-11"
-        >
-          <span class="flex items-center gap-2">
-            <input
-              v-model="form.cancelWaitingExecutions"
-              type="checkbox"
-              data-testid="kanban-automations-cancel-pending"
-              class="size-4 rounded border-n-weak text-n-ruby-11 focus:ring-n-ruby-11"
-            />
-            {{
-              t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING', {
-                count: waitingExecutionsForSelectedRule.length,
-              })
-            }}
-          </span>
-          <span class="font-normal text-n-slate-11">
-            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CANCEL_PENDING_HINT') }}
-          </span>
-        </label>
-        <details class="w-full">
-          <summary
-            class="cursor-pointer text-xs font-medium text-n-slate-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
-          >
-            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONDITIONS') }}
-          </summary>
-          <div
-            class="mt-2 grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 lg:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)]"
-          >
-            <select
-              v-model="form.fieldKey"
-              data-testid="kanban-automations-condition-field"
-              class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-            >
-              <option value="">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
-              </option>
-              <option
-                v-for="field in conditionFields"
-                :key="field.key"
-                :value="field.key"
-              >
-                {{ field.label }}
-              </option>
-            </select>
-            <select
-              v-model="form.fieldOperator"
-              class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-            >
-              <option value="equals">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EQUALS') }}
-              </option>
-              <option value="not_equals">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.NOT_EQUALS') }}
-              </option>
-              <option value="contains">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CONTAINS') }}
-              </option>
-              <option value="exists">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EXISTS') }}
-              </option>
-              <option value="greater_than">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.GREATER_THAN') }}
-              </option>
-              <option value="less_than">
-                {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.LESS_THAN') }}
-              </option>
-            </select>
-            <input
-              v-model="form.fieldValue"
-              type="text"
-              :disabled="form.fieldOperator === 'exists'"
-              :placeholder="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.VALUE')"
-              class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:opacity-60"
-            />
-          </div>
-        </details>
       </section>
       <section
         v-if="showEditorTest && selectedRule"
@@ -2475,7 +2817,7 @@ onMounted(load);
         :trigger-value="form.eventName"
         :invalid-node-ids="invalidNodeIds"
         :execution-history="selectedRuleExecutionHistory"
-        @update:trigger-value="form.eventName = $event"
+        @update:trigger-value="setFlowTriggerEvent"
         @clear-validation="clearFlowValidation"
       />
       <p

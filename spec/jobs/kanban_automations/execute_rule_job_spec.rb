@@ -91,6 +91,28 @@ RSpec.describe KanbanAutomations::ExecuteRuleJob do
     expect(rule.kanban_automation_executions.sole.status).to eq('skipped')
   end
 
+  it 'evaluates the customer reply passed with the event context' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      event_name: Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED,
+      conditions: { customer_message_contains: 'consulta' },
+      actions: [{ action_name: 'add_label', action_params: { label: 'respondeu-consulta' } }]
+    )
+
+    described_class.perform_now(
+      rule.id,
+      rule.event_name,
+      'customer-reply-event',
+      card.id,
+      { event_data: { customer_message_content: 'Quero marcar uma consulta.' } }
+    )
+
+    expect(card.reload.labels.pluck(:title)).to include('respondeu-consulta')
+  end
+
   it 'schedules continuation when a visual workflow reaches a delay node' do
     card = create(:kanban_card)
     rule = create(

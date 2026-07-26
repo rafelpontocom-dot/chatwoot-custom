@@ -32,11 +32,12 @@
 #
 class KanbanCardEvent < ApplicationRecord
   EVENT_TYPES = %w[
-    card_created stage_changed owner_changed amount_changed custom_fields_changed
+    card_created fields_changed stage_changed owner_changed amount_changed custom_fields_changed
     next_action_scheduled next_action_completed card_won card_lost card_reopened
     card_archived card_restored automation_logged
   ].freeze
   DOMAIN_EVENT_TYPES = {
+    'fields_changed' => Events::Types::KANBAN_CARD_FIELDS_CHANGED,
     'stage_changed' => Events::Types::KANBAN_CARD_STAGE_CHANGED,
     'owner_changed' => Events::Types::KANBAN_CARD_OWNER_CHANGED,
     'amount_changed' => Events::Types::KANBAN_CARD_AMOUNT_CHANGED,
@@ -84,8 +85,17 @@ class KanbanCardEvent < ApplicationRecord
   end
 
   def dispatch_domain_event
+    dispatch_event(DOMAIN_EVENT_TYPES.fetch(event_type))
+    dispatch_event(Events::Types::KANBAN_CARD_FIELDS_CHANGED) if fields_changed?
+  end
+
+  def fields_changed?
+    event_type != 'fields_changed' && event_type != 'automation_logged' && change_set.present?
+  end
+
+  def dispatch_event(event_name)
     Rails.configuration.dispatcher.dispatch(
-      DOMAIN_EVENT_TYPES.fetch(event_type),
+      event_name,
       occurred_at,
       {
         account_id: account_id,

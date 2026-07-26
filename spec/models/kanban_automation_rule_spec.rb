@@ -36,6 +36,25 @@ RSpec.describe KanbanAutomationRule do
     expect(rule).to be_valid
   end
 
+  it 'accepts a stage trigger that listens to creation and stage entry' do
+    board = create(:kanban_board)
+    stage = create(:kanban_stage, account: board.account, kanban_board: board)
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      conditions: {
+        stage_ids: [stage.id],
+        trigger_event_names: [
+          Events::Types::KANBAN_CARD_CREATED,
+          Events::Types::KANBAN_CARD_STAGE_CHANGED
+        ]
+      }
+    )
+
+    expect(rule).to be_valid
+  end
+
   it 'rejects unsupported events, field operators and actions' do
     rule = build(
       :kanban_automation_rule,
