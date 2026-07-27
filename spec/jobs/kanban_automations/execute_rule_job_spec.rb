@@ -110,7 +110,7 @@ RSpec.describe KanbanAutomations::ExecuteRuleJob do
       { event_data: { customer_message_content: 'Quero marcar uma consulta.' } }
     )
 
-    expect(card.reload.labels.pluck(:title)).to include('respondeu-consulta')
+    expect(card.reload.labels.pluck(:name)).to include('respondeu-consulta')
   end
 
   it 'schedules continuation when a visual workflow reaches a delay node' do

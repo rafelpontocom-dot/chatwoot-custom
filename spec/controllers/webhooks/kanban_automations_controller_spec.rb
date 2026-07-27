@@ -30,7 +30,13 @@ RSpec.describe 'Kanban automation inbound webhook', type: :request do
     expect do
       post webhook_url(connection), params: body, headers: headers_for(connection, body)
     end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob)
-      .with(rule.id, Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED, 'n8n-event-123', card.id)
+      .with(
+        rule.id,
+        Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED,
+        'n8n-event-123',
+        card.id,
+        { event_data: { connection_id: connection.id } }
+      )
       .on_queue('critical')
 
     expect(response).to have_http_status(:accepted)
