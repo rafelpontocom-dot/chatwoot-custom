@@ -19,7 +19,7 @@ defineExpose({ focus, querySelector });
   <div>
     <div
       data-testid="kanban-workflow-inspector-backdrop"
-      class="fixed inset-0 z-40 bg-n-slate-12/10"
+      class="fixed inset-0 z-40 bg-n-slate-12/20"
       @click="emit('close')"
     />
     <aside
@@ -29,7 +29,7 @@ defineExpose({ focus, querySelector });
           ? 'kanban-workflow-node-drawer'
           : 'kanban-workflow-connection-dialog'
       "
-      class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 shadow-2xl outline-none sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-[4.5rem] sm:max-h-[min(34rem,calc(100vh-5rem))] sm:w-[min(16rem,calc(100vw-2rem))]"
+      class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 shadow-2xl outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100vh-5rem)] sm:w-[min(44rem,calc(100vw-4rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:p-5"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="ariaLabelledby"

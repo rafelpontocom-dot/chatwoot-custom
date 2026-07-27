@@ -4,7 +4,7 @@ import KanbanWorkflowInspector from '../components/KanbanWorkflowInspector.vue';
 import KanbanWorkflowInspectorHeader from '../components/KanbanWorkflowInspectorHeader.vue';
 
 describe('KanbanWorkflowInspector', () => {
-  it('uses a compact floating sheet on desktop instead of a full-height drawer', () => {
+  it('uses a centered configuration dialog with enough desktop width for complex nodes', () => {
     const wrapper = shallowMount(KanbanWorkflowInspector, {
       props: {
         nodeSelected: true,
@@ -16,9 +16,12 @@ describe('KanbanWorkflowInspector', () => {
       '[data-testid="kanban-workflow-node-drawer"]'
     );
 
-    expect(inspector.classes()).toContain('sm:top-[4.5rem]');
+    expect(inspector.classes()).toContain('sm:left-1/2');
+    expect(inspector.classes()).toContain('sm:top-1/2');
     expect(inspector.classes()).toContain('sm:bottom-auto');
-    expect(inspector.classes()).toContain('sm:w-[min(16rem,calc(100vw-2rem))]');
+    expect(inspector.classes()).toContain('sm:w-[min(44rem,calc(100vw-4rem))]');
+    expect(inspector.classes()).toContain('sm:-translate-x-1/2');
+    expect(inspector.classes()).toContain('sm:-translate-y-1/2');
   });
 
   it('keeps the selected node category visible in the contextual header', () => {

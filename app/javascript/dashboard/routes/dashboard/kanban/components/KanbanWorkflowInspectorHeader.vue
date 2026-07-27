@@ -16,7 +16,7 @@ const emit = defineEmits(['close', 'connect', 'delete']);
 <template>
   <div
     data-testid="kanban-workflow-inspector-header"
-    class="sticky top-0 z-10 -mx-4 -mt-4 flex items-center justify-between gap-3 border-b border-n-weak bg-n-surface-1 px-4 pb-3 pt-4"
+    class="sticky top-0 z-10 -mx-4 -mt-4 flex items-center justify-between gap-3 border-b border-n-weak bg-n-surface-1 px-4 pb-3 pt-4 sm:-mx-5 sm:-mt-5 sm:px-5 sm:pt-5"
   >
     <div class="flex min-w-0 items-center gap-2.5">
       <span

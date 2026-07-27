@@ -33,7 +33,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 3. Seleciona uma automação, usa Nova automação ou parte de um modelo pronto para abrir o construtor em uma área dedicada.
 4. Define nome e abre o resumo do gatilho na única barra operacional do fluxo. Evento e critérios compatíveis ficam no popover contextual; reentrada e condições posteriores são opções avançadas recolhidas. Publicar, validar, testar, cancelar e salvar vivem nessa mesma barra, para o canvas não começar sob cabeçalhos duplicados.
 5. Usa a paleta pesquisável à esquerda para escolher um bloco por categoria, ou arrasta o bloco para o canvas. O botão `+` permanece como atalho contextual e alternativa em telas pequenas.
-6. Seleciona um nó ou conexão para configurar seu conteúdo em um painel flutuante, sem comprimir o canvas.
+6. Seleciona um nó ou conexão para configurar seu conteúdo em um diálogo flutuante, sem comprimir o canvas.
 7. Salva. O backend valida todos os nós antes de ativar a regra.
 8. Quando o evento ocorre, a execução fica registrada no histórico do funil, com estado, oportunidade e motivo de falha.
 9. Se houver uma espera, o card segue operando normalmente; a execução retoma no horário salvo.
@@ -224,7 +224,7 @@ Esta é a direção única para as próximas entregas, e não uma referência op
 - **Esquerda:** paleta compacta de aproximadamente 196 px, com busca, categorias recolhíveis, ícones e uma linha por bloco. Ela existe para descobrir e adicionar passos, não para explicar cada configuração.
 - **Centro:** canvas é a superfície dominante. Mantém fundo discreto, controles agrupados, zoom, minimapa apenas quando necessário e espaço suficiente para montar caminhos reais sem uma coluna permanente de formulário.
 - **Nós:** cards densos e estáveis, com faixa semântica de categoria, ícone, título, resumo de uma linha e estado. Condições detalhadas, formulários e textos longos ficam fora do card; saídas continuam rotuladas e acessíveis.
-- **Configuração:** clicar em nó ou conexão abre um inspector flutuante no lado direito, com largura limitada a 256 px em desktop e tela cheia em mobile. Ele sobrepõe o canvas, não reduz seu espaço. O cabeçalho mostra categoria, título e estado da etapa; `Configurar`, `Testar` e `Histórico` são abas igualmente distribuídas do mesmo contexto e aceitam setas, Home e End no teclado.
+- **Configuração:** clicar em nó ou conexão abre um diálogo contextual centralizado. No desktop ele tem até `44rem`, suficiente para regras, listas e prévias sem rolagem horizontal; no mobile ocupa a viewport com margens seguras. Ele sobrepõe o canvas, não reduz seu espaço. O cabeçalho mostra categoria, título e estado da etapa; `Configurar`, `Testar` e `Histórico` são abas igualmente distribuídas do mesmo contexto e aceitam setas, Home e End no teclado.
 - **Ações:** inserir, conectar, excluir, desfazer, refazer e organizar ficam junto ao canvas. O `+` abre um seletor contextual e não depende de hover ou arraste; no mobile, abre a paleta categorizada em drawer. Ao selecionar uma conexão, o inspector mostra origem e destino reais, em vez de um título genérico.
 - **Linguagem:** a UI usa termos comerciais curtos, estado compreensível e dados da oportunidade. Não expõe jargão de automação, chaves técnicas ou formulários completos no canvas.
 - **Entrada:** modelos comerciais usam ícone, título e descrição curta; regras existentes mantêm estado, edição explícita, teste e histórico em uma linha compacta, sem virar uma lista de formulários.

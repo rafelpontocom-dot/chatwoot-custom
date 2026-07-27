@@ -46,7 +46,7 @@ config.global.stubs.KanbanWorkflowInspector = {
       <div data-testid="kanban-workflow-inspector-backdrop" />
       <aside
         :data-testid="nodeSelected ? 'kanban-workflow-node-drawer' : 'kanban-workflow-connection-dialog'"
-        class="sm:right-4 sm:top-[4.5rem] sm:w-[min(16rem,calc(100vw-2rem))] sm:bottom-auto"
+        class="sm:left-1/2 sm:top-1/2 sm:w-[min(44rem,calc(100vw-4rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:bottom-auto"
         role="dialog"
         aria-labelledby="kanban-workflow-inspector-title"
         tabindex="-1"
@@ -202,7 +202,7 @@ describe('KanbanWorkflowBuilder', () => {
     wrapper.unmount();
   });
 
-  it('keeps the inspector as a floating contextual surface over the canvas', async () => {
+  it('opens configuration as a centered contextual dialog over the canvas', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: { modelValue: {} },
     });
@@ -213,8 +213,9 @@ describe('KanbanWorkflowBuilder', () => {
     const inspector = wrapper.find(
       '[data-testid="kanban-workflow-node-drawer"]'
     );
-    expect(inspector.classes()).toContain('sm:right-4');
-    expect(inspector.classes()).toContain('sm:w-[min(16rem,calc(100vw-2rem))]');
+    expect(inspector.classes()).toContain('sm:left-1/2');
+    expect(inspector.classes()).toContain('sm:top-1/2');
+    expect(inspector.classes()).toContain('sm:w-[min(44rem,calc(100vw-4rem))]');
     expect(inspector.classes()).toContain('sm:bottom-auto');
     expect(
       inspector
@@ -917,7 +918,7 @@ describe('KanbanWorkflowBuilder', () => {
     ).toBe(true);
     expect(
       wrapper.find('[data-testid="kanban-workflow-node-drawer"]').classes()
-    ).toContain('sm:w-[min(16rem,calc(100vw-2rem))]');
+    ).toContain('sm:w-[min(44rem,calc(100vw-4rem))]');
     expect(
       wrapper.find('[data-testid="kanban-workflow-inspector-icon"]').classes()
     ).toContain('i-lucide-briefcase-business');

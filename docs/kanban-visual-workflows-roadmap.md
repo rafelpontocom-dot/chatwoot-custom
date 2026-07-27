@@ -25,7 +25,7 @@ Entregar um editor visual profissional, seguro e simples para as automações co
 - Vue Flow é o motor de canvas, conexões, seleção, zoom e minimapa.
 - A paleta segue o modelo Node-RED: busca e categorias recolhíveis.
 - A configuração segue o modelo n8n: painel contextual flutuante, canvas preservado e histórico sob demanda.
-- A direção visual aprovada é uma fusão CRM: paleta Node-RED compacta de 196 px à esquerda, canvas dominante com leitura n8n e inspector contextual de até 16rem (256 px) sobreposto à direita; o editor nunca usa uma coluna fixa de formulário.
+- A direção visual aprovada é uma fusão CRM: paleta Node-RED compacta de 196 px à esquerda, canvas dominante com leitura n8n e diálogo contextual de até 44rem (704 px) centralizado sobre o fluxo; o editor nunca usa uma coluna fixa de formulário.
 - Não copiar código do n8n; usar apenas como referência de produto e arquitetura.
 - N8N continua responsável por IA ampla, integrações entre sistemas, HTTP arbitrário, banco, código e processos externos.
 - A primeira correspondência do Router vence; existe sempre a saída `Caso contrário`.
@@ -54,7 +54,7 @@ Aceite:
 
 Objetivo: transformar a tela atual em uma área de trabalho clara e densa.
 
-- [x] Aplicar a fusão CRM aprovada: paleta operacional de 196 px, cards de nó de 152 px, canvas de trabalho com altura mínima de 42 rem e inspector contextual de 256 px entregam a composição única entre Chatwoot, Frappe CRM, Kommo, Node-RED e padrões de interação do n8n, sem reproduzir código ou visual de terceiros. A validação visual em viewport real continua pendente na frente de E2E.
+- [x] Aplicar a fusão CRM aprovada: paleta operacional de 196 px, cards de nó de 152 px, canvas de trabalho com altura mínima de 42 rem e diálogo contextual de até 44 rem para regras complexas entregam a composição única entre Chatwoot, Frappe CRM, Kommo, Node-RED e padrões de interação do n8n, sem reproduzir código ou visual de terceiros. A validação visual em viewport real continua pendente na frente de E2E.
 - [x] Paleta pesquisável com categorias recolhíveis, estado de abertura preservado após nova renderização e alternativa por clique ao arraste.
 - [x] Cabeçalho operacional: uma única faixa curta acima do canvas reúne nome, resumo do gatilho, opções avançadas, publicação, validação, teste, cancelar e salvar; os critérios específicos vivem em popover contextual e as opções de reentrada/condições adicionais ficam recolhidas em opções avançadas.
 - [x] Canvas dominante com minimapa condicional, zoom, auto-organizar, desfazer e refazer. Minimapa condicional, auto-organizar, desfazer/refazer e atalhos locais preservam o snapshot anterior também ao entrar na edição dos campos do inspector.
