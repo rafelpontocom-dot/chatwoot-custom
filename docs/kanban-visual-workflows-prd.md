@@ -62,6 +62,7 @@ O catálogo não replica o n8n. Ele cobre eventos, decisões e ações comerciai
 | ----------------- | ------------------------------------------------------------------ | -------------------------- |
 | Gatilho           | Início visual do fluxo; o evento continua configurado na regra.    | Um por fluxo.              |
 | Aguardar          | Pausa a execução por horas.                                        | Número positivo de horas.  |
+| Aguardar intervalo | Distribui o próximo passo em um minuto aleatório dentro de uma faixa. | Mínimo e máximo positivos em minutos. |
 | Aguardar até data | Agenda em relação a um campo de data/hora da oportunidade; pode parar ou seguir por `Data indisponível` quando o valor não puder ser usado. | Campo, deslocamento e política de falha. |
 | Aguardar resposta | Pausa até uma resposta recebida do cliente, ou até vencer o prazo; opcionalmente divide o fluxo entre `Resposta recebida` e `Prazo da resposta vencido`. | Limite positivo em horas e política de prazo. |
 | Aguardar horário comercial | Mantém a execução até a próxima janela de trabalho configurada. | Dias, horário inicial/final e fuso. |
@@ -82,6 +83,7 @@ As ações comerciais disponíveis são: mover etapa, definir responsável, dist
 | Decisão | Filtro | Atalho de uma rota condicional com uma única continuação válida. |
 | Decisão | Elegibilidade de mensagem | Verifica consentimento, canal, janela de 24 horas e etapa antes de qualquer envio; o nó de mensagem pode seguir por uma saída explícita de não enviada. |
 | Tempo | Aguardar inatividade | Continua somente após o cliente não responder pelo período configurado; opcionalmente divide o fluxo entre `Nenhuma resposta recebida` e `Cliente respondeu`. |
+| Decisão | Continuar na etapa do gatilho | Interrompe silenciosamente a cadência quando a oportunidade sai da etapa selecionada no gatilho. |
 | Tempo | Horário comercial | Aguarda a próxima janela válida; opcionalmente divide o fluxo entre `Janela de atendimento disponível` e `indisponível` quando a janela não puder ser calculada. |
 | Cliente | Transferir para humano | Encaminha a conversa para uma equipe comercial, um responsável ou ambos; adiciona contexto e interrompe mensagens automáticas. |
 | Cliente | Atualizar contato | Atualiza atributo permitido, como opt-in ou data de nascimento. |
@@ -98,7 +100,7 @@ As ações comerciais disponíveis são: mover etapa, definir responsável, dist
 - IA de propósito geral sem contrato de entrada, saída, custo e revisão humana;
 - integrações entre sistemas que não usam conexão declarada e aprovada.
 
-O modelo de follow-up usa `Aguardar`, `Aguardar resposta` e `Definir próxima ação`, mantendo todo o processo em um único fluxo auditável. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
+O modelo `Follow-up comercial` começa em rascunho e representa uma cadência de orçamento: espera 2, 2, 3 e 7 dias sem resposta, confirma que o card ainda está na etapa de entrada, aguarda o horário comercial, aplica uma distribuição aleatória de 10 a 30 minutos, envia uma mensagem editável e incrementa um campo numérico escolhido pelo administrador. A resposta do cliente interrompe os próximos contatos. Mensagens externas exigem sempre um nó `Enviar mensagem`, com opt-in e as regras do canal.
 
 ## Regras De Mensagem Externa
 

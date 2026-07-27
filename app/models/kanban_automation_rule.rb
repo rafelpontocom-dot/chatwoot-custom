@@ -57,7 +57,7 @@ class KanbanAutomationRule < ApplicationRecord
     enroll_cadence add_label remove_label add_note
   ].freeze
   FLOW_NODE_TYPES = %w[
-    trigger delay wait_until_field wait_for_response wait_for_inactivity wait_for_business_hours
+    trigger delay random_delay wait_until_field wait_for_response wait_for_inactivity wait_for_business_hours stage_guard
     send_message action set_field update_contact complete_next_action mark_won mark_lost
     condition filter message_eligibility round_robin human_handoff audit_log webhook end
   ].freeze

@@ -9,10 +9,12 @@ class KanbanAutomations::WorkflowPreviewService
   NODE_HANDLERS = {
     'trigger' => :preview_trigger,
     'delay' => :preview_delay,
+    'random_delay' => :preview_random_delay,
     'wait_until_field' => :preview_date_wait,
     'wait_for_response' => :preview_response_wait,
     'wait_for_inactivity' => :preview_inactivity_wait,
     'wait_for_business_hours' => :preview_business_hours,
+    'stage_guard' => :preview_stage_guard,
     'condition' => :preview_condition,
     'filter' => :preview_filter,
     'message_eligibility' => :preview_message_eligibility,
@@ -80,6 +82,14 @@ class KanbanAutomations::WorkflowPreviewService
     next_node_id(node)
   end
 
+  def preview_random_delay(node, steps)
+    steps << node.fetch('data', {}).slice('min_minutes', 'max_minutes').merge(
+      'node_id' => node.fetch('id'),
+      'type' => 'random_delay'
+    )
+    next_node_id(node)
+  end
+
   def preview_date_wait(node, steps)
     data = node.fetch('data', {}).deep_stringify_keys
     scheduled_at = preview_date_wait_time(data)
@@ -126,6 +136,13 @@ class KanbanAutomations::WorkflowPreviewService
       'type' => 'wait_for_business_hours'
     )
     next_node_id(node)
+  end
+
+  def preview_stage_guard(node, steps)
+    stage_ids = Array(rule.trigger_conditions[:stage_ids]).map(&:to_i)
+    matched = stage_ids.include?(card.kanban_stage_id)
+    steps << { 'node_id' => node.fetch('id'), 'type' => 'stage_guard', 'matched' => matched }
+    matched ? next_node_id(node) : nil
   end
 
   def preview_condition(node, steps)

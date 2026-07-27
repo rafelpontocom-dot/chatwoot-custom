@@ -53,6 +53,70 @@ RSpec.describe KanbanAutomations::WorkflowService do
     )
   end
 
+  it 'spreads a commercial follow-up within a configured random minute interval' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'spread', type: 'random_delay', data: { min_minutes: 10, max_minutes: 30 } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'spread' },
+          { source: 'spread', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+    now = Time.zone.parse('2026-07-31 12:00:00')
+
+    allow(Kernel).to receive(:rand).with(10..30).and_return(17)
+
+    result = described_class.new(execution: execution, rule: rule, card: card, now: now).perform!
+
+    expect(result).to include(status: :waiting, scheduled_at: now + 17.minutes)
+    expect(result[:workflow_state]).to include('next_node_id' => 'end')
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'spread', 'delay_minutes' => 17)
+    )
+  end
+
+  it 'stops a follow-up when the opportunity leaves the trigger stage' do
+    board = create(:kanban_board)
+    source_stage = create(:kanban_stage, kanban_board: board)
+    other_stage = create(:kanban_stage, kanban_board: board)
+    card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: other_stage)
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      conditions: { stage_ids: [source_stage.id] },
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'guard', type: 'stage_guard', data: {} },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'guard' },
+          { source: 'guard', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: board.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'guard', 'status' => 'skipped', 'reason' => 'stage_changed')
+    )
+  end
+
   it 'waits for a customer response and stores the next node' do
     card = create(:kanban_card)
     rule = create(

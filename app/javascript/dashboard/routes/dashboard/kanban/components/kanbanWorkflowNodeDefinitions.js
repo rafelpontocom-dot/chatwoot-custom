@@ -13,6 +13,12 @@ const NODE_DEFINITIONS = Object.freeze({
     labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.DELAY',
     addable: true,
   },
+  random_delay: {
+    category: 'TIME',
+    icon: 'i-lucide-shuffle',
+    labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.RANDOM_DELAY',
+    addable: true,
+  },
   wait_until_field: {
     category: 'TIME',
     icon: 'i-lucide-calendar-clock',
@@ -41,6 +47,12 @@ const NODE_DEFINITIONS = Object.freeze({
     category: 'DECISION',
     icon: 'i-lucide-git-branch',
     labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CONDITION',
+    addable: true,
+  },
+  stage_guard: {
+    category: 'DECISION',
+    icon: 'i-lucide-route',
+    labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.STAGE_GUARD',
     addable: true,
   },
   filter: {

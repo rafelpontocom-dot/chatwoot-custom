@@ -84,7 +84,7 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 }
 ```
 
-Tipos permitidos na base atual: `trigger`, `delay`, `wait_until_field`, `wait_for_response`, `wait_for_inactivity`, `wait_for_business_hours`, `send_message`, `action`, `set_field`, `update_contact`, `complete_next_action`, `mark_won`, `mark_lost`, `condition`, `filter`, `message_eligibility`, `round_robin`, `human_handoff`, `audit_log`, `webhook`, `end`.
+Tipos permitidos na base atual: `trigger`, `delay`, `random_delay`, `wait_until_field`, `wait_for_response`, `wait_for_inactivity`, `wait_for_business_hours`, `stage_guard`, `send_message`, `action`, `set_field`, `update_contact`, `complete_next_action`, `mark_won`, `mark_lost`, `condition`, `filter`, `message_eligibility`, `round_robin`, `human_handoff`, `audit_log`, `webhook`, `end`.
 
 ## Catálogo Técnico E Evolução
 
@@ -95,6 +95,7 @@ Todos os nós persistem somente `id`, `type`, `position` e `data`. Ícone, cor, 
 | Gatilho | `trigger` | evento e filtros compatíveis | atual |
 | Gatilho | `scheduled_trigger` | frequência, fuso e critérios de seleção | planejado |
 | Tempo | `delay` | duração positiva | atual |
+| Tempo | `random_delay` | `min_minutes` e `max_minutes` positivos, com máximo maior ou igual ao mínimo | atual |
 | Tempo | `wait_until_field` | campo `date`/`datetime`, deslocamento e fuso | atual |
 | Tempo | `wait_for_response` | prazo, política opcional e saídas `received`/`timeout` | atual |
 | Tempo | `wait_for_business_hours` | agenda e fuso do board | atual |
@@ -103,6 +104,7 @@ Todos os nós persistem somente `id`, `type`, `position` e `data`. Ícone, cor, 
 | Decisão | `filter` | uma condição e saída de continuação | atual, executado pelo mesmo avaliador do Router |
 | Decisão | `message_eligibility` | canal, consentimento, conversa compatível e janela do WhatsApp; saídas `eligible` e `otherwise` | atual |
 | Decisão | `round_robin` | opções ordenadas e cursor da regra | atual; rótulo visual `Distribuir caminhos` |
+| Decisão | `stage_guard` | usa `conditions.stage_ids` do gatilho | atual; encerra a execução se o card sair da etapa de entrada |
 | Cliente | `send_message` | canal, conteúdo/template, opt-in, mídia opcional e política `interromper` ou saídas `Enviada`/`Não enviada` | atual |
 | Cliente | `human_handoff` | equipe comercial, responsável e nota opcional; encerra a execução | atual |
 | Cliente | `update_contact` | atributo personalizado seguro e valor explícito | atual |
@@ -125,6 +127,7 @@ Um novo tipo de nó exige, no mesmo pull request: validação no servidor, semâ
 - tipos de nó não permitidos;
 - arestas que não apontam para ids existentes;
 - espera com horas menores ou iguais a zero;
+- intervalo aleatório sem mínimo/máximo positivos ou com máximo menor que o mínimo;
 - espera por data sem um campo `date`/`datetime` válido ou ajuste numérico;
 - espera por resposta com prazo menor ou igual a zero;
 - mensagem sem canal permitido, conteúdo ou chave de opt-in;
@@ -166,15 +169,17 @@ O sistema não terá nós de código, shell, SQL, acesso a arquivo ou requisiç�
 
 1. `trigger`: segue para a primeira aresta de saída.
 2. `delay`: grava `waiting`, `scheduled_at` e o id do próximo nó; agenda `ContinueWorkflowJob`.
-3. `wait_until_field`: agenda a partir de um campo `date` ou `datetime`, com deslocamento em horas. A política padrão interrompe a execução quando a data estiver indisponível; a política `route` exige as saídas `succeeded` e `failed`, registra `date_field_unavailable` e segue pela segunda quando aplicável.
-4. `wait_for_response`: grava `waiting_for: customer_message`; uma mensagem recebida retoma o próximo nó, e o prazo encerra a espera pelo job agendado. Com `timeout_mode: route`, a definição exige as saídas `received` e `timeout`; o job escolhe `timeout` somente se o cliente ainda não respondeu sob o lock da execução.
-5. `wait_for_inactivity`: grava `waiting_for: customer_inactivity`; o prazo segue a saída normal. Com `interruption_mode: route`, a definição exige `inactive` e `responded`; uma mensagem do cliente troca a continuidade para `responded` sob lock, em vez de apenas ignorar a execução.
-6. `wait_for_business_hours`: agenda a próxima data compatível com dias, horário e fuso configurados; dentro da janela, segue imediatamente. Com `failure_mode: route`, exige `succeeded` e `failed` e segue a segunda saída se não puder calcular uma janela futura.
-7. `condition`: atua como Router. Avalia suas saídas na ordem salva; cada saída contém condições próprias com modo `all` (E) ou `any` (OU). Segue pela primeira saída verdadeira e, quando nenhuma atende, segue por `fallback_id` (`Caso contrário`). Fluxos legados com `yes` e `no` continuam compatíveis.
-8. `action`: delega a `KanbanAutomations::ActionService`.
-9. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
-10. `webhook`: delega a `KanbanAutomations::WebhookDeliveryService`.
-11. `end`: conclui a execução.
+3. `random_delay`: sorteia um minuto inteiro inclusivo entre `min_minutes` e `max_minutes`, grava somente o atraso escolhido no histórico e agenda `ContinueWorkflowJob`.
+4. `wait_until_field`: agenda a partir de um campo `date` ou `datetime`, com deslocamento em horas. A política padrão interrompe a execução quando a data estiver indisponível; a política `route` exige as saídas `succeeded` e `failed`, registra `date_field_unavailable` e segue pela segunda quando aplicável.
+5. `wait_for_response`: grava `waiting_for: customer_message`; uma mensagem recebida retoma o próximo nó, e o prazo encerra a espera pelo job agendado. Com `timeout_mode: route`, a definição exige as saídas `received` e `timeout`; o job escolhe `timeout` somente se o cliente ainda não respondeu sob o lock da execução.
+6. `wait_for_inactivity`: grava `waiting_for: customer_inactivity`; o prazo segue a saída normal. Com `interruption_mode: route`, a definição exige `inactive` e `responded`; uma mensagem do cliente troca a continuidade para `responded` sob lock, em vez de apenas ignorar a execução.
+7. `wait_for_business_hours`: agenda a próxima data compatível com dias, horário e fuso configurados; dentro da janela, segue imediatamente. Com `failure_mode: route`, exige `succeeded` e `failed` e segue a segunda saída se não puder calcular uma janela futura.
+8. `stage_guard`: compara a etapa atual com as etapas selecionadas no gatilho. Sem correspondência, encerra a execução como `skipped: stage_changed`; com correspondência, segue normalmente.
+9. `condition`: atua como Router. Avalia suas saídas na ordem salva; cada saída contém condições próprias com modo `all` (E) ou `any` (OU). Segue pela primeira saída verdadeira e, quando nenhuma atende, segue por `fallback_id` (`Caso contrário`). Fluxos legados com `yes` e `no` continuam compatíveis.
+10. `action`: delega a `KanbanAutomations::ActionService`.
+11. `send_message`: delega a `KanbanAutomations::WorkflowMessageService`.
+12. `webhook`: delega a `KanbanAutomations::WebhookDeliveryService`.
+13. `end`: conclui a execução.
 
 O limite é de 50 nós por execução. O backend rejeita ciclos. Router e Round Robin têm uma conexão obrigatória por saída, identificada por `sourceHandle`; o Router também exige a conexão da rota padrão. O motor executa uma única ramificação por vez: paralelismo, merge/join e loop não pertencem a este produto.
 

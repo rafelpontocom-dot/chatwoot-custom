@@ -29,6 +29,33 @@ const data = computed(() => props.node.data);
       />
     </label>
   </template>
+  <template v-else-if="node.type === 'random_delay'">
+    <div class="grid grid-cols-2 gap-2">
+      <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+        {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RANDOM_DELAY_MINUTES_MIN') }}
+        <input
+          v-model.number="data.min_minutes"
+          min="1"
+          type="number"
+          class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          @change="emit('update')"
+        />
+      </label>
+      <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+        {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RANDOM_DELAY_MINUTES_MAX') }}
+        <input
+          v-model.number="data.max_minutes"
+          min="1"
+          type="number"
+          class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          @change="emit('update')"
+        />
+      </label>
+    </div>
+    <p class="m-0 text-xs text-n-slate-10">
+      {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RANDOM_DELAY_HINT') }}
+    </p>
+  </template>
   <template v-else-if="node.type === 'wait_until_field'">
     <label class="grid gap-1 text-xs font-medium text-n-slate-11">
       {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DATE_FIELD') }}

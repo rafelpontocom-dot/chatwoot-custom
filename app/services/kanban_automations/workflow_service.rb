@@ -9,10 +9,12 @@ class KanbanAutomations::WorkflowService
   NODE_HANDLERS = {
     'trigger' => :advance_node,
     'delay' => :delay_node,
+    'random_delay' => :random_delay_node,
     'wait_until_field' => :date_wait_node,
     'wait_for_response' => :response_wait_node,
     'wait_for_inactivity' => :inactivity_wait_node,
     'wait_for_business_hours' => :business_hours_node,
+    'stage_guard' => :stage_guard_node,
     'action' => :action_node,
     'set_field' => :action_node,
     'update_contact' => :action_node,
@@ -92,6 +94,10 @@ class KanbanAutomations::WorkflowService
 
   def delay_node(node, results)
     [nil, wait_for_node(node, results)]
+  end
+
+  def random_delay_node(node, results)
+    [nil, wait_for_random_node(node, results)]
   end
 
   def date_wait_node(node, results)
@@ -192,6 +198,17 @@ class KanbanAutomations::WorkflowService
 
     results << { 'node_id' => node.fetch('id'), 'status' => 'failed', 'reason' => 'business_hours_unavailable' }
     [next_node_id(node, source_handle: 'failed'), nil]
+  end
+
+  def stage_guard_node(node, results)
+    stage_ids = Array(rule.trigger_conditions[:stage_ids]).map(&:to_i)
+    if stage_ids.include?(card.kanban_stage_id)
+      results << { 'node_id' => node.fetch('id'), 'status' => 'succeeded' }
+      [next_node_id(node), nil]
+    else
+      result = { 'node_id' => node.fetch('id'), 'status' => 'skipped', 'reason' => 'stage_changed' }
+      [nil, completed(results + [result])]
+    end
   end
 
   def business_hours_wait_result(node, results, scheduled_at)
@@ -368,6 +385,21 @@ class KanbanAutomations::WorkflowService
       scheduled_at: now + delay_hours.hours,
       workflow_state: { 'next_node_id' => next_node_id(node) },
       action_results: results + [{ 'node_id' => node.fetch('id'), 'status' => 'waiting', 'delay_hours' => delay_hours }]
+    }
+  end
+
+  def wait_for_random_node(node, results)
+    data = node.fetch('data', {})
+    minimum = Integer(data.fetch('min_minutes'))
+    maximum = Integer(data.fetch('max_minutes'))
+    raise ArgumentError, 'Workflow random delay interval is invalid' unless minimum.positive? && maximum >= minimum
+
+    delay_minutes = Kernel.rand(minimum..maximum)
+    {
+      status: :waiting,
+      scheduled_at: now + delay_minutes.minutes,
+      workflow_state: { 'next_node_id' => next_node_id(node) },
+      action_results: results + [{ 'node_id' => node.fetch('id'), 'status' => 'waiting', 'delay_minutes' => delay_minutes }]
     }
   end
 

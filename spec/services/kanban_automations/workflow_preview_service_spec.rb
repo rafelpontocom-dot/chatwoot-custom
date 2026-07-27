@@ -123,6 +123,67 @@ RSpec.describe KanbanAutomations::WorkflowPreviewService do
     )
   end
 
+  it 'shows the configured random delay range without scheduling a real message' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'spread', type: 'random_delay', data: { min_minutes: 10, max_minutes: 30 } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'spread' },
+          { source: 'spread', target: 'end' }
+        ]
+      }
+    )
+
+    steps = described_class.new(rule: rule, card: card).perform
+
+    expect(steps).to include(
+      hash_including(
+        'node_id' => 'spread',
+        'type' => 'random_delay',
+        'min_minutes' => 10,
+        'max_minutes' => 30
+      )
+    )
+  end
+
+  it 'shows that a stage guard stops the preview after the opportunity moves' do
+    board = create(:kanban_board)
+    source_stage = create(:kanban_stage, kanban_board: board)
+    other_stage = create(:kanban_stage, kanban_board: board)
+    card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: other_stage)
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      conditions: { stage_ids: [source_stage.id] },
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'guard', type: 'stage_guard', data: {} },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'guard' },
+          { source: 'guard', target: 'end' }
+        ]
+      }
+    )
+
+    steps = described_class.new(rule: rule, card: card).perform
+
+    expect(steps).to include(
+      hash_including('node_id' => 'guard', 'type' => 'stage_guard', 'matched' => false)
+    )
+  end
+
   it 'explains when a date wait has already passed for the selected opportunity' do
     board = create(
       :kanban_board,

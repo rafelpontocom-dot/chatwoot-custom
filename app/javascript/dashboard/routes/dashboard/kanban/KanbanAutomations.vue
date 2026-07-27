@@ -590,6 +590,120 @@ const flowTemplate = ({ message, waitForResponse = false }) => {
   return { nodes, edges };
 };
 
+const commercialFollowUpTemplate = () => {
+  const messages = [
+    'Olá, {{contact_name}}. Ficou alguma dúvida sobre o orçamento que enviamos?',
+    'Posso ajudar com alguma dúvida para avançarmos com a proposta?',
+    'Ainda faz sentido conversarmos sobre o seu orçamento?',
+    'Vou encerrar este acompanhamento por agora. Quando quiser retomar, estou à disposição.',
+  ];
+  const intervals = [48, 48, 72, 168];
+  const nodes = [
+    { id: 'trigger', type: 'trigger', position: { x: 32, y: 180 }, data: {} },
+  ];
+  const edges = [];
+  let previousId = 'trigger';
+
+  messages.forEach((content, index) => {
+    const step = index + 1;
+    const ids = {
+      inactivity: `inactivity-${step}`,
+      stage: `stage-${step}`,
+      businessHours: `business-hours-${step}`,
+      spread: `spread-${step}`,
+      message: `message-${step}`,
+      increment: `increment-${step}`,
+    };
+    const y = 180 + index * 192;
+    nodes.push(
+      {
+        id: ids.inactivity,
+        type: 'wait_for_inactivity',
+        position: { x: 300, y },
+        data: { timeout_hours: intervals[index], interruption_mode: 'stop' },
+      },
+      {
+        id: ids.stage,
+        type: 'stage_guard',
+        position: { x: 568, y },
+        data: {},
+      },
+      {
+        id: ids.businessHours,
+        type: 'wait_for_business_hours',
+        position: { x: 836, y },
+        data: {
+          weekdays: [1, 2, 3, 4, 5],
+          start_time: '09:00',
+          end_time: '18:00',
+          timezone: 'America/Sao_Paulo',
+          failure_mode: 'stop',
+        },
+      },
+      {
+        id: ids.spread,
+        type: 'random_delay',
+        position: { x: 1104, y },
+        data: { min_minutes: 10, max_minutes: 30 },
+      },
+      {
+        id: ids.message,
+        type: 'send_message',
+        position: { x: 1372, y },
+        data: {
+          channel: 'whatsapp',
+          opt_in_attribute_key: 'marketing_messages_opt_in',
+          content,
+          frequency_limit_hours: '',
+          quiet_hours: { start: '', end: '', timezone: 'America/Sao_Paulo' },
+          whatsapp_template_params: {},
+          failure_mode: 'stop',
+        },
+      },
+      {
+        id: ids.increment,
+        type: 'action',
+        position: { x: 1640, y },
+        data: {
+          action_name: 'increment_field',
+          action_params: { field_key: '', amount: 1 },
+        },
+      }
+    );
+    [
+      ids.inactivity,
+      ids.stage,
+      ids.businessHours,
+      ids.spread,
+      ids.message,
+      ids.increment,
+    ].forEach(target => {
+      const sourceHandle = /^(inactivity|business-hours|message)-/.test(
+        previousId
+      )
+        ? 'next'
+        : undefined;
+      edges.push({
+        id: `${previousId}-${target}`,
+        source: previousId,
+        target,
+        ...(sourceHandle ? { sourceHandle } : {}),
+      });
+      previousId = target;
+    });
+  });
+
+  nodes.push({
+    id: 'end',
+    type: 'end',
+    position: { x: 1908, y: 756 },
+    data: {},
+  });
+  edges.push({ id: `${previousId}-end`, source: previousId, target: 'end' });
+
+  return { nodes, edges };
+};
+
 const automationTemplates = computed(() => [
   {
     id: 'whatsapp-sales',
@@ -646,7 +760,7 @@ const automationTemplates = computed(() => [
       'KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.FOLLOW_UP.DESCRIPTION'
     ),
     eventName: 'kanban.card.stage_changed',
-    flowDefinition: flowTemplate({ waitForResponse: true }),
+    flowDefinition: commercialFollowUpTemplate(),
   },
   {
     id: 'nps-google-review',
@@ -1447,10 +1561,14 @@ const previewStepLabel = step => {
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_RESPONSE');
     case 'wait_for_inactivity':
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_INACTIVITY');
+    case 'random_delay':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.RANDOM_DELAY');
     case 'wait_for_business_hours':
       return t(
         'KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.WAIT_FOR_BUSINESS_HOURS'
       );
+    case 'stage_guard':
+      return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.STAGE_GUARD');
     case 'condition':
       return t('KANBAN.AUTOMATIONS_WORKSPACE.TEST.STEPS.CONDITION');
     case 'filter':
@@ -1654,8 +1772,18 @@ const visualFlowValidationError = () => {
       );
     }
     if (node.type === 'delay') return !positiveNumber(data.delay_hours);
+    if (node.type === 'random_delay') {
+      return (
+        !positiveNumber(data.min_minutes) ||
+        !positiveNumber(data.max_minutes) ||
+        Number(data.max_minutes) < Number(data.min_minutes)
+      );
+    }
     if (node.type === 'wait_until_field') return !data.field_key;
     if (node.type === 'wait_for_response') {
+      return !positiveNumber(data.timeout_hours);
+    }
+    if (node.type === 'wait_for_inactivity') {
       return !positiveNumber(data.timeout_hours);
     }
     if (node.type === 'wait_for_business_hours') {
@@ -1671,6 +1799,7 @@ const visualFlowValidationError = () => {
     if (node.type === 'condition') {
       return !data.field_key || !validConditionPaths(node.id);
     }
+    if (node.type === 'stage_guard') return !form.stageId;
     if (node.type === 'webhook') return !data.connection_id;
     if (node.type !== 'action') return false;
 
@@ -1691,9 +1820,12 @@ const visualFlowValidationError = () => {
       ? 'MESSAGE'
       : 'MESSAGE_POLICY',
     delay: 'DELAY',
+    random_delay: 'RANDOM_DELAY',
     wait_until_field: 'DATE_WAIT',
     wait_for_response: 'RESPONSE_WAIT',
+    wait_for_inactivity: 'RESPONSE_WAIT',
     wait_for_business_hours: 'BUSINESS_HOURS',
+    stage_guard: 'STAGE_GUARD',
     condition: validConditionPaths(invalidNode.id)
       ? 'CONDITION'
       : 'CONDITION_PATH',
@@ -1709,8 +1841,10 @@ const visualFlowValidationError = () => {
         'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.MESSAGE_POLICY'
       ),
       DELAY: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.DELAY'),
+      RANDOM_DELAY: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.RANDOM_DELAY'),
       DATE_WAIT: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.DATE_WAIT'),
       RESPONSE_WAIT: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.RESPONSE_WAIT'),
+      STAGE_GUARD: t('KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.STAGE_GUARD'),
       BUSINESS_HOURS: t(
         'KANBAN.AUTOMATIONS_WORKSPACE.VALIDATION.BUSINESS_HOURS'
       ),

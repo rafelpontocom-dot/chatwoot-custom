@@ -65,6 +65,23 @@ describe('kanban workflow node definitions', () => {
     );
   });
 
+  it('lists a random interval wait for distributing commercial sends', () => {
+    const groups = getKanbanWorkflowPaletteGroups(t);
+    const timeGroup = groups.find(group => group.key === 'TIME');
+
+    expect(timeGroup.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'random_delay' }),
+      ])
+    );
+    expect(getKanbanWorkflowNodeDefinition('random_delay')).toEqual(
+      expect.objectContaining({
+        icon: 'i-lucide-shuffle',
+        category: 'TIME',
+      })
+    );
+  });
+
   it('marks a human handoff as a terminal customer node', () => {
     expect(getKanbanWorkflowNodeDefinition('human_handoff')).toEqual(
       expect.objectContaining({

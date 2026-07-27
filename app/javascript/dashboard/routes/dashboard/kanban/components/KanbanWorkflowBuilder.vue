@@ -124,6 +124,7 @@ const inspectorTab = ref('configure');
 const inspectorTabs = ['configure', 'test', 'history'];
 const timeNodeTypes = [
   'delay',
+  'random_delay',
   'wait_until_field',
   'wait_for_response',
   'wait_for_inactivity',
@@ -146,10 +147,12 @@ const isUploadingMessageAttachment = ref(false);
 const nodeTypes = {
   trigger: markRaw(KanbanWorkflowNode),
   delay: markRaw(KanbanWorkflowNode),
+  random_delay: markRaw(KanbanWorkflowNode),
   wait_until_field: markRaw(KanbanWorkflowNode),
   wait_for_response: markRaw(KanbanWorkflowNode),
   wait_for_inactivity: markRaw(KanbanWorkflowNode),
   wait_for_business_hours: markRaw(KanbanWorkflowNode),
+  stage_guard: markRaw(KanbanWorkflowNode),
   send_message: markRaw(KanbanWorkflowNode),
   action: markRaw(KanbanWorkflowNode),
   set_field: markRaw(KanbanWorkflowNode),
@@ -503,6 +506,7 @@ const businessDays = computed(() => [
 
 const defaultData = type => {
   if (type === 'delay') return { delay_hours: 24 };
+  if (type === 'random_delay') return { min_minutes: 10, max_minutes: 30 };
   if (type === 'wait_until_field') {
     return {
       field_key: '',
@@ -638,6 +642,12 @@ const nodeSummary = node => {
     return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HOURS', {
       hours: data.delay_hours || 0,
     });
+  if (node.type === 'random_delay') {
+    return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.RANDOM_DELAY_SUMMARY', {
+      min: data.min_minutes || 0,
+      max: data.max_minutes || 0,
+    });
+  }
   if (node.type === 'wait_until_field') {
     const field = props.dateFields.find(item => item.key === data.field_key);
     if (!field) return '';
@@ -778,10 +788,14 @@ const nodeState = node => {
   const configured = {
     trigger: Boolean(props.triggerValue),
     delay: Number(data.delay_hours) > 0,
+    random_delay:
+      Number(data.min_minutes) > 0 &&
+      Number(data.max_minutes) >= Number(data.min_minutes),
     wait_until_field: Boolean(data.field_key),
     wait_for_response: Number(data.timeout_hours) > 0,
     wait_for_inactivity: Number(data.timeout_hours) > 0,
     wait_for_business_hours: Boolean(data.start_time && data.end_time),
+    stage_guard: Boolean(props.triggerConfig?.stageId),
     send_message: Boolean(data.content || data.whatsapp_template_name),
     action:
       Boolean(data.action_name) &&
@@ -1110,6 +1124,14 @@ const decorateNode = node => {
       },
     ];
   }
+  if (node.type === 'send_message' && data.failure_mode !== 'route') {
+    data.outputs = [
+      {
+        id: 'next',
+        label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NEXT'),
+      },
+    ];
+  }
   if (node.type === 'wait_until_field' && data.failure_mode === 'route') {
     data.outputs = [
       {
@@ -1180,6 +1202,23 @@ const decorateNode = node => {
       {
         id: 'failed',
         label: routedOutputLabel(node.type, 'failed'),
+      },
+    ];
+  }
+  if (
+    [
+      'send_message',
+      'wait_for_response',
+      'wait_for_inactivity',
+      'wait_for_business_hours',
+      'webhook',
+    ].includes(node.type) &&
+    !data.outputs?.length
+  ) {
+    data.outputs = [
+      {
+        id: 'next',
+        label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NEXT'),
       },
     ];
   }
@@ -2268,6 +2307,13 @@ const handleBuilderKeydown = event => {
             :t="t"
             @update="updateNode"
           />
+
+          <p
+            v-else-if="selectedNode.type === 'stage_guard'"
+            class="m-0 text-xs text-n-slate-11"
+          >
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.STAGE_GUARD_HINT') }}
+          </p>
 
           <KanbanWorkflowContactInspector
             v-else-if="selectedNode.type === 'update_contact'"

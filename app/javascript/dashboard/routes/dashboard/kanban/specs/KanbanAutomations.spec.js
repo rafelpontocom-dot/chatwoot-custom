@@ -1063,6 +1063,18 @@ describe('KanbanAutomations', () => {
     expect(
       wrapper.find('[data-testid="kanban-automations-flow-name"]').element.value
     ).toBe('Follow-up comercial');
+    expect(wrapper.vm.form.flowDefinition.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'wait_for_inactivity' }),
+        expect.objectContaining({ type: 'stage_guard' }),
+        expect.objectContaining({ type: 'wait_for_business_hours' }),
+        expect.objectContaining({ type: 'random_delay' }),
+        expect.objectContaining({
+          type: 'action',
+          data: expect.objectContaining({ action_name: 'increment_field' }),
+        }),
+      ])
+    );
   });
 
   it('keeps the Google review contact token outside the i18n catalog', async () => {

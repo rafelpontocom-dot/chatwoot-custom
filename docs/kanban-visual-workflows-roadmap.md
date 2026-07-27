@@ -84,7 +84,7 @@ Aceite:
 
 ### Tempo
 
-- [x] Padronizar `Aguardar`, `Aguardar até data`, `Aguardar resposta`, `Aguardar inatividade` e `Horário comercial` como categoria Tempo.
+- [x] Padronizar `Aguardar`, `Aguardar intervalo`, `Aguardar até data`, `Aguardar resposta`, `Aguardar inatividade` e `Horário comercial` como categoria Tempo.
 - [x] Exibir resumo humano: `24 horas`, `24 h antes/depois da consulta`, `no horário da consulta` e limites de resposta/inatividade.
 - [x] Validar fuso, data já vencida e campo de data incompatível. O nó escolhe e valida o fuso; a execução registra datas vencidas como ignoradas e a simulação mostra explicitamente o horário calculado ou que ele já passou antes da publicação.
 
@@ -146,7 +146,7 @@ Aceite:
 - [x] Gatilho de inatividade e prazo de próxima ação: inatividade está disponível no editor e a próxima ação vencida é verificada pelo agendador, uma vez por oportunidade e dia.
 - [x] Aniversário: automação dedicada usa `date_of_birth`, opt-in, conversa compatível, template oficial e entrega idempotente por ano/canal.
 - [x] Lembrete de consulta: regras por etapa e campo de data/hora aceitam múltiplos intervalos, mensagens por intervalo e entrega idempotente.
-- [x] Modelo de follow-up: cadências existentes suportam espera, pausa por resposta, verificação de etapa, limite de passos, incremento de campo e etapa final; fluxos novos usam o editor visual. A entrada por etapa inscreve todas as cadências ativas configuradas e é idempotente por oportunidade/cadência, inclusive quando workers concorrem.
+- [x] Modelo de follow-up: o modelo visual de orçamento usa espera por inatividade, guarda da etapa de entrada, horário comercial, intervalo aleatório, mensagens editáveis e incremento de contador; as cadências legadas permanecem compatíveis. A entrada por etapa inscreve todas as cadências ativas configuradas e é idempotente por oportunidade/cadência, inclusive quando workers concorrem.
 - [x] Modelos em rascunho: venda WhatsApp, clínica/consulta, B2B e funil em branco, sempre desativados até a revisão e publicação do gestor.
 
 Aceite:

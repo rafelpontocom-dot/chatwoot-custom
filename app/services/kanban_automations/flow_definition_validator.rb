@@ -97,10 +97,12 @@ class KanbanAutomations::FlowDefinitionValidator
       data = node[:data].to_h.with_indifferent_access
       validate_message_node(node, data)
       validate_delay_node(node, data)
+      validate_random_delay_node(node, data)
       validate_wait_until_field_node(node, data)
       validate_wait_for_response_node(node, data)
       validate_wait_for_inactivity_node(node, data)
       validate_wait_for_business_hours_node(node, data)
+      validate_stage_guard_node(node)
       validate_action_node(node, data)
       validate_decision_nodes(node, data)
       validate_operation_nodes(node, data)
@@ -289,6 +291,23 @@ class KanbanAutomations::FlowDefinitionValidator
     return unless node[:type] == 'delay'
 
     add_error("Delay node #{node[:id]} needs positive hours") unless data[:delay_hours].to_f.positive?
+  end
+
+  def validate_random_delay_node(node, data)
+    return unless node[:type] == 'random_delay'
+
+    minimum = Integer(data[:min_minutes], exception: false)
+    maximum = Integer(data[:max_minutes], exception: false)
+    return if minimum&.positive? && maximum && maximum >= minimum
+
+    add_error("Random delay node #{node[:id]} needs a valid minute interval")
+  end
+
+  def validate_stage_guard_node(node)
+    return unless node[:type] == 'stage_guard'
+    return if Array(rule.trigger_conditions[:stage_ids]).present?
+
+    add_error("Stage guard node #{node[:id]} needs a stage selected in the trigger")
   end
 
   def validate_wait_until_field_node(node, data)

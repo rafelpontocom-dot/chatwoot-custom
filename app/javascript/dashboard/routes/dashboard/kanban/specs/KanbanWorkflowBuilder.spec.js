@@ -406,6 +406,11 @@ describe('KanbanWorkflowBuilder', () => {
         modelValue: {
           nodes: [
             { id: 'message', type: 'send_message', data: {} },
+            {
+              id: 'inactivity',
+              type: 'wait_for_inactivity',
+              data: { timeout_hours: 24, interruption_mode: 'stop' },
+            },
             { id: 'router', type: 'condition', data: {} },
           ],
           edges: [],
@@ -420,6 +425,12 @@ describe('KanbanWorkflowBuilder', () => {
           data: expect.objectContaining({
             icon: 'i-lucide-message-square-text',
             category: 'CUSTOMER',
+            outputs: [
+              expect.objectContaining({
+                id: 'next',
+                label: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NEXT',
+              }),
+            ],
           }),
         }),
         expect.objectContaining({
@@ -427,6 +438,17 @@ describe('KanbanWorkflowBuilder', () => {
           data: expect.objectContaining({
             icon: 'i-lucide-git-branch',
             category: 'DECISION',
+          }),
+        }),
+        expect.objectContaining({
+          id: 'inactivity',
+          data: expect.objectContaining({
+            outputs: [
+              expect.objectContaining({
+                id: 'next',
+                label: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NEXT',
+              }),
+            ],
           }),
         }),
       ])
