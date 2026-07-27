@@ -43,7 +43,7 @@ Permitir que administradores criem automações seguras para oportunidades: inic
 - O canvas é uma área de trabalho, não um bloco dentro de um formulário longo.
 - A paleta lateral é recolhível, pesquisável e organizada por categorias; ela não despeja todos os nós de uma vez e preserva as categorias abertas pela pessoa enquanto a tela é atualizada.
 - O botão `+` é uma alternativa contextual: insere e conecta o próximo passo no caminho selecionado.
-- O painel de configuração aparece somente para o nó ou conexão selecionado, concentra suas propriedades e preserva a largura do canvas.
+- O diálogo de configuração aparece somente para o nó ou conexão selecionado, concentra suas propriedades e preserva a largura do canvas. No desktop, abre centralizado com até `44rem`; no mobile, ocupa a viewport com margens seguras.
 - Lembretes de consulta são configurados em uma aba própria; follow-up comercial é um fluxo visual, nunca uma segunda configuração paralela.
 - Conexões externas têm configuração própria: o fluxo apenas escolhe uma conexão já aprovada.
 - Execuções permitem retry de falhas, cancelamento de esperas e leitura rápida do impacto na oportunidade.
@@ -230,6 +230,13 @@ Esta é a direção única para as próximas entregas, e não uma referência op
 - **Entrada:** modelos comerciais usam ícone, título e descrição curta; regras existentes mantêm estado, edição explícita, teste e histórico em uma linha compacta, sem virar uma lista de formulários.
 
 O resultado precisa parecer uma ferramenta CRM nativa e densa: a eficiência estrutural do Node-RED, a legibilidade e configuração por contexto do n8n e a linguagem do Kanban comercial. Não é permitido copiar componentes ou código do n8n.
+
+### Contrato Do Diálogo De Configuração
+
+- Todo nó e toda conexão usam o mesmo diálogo; não existe painel lateral permanente para nenhum tipo de configuração.
+- O diálogo é uma etapa de edição: a pessoa configura, testa ou consulta o histórico e então fecha para retomar o canvas. Campos extensos, como saídas condicionais, usam somente rolagem vertical dentro do diálogo.
+- O diálogo mantém o foco internamente, fecha por `Escape`, botão de fechar ou clique no fundo e devolve o foco ao nó ou conexão que o abriu. As alterações ficam no rascunho do fluxo até a pessoa salvar ou cancelar a regra.
+- O cabeçalho e as abas ficam visíveis durante a rolagem. Ações destrutivas, conexão e fechamento têm rótulo acessível e confirmação quando houver risco de perda.
 
 As conexões aprovadas para webhook possuem uma trilha administrativa independente da execução do fluxo. A equipe consegue verificar criação, alteração, remoção e regeneração de segredo sem transformar URLs, tokens ou conteúdo externo em dados visíveis no CRM.
 
