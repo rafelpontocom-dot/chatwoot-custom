@@ -337,6 +337,10 @@ const setFlowTriggerEvent = eventName => {
   onTriggerEventChanged();
 };
 
+const updateFlowTriggerConfig = changes => {
+  Object.assign(form, changes);
+};
+
 const ensureStageTriggerEvent = event => {
   if (form.triggerEventNames.length) return;
 
@@ -2815,9 +2819,12 @@ onMounted(load);
         :connections="connections"
         :trigger-options="eventOptions"
         :trigger-value="form.eventName"
+        :trigger-context="triggerContext"
+        :trigger-config="form"
         :invalid-node-ids="invalidNodeIds"
         :execution-history="selectedRuleExecutionHistory"
         @update:trigger-value="setFlowTriggerEvent"
+        @update:trigger-config="updateFlowTriggerConfig"
         @clear-validation="clearFlowValidation"
       />
       <p

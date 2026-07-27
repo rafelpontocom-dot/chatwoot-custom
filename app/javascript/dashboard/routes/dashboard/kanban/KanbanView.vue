@@ -1598,8 +1598,8 @@ onUnmounted(() => {
             <div
               class="order-3 grid min-w-0 gap-2 md:order-2 lg:grid-cols-[minmax(14rem,1fr)_11rem_12rem] lg:items-end"
             >
-              <label class="grid min-w-0 gap-1 lg:max-w-lg">
-                <span class="text-xs font-medium text-n-slate-11">
+              <label class="min-w-0 lg:max-w-lg">
+                <span class="sr-only">
                   {{ t('KANBAN.FILTERS.SEARCH_LABEL') }}
                 </span>
                 <div

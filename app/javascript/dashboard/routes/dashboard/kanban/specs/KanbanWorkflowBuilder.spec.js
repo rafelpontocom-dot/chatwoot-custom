@@ -99,6 +99,21 @@ config.global.stubs.KanbanWorkflowContactInspector = false;
 config.global.stubs.KanbanWorkflowOutcomeInspector = false;
 config.global.stubs.KanbanWorkflowMessageInspector = false;
 config.global.stubs.KanbanWorkflowActionInspector = false;
+config.global.stubs.KanbanWorkflowTriggerInspector = {
+  props: ['triggerValue', 'triggerOptions'],
+  emits: ['update:triggerValue', 'update:config'],
+  template: `
+    <select
+      :value="triggerValue"
+      data-testid="kanban-workflow-trigger-select"
+      @change="$emit('update:triggerValue', $event.target.value)"
+    >
+      <option v-for="option in triggerOptions" :key="option.value" :value="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+  `,
+};
 
 describe('KanbanWorkflowBuilder', () => {
   it('renders the visual canvas and opens the node selector', async () => {
@@ -611,6 +626,7 @@ describe('KanbanWorkflowBuilder', () => {
     });
 
     expect(wrapper.vm.nodes[0].data.summary).toBe('Etapa alterada');
+    expect(wrapper.vm.nodes[0].data.label).toBe('Etapa alterada');
   });
 
   it('uses a human-readable summary for a date wait before an appointment', () => {

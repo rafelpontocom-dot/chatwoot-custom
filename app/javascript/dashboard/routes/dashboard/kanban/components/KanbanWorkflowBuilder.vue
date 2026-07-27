@@ -9,6 +9,7 @@ import KanbanWorkflowInspector from './KanbanWorkflowInspector.vue';
 import KanbanWorkflowInspectorHeader from './KanbanWorkflowInspectorHeader.vue';
 import KanbanWorkflowInspectorTabs from './KanbanWorkflowInspectorTabs.vue';
 import KanbanWorkflowTimeInspector from './KanbanWorkflowTimeInspector.vue';
+import KanbanWorkflowTriggerInspector from './KanbanWorkflowTriggerInspector.vue';
 import KanbanWorkflowRoundRobinInspector from './KanbanWorkflowRoundRobinInspector.vue';
 import KanbanWorkflowDecisionInspector from './KanbanWorkflowDecisionInspector.vue';
 import KanbanWorkflowUtilityInspector from './KanbanWorkflowUtilityInspector.vue';
@@ -77,6 +78,14 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  triggerContext: {
+    type: String,
+    default: null,
+  },
+  triggerConfig: {
+    type: Object,
+    default: () => ({}),
+  },
   invalidNodeIds: {
     type: Array,
     default: () => [],
@@ -90,6 +99,7 @@ const props = defineProps({
 const emit = defineEmits([
   'update:modelValue',
   'update:triggerValue',
+  'update:triggerConfig',
   'clearValidation',
 ]);
 const { t } = useI18n();
@@ -729,6 +739,13 @@ const routedOutputLabel = (nodeType, status) => {
 };
 
 const nodeLabel = node => {
+  if (node.type === 'trigger') {
+    return (
+      props.triggerOptions.find(option => option.value === props.triggerValue)
+        ?.label || nodeLabels.value[node.type]
+    );
+  }
+
   if (node.type === 'action') {
     const actionName = node.data?.action_name;
     return (
@@ -2168,27 +2185,22 @@ const handleBuilderKeydown = event => {
             </p>
           </section>
 
-          <template
+          <KanbanWorkflowTriggerInspector
             v-else-if="selectedNode.type === 'trigger' && triggerOptions.length"
-          >
-            <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-              {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EVENT') }}
-              <select
-                :value="triggerValue"
-                data-testid="kanban-workflow-trigger-select"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                @change="emit('update:triggerValue', $event.target.value)"
-              >
-                <option
-                  v-for="option in triggerOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </label>
-          </template>
+            :trigger-value="triggerValue"
+            :trigger-options="triggerOptions"
+            :trigger-context="triggerContext"
+            :config="triggerConfig"
+            :stages="stages"
+            :agents="agents"
+            :fields="conditionFields"
+            :next-action-types="nextActionTypes"
+            :connections="connections"
+            :lost-reasons="lostReasonOptions"
+            :t="t"
+            @update:trigger-value="emit('update:triggerValue', $event)"
+            @update:config="emit('update:triggerConfig', $event)"
+          />
 
           <KanbanWorkflowTimeInspector
             v-else-if="timeNodeTypes.includes(selectedNode.type)"
