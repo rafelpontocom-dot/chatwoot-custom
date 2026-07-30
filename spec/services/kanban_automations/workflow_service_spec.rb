@@ -87,8 +87,8 @@ RSpec.describe KanbanAutomations::WorkflowService do
 
   it 'stops a follow-up when the opportunity leaves the trigger stage' do
     board = create(:kanban_board)
-    source_stage = create(:kanban_stage, kanban_board: board)
-    other_stage = create(:kanban_stage, kanban_board: board)
+    source_stage = create(:kanban_stage, account: board.account, kanban_board: board)
+    other_stage = create(:kanban_stage, account: board.account, kanban_board: board)
     card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: other_stage)
     rule = create(
       :kanban_automation_rule,

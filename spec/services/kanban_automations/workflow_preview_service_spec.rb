@@ -156,8 +156,8 @@ RSpec.describe KanbanAutomations::WorkflowPreviewService do
 
   it 'shows that a stage guard stops the preview after the opportunity moves' do
     board = create(:kanban_board)
-    source_stage = create(:kanban_stage, kanban_board: board)
-    other_stage = create(:kanban_stage, kanban_board: board)
+    source_stage = create(:kanban_stage, account: board.account, kanban_board: board)
+    other_stage = create(:kanban_stage, account: board.account, kanban_board: board)
     card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: other_stage)
     rule = create(
       :kanban_automation_rule,
