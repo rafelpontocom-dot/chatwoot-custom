@@ -25,6 +25,7 @@ const emit = defineEmits([
   'openDetails',
   'openConversation',
   'toggleSelection',
+  'toggleVisibleSelection',
   'loadMoreStageCards',
 ]);
 const { t } = useI18n();
@@ -37,6 +38,21 @@ const rows = computed(() =>
 const stagesWithMore = computed(() =>
   props.stages.filter(stage => stage.pagination?.hasMore)
 );
+const visibleCardIds = computed(() => rows.value.map(card => card.id));
+const selectedVisibleCardCount = computed(
+  () =>
+    visibleCardIds.value.filter(cardId =>
+      props.selectedCardIds.includes(cardId)
+    ).length
+);
+const hasSelectedVisibleCards = computed(
+  () => selectedVisibleCardCount.value > 0
+);
+const allVisibleCardsSelected = computed(
+  () =>
+    visibleCardIds.value.length > 0 &&
+    selectedVisibleCardCount.value === visibleCardIds.value.length
+);
 
 const contactName = card =>
   card.contact?.name ||
@@ -48,7 +64,12 @@ const ownerName = card =>
   card.owner?.name || card.assignee?.name || t('KANBAN.CARD.UNASSIGNED');
 
 const amount = card => {
-  const cents = Number(card.amountCents ?? card.amount_cents ?? 0);
+  const amountCents = card.amountCents ?? card.amount_cents;
+  if (amountCents === null || amountCents === undefined || amountCents === '') {
+    return t('KANBAN.LIST.NO_VALUE');
+  }
+
+  const cents = Number(amountCents);
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: card.amountCurrency || card.amount_currency || 'BRL',
@@ -86,7 +107,21 @@ const lastActivity = card =>
       <div
         class="hidden grid-cols-[2.5rem_minmax(16rem,1.5fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(9rem,0.9fr)_minmax(9rem,0.8fr)_2.5rem] items-center gap-3 border-b border-n-weak bg-n-surface-2 px-4 py-3 text-xs font-medium text-n-slate-11 md:grid"
       >
-        <span class="sr-only">{{ t('KANBAN.LIST.SELECT') }}</span>
+        <input
+          type="checkbox"
+          data-testid="kanban-list-select-visible"
+          :checked="allVisibleCardsSelected"
+          :indeterminate="hasSelectedVisibleCards && !allVisibleCardsSelected"
+          :aria-label="t('KANBAN.LIST.SELECT_VISIBLE')"
+          class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+          @change="
+            emit(
+              'toggleVisibleSelection',
+              visibleCardIds,
+              $event.target.checked
+            )
+          "
+        />
         <span>{{ t('KANBAN.LIST.OPPORTUNITY') }}</span>
         <span>{{ t('KANBAN.LIST.STAGE') }}</span>
         <span>{{ t('KANBAN.LIST.VALUE') }}</span>
@@ -159,6 +194,7 @@ const lastActivity = card =>
             <span class="truncate">{{ ownerName(card) }}</span>
           </span>
           <button
+            v-if="card.conversationId || card.conversation_id"
             type="button"
             class="col-start-2 flex size-8 items-center justify-center self-end justify-self-end rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 md:col-auto md:self-auto"
             :aria-label="t('KANBAN.LIST.OPEN')"

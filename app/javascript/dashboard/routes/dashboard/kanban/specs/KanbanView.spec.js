@@ -470,6 +470,9 @@ const findAgentFilter = wrapper =>
   wrapper.findAllComponents({ name: 'TagMultiSelectComboBox' })[1];
 const findInboxFilterWrapper = wrapper =>
   wrapper.find('[data-testid="kanban-inbox-filter"]');
+
+const openBoardActionsMenu = wrapper =>
+  wrapper.find('[data-testid="kanban-board-actions-menu"]').trigger('click');
 const findAgentFilterWrapper = wrapper =>
   wrapper.find('[data-testid="kanban-agent-filter"]');
 const findNextActionFilterButton = (wrapper, value) =>
@@ -1612,6 +1615,35 @@ describe('KanbanView drag and drop', () => {
       card_ids: [501],
       operation: 'archive',
     });
+    expect(
+      wrapper.find('[data-testid="kanban-bulk-operation-result"]').exists()
+    ).toBe(true);
+  });
+
+  it('keeps selection and announces a bulk update failure', async () => {
+    KanbanBoardsAPI.bulkUpdateCards.mockRejectedValueOnce({
+      response: { data: { message: 'Unable to update opportunities' } },
+    });
+    const wrapper = await mountView();
+    const cardComponent = wrapper.findComponent({
+      name: 'KanbanConversationCard',
+    });
+
+    cardComponent.vm.$emit(
+      'toggleSelection',
+      buildCard({ id: 501, kanban_stage_id: 100 }),
+      true
+    );
+    await nextTick();
+    await wrapper.find('[data-testid="kanban-bulk-archive"]').trigger('click');
+    await wrapper.find('[data-testid="confirm-delete"]').trigger('click');
+    await flushPromises();
+
+    const result = wrapper.find('[data-testid="kanban-bulk-operation-result"]');
+    expect(result.attributes('role')).toBe('alert');
+    expect(wrapper.find('[data-testid="kanban-bulk-toolbar"]').exists()).toBe(
+      true
+    );
   });
 
   it('asks for confirmation before moving selected opportunities', async () => {
@@ -1650,11 +1682,15 @@ describe('KanbanView drag and drop', () => {
     const wrapper = await mountView();
 
     await wrapper
+      .find('[data-testid="kanban-toggle-filters"]')
+      .trigger('click');
+
+    await wrapper
       .find('[data-testid="kanban-saved-filter-select"]')
       .setValue('9');
     await flushPromises();
     await wrapper
-      .find('[data-testid="kanban-rename-saved-filter"]')
+      .find('[data-testid="kanban-filter-panel-rename-saved-filter"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-saved-filter-rename-input"]')
@@ -1672,7 +1708,7 @@ describe('KanbanView drag and drop', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-delete-saved-filter"]')
+      .find('[data-testid="kanban-filter-panel-delete-saved-filter"]')
       .trigger('click');
     await wrapper.find('[data-testid="confirm-delete"]').trigger('click');
     await flushPromises();
@@ -1811,6 +1847,7 @@ describe('KanbanView drag and drop', () => {
     expect(
       wrapper.findComponent({ name: 'KanbanOpportunityDetailsModal' }).props()
     ).toHaveProperty('drawerMode');
+    expect(drawer.find('aside').classes()).toContain('max-w-[28rem]');
   });
 
   it('closes opportunity modal and clears selected card', async () => {
@@ -1958,6 +1995,7 @@ describe('KanbanView header navigation', () => {
     });
     const wrapper = await mountView();
 
+    await openBoardActionsMenu(wrapper);
     await wrapper
       .find('[data-testid="kanban-open-archived-cards"]')
       .trigger('click');
@@ -1976,18 +2014,14 @@ describe('KanbanView header navigation', () => {
     expect(KanbanBoardsAPI.show).toHaveBeenCalled();
   });
 
-  it('renders the sales summary from the board payload', async () => {
+  it('keeps sales summary out of the permanent board surface', async () => {
     const wrapper = await mountView();
 
     const summary = wrapper.find('[data-testid="kanban-sales-summary"]');
-    expect(summary.text()).toContain('KANBAN.REPORTS.OPEN');
-    expect(summary.text()).toContain('3');
-    expect(summary.text()).toContain('KANBAN.REPORTS.WON');
-    expect(summary.text()).toContain('2');
-    expect(summary.text()).toContain('R$ 1.255,00');
+    expect(summary.exists()).toBe(false);
   });
 
-  it('organizes the operator workspace into primary and secondary rows', async () => {
+  it('keeps sorting and saved filters hidden until the filter workspace opens', async () => {
     const wrapper = await mountView();
 
     const header = wrapper.find('[data-testid="kanban-workspace-header"]');
@@ -1999,6 +2033,7 @@ describe('KanbanView header navigation', () => {
     );
 
     expect(header.exists()).toBe(true);
+    expect(primaryRow.classes()).toContain('grid-cols-[minmax(0,1fr)_auto]');
     expect(
       primaryRow.find('[data-testid="kanban-board-switcher"]').exists()
     ).toBe(true);
@@ -2006,13 +2041,73 @@ describe('KanbanView header navigation', () => {
       primaryRow.find('[data-testid="kanban-search-input"]').exists()
     ).toBe(true);
     expect(primaryRow.find('[data-testid="kanban-sort-select"]').exists()).toBe(
-      true
+      false
     );
     expect(
       primaryRow.find('[data-testid="kanban-saved-filter-select"]').exists()
-    ).toBe(true);
+    ).toBe(false);
+    expect(primaryRow.find('[data-testid="kanban-view-list"]').exists()).toBe(
+      false
+    );
+    expect(
+      primaryRow.find('[data-testid="kanban-open-activity-center"]').exists()
+    ).toBe(false);
+    expect(
+      primaryRow.find('[data-testid="kanban-toggle-filters"]').exists()
+    ).toBe(false);
+    expect(
+      secondaryRow.find('[data-testid="kanban-sort-select"]').isVisible()
+    ).toBe(false);
+    expect(
+      secondaryRow
+        .find('[data-testid="kanban-saved-filter-select"]')
+        .isVisible()
+    ).toBe(false);
     expect(secondaryRow.find('[data-testid="kanban-view-list"]').exists()).toBe(
       true
+    );
+    expect(secondaryRow.classes()).not.toContain('lg:hidden');
+
+    await wrapper
+      .find('[data-testid="kanban-toggle-filters"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-filter-panel"]')
+        .find('[data-testid="kanban-sort-select"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-filter-panel"]')
+        .find('[data-testid="kanban-saved-filter-select"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('keeps bulk selection scoped to the visible list cards', async () => {
+    const wrapper = await mountView();
+
+    await wrapper.find('[data-testid="kanban-view-list"]').trigger('click');
+
+    const listView = wrapper.findComponent({ name: 'KanbanListView' });
+    listView.vm.$emit('toggleVisibleSelection', [501], true);
+    await nextTick();
+
+    expect(
+      wrapper.find('[data-testid="kanban-bulk-toolbar"]').text()
+    ).toContain('KANBAN.BULK.SELECTED');
+    expect(
+      wrapper.find('[data-testid="kanban-clear-card-selection"]').exists()
+    ).toBe(true);
+    await wrapper
+      .find('[data-testid="kanban-clear-card-selection"]')
+      .trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="kanban-bulk-toolbar"]').exists()).toBe(
+      false
     );
   });
 
@@ -2104,6 +2199,8 @@ describe('KanbanView header navigation', () => {
   it('shows a dedicated create stage button in the header', async () => {
     const wrapper = await mountView();
 
+    await openBoardActionsMenu(wrapper);
+
     const createStageButton = wrapper.find(
       '[data-testid="kanban-create-stage-toggle"]'
     );
@@ -2174,6 +2271,7 @@ describe('KanbanView header navigation', () => {
     });
     KanbanBoardsAPI.show.mockClear();
 
+    await openBoardActionsMenu(wrapper);
     await wrapper
       .find('[data-testid="kanban-create-stage-toggle"]')
       .trigger('click');
@@ -2232,6 +2330,7 @@ describe('KanbanView header navigation', () => {
       }),
     });
 
+    await openBoardActionsMenu(wrapper);
     await wrapper
       .find('[data-testid="kanban-create-stage-toggle"]')
       .trigger('click');
@@ -2276,6 +2375,7 @@ describe('KanbanView header navigation', () => {
       }),
     });
 
+    await openBoardActionsMenu(wrapper);
     await wrapper
       .find('[data-testid="kanban-create-stage-toggle"]')
       .trigger('click');
@@ -2321,6 +2421,7 @@ describe('KanbanView header navigation', () => {
       }),
     });
 
+    await openBoardActionsMenu(wrapper);
     await wrapper
       .find('[data-testid="kanban-create-stage-toggle"]')
       .trigger('click');
@@ -2350,6 +2451,7 @@ describe('KanbanView header navigation', () => {
     });
     const wrapper = await mountView();
 
+    await openBoardActionsMenu(wrapper);
     await wrapper
       .find('[data-testid="kanban-create-stage-toggle"]')
       .trigger('click');
@@ -2383,6 +2485,7 @@ describe('KanbanView header navigation', () => {
 
   it('shows board settings button for administrators', async () => {
     const wrapper = await mountView(buildBoardResponse(), 'administrator');
+    await openBoardActionsMenu(wrapper);
     const settingsButton = wrapper.find(
       '[data-testid="kanban-board-settings-button"]'
     );
@@ -2391,9 +2494,9 @@ describe('KanbanView header navigation', () => {
     expect(settingsButton.element.tagName).toBe('BUTTON');
     expect(settingsButton.classes()).toEqual(
       expect.arrayContaining([
-        'size-10',
-        'rounded-lg',
-        'text-n-slate-11',
+        'rounded-md',
+        'px-2.5',
+        'text-n-slate-12',
         'hover:bg-n-alpha-2',
       ])
     );
@@ -2402,8 +2505,46 @@ describe('KanbanView header navigation', () => {
     );
   });
 
+  it('keeps secondary board actions inside an overflow menu', async () => {
+    const wrapper = await mountView(buildBoardResponse(), 'administrator');
+
+    expect(
+      wrapper.find('[data-testid="kanban-board-actions-menu"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-board-settings-button"]').exists()
+    ).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-board-actions-menu"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-board-settings-button"]').exists()
+    ).toBe(true);
+  });
+
+  it('closes the board actions menu with Escape', async () => {
+    const wrapper = await mountView(buildBoardResponse(), 'administrator');
+    const menuButton = wrapper.find(
+      '[data-testid="kanban-board-actions-menu"]'
+    );
+
+    await menuButton.trigger('click');
+    expect(
+      wrapper.find('[data-testid="kanban-board-actions-menu-panel"]').exists()
+    ).toBe(true);
+
+    await menuButton.trigger('keydown.escape');
+
+    expect(
+      wrapper.find('[data-testid="kanban-board-actions-menu-panel"]').exists()
+    ).toBe(false);
+  });
+
   it('renders board settings before the inbox filter', async () => {
     const wrapper = await mountView(buildBoardResponse(), 'administrator');
+    await openBoardActionsMenu(wrapper);
     const settingsButton = wrapper.find(
       '[data-testid="kanban-board-settings-button"]'
     );
@@ -2425,6 +2566,7 @@ describe('KanbanView header navigation', () => {
   it('opens board settings route from the settings button', async () => {
     const wrapper = await mountView(buildBoardResponse(), 'administrator');
 
+    await openBoardActionsMenu(wrapper);
     await wrapper
       .find('[data-testid="kanban-board-settings-button"]')
       .trigger('click');
@@ -2828,6 +2970,9 @@ describe('KanbanView sales filters', () => {
     expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
       params: { next_action: 'overdue' },
     });
+    expect(
+      findNextActionFilterButton(wrapper, 'overdue').attributes('aria-pressed')
+    ).toBe('true');
   });
 
   it('refetches the board with status when an opportunity status filter is selected', async () => {
@@ -2840,6 +2985,9 @@ describe('KanbanView sales filters', () => {
     expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
       params: { status: 'won' },
     });
+    expect(
+      findStatusFilterButton(wrapper, 'won').attributes('aria-pressed')
+    ).toBe('true');
   });
 
   it('preserves sales filters on load more requests', async () => {
@@ -2920,6 +3068,10 @@ describe('KanbanView sales filters', () => {
     const wrapper = await mountView();
 
     await wrapper
+      .find('[data-testid="kanban-toggle-filters"]')
+      .trigger('click');
+
+    await wrapper
       .find('[data-testid="kanban-search-input"]')
       .setValue('Ana Valor');
     await wrapper
@@ -2939,14 +3091,49 @@ describe('KanbanView sales filters', () => {
     expect(KanbanBoardsAPI.show).toHaveBeenLastCalledWith(10, {
       params: { search: 'Ana Valor', sort: 'amount_desc' },
     });
-    expect(wrapper.find('[data-testid="kanban-clear-filters"]').exists()).toBe(
-      true
-    );
+    expect(
+      wrapper.find('[data-testid="kanban-filter-panel-clear-filters"]').exists()
+    ).toBe(true);
 
-    await wrapper.find('[data-testid="kanban-clear-filters"]').trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-filter-panel-clear-filters"]')
+      .trigger('click');
     await flushPromises();
 
     expect(KanbanBoardsAPI.show).toHaveBeenLastCalledWith(10, undefined);
+  });
+
+  it('clears only the applied search from the board header', async () => {
+    const wrapper = await mountView();
+
+    await wrapper
+      .find('[data-testid="kanban-search-input"]')
+      .setValue('Ana Valor');
+    await wrapper
+      .find('[data-testid="kanban-search-input"]')
+      .trigger('keyup.enter');
+    await flushPromises();
+    await wrapper.find('[data-testid="kanban-clear-search"]').trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="kanban-search-input"]').element.value
+    ).toBe('');
+    expect(KanbanBoardsAPI.show).toHaveBeenLastCalledWith(10, undefined);
+  });
+
+  it('applies the board header search from its visible action', async () => {
+    const wrapper = await mountView();
+
+    await wrapper
+      .find('[data-testid="kanban-search-input"]')
+      .setValue('Consulta de retorno');
+    await wrapper.find('[data-testid="kanban-apply-search"]').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.show).toHaveBeenLastCalledWith(10, {
+      params: { search: 'Consulta de retorno' },
+    });
   });
 
   it('loads and applies a personal saved filter', async () => {
@@ -2962,6 +3149,9 @@ describe('KanbanView sales filters', () => {
     const wrapper = await mountView();
 
     expect(KanbanBoardsAPI.getSavedFilters).toHaveBeenCalledWith(10);
+    await wrapper
+      .find('[data-testid="kanban-toggle-filters"]')
+      .trigger('click');
     await wrapper
       .find('[data-testid="kanban-saved-filter-select"]')
       .setValue('3');
@@ -2980,10 +3170,17 @@ describe('KanbanView sales filters', () => {
       .trigger('keyup.enter');
     await flushPromises();
 
+    await wrapper
+      .find('[data-testid="kanban-toggle-filters"]')
+      .trigger('click');
+    const filterPanel = wrapper.find('[data-testid="kanban-filter-panel"]');
+    expect(filterPanel.isVisible()).toBe(true);
+    await filterPanel
+      .find('[data-testid="kanban-filter-panel-save-filter"]')
+      .trigger('click');
     expect(
-      wrapper.find('[data-testid="kanban-active-filter-count"]').text()
-    ).toBe('1');
-    await wrapper.find('[data-testid="kanban-save-filter"]').trigger('click');
+      filterPanel.find('[data-testid="kanban-save-filter-form"]').exists()
+    ).toBe(true);
     await wrapper
       .find('[data-testid="kanban-save-filter-name"]')
       .setValue('Leads da Ana');

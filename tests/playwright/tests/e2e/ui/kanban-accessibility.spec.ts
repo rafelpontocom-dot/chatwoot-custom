@@ -28,11 +28,18 @@ test.describe('Kanban accessibility and responsive workspace', () => {
     await expect(page.getByTestId('kanban-workspace-header')).toBeVisible();
   };
 
+  const openBoardAutomations = async (page: Page) => {
+    await page.getByTestId('kanban-board-actions-menu').click();
+    const automations = page.getByTestId('kanban-board-automations-button');
+    await expect(automations).toBeVisible();
+    await automations.click();
+  };
+
   test.beforeEach(async ({ page }) => {
     const login = new Login(page);
     await login.navigate();
     await Promise.all([
-      page.waitForURL(/\/app\/accounts\/\d+\//),
+      page.waitForURL(/\/app\/accounts\/\d+\//, { waitUntil: 'commit' }),
       login.login(TEST_EMAIL, TEST_PASSWORD),
     ]);
   });
@@ -108,7 +115,6 @@ test.describe('Kanban accessibility and responsive workspace', () => {
 
     const header = page.getByTestId('kanban-workspace-header');
     const filters = page.getByTestId('kanban-toggle-filters');
-    const automations = page.getByTestId('kanban-board-automations-button');
 
     await expect(header).toBeVisible();
     await expect
@@ -117,11 +123,14 @@ test.describe('Kanban accessibility and responsive workspace', () => {
       )
       .toBe(true);
     await expect(filters).toBeVisible();
-    await expect(automations).toBeVisible();
-
     await filters.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByTestId('kanban-filter-panel')).toBeVisible();
+
+    await page.getByTestId('kanban-board-actions-menu').click();
+    await expect(
+      page.getByTestId('kanban-board-automations-button')
+    ).toBeVisible();
   });
 
   test('opens the visual workflow canvas with a keyboard-dismissible inspector', async ({
@@ -129,20 +138,27 @@ test.describe('Kanban accessibility and responsive workspace', () => {
   }) => {
     await openFirstBoard(page);
 
-    await page.getByTestId('kanban-board-automations-button').click();
+    await openBoardAutomations(page);
     await expect(page.getByTestId('kanban-automations-workspace')).toBeVisible();
     await page.getByTestId('kanban-automations-new-flow').click();
 
     const builder = page.getByTestId('kanban-workflow-builder');
     await expect(builder).toBeVisible();
     await expect(page.getByTestId('kanban-workflow-canvas')).toBeVisible();
-    await page.getByTestId('kanban-workflow-add-node').click();
-
-    const palette = page.locator(
-      '[data-testid="kanban-workflow-palette"]:visible'
+    const mobilePaletteButton = page.getByTestId(
+      'kanban-workflow-open-mobile-palette'
     );
+    const isMobilePalette = await mobilePaletteButton.isVisible();
+    if (isMobilePalette) {
+      await mobilePaletteButton.click();
+    } else {
+      await page.getByTestId('kanban-workflow-add-node').click();
+    }
+
+    const palette = isMobilePalette
+      ? page.getByTestId('kanban-workflow-mobile-palette')
+      : page.locator('[data-testid="kanban-workflow-palette"]:visible');
     await expect(palette).toBeVisible();
-    await palette.getByTestId('kanban-workflow-palette-search').fill('Aguardar');
     await palette.getByTestId('kanban-workflow-palette-node').first().click();
 
     const inspector = page.getByTestId('kanban-workflow-node-drawer');
@@ -189,7 +205,7 @@ test.describe('Kanban accessibility and responsive workspace', () => {
     await page.setViewportSize({ width: 320, height: 720 });
     await openFirstBoard(page);
 
-    await page.getByTestId('kanban-board-automations-button').click();
+    await openBoardAutomations(page);
     await page.getByTestId('kanban-automations-new-flow').click();
 
     const mobilePaletteButton = page.getByTestId(

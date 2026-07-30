@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import camelcaseKeys from 'camelcase-keys';
 
@@ -193,6 +193,34 @@ const activityTabs = computed(() => [
   { key: 'owner', label: t('KANBAN.ACTIVITY.BY_OWNER') },
 ]);
 
+const handleActivityTabKeydown = event => {
+  const currentIndex = activityTabs.value.findIndex(
+    item => item.key === activeView.value
+  );
+  if (currentIndex < 0) return;
+
+  let nextIndex = currentIndex;
+  if (event.key === 'ArrowRight') {
+    nextIndex = (currentIndex + 1) % activityTabs.value.length;
+  } else if (event.key === 'ArrowLeft') {
+    nextIndex =
+      (currentIndex - 1 + activityTabs.value.length) %
+      activityTabs.value.length;
+  } else if (event.key === 'Home') {
+    nextIndex = 0;
+  } else if (event.key === 'End') {
+    nextIndex = activityTabs.value.length - 1;
+  } else {
+    return;
+  }
+
+  event.preventDefault();
+  activeView.value = activityTabs.value[nextIndex].key;
+  nextTick(() => {
+    document.getElementById(`kanban-activity-tab-${activeView.value}`)?.focus();
+  });
+};
+
 const handleActivityKeydown = event => {
   if (event.key !== 'Escape') return;
 
@@ -245,8 +273,9 @@ onUnmounted(() => {
   >
     <button
       type="button"
+      tabindex="-1"
+      aria-hidden="true"
       class="absolute inset-0 cursor-default"
-      :aria-label="t('KANBAN.ACTIONS.CLOSE')"
       @click="emit('close')"
     />
     <aside
@@ -284,18 +313,21 @@ onUnmounted(() => {
       >
         <button
           v-for="item in activityTabs"
+          :id="`kanban-activity-tab-${item.key}`"
           :key="item.key"
           type="button"
           :data-testid="`kanban-activity-tab-${item.key}`"
           class="whitespace-nowrap border-b-2 px-2.5 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
           role="tab"
           :aria-selected="activeView === item.key"
+          aria-controls="kanban-activity-results"
           :class="
             activeView === item.key
               ? 'border-n-brand text-n-brand'
               : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
           "
           @click="activeView = item.key"
+          @keydown="handleActivityTabKeydown"
         >
           {{ item.label }}
         </button>
@@ -326,7 +358,13 @@ onUnmounted(() => {
         </select>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto p-5">
+      <div
+        id="kanban-activity-results"
+        data-testid="kanban-activity-results"
+        class="min-h-0 flex-1 overflow-y-auto p-5"
+        role="tabpanel"
+        :aria-labelledby="`kanban-activity-tab-${activeView}`"
+      >
         <template v-if="isLoadingActivities && !visibleCards.length">
           <p
             data-testid="kanban-activity-loading"
@@ -390,8 +428,22 @@ onUnmounted(() => {
                 class="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-left outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                 @click="emit('openDetails', card)"
               >
-                <span class="min-w-0 truncate text-sm text-n-slate-12">
-                  {{ cardTitle(card) }}
+                <span class="min-w-0">
+                  <span class="block truncate text-sm text-n-slate-12">
+                    {{ cardTitle(card) }}
+                  </span>
+                  <span
+                    v-if="hasAction(card)"
+                    class="block truncate text-xs text-n-slate-10"
+                  >
+                    {{
+                      card.nextActionType ||
+                      card.next_action_type ||
+                      t('KANBAN.ACTIVITY.NEXT_ACTION')
+                    }}
+                    {{ t('KANBAN.OVERVIEW.SEPARATOR') }}
+                    {{ cardDate(card) }}
+                  </span>
                 </span>
                 <span class="flex-none text-xs text-n-slate-10">
                   {{ card.stageName }}

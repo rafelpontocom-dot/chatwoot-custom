@@ -385,6 +385,35 @@ describe('KanbanWorkflowBuilder', () => {
     expect(wrapper.vm.nodes[0].position.x).toBe(100);
   });
 
+  it('closes the inspector with Escape from the workflow workspace', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [
+            {
+              id: 'delay',
+              type: 'delay',
+              position: { x: 100, y: 100 },
+              data: { delay_hours: 24 },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+    await wrapper.vm.$nextTick();
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    await wrapper
+      .find('[data-testid="kanban-workflow-builder"]')
+      .trigger('keydown', { key: 'Escape' });
+
+    expect(
+      wrapper.find('[data-testid="kanban-workflow-node-drawer"]').exists()
+    ).toBe(false);
+  });
+
   it('automatically arranges the canvas without losing the previous layout', () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: { modelValue: {} },

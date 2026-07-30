@@ -22,6 +22,10 @@ import ConfirmButton from 'dashboard/components-next/button/ConfirmButton.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanWorkflowBuilder from './components/KanbanWorkflowBuilder.vue';
+import {
+  getKanbanWorkflowNodeDefinition,
+  getKanbanWorkflowNodeLabel,
+} from './components/kanbanWorkflowNodeDefinitions';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -110,6 +114,22 @@ const blankVisualFlow = () => ({
   ],
   edges: [{ id: 'trigger-end', source: 'trigger', target: 'end' }],
 });
+const ruleFlowPreview = rule =>
+  (rule.flowDefinition || rule.flow_definition || {}).nodes
+    ?.filter(node => !['trigger', 'end'].includes(node.type))
+    .slice(0, 3)
+    .map(node => ({
+      id: node.id,
+      icon: getKanbanWorkflowNodeDefinition(node.type)?.icon,
+      label: getKanbanWorkflowNodeLabel(node.type, t),
+    })) || [];
+const hiddenRuleFlowStepCount = rule =>
+  Math.max(
+    0,
+    ((rule.flowDefinition || rule.flow_definition || {}).nodes || []).filter(
+      node => !['trigger', 'end'].includes(node.type)
+    ).length - 3
+  );
 
 const form = reactive({
   name: '',
@@ -3008,7 +3028,8 @@ onMounted(load);
           </h2>
         </div>
         <section
-          class="mb-5 grid max-w-6xl gap-2 sm:grid-cols-2 xl:grid-cols-3"
+          data-testid="kanban-automation-templates"
+          class="mb-5 grid max-w-6xl grid-flow-col auto-cols-[minmax(15rem,82%)] gap-2 overflow-x-auto pb-1 sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 sm:overflow-visible xl:grid-cols-3"
           :aria-label="t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.TITLE')"
         >
           <button
@@ -3080,7 +3101,13 @@ onMounted(load);
               >
                 <i class="i-lucide-git-branch size-4" />
               </span>
-              <div class="min-w-0 flex-1">
+              <button
+                type="button"
+                :data-testid="`kanban-automation-rule-open-${rule.id}`"
+                class="min-w-0 flex-1 rounded-md text-left outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                :aria-label="rule.name"
+                @click="openRule(rule)"
+              >
                 <p class="m-0 truncate text-sm font-medium text-n-slate-12">
                   {{ rule.name }}
                 </p>
@@ -3099,7 +3126,42 @@ onMounted(load);
                           ?.label
                   }}
                 </p>
-              </div>
+                <p
+                  v-if="rule.description"
+                  class="m-0 mt-1 truncate text-xs text-n-slate-10"
+                  :title="rule.description"
+                >
+                  {{ rule.description }}
+                </p>
+                <div
+                  v-if="ruleFlowPreview(rule).length"
+                  :data-testid="`kanban-automation-rule-preview-${rule.id}`"
+                  class="mt-1.5 flex min-w-0 flex-wrap items-center gap-1"
+                >
+                  <span
+                    v-for="step in ruleFlowPreview(rule)"
+                    :key="step.id"
+                    data-testid="kanban-automation-rule-step"
+                    class="inline-flex max-w-40 items-center gap-1 rounded bg-n-surface-2 px-1.5 py-0.5 text-[11px] text-n-slate-10"
+                    :title="step.label"
+                  >
+                    <i v-if="step.icon" class="size-3" :class="[step.icon]" />
+                    <span class="truncate">{{ step.label }}</span>
+                  </span>
+                  <span
+                    v-if="hiddenRuleFlowStepCount(rule)"
+                    data-testid="kanban-automation-rule-more-steps"
+                    class="text-[11px] text-n-slate-10"
+                    :aria-label="
+                      t('KANBAN.AUTOMATIONS_WORKSPACE.FLOW_PREVIEW_MORE', {
+                        count: hiddenRuleFlowStepCount(rule),
+                      })
+                    "
+                  >
+                    +{{ hiddenRuleFlowStepCount(rule) }}
+                  </span>
+                </div>
+              </button>
               <div class="flex shrink-0 items-center gap-2">
                 <span
                   class="inline-flex rounded-full px-2 py-1 text-xs font-medium"

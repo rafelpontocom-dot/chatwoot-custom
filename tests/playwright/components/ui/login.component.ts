@@ -8,7 +8,7 @@ export class Login {
   }
 
   async navigate() {
-    await this.page.goto('/', { waitUntil: 'domcontentloaded' });
+    await this.page.goto('/app/login', { waitUntil: 'commit' });
   }
 
   async fillEmail(email: string) {

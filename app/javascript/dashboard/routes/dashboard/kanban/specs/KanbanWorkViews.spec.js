@@ -34,6 +34,51 @@ const card = {
 const stages = [{ id: 1, name: 'Novo lead', cards: [card] }];
 
 describe('Kanban work views', () => {
+  it('links activity tabs to their result panel for assistive technology', () => {
+    const wrapper = mount(KanbanActivityCenter, {
+      props: { stages: [] },
+    });
+
+    const todayTab = wrapper.find('[data-testid="kanban-activity-tab-today"]');
+    const results = wrapper.find('[data-testid="kanban-activity-results"]');
+
+    expect(todayTab.attributes('aria-controls')).toBe(
+      'kanban-activity-results'
+    );
+    expect(results.attributes('role')).toBe('tabpanel');
+    expect(results.attributes('aria-labelledby')).toBe(
+      'kanban-activity-tab-today'
+    );
+  });
+
+  it('keeps the activity backdrop outside keyboard navigation', () => {
+    const wrapper = mount(KanbanActivityCenter, {
+      props: { stages: [] },
+    });
+
+    const backdrop = wrapper.find(
+      '[data-testid="kanban-activity-center"] > button'
+    );
+    expect(backdrop.attributes('tabindex')).toBe('-1');
+    expect(backdrop.attributes('aria-hidden')).toBe('true');
+  });
+
+  it('moves between activity tabs with arrow keys', async () => {
+    const wrapper = mount(KanbanActivityCenter, {
+      props: { stages: [] },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-activity-tab-today"]')
+      .trigger('keydown', { key: 'ArrowRight' });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-activity-tab-overdue"]')
+        .attributes('aria-selected')
+    ).toBe('true');
+  });
+
   it('renders a comparable list row and emits the existing card actions', async () => {
     const wrapper = mount(KanbanListView, {
       props: {
@@ -77,6 +122,18 @@ describe('Kanban work views', () => {
     expect(
       wrapper.find('[data-testid="kanban-activity-card-10"]').exists()
     ).toBe(true);
+  });
+
+  it('keeps the next action visible when grouping work by owner', async () => {
+    const wrapper = mount(KanbanActivityCenter, {
+      props: { stages },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-activity-tab-owner"]')
+      .trigger('click');
+
+    expect(wrapper.text()).toContain('Follow-up');
   });
 
   it('shows appointments separately from next actions', async () => {

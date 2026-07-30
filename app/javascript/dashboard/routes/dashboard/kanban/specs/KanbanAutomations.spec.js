@@ -158,6 +158,85 @@ describe('KanbanAutomations', () => {
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
   });
 
+  it('shows the business description of an existing automation rule', async () => {
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          description: 'Envia um retorno após o orçamento ficar sem resposta.',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+    });
+
+    expect(wrapper.text()).toContain(
+      'Envia um retorno após o orçamento ficar sem resposta.'
+    );
+  });
+
+  it('opens an automation from its identity area', async () => {
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-automation-rule-open-44"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-automation-editor"]').exists()
+    ).toBe(true);
+  });
+
+  it('previews the first commercial steps of a visual automation', async () => {
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+          flow_definition: {
+            nodes: [
+              { id: 'trigger', type: 'trigger' },
+              { id: 'message', type: 'send_message' },
+              { id: 'wait', type: 'delay' },
+              { id: 'condition', type: 'condition' },
+              { id: 'action', type: 'action' },
+              { id: 'end', type: 'end' },
+            ],
+          },
+        },
+      ],
+    });
+
+    const preview = wrapper.find(
+      '[data-testid="kanban-automation-rule-preview-44"]'
+    );
+
+    expect(preview.exists()).toBe(true);
+    expect(
+      preview.findAll('[data-testid="kanban-automation-rule-step"]')
+    ).toHaveLength(3);
+    expect(
+      wrapper.find('[data-testid="kanban-automation-rule-more-steps"]').text()
+    ).toContain('+1');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-automation-rule-more-steps"]')
+        .attributes('aria-label')
+    ).toBe('KANBAN.AUTOMATIONS_WORKSPACE.FLOW_PREVIEW_MORE');
+  });
+
   it('keeps the editor controls in a compact operational bar', async () => {
     const wrapper = await mountWorkspace();
 
@@ -178,6 +257,10 @@ describe('KanbanAutomations', () => {
 
   it('offers commercial workflow drafts without activating them', async () => {
     const wrapper = await mountWorkspace();
+
+    expect(
+      wrapper.find('[data-testid="kanban-automation-templates"]').classes()
+    ).toContain('grid-flow-col');
 
     expect(
       wrapper.find('[data-testid="kanban-automations-template-icon"]').exists()

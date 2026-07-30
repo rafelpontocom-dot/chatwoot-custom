@@ -357,6 +357,36 @@ describe('KanbanOpportunityDetailsModal', () => {
     ]);
   });
 
+  it('links the active opportunity tab to its content panel', async () => {
+    const wrapper = await mountModal();
+    const detailsTab = wrapper.find(
+      '[data-testid="kanban-opportunity-tab-details"]'
+    );
+    const layout = wrapper.find('[data-testid="kanban-opportunity-layout"]');
+
+    expect(detailsTab.attributes('aria-controls')).toBe(
+      'kanban-opportunity-tab-panel'
+    );
+    expect(layout.attributes('role')).toBe('tabpanel');
+    expect(layout.attributes('aria-labelledby')).toBe(
+      'kanban-opportunity-tab-details'
+    );
+  });
+
+  it('navigates opportunity tabs with the keyboard', async () => {
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-details"]')
+      .trigger('keydown', { key: 'ArrowRight' });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-tab-marketing"]')
+        .attributes('aria-selected')
+    ).toBe('true');
+  });
+
   it('loads detail through showCardById', async () => {
     await mountModal();
 
@@ -777,6 +807,20 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
+  it('keeps the next action completion control in the section header', async () => {
+    const wrapper = await mountModal();
+    const section = wrapper.find(
+      '[data-testid="kanban-opportunity-next-action-section"]'
+    );
+
+    expect(section.exists()).toBe(true);
+    expect(
+      section
+        .find('[data-testid="kanban-opportunity-complete-next-action"]')
+        .exists()
+    ).toBe(true);
+  });
+
   it('renders checkbox and multiselect custom fields', async () => {
     const wrapper = await mountModal({
       card: buildCard({
@@ -848,6 +892,15 @@ describe('KanbanOpportunityDetailsModal', () => {
     await wrapper
       .find('[data-testid="kanban-opportunity-mark-won"]')
       .trigger('click');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-confirm-close-status"]')
+        .exists()
+    ).toBe(true);
+    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
+    await wrapper
+      .find('[data-testid="kanban-opportunity-confirm-close-status"]')
+      .trigger('click');
     await flushPromises();
 
     expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
@@ -884,6 +937,15 @@ describe('KanbanOpportunityDetailsModal', () => {
     await lostReasonInput(wrapper).setValue('Preço');
     await wrapper
       .find('[data-testid="kanban-opportunity-mark-lost"]')
+      .trigger('click');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-confirm-close-status"]')
+        .exists()
+    ).toBe(true);
+    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
+    await wrapper
+      .find('[data-testid="kanban-opportunity-confirm-close-status"]')
       .trigger('click');
     await flushPromises();
 
@@ -1000,6 +1062,24 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper.find('[data-testid="kanban-opportunity-assignee"]').text()
     ).toContain('Jane Agent');
+  });
+
+  it('keeps stage, owner and conversation assignee in one compact commercial context', async () => {
+    const wrapper = await mountModal();
+    const context = wrapper.find(
+      '[data-testid="kanban-opportunity-commercial-context"]'
+    );
+
+    expect(context.exists()).toBe(true);
+    expect(
+      context.find('[data-testid="kanban-opportunity-stage"]').exists()
+    ).toBe(true);
+    expect(
+      context.find('[data-testid="kanban-opportunity-owner"]').exists()
+    ).toBe(true);
+    expect(
+      context.find('[data-testid="kanban-opportunity-assignee"]').exists()
+    ).toBe(true);
   });
 
   it('loads assigned card labels through getCardLabels', async () => {

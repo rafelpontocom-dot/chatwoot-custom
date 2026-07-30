@@ -151,7 +151,10 @@ A configuração pertence ao funil, porque altera todas as oportunidades daquele
 - a engrenagem no card abre diretamente o gerenciador de campos do funil;
 - o botão `+` ao lado das abas abre o fluxo de criação de aba;
 - o gerenciador mostra as abas em formato compacto e edita somente um campo por vez;
-- criar campo começa por nome e tipo, revelando opções, condição, fórmula e obrigatoriedade somente quando aplicáveis;
+- abas são botões de navegação, sem inputs ou ações misturados nelas; renomear, reordenar e excluir aparecem somente na barra contextual da aba ativa;
+- criar aba usa diálogo curto com nome, Cancelar e Criar; não expande o construtor;
+- grupos da aba são administrados em diálogo contextual; o layout principal conserva apenas os blocos e as zonas para posicionar campos;
+- criar campo abre um diálogo curto com nome e tipo e gera a chave estável automaticamente; opções, condição, fórmula e obrigatoriedade só aparecem depois, quando aplicáveis;
 - opções de seleção são adicionadas em uma linha curta e exibidas como chips;
 - etapas obrigatórias são escolhidas por uma grade compacta de checkboxes;
 - campos podem ser arrastados entre abas e reordenados;
@@ -183,6 +186,10 @@ Cada board deve permitir ao administrador configurar:
 - motivos de perda;
 - campos personalizados e campos visíveis no card compacto;
 - limite de dias parado em cada etapa.
+
+Alertas de oportunidade parada devem iniciar em formato resumido, mostrando quantas etapas possuem limite configurado. A lista de limites por etapa só é aberta ao escolher `Configurar`, preservando a leitura rápida das demais configurações comerciais.
+
+O lembrete interno de agendamento é independente das automações de mensagem ao cliente. Ele cria apenas uma próxima ação e deve informar esse efeito no resumo; sua configuração de antecedência também permanece recolhida até `Configurar`.
 
 As listas de tipos de próxima ação e motivos de perda fazem parte do MVP. Elas devem ser editáveis em configurações do board, com uma opção por linha, e o sistema deve ignorar opções vazias ou duplicadas.
 
@@ -622,21 +629,24 @@ O Kanban terá duas visões complementares:
 - `Kanban`, para acompanhar fluxo, capacidade e avanço por etapa;
 - `Lista`, para buscar, comparar, selecionar e editar oportunidades com volume maior.
 
-A visão em lista reutiliza os mesmos filtros, seleção em massa e abertura da oportunidade. Ela não cria um segundo modelo de dados.
+A visão em lista reutiliza os mesmos filtros, seleção em massa e abertura da oportunidade. O cabeçalho da tabela permite selecionar apenas as oportunidades visíveis e carregadas; ele não presume que páginas ainda não carregadas serão alteradas. Ela não cria um segundo modelo de dados.
 
 ### Cabeçalho Do Board
 
-O cabeçalho deve preservar hierarquia visual curta:
+O quadro é a superfície principal de trabalho. O cabeçalho é operacional e curto, distribuído em duas linhas:
 
-1. pipeline, busca, `Nova oportunidade` e configurações;
-2. `Filtros`, ordenação, visão Kanban/Lista e filtros salvos;
-3. resumo compacto de abertas, ganhas, perdidas, atrasadas e valor.
+1. primeira linha: seletor de funil, busca, `Nova oportunidade` e menu de ações;
+2. segunda linha: seletor Kanban/Lista, `Hoje` e abertura de filtros, com a contagem de critérios ativos no próprio botão.
 
-Filtros rápidos como sem ação, atrasadas e ganhos pertencem ao popover/drawer de filtros. Eles não devem ocupar linhas permanentes do board. O resumo não substitui a Central de Atividades nem os relatórios.
+Ordenação e filtros salvos ficam no popover de filtros. Exportação, métricas, automações, configurações e ações administrativas ficam no menu de ações. Filtros rápidos como sem ação, atrasadas e ganhos também pertencem ao popover, nunca a uma linha permanente. Métricas do funil são consultadas sob demanda e não competem com os cards.
+
+Ordenar, salvar, renomear, excluir e limpar filtros também acontecem dentro desse painel. Ao iniciar uma dessas ações, o painel abre automaticamente e mantém a ação no mesmo contexto dos critérios que serão salvos. A busca tem `Enter`, uma ação visível de buscar e uma limpeza própria, que não altera os demais critérios ativos.
+
+Esta composição segue o padrão funcional observado em CRMs como Attio e Twenty e no fluxo compacto de Linear: referência de comportamento e densidade, não cópia visual.
 
 ### Central De Atividades
 
-`Próxima ação` é um dado da oportunidade, mas o trabalho diário precisa de uma visão própria. A Central de Atividades deve oferecer:
+`Próxima ação` é um dado da oportunidade, mas o trabalho diário precisa de uma visão própria, chamada `Hoje`. Ela abre como superfície independente do quadro e não como um bloco fixo no cabeçalho. A Central de Atividades deve oferecer:
 
 - minhas atividades de hoje;
 - atividades atrasadas;
@@ -648,9 +658,9 @@ Cada item deve abrir a oportunidade e preservar o contexto do funil. Relatórios
 
 ### Detalhe Da Oportunidade
 
-O modal atual continua como fluxo de edição até a aprovação da nova experiência. Existe uma prévia interativa de drawer aberta pelo ícone de painel no cabeçalho do detalhe. A prévia deve ser avaliada em desktop e mobile antes de substituir o modal.
+Clicar no card abre o detalhe lateral real, sobre o board, sem recalcular ou estreitar as colunas. Fechar o painel devolve a pessoa exatamente ao mesmo ponto do funil. No desktop o drawer é estreito o bastante para preservar a leitura do quadro; no mobile ele ocupa a viewport com controles de retorno e foco previsível.
 
-O drawer proposto usa:
+O drawer usa:
 
 - cabeçalho fixo com título, contato, etapa, valor e responsável;
 - abas Resumo, Atividades e Conversa;
@@ -658,7 +668,9 @@ O drawer proposto usa:
 - conversa e linha do tempo sem abandonar a oportunidade;
 - rodapé fixo com ações primárias.
 
-Configuração de campos não deve ficar misturada à edição normal. A engrenagem abre o gerenciador do board, enquanto a edição do card mostra somente dados da oportunidade.
+Configuração de campos não deve ficar misturada à edição normal. A engrenagem abre o gerenciador do board em padrão lista/tabela e detalhe progressivo, enquanto a edição do card mostra somente dados da oportunidade. O administrador vê uma lista compacta de campos, abas e regras; abre o item necessário para editar, sem várias caixas grandes concorrendo pela mesma tela.
+
+As etapas seguem o mesmo padrão: a lista mostra apenas ordem, cor, nome, quantidade e categoria. Clicar em uma etapa abre seu detalhe único com categoria, alerta de capacidade e probabilidade; criar uma etapa acontece em diálogo curto com nome e cor, sem expandir a tela inteira.
 
 ### Entradas De Criacao
 

@@ -98,9 +98,11 @@ const labelsLoadError = ref('');
 const labelsSaveError = ref('');
 const subjectError = ref('');
 const lostReasonError = ref('');
+const pendingCloseStatus = ref('');
 const selectedLabelTitles = ref([]);
 const activeTabKey = ref('details');
 const expandedGroupKeys = ref({ commercial: true });
+const tabList = ref(null);
 
 const modalTitle = computed(() =>
   props.boardName
@@ -231,6 +233,10 @@ const timelineTab = computed(() => ({
   key: 'timeline',
   label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE'),
 }));
+const opportunityTabs = computed(() => [
+  ...customFieldTabs.value,
+  timelineTab.value,
+]);
 
 const normalizeCard = payload =>
   Object.fromEntries(
@@ -568,6 +574,18 @@ const completeNextAction = () =>
 
 const markLost = () => {
   const trimmedReason = String(lostReason.value || '').trim();
+  saveCardWith({
+    lost_at: new Date().toISOString(),
+    lost_reason: trimmedReason,
+  });
+};
+
+const requestMarkWon = () => {
+  pendingCloseStatus.value = 'won';
+};
+
+const requestMarkLost = () => {
+  const trimmedReason = String(lostReason.value || '').trim();
   lostReasonError.value = '';
 
   if (!trimmedReason) {
@@ -577,10 +595,19 @@ const markLost = () => {
     return;
   }
 
-  saveCardWith({
-    lost_at: new Date().toISOString(),
-    lost_reason: trimmedReason,
-  });
+  pendingCloseStatus.value = 'lost';
+};
+
+const cancelCloseStatus = () => {
+  pendingCloseStatus.value = '';
+};
+
+const confirmCloseStatus = () => {
+  const status = pendingCloseStatus.value;
+  pendingCloseStatus.value = '';
+
+  if (status === 'won') markWon();
+  if (status === 'lost') markLost();
 };
 
 const toggleLabel = title => {
@@ -668,6 +695,35 @@ const handleModalKeydown = event => {
   event.preventDefault();
   event.stopPropagation();
   showUnsavedChanges.value = true;
+};
+
+const handleTabKeydown = async event => {
+  const currentIndex = opportunityTabs.value.findIndex(
+    tab => tab.key === activeTabKey.value
+  );
+  if (currentIndex < 0) return;
+
+  let nextIndex = currentIndex;
+  if (event.key === 'ArrowRight') {
+    nextIndex = (currentIndex + 1) % opportunityTabs.value.length;
+  } else if (event.key === 'ArrowLeft') {
+    nextIndex =
+      (currentIndex - 1 + opportunityTabs.value.length) %
+      opportunityTabs.value.length;
+  } else if (event.key === 'Home') {
+    nextIndex = 0;
+  } else if (event.key === 'End') {
+    nextIndex = opportunityTabs.value.length - 1;
+  } else {
+    return;
+  }
+
+  event.preventDefault();
+  activeTabKey.value = opportunityTabs.value[nextIndex].key;
+  await nextTick();
+  tabList.value
+    ?.querySelector(`#kanban-opportunity-tab-${activeTabKey.value}`)
+    ?.focus();
 };
 
 const editSubject = async () => {
@@ -789,24 +845,28 @@ watch(showUnsavedChanges, async visible => {
         @submit.prevent="saveCard"
       >
         <nav
+          ref="tabList"
           class="sticky top-0 z-10 flex min-w-0 gap-1 overflow-x-auto border-b border-n-weak bg-n-background"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL')"
           role="tablist"
         >
           <button
             v-for="tab in customFieldTabs"
+            :id="`kanban-opportunity-tab-${tab.key}`"
             :key="tab.key"
             type="button"
             :data-testid="`kanban-opportunity-tab-${tab.key}`"
             class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
             role="tab"
             :aria-selected="activeTabKey === tab.key"
+            aria-controls="kanban-opportunity-tab-panel"
             :class="
               activeTabKey === tab.key
                 ? 'border-n-brand text-n-brand'
                 : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
             "
             @click="activeTabKey = tab.key"
+            @keydown="handleTabKeydown"
           >
             {{ tab.label }}
           </button>
@@ -822,24 +882,30 @@ watch(showUnsavedChanges, async visible => {
             <i class="i-lucide-plus size-4" />
           </button>
           <button
+            :id="`kanban-opportunity-tab-${timelineTab.key}`"
             type="button"
             :data-testid="`kanban-opportunity-tab-${timelineTab.key}`"
             class="whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
             role="tab"
             :aria-selected="activeTabKey === timelineTab.key"
+            aria-controls="kanban-opportunity-tab-panel"
             :class="
               activeTabKey === timelineTab.key
                 ? 'border-n-brand text-n-brand'
                 : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
             "
             @click="activeTabKey = timelineTab.key"
+            @keydown="handleTabKeydown"
           >
             {{ timelineTab.label }}
           </button>
         </nav>
 
         <div
+          id="kanban-opportunity-tab-panel"
           data-testid="kanban-opportunity-layout"
+          role="tabpanel"
+          :aria-labelledby="`kanban-opportunity-tab-${activeTabKey}`"
           :class="
             drawerMode
               ? 'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]'
@@ -1130,10 +1196,10 @@ watch(showUnsavedChanges, async visible => {
           </section>
 
           <aside class="grid min-w-0 content-start gap-2">
-            <section class="grid gap-3 rounded-lg border border-n-weak p-3">
-              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.STAGE') }}
-              </h3>
+            <section
+              data-testid="kanban-opportunity-commercial-context"
+              class="grid gap-3 rounded-lg border border-n-weak p-3"
+            >
               <label class="grid gap-1.5">
                 <span class="text-sm font-medium text-n-slate-12">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.STAGE') }}
@@ -1152,40 +1218,40 @@ watch(showUnsavedChanges, async visible => {
                   </option>
                 </select>
               </label>
-            </section>
 
-            <section class="grid gap-3 rounded-lg border border-n-weak p-3">
-              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER') }}
-              </h3>
-              <select
-                v-model="ownerId"
-                data-testid="kanban-opportunity-owner"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-              >
-                <option value="">
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.UNASSIGNED') }}
-                </option>
-                <option
-                  v-for="option in ownerOptions"
-                  :key="option.value"
-                  :value="String(option.value)"
+              <label class="grid gap-1.5">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER') }}
+                </span>
+                <select
+                  v-model="ownerId"
+                  data-testid="kanban-opportunity-owner"
+                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                 >
-                  {{ option.label }}
-                </option>
-              </select>
-            </section>
+                  <option value="">
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.UNASSIGNED') }}
+                  </option>
+                  <option
+                    v-for="option in ownerOptions"
+                    :key="option.value"
+                    :value="String(option.value)"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </label>
 
-            <section class="grid gap-2 rounded-lg border border-n-weak p-3">
-              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE') }}
-              </h3>
-              <p
-                data-testid="kanban-opportunity-assignee"
-                class="mb-0 text-sm text-n-slate-11"
-              >
-                {{ assigneeName }}
-              </p>
+              <div class="border-t border-n-weak pt-3">
+                <span class="text-xs font-medium text-n-slate-10">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE') }}
+                </span>
+                <p
+                  data-testid="kanban-opportunity-assignee"
+                  class="mb-0 mt-1 text-sm text-n-slate-11"
+                >
+                  {{ assigneeName }}
+                </p>
+              </div>
             </section>
 
             <section class="grid gap-3 rounded-lg border border-n-weak p-3">
@@ -1335,10 +1401,27 @@ watch(showUnsavedChanges, async visible => {
               </div>
             </section>
 
-            <section class="grid gap-3 rounded-lg border border-n-weak p-3">
-              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION') }}
-              </h3>
+            <section
+              data-testid="kanban-opportunity-next-action-section"
+              class="grid gap-3 rounded-lg border border-n-weak p-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION') }}
+                </h3>
+                <NextButton
+                  v-if="nextActionAt && !card.nextActionCompletedAt"
+                  type="button"
+                  xs
+                  outline
+                  emerald
+                  data-testid="kanban-opportunity-complete-next-action"
+                  icon="i-lucide-check-check"
+                  :label="t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')"
+                  :disabled="isSaving"
+                  @click="completeNextAction"
+                />
+              </div>
               <label class="grid gap-1.5">
                 <span class="text-sm font-medium text-n-slate-12">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE') }}
@@ -1377,18 +1460,6 @@ watch(showUnsavedChanges, async visible => {
                   "
                 />
               </label>
-              <NextButton
-                v-if="nextActionAt && !card.nextActionCompletedAt"
-                type="button"
-                xs
-                outline
-                emerald
-                data-testid="kanban-opportunity-complete-next-action"
-                icon="i-lucide-check-check"
-                :label="t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')"
-                :disabled="isSaving"
-                @click="completeNextAction"
-              />
               <div
                 v-if="card.nextActionHistory?.length"
                 data-testid="kanban-opportunity-next-action-history"
@@ -1424,7 +1495,7 @@ watch(showUnsavedChanges, async visible => {
                 icon="i-lucide-circle-check"
                 :label="t('KANBAN.OPPORTUNITY_DETAILS.MARK_WON')"
                 :disabled="isSaving"
-                @click="markWon"
+                @click="requestMarkWon"
               />
               <label class="grid gap-1.5">
                 <span class="text-sm font-medium text-n-slate-12">
@@ -1465,8 +1536,44 @@ watch(showUnsavedChanges, async visible => {
                 icon="i-lucide-circle-x"
                 :label="t('KANBAN.OPPORTUNITY_DETAILS.MARK_LOST')"
                 :disabled="isSaving"
-                @click="markLost"
+                @click="requestMarkLost"
               />
+              <div
+                v-if="pendingCloseStatus"
+                data-testid="kanban-opportunity-close-status-confirmation"
+                class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2.5"
+              >
+                <p class="mb-0 text-xs font-medium text-n-slate-12">
+                  {{
+                    pendingCloseStatus === 'won'
+                      ? t('KANBAN.OPPORTUNITY_DETAILS.CONFIRM_WON')
+                      : t('KANBAN.OPPORTUNITY_DETAILS.CONFIRM_LOST')
+                  }}
+                </p>
+                <div class="flex items-center justify-end gap-2">
+                  <NextButton
+                    type="button"
+                    xs
+                    outline
+                    slate
+                    :label="t('KANBAN.OPPORTUNITY_DETAILS.CANCEL')"
+                    @click="cancelCloseStatus"
+                  />
+                  <NextButton
+                    type="button"
+                    xs
+                    :emerald="pendingCloseStatus === 'won'"
+                    :ruby="pendingCloseStatus === 'lost'"
+                    data-testid="kanban-opportunity-confirm-close-status"
+                    icon="i-lucide-check"
+                    :label="
+                      t('KANBAN.OPPORTUNITY_DETAILS.CONFIRM_CLOSE_STATUS')
+                    "
+                    :disabled="isSaving"
+                    @click="confirmCloseStatus"
+                  />
+                </div>
+              </div>
             </section>
           </aside>
         </div>

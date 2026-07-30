@@ -1483,6 +1483,7 @@ const addNodeOfType = (type, position = null) => {
   showNodeMenu.value = false;
   insertAfterNodeId.value = null;
   insertAfterHandle.value = null;
+  nextTick(focusInspector);
 };
 
 const addNodeFromMobilePalette = type => {
@@ -1848,6 +1849,12 @@ const moveSelectedNode = event => {
 };
 
 const handleBuilderKeydown = event => {
+  if (event.key === 'Escape' && (selectedNode.value || selectedEdge.value)) {
+    event.preventDefault();
+    closeInspector();
+    return;
+  }
+
   if (event.key === 'Escape' && showMobilePalette.value) {
     event.preventDefault();
     closeMobilePalette();

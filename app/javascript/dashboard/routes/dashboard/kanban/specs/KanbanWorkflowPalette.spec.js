@@ -3,7 +3,7 @@ import { shallowMount } from '@vue/test-utils';
 import KanbanWorkflowPalette from '../components/KanbanWorkflowPalette.vue';
 
 describe('KanbanWorkflowPalette', () => {
-  it('uses the compact workbench width reserved for workflow discovery', () => {
+  it('uses the readable workbench width reserved for workflow discovery', () => {
     const wrapper = shallowMount(KanbanWorkflowPalette, {
       props: {
         groups: [],

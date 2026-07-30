@@ -3,7 +3,7 @@ import { shallowMount } from '@vue/test-utils';
 import KanbanWorkflowNode from '../components/KanbanWorkflowNode.vue';
 
 describe('KanbanWorkflowNode', () => {
-  it('keeps the commercial node compact and stable on the canvas', () => {
+  it('keeps the commercial node readable and stable on the canvas', () => {
     const wrapper = shallowMount(KanbanWorkflowNode, {
       props: {
         data: {

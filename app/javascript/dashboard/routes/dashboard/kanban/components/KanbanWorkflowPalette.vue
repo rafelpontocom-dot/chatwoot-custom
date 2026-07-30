@@ -68,12 +68,12 @@ const setGroupOpen = (key, event) => {
     :class="
       mobile
         ? 'flex min-h-0 flex-1 w-full flex-col bg-n-surface-1'
-        : 'hidden w-[12.25rem] shrink-0 flex-col border-r border-n-weak bg-n-surface-2 lg:flex'
+        : 'hidden w-[12.25rem] shrink-0 flex-col border-r border-n-weak bg-n-surface-1 lg:flex'
     "
   >
     <div
       data-testid="kanban-workflow-palette-header"
-      class="border-b border-n-weak bg-n-surface-2 px-3 py-3"
+      class="border-b border-n-weak bg-n-surface-1 px-3 py-3"
     >
       <div class="flex items-center justify-between gap-2">
         <p
@@ -96,7 +96,7 @@ const setGroupOpen = (key, event) => {
           v-model="query"
           data-testid="kanban-workflow-palette-search"
           type="search"
-          class="h-8 w-full rounded-md border border-n-weak bg-n-surface-2 py-1 pl-8 pr-2 text-xs text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          class="h-8 w-full rounded-md border border-n-weak bg-n-surface-2 py-1 pl-8 pr-2 text-xs text-n-slate-12 outline-none transition focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           :placeholder="searchPlaceholder"
         />
       </label>
@@ -134,7 +134,7 @@ const setGroupOpen = (key, event) => {
             type="button"
             draggable="true"
             data-testid="kanban-workflow-palette-node"
-            class="group/item flex min-h-8 items-center rounded-md border border-transparent px-2 text-left text-xs font-medium text-n-slate-12 hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="group/item flex min-h-9 items-center rounded-md border border-transparent px-2 text-left text-xs font-medium text-n-slate-12 transition hover:border-n-weak hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
             @dragstart="
               event => {
                 event.dataTransfer.effectAllowed = 'move';

@@ -117,10 +117,40 @@ describe('KanbanConversationCard', () => {
 
     expect(wrapper.text()).toContain('Enterprise expansion');
     expect(wrapper.text()).toContain('Jane Doe');
-    expect(wrapper.text()).toContain('Support Inbox');
     expect(wrapper.text()).toContain('Agent Smith');
-    expect(wrapper.text()).toContain('now');
-    expect(wrapper.text()).toContain('Jun 7');
+    expect(wrapper.findComponent({ name: 'ChannelIcon' }).exists()).toBe(true);
+  });
+
+  it('shows the commercial owner when the opportunity has one', () => {
+    const wrapper = mountCard({
+      card: buildManualCard({
+        owner: { name: 'Ana Comercial', thumbnail: 'ana.png' },
+      }),
+    });
+
+    expect(wrapper.text()).toContain('Ana Comercial');
+  });
+
+  it('does not format an empty opportunity value as zero', () => {
+    const wrapper = mountCard({ card: buildCard({ amountCents: '' }) });
+
+    expect(wrapper.find('[data-testid="kanban-card-amount"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.text()).not.toContain('R$ 0,00');
+  });
+
+  it('prioritizes the configured next action in the compact summary', () => {
+    const wrapper = mountCard({
+      card: buildCard({
+        nextActionStatus: 'future',
+        nextActionType: 'Enviar proposta',
+      }),
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-card-next-action"]').text()
+    ).toContain('Enviar proposta');
   });
 
   it('keeps the draggable root intact', () => {
@@ -129,6 +159,38 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.element.tagName).toBe('ARTICLE');
     expect(wrapper.classes()).toContain('card-drag-handle');
     expect(wrapper.classes()).not.toContain('no-drag');
+  });
+
+  it('uses a dense surface for scanning a commercial pipeline', () => {
+    const wrapper = mountCard();
+
+    expect(wrapper.classes()).toContain('rounded-lg');
+    expect(wrapper.classes()).toContain('p-2.5');
+    expect(wrapper.classes()).toContain('shadow-none');
+  });
+
+  it('keeps the next action, value and conversation action in a stable card footer', () => {
+    const wrapper = mountCard({
+      card: buildCard({
+        amountCents: 125000,
+        nextActionStatus: 'overdue',
+        nextActionAt: '2026-07-29T12:00:00-03:00',
+      }),
+    });
+
+    const footer = wrapper.find('[data-testid="kanban-card-workflow-summary"]');
+
+    expect(footer.exists()).toBe(true);
+    expect(footer.classes()).toContain('justify-between');
+    expect(
+      footer.find('[data-testid="kanban-card-next-action"]').exists()
+    ).toBe(true);
+    expect(footer.find('[data-testid="kanban-card-amount"]').exists()).toBe(
+      true
+    );
+    expect(
+      footer.find('[data-testid="kanban-card-open-conversation"]').exists()
+    ).toBe(true);
   });
 
   it('emits selection without opening the opportunity', async () => {
@@ -241,12 +303,11 @@ describe('KanbanConversationCard', () => {
     );
   });
 
-  it('renders manual-like card contact and inbox safely', () => {
+  it('renders manual-like card contact safely', () => {
     const wrapper = mountCard({ card: buildManualCard() });
 
     expect(wrapper.text()).toContain('Renewal follow-up');
     expect(wrapper.text()).toContain('Manual Contact');
-    expect(wrapper.text()).toContain('Sales Inbox');
     expect(wrapper.findComponent({ name: 'CardPriorityIcon' }).exists()).toBe(
       false
     );
@@ -267,7 +328,7 @@ describe('KanbanConversationCard', () => {
     expect(badge.text()).toContain('Jul 20');
   });
 
-  it('renders opportunity value and configured compact custom fields', () => {
+  it('renders opportunity value without expanding the card with custom fields', () => {
     const wrapper = mountCard({
       card: buildManualCard({
         amountCents: 125050,
@@ -286,12 +347,12 @@ describe('KanbanConversationCard', () => {
       'R$ 1.250,50'
     );
     expect(
-      wrapper.find('[data-testid="kanban-card-custom-fields"]').text()
-    ).toContain('Origem: Instagram');
+      wrapper.find('[data-testid="kanban-card-custom-fields"]').exists()
+    ).toBe(false);
     expect(wrapper.text()).not.toContain('Não exibir');
   });
 
-  it('offers a keyboard-friendly stage move action', async () => {
+  it('keeps stage movement out of the dense card surface', () => {
     const wrapper = mountCard({
       stages: [
         { id: 1, name: 'New lead' },
@@ -299,41 +360,9 @@ describe('KanbanConversationCard', () => {
       ],
     });
 
-    const moveSelect = wrapper.find('[data-testid="kanban-card-move-stage"]');
-    expect(moveSelect.exists()).toBe(true);
-
-    await moveSelect.setValue('2');
-
-    expect(wrapper.emitted('moveCard')).toEqual([
-      [expect.objectContaining({ id: 10 }), 2],
-    ]);
-  });
-
-  it('limits compact custom fields to two rows', () => {
-    const wrapper = mountCard({
-      card: buildManualCard({
-        compactCustomFields: [
-          { key: 'origem', label: 'Origem', value: 'Google' },
-          { key: 'campanha', label: 'Campanha', value: 'Julho' },
-          { key: 'anuncio', label: 'Anuncio', value: 'Criativo 3' },
-        ],
-      }),
-    });
-
-    const fields = wrapper.find('[data-testid="kanban-card-custom-fields"]');
-    expect(fields.text()).toContain('Origem: Google');
-    expect(fields.text()).toContain('Campanha: Julho');
-    expect(fields.text()).not.toContain('Anuncio: Criativo 3');
-  });
-
-  it('renders the expected closing date', () => {
-    const wrapper = mountCard({
-      card: buildManualCard({ expectedCloseDate: '2026-08-15' }),
-    });
-
     expect(
-      wrapper.find('[data-testid="kanban-card-expected-close-date"]').text()
-    ).toContain('Aug 15');
+      wrapper.find('[data-testid="kanban-card-move-stage"]').exists()
+    ).toBe(false);
   });
 
   it('emits openDetails even when conversationId is null', async () => {
@@ -411,12 +440,11 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.text()).not.toContain('Edit');
   });
 
-  it('renders inbox badge separately from the inbox pill', () => {
+  it('renders a channel indicator without an inbox text pill', () => {
     const wrapper = mountCard();
-    const inboxName = wrapper.findComponent({ name: 'InboxName' });
 
     expect(wrapper.findComponent({ name: 'ChannelIcon' }).exists()).toBe(true);
-    expect(inboxName.props('showIcon')).toBe(false);
+    expect(wrapper.findComponent({ name: 'InboxName' }).exists()).toBe(false);
   });
 
   it('does not leave optional rows when optional values are missing', () => {

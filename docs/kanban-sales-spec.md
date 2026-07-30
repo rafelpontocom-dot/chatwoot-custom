@@ -38,6 +38,10 @@ Campos comerciais implementados:
 - `compact_card_field_keys`: campos customizados exibidos no card compacto;
 - `stale_stage_thresholds`: limites por etapa para alerta de card parado.
 
+Na configuração do board, os limites de `stale_stage_thresholds` usam divulgação progressiva: o estado inicial mostra apenas a quantidade de etapas configuradas; o botão `Configurar` expande os inputs por etapa. Fechar esse editor não descarta os valores já presentes em `form.staleStageThresholds`.
+
+`appointment_reminder_hours` configura somente a criação de próxima ação interna antes de um agendamento. O resumo deve indicar se está desativado ou a antecedência configurada; os inputs ficam recolhidos até ação explícita do usuário. Mensagens de consulta ao cliente pertencem às regras de automação, não a este campo.
+
 ### KanbanStage
 
 Representa etapa comercial.
@@ -665,6 +669,10 @@ P0:
 - ordenação por próxima ação, criação, valor e tempo na etapa;
 - filtros salvos por usuário, sem alterar a configuração global do board.
 
+O cabeçalho operacional é dividido em duas faixas: a primeira contém seletor do board, busca, criação rápida e menu de ações; a segunda contém alternância Kanban/Lista, abertura da Central `Hoje` e filtros, com a contagem de critérios ativos no botão de filtros. A busca aceita `Enter`, possui ação visível de aplicar e limpeza independente, que preserva os demais filtros. Ordenação e filtros salvos são renderizados somente dentro do painel de filtros. Exportação, resumo comercial, automações e configurações ficam no menu de ações para preservar a largura do canvas. Na visão em lista, a seleção do cabeçalho atua exclusivamente sobre cards visíveis e já carregados; cards fora da página não entram na operação em massa por inferência.
+
+Os formulários de salvar e renomear filtros salvos são filhos do painel de filtros. Renomear, excluir, salvar e limpar são exibidos somente nesse painel; `toggleSaveFilterForm` e `openRenameSavedFilter` devem abrir `showFiltersPanel` antes de exibir o input correspondente.
+
 ### Board Settings
 
 Implementado:
@@ -685,6 +693,8 @@ Implementado:
 
 Os templates são escolhidos na criação do board: venda por WhatsApp, clínica/consulta, serviço B2B e funil em branco.
 
+O editor de etapas mantém lista compacta, ordenável pela alça de arraste, com cor, nome, total de cards e categoria. A seleção é um botão acessível e abre um único painel de detalhe para editar `category`, `wip_limit` e `probability`; a lista nunca repete esses controles em todas as linhas. A criação usa diálogo modal curto com nome, cor, Cancelar e Criar, fechável por Escape.
+
 P0 de experiência do construtor de campos:
 
 - agrupar cada campo em `Dados básicos`, `Exibição condicional`, `Cálculo` e `Validação por etapa`;
@@ -695,6 +705,14 @@ P0 de experiência do construtor de campos:
 - rotular claramente a expressão como `Fórmula`, nunca como `For igual a`;
 - manter JSON apenas em área avançada recolhida;
 - apresentar prévia de como o campo aparecerá no card.
+
+A criação visual de campo é em duas fases: o diálogo inicial exige `label` e `field_type`, deriva `key` com `customFieldKeyFromLabel(label)` e só então adiciona o campo ao editor da aba ativa. Cancelar não altera `custom_field_definitions`; o botão de confirmar permanece desabilitado sem nome.
+
+`custom_field_sections` é apresentado como um `tablist`: cada aba é um botão focável com `role="tab"` e `aria-selected`. Campos de nome e ações de renomear, mover ou remover não ficam dentro das abas; aparecem exclusivamente na barra contextual da aba personalizada ativa.
+
+A criação de aba usa modal contextual. O botão `+` abre o diálogo, o nome é obrigatório, Enter confirma e Cancelar/Escape descartam o rascunho sem alterar `custom_field_sections`.
+
+Grupos da aba são gerenciados em diálogo modal contextual. A tela principal mostra apenas o acesso à gestão, a contagem e os dropzones dos grupos. Criar, renomear, trocar cor ou remover grupo não expande o layout do construtor; a remoção move os campos do grupo para a área sem grupo da mesma aba.
 
 ### Movimentacao Assistida
 
@@ -1009,7 +1027,7 @@ Não deve existir endpoint ou persistência paralela para a lista.
 
 ### Central De Atividades
 
-`KanbanActivityCenter` é uma visão de trabalho separada dos relatórios. Ela agrupa cards carregados por:
+`KanbanActivityCenter` é a visão própria `Hoje`, separada dos relatórios e do cabeçalho permanente do board. Ela agrupa cards carregados por:
 
 - hoje;
 - atrasadas;
@@ -1020,18 +1038,18 @@ Não deve existir endpoint ou persistência paralela para a lista.
 
 Cada item emite a abertura do detalhe. A consulta remota é paginada no backend e a aba de agendamentos ordena pela data/hora de início. A central não envia lembretes nem mensagens ao cliente; ela apenas organiza o trabalho do agente.
 
-### Prévia De Drawer
+### Drawer Da Oportunidade
 
-`KanbanOpportunityDrawerPreview` é uma prévia não destrutiva. Ela não salva dados e não substitui o modal atual. O aceite visual deve verificar:
+`KanbanOpportunityDrawer` é a edição real da oportunidade. Ele é aberto pelo card em qualquer visualização e sobrepõe o board sem alterar as dimensões das colunas. O aceite visual deve verificar:
 
 - foco inicial e fechamento por Escape;
-- backdrop sem bloquear o conteúdo do drawer;
+- backdrop discreto e fechamento explícito sem perder o scroll ou os filtros do board;
 - largura adequada em desktop e mobile;
 - cabeçalho e rodapé fixos durante rolagem;
 - navegação por abas sem perda de contexto;
 - leitura correta por leitor de tela.
 
-Somente após esse aceite a implementação deve migrar a edição real para drawer.
+O drawer preserva a mesma API e validações do detalhe existente; ele altera a apresentação, não cria uma segunda fonte de dados.
 
 ## Entradas E Autorizacao
 
@@ -1043,6 +1061,7 @@ Somente após esse aceite a implementação deve migrar a edição real para dra
 
 ## Governanca De Configuracao
 
+- O gerenciador usa lista/tabela compacta e detalhe progressivo para campos, abas, estágios e regras; não exibe múltiplos formulários extensos simultaneamente.
 - Campos e abas são identificados por chaves estáveis.
 - Renomear não altera a chave.
 - Remover campo com valores exige contagem de impacto e confirmação.

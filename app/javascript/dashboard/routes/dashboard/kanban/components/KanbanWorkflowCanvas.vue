@@ -49,6 +49,7 @@ const emit = defineEmits([
         :edge-types="edgeTypes"
         :min-zoom="0.4"
         :max-zoom="1.8"
+        :fit-view-options="{ maxZoom: 1 }"
         class="bg-n-surface-2"
         fit-view-on-init
         @update:nodes="emit('update:nodes', $event)"
