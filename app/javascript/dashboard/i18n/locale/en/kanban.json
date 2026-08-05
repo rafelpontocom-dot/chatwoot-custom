@@ -1120,6 +1120,8 @@
           "ANY_STAGE": "Any stage",
           "ANY_OWNER": "Any owner",
           "ANY_FIELD": "Any field",
+          "ANY_VALUE": "Any value",
+          "CHANGED_FIELD_NEW_VALUE": "New value",
           "EQUALS": "Equals",
           "NOT_EQUALS": "Does not equal",
           "CONTAINS": "Contains",
@@ -1192,7 +1194,9 @@
       "TIMELINE": {
         "EMPTY": "No changes yet.",
         "LOAD_ERROR": "Could not load the opportunity timeline.",
-        "SYSTEM": "System"
+        "SYSTEM": "System",
+        "ENTERED_STAGE": "Entered {stage}",
+        "CREATED_IN_STAGE": "Created in {stage}"
       },
       "TITLE": "Opportunity details",
       "TITLE_WITH_BOARD": "Edit opportunity in {boardName}",

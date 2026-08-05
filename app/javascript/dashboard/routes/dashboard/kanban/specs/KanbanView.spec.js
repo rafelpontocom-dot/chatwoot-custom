@@ -1847,7 +1847,7 @@ describe('KanbanView drag and drop', () => {
     expect(
       wrapper.findComponent({ name: 'KanbanOpportunityDetailsModal' }).props()
     ).toHaveProperty('drawerMode');
-    expect(drawer.find('aside').classes()).toContain('max-w-[28rem]');
+    expect(drawer.find('aside').classes()).toContain('max-w-[36rem]');
   });
 
   it('closes opportunity modal and clears selected card', async () => {

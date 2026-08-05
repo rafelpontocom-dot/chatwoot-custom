@@ -1123,6 +1123,8 @@
           "ANY_STAGE": "Qualquer etapa",
           "ANY_OWNER": "Qualquer responsável",
           "ANY_FIELD": "Qualquer campo",
+          "ANY_VALUE": "Qualquer valor",
+          "CHANGED_FIELD_NEW_VALUE": "Novo valor",
           "EQUALS": "É igual a",
           "NOT_EQUALS": "É diferente de",
           "CONTAINS": "Contém",
@@ -1195,7 +1197,9 @@
       "TIMELINE": {
         "EMPTY": "Nenhuma alteração registrada.",
         "LOAD_ERROR": "Não foi possível carregar o histórico da oportunidade.",
-        "SYSTEM": "Sistema"
+        "SYSTEM": "Sistema",
+        "ENTERED_STAGE": "Entrou na etapa {stage}",
+        "CREATED_IN_STAGE": "Criada na etapa {stage}"
       },
       "TITLE": "Detalhes da oportunidade",
       "TITLE_WITH_BOARD": "Editar oportunidade em {boardName}",

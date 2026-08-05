@@ -2777,7 +2777,7 @@ onUnmounted(() => {
         @click="requestOpportunityClose"
       />
       <aside
-        class="relative flex h-full w-full max-w-[28rem] flex-col bg-n-background shadow-xl"
+        class="relative flex h-full w-full max-w-[36rem] flex-col bg-n-background shadow-xl"
       >
         <KanbanOpportunityDetailsModal
           ref="opportunityDetailsModal"

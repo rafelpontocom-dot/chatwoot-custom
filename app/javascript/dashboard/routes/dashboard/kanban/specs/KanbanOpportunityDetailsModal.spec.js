@@ -24,6 +24,9 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE': 'Timeline',
         'KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE': 'Expected close date',
         'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY': 'No changes yet',
+        'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.ENTERED_STAGE': 'Entered {stage}',
+        'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CREATED_IN_STAGE':
+          'Created in {stage}',
         'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER':
           'Add a single note for this card',
         'KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE': 'Agent',
@@ -210,6 +213,15 @@ const mountModal = async ({
   resolveLabels = true,
   accountLabels = labels,
   assignedLabels = [labels[0]],
+  timeline = [
+    {
+      id: 1,
+      event_type: 'card_created',
+      occurred_at: '2026-07-21T12:00:00Z',
+      actor: { name: 'Jane Agent' },
+      changes: {},
+    },
+  ],
   customFieldDefinitions = [
     {
       key: 'consulta_realizada',
@@ -240,17 +252,7 @@ const mountModal = async ({
 
   if (resolveLoad) {
     KanbanBoardsAPI.showCardById.mockResolvedValue({ data: card });
-    KanbanBoardsAPI.getCardTimeline.mockResolvedValue({
-      data: [
-        {
-          id: 1,
-          event_type: 'card_created',
-          occurred_at: '2026-07-21T12:00:00Z',
-          actor: { name: 'Jane Agent' },
-          changes: {},
-        },
-      ],
-    });
+    KanbanBoardsAPI.getCardTimeline.mockResolvedValue({ data: timeline });
   }
 
   const wrapper = mount(KanbanOpportunityDetailsModal, {
@@ -357,6 +359,37 @@ describe('KanbanOpportunityDetailsModal', () => {
     ]);
   });
 
+  it('merges legacy aliases into the standard general and marketing tabs', async () => {
+    const wrapper = await mountModal({
+      customFieldDefinitions: [
+        {
+          key: 'resumo',
+          label: 'Resumo',
+          fieldType: 'text',
+          layout: { section: 'Detail' },
+        },
+        {
+          key: 'origem',
+          label: 'Origem',
+          fieldType: 'text',
+          layout: { section: 'Marketing' },
+        },
+      ],
+      customFieldSections: [
+        { key: 'Geral', label: 'Geral' },
+        { key: 'Marketing', label: 'Marketing' },
+      ],
+    });
+
+    expect(
+      wrapper.findAll('[data-testid="kanban-opportunity-tab-details"]')
+    ).toHaveLength(1);
+    expect(
+      wrapper.findAll('[data-testid="kanban-opportunity-tab-marketing"]')
+    ).toHaveLength(1);
+    expect(wrapper.text()).not.toContain('Detail');
+  });
+
   it('links the active opportunity tab to its content panel', async () => {
     const wrapper = await mountModal();
     const detailsTab = wrapper.find(
@@ -424,6 +457,28 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toContain('Jane Agent');
   });
 
+  it('uses the immutable stage snapshot in the timeline label', async () => {
+    const wrapper = await mountModal({
+      timeline: [
+        {
+          id: 10,
+          event_type: 'stage_changed',
+          occurred_at: '2026-07-21T12:00:00Z',
+          actor: { name: 'Jane Agent' },
+          metadata: { to_stage: { name: 'Proposta enviada' } },
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-timeline"]').text()
+    ).toContain('Entered Proposta enviada');
+  });
+
   it('renders a responsive two-column layout', async () => {
     const wrapper = await mountModal();
 
@@ -442,6 +497,15 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
     ).toContain('xl:grid-cols-[minmax(0,1fr)_18rem]');
+  });
+
+  it('keeps drawer content in one column so the commercial context cannot overlap fields', async () => {
+    const wrapper = await mountModal();
+    await wrapper.setProps({ drawerMode: true });
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
+    ).not.toContain('lg:grid-cols-[minmax(0,1fr)_18rem]');
   });
 
   it('renders title, compact description, and amount controls', async () => {

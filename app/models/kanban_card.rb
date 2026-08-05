@@ -316,11 +316,26 @@ class KanbanCard < ApplicationRecord
     return if source_stage == target_stage
 
     reload
-    create_card_event!('stage_changed', 'kanban_stage_id' => [source_stage.id, target_stage.id])
+    occurred_at = Time.current
+    create_card_event!(
+      'stage_changed',
+      { 'kanban_stage_id' => [source_stage.id, target_stage.id] },
+      metadata: stage_change_metadata(source_stage, target_stage, occurred_at),
+      occurred_at: occurred_at
+    )
   end
 
   def record_creation_event
-    create_card_event!('card_created', {})
+    occurred_at = stage_entered_at || Time.current
+    create_card_event!(
+      'card_created',
+      {},
+      metadata: {
+        'entered_stage' => stage_snapshot(kanban_stage),
+        'entered_at' => occurred_at.iso8601
+      },
+      occurred_at: occurred_at
+    )
   end
 
   def record_commercial_events
@@ -329,7 +344,8 @@ class KanbanCard < ApplicationRecord
       next if event_changes.blank?
       next unless event_matches_current_state?(event_type)
 
-      create_card_event!(event_type, event_changes)
+      metadata = event_type == 'stage_changed' ? saved_stage_change_metadata(event_changes) : {}
+      create_card_event!(event_type, event_changes, metadata: metadata)
     end
 
     record_reopened_event if reopened_by_last_change?
@@ -360,16 +376,38 @@ class KanbanCard < ApplicationRecord
     end
   end
 
-  def create_card_event!(event_type, event_changes)
+  def create_card_event!(event_type, event_changes, metadata: {}, occurred_at: Time.current)
     kanban_card_events.create!(
       account: account,
       kanban_board: kanban_board,
       event_type: event_type,
       actor: @event_actor || Current.user,
-      occurred_at: Time.current,
+      occurred_at: occurred_at,
       change_set: event_changes,
-      metadata: {}
+      metadata: metadata
     )
+  end
+
+  def saved_stage_change_metadata(event_changes)
+    source_stage_id, target_stage_id = event_changes.fetch('kanban_stage_id')
+    source_stage = kanban_board.kanban_stages.find_by(id: source_stage_id)
+    target_stage = kanban_board.kanban_stages.find_by(id: target_stage_id)
+
+    stage_change_metadata(source_stage, target_stage, stage_entered_at)
+  end
+
+  def stage_change_metadata(source_stage, target_stage, occurred_at)
+    {
+      'from_stage' => stage_snapshot(source_stage),
+      'to_stage' => stage_snapshot(target_stage),
+      'entered_at' => occurred_at.iso8601
+    }
+  end
+
+  def stage_snapshot(stage)
+    return {} if stage.blank?
+
+    { 'id' => stage.id, 'name' => stage.name, 'category' => stage.category }
   end
 
   def normalize_reorder_stages!(source_stage, target_stage)

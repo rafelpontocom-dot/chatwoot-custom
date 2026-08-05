@@ -11,6 +11,20 @@ RSpec.describe KanbanCardEvent do
 
     event = card.reload.kanban_card_events.find_by!(event_type: 'stage_changed')
 
+    expect(event.metadata).to include(
+      'from_stage' => {
+        'id' => source_stage_id,
+        'name' => card.kanban_board.kanban_stages.find(source_stage_id).name,
+        'category' => 'open'
+      },
+      'to_stage' => {
+        'id' => next_stage.id,
+        'name' => next_stage.name,
+        'category' => next_stage.category
+      },
+      'entered_at' => event.occurred_at.iso8601
+    )
+
     expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
       Events::Types::KANBAN_CARD_STAGE_CHANGED,
       event.occurred_at,
@@ -26,6 +40,20 @@ RSpec.describe KanbanCardEvent do
         event_type: 'stage_changed',
         change_set: { 'kanban_stage_id' => [source_stage_id, next_stage.id] }
       )
+    )
+  end
+
+  it 'records the stage where an opportunity was created' do
+    card = create(:kanban_card)
+    event = card.kanban_card_events.find_by!(event_type: 'card_created')
+
+    expect(event.metadata).to include(
+      'entered_stage' => {
+        'id' => card.kanban_stage_id,
+        'name' => card.kanban_stage.name,
+        'category' => card.kanban_stage.category
+      },
+      'entered_at' => card.stage_entered_at.iso8601
     )
   end
 

@@ -35,4 +35,41 @@ describe('KanbanWorkflowTriggerInspector', () => {
 
     expect(wrapper.emitted('update:config')).toEqual([[{ stageId: '9' }]]);
   });
+
+  it('offers configured options after selecting a choice field trigger', async () => {
+    const wrapper = shallowMount(KanbanWorkflowTriggerInspector, {
+      props: {
+        triggerValue: 'kanban.card.fields_changed',
+        triggerOptions: [
+          { value: 'kanban.card.fields_changed', label: 'Campo alterado' },
+        ],
+        triggerContext: 'changed_field',
+        config: { changedFieldKey: 'origem', changedFieldValue: '' },
+        fields: [
+          {
+            key: 'origem',
+            label: 'Origem',
+            conditionOptions: [
+              { value: 'organico', label: 'Orgânico' },
+              { value: 'meta', label: 'Mídia Paga: Meta' },
+            ],
+          },
+        ],
+        t,
+      },
+    });
+
+    const valueSelect = wrapper.find(
+      '[data-testid="kanban-workflow-trigger-field-value"]'
+    );
+
+    expect(valueSelect.exists()).toBe(true);
+    expect(valueSelect.text()).toContain('Mídia Paga: Meta');
+
+    await valueSelect.setValue('meta');
+
+    expect(wrapper.emitted('update:config')).toContainEqual([
+      { changedFieldValue: 'meta' },
+    ]);
+  });
 });

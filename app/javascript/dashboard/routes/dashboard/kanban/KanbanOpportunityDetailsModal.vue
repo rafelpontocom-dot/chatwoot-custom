@@ -189,10 +189,32 @@ const normalizedCustomFieldDefinitions = computed(() =>
         (secondDefinition.layout?.position || 0)
     )
 );
-const customFieldSectionKey = definition =>
-  definition.layout?.section?.trim() || 'details';
+const canonicalFieldLayoutKey = value =>
+  String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+const customFieldSectionKey = definition => {
+  const key = canonicalFieldLayoutKey(definition.layout?.section);
+
+  return (
+    {
+      detail: 'details',
+      details: 'details',
+      general: 'details',
+      geral: 'details',
+      marketing: 'marketing',
+      mkt: 'marketing',
+    }[key] ||
+    key ||
+    'details'
+  );
+};
 const customFieldGroupKey = definition =>
-  definition.layout?.group?.trim() || '';
+  canonicalFieldLayoutKey(definition.layout?.group);
 const customFieldSectionLabel = sectionKey => {
   if (sectionKey === 'details') {
     return t('KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL');
@@ -206,28 +228,44 @@ const customFieldSectionLabel = sectionKey => {
     .replace(/^./, character => character.toUpperCase());
 };
 const customFieldTabs = computed(() => {
-  const sections = [
-    {
-      key: 'details',
-      label: customFieldSectionLabel('details'),
-    },
-    {
-      key: 'marketing',
-      label: customFieldSectionLabel('marketing'),
-    },
-    ...props.customFieldSections,
-  ];
-  const knownKeys = new Set(sections.map(section => section.key));
+  const sections = new Map([
+    [
+      'details',
+      { key: 'details', label: customFieldSectionLabel('details'), groups: [] },
+    ],
+    [
+      'marketing',
+      {
+        key: 'marketing',
+        label: customFieldSectionLabel('marketing'),
+        groups: [],
+      },
+    ],
+  ]);
+
+  props.customFieldSections.forEach(section => {
+    const key = customFieldSectionKey({ layout: { section: section.key } });
+    const existingSection = sections.get(key);
+    sections.set(key, {
+      ...section,
+      ...existingSection,
+      key,
+      groups: section.groups || existingSection?.groups || [],
+    });
+  });
 
   normalizedCustomFieldDefinitions.value.forEach(definition => {
     const key = customFieldSectionKey(definition);
-    if (knownKeys.has(key)) return;
+    if (sections.has(key)) return;
 
-    knownKeys.add(key);
-    sections.push({ key, label: customFieldSectionLabel(key) });
+    sections.set(key, {
+      key,
+      label: customFieldSectionLabel(key),
+      groups: [],
+    });
   });
 
-  return sections;
+  return [...sections.values()];
 });
 const timelineTab = computed(() => ({
   key: 'timeline',
@@ -317,12 +355,22 @@ const activeTabGroups = computed(() => {
     section => section.key === activeTabKey.value
   );
   const definitions = activeTabCustomFieldDefinitions.value;
-  const groups = (activeSection?.groups || []).map(group => ({
-    ...group,
-    definitions: definitions.filter(
-      definition => customFieldGroupKey(definition) === group.key
-    ),
-  }));
+  const seenGroupKeys = new Set();
+  const groups = (activeSection?.groups || []).flatMap(group => {
+    const key = canonicalFieldLayoutKey(group.key);
+    if (!key || seenGroupKeys.has(key)) return [];
+
+    seenGroupKeys.add(key);
+    return [
+      {
+        ...group,
+        key,
+        definitions: definitions.filter(
+          definition => customFieldGroupKey(definition) === key
+        ),
+      },
+    ];
+  });
   const ungrouped = definitions.filter(
     definition => !customFieldGroupKey(definition)
   );
@@ -500,10 +548,25 @@ const loadTimeline = async () => {
   }
 };
 
-const timelineEventLabel = eventType =>
-  String(eventType || '')
+const timelineEventLabel = event => {
+  const enteredStage = event.metadata?.to_stage?.name;
+  const createdStage = event.metadata?.entered_stage?.name;
+
+  if (event.event_type === 'stage_changed' && enteredStage) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.ENTERED_STAGE', {
+      stage: enteredStage,
+    });
+  }
+  if (event.event_type === 'card_created' && createdStage) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CREATED_IN_STAGE', {
+      stage: createdStage,
+    });
+  }
+
+  return String(event.event_type || '')
     .replaceAll('_', ' ')
     .replace(/^./, character => character.toUpperCase());
+};
 const timelineEventMeta = event => {
   const actorName =
     event.actor?.name || t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.SYSTEM');
@@ -908,7 +971,7 @@ watch(showUnsavedChanges, async visible => {
           :aria-labelledby="`kanban-opportunity-tab-${activeTabKey}`"
           :class="
             drawerMode
-              ? 'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]'
+              ? 'grid min-w-0 gap-4'
               : 'grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]'
           "
         >
@@ -1005,7 +1068,7 @@ watch(showUnsavedChanges, async visible => {
                   class="grid gap-1 border-b border-n-weak pb-3 last:border-0"
                 >
                   <strong class="text-sm text-n-slate-12">
-                    {{ timelineEventLabel(event.event_type) }}
+                    {{ timelineEventLabel(event) }}
                   </strong>
                   <span class="text-xs text-n-slate-11">
                     {{ timelineEventMeta(event) }}

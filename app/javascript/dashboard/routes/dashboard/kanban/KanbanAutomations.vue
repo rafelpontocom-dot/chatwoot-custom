@@ -143,6 +143,7 @@ const form = reactive({
   stageId: '',
   ownerId: '',
   changedFieldKey: '',
+  changedFieldValue: '',
   connectionId: '',
   customerMessageMode: 'any',
   customerMessageContains: '',
@@ -892,6 +893,10 @@ const conditionFields = computed(() => [
   {
     key: 'system_next_action_type',
     label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_TYPE'),
+    conditionOptions: nextActionTypes.value.map(value => ({
+      value,
+      label: value,
+    })),
   },
   {
     key: 'system_next_action_at',
@@ -908,6 +913,10 @@ const conditionFields = computed(() => [
   {
     key: 'system_lost_reason',
     label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.LOST_REASON'),
+    conditionOptions: lostReasonOptions.value.map(value => ({
+      value,
+      label: value,
+    })),
   },
   {
     key: 'system_contact_id',
@@ -947,7 +956,13 @@ const triggerSummary = computed(() => {
     const field = conditionFields.value.find(
       item => item.key === form.changedFieldKey
     );
-    return `${eventLabel}: ${field?.label || form.changedFieldKey}`;
+    const selectedValue = field?.conditionOptions?.find(
+      item => String(item.value) === String(form.changedFieldValue)
+    );
+    const summary = field?.label || form.changedFieldKey;
+    return selectedValue
+      ? `${eventLabel}: ${summary} = ${selectedValue.label}`
+      : `${eventLabel}: ${summary}`;
   }
   if (triggerContext.value === 'webhook' && form.connectionId) {
     const connection = connections.value.find(
@@ -1010,6 +1025,7 @@ const resetForm = () => {
   form.stageId = '';
   form.ownerId = '';
   form.changedFieldKey = '';
+  form.changedFieldValue = '';
   form.connectionId = '';
   form.customerMessageContains = '';
   form.customerMessageMode = 'any';
@@ -1028,6 +1044,10 @@ const resetForm = () => {
 const applyRule = rule => {
   const normalized = normalize(rule);
   const conditions = normalized.conditions || {};
+  const changedFieldKey = conditions.changedFieldKeys?.[0] || '';
+  const changedFieldCondition = conditions.fields?.find(
+    item => item.fieldKey === changedFieldKey
+  );
   const field =
     conditions.fields?.find(
       item =>
@@ -1035,7 +1055,7 @@ const applyRule = rule => {
           'system_next_action_type',
           'system_amount',
           'system_lost_reason',
-        ].includes(item.fieldKey)
+        ].includes(item.fieldKey) && item.fieldKey !== changedFieldKey
     ) || {};
   selectedRuleId.value = normalized.id;
   selectedExecutionId.value = '';
@@ -1051,7 +1071,8 @@ const applyRule = rule => {
   form.cancelWaitingExecutions = false;
   form.stageId = conditions.stageIds?.[0] || '';
   form.ownerId = conditions.ownerIds?.[0] || '';
-  form.changedFieldKey = conditions.changedFieldKeys?.[0] || '';
+  form.changedFieldKey = changedFieldKey;
+  form.changedFieldValue = changedFieldCondition?.value || '';
   form.connectionId = conditions.connectionIds?.[0] || '';
   form.customerMessageContains = conditions.customerMessageContains || '';
   form.customerMessageMode = conditions.customerMessageContains
@@ -1923,6 +1944,17 @@ const payload = () => ({
                 field_key: form.fieldKey,
                 operator: form.fieldOperator,
                 value: form.fieldValue,
+              },
+            ]
+          : []),
+        ...(triggerContext.value === 'changed_field' &&
+        form.changedFieldKey &&
+        form.changedFieldValue !== ''
+          ? [
+              {
+                field_key: form.changedFieldKey,
+                operator: 'equals',
+                value: form.changedFieldValue,
               },
             ]
           : []),

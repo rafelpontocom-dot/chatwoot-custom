@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
   triggerValue: { type: String, required: true },
   triggerOptions: { type: Array, default: () => [] },
@@ -16,6 +18,15 @@ const props = defineProps({
 const emit = defineEmits(['update:triggerValue', 'update:config']);
 
 const updateConfig = (key, value) => emit('update:config', { [key]: value });
+
+const selectedChangedField = computed(() =>
+  props.fields.find(field => field.key === props.config.changedFieldKey)
+);
+const selectedChangedFieldOptions = computed(
+  () => selectedChangedField.value?.conditionOptions || []
+);
+const updateChangedField = value =>
+  emit('update:config', { changedFieldKey: value, changedFieldValue: '' });
 
 const stageEvents = ['kanban.card.created', 'kanban.card.stage_changed'];
 
@@ -140,24 +151,46 @@ const toggleStageEvent = (eventName, checked) => {
       </select>
     </label>
 
-    <label
-      v-else-if="triggerContext === 'changed_field'"
-      class="grid gap-1 text-xs font-medium text-n-slate-11"
-    >
-      {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
-      <select
-        :value="config.changedFieldKey || ''"
-        class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-        @change="updateConfig('changedFieldKey', $event.target.value)"
+    <template v-else-if="triggerContext === 'changed_field'">
+      <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+        {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SELECT_FIELD') }}
+        <select
+          :value="config.changedFieldKey || ''"
+          class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          @change="updateChangedField($event.target.value)"
+        >
+          <option value="">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
+          </option>
+          <option v-for="field in fields" :key="field.key" :value="field.key">
+            {{ field.label }}
+          </option>
+        </select>
+      </label>
+      <label
+        v-if="selectedChangedFieldOptions.length"
+        class="grid gap-1 text-xs font-medium text-n-slate-11"
       >
-        <option value="">
-          {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_FIELD') }}
-        </option>
-        <option v-for="field in fields" :key="field.key" :value="field.key">
-          {{ field.label }}
-        </option>
-      </select>
-    </label>
+        {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CHANGED_FIELD_NEW_VALUE') }}
+        <select
+          :value="config.changedFieldValue || ''"
+          data-testid="kanban-workflow-trigger-field-value"
+          class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          @change="updateConfig('changedFieldValue', $event.target.value)"
+        >
+          <option value="">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_VALUE') }}
+          </option>
+          <option
+            v-for="option in selectedChangedFieldOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+    </template>
 
     <label
       v-else-if="triggerContext === 'next_action'"
