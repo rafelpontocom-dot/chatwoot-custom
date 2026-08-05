@@ -16,7 +16,8 @@ RSpec.describe KanbanAutomations::DispatchOverdueNextActionsService do
   end
 
   it 'dispatches an overdue next-action rule once per card and day' do
-    card = create(:kanban_card, next_action_at: 1.hour.ago, next_action_completed_at: nil)
+    now = Time.zone.parse('2026-08-04 10:00:00')
+    card = create(:kanban_card, next_action_at: now - 1.hour, next_action_completed_at: nil)
     rule = create(
       :kanban_automation_rule,
       account: card.account,
@@ -25,7 +26,7 @@ RSpec.describe KanbanAutomations::DispatchOverdueNextActionsService do
     )
 
     expect do
-      described_class.new(now: Time.zone.parse('2026-08-04 10:00:00')).perform!
+      described_class.new(now: now).perform!
     end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob).with(
       rule.id,
       Events::Types::KANBAN_CARD_NEXT_ACTION_OVERDUE,
