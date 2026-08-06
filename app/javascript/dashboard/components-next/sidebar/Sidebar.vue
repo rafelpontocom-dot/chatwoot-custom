@@ -75,6 +75,13 @@ const hasConversationUnreadCounts = computed(() => {
   );
 });
 
+const hasCaptain = computed(() => {
+  return isFeatureEnabledonAccount.value(
+    accountId.value,
+    FEATURE_FLAGS.CAPTAIN
+  );
+});
+
 const fetchConversationUnreadCounts = ([currentAccountId, isEnabled]) => {
   if (!currentAccountId) return;
 
@@ -850,7 +857,7 @@ const menuItems = computed(() => {
         },
       ],
     },
-  ];
+  ].filter(item => item.name !== 'Captain' || hasCaptain.value);
 });
 </script>
 

@@ -8,6 +8,12 @@ import { messageStamp } from 'shared/helpers/timeHelper';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 
+const mockPush = vi.fn();
+
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 vi.mock('shared/helpers/timeHelper', () => ({
   messageStamp: vi.fn(() => 'Jun 7, 2026 6:00 PM'),
 }));
@@ -45,6 +51,8 @@ vi.mock('vue-i18n', () => ({
         'CONVERSATION_SIDEBAR.KANBAN.UPDATE_ERROR':
           'Failed to update opportunity',
         'CONVERSATION_SIDEBAR.KANBAN.UPDATED': 'Opportunity updated',
+        'CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD':
+          'Open opportunity in board',
       };
 
       return translations[key] || key;
@@ -205,6 +213,7 @@ describe('KanbanConversationCards', () => {
     useMapGetter.mockImplementation(key => {
       if (key === 'getSelectedChat') return computed(() => currentChat);
       if (key === 'labels/getLabels') return computed(() => accountLabels);
+      if (key === 'getCurrentAccountId') return computed(() => 1);
       return computed(() => undefined);
     });
 
@@ -317,6 +326,25 @@ describe('KanbanConversationCards', () => {
     expect(wrapper.text()).toContain(
       'No opportunities linked to this conversation'
     );
+  });
+
+  it('opens the exact opportunity in its board from the conversation panel', async () => {
+    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
+      data: { payload: [buildCard()] },
+    });
+
+    const wrapper = mountComponent();
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="kanban-open-linked-card"]')
+      .trigger('click');
+
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'kanban_board_show',
+      params: { accountId: 1, boardId: 10 },
+      query: { cardId: 123 },
+    });
   });
 
   it('renders error state', async () => {

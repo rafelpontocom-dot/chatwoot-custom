@@ -112,6 +112,10 @@ const boardRefreshEvents = new Set([
 const stageColorOptions = KANBAN_STAGE_COLOR_OPTIONS;
 
 const activeBoardId = computed(() => Number(route.params.boardId) || null);
+const requestedOpportunityCardId = computed(() => {
+  const cardId = Number(route.query?.cardId);
+  return cardId > 0 ? cardId : null;
+});
 const stages = computed(() => selectedBoard.value?.stages || []);
 const salesSummary = computed(() => selectedBoard.value?.salesSummary || null);
 const hasBoards = computed(() => boards.value.length > 0);
@@ -536,6 +540,9 @@ const showBoard = async boardId => {
     stageCardsLoading.value = {};
     stageCardsErrors.value = {};
     selectedBoard.value = normalizeKanbanPayload(response.data);
+    if (requestedOpportunityCardId.value) {
+      selectedOpportunityCardId.value = requestedOpportunityCardId.value;
+    }
     const savedFilterResponse = await KanbanBoardsAPI.getSavedFilters(boardId);
     savedFilters.value = savedFilterResponse.data || [];
   } catch {
@@ -1415,6 +1422,17 @@ const openDetails = card => {
 
 const closeOpportunityDetails = () => {
   selectedOpportunityCardId.value = null;
+  if (!requestedOpportunityCardId.value) return;
+
+  const { cardId, ...query } = route.query;
+  router.replace({
+    name: 'kanban_board_show',
+    params: {
+      accountId: route.params.accountId,
+      boardId: selectedBoard.value?.id || route.params.boardId,
+    },
+    query,
+  });
 };
 const requestOpportunityClose = event => {
   if (opportunityDetailsModal.value?.requestClose) {
@@ -1555,6 +1573,12 @@ watch(selectedOpportunityCardId, async cardId => {
   await nextTick();
   opportunityTriggerElement.value?.focus?.();
   opportunityTriggerElement.value = null;
+});
+
+watch(requestedOpportunityCardId, cardId => {
+  if (cardId && selectedBoard.value) {
+    selectedOpportunityCardId.value = cardId;
+  }
 });
 
 onMounted(() => {

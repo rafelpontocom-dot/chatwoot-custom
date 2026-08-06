@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
@@ -18,9 +19,11 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const router = useRouter();
 const store = useStore();
 const currentChat = useMapGetter('getSelectedChat');
 const accountLabels = useMapGetter('labels/getLabels');
+const accountId = useMapGetter('getCurrentAccountId');
 
 const cards = ref([]);
 const isLoading = ref(false);
@@ -184,6 +187,17 @@ const defaultSubject = computed(() => {
 });
 
 const stageColorClass = getKanbanStageColorClass;
+
+const openCardInBoard = card => {
+  const boardId = card.kanban_board?.id || card.kanbanBoard?.id;
+  if (!boardId || !card.id || !accountId.value) return;
+
+  router.push({
+    name: 'kanban_board_show',
+    params: { accountId: accountId.value, boardId },
+    query: { cardId: card.id },
+  });
+};
 
 const formatDueAt = value => {
   if (!value) return t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET');
@@ -914,13 +928,26 @@ onBeforeUnmount(() => {
           @click.stop
           @submit.prevent="submitEdit(card)"
         >
-          <div class="min-w-0">
-            <p class="mb-1 text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.BOARD') }}
-            </p>
-            <p class="m-0 truncate text-sm text-n-slate-12">
-              {{ card.kanban_board?.name }}
-            </p>
+          <div class="flex min-w-0 items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="mb-1 text-xs font-medium text-n-slate-11">
+                {{ t('CONVERSATION_SIDEBAR.KANBAN.BOARD') }}
+              </p>
+              <p class="m-0 truncate text-sm text-n-slate-12">
+                {{ card.kanban_board?.name }}
+              </p>
+            </div>
+            <button
+              type="button"
+              data-testid="kanban-open-linked-card"
+              class="no-drag inline-flex size-8 shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-label="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
+              :title="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
+              @click.stop="openCardInBoard(card)"
+              @keydown.stop
+            >
+              <span aria-hidden="true" class="i-lucide-arrow-up-right size-4" />
+            </button>
           </div>
 
           <label class="flex flex-col gap-1">

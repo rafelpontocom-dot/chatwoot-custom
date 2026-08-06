@@ -42,6 +42,15 @@ Na configuração do board, os limites de `stale_stage_thresholds` usam divulga�
 
 `appointment_reminder_hours` configura somente a criação de próxima ação interna antes de um agendamento. O resumo deve indicar se está desativado ou a antecedência configurada; os inputs ficam recolhidos até ação explícita do usuário. Mensagens de consulta ao cliente pertencem às regras de automação, não a este campo.
 
+Controle de acesso implementado:
+
+- `visibility_mode`: `all_agents` ou `selected_agents`;
+- `visibleUserIds`: membros do board quando a visibilidade é selecionada;
+- `inbox_scope_mode`: `all_inboxes` ou `selected_inboxes`;
+- `allowedInboxIds`: caixas de entrada do board quando o escopo é selecionado.
+
+`KanbanBoardPolicy::Scope` e `KanbanBoardPolicy#visible?` restringem boards selecionados para agentes não administradores. Filtros e criação de oportunidades devem respeitar `inbox_allowed?`; a interface nunca é a única barreira de acesso.
+
 ### KanbanStage
 
 Representa etapa comercial.
@@ -103,6 +112,13 @@ Campos comerciais implementados:
 - `amount_currency`;
 - `custom_field_values`;
 - `next_action_history`: últimas ações concluídas, limitado a 100 registros;
+
+Navegação conversa-card implementada:
+
+- a lista de oportunidades da conversa expõe um botão acessível `Abrir oportunidade no funil` para cada card vinculado;
+- o destino é `kanban_board_show` com `cardId` na query string;
+- `KanbanView` abre o drawer daquele card depois de carregar o board;
+- ao fechar o drawer, `cardId` é removido da URL para impedir reabertura em atualizações posteriores.
 
 Campos futuros:
 

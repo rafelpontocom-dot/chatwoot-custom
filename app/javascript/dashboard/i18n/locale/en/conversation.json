@@ -437,6 +437,7 @@
       "SAVING": "Saving...",
       "UPDATE_ERROR": "Could not update opportunity",
       "UPDATED": "Opportunity updated",
+      "OPEN_IN_BOARD": "Open opportunity in board",
       "GENERAL_FIELDS": "Other fields",
       "MARKETING_FIELDS": "Marketing"
     },

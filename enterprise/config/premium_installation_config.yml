@@ -1,18 +1,18 @@
 # ------- Branding Related Config ------- #
 - name: INSTALLATION_NAME
-  value: 'Chatwoot'
+  value: 'RAEVO CRM'
 - name: LOGO_THUMBNAIL
-  value: '/brand-assets/logo_thumbnail.svg'
+  value: '/brand-assets/raevo-logo-thumbnail.svg'
 - name: LOGO
-  value: '/brand-assets/logo.svg'
+  value: '/brand-assets/raevo-logo.svg'
 - name: LOGO_DARK
-  value: '/brand-assets/logo_dark.svg'
+  value: '/brand-assets/raevo-logo.svg'
 - name: BRAND_URL
-  value: 'https://www.chatwoot.com'
+  value: 'https://chatwt.growautomacao.com.br'
 - name: WIDGET_BRAND_URL
-  value: 'https://www.chatwoot.com'
+  value: 'https://chatwt.growautomacao.com.br'
 - name: BRAND_NAME
-  value: 'Chatwoot'
+  value: 'RAEVO CRM'
 - name: TERMS_URL
   value: 'https://www.chatwoot.com/terms-of-service'
 - name: PRIVACY_URL

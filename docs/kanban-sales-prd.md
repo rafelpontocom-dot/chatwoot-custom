@@ -79,6 +79,8 @@ Dados que pertencem à pessoa, como data de nascimento, consentimento de comunic
 
 Interação ou atendimento. Pode originar uma oportunidade, mas não deve ser tratada como a oportunidade em si.
 
+Quando uma oportunidade abre a conversa de origem, a área `Oportunidades` do painel lateral mantém um atalho por card para reabri-lo no funil. O atalho é profundo: abre o board e o card específico, inclusive quando o contato possui várias oportunidades.
+
 ### KanbanCard
 
 Oportunidade comercial. Representa a venda em andamento.
@@ -88,6 +90,10 @@ Um contato pode ter mais de uma conversa e mais de uma oportunidade. A conversa 
 ### Board
 
 Funil comercial configurável. Cada board define etapas, tipos de próximo passo, campos personalizados, motivos de perda e regras de alerta.
+
+Um board pode representar uma unidade, operação ou time comercial. Administradores veem todos os boards; para agentes, cada board pode ser limitado a agentes selecionados e a caixas de entrada selecionadas. A API deve aplicar esse escopo, e não apenas esconder a navegação.
+
+Para clínica com uma médica administradora e duas secretárias, a configuração recomendada é um board por unidade, com a secretária e o WhatsApp correspondentes selecionados no board. A médica mantém acesso aos dois funis.
 
 ### Stage
 

@@ -22,6 +22,7 @@ const mockRoute = reactive({
     accountId: '1',
     boardId: '10',
   },
+  query: {},
 });
 
 vi.mock('vue-i18n', () => ({
@@ -498,6 +499,7 @@ const emitKanbanRealtimeEvent = async payload => {
 
 describe('KanbanView realtime events', () => {
   beforeEach(() => {
+    mockRoute.query = {};
     vi.clearAllMocks();
     vi.useRealTimers();
   });
@@ -1729,6 +1731,22 @@ describe('KanbanView drag and drop', () => {
       name: 'KanbanOpportunityDetailsModal',
     });
     expect(modal.exists()).toBe(true);
+  });
+
+  it('opens the requested opportunity from a cardId route query', async () => {
+    mockRoute.query = { cardId: '501' };
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(
+      wrapper
+        .findComponent({ name: 'KanbanOpportunityDetailsModal' })
+        .props('cardId')
+    ).toBe(501);
+
+    wrapper.unmount();
+    mockRoute.query = {};
   });
 
   it('navigates to conversation on card openConversation event', async () => {
