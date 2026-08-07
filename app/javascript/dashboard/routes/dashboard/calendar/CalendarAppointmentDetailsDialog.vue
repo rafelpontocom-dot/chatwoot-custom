@@ -218,6 +218,7 @@ const changeStatus = async action => {
     const response = await CalendarAPI.updateAppointment(appointment.value.id, {
       appointment: {
         action,
+        lock_version: appointment.value.lock_version,
         cancellation_reason:
           action === 'cancel' ? cancellationReason.value.trim() : undefined,
         scope: action === 'cancel' ? cancellationScope.value : undefined,

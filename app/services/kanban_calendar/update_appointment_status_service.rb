@@ -2,19 +2,23 @@ class KanbanCalendar::UpdateAppointmentStatusService
   ACTIONS = %w[confirm check_in complete no_show cancel].freeze
   CANCELLATION_SCOPES = %w[this_occurrence this_and_future all_occurrences].freeze
 
-  def initialize(appointment:, action:, actor: nil, cancellation_reason: nil, scope: 'this_occurrence')
+  # rubocop:disable Metrics/ParameterLists -- Mirrors the status action request contract.
+  def initialize(appointment:, action:, actor: nil, cancellation_reason: nil, scope: 'this_occurrence', expected_lock_version: nil)
     @appointment = appointment
     @action = action
     @actor = actor
     @cancellation_reason = cancellation_reason.to_s.strip
     @scope = scope.presence || 'this_occurrence'
+    @expected_lock_version = expected_lock_version
   end
+  # rubocop:enable Metrics/ParameterLists
 
   def perform!
     validate_action!
 
     appointments = ActiveRecord::Base.transaction do
       @appointment.lock!
+      validate_lock_version!
       appointments = appointments_to_update
       appointments.each do |appointment|
         update_appointment!(appointment)
@@ -39,6 +43,12 @@ class KanbanCalendar::UpdateAppointmentStatusService
   def invalid_action!(message)
     @appointment.errors.add(:status, "#{@action} #{message}")
     raise ActiveRecord::RecordInvalid, @appointment
+  end
+
+  def validate_lock_version!
+    return if @expected_lock_version.blank? || @appointment.lock_version == @expected_lock_version.to_i
+
+    raise ActiveRecord::StaleObjectError.new(@appointment, 'update')
   end
 
   def appointment_attributes

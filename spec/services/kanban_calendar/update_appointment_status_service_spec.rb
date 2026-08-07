@@ -64,6 +64,19 @@ RSpec.describe KanbanCalendar::UpdateAppointmentStatusService do
     expect(appointment.reload.kanban_calendar_appointment_events.last.event_type).to eq('checked_in')
   end
 
+  it 'rejects a status change made from a stale appointment version' do
+    expected_lock_version = appointment.lock_version
+    appointment.update!(notes: 'Alterada por outro agente')
+
+    expect do
+      described_class.new(
+        appointment: appointment,
+        action: 'confirm',
+        expected_lock_version: expected_lock_version
+      ).perform!
+    end.to raise_error(ActiveRecord::StaleObjectError)
+  end
+
   it 'marks an appointment as a no-show' do
     result = described_class.new(appointment: appointment, action: 'no_show').perform!
 

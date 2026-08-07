@@ -43,11 +43,14 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
       action: update_params[:action],
       cancellation_reason: update_params[:cancellation_reason],
       scope: update_params[:scope],
+      expected_lock_version: update_params[:lock_version],
       actor: Current.user
     ).perform!
     render json: appointment_payload(appointment, include_events: true)
   rescue ActiveRecord::RecordInvalid => e
     render_invalid_record(e.record)
+  rescue ActiveRecord::StaleObjectError
+    render json: { message: 'This appointment changed. Reload it and try again.' }, status: :conflict
   end
 
   def reschedule
@@ -87,7 +90,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
   end
 
   def update_params
-    params.require(:appointment).permit(:action, :cancellation_reason, :scope)
+    params.require(:appointment).permit(:action, :cancellation_reason, :scope, :lock_version)
   end
 
   def reschedule_params
