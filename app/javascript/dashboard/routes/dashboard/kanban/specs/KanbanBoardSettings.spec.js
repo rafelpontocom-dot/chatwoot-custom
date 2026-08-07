@@ -1785,6 +1785,10 @@ describe('KanbanBoardSettings', () => {
         compact_card_field_keys: [],
         stale_stage_thresholds: { 100: 3 },
         appointment_reminder_hours: null,
+        calendar_enabled: false,
+        calendar_booking_stage_ids: [],
+        calendar_procedure_ids: [],
+        calendar_legacy_next_appointment_field_key: null,
       },
     });
   });

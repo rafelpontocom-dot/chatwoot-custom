@@ -14,10 +14,15 @@ class CreateKanbanCalendarProcedures < ActiveRecord::Migration[7.1]
       t.jsonb :board_ids, null: false, default: []
       t.jsonb :stage_policy, null: false, default: {}
       t.boolean :active, null: false, default: true
-
       t.timestamps
     end
 
+    add_procedure_name_index
+  end
+
+  private
+
+  def add_procedure_name_index
     add_index :kanban_calendar_procedures,
               'account_id, lower(name)',
               unique: true,
