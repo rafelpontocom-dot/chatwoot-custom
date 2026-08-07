@@ -185,4 +185,33 @@ RSpec.describe 'Calendar appointments API', type: :request do
     expect(response).to have_http_status(:success)
     expect(response.parsed_body).to contain_exactly(include('id' => scheduled.id))
   end
+
+  it 'does not duplicate an appointment reserved across selected resources' do
+    second_resource = KanbanCalendarResource.create!(
+      account: account,
+      name: 'Sala 2',
+      resource_type: 'room',
+      timezone: 'America/Sao_Paulo'
+    )
+    appointment = KanbanCalendar::BookAppointmentService.new(
+      account: account,
+      contact: contact,
+      procedure: procedure,
+      resource_ids: [resource.id, second_resource.id],
+      starts_at: Time.iso8601('2026-08-12T13:00:00-03:00'),
+      timezone: 'America/Sao_Paulo'
+    ).perform!
+
+    get "/api/v1/accounts/#{account.id}/calendar/appointments",
+        headers: administrator.create_new_auth_token,
+        params: {
+          starts_at: '2026-08-12T00:00:00-03:00',
+          ends_at: '2026-08-13T00:00:00-03:00',
+          resource_ids: [resource.id, second_resource.id]
+        },
+        as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to contain_exactly(include('id' => appointment.id))
+  end
 end
