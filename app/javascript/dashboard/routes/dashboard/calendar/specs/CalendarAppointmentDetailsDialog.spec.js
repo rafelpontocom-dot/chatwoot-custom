@@ -105,4 +105,27 @@ describe('CalendarAppointmentDetailsDialog', () => {
       })
     );
   });
+
+  it('checks in a confirmed appointment', async () => {
+    CalendarAPI.getAppointment.mockResolvedValue({
+      data: { ...appointment, status: 'confirmed' },
+    });
+    CalendarAPI.updateAppointment.mockResolvedValue({
+      data: { ...appointment, status: 'checked_in' },
+    });
+    const wrapper = mountDialog();
+
+    await wrapper.vm.open(appointment.id);
+    await flushPromises();
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.DETAIL.CHECK_IN')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.updateAppointment).toHaveBeenCalledWith(appointment.id, {
+      appointment: expect.objectContaining({ action: 'check_in' }),
+    });
+  });
 });
