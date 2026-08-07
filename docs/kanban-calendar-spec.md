@@ -302,7 +302,19 @@ Nao implementar bidirecional sem esses seis itens. O Google Calendar exige timez
 - erro `409` preserva dados e mostra conflito acionavel;
 - dois agentes editando a mesma ocorrencia recebem resolucao compreensivel.
 
-O roteiro `tests/playwright/tests/e2e/ui/calendar-workspace.spec.ts` cobre no desktop: abertura por teclado, criacao a partir de horario livre, abertura de detalhe, retorno de foco no fechamento, remarcacao e cancelamento justificado. O compositor tambem possui teste de componente para conflito `409`: preserva o formulario, comunica indisponibilidade e recarrega horarios livres. Ele exige uma conta de teste com procedimento, recurso, disponibilidade semanal e contato preparados via `CALENDAR_E2E=1`.
+O roteiro `tests/playwright/tests/e2e/ui/calendar-workspace.spec.ts` cobre no desktop: abertura por teclado, filtros, visoes Dia/Semana/Mes, criacao a partir de horario livre, abertura de detalhe, retorno de foco no fechamento, remarcacao e cancelamento justificado. O compositor tambem possui teste de componente para conflito `409`: preserva o formulario, comunica indisponibilidade e recarrega horarios livres.
+
+Para executar a validacao integrada, prepare uma conta de homologacao com o procedimento `Consulta E2E`, o recurso ativo `Dra. E2E`, disponibilidade semanal e o contato `Paciente E2E`. Para os cenarios de detalhe, defina tambem o contato de uma consulta existente em `CALENDAR_E2E_APPOINTMENT_CONTACT`. Nenhum dado sensivel deve ser usado.
+
+```bash
+cd tests/playwright
+BASE_URL=http://localhost:3000 \
+TEST_USER_EMAIL=admin@chatwoot.com \
+TEST_USER_PASSWORD='<senha-da-conta-de-homologacao>' \
+CALENDAR_E2E=1 \
+CALENDAR_E2E_APPOINTMENT_CONTACT='Paciente E2E' \
+pnpm playwright:run tests/e2e/ui/calendar-workspace.spec.ts
+```
 
 ## Plano De Entrega
 
