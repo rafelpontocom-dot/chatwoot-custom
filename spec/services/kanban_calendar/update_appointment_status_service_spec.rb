@@ -57,6 +57,13 @@ RSpec.describe KanbanCalendar::UpdateAppointmentStatusService do
     expect(appointment.reload.kanban_calendar_appointment_events.last.event_type).to eq('completed')
   end
 
+  it 'checks in an appointment before it is completed' do
+    result = described_class.new(appointment: appointment, action: 'check_in').perform!
+
+    expect(result.status).to eq('checked_in')
+    expect(appointment.reload.kanban_calendar_appointment_events.last.event_type).to eq('checked_in')
+  end
+
   it 'marks an appointment as a no-show' do
     result = described_class.new(appointment: appointment, action: 'no_show').perform!
 

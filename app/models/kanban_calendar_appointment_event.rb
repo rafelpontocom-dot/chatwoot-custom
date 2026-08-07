@@ -25,7 +25,7 @@
 #  fk_rails_...  (kanban_calendar_appointment_id => kanban_calendar_appointments.id)
 #
 class KanbanCalendarAppointmentEvent < ApplicationRecord
-  EVENT_TYPES = %w[created confirmed rescheduled canceled completed no_show series_split reminder_canceled external_sync].freeze
+  EVENT_TYPES = %w[created confirmed checked_in rescheduled canceled completed no_show series_split reminder_canceled external_sync].freeze
 
   belongs_to :account
   belongs_to :kanban_calendar_appointment

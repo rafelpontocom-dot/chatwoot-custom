@@ -166,12 +166,14 @@
         "ALL_OCCURRENCES": "All active appointments"
       },
       "CONFIRM": "Confirm",
+      "CHECK_IN": "Check in",
       "COMPLETE": "Complete",
       "NO_SHOW": "Mark no-show",
       "CANCEL": "Cancel",
       "STATUS": {
         "SCHEDULED": "Scheduled",
         "CONFIRMED": "Confirmed",
+        "CHECKED_IN": "Checked in",
         "COMPLETED": "Completed",
         "NO_SHOW": "No-show",
         "CANCELED": "Canceled"
@@ -180,6 +182,7 @@
         "TITLE": "Appointment history",
         "CREATED": "Appointment created",
         "CONFIRMED": "Appointment confirmed",
+        "CHECKED_IN": "Check-in recorded",
         "RESCHEDULED": "Appointment rescheduled",
         "CANCELED": "Appointment canceled",
         "COMPLETED": "Appointment completed",

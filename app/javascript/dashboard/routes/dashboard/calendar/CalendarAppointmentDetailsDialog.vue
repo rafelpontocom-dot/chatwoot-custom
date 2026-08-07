@@ -43,6 +43,7 @@ const statusLabel = status =>
   ({
     scheduled: t('CALENDAR.DETAIL.STATUS.SCHEDULED'),
     confirmed: t('CALENDAR.DETAIL.STATUS.CONFIRMED'),
+    checked_in: t('CALENDAR.DETAIL.STATUS.CHECKED_IN'),
     completed: t('CALENDAR.DETAIL.STATUS.COMPLETED'),
     no_show: t('CALENDAR.DETAIL.STATUS.NO_SHOW'),
     canceled: t('CALENDAR.DETAIL.STATUS.CANCELED'),
@@ -51,6 +52,7 @@ const eventLabel = eventType =>
   ({
     created: t('CALENDAR.DETAIL.EVENTS.CREATED'),
     confirmed: t('CALENDAR.DETAIL.EVENTS.CONFIRMED'),
+    checked_in: t('CALENDAR.DETAIL.EVENTS.CHECKED_IN'),
     rescheduled: t('CALENDAR.DETAIL.EVENTS.RESCHEDULED'),
     canceled: t('CALENDAR.DETAIL.EVENTS.CANCELED'),
     completed: t('CALENDAR.DETAIL.EVENTS.COMPLETED'),
@@ -464,6 +466,15 @@ defineExpose({ open, openForReschedule });
           :label="t('CALENDAR.DETAIL.CONFIRM')"
           :disabled="isSaving"
           @click="changeStatus('confirm')"
+        />
+        <NextButton
+          v-if="isActive && appointment.status === 'confirmed'"
+          type="button"
+          outline
+          size="sm"
+          :label="t('CALENDAR.DETAIL.CHECK_IN')"
+          :disabled="isSaving"
+          @click="changeStatus('check_in')"
         />
         <NextButton
           v-if="isActive && !isRescheduling"

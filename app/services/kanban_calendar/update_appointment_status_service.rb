@@ -1,5 +1,5 @@
 class KanbanCalendar::UpdateAppointmentStatusService
-  ACTIONS = %w[confirm complete no_show cancel].freeze
+  ACTIONS = %w[confirm check_in complete no_show cancel].freeze
   CANCELLATION_SCOPES = %w[this_occurrence this_and_future all_occurrences].freeze
 
   def initialize(appointment:, action:, actor: nil, cancellation_reason: nil, scope: 'this_occurrence')
@@ -45,6 +45,8 @@ class KanbanCalendar::UpdateAppointmentStatusService
     case @action
     when 'confirm'
       { status: 'confirmed' }
+    when 'check_in'
+      { status: 'checked_in' }
     when 'complete'
       { status: 'completed', completed_at: Time.current }
     when 'no_show'
@@ -107,6 +109,12 @@ class KanbanCalendar::UpdateAppointmentStatusService
   end
 
   def event_type
-    { 'confirm' => 'confirmed', 'complete' => 'completed', 'no_show' => 'no_show', 'cancel' => 'canceled' }.fetch(@action)
+    {
+      'confirm' => 'confirmed',
+      'check_in' => 'checked_in',
+      'complete' => 'completed',
+      'no_show' => 'no_show',
+      'cancel' => 'canceled'
+    }.fetch(@action)
   end
 end

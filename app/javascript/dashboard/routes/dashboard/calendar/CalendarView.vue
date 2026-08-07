@@ -103,6 +103,7 @@ const gridClass = computed(() =>
 const calendarStatuses = computed(() => [
   { value: 'scheduled', label: t('CALENDAR.DETAIL.STATUS.SCHEDULED') },
   { value: 'confirmed', label: t('CALENDAR.DETAIL.STATUS.CONFIRMED') },
+  { value: 'checked_in', label: t('CALENDAR.DETAIL.STATUS.CHECKED_IN') },
   { value: 'completed', label: t('CALENDAR.DETAIL.STATUS.COMPLETED') },
   { value: 'no_show', label: t('CALENDAR.DETAIL.STATUS.NO_SHOW') },
   { value: 'canceled', label: t('CALENDAR.DETAIL.STATUS.CANCELED') },
@@ -179,6 +180,7 @@ const statusLabel = status =>
   ({
     scheduled: t('CALENDAR.DETAIL.STATUS.SCHEDULED'),
     confirmed: t('CALENDAR.DETAIL.STATUS.CONFIRMED'),
+    checked_in: t('CALENDAR.DETAIL.STATUS.CHECKED_IN'),
     completed: t('CALENDAR.DETAIL.STATUS.COMPLETED'),
     no_show: t('CALENDAR.DETAIL.STATUS.NO_SHOW'),
     canceled: t('CALENDAR.DETAIL.STATUS.CANCELED'),

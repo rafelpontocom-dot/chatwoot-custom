@@ -166,12 +166,14 @@
         "ALL_OCCURRENCES": "Todas as sessões ativas"
       },
       "CONFIRM": "Confirmar",
+      "CHECK_IN": "Registrar chegada",
       "COMPLETE": "Concluir",
       "NO_SHOW": "Registrar falta",
       "CANCEL": "Cancelar",
       "STATUS": {
         "SCHEDULED": "Agendado",
         "CONFIRMED": "Confirmado",
+        "CHECKED_IN": "Chegou",
         "COMPLETED": "Concluído",
         "NO_SHOW": "Falta",
         "CANCELED": "Cancelado"
@@ -180,6 +182,7 @@
         "TITLE": "Histórico do agendamento",
         "CREATED": "Agendamento criado",
         "CONFIRMED": "Agendamento confirmado",
+        "CHECKED_IN": "Chegada registrada",
         "RESCHEDULED": "Agendamento remarcado",
         "CANCELED": "Agendamento cancelado",
         "COMPLETED": "Atendimento concluído",
