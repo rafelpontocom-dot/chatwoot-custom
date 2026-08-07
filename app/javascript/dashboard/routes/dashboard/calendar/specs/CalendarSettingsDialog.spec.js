@@ -161,4 +161,52 @@ describe('CalendarSettingsDialog', () => {
       resource: { active: false },
     });
   });
+
+  it('edits an existing resource without creating another one', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 4,
+          name: 'Sala 1',
+          resource_type: 'room',
+          timezone: 'America/Sao_Paulo',
+          active: true,
+        },
+      ],
+    });
+    CalendarAPI.updateResource.mockResolvedValue({
+      data: {
+        id: 4,
+        name: 'Consultório 1',
+        resource_type: 'room',
+        timezone: 'America/Sao_Paulo',
+        active: true,
+      },
+    });
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-edit-resource"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-resource-name"]')
+      .setValue('Consultório 1');
+    await wrapper
+      .find('[data-testid="calendar-resource-form"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(4, {
+      resource: expect.objectContaining({
+        name: 'Consultório 1',
+        resource_type: 'room',
+      }),
+    });
+  });
 });

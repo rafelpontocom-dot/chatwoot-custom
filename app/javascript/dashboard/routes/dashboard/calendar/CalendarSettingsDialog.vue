@@ -23,6 +23,7 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const error = ref('');
 const editingProcedureId = ref(null);
+const editingResourceId = ref(null);
 const procedureForm = ref({
   name: '',
   durationMinutes: '50',
@@ -59,6 +60,11 @@ const procedureSubmitLabel = computed(() =>
   editingProcedureId.value
     ? t('CALENDAR.SETTINGS.SAVE_PROCEDURE')
     : t('CALENDAR.SETTINGS.ADD_PROCEDURE')
+);
+const resourceSubmitLabel = computed(() =>
+  editingResourceId.value
+    ? t('CALENDAR.SETTINGS.SAVE_RESOURCE')
+    : t('CALENDAR.SETTINGS.ADD_RESOURCE')
 );
 const resourceTypeLabel = resourceType =>
   ({
@@ -152,6 +158,7 @@ const resetForms = () => {
   };
   error.value = '';
   editingProcedureId.value = null;
+  editingResourceId.value = null;
 };
 
 const procedurePayload = () => {
@@ -177,6 +184,20 @@ const resetProcedureForm = () => {
     resourceIds: [],
   };
   editingProcedureId.value = null;
+};
+
+const resetResourceForm = () => {
+  resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
+  editingResourceId.value = null;
+};
+
+const editResource = resource => {
+  editingResourceId.value = resource.id;
+  resourceForm.value = {
+    name: resource.name,
+    resourceType: resource.resource_type,
+    userId: resource.user_id ? String(resource.user_id) : '',
+  };
 };
 
 const editProcedure = procedure => {
@@ -248,17 +269,29 @@ const createResource = async () => {
   isSaving.value = true;
   error.value = '';
   try {
+    const existingResource = resources.value.find(
+      item => item.id === editingResourceId.value
+    );
     const resource = {
       name: resourceForm.value.name.trim(),
       resource_type: resourceForm.value.resourceType,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      active: true,
+      timezone:
+        existingResource?.timezone ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      active: existingResource?.active ?? true,
+      user_id: null,
     };
     if (resource.resource_type === 'user')
       resource.user_id = Number(resourceForm.value.userId);
-    const response = await CalendarAPI.createResource({ resource });
-    resources.value = [...resources.value, response.data];
-    resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
+    const response = editingResourceId.value
+      ? await CalendarAPI.updateResource(editingResourceId.value, { resource })
+      : await CalendarAPI.createResource({ resource });
+    resources.value = editingResourceId.value
+      ? resources.value.map(item =>
+          item.id === response.data.id ? response.data : item
+        )
+      : [...resources.value, response.data];
+    resetResourceForm();
     emit('updated');
   } catch (saveError) {
     error.value = getErrorMessage(saveError);
@@ -607,6 +640,7 @@ defineExpose({ open });
 
       <template v-else>
         <form
+          data-testid="calendar-resource-form"
           class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
           @submit.prevent="createResource"
         >
@@ -619,6 +653,7 @@ defineExpose({ open });
               </span>
               <input
                 v-model="resourceForm.name"
+                data-testid="calendar-resource-name"
                 type="text"
                 class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
               />
@@ -672,9 +707,17 @@ defineExpose({ open });
             <NextButton
               type="submit"
               size="sm"
-              :label="t('CALENDAR.SETTINGS.ADD_RESOURCE')"
+              :label="resourceSubmitLabel"
               :disabled="!canCreateResource"
               :is-loading="isSaving"
+            />
+            <NextButton
+              v-if="editingResourceId"
+              type="button"
+              size="sm"
+              outline
+              :label="t('GENERAL.CANCEL')"
+              @click="resetResourceForm"
             />
           </div>
         </form>
@@ -695,6 +738,14 @@ defineExpose({ open });
                 {{ resourceTypeLabel(resource.resource_type) }}
               </span>
             </div>
+            <NextButton
+              type="button"
+              xs
+              outline
+              data-testid="calendar-edit-resource"
+              :label="t('CALENDAR.SETTINGS.EDIT_RESOURCE')"
+              @click="editResource(resource)"
+            />
             <NextButton
               type="button"
               xs
