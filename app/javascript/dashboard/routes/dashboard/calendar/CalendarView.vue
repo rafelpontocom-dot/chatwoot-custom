@@ -54,6 +54,29 @@ const calendarDays = computed(() => {
     return date;
   });
 });
+const monthDays = computed(() => {
+  const firstDay = new Date(
+    selectedDate.value.getFullYear(),
+    selectedDate.value.getMonth(),
+    1
+  );
+  const mondayOffset = (firstDay.getDay() + 6) % 7;
+  const firstVisibleDay = new Date(firstDay);
+  firstVisibleDay.setDate(firstDay.getDate() - mondayOffset);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(firstVisibleDay);
+    day.setDate(firstVisibleDay.getDate() + index);
+    return day;
+  });
+});
+const visibleRange = computed(() => {
+  const days = view.value === 'month' ? monthDays.value : calendarDays.value;
+  const startsAt = new Date(days[0]);
+  const endsAt = new Date(days.at(-1));
+  endsAt.setDate(endsAt.getDate() + 1);
+  return { startsAt, endsAt };
+});
 
 const hourSlots = computed(() => {
   const appointmentHours = appointments.value.map(appointment =>
@@ -78,14 +101,12 @@ const isoDate = date => date.toISOString();
 const loadAppointments = async () => {
   isLoading.value = true;
   loadError.value = false;
-  const rangeStart = calendarDays.value[0];
-  const rangeEnd = new Date(calendarDays.value.at(-1));
-  rangeEnd.setDate(rangeEnd.getDate() + 1);
+  const { startsAt, endsAt } = visibleRange.value;
 
   try {
     const { data } = await calendarAPI.getAppointments({
-      starts_at: isoDate(rangeStart),
-      ends_at: isoDate(rangeEnd),
+      starts_at: isoDate(startsAt),
+      ends_at: isoDate(endsAt),
       resource_ids: selectedResourceId.value
         ? [Number(selectedResourceId.value)]
         : undefined,
@@ -119,6 +140,15 @@ const appointmentsForSlot = (day, hour) =>
       startsAt.getHours() === hour
     );
   });
+const appointmentsForDay = day =>
+  appointments.value.filter(appointment => {
+    const startsAt = new Date(appointment.starts_at);
+    return (
+      startsAt.getFullYear() === day.getFullYear() &&
+      startsAt.getMonth() === day.getMonth() &&
+      startsAt.getDate() === day.getDate()
+    );
+  });
 
 const formatDay = day =>
   new Intl.DateTimeFormat(locale.value === 'pt_BR' ? 'pt-BR' : locale.value, {
@@ -146,6 +176,16 @@ const changeDay = amount => {
   nextDate.setDate(nextDate.getDate() + amount);
   selectedDate.value = nextDate;
 };
+const changePeriod = direction => {
+  if (view.value === 'month') {
+    const nextDate = new Date(selectedDate.value);
+    nextDate.setMonth(nextDate.getMonth() + direction);
+    selectedDate.value = nextDate;
+    return;
+  }
+  changeDay(view.value === 'week' ? direction * 7 : direction);
+};
+const isCurrentMonth = day => day.getMonth() === selectedDate.value.getMonth();
 
 const goToToday = () => {
   selectedDate.value = new Date();
@@ -251,7 +291,7 @@ onMounted(() => {
             class="flex size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
             :aria-label="t('CALENDAR.PREVIOUS')"
             :title="t('CALENDAR.PREVIOUS')"
-            @click="changeDay(view === 'week' ? -7 : -1)"
+            @click="changePeriod(-1)"
           >
             <i class="i-lucide-chevron-left size-4" aria-hidden="true" />
           </button>
@@ -267,7 +307,7 @@ onMounted(() => {
             class="flex size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
             :aria-label="t('CALENDAR.NEXT')"
             :title="t('CALENDAR.NEXT')"
-            @click="changeDay(view === 'week' ? 7 : 1)"
+            @click="changePeriod(1)"
           >
             <i class="i-lucide-chevron-right size-4" aria-hidden="true" />
           </button>
@@ -301,6 +341,18 @@ onMounted(() => {
           >
             {{ t('CALENDAR.WEEK') }}
           </button>
+          <button
+            type="button"
+            class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            :class="
+              view === 'month'
+                ? 'bg-n-brand text-white'
+                : 'text-n-slate-11 hover:bg-n-alpha-2'
+            "
+            @click="view = 'month'"
+          >
+            {{ t('CALENDAR.MONTH') }}
+          </button>
         </div>
 
         <button
@@ -319,7 +371,11 @@ onMounted(() => {
       class="relative flex min-h-0 flex-1 overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
       :aria-label="t('CALENDAR.GRID_LABEL')"
     >
-      <div class="grid w-full overflow-auto" :class="gridClass">
+      <div
+        v-if="view !== 'month'"
+        class="grid w-full overflow-auto"
+        :class="gridClass"
+      >
         <div
           class="sticky left-0 z-10 border-b border-r border-n-weak bg-n-solid-1"
         />
@@ -397,6 +453,36 @@ onMounted(() => {
             </button>
           </div>
         </template>
+      </div>
+      <div v-else class="grid w-full grid-cols-7 overflow-auto">
+        <div
+          v-for="weekday in 7"
+          :key="weekday"
+          class="border-b border-r border-n-weak bg-n-solid-1 px-2 py-2 text-xs font-medium text-n-slate-11 last:border-r-0"
+        >
+          {{ formatDay(monthDays[weekday - 1]) }}
+        </div>
+        <div
+          v-for="day in monthDays"
+          :key="day.toISOString()"
+          data-testid="calendar-month-day"
+          class="min-h-28 border-b border-r border-n-weak p-1.5 last:border-r-0"
+          :class="isCurrentMonth(day) ? 'bg-n-solid-1' : 'bg-n-surface-2'"
+        >
+          <span class="mb-1 block text-xs text-n-slate-11">
+            {{ day.getDate() }}
+          </span>
+          <button
+            v-for="appointment in appointmentsForDay(day)"
+            :key="appointment.id"
+            type="button"
+            class="mb-1 block w-full truncate rounded bg-n-brand/10 px-1.5 py-1 text-left text-xs text-n-slate-12 outline-none hover:bg-n-brand/20 focus-visible:ring-2 focus-visible:ring-n-brand"
+            @click="openAppointment(appointment)"
+          >
+            {{ formatTime(appointment.starts_at) }}
+            {{ appointment.contact.name }}
+          </button>
+        </div>
       </div>
 
       <div

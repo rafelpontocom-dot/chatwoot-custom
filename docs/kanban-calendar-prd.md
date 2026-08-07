@@ -88,7 +88,7 @@ Nova area principal `Agenda`, com acesso direto na navegacao lateral do CRM, log
 Cabecalho operacional:
 
 - seletor de data com Hoje, anterior e proximo;
-- visoes Dia e Semana no P0; Mes no P1;
+- visoes Dia, Semana e Mes no P0;
 - seletor de unidade/recurso;
 - busca por contato, telefone ou oportunidade;
 - botao `Novo agendamento`;

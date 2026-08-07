@@ -248,7 +248,7 @@ Componentes propostos:
 
 - `CalendarWorkspace`;
 - `CalendarToolbar`;
-- `CalendarWeekGrid` e `CalendarDayGrid`;
+- `CalendarMonthGrid`, `CalendarWeekGrid` e `CalendarDayGrid`;
 - `CalendarResourceSelector`;
 - `CalendarAppointmentBlock`;
 - `CalendarAppointmentDrawer`;
@@ -293,7 +293,7 @@ Nao implementar bidirecional sem esses seis itens. O Google Calendar exige timez
 ### Frontend E2E
 
 - criar pela conversa, card e pagina Agenda;
-- navegar por dia/semana e recurso;
+- navegar por dia/semana/mes e recurso;
 - buscar por contato, telefone e oportunidade;
 - criar serie, revisar previa e confirmar;
 - reagendar por drawer, menu e drag com confirmacao;
@@ -317,7 +317,7 @@ O roteiro `tests/playwright/tests/e2e/ui/calendar-workspace.spec.ts` cobre no de
 
 ### Fase B: Operacao
 
-- [x] pagina Agenda dia/semana;
+- [x] pagina Agenda dia/semana/mes;
 - [x] compositor pela conversa/card/agenda;
 - [x] drawer de detalhe, confirmar, concluir, falta e cancelar;
 - [x] configuracao e edicao de procedimentos e recursos.

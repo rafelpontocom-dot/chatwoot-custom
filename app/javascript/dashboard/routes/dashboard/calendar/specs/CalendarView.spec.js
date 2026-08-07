@@ -43,6 +43,20 @@ describe('CalendarView', () => {
     );
   });
 
+  it('shows a six-week month grid when the user selects month view', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.MONTH')
+      .trigger('click');
+
+    expect(wrapper.findAll('[data-testid="calendar-month-day"]').length).toBe(
+      42
+    );
+  });
+
   it('exposes stable controls for the desktop scheduling flow', async () => {
     const wrapper = mountCalendar();
     await flushPromises();
