@@ -89,6 +89,8 @@
       "PROFESSIONAL": "Profissional",
       "SELECT_PROFESSIONAL": "Selecione o profissional",
       "ADD_RESOURCE": "Adicionar recurso",
+      "ACTIVATE_RESOURCE": "Ativar",
+      "DEACTIVATE_RESOURCE": "Desativar",
       "NO_RESOURCES": "Nenhum recurso cadastrado.",
       "AVAILABILITY": {
         "OPEN": "Horários",

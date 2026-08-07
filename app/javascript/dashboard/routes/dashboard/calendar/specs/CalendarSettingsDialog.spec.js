@@ -18,6 +18,7 @@ vi.mock('dashboard/api/calendar', () => ({
     getResources: vi.fn(),
     updateProcedure: vi.fn(),
     createResource: vi.fn(),
+    updateResource: vi.fn(),
   },
 }));
 
@@ -119,6 +120,45 @@ describe('CalendarSettingsDialog', () => {
         name: 'Consulta de avaliação',
         duration_minutes: 60,
       }),
+    });
+  });
+
+  it('deactivates an existing resource without removing it', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 4,
+          name: 'Sala 1',
+          resource_type: 'room',
+          timezone: 'America/Sao_Paulo',
+          active: true,
+        },
+      ],
+    });
+    CalendarAPI.updateResource.mockResolvedValue({
+      data: {
+        id: 4,
+        name: 'Sala 1',
+        resource_type: 'room',
+        timezone: 'America/Sao_Paulo',
+        active: false,
+      },
+    });
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-toggle-resource"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(4, {
+      resource: { active: false },
     });
   });
 });

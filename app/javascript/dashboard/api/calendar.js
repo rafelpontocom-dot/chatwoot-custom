@@ -38,6 +38,10 @@ class CalendarAPI extends ApiClient {
     return axios.post(`${this.url}/resources`, payload);
   }
 
+  updateResource(id, payload) {
+    return axios.patch(`${this.url}/resources/${id}`, payload);
+  }
+
   getAvailabilityRules(resourceId) {
     return axios.get(`${this.url}/resources/${resourceId}/availability_rules`);
   }

@@ -66,6 +66,10 @@ const resourceTypeLabel = resourceType =>
     equipment: t('CALENDAR.SETTINGS.RESOURCE_TYPES.EQUIPMENT'),
     generic: t('CALENDAR.SETTINGS.RESOURCE_TYPES.GENERIC'),
   })[resourceType] || t('CALENDAR.SETTINGS.RESOURCE_TYPES.GENERIC');
+const resourceToggleLabel = resource =>
+  resource.active
+    ? t('CALENDAR.SETTINGS.DEACTIVATE_RESOURCE')
+    : t('CALENDAR.SETTINGS.ACTIVATE_RESOURCE');
 const availabilityResource = computed(() =>
   resources.value.find(resource => resource.id === availabilityResourceId.value)
 );
@@ -255,6 +259,30 @@ const createResource = async () => {
     const response = await CalendarAPI.createResource({ resource });
     resources.value = [...resources.value, response.data];
     resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
+    emit('updated');
+  } catch (saveError) {
+    error.value = getErrorMessage(saveError);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const toggleResource = async resource => {
+  if (isSaving.value) return;
+
+  isSaving.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.updateResource(resource.id, {
+      resource: { active: !resource.active },
+    });
+    resources.value = resources.value.map(item =>
+      item.id === response.data.id ? response.data : item
+    );
+    if (availabilityResourceId.value === resource.id && !response.data.active) {
+      availabilityResourceId.value = null;
+      availabilityRules.value = [];
+    }
     emit('updated');
   } catch (saveError) {
     error.value = getErrorMessage(saveError);
@@ -673,6 +701,15 @@ defineExpose({ open });
               outline
               :label="t('CALENDAR.SETTINGS.AVAILABILITY.OPEN')"
               @click="openAvailability(resource)"
+            />
+            <NextButton
+              type="button"
+              xs
+              outline
+              data-testid="calendar-toggle-resource"
+              :label="resourceToggleLabel(resource)"
+              :disabled="isSaving"
+              @click="toggleResource(resource)"
             />
           </article>
         </div>
