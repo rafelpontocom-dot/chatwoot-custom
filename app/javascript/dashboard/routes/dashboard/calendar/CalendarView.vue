@@ -19,6 +19,7 @@ const loadError = ref(false);
 const bookingDialog = ref(null);
 const settingsDialog = ref(null);
 const appointmentDetailsDialog = ref(null);
+const draggedAppointment = ref(null);
 
 const dateFormatter = computed(
   () =>
@@ -43,7 +44,7 @@ const firstVisibleDate = computed(() => {
 });
 
 const calendarDays = computed(() => {
-  const count = view.value === 'day' ? 1 : 5;
+  const count = view.value === 'day' ? 1 : 7;
   return Array.from({ length: count }, (_, index) => {
     const date = new Date(
       view.value === 'day' ? selectedDate.value : firstVisibleDate.value
@@ -54,11 +55,22 @@ const calendarDays = computed(() => {
   });
 });
 
-const hourSlots = Array.from({ length: 10 }, (_, index) => index + 8);
+const hourSlots = computed(() => {
+  const appointmentHours = appointments.value.map(appointment =>
+    new Date(appointment.starts_at).getHours()
+  );
+  const firstHour = Math.min(8, ...appointmentHours);
+  const lastHour = Math.max(17, ...appointmentHours);
+
+  return Array.from(
+    { length: lastHour - firstHour + 1 },
+    (_, index) => firstHour + index
+  );
+});
 const gridClass = computed(() =>
   view.value === 'day'
     ? 'grid-cols-[4rem_minmax(16rem,1fr)]'
-    : 'grid-cols-[4rem_repeat(5,minmax(10rem,1fr))]'
+    : 'grid-cols-[4rem_repeat(7,minmax(10rem,1fr))]'
 );
 
 const isoDate = date => date.toISOString();
@@ -134,6 +146,21 @@ const openBooking = () => bookingDialog.value?.open();
 const openSettings = () => settingsDialog.value?.open();
 const openAppointment = appointment =>
   appointmentDetailsDialog.value?.open(appointment.id);
+const beginRescheduleDrag = appointment => {
+  draggedAppointment.value = appointment;
+};
+const assistedReschedule = (day, hour) => {
+  if (!draggedAppointment.value) return;
+
+  const startsAt = new Date(day);
+  const originalStart = new Date(draggedAppointment.value.starts_at);
+  startsAt.setHours(hour, originalStart.getMinutes(), 0, 0);
+  appointmentDetailsDialog.value?.openForReschedule(
+    draggedAppointment.value.id,
+    startsAt.toISOString()
+  );
+  draggedAppointment.value = null;
+};
 const handleAppointmentCreated = () => loadAppointments();
 
 const debouncedLoadAppointments = debounce(loadAppointments, 250, false);
@@ -147,7 +174,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="flex h-full min-h-0 flex-col bg-n-background px-4 py-4 lg:px-6">
+  <main
+    data-testid="calendar-workspace"
+    class="flex h-full min-h-0 flex-col bg-n-background px-4 py-4 lg:px-6"
+  >
     <header
       class="mb-4 flex flex-col gap-3 border-b border-n-weak pb-4 lg:flex-row lg:items-center lg:justify-between"
     >
@@ -195,6 +225,7 @@ onMounted(() => {
         />
         <button
           type="button"
+          data-testid="calendar-open-settings"
           class="flex size-9 items-center justify-center rounded-md border border-n-weak text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
           :aria-label="t('CALENDAR.SETTINGS.OPEN')"
           :title="t('CALENDAR.SETTINGS.OPEN')"
@@ -265,6 +296,7 @@ onMounted(() => {
 
         <button
           type="button"
+          data-testid="calendar-new-appointment"
           class="inline-flex items-center gap-2 rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand/90 focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-2"
           @click="openBooking"
         >
@@ -285,6 +317,7 @@ onMounted(() => {
         <div
           v-for="day in calendarDays"
           :key="day.toISOString()"
+          data-testid="calendar-day-column"
           class="min-h-14 border-b border-r border-n-weak bg-n-solid-1 px-3 py-2 last:border-r-0"
         >
           <span class="text-xs font-medium text-n-slate-11">
@@ -301,11 +334,15 @@ onMounted(() => {
             v-for="day in calendarDays"
             :key="`${hour}-${day.toISOString()}`"
             class="min-h-20 border-b border-r border-n-weak bg-n-solid-1 p-1 last:border-r-0"
+            @dragover.prevent
+            @drop="assistedReschedule(day, hour)"
           >
             <button
               v-for="appointment in appointmentsForSlot(day, hour)"
               :key="appointment.id"
               type="button"
+              data-testid="calendar-appointment"
+              draggable="true"
               class="mb-1 w-full rounded-md border border-n-brand/30 bg-n-brand/10 px-2 py-1 text-left outline-none hover:bg-n-brand/20 focus-visible:ring-2 focus-visible:ring-n-brand"
               :aria-label="
                 t('CALENDAR.APPOINTMENT_LABEL', {
@@ -315,6 +352,8 @@ onMounted(() => {
                 })
               "
               @click="openAppointment(appointment)"
+              @dragstart="beginRescheduleDrag(appointment)"
+              @dragend="draggedAppointment = null"
             >
               <span
                 class="block truncate text-xs font-semibold text-n-slate-12"

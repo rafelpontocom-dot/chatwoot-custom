@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useMapGetter } from 'dashboard/composables/store';
 
 import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -10,6 +11,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 const emit = defineEmits(['updated']);
 
 const { t } = useI18n();
+const agents = useMapGetter('agents/getAgents');
 const dialog = ref(null);
 const activeTab = ref('procedures');
 const procedures = ref([]);
@@ -27,7 +29,7 @@ const procedureForm = ref({
   maxSessions: '',
   resourceIds: [],
 });
-const resourceForm = ref({ name: '', resourceType: 'generic' });
+const resourceForm = ref({ name: '', resourceType: 'generic', userId: '' });
 const availabilityForm = ref({
   weekday: '1',
   startsAtLocal: '09:00',
@@ -47,7 +49,10 @@ const canCreateProcedure = computed(
     !isSaving.value
 );
 const canCreateResource = computed(
-  () => resourceForm.value.name.trim() && !isSaving.value
+  () =>
+    resourceForm.value.name.trim() &&
+    (resourceForm.value.resourceType !== 'user' || resourceForm.value.userId) &&
+    !isSaving.value
 );
 const resourceTypeLabel = resourceType =>
   ({
@@ -66,6 +71,21 @@ const resourceOptions = computed(() =>
       label: resource.name,
     }))
 );
+const agentOptions = computed(() =>
+  agents.value.map(agent => ({
+    value: agent.id,
+    label: agent.name || agent.email,
+  }))
+);
+const selectProfessional = userId => {
+  resourceForm.value.userId = userId;
+  const agent = agentOptions.value.find(
+    item => String(item.value) === String(userId)
+  );
+  if (agent && !resourceForm.value.name.trim()) {
+    resourceForm.value.name = agent.label;
+  }
+};
 const orderedAvailabilityRules = computed(() =>
   [...availabilityRules.value].sort((firstRule, secondRule) => {
     if (firstRule.date && secondRule.date) {
@@ -106,7 +126,7 @@ const resetForms = () => {
     maxSessions: '',
     resourceIds: [],
   };
-  resourceForm.value = { name: '', resourceType: 'generic' };
+  resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
   availabilityResourceId.value = null;
   availabilityRules.value = [];
   availabilityForm.value = {
@@ -194,9 +214,11 @@ const createResource = async () => {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       active: true,
     };
+    if (resource.resource_type === 'user')
+      resource.user_id = Number(resourceForm.value.userId);
     const response = await CalendarAPI.createResource({ resource });
     resources.value = [...resources.value, response.data];
-    resourceForm.value = { name: '', resourceType: 'generic' };
+    resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
     emit('updated');
   } catch (saveError) {
     error.value = getErrorMessage(saveError);
@@ -532,8 +554,35 @@ defineExpose({ open });
                 <option value="equipment">
                   {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.EQUIPMENT') }}
                 </option>
+                <option value="user">
+                  {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.USER') }}
+                </option>
                 <option value="generic">
                   {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.GENERIC') }}
+                </option>
+              </select>
+            </label>
+            <label
+              v-if="resourceForm.resourceType === 'user'"
+              class="grid gap-1"
+            >
+              <span class="text-sm font-medium text-n-slate-12">{{
+                t('CALENDAR.SETTINGS.PROFESSIONAL')
+              }}</span>
+              <select
+                v-model="resourceForm.userId"
+                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                @change="selectProfessional(resourceForm.userId)"
+              >
+                <option value="">
+                  {{ t('CALENDAR.SETTINGS.SELECT_PROFESSIONAL') }}
+                </option>
+                <option
+                  v-for="agent in agentOptions"
+                  :key="agent.value"
+                  :value="String(agent.value)"
+                >
+                  {{ agent.label }}
                 </option>
               </select>
             </label>

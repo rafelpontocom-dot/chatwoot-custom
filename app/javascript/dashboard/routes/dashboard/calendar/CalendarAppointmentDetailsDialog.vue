@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 
 import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -9,6 +10,8 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 const emit = defineEmits(['updated']);
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const dialog = ref(null);
 const appointment = ref(null);
 const cancellationReason = ref('');
@@ -21,9 +24,14 @@ const rescheduleStartsAt = ref('');
 const rescheduleResourceId = ref('');
 const rescheduleScope = ref('this_occurrence');
 const resources = ref([]);
+const rescheduleAvailabilitySlots = ref([]);
+const isLoadingRescheduleSlots = ref(false);
 
 const isActive = computed(() =>
   ['scheduled', 'confirmed', 'checked_in'].includes(appointment.value?.status)
+);
+const rescheduleSelectedDate = computed(
+  () => rescheduleStartsAt.value.split('T')[0] || ''
 );
 const formatDateTime = value =>
   new Intl.DateTimeFormat(undefined, {
@@ -67,6 +75,8 @@ const open = async appointmentId => {
   rescheduleStartsAt.value = '';
   rescheduleResourceId.value = '';
   rescheduleScope.value = 'this_occurrence';
+  rescheduleAvailabilitySlots.value = [];
+  isLoadingRescheduleSlots.value = false;
   error.value = '';
   dialog.value?.open();
   isLoading.value = true;
@@ -97,6 +107,53 @@ const openReschedule = async () => {
     error.value = getErrorMessage(loadError);
   }
 };
+
+const openForReschedule = async (appointmentId, startsAt) => {
+  await open(appointmentId);
+  await openReschedule();
+  rescheduleStartsAt.value = formatDateTimeInput(startsAt);
+};
+
+async function loadRescheduleAvailabilitySlots() {
+  if (
+    !isRescheduling.value ||
+    !appointment.value?.procedure?.id ||
+    !rescheduleResourceId.value ||
+    !rescheduleSelectedDate.value
+  ) {
+    rescheduleAvailabilitySlots.value = [];
+    return;
+  }
+
+  isLoadingRescheduleSlots.value = true;
+  try {
+    const response = await CalendarAPI.getAvailability({
+      date: rescheduleSelectedDate.value,
+      procedure_id: Number(appointment.value.procedure.id),
+      resource_id: Number(rescheduleResourceId.value),
+    });
+    rescheduleAvailabilitySlots.value = response.data?.slots || [];
+  } catch {
+    rescheduleAvailabilitySlots.value = [];
+  } finally {
+    isLoadingRescheduleSlots.value = false;
+  }
+}
+
+function selectRescheduleSlot(slot) {
+  rescheduleStartsAt.value = formatDateTimeInput(slot);
+}
+
+const formatSlot = slot =>
+  new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(slot));
+
+watch(
+  [isRescheduling, rescheduleResourceId, rescheduleSelectedDate],
+  loadRescheduleAvailabilitySlots
+);
 
 const saveReschedule = async () => {
   if (
@@ -131,6 +188,21 @@ const saveReschedule = async () => {
 
 const close = () => dialog.value?.close();
 
+const openOpportunity = () => {
+  const card = appointment.value?.kanban_card;
+  if (!card?.kanban_board_id) return;
+
+  close();
+  router.push({
+    name: 'kanban_board_show',
+    params: {
+      accountId: route.params.accountId,
+      boardId: card.kanban_board_id,
+    },
+    query: { cardId: card.id },
+  });
+};
+
 const changeStatus = async action => {
   if (!appointment.value || isSaving.value) return;
   if (action === 'cancel' && !cancellationReason.value.trim()) {
@@ -158,7 +230,7 @@ const changeStatus = async action => {
   }
 };
 
-defineExpose({ open });
+defineExpose({ open, openForReschedule });
 </script>
 
 <template>
@@ -189,6 +261,16 @@ defineExpose({ open });
           <span class="text-sm text-n-slate-11">{{
             appointment.contact.name
           }}</span>
+          <NextButton
+            v-if="appointment.kanban_card"
+            type="button"
+            sm
+            outline
+            icon="i-lucide-arrow-up-right"
+            :label="t('CALENDAR.DETAIL.OPEN_OPPORTUNITY')"
+            class="mt-2 justify-self-start"
+            @click="openOpportunity"
+          />
         </div>
         <dl class="grid gap-3 text-sm">
           <div class="grid gap-1">
@@ -330,6 +412,35 @@ defineExpose({ open });
               </option>
             </select>
           </label>
+          <div class="grid gap-1.5">
+            <span class="text-sm font-medium text-n-slate-12">{{
+              t('CALENDAR.DETAIL.AVAILABLE_TIMES')
+            }}</span>
+            <p
+              v-if="isLoadingRescheduleSlots"
+              class="mb-0 text-sm text-n-slate-11"
+            >
+              {{ t('CALENDAR.DETAIL.LOADING_AVAILABLE_TIMES') }}
+            </p>
+            <p
+              v-else-if="rescheduleAvailabilitySlots.length === 0"
+              class="mb-0 text-sm text-n-slate-11"
+            >
+              {{ t('CALENDAR.DETAIL.NO_AVAILABLE_TIMES') }}
+            </p>
+            <div v-else class="flex flex-wrap gap-1.5">
+              <button
+                v-for="slot in rescheduleAvailabilitySlots"
+                :key="slot"
+                type="button"
+                data-testid="reschedule-available-slot"
+                class="rounded-md border border-n-weak bg-n-surface-1 px-2.5 py-1.5 text-sm text-n-slate-12 outline-none hover:border-n-brand hover:bg-n-brand/10 focus-visible:ring-2 focus-visible:ring-n-brand"
+                @click="selectRescheduleSlot(slot)"
+              >
+                {{ formatSlot(slot) }}
+              </button>
+            </div>
+          </div>
         </div>
         <p v-if="error" class="mb-0 text-sm text-n-ruby-11" role="alert">
           {{ error }}

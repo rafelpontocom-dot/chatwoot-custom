@@ -45,6 +45,10 @@
       "AVAILABLE_TIMES": "Horários livres",
       "LOADING_AVAILABLE_TIMES": "Buscando horários...",
       "NO_AVAILABLE_TIMES": "Não há horários livres neste dia.",
+      "SERIES_PREVIEW": "Prévia das sessões",
+      "SESSION_NUMBER": "Sessão {number}",
+      "SERIES_PREVIEW_ITEM": "Sessão {number}: {date}",
+      "SERIES_PREVIEW_MORE": "+ {count} sessões",
       "SESSIONS": "Sessões",
       "RECURRENCE": "Recorrência",
       "INTERVAL_DAYS": "Intervalo em dias",
@@ -80,6 +84,8 @@
       "DURATION_VALUE": "{minutes} min",
       "RESOURCE_NAME": "Nome do recurso",
       "RESOURCE_TYPE": "Tipo",
+      "PROFESSIONAL": "Profissional",
+      "SELECT_PROFESSIONAL": "Selecione o profissional",
       "ADD_RESOURCE": "Adicionar recurso",
       "NO_RESOURCES": "Nenhum recurso cadastrado.",
       "AVAILABILITY": {
@@ -116,6 +122,7 @@
       "RESOURCE_TYPES": {
         "ROOM": "Sala",
         "EQUIPMENT": "Equipamento",
+        "USER": "Profissional",
         "GENERIC": "Profissional ou outro recurso"
       }
     },
@@ -126,6 +133,7 @@
       "DATE_TIME": "Data e horário",
       "RESOURCE": "Profissional ou recurso",
       "STATUS_LABEL": "Status",
+      "OPEN_OPPORTUNITY": "Abrir oportunidade",
       "SERIES_LABEL": "Plano de sessões",
       "SERIES_VALUE": "Sessão {current} de {total}",
       "CANCELLATION_REASON": "Motivo do cancelamento",
@@ -137,6 +145,9 @@
       },
       "CANCELLATION_REASON_REQUIRED": "Informe o motivo do cancelamento.",
       "NEW_DATE_TIME": "Nova data e horário",
+      "AVAILABLE_TIMES": "Horários livres",
+      "LOADING_AVAILABLE_TIMES": "Buscando horários...",
+      "NO_AVAILABLE_TIMES": "Não há horários livres nesta data.",
       "RESCHEDULE": "Reagendar",
       "SAVE_RESCHEDULE": "Salvar remarcação",
       "RESCHEDULE_SCOPE": "Aplicar remarcação",

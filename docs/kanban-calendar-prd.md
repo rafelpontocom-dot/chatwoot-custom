@@ -1,6 +1,6 @@
 # PRD: Agenda Operacional do RAEVO CRM
 
-Status: P0 em implementacao. A aba principal `Agenda`, o catalogo inicial de procedimentos/recursos, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento com escopo de serie estao implementados localmente. A configuracao por funil escolhe ativacao, etapas e procedimentos; recursos tambem podem receber janelas semanais, bloqueios e horarios especiais por data. O compositor consulta horarios livres respeitando essas regras. Cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
+Status: P0 em implementacao. A aba principal `Agenda`, o catalogo inicial de procedimentos/recursos, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento ou cancelamento com escopo de serie estao implementados localmente. A configuracao por funil escolhe ativacao, etapas e procedimentos; recursos tambem podem receber janelas semanais, bloqueios e horarios especiais por data. O compositor e o reagendamento consultam horarios livres respeitando essas regras. A grade amplia sua escala quando existem consultas fora do horario comercial padrao. Ao mover uma oportunidade para uma etapa configurada, o drawer abre para sugerir o agendamento; a consulta tambem retorna ao card vinculado no funil. Integracoes seguem pendentes.
 
 Produto relacionado: [Kanban Comercial](./kanban-sales-prd.md)
 
@@ -67,7 +67,7 @@ Quando o card ja estiver em uma etapa configurada como `pede agendamento`, o pai
 
 ### Secretaria: reagendamento ou cancelamento
 
-- `Reagendar`: abre horario atual e alternativas. Ao confirmar, atualiza somente a ocorrencia escolhida ou permite escolher `esta e as proximas` quando for serie.
+- `Reagendar`: abre horario atual, recurso e alternativas livres. Ao confirmar, atualiza somente a ocorrencia escolhida ou permite escolher `esta e as proximas` quando for serie.
 - `Cancelar`: exige motivo configuravel; oferece cancelar somente esta, futuras ou toda a serie.
 - `Falta`: preserva o horario como `no_show`; nao e cancelamento e deve aparecer em relatorios futuros.
 - `Concluir`: marca atendimento realizado; nao fecha a oportunidade automaticamente sem regra comercial explicita.
@@ -190,6 +190,8 @@ Os lembretes existentes devem migrar gradualmente de `field_key` para a ocorrenc
 - `kanban.appointment.series_completed`.
 
 Os eventos de ocorrencia ja sao publicados quando a agenda esta vinculada a uma oportunidade. Cada evento e idempotente por ocorrencia, tipo e versao; um reagendamento publica `rescheduled` sem disparar uma segunda criacao para a mesma troca de horario.
+
+No editor visual, o no `Aguardar ate data` pode usar diretamente a data da ocorrencia que iniciou a automacao. Isso permite lembretes como `-24h` ou `-48h` sem espelhar a data em um campo comercial.
 
 O editor visual pode iniciar por esses eventos e usar `Aguardar ate data` contra `appointment.starts_at`. O envio ainda respeita opt-in, janela de WhatsApp, template aprovado, horario silencioso e idempotencia. Cancelamento ou reagendamento precisa encerrar automaticamente entregas pendentes da versao anterior.
 

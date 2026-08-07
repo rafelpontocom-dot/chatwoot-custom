@@ -551,7 +551,9 @@ class KanbanAutomations::FlowDefinitionValidator
   end
 
   def datetime_field?(field_key)
-    return %w[system_starts_at system_due_at system_next_action_at].include?(field_key.to_s) if field_key.to_s.start_with?('system_')
+    if field_key.to_s.start_with?('system_')
+      return %w[system_starts_at system_due_at system_next_action_at system_appointment_starts_at].include?(field_key.to_s)
+    end
 
     rule.kanban_board.configured_custom_field_definitions.any? do |field|
       field['key'] == field_key.to_s && DATE_FIELD_TYPES.include?(field['field_type'])

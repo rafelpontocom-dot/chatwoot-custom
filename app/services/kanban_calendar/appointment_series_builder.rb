@@ -1,6 +1,18 @@
 class KanbanCalendar::AppointmentSeriesBuilder
+  Attributes = Data.define(
+    :account,
+    :contact,
+    :card,
+    :procedure,
+    :starts_at,
+    :timezone,
+    :occurrence_count,
+    :interval_kind,
+    :interval_days
+  )
+
   def initialize(attributes:)
-    @attributes = attributes
+    @attributes = Attributes.new(**attributes)
   end
 
   def build

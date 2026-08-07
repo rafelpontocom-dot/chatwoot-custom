@@ -18,6 +18,7 @@ RSpec.describe KanbanCalendar::AvailabilitySlotsQuery do
     )
   end
   let(:date) { Date.new(2026, 8, 10) }
+  let(:resource_timezone) { ActiveSupport::TimeZone[resource.timezone] }
 
   it 'returns free starts that fit the configured working window' do
     resource.kanban_calendar_availability_rules.create!(
@@ -47,14 +48,14 @@ RSpec.describe KanbanCalendar::AvailabilitySlotsQuery do
       planned_count: 1,
       interval_kind: 'once',
       timezone: resource.timezone,
-      started_at: Time.zone.parse('2026-08-10 09:00:00')
+      started_at: resource_timezone.parse('2026-08-10 09:00:00')
     )
     appointment = series.kanban_calendar_appointments.create!(
       account: account,
       contact: contact,
       kanban_calendar_procedure: procedure,
-      starts_at: Time.zone.parse('2026-08-10 09:00:00'),
-      ends_at: Time.zone.parse('2026-08-10 09:50:00'),
+      starts_at: resource_timezone.parse('2026-08-10 09:00:00'),
+      ends_at: resource_timezone.parse('2026-08-10 09:50:00'),
       timezone: resource.timezone,
       occurrence_number: 1
     )

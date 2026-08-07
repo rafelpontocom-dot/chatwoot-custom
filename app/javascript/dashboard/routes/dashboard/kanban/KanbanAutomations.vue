@@ -927,6 +927,10 @@ const conditionFields = computed(() => [
     label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_AT'),
   },
   {
+    key: 'system_appointment_starts_at',
+    label: t('CALENDAR.OPPORTUNITY.STARTS_AT'),
+  },
+  {
     key: 'system_next_action_note',
     label: t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.NEXT_ACTION_NOTE'),
   },

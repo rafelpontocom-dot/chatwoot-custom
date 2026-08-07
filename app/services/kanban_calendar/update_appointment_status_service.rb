@@ -23,7 +23,8 @@ class KanbanCalendar::UpdateAppointmentStatusService
       appointments
     end
     appointments.each { |appointment| dispatch_appointment_event(appointment) }
-    @appointment
+    mirror_legacy_next_appointment
+    @appointment.reload
   end
 
   private
@@ -99,6 +100,10 @@ class KanbanCalendar::UpdateAppointmentStatusService
 
   def dispatch_appointment_event(appointment)
     KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: event_type).dispatch
+  end
+
+  def mirror_legacy_next_appointment
+    KanbanCalendar::LegacyNextAppointmentMirrorService.new(card: @appointment.kanban_card).perform! if @appointment.kanban_card
   end
 
   def event_type

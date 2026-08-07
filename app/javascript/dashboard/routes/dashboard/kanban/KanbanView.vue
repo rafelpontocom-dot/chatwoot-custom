@@ -1141,6 +1141,20 @@ const onStageDragEnd = async event => {
   await reorderStageByPosition(stage, newIndex + 1);
 };
 
+const openBookingStageOpportunity = (cardId, stageId, stageChanged) => {
+  if (
+    !stageChanged ||
+    !selectedBoard.value?.calendarEnabled ||
+    !selectedBoard.value.calendarBookingStageIds
+      ?.map(Number)
+      .includes(Number(stageId))
+  ) {
+    return;
+  }
+
+  selectedOpportunityCardId.value = cardId;
+};
+
 const onCardDragStart = () => {
   isCardDragging.value = true;
   hasCardDragChanged.value = false;
@@ -1184,6 +1198,7 @@ const onCardDragChange = async (stage, event) => {
       payload
     );
     await refreshStageFirstPages([card.kanbanStageId, stage.id]);
+    openBookingStageOpportunity(card.id, stage.id, stageChanged);
   } catch (error) {
     const responseData = error?.response?.data;
     if (responseData?.missing_fields?.length) {
@@ -1259,6 +1274,7 @@ const confirmAssistedMove = async () => {
     });
     closeAssistedMove();
     await refreshStageFirstPages([move.sourceStageId, move.targetStageId]);
+    openBookingStageOpportunity(move.cardId, move.targetStageId, true);
   } catch (error) {
     showActionError(error, t('KANBAN.ACTIONS.REORDER_CARD_ERROR'));
   } finally {

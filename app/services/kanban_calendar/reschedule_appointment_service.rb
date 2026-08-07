@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength -- Series replacement and its transactional checks share one boundary.
 class KanbanCalendar::RescheduleAppointmentService
   SCOPES = %w[this_occurrence this_and_future all_occurrences].freeze
 
@@ -17,6 +18,7 @@ class KanbanCalendar::RescheduleAppointmentService
       @scope == 'this_occurrence' ? reschedule_single_appointment! : replace_future_series!
     end
     dispatch_rescheduled_event(replacement)
+    mirror_legacy_next_appointment
     replacement
   rescue ActiveRecord::StatementInvalid => e
     raise unless e.cause.is_a?(PG::ExclusionViolation)
@@ -210,4 +212,9 @@ class KanbanCalendar::RescheduleAppointmentService
   def dispatch_rescheduled_event(appointment)
     KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'rescheduled').dispatch
   end
+
+  def mirror_legacy_next_appointment
+    KanbanCalendar::LegacyNextAppointmentMirrorService.new(card: @appointment.kanban_card).perform! if @appointment.kanban_card
+  end
 end
+# rubocop:enable Metrics/ClassLength

@@ -4,7 +4,8 @@ class KanbanAutomations::WorkflowService
   SYSTEM_DATE_FIELD_METHODS = {
     'system_starts_at' => :starts_at,
     'system_due_at' => :due_at,
-    'system_next_action_at' => :next_action_at
+    'system_next_action_at' => :next_action_at,
+    'system_appointment_starts_at' => :appointment_starts_at
   }.freeze
   NODE_HANDLERS = {
     'trigger' => :advance_node,
@@ -454,7 +455,9 @@ class KanbanAutomations::WorkflowService
   end
 
   def date_field_value(field_key, timezone_name = nil)
-    value = if field_key.start_with?('system_')
+    value = if field_key == 'system_appointment_starts_at'
+              workflow_state.dig('event_data', 'appointment_starts_at')
+            elsif field_key.start_with?('system_')
               card.public_send(SYSTEM_DATE_FIELD_METHODS.fetch(field_key))
             else
               card.custom_field_values.to_h[field_key]

@@ -24,6 +24,7 @@ class KanbanCalendar::BookAppointmentService
       create_appointments!
     end
     dispatch_created_events(appointments) if @dispatch_events
+    mirror_legacy_next_appointment
     appointments.first
   rescue ActiveRecord::StatementInvalid => e
     raise unless e.cause.is_a?(PG::ExclusionViolation)
@@ -195,6 +196,10 @@ class KanbanCalendar::BookAppointmentService
 
   def dispatch_created_events(appointments)
     appointments.each { |appointment| KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'created').dispatch }
+  end
+
+  def mirror_legacy_next_appointment
+    KanbanCalendar::LegacyNextAppointmentMirrorService.new(card: @kanban_card).perform! if @kanban_card
   end
 
   def create_resource_reservations!(appointment)

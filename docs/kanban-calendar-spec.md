@@ -2,7 +2,7 @@
 
 Baseado em: [PRD da Agenda](./kanban-calendar-prd.md)
 
-Status: P0 em implementacao. O catalogo inicial de procedimentos/recursos, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento por escopo e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil, janelas semanais, excecoes datadas e consulta de slots por recurso tambem estao disponiveis. Cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
+Status: P0 em implementacao. O catalogo inicial de procedimentos/recursos, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento e cancelamento por escopo, e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil, janelas semanais, excecoes datadas e consulta de slots por recurso tambem estao disponiveis. O detalhe de reagendamento mostra os slots livres do recurso e a grade preserva agendamentos fora da faixa comercial inicial. A etapa de agendamento abre o drawer da oportunidade para sugerir a reserva; o detalhe da consulta oferece retorno ao card vinculado. Integracoes seguem pendentes.
 
 ## Fronteira
 
@@ -22,6 +22,8 @@ O payload do board inclui os tres primeiros campos para que o drawer da oportuni
 ### Eventos De Agenda
 
 As ocorrencias vinculadas a uma oportunidade publicam `kanban.appointment.created`, `rescheduled`, `canceled`, `confirmed`, `completed` e `no_show`. Cada entrega inclui `account_id`, `board_id`, `card_id`, `appointment_id`, versao, status e intervalo. A chave de idempotencia e `appointment:<id>:<evento>:v<versao>` e nao reutiliza a chave de eventos historicos do card.
+
+O contexto de execucao preserva `appointment_starts_at`. O no visual `wait_until_field` aceita `system_appointment_starts_at`, permitindo offsets negativos para lembretes antes da consulta.
 
 ## Modelo De Dados P0
 
@@ -300,6 +302,8 @@ Nao implementar bidirecional sem esses seis itens. O Google Calendar exige timez
 - erro `409` preserva dados e mostra conflito acionavel;
 - dois agentes editando a mesma ocorrencia recebem resolucao compreensivel.
 
+O roteiro `tests/playwright/tests/e2e/ui/calendar-workspace.spec.ts` cobre no desktop: abertura por teclado, criacao a partir de horario livre, abertura de detalhe, retorno de foco no fechamento, remarcacao e cancelamento justificado. O compositor tambem possui teste de componente para conflito `409`: preserva o formulario, comunica indisponibilidade e recarrega horarios livres. Ele exige uma conta de teste com procedimento, recurso, disponibilidade semanal e contato preparados via `CALENDAR_E2E=1`.
+
 ## Plano De Entrega
 
 ### Fase A: Fundacao
@@ -309,25 +313,25 @@ Nao implementar bidirecional sem esses seis itens. O Google Calendar exige timez
 - [x] reserva unica com exclusao de conflito PostgreSQL;
 - [x] disponibilidade semanal e excecoes por data;
 - [x] consulta de slots por procedimento/recurso/data;
-- [ ] teste de concorrencia real com duas transacoes simultaneas.
+- [x] teste de concorrencia real com duas transacoes simultaneas.
 
 ### Fase B: Operacao
 
-- [ ] pagina Agenda dia/semana;
-- [ ] compositor pela conversa/card/agenda;
-- [ ] drawer de detalhe, confirmar, concluir, falta e cancelar;
-- [ ] configuracao de procedimentos e recursos.
+- [x] pagina Agenda dia/semana;
+- [x] compositor pela conversa/card/agenda;
+- [x] drawer de detalhe, confirmar, concluir, falta e cancelar;
+- [x] configuracao de procedimentos e recursos.
 
 ### Fase C: Series E Automacoes
 
-- [ ] previa e geracao de serie;
-- [ ] reagendar/cancelar por escopo;
-- [ ] adaptador de lembretes para ocorrencia;
-- [ ] compatibilidade opcional com campo legado do card.
+- [x] previa e geracao de serie;
+- [x] reagendar/cancelar por escopo;
+- [x] adaptador de lembretes para ocorrencia;
+- [x] compatibilidade opcional com campo legado do card.
 
 ### Fase D: Qualidade E Integracoes
 
-- [ ] E2E desktop, teclado e acessibilidade;
+- [ ] E2E desktop, teclado e acessibilidade: desktop e teclado cobertos; mobile e leitor de tela ainda pendentes;
 - [ ] carga, concorrencia e smoke de migration;
 - [ ] Google Calendar unilateral;
 - [ ] sincronizacao bidirecional somente apos auditoria da fase anterior.

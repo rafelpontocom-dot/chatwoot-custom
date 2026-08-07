@@ -79,6 +79,7 @@ RSpec.describe 'Calendar appointments API', type: :request do
 
   it 'lists appointments linked to an opportunity without requiring a date range' do
     board = create(:kanban_board, account: account)
+    board.update!(calendar_enabled: true, calendar_procedure_ids: [procedure.id])
     stage = create(:kanban_stage, account: account, kanban_board: board)
     card = create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage, contact: contact)
     linked_appointment = KanbanCalendar::BookAppointmentService.new(
@@ -106,6 +107,12 @@ RSpec.describe 'Calendar appointments API', type: :request do
         as: :json
 
     expect(response).to have_http_status(:success)
-    expect(response.parsed_body).to contain_exactly(include('id' => linked_appointment.id, 'kanban_card_id' => card.id))
+    expect(response.parsed_body).to contain_exactly(
+      include(
+        'id' => linked_appointment.id,
+        'kanban_card_id' => card.id,
+        'kanban_card' => include('id' => card.id, 'kanban_board_id' => board.id, 'subject' => card.subject)
+      )
+    )
   end
 end

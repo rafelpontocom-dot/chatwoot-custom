@@ -1,6 +1,15 @@
 require 'rails_helper'
 
 RSpec.describe KanbanCalendar::BookAppointmentService do
+  self.use_transactional_tests = false
+
+  around do |example|
+    clean_database!
+    example.run
+  ensure
+    clean_database!
+  end
+
   let(:account) { create(:account) }
   let(:contact) { create(:contact, account: account) }
   let(:procedure) do
@@ -68,6 +77,41 @@ RSpec.describe KanbanCalendar::BookAppointmentService do
         timezone: 'America/Sao_Paulo'
       ).perform!
     end.to raise_error(KanbanCalendar::ConflictError)
+  end
+
+  it 'allows only one simultaneous booking for the same resource and time' do
+    contacts = create_list(:contact, 2, account: account)
+    ready = Queue.new
+    start = Queue.new
+    outcomes = Queue.new
+
+    threads = contacts.map do |concurrent_contact|
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          outcomes << described_class.new(
+            account: Account.find(account.id),
+            contact: Contact.find(concurrent_contact.id),
+            procedure: KanbanCalendarProcedure.find(procedure.id),
+            resource_ids: [resource.id],
+            starts_at: starts_at,
+            timezone: 'America/Sao_Paulo'
+          ).perform!
+        rescue StandardError => e
+          outcomes << e
+        end
+      end
+    end
+
+    contacts.length.times { ready.pop }
+    contacts.length.times { start << true }
+    threads.each(&:join)
+
+    results = Array.new(outcomes.size) { outcomes.pop }
+    expect(results.count { |result| result.is_a?(KanbanCalendarAppointment) }).to eq(1)
+    expect(results.grep(KanbanCalendar::ConflictError)).to have_attributes(count: 1)
+    expect(KanbanCalendarAppointment.where(status: 'scheduled').count).to eq(1)
   end
 
   it 'creates individual weekly occurrences for a recurring procedure' do
@@ -146,5 +190,15 @@ RSpec.describe KanbanCalendar::BookAppointmentService do
         timezone: 'America/Sao_Paulo'
       ).perform!
     end.to raise_error(ActiveRecord::RecordInvalid, /Resources are unavailable/)
+  end
+
+  def clean_database!
+    ActiveRecord::Base.connection_pool.with_connection do |connection|
+      connection.disable_referential_integrity do
+        (connection.tables - %w[schema_migrations ar_internal_metadata]).each do |table|
+          connection.execute("DELETE FROM #{connection.quote_table_name(table)}")
+        end
+      end
+    end
   end
 end

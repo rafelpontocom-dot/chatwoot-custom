@@ -19,6 +19,7 @@ class KanbanCalendar::AppointmentPayloadBuilder
       series: series_payload,
       contact: { id: @appointment.contact_id, name: @appointment.contact.name },
       kanban_card_id: @appointment.kanban_card_id,
+      kanban_card: kanban_card_payload,
       procedure: procedure_payload,
       resources: resources_payload,
       status: @appointment.status,
@@ -43,6 +44,13 @@ class KanbanCalendar::AppointmentPayloadBuilder
 
   def resources_payload
     @appointment.kanban_calendar_resources.map { |resource| { id: resource.id, name: resource.name } }
+  end
+
+  def kanban_card_payload
+    card = @appointment.kanban_card
+    return unless card
+
+    { id: card.id, kanban_board_id: card.kanban_board_id, subject: card.subject }
   end
 
   def events_payload

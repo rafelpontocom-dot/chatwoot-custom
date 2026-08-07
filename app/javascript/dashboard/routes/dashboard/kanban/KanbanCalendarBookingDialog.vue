@@ -76,6 +76,27 @@ const recurrenceEnabled = computed(
     Number(occurrenceCount.value) > 1 &&
     selectedProcedure.value?.recurrence_allowed
 );
+const recurrencePreview = computed(() => {
+  if (!recurrenceEnabled.value || !startsAt.value) return [];
+
+  const count = Math.min(Number(occurrenceCount.value) || 1, 10);
+  const first = new Date(startsAt.value);
+  if (Number.isNaN(first.getTime())) return [];
+
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(first);
+    if (intervalKind.value === 'weekly')
+      date.setDate(date.getDate() + index * 7);
+    if (intervalKind.value === 'biweekly')
+      date.setDate(date.getDate() + index * 14);
+    if (intervalKind.value === 'monthly')
+      date.setMonth(date.getMonth() + index);
+    if (intervalKind.value === 'days') {
+      date.setDate(date.getDate() + index * Number(intervalDays.value || 0));
+    }
+    return date;
+  });
+});
 const recurrenceIntervalLabel = interval =>
   ({
     weekly: t('CALENDAR.OPPORTUNITY.INTERVALS.WEEKLY'),
@@ -240,6 +261,11 @@ const slotLabel = slot =>
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(slot));
+const previewDateLabel = date =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
 
 const getErrorMessage = errorResponse =>
   errorResponse?.response?.data?.message ||
@@ -305,6 +331,12 @@ const save = async () => {
     emit('created', response.data);
     close();
   } catch (saveError) {
+    if (saveError?.response?.status === 409) {
+      availabilityResult.value = { available: false, conflict: true };
+      await loadAvailabilitySlots();
+      return;
+    }
+
     error.value = getErrorMessage(saveError);
   } finally {
     isSaving.value = false;
@@ -503,6 +535,37 @@ defineExpose({ open });
             class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           />
         </label>
+        <div
+          v-if="recurrencePreview.length"
+          class="grid gap-1 rounded-md border border-n-weak bg-n-surface-2 p-2.5"
+        >
+          <span class="text-xs font-medium text-n-slate-12">
+            {{ t('CALENDAR.OPPORTUNITY.SERIES_PREVIEW') }}
+          </span>
+          <ol class="mb-0 grid gap-0.5 text-xs text-n-slate-11">
+            <li
+              v-for="(date, index) in recurrencePreview"
+              :key="date.getTime()"
+            >
+              {{
+                t('CALENDAR.OPPORTUNITY.SERIES_PREVIEW_ITEM', {
+                  number: index + 1,
+                  date: previewDateLabel(date),
+                })
+              }}
+            </li>
+          </ol>
+          <span
+            v-if="Number(occurrenceCount) > recurrencePreview.length"
+            class="text-xs text-n-slate-11"
+          >
+            {{
+              t('CALENDAR.OPPORTUNITY.SERIES_PREVIEW_MORE', {
+                count: Number(occurrenceCount) - recurrencePreview.length,
+              })
+            }}
+          </span>
+        </div>
         <p v-if="isCheckingAvailability" class="mb-0 text-xs text-n-slate-11">
           {{ t('CALENDAR.OPPORTUNITY.CHECKING_AVAILABILITY') }}
         </p>
@@ -530,6 +593,7 @@ defineExpose({ open });
               v-for="slot in availabilitySlots"
               :key="slot"
               type="button"
+              data-testid="calendar-availability-slot"
               class="rounded border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-12 outline-none hover:border-n-brand hover:text-n-brand focus:ring-2 focus:ring-n-brand/40"
               @click="selectAvailabilitySlot(slot)"
             >
@@ -558,6 +622,7 @@ defineExpose({ open });
         />
         <NextButton
           type="button"
+          data-testid="calendar-confirm-booking"
           :label="t('CALENDAR.OPPORTUNITY.CONFIRM_BOOKING')"
           :disabled="!canSave || isLoading"
           :is-loading="isSaving"

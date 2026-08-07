@@ -35,7 +35,8 @@ class KanbanAutomations::ExecuteRuleJob < ApplicationJob
         event_name: event_name,
         kanban_card_event_id: event_id,
         kanban_card: @card,
-        automation_snapshot: automation_snapshot
+        automation_snapshot: automation_snapshot,
+        workflow_state: { 'event_data' => @event_data }
       )
     end
   end
