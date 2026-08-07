@@ -126,12 +126,7 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
           'labels' => [
             { 'id' => label.id, 'title' => 'urgente', 'color' => '#ff0000', 'description' => nil }
           ],
-          'kanban_board' => {
-            'id' => kanban_board.id,
-            'name' => 'Sales',
-            'calendar_enabled' => false,
-            'calendar_procedure_ids' => []
-          },
+          'kanban_board' => { 'id' => kanban_board.id, 'name' => 'Sales' },
           'kanban_stage' => { 'id' => stage.id, 'name' => 'New', 'color' => 'blue' },
           'conversation_id' => conversation.display_id
         }
