@@ -1,6 +1,6 @@
 # PRD: Agenda Operacional do RAEVO CRM
 
-Status: P0 em implementacao. A aba principal `Agenda`, o catalogo inicial de procedimentos/recursos, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento com escopo de serie estao implementados localmente. A configuracao por funil agora escolhe ativacao, etapas e procedimentos. Disponibilidade calculada, cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
+Status: P0 em implementacao. A aba principal `Agenda`, o catalogo inicial de procedimentos/recursos, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento com escopo de serie estao implementados localmente. A configuracao por funil escolhe ativacao, etapas e procedimentos; recursos tambem podem receber janelas semanais de disponibilidade. Excecoes por data, cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
 
 Produto relacionado: [Kanban Comercial](./kanban-sales-prd.md)
 
@@ -54,6 +54,8 @@ O resultado e trabalho manual, dados duplicados e lembretes que ficam desatualiz
 4. Seleciona procedimento, profissional/unidade, data e horario.
 5. A tela mostra conflitos, duracao, intervalo de preparo e proximo horario livre.
 6. Confirma. A oportunidade passa para a etapa definida pelo procedimento ou permanece na etapa atual, conforme configuracao do board.
+
+Quando o card ja estiver em uma etapa configurada como `pede agendamento`, o painel da oportunidade mostra esse contexto e mantem o atalho `Agendar` visivel. A etapa convida a acao; ela nunca cria horario automaticamente.
 
 ### Secretaria: plano de acompanhamento
 

@@ -126,4 +126,25 @@ RSpec.describe KanbanCalendar::BookAppointmentService do
 
     expect(appointment.kanban_card).to eq(card)
   end
+
+  it 'does not create an appointment outside a configured resource window' do
+    unavailable_starts_at = ActiveSupport::TimeZone['America/Sao_Paulo'].parse('2026-08-10 13:00:00')
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window',
+      weekday: unavailable_starts_at.wday,
+      starts_at_local: '09:00',
+      ends_at_local: '12:00'
+    )
+
+    expect do
+      described_class.new(
+        account: account,
+        contact: contact,
+        procedure: procedure,
+        resource_ids: [resource.id],
+        starts_at: unavailable_starts_at,
+        timezone: 'America/Sao_Paulo'
+      ).perform!
+    end.to raise_error(ActiveRecord::RecordInvalid, /Resources are unavailable/)
+  end
 end

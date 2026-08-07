@@ -45,6 +45,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  calendarBookingStageIds: {
+    type: Array,
+    default: () => [],
+  },
   calendarProcedureIds: {
     type: Array,
     default: () => [],
@@ -1458,6 +1462,9 @@ watch(showUnsavedChanges, async visible => {
               :card-id="card.id"
               :contact-id="card.contact?.id"
               :contact-name="contactName"
+              :booking-stage="
+                calendarBookingStageIds.map(Number).includes(Number(stageId))
+              "
               :allowed-procedure-ids="calendarProcedureIds"
             />
 

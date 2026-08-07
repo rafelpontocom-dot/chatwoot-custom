@@ -26,6 +26,7 @@
       "LOADING": "Carregando agendamentos...",
       "LOAD_ERROR": "Não foi possível carregar os agendamentos desta oportunidade.",
       "EMPTY": "Nenhuma consulta agendada.",
+      "BOOKING_STAGE_HINT": "Esta etapa pede agendamento. Escolha um horário para continuar.",
       "BOOK_TITLE": "Agendar consulta",
       "BOOK_DESCRIPTION": "Escolha o procedimento, o profissional e o horário para {contact}.",
       "CONTACT_REQUIRED": "Vincule um contato à oportunidade antes de agendar.",
@@ -40,6 +41,7 @@
       "STARTS_AT": "Data e horário",
       "CHECKING_AVAILABILITY": "Verificando disponibilidade...",
       "AVAILABILITY_CONFLICT": "Este recurso já possui um agendamento nesse horário. Escolha outro horário ou recurso.",
+      "AVAILABILITY_UNAVAILABLE": "Este recurso não atende nesse horário. Escolha outro horário ou recurso.",
       "SESSIONS": "Sessões",
       "RECURRENCE": "Recorrência",
       "INTERVAL_DAYS": "Intervalo em dias",
@@ -63,6 +65,11 @@
       "SAVE_ERROR": "Não foi possível salvar a configuração da agenda.",
       "PROCEDURE_NAME": "Nome do procedimento",
       "DURATION": "Duração (min)",
+      "PROCEDURE_RESOURCES": "Recursos elegíveis",
+      "PROCEDURE_RESOURCES_PLACEHOLDER": "Todos os recursos",
+      "PROCEDURE_RESOURCES_SEARCH": "Buscar recursos",
+      "PROCEDURE_RESOURCES_EMPTY": "Nenhum recurso ativo encontrado",
+      "PROCEDURE_RESOURCES_HELP": "Sem seleção, o procedimento pode usar qualquer recurso ativo.",
       "ALLOW_RECURRENCE": "Permitir recorrência",
       "MAX_SESSIONS": "Máximo de sessões",
       "ADD_PROCEDURE": "Adicionar procedimento",
@@ -72,6 +79,29 @@
       "RESOURCE_TYPE": "Tipo",
       "ADD_RESOURCE": "Adicionar recurso",
       "NO_RESOURCES": "Nenhum recurso cadastrado.",
+      "AVAILABILITY": {
+        "OPEN": "Horários",
+        "CLOSE": "Fechar horários",
+        "TITLE": "Horários de atendimento",
+        "HELP": "Defina os períodos semanais em que este recurso pode receber agendamentos.",
+        "WEEKDAY": "Dia",
+        "START": "Início",
+        "END": "Fim",
+        "ADD": "Adicionar",
+        "LOADING": "Carregando horários...",
+        "EMPTY": "Sem horários configurados: este recurso continua disponível sem restrição.",
+        "RULE": "{weekday}: {start} - {end}",
+        "REMOVE": "Remover horário"
+      },
+      "WEEKDAYS": {
+        "SUNDAY": "Domingo",
+        "MONDAY": "Segunda-feira",
+        "TUESDAY": "Terça-feira",
+        "WEDNESDAY": "Quarta-feira",
+        "THURSDAY": "Quinta-feira",
+        "FRIDAY": "Sexta-feira",
+        "SATURDAY": "Sábado"
+      },
       "RESOURCE_TYPES": {
         "ROOM": "Sala",
         "EQUIPMENT": "Equipamento",
@@ -85,6 +115,8 @@
       "DATE_TIME": "Data e horário",
       "RESOURCE": "Profissional ou recurso",
       "STATUS_LABEL": "Status",
+      "SERIES_LABEL": "Plano de sessões",
+      "SERIES_VALUE": "Sessão {current} de {total}",
       "CANCELLATION_REASON": "Motivo do cancelamento",
       "CANCELLATION_SCOPE": "Aplicar cancelamento",
       "CANCELLATION_SCOPES": {
@@ -112,6 +144,15 @@
         "COMPLETED": "Concluído",
         "NO_SHOW": "Falta",
         "CANCELED": "Cancelado"
+      },
+      "EVENTS": {
+        "TITLE": "Histórico do agendamento",
+        "CREATED": "Agendamento criado",
+        "CONFIRMED": "Agendamento confirmado",
+        "RESCHEDULED": "Agendamento remarcado",
+        "CANCELED": "Agendamento cancelado",
+        "COMPLETED": "Atendimento concluído",
+        "NO_SHOW": "Falta registrada"
       }
     }
   }

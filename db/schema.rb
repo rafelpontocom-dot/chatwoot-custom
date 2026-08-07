@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_07_110000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_07_120000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1330,6 +1330,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_07_110000) do
     t.index ["rescheduled_from_id"], name: "index_kanban_calendar_appointments_on_rescheduled_from_id"
   end
 
+  create_table "kanban_calendar_availability_rules", force: :cascade do |t|
+    t.bigint "kanban_calendar_resource_id", null: false
+    t.string "kind", null: false
+    t.integer "weekday"
+    t.date "date"
+    t.time "starts_at_local"
+    t.time "ends_at_local"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["kanban_calendar_resource_id", "date"], name: "index_calendar_availability_rules_on_resource_date"
+    t.index ["kanban_calendar_resource_id", "kind", "weekday"], name: "index_calendar_availability_rules_on_resource_kind_weekday"
+  end
+
   create_table "kanban_calendar_procedure_resources", force: :cascade do |t|
     t.bigint "kanban_calendar_procedure_id", null: false
     t.bigint "kanban_calendar_resource_id", null: false
@@ -1958,6 +1972,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_07_110000) do
   add_foreign_key "kanban_calendar_appointments", "kanban_calendar_procedures"
   add_foreign_key "kanban_calendar_appointments", "kanban_cards"
   add_foreign_key "kanban_calendar_appointments", "users", column: "canceled_by_id"
+  add_foreign_key "kanban_calendar_availability_rules", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_procedures"
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_procedures", "accounts"

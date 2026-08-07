@@ -19,16 +19,7 @@ class KanbanCalendar::BookAppointmentService
     ActiveRecord::Base.transaction do
       raise KanbanCalendar::ConflictError, conflicting_resource_ids if conflicting_resource_ids.any?
 
-      series = build_series
-      appointments = appointment_starts.each_with_index.map do |occurrence_starts_at, index|
-        build_appointment(series, occurrence_starts_at, index + 1)
-      end
-      appointments.each do |appointment|
-        appointment.save!
-        create_resource_reservations!(appointment)
-        create_event!(appointment)
-      end
-      appointments.first
+      create_appointments!
     end
   rescue ActiveRecord::StatementInvalid => e
     raise unless e.cause.is_a?(PG::ExclusionViolation)
@@ -40,16 +31,25 @@ class KanbanCalendar::BookAppointmentService
 
   def validate_references!
     validate_account_references!
+    validate_schedule!
     validate_board_calendar_configuration!
     validate_resources!
     validate_procedure_resources!
     validate_recurrence!
+    validate_resource_availability!
   end
 
   def validate_account_references!
     [@procedure, @contact, @kanban_card].compact.each do |record|
       raise ActiveRecord::RecordInvalid, record unless record.account_id == @account.id
     end
+  end
+
+  def validate_schedule!
+    return if @starts_at.present? && @timezone.present?
+
+    @procedure.errors.add(:base, 'Start time and timezone are required')
+    raise ActiveRecord::RecordInvalid, @procedure
   end
 
   def validate_resources!
@@ -59,18 +59,10 @@ class KanbanCalendar::BookAppointmentService
   end
 
   def validate_board_calendar_configuration!
-    return unless @kanban_card
-
-    board = @kanban_card.kanban_board
-    return if board.calendar_module_enabled? && board_allows_procedure?(board)
-
-    @kanban_card.errors.add(:base, 'Calendar is not enabled for this funnel or procedure')
-    raise ActiveRecord::RecordInvalid, @kanban_card
-  end
-
-  def board_allows_procedure?(board)
-    board.configured_calendar_procedure_ids.empty? ||
-      @procedure.id.in?(board.configured_calendar_procedure_ids)
+    KanbanCalendar::BoardConfigurationValidator.new(
+      card: @kanban_card,
+      procedure: @procedure
+    ).validate!
   end
 
   def validate_procedure_resources!
@@ -85,6 +77,15 @@ class KanbanCalendar::BookAppointmentService
 
     validate_procedure_recurrence!
     validate_recurrence_interval!
+  end
+
+  def validate_resource_availability!
+    KanbanCalendar::ResourceAvailabilityValidator.new(
+      resources: resources,
+      starts_at: appointment_starts,
+      duration_minutes: @procedure.duration_minutes,
+      record: @procedure
+    ).validate!
   end
 
   def validate_occurrence_count!
@@ -156,30 +157,36 @@ class KanbanCalendar::BookAppointmentService
     occurrence_starts_at + @procedure.duration_minutes.minutes
   end
 
-  def build_series
-    @account.kanban_calendar_appointment_series.create!(
-      contact: @contact,
-      kanban_card: @kanban_card,
-      kanban_calendar_procedure: @procedure,
-      planned_count: @occurrence_count,
-      interval_kind: @interval_kind,
-      interval_days: @interval_kind == 'days' ? @interval_days : nil,
-      timezone: @timezone,
-      started_at: @starts_at
-    )
+  def appointment_series_builder
+    KanbanCalendar::AppointmentSeriesBuilder.new(attributes: {
+                                                   account: @account,
+                                                   contact: @contact,
+                                                   card: @kanban_card,
+                                                   procedure: @procedure,
+                                                   starts_at: @starts_at,
+                                                   timezone: @timezone,
+                                                   occurrence_count: @occurrence_count,
+                                                   interval_kind: @interval_kind,
+                                                   interval_days: @interval_days
+                                                 })
   end
 
-  def build_appointment(series, occurrence_starts_at, occurrence_number)
-    series.kanban_calendar_appointments.build(
-      account: @account,
-      contact: @contact,
-      kanban_card: @kanban_card,
-      kanban_calendar_procedure: @procedure,
-      starts_at: occurrence_starts_at,
-      ends_at: occurrence_ends_at(occurrence_starts_at),
-      timezone: @timezone,
-      occurrence_number: occurrence_number
-    )
+  def create_appointments!
+    series_builder = appointment_series_builder
+    series = series_builder.build
+    appointments = appointment_starts.each_with_index.map do |occurrence_starts_at, index|
+      series_builder.build_appointment(
+        series: series,
+        occurrence_starts_at: occurrence_starts_at,
+        occurrence_number: index + 1
+      )
+    end
+    appointments.each do |appointment|
+      appointment.save!
+      create_resource_reservations!(appointment)
+      create_event!(appointment)
+    end
+    appointments.first
   end
 
   def create_resource_reservations!(appointment)

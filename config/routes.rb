@@ -118,8 +118,13 @@ Rails.application.routes.draw do
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           namespace :calendar do
             resources :procedures, only: [:index, :show, :create, :update]
-            resources :resources, only: [:index, :show, :create, :update]
+            resources :resources, only: [:index, :show, :create, :update] do
+              resources :availability_rules,
+                        controller: 'resource_availability_rules',
+                        only: [:index, :create, :update, :destroy]
+            end
             resources :appointments, only: [:index, :show, :create, :update] do
+              get :availability, on: :collection
               post :reschedule, on: :member
             end
           end

@@ -29,6 +29,7 @@ class KanbanCalendar::RescheduleAppointmentService
     validate_scope!
     validate_resources!
     validate_procedure_resources!
+    validate_resource_availability!
   end
 
   def validate_reschedulable_appointment!
@@ -50,6 +51,18 @@ class KanbanCalendar::RescheduleAppointmentService
     return unless restricted_procedure_resources? && (resources - procedure.kanban_calendar_resources).any?
 
     invalid_appointment!('uses a resource not allowed for this procedure')
+  end
+
+  def validate_resource_availability!
+    return if resources.all? do |resource|
+      KanbanCalendar::AvailabilityQuery.new(
+        resource: resource,
+        starts_at: @starts_at,
+        ends_at: ends_at
+      ).available?
+    end
+
+    invalid_appointment!('uses a resource outside its available hours')
   end
 
   def invalid_appointment!(message)

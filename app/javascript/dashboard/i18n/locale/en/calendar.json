@@ -26,6 +26,7 @@
       "LOADING": "Loading appointments...",
       "LOAD_ERROR": "Could not load appointments for this opportunity.",
       "EMPTY": "No appointments booked.",
+      "BOOKING_STAGE_HINT": "This stage requires scheduling. Choose a time to continue.",
       "BOOK_TITLE": "Book appointment",
       "BOOK_DESCRIPTION": "Choose the procedure, professional, and time for {contact}.",
       "CONTACT_REQUIRED": "Link a contact to this opportunity before booking.",
@@ -40,6 +41,7 @@
       "STARTS_AT": "Date and time",
       "CHECKING_AVAILABILITY": "Checking availability...",
       "AVAILABILITY_CONFLICT": "This resource already has an appointment at this time. Choose another time or resource.",
+      "AVAILABILITY_UNAVAILABLE": "This resource is not available at this time. Choose another time or resource.",
       "SESSIONS": "Sessions",
       "RECURRENCE": "Recurrence",
       "INTERVAL_DAYS": "Interval in days",
@@ -63,6 +65,11 @@
       "SAVE_ERROR": "Could not save the calendar configuration.",
       "PROCEDURE_NAME": "Procedure name",
       "DURATION": "Duration (min)",
+      "PROCEDURE_RESOURCES": "Eligible resources",
+      "PROCEDURE_RESOURCES_PLACEHOLDER": "All resources",
+      "PROCEDURE_RESOURCES_SEARCH": "Search resources",
+      "PROCEDURE_RESOURCES_EMPTY": "No active resources found",
+      "PROCEDURE_RESOURCES_HELP": "Without a selection, the procedure can use any active resource.",
       "ALLOW_RECURRENCE": "Allow recurrence",
       "MAX_SESSIONS": "Maximum sessions",
       "ADD_PROCEDURE": "Add procedure",
@@ -72,6 +79,29 @@
       "RESOURCE_TYPE": "Type",
       "ADD_RESOURCE": "Add resource",
       "NO_RESOURCES": "No resources registered.",
+      "AVAILABILITY": {
+        "OPEN": "Hours",
+        "CLOSE": "Close hours",
+        "TITLE": "Working hours",
+        "HELP": "Set the weekly periods when this resource can accept appointments.",
+        "WEEKDAY": "Day",
+        "START": "Start",
+        "END": "End",
+        "ADD": "Add",
+        "LOADING": "Loading hours...",
+        "EMPTY": "No hours configured: this resource remains available without restrictions.",
+        "RULE": "{weekday}: {start} - {end}",
+        "REMOVE": "Remove hours"
+      },
+      "WEEKDAYS": {
+        "SUNDAY": "Sunday",
+        "MONDAY": "Monday",
+        "TUESDAY": "Tuesday",
+        "WEDNESDAY": "Wednesday",
+        "THURSDAY": "Thursday",
+        "FRIDAY": "Friday",
+        "SATURDAY": "Saturday"
+      },
       "RESOURCE_TYPES": {
         "ROOM": "Room",
         "EQUIPMENT": "Equipment",
@@ -85,6 +115,8 @@
       "DATE_TIME": "Date and time",
       "RESOURCE": "Professional or resource",
       "STATUS_LABEL": "Status",
+      "SERIES_LABEL": "Session plan",
+      "SERIES_VALUE": "Session {current} of {total}",
       "CANCELLATION_REASON": "Cancellation reason",
       "CANCELLATION_SCOPE": "Apply cancellation to",
       "CANCELLATION_SCOPES": {
@@ -112,6 +144,15 @@
         "COMPLETED": "Completed",
         "NO_SHOW": "No-show",
         "CANCELED": "Canceled"
+      },
+      "EVENTS": {
+        "TITLE": "Appointment history",
+        "CREATED": "Appointment created",
+        "CONFIRMED": "Appointment confirmed",
+        "RESCHEDULED": "Appointment rescheduled",
+        "CANCELED": "Appointment canceled",
+        "COMPLETED": "Appointment completed",
+        "NO_SHOW": "No-show recorded"
       }
     }
   }

@@ -2814,6 +2814,9 @@ onUnmounted(() => {
           :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           :custom-field-sections="selectedBoard.customFieldSections || []"
           :calendar-enabled="selectedBoard.calendarEnabled"
+          :calendar-booking-stage-ids="
+            selectedBoard.calendarBookingStageIds || []
+          "
           :calendar-procedure-ids="selectedBoard.calendarProcedureIds || []"
           :owner-options="agentFilterOptions"
           :can-manage-fields="isAdmin"

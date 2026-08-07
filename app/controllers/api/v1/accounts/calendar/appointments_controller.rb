@@ -20,6 +20,18 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
     render json: appointment_payload(@appointment, include_events: true)
   end
 
+  def availability
+    authorize KanbanCalendarAppointment, :index?
+    starts_at = Time.zone.parse(params.require(:starts_at))
+    return render_invalid_availability if starts_at.blank?
+
+    render json: KanbanCalendar::AvailabilityCheckService.new(
+      procedure: scoped_availability_procedure,
+      resource: scoped_availability_resource,
+      starts_at: starts_at
+    ).call
+  end
+
   def create
     authorize KanbanCalendarAppointment, :create?
     appointment = booking_service.perform!
@@ -161,46 +173,27 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
 
   def appointment_scope
     policy_scope(KanbanCalendarAppointment)
-      .includes(:contact, :kanban_calendar_procedure, :kanban_calendar_resources)
+      .includes(:contact, :kanban_calendar_appointment_series, :kanban_calendar_procedure, :kanban_calendar_resources)
       .order(:starts_at)
   end
 
   def appointment_payload(appointment, include_events: false)
-    payload = appointment_summary_payload(appointment)
-    return payload unless include_events
-
-    payload.merge(events: appointment_events_payload(appointment))
+    KanbanCalendar::AppointmentPayloadBuilder.new(appointment, include_events: include_events).call
   end
 
-  def appointment_summary_payload(appointment)
-    {
-      id: appointment.id,
-      series_id: appointment.kanban_calendar_appointment_series_id,
-      contact: { id: appointment.contact_id, name: appointment.contact.name },
-      kanban_card_id: appointment.kanban_card_id,
-      procedure: {
-        id: appointment.kanban_calendar_procedure_id,
-        name: appointment.kanban_calendar_procedure.name,
-        color: appointment.kanban_calendar_procedure.color
-      },
-      resources: appointment.kanban_calendar_resources.map { |resource| { id: resource.id, name: resource.name } },
-      status: appointment.status,
-      starts_at: appointment.starts_at.iso8601,
-      ends_at: appointment.ends_at.iso8601,
-      timezone: appointment.timezone,
-      occurrence_number: appointment.occurrence_number,
-      appointment_version: appointment.appointment_version,
-      lock_version: appointment.lock_version
-    }
+  def scoped_availability_procedure
+    policy_scope(KanbanCalendarProcedure).active.find(params.require(:procedure_id))
   end
 
-  def appointment_events_payload(appointment)
-    appointment.kanban_calendar_appointment_events.order(:occurred_at).map do |event|
-      { id: event.id, event_type: event.event_type, occurred_at: event.occurred_at.iso8601, actor_id: event.actor_id }
-    end
+  def scoped_availability_resource
+    policy_scope(KanbanCalendarResource).active.find(params.require(:resource_id))
   end
 
   def render_invalid_record(record)
     render json: { message: record.errors.full_messages.to_sentence, errors: record.errors }, status: :unprocessable_entity
+  end
+
+  def render_invalid_availability
+    render json: { message: 'A valid start time is required' }, status: :unprocessable_entity
   end
 end

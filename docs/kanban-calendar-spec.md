@@ -2,13 +2,15 @@
 
 Baseado em: [PRD da Agenda](./kanban-calendar-prd.md)
 
-Status: P0 em implementacao. O catalogo inicial de procedimentos/recursos, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento por escopo e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil tambem esta disponivel. Disponibilidade calculada, cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
+Status: P0 em implementacao. O catalogo inicial de procedimentos/recursos, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento por escopo e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil e janelas semanais de disponibilidade por recurso tambem estao disponiveis. Excecoes por data, cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
 
 ## Fronteira
 
 O modulo e nativo ao Chatwoot e pertencente a `Account`. Ele se integra ao Kanban por `kanban_card_id`, mas nao exige oportunidade: uma agenda pode receber um contato diretamente. Toda consulta ligada a oportunidade usa o mesmo `KanbanCard`, nunca uma copia de campos em `custom_field_values`.
 
 `KanbanBoard` possui a configuracao de modulo: `calendar_enabled`, `calendar_booking_stage_ids`, `calendar_procedure_ids` e `calendar_legacy_next_appointment_field_key`. Nenhum desses campos armazena sessoes ou recorrencia; eles apenas governam sugestoes e compatibilidade.
+
+O payload do board inclui os tres primeiros campos para que o drawer da oportunidade exiba a area Agenda somente quando habilitada, filtre procedimentos permitidos e sinalize etapas que pedem agendamento. O frontend nunca cria uma ocorrencia apenas pela mudanca de etapa.
 
 ### Direcao De Integracao Aprovada
 

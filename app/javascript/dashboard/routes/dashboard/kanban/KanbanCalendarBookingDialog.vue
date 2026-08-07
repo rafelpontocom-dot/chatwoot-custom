@@ -37,7 +37,7 @@ const contactResults = ref([]);
 const selectedContact = ref(null);
 const isSearchingContacts = ref(false);
 const contactSearchController = ref(null);
-const availabilityAppointments = ref([]);
+const availabilityResult = ref(null);
 const isCheckingAvailability = ref(false);
 
 const bookingContactId = computed(
@@ -81,28 +81,14 @@ const recurrenceIntervalLabel = interval =>
     monthly: t('CALENDAR.OPPORTUNITY.INTERVALS.MONTHLY'),
     days: t('CALENDAR.OPPORTUNITY.INTERVALS.DAYS'),
   })[interval] || interval;
-const requestedEndsAt = computed(() => {
-  if (!startsAt.value || !selectedProcedure.value?.duration_minutes)
-    return null;
-
-  return new Date(
-    new Date(startsAt.value).getTime() +
-      selectedProcedure.value.duration_minutes * 60 * 1000
-  );
-});
-const hasAvailabilityConflict = computed(() => {
-  if (!requestedEndsAt.value) return false;
-
-  const requestedStartsAt = new Date(startsAt.value);
-  return availabilityAppointments.value.some(appointment => {
-    const appointmentStartsAt = new Date(appointment.starts_at);
-    const appointmentEndsAt = new Date(appointment.ends_at);
-    return (
-      appointmentStartsAt < requestedEndsAt.value &&
-      appointmentEndsAt > requestedStartsAt
-    );
-  });
-});
+const hasAvailabilityConflict = computed(
+  () => availabilityResult.value?.available === false
+);
+const availabilityErrorMessage = computed(() =>
+  availabilityResult.value?.conflict
+    ? t('CALENDAR.OPPORTUNITY.AVAILABILITY_CONFLICT')
+    : t('CALENDAR.OPPORTUNITY.AVAILABILITY_UNAVAILABLE')
+);
 const canSave = computed(
   () =>
     !!bookingContactId.value &&
@@ -110,6 +96,7 @@ const canSave = computed(
     !!resourceId.value &&
     !!startsAt.value &&
     !hasAvailabilityConflict.value &&
+    !isCheckingAvailability.value &&
     (!recurrenceEnabled.value ||
       intervalKind.value !== 'days' ||
       Number(intervalDays.value) > 0) &&
@@ -127,7 +114,7 @@ const resetForm = () => {
   contactSearchQuery.value = '';
   contactResults.value = [];
   selectedContact.value = null;
-  availabilityAppointments.value = [];
+  availabilityResult.value = null;
   isCheckingAvailability.value = false;
 };
 
@@ -187,27 +174,22 @@ const onContactInput = () => {
 };
 
 const checkAvailability = async () => {
-  if (!resourceId.value || !startsAt.value) {
-    availabilityAppointments.value = [];
+  if (!resourceId.value || !startsAt.value || !procedureId.value) {
+    availabilityResult.value = null;
     return;
   }
 
-  const selectedStartsAt = new Date(startsAt.value);
-  const dayStart = new Date(selectedStartsAt);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setDate(dayEnd.getDate() + 1);
   isCheckingAvailability.value = true;
 
   try {
-    const response = await CalendarAPI.getAppointments({
-      starts_at: dayStart.toISOString(),
-      ends_at: dayEnd.toISOString(),
-      resource_ids: [Number(resourceId.value)],
+    const response = await CalendarAPI.getAvailability({
+      starts_at: new Date(startsAt.value).toISOString(),
+      procedure_id: Number(procedureId.value),
+      resource_id: Number(resourceId.value),
     });
-    availabilityAppointments.value = response.data || [];
+    availabilityResult.value = response.data || null;
   } catch {
-    availabilityAppointments.value = [];
+    availabilityResult.value = null;
   } finally {
     isCheckingAvailability.value = false;
   }
@@ -304,7 +286,7 @@ watch(procedureId, () => {
   }
 });
 
-watch([resourceId, startsAt], debouncedCheckAvailability);
+watch([procedureId, resourceId, startsAt], debouncedCheckAvailability);
 
 onUnmounted(abortContactSearch);
 
@@ -484,7 +466,7 @@ defineExpose({ open });
           class="mb-0 text-sm text-n-ruby-11"
           role="alert"
         >
-          {{ t('CALENDAR.OPPORTUNITY.AVAILABILITY_CONFLICT') }}
+          {{ availabilityErrorMessage }}
         </p>
       </template>
 

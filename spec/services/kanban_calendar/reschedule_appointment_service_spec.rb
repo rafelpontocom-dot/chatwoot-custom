@@ -79,4 +79,22 @@ RSpec.describe KanbanCalendar::RescheduleAppointmentService do
     expect(second_appointment.reload.status).to eq('canceled')
     expect(replacement.kanban_calendar_appointment_series).to have_attributes(planned_count: 2, interval_kind: 'weekly')
   end
+
+  it 'rejects a new time outside the resource working hours' do
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window',
+      weekday: appointment.starts_at.in_time_zone(resource.timezone).wday,
+      starts_at_local: '09:00',
+      ends_at_local: '12:00'
+    )
+    unavailable_starts_at = ActiveSupport::TimeZone['America/Sao_Paulo'].parse('2026-08-17 13:00:00')
+
+    expect do
+      described_class.new(
+        appointment: appointment,
+        starts_at: unavailable_starts_at,
+        resource_ids: [resource.id]
+      ).perform!
+    end.to raise_error(ActiveRecord::RecordInvalid, /outside its available hours/)
+  end
 end

@@ -14,6 +14,10 @@ class CalendarAPI extends ApiClient {
     return axios.get(`${this.url}/appointments/${id}`);
   }
 
+  getAvailability(params) {
+    return axios.get(`${this.url}/appointments/availability`, { params });
+  }
+
   getProcedures() {
     return axios.get(`${this.url}/procedures`);
   }
@@ -28,6 +32,30 @@ class CalendarAPI extends ApiClient {
 
   createResource(payload) {
     return axios.post(`${this.url}/resources`, payload);
+  }
+
+  getAvailabilityRules(resourceId) {
+    return axios.get(`${this.url}/resources/${resourceId}/availability_rules`);
+  }
+
+  createAvailabilityRule(resourceId, payload) {
+    return axios.post(
+      `${this.url}/resources/${resourceId}/availability_rules`,
+      payload
+    );
+  }
+
+  updateAvailabilityRule(resourceId, ruleId, payload) {
+    return axios.patch(
+      `${this.url}/resources/${resourceId}/availability_rules/${ruleId}`,
+      payload
+    );
+  }
+
+  deleteAvailabilityRule(resourceId, ruleId) {
+    return axios.delete(
+      `${this.url}/resources/${resourceId}/availability_rules/${ruleId}`
+    );
   }
 
   createAppointment(payload) {

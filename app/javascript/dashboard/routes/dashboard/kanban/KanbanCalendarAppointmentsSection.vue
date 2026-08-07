@@ -5,12 +5,14 @@ import { useI18n } from 'vue-i18n';
 import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import KanbanCalendarBookingDialog from './KanbanCalendarBookingDialog.vue';
+import CalendarAppointmentDetailsDialog from '../calendar/CalendarAppointmentDetailsDialog.vue';
 
 const props = defineProps({
   cardId: { type: [Number, String], required: true },
   contactId: { type: [Number, String], default: null },
   contactName: { type: String, default: '' },
   allowedProcedureIds: { type: Array, default: () => [] },
+  bookingStage: { type: Boolean, default: false },
 });
 
 const { t } = useI18n();
@@ -18,6 +20,7 @@ const appointments = ref([]);
 const isLoading = ref(false);
 const error = ref('');
 const bookingDialog = ref(null);
+const detailsDialog = ref(null);
 
 const sortedAppointments = computed(() =>
   [...appointments.value].sort(
@@ -53,6 +56,7 @@ const loadAppointments = async () => {
 };
 
 const openBooking = () => bookingDialog.value?.open();
+const openDetails = appointment => detailsDialog.value?.open(appointment.id);
 const handleCreated = () => loadAppointments();
 
 onMounted(loadAppointments);
@@ -89,16 +93,24 @@ onMounted(loadAppointments);
       {{ error }}
     </p>
     <p
+      v-if="bookingStage && !sortedAppointments.length"
+      class="mb-0 rounded-md bg-n-brand/10 px-2.5 py-2 text-xs text-n-brand"
+    >
+      {{ t('CALENDAR.OPPORTUNITY.BOOKING_STAGE_HINT') }}
+    </p>
+    <p
       v-else-if="!sortedAppointments.length"
       class="mb-0 text-sm text-n-slate-11"
     >
       {{ t('CALENDAR.OPPORTUNITY.EMPTY') }}
     </p>
     <div v-else class="grid gap-2">
-      <article
+      <button
         v-for="appointment in sortedAppointments"
         :key="appointment.id"
-        class="grid gap-0.5 rounded-md bg-n-surface-2 px-2.5 py-2"
+        type="button"
+        class="grid gap-0.5 rounded-md bg-n-surface-2 px-2.5 py-2 text-left outline-none transition-colors hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+        @click="openDetails(appointment)"
       >
         <strong class="text-sm text-n-slate-12">
           {{ appointment.procedure.name }}
@@ -111,7 +123,7 @@ onMounted(loadAppointments);
             }}
           </template>
         </span>
-      </article>
+      </button>
     </div>
 
     <KanbanCalendarBookingDialog
@@ -121,6 +133,10 @@ onMounted(loadAppointments);
       :contact-name="contactName"
       :allowed-procedure-ids="allowedProcedureIds"
       @created="handleCreated"
+    />
+    <CalendarAppointmentDetailsDialog
+      ref="detailsDialog"
+      @updated="handleCreated"
     />
   </section>
 </template>

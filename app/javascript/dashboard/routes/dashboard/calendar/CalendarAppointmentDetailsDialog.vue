@@ -39,6 +39,15 @@ const statusLabel = status =>
     no_show: t('CALENDAR.DETAIL.STATUS.NO_SHOW'),
     canceled: t('CALENDAR.DETAIL.STATUS.CANCELED'),
   })[status] || status;
+const eventLabel = eventType =>
+  ({
+    created: t('CALENDAR.DETAIL.EVENTS.CREATED'),
+    confirmed: t('CALENDAR.DETAIL.EVENTS.CONFIRMED'),
+    rescheduled: t('CALENDAR.DETAIL.EVENTS.RESCHEDULED'),
+    canceled: t('CALENDAR.DETAIL.EVENTS.CANCELED'),
+    completed: t('CALENDAR.DETAIL.EVENTS.COMPLETED'),
+    no_show: t('CALENDAR.DETAIL.EVENTS.NO_SHOW'),
+  })[eventType] || eventType;
 const formatDateTimeInput = value => {
   const date = new Date(value);
   const offset = date.getTimezoneOffset();
@@ -206,7 +215,42 @@ defineExpose({ open });
               {{ statusLabel(appointment.status) }}
             </dd>
           </div>
+          <div v-if="appointment.series?.planned_count > 1" class="grid gap-1">
+            <dt class="text-n-slate-10">
+              {{ t('CALENDAR.DETAIL.SERIES_LABEL') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{
+                t('CALENDAR.DETAIL.SERIES_VALUE', {
+                  current: appointment.occurrence_number,
+                  total: appointment.series.planned_count,
+                })
+              }}
+            </dd>
+          </div>
         </dl>
+        <section
+          v-if="appointment.events?.length"
+          class="grid gap-2 border-t border-n-weak pt-3"
+        >
+          <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+            {{ t('CALENDAR.DETAIL.EVENTS.TITLE') }}
+          </h3>
+          <ol class="m-0 grid list-none gap-1.5 p-0">
+            <li
+              v-for="event in appointment.events"
+              :key="event.id"
+              class="flex items-center justify-between gap-3 text-sm"
+            >
+              <span class="text-n-slate-12">{{
+                eventLabel(event.event_type)
+              }}</span>
+              <time class="shrink-0 text-xs text-n-slate-11">
+                {{ formatDateTime(event.occurred_at) }}
+              </time>
+            </li>
+          </ol>
+        </section>
         <label v-if="isActive" class="grid gap-1.5">
           <span class="text-sm font-medium text-n-slate-12">{{
             t('CALENDAR.DETAIL.CANCELLATION_REASON')
