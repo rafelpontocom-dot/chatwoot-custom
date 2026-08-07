@@ -116,6 +116,13 @@ Rails.application.routes.draw do
             end
           end
           resources :canned_responses, only: [:index, :create, :update, :destroy]
+          namespace :calendar do
+            resources :procedures, only: [:index, :show, :create, :update]
+            resources :resources, only: [:index, :show, :create, :update]
+            resources :appointments, only: [:index, :show, :create, :update] do
+              post :reschedule, on: :member
+            end
+          end
           resources :kanban_boards, only: [:index, :create, :show, :destroy], constraints: { id: /\d+/ } do
             patch '', on: :member, action: :update
             get :archived, on: :collection

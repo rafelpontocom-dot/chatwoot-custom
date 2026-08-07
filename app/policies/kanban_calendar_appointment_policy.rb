@@ -1,0 +1,2 @@
+class KanbanCalendarAppointmentPolicy < KanbanCalendarPolicy
+end

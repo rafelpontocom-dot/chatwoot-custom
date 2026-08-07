@@ -100,6 +100,10 @@ class Account < ApplicationRecord
   has_many :whatsapp_channels, dependent: :destroy_async, class_name: '::Channel::Whatsapp'
   has_many :working_hours, dependent: :destroy_async
   has_one :kanban_birthday_automation, dependent: :destroy
+  has_many :kanban_calendar_procedures, dependent: :destroy_async
+  has_many :kanban_calendar_resources, dependent: :destroy_async
+  has_many :kanban_calendar_appointment_series, dependent: :destroy_async
+  has_many :kanban_calendar_appointments, dependent: :destroy_async
 
   has_one_attached :contacts_export
 

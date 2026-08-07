@@ -9,6 +9,7 @@ import { useAlert } from 'dashboard/composables';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
+import CalendarAPI from 'dashboard/api/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import Modal from 'dashboard/components/Modal.vue';
@@ -78,6 +79,8 @@ const newFieldGroupColor = ref('slate');
 const showFieldGroupManager = ref(false);
 const showStaleAlerts = ref(false);
 const showInternalAppointmentReminder = ref(false);
+const calendarProcedures = ref([]);
+const calendarProceduresLoading = ref(false);
 const automationRules = ref([]);
 const automationRulesLoading = ref(false);
 const automationRulesSaving = ref(false);
@@ -184,6 +187,10 @@ const form = reactive({
   compactCardFieldKeys: [],
   staleStageThresholds: {},
   appointmentReminderHours: '',
+  calendarEnabled: false,
+  calendarBookingStageIds: [],
+  calendarProcedureIds: [],
+  calendarLegacyNextAppointmentFieldKey: '',
   lockVersion: null,
 });
 
@@ -237,6 +244,11 @@ const settingsNavigation = computed(() => [
     key: 'sales',
     label: t('KANBAN.SETTINGS.SALES.TITLE'),
     icon: 'i-lucide-panels-top-left',
+  },
+  {
+    key: 'calendar',
+    label: t('KANBAN.SETTINGS.CALENDAR.TITLE'),
+    icon: 'i-lucide-calendar-days',
   },
   {
     key: 'automation',
@@ -326,6 +338,11 @@ const settingsFingerprint = () =>
     compactCardFieldKeys: form.compactCardFieldKeys,
     staleStageThresholds: form.staleStageThresholds,
     appointmentReminderHours: form.appointmentReminderHours,
+    calendarEnabled: form.calendarEnabled,
+    calendarBookingStageIds: form.calendarBookingStageIds,
+    calendarProcedureIds: form.calendarProcedureIds,
+    calendarLegacyNextAppointmentFieldKey:
+      form.calendarLegacyNextAppointmentFieldKey,
   });
 
 const hasUnsavedSettings = computed(
@@ -345,6 +362,20 @@ const inboxOptions = computed(() =>
   inboxes.value.map(inbox => ({
     value: inbox.id,
     label: inbox.name,
+  }))
+);
+
+const calendarStageOptions = computed(() =>
+  stages.value.map(stage => ({
+    value: stage.id,
+    label: stage.name,
+  }))
+);
+
+const calendarProcedureOptions = computed(() =>
+  calendarProcedures.value.map(procedure => ({
+    value: procedure.id,
+    label: procedure.name,
   }))
 );
 
@@ -1052,6 +1083,11 @@ const applySettings = payload => {
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
   form.appointmentReminderHours = settings.appointmentReminderHours ?? '';
+  form.calendarEnabled = Boolean(settings.calendarEnabled);
+  form.calendarBookingStageIds = settings.calendarBookingStageIds || [];
+  form.calendarProcedureIds = settings.calendarProcedureIds || [];
+  form.calendarLegacyNextAppointmentFieldKey =
+    settings.calendarLegacyNextAppointmentFieldKey || '';
   form.lockVersion = settings.lockVersion ?? null;
   // Keep the editor's normalized view model and the API payload in sync.
   // eslint-disable-next-line no-use-before-define
@@ -1087,6 +1123,19 @@ const fetchSettings = async () => {
     loadError.value = getErrorMessage(error, t('KANBAN.SETTINGS.LOAD_ERROR'));
   } finally {
     isLoading.value = false;
+  }
+};
+
+const fetchCalendarProcedures = async () => {
+  calendarProceduresLoading.value = true;
+
+  try {
+    const response = await CalendarAPI.getProcedures();
+    calendarProcedures.value = response.data || [];
+  } catch (error) {
+    calendarProcedures.value = [];
+  } finally {
+    calendarProceduresLoading.value = false;
   }
 };
 
@@ -1889,6 +1938,16 @@ const buildPayload = () => ({
       form.appointmentReminderHours === ''
         ? null
         : Number(form.appointmentReminderHours),
+    calendar_enabled: form.calendarEnabled,
+    calendar_booking_stage_ids: form.calendarEnabled
+      ? form.calendarBookingStageIds.map(Number)
+      : [],
+    calendar_procedure_ids: form.calendarEnabled
+      ? form.calendarProcedureIds.map(Number)
+      : [],
+    calendar_legacy_next_appointment_field_key: form.calendarEnabled
+      ? form.calendarLegacyNextAppointmentFieldKey.trim() || null
+      : null,
   },
 });
 
@@ -2665,6 +2724,7 @@ const duplicateBoard = async () => {
 
 onMounted(async () => {
   await fetchSettings();
+  await fetchCalendarProcedures();
   await fetchAutomationRules();
   await fetchCadences();
   await fetchAppointmentReminderRules();
@@ -3141,6 +3201,118 @@ onMounted(async () => {
             :search-placeholder="t('KANBAN.SETTINGS.INBOXES.SEARCH')"
             :empty-state="t('KANBAN.SETTINGS.INBOXES.EMPTY')"
           />
+        </section>
+
+        <section
+          v-show="activeSettingsSection === 'calendar'"
+          class="grid gap-5 border-b border-n-weak pb-6 lg:col-start-2"
+        >
+          <div class="grid gap-1">
+            <h2 class="text-base font-medium text-n-slate-12">
+              {{ t('KANBAN.SETTINGS.CALENDAR.TITLE') }}
+            </h2>
+            <p class="text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.CALENDAR.DESCRIPTION') }}
+            </p>
+          </div>
+
+          <label
+            class="flex items-start gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3 text-sm text-n-slate-12"
+          >
+            <input
+              v-model="form.calendarEnabled"
+              data-testid="kanban-settings-calendar-enabled"
+              type="checkbox"
+              class="mt-0.5"
+            />
+            <span class="grid gap-1">
+              <span class="font-medium">{{
+                t('KANBAN.SETTINGS.CALENDAR.ENABLED')
+              }}</span>
+              <span class="text-n-slate-11">{{
+                t('KANBAN.SETTINGS.CALENDAR.ENABLED_HELP')
+              }}</span>
+            </span>
+          </label>
+
+          <template v-if="form.calendarEnabled">
+            <div class="grid gap-2">
+              <label
+                class="text-sm font-medium text-n-slate-12"
+                for="kanban-settings-calendar-stages"
+              >
+                {{ t('KANBAN.SETTINGS.CALENDAR.BOOKING_STAGES') }}
+              </label>
+              <TagMultiSelectComboBox
+                v-model="form.calendarBookingStageIds"
+                data-testid="kanban-settings-calendar-stages"
+                :options="calendarStageOptions"
+                :placeholder="
+                  t('KANBAN.SETTINGS.CALENDAR.BOOKING_STAGES_PLACEHOLDER')
+                "
+                :search-placeholder="
+                  t('KANBAN.SETTINGS.CALENDAR.BOOKING_STAGES_SEARCH')
+                "
+                :empty-state="
+                  t('KANBAN.SETTINGS.CALENDAR.BOOKING_STAGES_EMPTY')
+                "
+              />
+              <p class="text-xs text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.CALENDAR.BOOKING_STAGES_HELP') }}
+              </p>
+            </div>
+
+            <div class="grid gap-2">
+              <label
+                class="text-sm font-medium text-n-slate-12"
+                for="kanban-settings-calendar-procedures"
+              >
+                {{ t('KANBAN.SETTINGS.CALENDAR.PROCEDURES') }}
+              </label>
+              <TagMultiSelectComboBox
+                v-model="form.calendarProcedureIds"
+                data-testid="kanban-settings-calendar-procedures"
+                :options="calendarProcedureOptions"
+                :placeholder="
+                  t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_PLACEHOLDER')
+                "
+                :search-placeholder="
+                  t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_SEARCH')
+                "
+                :empty-state="
+                  calendarProceduresLoading
+                    ? t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_LOADING')
+                    : t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_EMPTY')
+                "
+              />
+              <p class="text-xs text-n-slate-11">
+                {{ t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_HELP') }}
+              </p>
+            </div>
+
+            <label class="grid gap-1 text-sm font-medium text-n-slate-12">
+              {{ t('KANBAN.SETTINGS.CALENDAR.LEGACY_FIELD') }}
+              <select
+                v-model="form.calendarLegacyNextAppointmentFieldKey"
+                data-testid="kanban-settings-calendar-legacy-field"
+                class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+              >
+                <option value="">
+                  {{ t('KANBAN.SETTINGS.CALENDAR.LEGACY_FIELD_NONE') }}
+                </option>
+                <option
+                  v-for="field in form.customFieldDefinitions"
+                  :key="field.clientId"
+                  :value="field.key"
+                >
+                  {{ field.label || field.key }}
+                </option>
+              </select>
+              <span class="text-xs font-normal text-n-slate-11">{{
+                t('KANBAN.SETTINGS.CALENDAR.LEGACY_FIELD_HELP')
+              }}</span>
+            </label>
+          </template>
         </section>
 
         <section

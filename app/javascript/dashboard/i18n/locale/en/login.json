@@ -1,6 +1,12 @@
 {
   "LOGIN": {
     "TITLE": "Login to Chatwoot",
+    "RAEVO": {
+      "VISION": "Vision to evolve.",
+      "SYSTEMS": "Systems to grow.",
+      "SUBTITLE": "Intelligent systems for companies in transformation.",
+      "ACCESS": "Access your account"
+    },
     "EMAIL": {
       "LABEL": "Email",
       "PLACEHOLDER": "example{'@'}companyname.com",

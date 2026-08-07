@@ -1,0 +1,2 @@
+class KanbanCalendarResourcePolicy < KanbanCalendarPolicy
+end

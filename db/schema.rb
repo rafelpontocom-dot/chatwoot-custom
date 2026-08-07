@@ -10,8 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_05_160000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_07_110000) do
   # These extensions should be enabled to support this database
+  enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
   enable_extension "pgcrypto"
@@ -1190,6 +1191,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_160000) do
     t.bigint "archived_by_id"
     t.integer "lock_version", default: 0, null: false
     t.integer "appointment_reminder_hours"
+    t.boolean "calendar_enabled", default: false, null: false
+    t.jsonb "calendar_booking_stage_ids", default: [], null: false
+    t.jsonb "calendar_procedure_ids", default: [], null: false
+    t.string "calendar_legacy_next_appointment_field_key"
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "archived_at"], name: "index_kanban_boards_on_account_id_and_archived_at"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
@@ -1242,6 +1247,131 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_160000) do
     t.index ["kanban_board_id", "name"], name: "index_kanban_cadences_on_kanban_board_id_and_name", unique: true
     t.index ["kanban_board_id", "trigger_type", "trigger_stage_id"], name: "idx_kanban_cadences_on_stage_trigger"
     t.index ["kanban_board_id"], name: "index_kanban_cadences_on_kanban_board_id"
+  end
+
+  create_table "kanban_calendar_appointment_events", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_calendar_appointment_id", null: false
+    t.bigint "actor_id"
+    t.string "event_type", null: false
+    t.datetime "occurred_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_calendar_appointment_events_on_account_id"
+    t.index ["actor_id"], name: "index_kanban_calendar_appointment_events_on_actor_id"
+    t.index ["kanban_calendar_appointment_id", "occurred_at"], name: "index_calendar_appointment_events_on_appointment_and_time"
+  end
+
+  create_table "kanban_calendar_appointment_resources", force: :cascade do |t|
+    t.bigint "kanban_calendar_appointment_id", null: false
+    t.bigint "kanban_calendar_resource_id", null: false
+    t.datetime "starts_at", null: false
+    t.datetime "ends_at", null: false
+    t.string "appointment_status", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["kanban_calendar_appointment_id", "kanban_calendar_resource_id"], name: "index_calendar_appointment_resources_on_appointment_resource", unique: true
+    t.index ["kanban_calendar_resource_id", "starts_at", "ends_at"], name: "index_calendar_appointment_resources_on_resource_and_range"
+    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY ((ARRAY['scheduled'::character varying, 'confirmed'::character varying, 'checked_in'::character varying])::text[])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
+  end
+
+  create_table "kanban_calendar_appointment_series", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "kanban_card_id"
+    t.bigint "kanban_calendar_procedure_id", null: false
+    t.string "status", default: "active", null: false
+    t.integer "planned_count", default: 1, null: false
+    t.string "interval_kind", default: "once", null: false
+    t.integer "interval_days"
+    t.string "timezone", null: false
+    t.datetime "started_at", null: false
+    t.datetime "ended_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "contact_id", "status"], name: "index_calendar_appointment_series_on_account_contact_status"
+    t.index ["account_id"], name: "index_kanban_calendar_appointment_series_on_account_id"
+    t.index ["contact_id"], name: "index_kanban_calendar_appointment_series_on_contact_id"
+    t.index ["kanban_card_id"], name: "index_kanban_calendar_appointment_series_on_kanban_card_id"
+  end
+
+  create_table "kanban_calendar_appointments", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_calendar_appointment_series_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "kanban_card_id"
+    t.bigint "kanban_calendar_procedure_id", null: false
+    t.bigint "rescheduled_from_id"
+    t.bigint "canceled_by_id"
+    t.string "status", default: "scheduled", null: false
+    t.datetime "starts_at", null: false
+    t.datetime "ends_at", null: false
+    t.string "timezone", null: false
+    t.integer "occurrence_number", default: 1, null: false
+    t.integer "appointment_version", default: 1, null: false
+    t.datetime "canceled_at"
+    t.string "cancellation_reason"
+    t.datetime "completed_at"
+    t.datetime "no_show_at"
+    t.text "notes"
+    t.jsonb "external_refs", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "starts_at", "status"], name: "index_calendar_appointments_on_account_starts_status"
+    t.index ["account_id"], name: "index_kanban_calendar_appointments_on_account_id"
+    t.index ["canceled_by_id"], name: "index_kanban_calendar_appointments_on_canceled_by_id"
+    t.index ["contact_id"], name: "index_kanban_calendar_appointments_on_contact_id"
+    t.index ["kanban_calendar_appointment_series_id", "occurrence_number"], name: "index_calendar_appointments_on_series_and_occurrence", unique: true
+    t.index ["kanban_card_id"], name: "index_kanban_calendar_appointments_on_kanban_card_id"
+    t.index ["rescheduled_from_id"], name: "index_kanban_calendar_appointments_on_rescheduled_from_id"
+  end
+
+  create_table "kanban_calendar_procedure_resources", force: :cascade do |t|
+    t.bigint "kanban_calendar_procedure_id", null: false
+    t.bigint "kanban_calendar_resource_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["kanban_calendar_procedure_id", "kanban_calendar_resource_id"], name: "index_calendar_procedure_resources_on_procedure_and_resource", unique: true
+  end
+
+  create_table "kanban_calendar_procedures", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "color"
+    t.integer "duration_minutes", null: false
+    t.integer "buffer_before_minutes", default: 0, null: false
+    t.integer "buffer_after_minutes", default: 0, null: false
+    t.string "location_type", default: "in_person", null: false
+    t.boolean "recurrence_allowed", default: false, null: false
+    t.integer "max_sessions"
+    t.jsonb "allowed_intervals", default: [], null: false
+    t.jsonb "board_ids", default: [], null: false
+    t.jsonb "stage_policy", default: {}, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "account_id, lower((name)::text)", name: "index_kanban_calendar_procedures_on_account_and_lower_name", unique: true
+    t.index ["account_id"], name: "index_kanban_calendar_procedures_on_account_id"
+  end
+
+  create_table "kanban_calendar_resources", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id"
+    t.string "name", null: false
+    t.string "resource_type", null: false
+    t.string "timezone", null: false
+    t.integer "capacity", default: 1, null: false
+    t.boolean "active", default: true, null: false
+    t.jsonb "settings", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "user_id"], name: "index_kanban_calendar_resources_on_account_and_user", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["account_id"], name: "index_kanban_calendar_resources_on_account_id"
+    t.index ["user_id"], name: "index_kanban_calendar_resources_on_user_id"
   end
 
   create_table "kanban_card_events", force: :cascade do |t|
@@ -1812,6 +1942,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_160000) do
   add_foreign_key "kanban_cadences", "accounts"
   add_foreign_key "kanban_cadences", "kanban_boards"
   add_foreign_key "kanban_cadences", "kanban_stages", column: "trigger_stage_id"
+  add_foreign_key "kanban_calendar_appointment_events", "accounts"
+  add_foreign_key "kanban_calendar_appointment_events", "kanban_calendar_appointments"
+  add_foreign_key "kanban_calendar_appointment_events", "users", column: "actor_id"
+  add_foreign_key "kanban_calendar_appointment_resources", "kanban_calendar_appointments"
+  add_foreign_key "kanban_calendar_appointment_resources", "kanban_calendar_resources"
+  add_foreign_key "kanban_calendar_appointment_series", "accounts"
+  add_foreign_key "kanban_calendar_appointment_series", "contacts"
+  add_foreign_key "kanban_calendar_appointment_series", "kanban_calendar_procedures"
+  add_foreign_key "kanban_calendar_appointment_series", "kanban_cards"
+  add_foreign_key "kanban_calendar_appointments", "accounts"
+  add_foreign_key "kanban_calendar_appointments", "contacts"
+  add_foreign_key "kanban_calendar_appointments", "kanban_calendar_appointment_series"
+  add_foreign_key "kanban_calendar_appointments", "kanban_calendar_appointments", column: "rescheduled_from_id"
+  add_foreign_key "kanban_calendar_appointments", "kanban_calendar_procedures"
+  add_foreign_key "kanban_calendar_appointments", "kanban_cards"
+  add_foreign_key "kanban_calendar_appointments", "users", column: "canceled_by_id"
+  add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_procedures"
+  add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_resources"
+  add_foreign_key "kanban_calendar_procedures", "accounts"
+  add_foreign_key "kanban_calendar_resources", "accounts"
+  add_foreign_key "kanban_calendar_resources", "users"
   add_foreign_key "kanban_card_events", "accounts"
   add_foreign_key "kanban_card_events", "kanban_boards"
   add_foreign_key "kanban_card_events", "kanban_cards"
@@ -1820,33 +1971,68 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_160000) do
   add_foreign_key "kanban_saved_filters", "kanban_boards"
   add_foreign_key "kanban_saved_filters", "users"
   add_foreign_key "user_sessions", "users"
-  create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
-      on("accounts").
-      after(:insert).
-      for_each(:row) do
-    "execute format('create sequence IF NOT EXISTS conv_dpid_seq_%s', NEW.id);"
-  end
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute(<<-SQL)
+CREATE OR REPLACE FUNCTION public.accounts_after_insert_row_tr()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    execute format('create sequence IF NOT EXISTS conv_dpid_seq_%s', NEW.id);
+    RETURN NULL;
+END;
+$function$
+  SQL
 
-  create_trigger("conversations_before_insert_row_tr", :generated => true, :compatibility => 1).
-      on("conversations").
-      before(:insert).
-      for_each(:row) do
-    "NEW.display_id := nextval('conv_dpid_seq_' || NEW.account_id);"
-  end
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute("CREATE TRIGGER accounts_after_insert_row_tr AFTER INSERT ON \"accounts\" FOR EACH ROW EXECUTE FUNCTION accounts_after_insert_row_tr()")
 
-  create_trigger("camp_dpid_before_insert", :generated => true, :compatibility => 1).
-      on("accounts").
-      name("camp_dpid_before_insert").
-      after(:insert).
-      for_each(:row) do
-    "execute format('create sequence IF NOT EXISTS camp_dpid_seq_%s', NEW.id);"
-  end
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute(<<-SQL)
+CREATE OR REPLACE FUNCTION public.camp_dpid_before_insert()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    execute format('create sequence IF NOT EXISTS camp_dpid_seq_%s', NEW.id);
+    RETURN NULL;
+END;
+$function$
+  SQL
 
-  create_trigger("campaigns_before_insert_row_tr", :generated => true, :compatibility => 1).
-      on("campaigns").
-      before(:insert).
-      for_each(:row) do
-    "NEW.display_id := nextval('camp_dpid_seq_' || NEW.account_id);"
-  end
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute("CREATE TRIGGER camp_dpid_before_insert AFTER INSERT ON \"accounts\" FOR EACH ROW EXECUTE FUNCTION camp_dpid_before_insert()")
+
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute(<<-SQL)
+CREATE OR REPLACE FUNCTION public.campaigns_before_insert_row_tr()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.display_id := nextval('camp_dpid_seq_' || NEW.account_id);
+    RETURN NEW;
+END;
+$function$
+  SQL
+
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute("CREATE TRIGGER campaigns_before_insert_row_tr BEFORE INSERT ON \"campaigns\" FOR EACH ROW EXECUTE FUNCTION campaigns_before_insert_row_tr()")
+
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute(<<-SQL)
+CREATE OR REPLACE FUNCTION public.conversations_before_insert_row_tr()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.display_id := nextval('conv_dpid_seq_' || NEW.account_id);
+    RETURN NEW;
+END;
+$function$
+  SQL
+
+  # no candidate create_trigger statement could be found, creating an adapter-specific one
+  execute("CREATE TRIGGER conversations_before_insert_row_tr BEFORE INSERT ON \"conversations\" FOR EACH ROW EXECUTE FUNCTION conversations_before_insert_row_tr()")
 
 end

@@ -4,6 +4,8 @@ Status: fonte de verdade do produto
 
 Execucao: [Roadmap do Workspace Comercial](./kanban-commercial-workspace-roadmap.md)
 
+Agenda de consultas e recorrencias: [PRD da Agenda Operacional](./kanban-calendar-prd.md) e [Spec da Agenda Operacional](./kanban-calendar-spec.md). O P0 esta em implementacao; o Kanban conserva `starts_at` apenas como compatibilidade ate a migracao planejada.
+
 Este documento define a direção do Kanban comercial do nosso Chatwoot. Ele deve guiar escopo, decisões técnicas, UX e priorização.
 
 ## Tese

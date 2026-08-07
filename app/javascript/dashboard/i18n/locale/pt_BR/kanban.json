@@ -523,6 +523,26 @@
         "SEARCH": "Buscar caixas",
         "EMPTY": "Nenhuma caixa encontrada"
       },
+      "CALENDAR": {
+        "TITLE": "Agenda",
+        "DESCRIPTION": "Defina quando este funil pode criar agendamentos e quais procedimentos estarão disponíveis.",
+        "ENABLED": "Usar agenda neste funil",
+        "ENABLED_HELP": "Exibe o agendamento nas oportunidades e permite usar a Agenda do CRM.",
+        "BOOKING_STAGES": "Etapas que pedem agendamento",
+        "BOOKING_STAGES_PLACEHOLDER": "Selecione as etapas",
+        "BOOKING_STAGES_SEARCH": "Buscar etapas",
+        "BOOKING_STAGES_EMPTY": "Nenhuma etapa encontrada",
+        "BOOKING_STAGES_HELP": "Ao mover uma oportunidade para estas etapas, a equipe verá o atalho para agendar.",
+        "PROCEDURES": "Procedimentos disponíveis",
+        "PROCEDURES_PLACEHOLDER": "Selecione os procedimentos",
+        "PROCEDURES_SEARCH": "Buscar procedimentos",
+        "PROCEDURES_LOADING": "Carregando procedimentos...",
+        "PROCEDURES_EMPTY": "Nenhum procedimento cadastrado na Agenda.",
+        "PROCEDURES_HELP": "Sem seleção, todos os procedimentos ativos podem ser usados neste funil.",
+        "LEGACY_FIELD": "Campo de compatibilidade",
+        "LEGACY_FIELD_NONE": "Não espelhar em campo",
+        "LEGACY_FIELD_HELP": "Opcional. Espelha a próxima consulta em um campo existente enquanto a equipe migra para a Agenda."
+      },
       "SALES": {
         "TITLE": "Campos comerciais",
         "NEXT_ACTION_TYPES": "Tipos de próxima ação",

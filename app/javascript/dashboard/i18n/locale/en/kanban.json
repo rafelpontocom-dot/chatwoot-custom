@@ -520,6 +520,26 @@
         "SEARCH": "Search inboxes",
         "EMPTY": "No inboxes found"
       },
+      "CALENDAR": {
+        "TITLE": "Calendar",
+        "DESCRIPTION": "Define when this funnel can create appointments and which procedures are available.",
+        "ENABLED": "Use calendar in this funnel",
+        "ENABLED_HELP": "Shows scheduling in opportunities and enables the CRM Calendar.",
+        "BOOKING_STAGES": "Stages that require scheduling",
+        "BOOKING_STAGES_PLACEHOLDER": "Select stages",
+        "BOOKING_STAGES_SEARCH": "Search stages",
+        "BOOKING_STAGES_EMPTY": "No stages found",
+        "BOOKING_STAGES_HELP": "When an opportunity moves to these stages, the team sees a scheduling shortcut.",
+        "PROCEDURES": "Available procedures",
+        "PROCEDURES_PLACEHOLDER": "Select procedures",
+        "PROCEDURES_SEARCH": "Search procedures",
+        "PROCEDURES_LOADING": "Loading procedures...",
+        "PROCEDURES_EMPTY": "No procedures have been created in Calendar.",
+        "PROCEDURES_HELP": "Without a selection, every active procedure can be used in this funnel.",
+        "LEGACY_FIELD": "Compatibility field",
+        "LEGACY_FIELD_NONE": "Do not mirror to a field",
+        "LEGACY_FIELD_HELP": "Optional. Mirrors the next appointment to an existing field while the team moves to Calendar."
+      },
       "SALES": {
         "TITLE": "Sales fields",
         "NEXT_ACTION_TYPES": "Next action types",

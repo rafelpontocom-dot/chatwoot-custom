@@ -6,6 +6,7 @@ import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
+import KanbanCalendarAppointmentsSection from './KanbanCalendarAppointmentsSection.vue';
 
 const props = defineProps({
   boardId: {
@@ -37,6 +38,14 @@ const props = defineProps({
     default: () => [],
   },
   customFieldSections: {
+    type: Array,
+    default: () => [],
+  },
+  calendarEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  calendarProcedureIds: {
     type: Array,
     default: () => [],
   },
@@ -1443,6 +1452,14 @@ watch(showUnsavedChanges, async visible => {
                 {{ contactName }}
               </p>
             </section>
+
+            <KanbanCalendarAppointmentsSection
+              v-if="calendarEnabled"
+              :card-id="card.id"
+              :contact-id="card.contact?.id"
+              :contact-name="contactName"
+              :allowed-procedure-ids="calendarProcedureIds"
+            />
 
             <section class="grid gap-3 rounded-lg border border-n-weak p-3">
               <h3 class="mb-0 text-sm font-medium text-n-slate-12">

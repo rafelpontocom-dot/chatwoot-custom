@@ -1,6 +1,12 @@
 {
   "LOGIN": {
     "TITLE": "Entrar no Chatwoot",
+    "RAEVO": {
+      "VISION": "Visão para evoluir.",
+      "SYSTEMS": "Sistemas para crescer.",
+      "SUBTITLE": "Sistemas inteligente para empresas em transformação.",
+      "ACCESS": "Acesse sua conta"
+    },
     "EMAIL": {
       "LABEL": "E-mail",
       "PLACEHOLDER": "nome{'@'}empresa.com.br",

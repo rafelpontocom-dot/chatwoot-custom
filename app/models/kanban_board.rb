@@ -2,28 +2,32 @@
 #
 # Table name: kanban_boards
 #
-#  id                                   :bigint           not null, primary key
-#  active                               :boolean          default(TRUE), not null
-#  archived_at                          :datetime
-#  auto_create_cards_from_conversations :boolean          default(FALSE), not null
-#  compact_card_field_keys              :jsonb            not null
-#  custom_field_definitions             :jsonb            not null
-#  custom_field_sections                :jsonb            not null
-#  description                          :text
-#  inbox_scope_mode                     :string           default("all_inboxes"), not null
-#  lock_version                         :integer          default(0), not null
-#  lost_reason_options                  :jsonb            not null
-#  name                                 :string           not null
-#  next_action_types                    :jsonb            not null
-#  position                             :integer          default(0), not null
-#  stale_stage_thresholds               :jsonb            not null
-#  use_opportunity_card_reads           :boolean          default(TRUE), not null
-#  visibility_mode                      :string           default("all_agents"), not null
-#  created_at                           :datetime         not null
-#  updated_at                           :datetime         not null
-#  account_id                           :bigint           not null
-#  archived_by_id                       :bigint
-#  appointment_reminder_hours           :integer
+#  id                                         :bigint           not null, primary key
+#  active                                     :boolean          default(TRUE), not null
+#  appointment_reminder_hours                 :integer
+#  archived_at                                :datetime
+#  auto_create_cards_from_conversations       :boolean          default(FALSE), not null
+#  calendar_booking_stage_ids                 :jsonb            not null
+#  calendar_enabled                           :boolean          default(FALSE), not null
+#  calendar_legacy_next_appointment_field_key :string
+#  calendar_procedure_ids                     :jsonb            not null
+#  compact_card_field_keys                    :jsonb            not null
+#  custom_field_definitions                   :jsonb            not null
+#  custom_field_sections                      :jsonb            not null
+#  description                                :text
+#  inbox_scope_mode                           :string           default("all_inboxes"), not null
+#  lock_version                               :integer          default(0), not null
+#  lost_reason_options                        :jsonb            not null
+#  name                                       :string           not null
+#  next_action_types                          :jsonb            not null
+#  position                                   :integer          default(0), not null
+#  stale_stage_thresholds                     :jsonb            not null
+#  use_opportunity_card_reads                 :boolean          default(TRUE), not null
+#  visibility_mode                            :string           default("all_agents"), not null
+#  created_at                                 :datetime         not null
+#  updated_at                                 :datetime         not null
+#  account_id                                 :bigint           not null
+#  archived_by_id                             :bigint
 #
 # Indexes
 #
@@ -128,6 +132,14 @@ class KanbanBoard < ApplicationRecord
     lost_reason_options.presence || DEFAULT_LOST_REASON_OPTIONS
   end
 
+  def calendar_module_enabled?
+    calendar_enabled?
+  end
+
+  def configured_calendar_procedure_ids
+    Array(calendar_procedure_ids).map(&:to_i).select(&:positive?)
+  end
+
   def configured_custom_field_definitions
     custom_field_definitions.presence || []
   end
@@ -177,6 +189,13 @@ class KanbanBoard < ApplicationRecord
     self.custom_field_sections = normalize_custom_field_sections(custom_field_sections)
     self.compact_card_field_keys = normalize_compact_card_field_keys(compact_card_field_keys)
     self.stale_stage_thresholds = normalize_stale_stage_thresholds(stale_stage_thresholds)
+    normalize_calendar_configuration
+  end
+
+  def normalize_calendar_configuration
+    self.calendar_booking_stage_ids = normalize_stage_ids(calendar_booking_stage_ids)
+    self.calendar_procedure_ids = normalize_calendar_procedure_ids(calendar_procedure_ids)
+    self.calendar_legacy_next_appointment_field_key = calendar_legacy_next_appointment_field_key.to_s.strip.presence
   end
 
   def normalize_string_list(values)
@@ -276,6 +295,13 @@ class KanbanBoard < ApplicationRecord
     board_stage_ids = kanban_stages.pluck(:id)
 
     Array(stage_ids).filter_map(&:presence).map(&:to_i).uniq & board_stage_ids
+  end
+
+  def normalize_calendar_procedure_ids(procedure_ids)
+    ids = Array(procedure_ids).filter_map(&:presence).map(&:to_i).uniq
+    return [] if account_id.blank? || ids.blank?
+
+    KanbanCalendarProcedure.active.where(account_id: account_id, id: ids).pluck(:id)
   end
 
   def normalize_custom_field_condition(condition)

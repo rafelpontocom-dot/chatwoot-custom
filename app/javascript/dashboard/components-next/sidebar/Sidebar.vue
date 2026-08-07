@@ -340,6 +340,13 @@ const menuItems = computed(() => {
       activeOn: ['kanban_boards', 'kanban_board_show', 'kanban_board_settings'],
     },
     {
+      name: 'Calendar',
+      label: t('SIDEBAR.CALENDAR'),
+      icon: 'i-lucide-calendar-days',
+      to: accountScopedRoute('calendar_index'),
+      activeOn: ['calendar_index'],
+    },
+    {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',

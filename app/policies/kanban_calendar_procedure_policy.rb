@@ -1,0 +1,2 @@
+class KanbanCalendarProcedurePolicy < KanbanCalendarPolicy
+end

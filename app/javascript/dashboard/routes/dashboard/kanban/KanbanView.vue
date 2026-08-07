@@ -2813,6 +2813,8 @@ onUnmounted(() => {
           :lost-reason-options="selectedBoard.lostReasonOptions || []"
           :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           :custom-field-sections="selectedBoard.customFieldSections || []"
+          :calendar-enabled="selectedBoard.calendarEnabled"
+          :calendar-procedure-ids="selectedBoard.calendarProcedureIds || []"
           :owner-options="agentFilterOptions"
           :can-manage-fields="isAdmin"
           drawer-mode

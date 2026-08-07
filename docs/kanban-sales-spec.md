@@ -6,6 +6,8 @@ Status: implementação avançada; E2E real preparada em Playwright e validaçã
 
 Execucao: [Roadmap do Workspace Comercial](./kanban-commercial-workspace-roadmap.md)
 
+Agenda de consultas e recorrencias: [PRD da Agenda Operacional](./kanban-calendar-prd.md) e [Spec da Agenda Operacional](./kanban-calendar-spec.md). A agenda tem ciclo e modelo proprios; `starts_at` do card permanece apenas como compatibilidade ate a migracao planejada.
+
 ## Objetivo Da Spec
 
 Transformar o PRD em comportamento implementável, preservando o Kanban atual e evoluindo-o para venda.

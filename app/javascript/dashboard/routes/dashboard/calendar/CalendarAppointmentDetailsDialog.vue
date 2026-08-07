@@ -1,0 +1,362 @@
+<script setup>
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+import CalendarAPI from 'dashboard/api/calendar';
+import NextButton from 'dashboard/components-next/button/Button.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+
+const emit = defineEmits(['updated']);
+
+const { t } = useI18n();
+const dialog = ref(null);
+const appointment = ref(null);
+const cancellationReason = ref('');
+const cancellationScope = ref('this_occurrence');
+const isLoading = ref(false);
+const isSaving = ref(false);
+const error = ref('');
+const isRescheduling = ref(false);
+const rescheduleStartsAt = ref('');
+const rescheduleResourceId = ref('');
+const rescheduleScope = ref('this_occurrence');
+const resources = ref([]);
+
+const isActive = computed(() =>
+  ['scheduled', 'confirmed', 'checked_in'].includes(appointment.value?.status)
+);
+const formatDateTime = value =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: appointment.value?.timezone,
+  }).format(new Date(value));
+const statusLabel = status =>
+  ({
+    scheduled: t('CALENDAR.DETAIL.STATUS.SCHEDULED'),
+    confirmed: t('CALENDAR.DETAIL.STATUS.CONFIRMED'),
+    completed: t('CALENDAR.DETAIL.STATUS.COMPLETED'),
+    no_show: t('CALENDAR.DETAIL.STATUS.NO_SHOW'),
+    canceled: t('CALENDAR.DETAIL.STATUS.CANCELED'),
+  })[status] || status;
+const formatDateTimeInput = value => {
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+};
+
+const getErrorMessage = errorResponse =>
+  errorResponse?.response?.data?.message ||
+  errorResponse?.message ||
+  t('CALENDAR.DETAIL.SAVE_ERROR');
+
+const open = async appointmentId => {
+  appointment.value = null;
+  cancellationReason.value = '';
+  cancellationScope.value = 'this_occurrence';
+  isRescheduling.value = false;
+  rescheduleStartsAt.value = '';
+  rescheduleResourceId.value = '';
+  rescheduleScope.value = 'this_occurrence';
+  error.value = '';
+  dialog.value?.open();
+  isLoading.value = true;
+
+  try {
+    const response = await CalendarAPI.getAppointment(appointmentId);
+    appointment.value = response.data;
+    rescheduleStartsAt.value = formatDateTimeInput(appointment.value.starts_at);
+    rescheduleResourceId.value = String(
+      appointment.value.resources[0]?.id || ''
+    );
+  } catch (loadError) {
+    error.value = getErrorMessage(loadError);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const openReschedule = async () => {
+  if (!appointment.value) return;
+
+  isRescheduling.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.getResources();
+    resources.value = (response.data || []).filter(resource => resource.active);
+  } catch (loadError) {
+    error.value = getErrorMessage(loadError);
+  }
+};
+
+const saveReschedule = async () => {
+  if (
+    !appointment.value ||
+    !rescheduleStartsAt.value ||
+    !rescheduleResourceId.value
+  )
+    return;
+
+  isSaving.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.rescheduleAppointment(
+      appointment.value.id,
+      {
+        appointment: {
+          starts_at: new Date(rescheduleStartsAt.value).toISOString(),
+          resource_ids: [Number(rescheduleResourceId.value)],
+          scope: rescheduleScope.value,
+        },
+      }
+    );
+    appointment.value = response.data;
+    isRescheduling.value = false;
+    emit('updated', response.data);
+  } catch (saveError) {
+    error.value = getErrorMessage(saveError);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const close = () => dialog.value?.close();
+
+const changeStatus = async action => {
+  if (!appointment.value || isSaving.value) return;
+  if (action === 'cancel' && !cancellationReason.value.trim()) {
+    error.value = t('CALENDAR.DETAIL.CANCELLATION_REASON_REQUIRED');
+    return;
+  }
+
+  isSaving.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.updateAppointment(appointment.value.id, {
+      appointment: {
+        action,
+        cancellation_reason:
+          action === 'cancel' ? cancellationReason.value.trim() : undefined,
+        scope: action === 'cancel' ? cancellationScope.value : undefined,
+      },
+    });
+    appointment.value = response.data;
+    emit('updated', response.data);
+  } catch (saveError) {
+    error.value = getErrorMessage(saveError);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+defineExpose({ open });
+</script>
+
+<template>
+  <Dialog
+    ref="dialog"
+    width="md"
+    overflow-y-auto
+    :title="t('CALENDAR.DETAIL.TITLE')"
+    :show-confirm-button="false"
+    @close="appointment = null"
+  >
+    <p v-if="isLoading" class="mb-0 text-sm text-n-slate-11">
+      {{ t('CALENDAR.DETAIL.LOADING') }}
+    </p>
+    <p
+      v-else-if="error && !appointment"
+      class="mb-0 text-sm text-n-ruby-11"
+      role="alert"
+    >
+      {{ error }}
+    </p>
+    <template v-else-if="appointment">
+      <div class="grid gap-3">
+        <div class="grid gap-1 rounded-lg bg-n-surface-2 p-3">
+          <strong class="text-base text-n-slate-12">{{
+            appointment.procedure.name
+          }}</strong>
+          <span class="text-sm text-n-slate-11">{{
+            appointment.contact.name
+          }}</span>
+        </div>
+        <dl class="grid gap-3 text-sm">
+          <div class="grid gap-1">
+            <dt class="text-n-slate-10">
+              {{ t('CALENDAR.DETAIL.DATE_TIME') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ formatDateTime(appointment.starts_at) }}
+            </dd>
+          </div>
+          <div class="grid gap-1">
+            <dt class="text-n-slate-10">{{ t('CALENDAR.DETAIL.RESOURCE') }}</dt>
+            <dd class="m-0 text-n-slate-12">
+              {{
+                appointment.resources.map(resource => resource.name).join(', ')
+              }}
+            </dd>
+          </div>
+          <div class="grid gap-1">
+            <dt class="text-n-slate-10">
+              {{ t('CALENDAR.DETAIL.STATUS_LABEL') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ statusLabel(appointment.status) }}
+            </dd>
+          </div>
+        </dl>
+        <label v-if="isActive" class="grid gap-1.5">
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CALENDAR.DETAIL.CANCELLATION_REASON')
+          }}</span>
+          <input
+            v-model="cancellationReason"
+            type="text"
+            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          />
+        </label>
+        <label v-if="isActive" class="grid gap-1.5">
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CALENDAR.DETAIL.CANCELLATION_SCOPE')
+          }}</span>
+          <select
+            v-model="cancellationScope"
+            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          >
+            <option value="this_occurrence">
+              {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.THIS_OCCURRENCE') }}
+            </option>
+            <option value="this_and_future">
+              {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.THIS_AND_FUTURE') }}
+            </option>
+            <option value="all_occurrences">
+              {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.ALL_OCCURRENCES') }}
+            </option>
+          </select>
+        </label>
+        <div
+          v-if="isRescheduling"
+          class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
+        >
+          <label class="grid gap-1.5">
+            <span class="text-sm font-medium text-n-slate-12">{{
+              t('CALENDAR.DETAIL.NEW_DATE_TIME')
+            }}</span>
+            <input
+              v-model="rescheduleStartsAt"
+              type="datetime-local"
+              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+            />
+          </label>
+          <label class="grid gap-1.5">
+            <span class="text-sm font-medium text-n-slate-12">{{
+              t('CALENDAR.DETAIL.RESCHEDULE_SCOPE')
+            }}</span>
+            <select
+              v-model="rescheduleScope"
+              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+            >
+              <option value="this_occurrence">
+                {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.THIS_OCCURRENCE') }}
+              </option>
+              <option value="this_and_future">
+                {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.THIS_AND_FUTURE') }}
+              </option>
+              <option value="all_occurrences">
+                {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.ALL_OCCURRENCES') }}
+              </option>
+            </select>
+          </label>
+          <label class="grid gap-1.5">
+            <span class="text-sm font-medium text-n-slate-12">{{
+              t('CALENDAR.DETAIL.RESOURCE')
+            }}</span>
+            <select
+              v-model="rescheduleResourceId"
+              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+            >
+              <option
+                v-for="resource in resources"
+                :key="resource.id"
+                :value="String(resource.id)"
+              >
+                {{ resource.name }}
+              </option>
+            </select>
+          </label>
+        </div>
+        <p v-if="error" class="mb-0 text-sm text-n-ruby-11" role="alert">
+          {{ error }}
+        </p>
+      </div>
+    </template>
+    <template #footer>
+      <div class="flex flex-wrap justify-end gap-2">
+        <NextButton
+          type="button"
+          link
+          slate
+          :label="t('GENERAL.CLOSE')"
+          @click="close"
+        />
+        <NextButton
+          v-if="isActive && appointment.status === 'scheduled'"
+          type="button"
+          outline
+          size="sm"
+          :label="t('CALENDAR.DETAIL.CONFIRM')"
+          :disabled="isSaving"
+          @click="changeStatus('confirm')"
+        />
+        <NextButton
+          v-if="isActive && !isRescheduling"
+          type="button"
+          outline
+          size="sm"
+          :label="t('CALENDAR.DETAIL.RESCHEDULE')"
+          :disabled="isSaving"
+          @click="openReschedule"
+        />
+        <NextButton
+          v-if="isActive && isRescheduling"
+          type="button"
+          size="sm"
+          :label="t('CALENDAR.DETAIL.SAVE_RESCHEDULE')"
+          :disabled="isSaving"
+          @click="saveReschedule"
+        />
+        <NextButton
+          v-if="isActive"
+          type="button"
+          outline
+          emerald
+          size="sm"
+          :label="t('CALENDAR.DETAIL.COMPLETE')"
+          :disabled="isSaving"
+          @click="changeStatus('complete')"
+        />
+        <NextButton
+          v-if="isActive"
+          type="button"
+          outline
+          amber
+          size="sm"
+          :label="t('CALENDAR.DETAIL.NO_SHOW')"
+          :disabled="isSaving"
+          @click="changeStatus('no_show')"
+        />
+        <NextButton
+          v-if="isActive"
+          type="button"
+          ruby
+          size="sm"
+          :label="t('CALENDAR.DETAIL.CANCEL')"
+          :disabled="isSaving"
+          @click="changeStatus('cancel')"
+        />
+      </div>
+    </template>
+  </Dialog>
+</template>
