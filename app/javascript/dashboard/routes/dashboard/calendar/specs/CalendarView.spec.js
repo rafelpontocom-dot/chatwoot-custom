@@ -57,6 +57,38 @@ describe('CalendarView', () => {
     );
   });
 
+  it('shows a month-level heading in month view', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.MONTH')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="calendar-date-label"]').text()
+    ).not.toMatch(/^\d/);
+  });
+
+  it('exposes the active calendar view to assistive technology', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const weekButton = wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.WEEK');
+    expect(weekButton.attributes('aria-pressed')).toBe('true');
+
+    const monthButton = wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.MONTH');
+    await monthButton.trigger('click');
+
+    expect(monthButton.attributes('aria-pressed')).toBe('true');
+    expect(weekButton.attributes('aria-pressed')).toBe('false');
+  });
+
   it('exposes stable controls for the desktop scheduling flow', async () => {
     const wrapper = mountCalendar();
     await flushPromises();

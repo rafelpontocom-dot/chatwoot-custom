@@ -233,7 +233,7 @@ Entram por conexoes aprovadas e eventos do dominio. Nao entram como chamadas HTT
 3. Sistema bloqueia conflito do mesmo profissional/sala, inclusive sob duas confirmacoes concorrentes.
 4. Secretaria remarca uma sessao sem alterar as demais; pode tambem aplicar a mudanca a futuras sessoes.
 5. Secretaria cancela uma, futuras ou todas as sessoes com motivo e auditoria.
-6. Agenda mostra dia e semana com filtro por recurso, busca e drawer de detalhe.
+6. Agenda mostra dia, semana e mes com filtro por recurso, busca e drawer de detalhe.
 7. Lembretes futuros sao cancelados e recriados no reagendamento; nenhum lembrete sai depois de cancelamento.
 8. Nenhuma informacao clinica sensivel e publicada em titulo, webhook ou calendario externo por padrao.
 9. Board sem configuracao clinica continua funcionando sem exibir obrigatoriedade de agenda.

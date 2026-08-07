@@ -24,8 +24,12 @@ const draggedAppointment = ref(null);
 const dateFormatter = computed(
   () =>
     new Intl.DateTimeFormat(locale.value === 'pt_BR' ? 'pt-BR' : locale.value, {
-      weekday: view.value === 'week' ? 'long' : undefined,
-      day: 'numeric',
+      ...(view.value === 'month'
+        ? {}
+        : {
+            day: 'numeric',
+            weekday: view.value === 'week' ? 'long' : undefined,
+          }),
       month: 'long',
       year: 'numeric',
     })
@@ -240,7 +244,12 @@ onMounted(() => {
           <h1 class="mb-0 truncate text-lg font-semibold text-n-slate-12">
             {{ t('CALENDAR.TITLE') }}
           </h1>
-          <p class="mb-0 text-sm text-n-slate-11">{{ dateLabel }}</p>
+          <p
+            data-testid="calendar-date-label"
+            class="mb-0 text-sm text-n-slate-11"
+          >
+            {{ dateLabel }}
+          </p>
         </div>
       </div>
 
@@ -320,6 +329,7 @@ onMounted(() => {
           <button
             type="button"
             class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            :aria-pressed="view === 'day'"
             :class="
               view === 'day'
                 ? 'bg-n-brand text-white'
@@ -332,6 +342,7 @@ onMounted(() => {
           <button
             type="button"
             class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            :aria-pressed="view === 'week'"
             :class="
               view === 'week'
                 ? 'bg-n-brand text-white'
@@ -344,6 +355,7 @@ onMounted(() => {
           <button
             type="button"
             class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            :aria-pressed="view === 'month'"
             :class="
               view === 'month'
                 ? 'bg-n-brand text-white'
