@@ -214,4 +214,25 @@ RSpec.describe 'Calendar appointments API', type: :request do
     expect(response).to have_http_status(:success)
     expect(response.parsed_body).to contain_exactly(include('id' => appointment.id))
   end
+
+  it 'returns a conflict when a status update uses a stale version' do
+    appointment = KanbanCalendar::BookAppointmentService.new(
+      account: account,
+      contact: contact,
+      procedure: procedure,
+      resource_ids: [resource.id],
+      starts_at: Time.iso8601('2026-08-12T13:00:00-03:00'),
+      timezone: 'America/Sao_Paulo'
+    ).perform!
+    stale_lock_version = appointment.lock_version
+    appointment.update!(notes: 'Atualizada por outro agente')
+
+    patch "/api/v1/accounts/#{account.id}/calendar/appointments/#{appointment.id}",
+          headers: administrator.create_new_auth_token,
+          params: { appointment: { action: 'confirm', lock_version: stale_lock_version } },
+          as: :json
+
+    expect(response).to have_http_status(:conflict)
+    expect(response.parsed_body['message']).to include('changed')
+  end
 end
