@@ -51,7 +51,7 @@ test.describe('Calendar workspace', () => {
     await expect(bookingDialog).toBeHidden();
   });
 
-  test('filters the schedule and switches between day and week', async ({
+  test('filters the schedule and switches calendar views', async ({
     page,
   }) => {
     await openCalendar(page);
@@ -66,6 +66,12 @@ test.describe('Calendar workspace', () => {
     await expect(page.getByTestId('calendar-day-column')).toHaveCount(1);
     await page.getByRole('button', { name: 'Week', exact: true }).click();
     await expect(page.getByTestId('calendar-day-column')).toHaveCount(7);
+    await page.getByRole('button', { name: 'Month', exact: true }).click();
+    await expect(page.getByTestId('calendar-month-day')).toHaveCount(42);
+
+    const statusFilter = page.getByLabel(/Filter by status/i);
+    await statusFilter.selectOption('confirmed');
+    await expect(statusFilter).toHaveValue('confirmed');
   });
 
   test('creates an appointment from a free suggested time', async ({ page }) => {
