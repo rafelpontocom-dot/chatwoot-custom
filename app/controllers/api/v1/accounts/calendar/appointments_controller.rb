@@ -22,6 +22,8 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
 
   def availability
     authorize KanbanCalendarAppointment, :index?
+    return render_available_slots if params[:date].present?
+
     starts_at = Time.zone.parse(params.require(:starts_at))
     return render_invalid_availability if starts_at.blank?
 
@@ -195,5 +197,17 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
 
   def render_invalid_availability
     render json: { message: 'A valid start time is required' }, status: :unprocessable_entity
+  end
+
+  def render_available_slots
+    date = Date.iso8601(params[:date])
+    slots = KanbanCalendar::AvailabilitySlotsQuery.new(
+      procedure: scoped_availability_procedure,
+      resource: scoped_availability_resource,
+      date: date
+    ).call
+    render json: { date: date.iso8601, slots: slots.map(&:iso8601) }
+  rescue Date::Error
+    render json: { message: 'A valid date is required' }, status: :unprocessable_entity
   end
 end

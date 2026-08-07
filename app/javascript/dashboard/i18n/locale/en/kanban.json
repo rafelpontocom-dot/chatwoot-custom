@@ -1080,6 +1080,12 @@
         },
         "EVENTS": {
           "CREATED": "Opportunity created",
+          "APPOINTMENT_CREATED": "Appointment booked",
+          "APPOINTMENT_RESCHEDULED": "Appointment rescheduled",
+          "APPOINTMENT_CANCELED": "Appointment canceled",
+          "APPOINTMENT_CONFIRMED": "Appointment confirmed",
+          "APPOINTMENT_COMPLETED": "Appointment completed",
+          "APPOINTMENT_NO_SHOW": "No-show recorded",
           "STAGE_CHANGED": "Stage changed",
           "CUSTOMER_MESSAGE_RECEIVED": "Customer replied",
           "WEBHOOK_RECEIVED": "Webhook received",

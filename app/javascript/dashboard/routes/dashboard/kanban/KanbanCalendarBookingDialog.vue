@@ -39,6 +39,8 @@ const isSearchingContacts = ref(false);
 const contactSearchController = ref(null);
 const availabilityResult = ref(null);
 const isCheckingAvailability = ref(false);
+const availabilitySlots = ref([]);
+const isLoadingSlots = ref(false);
 
 const bookingContactId = computed(
   () => props.contactId || selectedContact.value?.id
@@ -84,6 +86,7 @@ const recurrenceIntervalLabel = interval =>
 const hasAvailabilityConflict = computed(
   () => availabilityResult.value?.available === false
 );
+const selectedDate = computed(() => startsAt.value.split('T')[0] || '');
 const availabilityErrorMessage = computed(() =>
   availabilityResult.value?.conflict
     ? t('CALENDAR.OPPORTUNITY.AVAILABILITY_CONFLICT')
@@ -116,6 +119,8 @@ const resetForm = () => {
   selectedContact.value = null;
   availabilityResult.value = null;
   isCheckingAvailability.value = false;
+  availabilitySlots.value = [];
+  isLoadingSlots.value = false;
 };
 
 const abortContactSearch = () => {
@@ -196,6 +201,45 @@ const checkAvailability = async () => {
 };
 
 const debouncedCheckAvailability = debounce(checkAvailability, 250, false);
+
+const loadAvailabilitySlots = async () => {
+  if (!resourceId.value || !selectedDate.value || !procedureId.value) {
+    availabilitySlots.value = [];
+    return;
+  }
+
+  isLoadingSlots.value = true;
+  try {
+    const response = await CalendarAPI.getAvailability({
+      date: selectedDate.value,
+      procedure_id: Number(procedureId.value),
+      resource_id: Number(resourceId.value),
+    });
+    availabilitySlots.value = response.data?.slots || [];
+  } catch {
+    availabilitySlots.value = [];
+  } finally {
+    isLoadingSlots.value = false;
+  }
+};
+
+const debouncedLoadAvailabilitySlots = debounce(
+  loadAvailabilitySlots,
+  250,
+  false
+);
+
+const selectAvailabilitySlot = slot => {
+  const localDate = new Date(slot);
+  const pad = value => String(value).padStart(2, '0');
+  startsAt.value = `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
+};
+
+const slotLabel = slot =>
+  new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(slot));
 
 const getErrorMessage = errorResponse =>
   errorResponse?.response?.data?.message ||
@@ -287,6 +331,7 @@ watch(procedureId, () => {
 });
 
 watch([procedureId, resourceId, startsAt], debouncedCheckAvailability);
+watch([procedureId, resourceId, selectedDate], debouncedLoadAvailabilitySlots);
 
 onUnmounted(abortContactSearch);
 
@@ -468,6 +513,33 @@ defineExpose({ open });
         >
           {{ availabilityErrorMessage }}
         </p>
+        <div
+          v-if="selectedDate && resourceId && procedureId"
+          class="grid gap-1.5 rounded-md bg-n-surface-2 p-2.5"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-medium text-n-slate-12">
+              {{ t('CALENDAR.OPPORTUNITY.AVAILABLE_TIMES') }}
+            </span>
+            <span v-if="isLoadingSlots" class="text-xs text-n-slate-11">
+              {{ t('CALENDAR.OPPORTUNITY.LOADING_AVAILABLE_TIMES') }}
+            </span>
+          </div>
+          <div v-if="availabilitySlots.length" class="flex flex-wrap gap-1.5">
+            <button
+              v-for="slot in availabilitySlots"
+              :key="slot"
+              type="button"
+              class="rounded border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-12 outline-none hover:border-n-brand hover:text-n-brand focus:ring-2 focus:ring-n-brand/40"
+              @click="selectAvailabilitySlot(slot)"
+            >
+              {{ slotLabel(slot) }}
+            </button>
+          </div>
+          <p v-else-if="!isLoadingSlots" class="mb-0 text-xs text-n-slate-11">
+            {{ t('CALENDAR.OPPORTUNITY.NO_AVAILABLE_TIMES') }}
+          </p>
+        </div>
       </template>
 
       <p v-if="error" class="mb-0 text-sm text-n-ruby-11" role="alert">

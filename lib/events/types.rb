@@ -88,4 +88,10 @@ module Events::Types
   KANBAN_CARD_MANUAL_STARTED = 'kanban.card.manual_started'
   KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED = 'kanban.card.customer_message_received'
   KANBAN_CARD_WEBHOOK_RECEIVED = 'kanban.card.webhook_received'
+  KANBAN_APPOINTMENT_CREATED = 'kanban.appointment.created'
+  KANBAN_APPOINTMENT_RESCHEDULED = 'kanban.appointment.rescheduled'
+  KANBAN_APPOINTMENT_CANCELED = 'kanban.appointment.canceled'
+  KANBAN_APPOINTMENT_CONFIRMED = 'kanban.appointment.confirmed'
+  KANBAN_APPOINTMENT_COMPLETED = 'kanban.appointment.completed'
+  KANBAN_APPOINTMENT_NO_SHOW = 'kanban.appointment.no_show'
 end

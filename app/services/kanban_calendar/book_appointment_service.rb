@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength -- Booking validation and transactional reservation share one boundary.
 class KanbanCalendar::BookAppointmentService
   def initialize(account:, contact:, procedure:, **attributes)
     @account = account
@@ -11,16 +12,19 @@ class KanbanCalendar::BookAppointmentService
     @interval_days = attributes[:interval_days].presence&.to_i
     @kanban_card = attributes[:kanban_card]
     @actor = attributes[:actor]
+    @dispatch_events = attributes.fetch(:dispatch_events, true)
   end
 
   def perform!
     validate_references!
 
-    ActiveRecord::Base.transaction do
+    appointments = ActiveRecord::Base.transaction do
       raise KanbanCalendar::ConflictError, conflicting_resource_ids if conflicting_resource_ids.any?
 
       create_appointments!
     end
+    dispatch_created_events(appointments) if @dispatch_events
+    appointments.first
   rescue ActiveRecord::StatementInvalid => e
     raise unless e.cause.is_a?(PG::ExclusionViolation)
 
@@ -186,7 +190,11 @@ class KanbanCalendar::BookAppointmentService
       create_resource_reservations!(appointment)
       create_event!(appointment)
     end
-    appointments.first
+    appointments
+  end
+
+  def dispatch_created_events(appointments)
+    appointments.each { |appointment| KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'created').dispatch }
   end
 
   def create_resource_reservations!(appointment)
@@ -209,3 +217,4 @@ class KanbanCalendar::BookAppointmentService
     )
   end
 end
+# rubocop:enable Metrics/ClassLength

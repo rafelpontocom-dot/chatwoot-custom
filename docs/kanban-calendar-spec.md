@@ -2,7 +2,7 @@
 
 Baseado em: [PRD da Agenda](./kanban-calendar-prd.md)
 
-Status: P0 em implementacao. O catalogo inicial de procedimentos/recursos, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento por escopo e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil e janelas semanais de disponibilidade por recurso tambem estao disponiveis. Excecoes por data, cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
+Status: P0 em implementacao. O catalogo inicial de procedimentos/recursos, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento por escopo e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil, janelas semanais, excecoes datadas e consulta de slots por recurso tambem estao disponiveis. Cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
 
 ## Fronteira
 
@@ -18,6 +18,10 @@ O payload do board inclui os tres primeiros campos para que o drawer da oportuni
 - P1: exportacao unidirecional para Google Calendar por recurso/profissional.
 - Futuro: Cal.com apenas para autoagendamento; FEEGOW e N8N recebem eventos por conexoes aprovadas.
 - Nenhum provedor externo pode criar uma segunda fonte de verdade para horarios, series ou status sem uma politica explicita de sincronizacao.
+
+### Eventos De Agenda
+
+As ocorrencias vinculadas a uma oportunidade publicam `kanban.appointment.created`, `rescheduled`, `canceled`, `confirmed`, `completed` e `no_show`. Cada entrega inclui `account_id`, `board_id`, `card_id`, `appointment_id`, versao, status e intervalo. A chave de idempotencia e `appointment:<id>:<evento>:v<versao>` e nao reutiliza a chave de eventos historicos do card.
 
 ## Modelo De Dados P0
 
@@ -303,7 +307,8 @@ Nao implementar bidirecional sem esses seis itens. O Google Calendar exige timez
 - [x] migrations, modelos, policies e auditoria de criacao;
 - [x] catalogo e endpoints iniciais de procedimentos e recursos;
 - [x] reserva unica com exclusao de conflito PostgreSQL;
-- [ ] disponibilidade semanal/excecoes e consulta de slots;
+- [x] disponibilidade semanal e excecoes por data;
+- [x] consulta de slots por procedimento/recurso/data;
 - [ ] teste de concorrencia real com duas transacoes simultaneas.
 
 ### Fase B: Operacao

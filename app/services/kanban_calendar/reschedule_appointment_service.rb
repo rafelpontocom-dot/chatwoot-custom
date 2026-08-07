@@ -12,10 +12,12 @@ class KanbanCalendar::RescheduleAppointmentService
   def perform!
     validate_references!
 
-    ActiveRecord::Base.transaction do
+    replacement = ActiveRecord::Base.transaction do
       @appointment.lock!
       @scope == 'this_occurrence' ? reschedule_single_appointment! : replace_future_series!
     end
+    dispatch_rescheduled_event(replacement)
+    replacement
   rescue ActiveRecord::StatementInvalid => e
     raise unless e.cause.is_a?(PG::ExclusionViolation)
 
@@ -142,7 +144,8 @@ class KanbanCalendar::RescheduleAppointmentService
       interval_kind: replacement_interval_kind(occurrence_count),
       interval_days: @appointment.kanban_calendar_appointment_series.interval_days,
       kanban_card: @appointment.kanban_card,
-      actor: @actor
+      actor: @actor,
+      dispatch_events: false
     ).perform!
   end
 
@@ -202,5 +205,9 @@ class KanbanCalendar::RescheduleAppointmentService
       occurred_at: Time.current,
       metadata: metadata
     )
+  end
+
+  def dispatch_rescheduled_event(appointment)
+    KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'rescheduled').dispatch
   end
 end

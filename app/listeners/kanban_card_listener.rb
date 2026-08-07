@@ -37,16 +37,26 @@ class KanbanCardListener < BaseListener
     process_cadence_event(data)
     return if data[:account_id].blank? || data[:board_id].blank? || data[:card_id].blank?
 
-    event_key = data[:event_id].presence || "#{event.name}:#{data[:card_id]}"
+    event_key = automation_event_key(data, event.name)
     matching_automation_rules(data, event.name).find_each do |rule|
       KanbanAutomations::ExecuteRuleJob.perform_later(
         rule.id,
         event.name,
         event_key,
         data[:card_id],
-        data[:event_id]
+        automation_event_context(data)
       )
     end
+  end
+
+  def automation_event_key(data, event_name)
+    data[:event_key].presence || data[:event_id].presence || "#{event_name}:#{data[:card_id]}"
+  end
+
+  def automation_event_context(data)
+    return data[:event_id] if data[:event_key].blank?
+
+    { event_data: data.except(:event_key) }
   end
 
   def matching_automation_rules(data, event_name)

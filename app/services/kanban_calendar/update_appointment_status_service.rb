@@ -13,14 +13,17 @@ class KanbanCalendar::UpdateAppointmentStatusService
   def perform!
     validate_action!
 
-    ActiveRecord::Base.transaction do
+    appointments = ActiveRecord::Base.transaction do
       @appointment.lock!
-      appointments_to_update.each do |appointment|
+      appointments = appointments_to_update
+      appointments.each do |appointment|
         update_appointment!(appointment)
       end
       update_series_status!
-      @appointment
+      appointments
     end
+    appointments.each { |appointment| dispatch_appointment_event(appointment) }
+    @appointment
   end
 
   private
@@ -92,6 +95,10 @@ class KanbanCalendar::UpdateAppointmentStatusService
       occurred_at: Time.current,
       metadata: @action == 'cancel' ? { 'scope' => @scope } : {}
     )
+  end
+
+  def dispatch_appointment_event(appointment)
+    KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: event_type).dispatch
   end
 
   def event_type

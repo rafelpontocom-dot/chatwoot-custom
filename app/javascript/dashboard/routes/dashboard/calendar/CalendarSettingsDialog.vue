@@ -33,6 +33,12 @@ const availabilityForm = ref({
   startsAtLocal: '09:00',
   endsAtLocal: '18:00',
 });
+const exceptionForm = ref({
+  kind: 'block',
+  date: '',
+  startsAtLocal: '',
+  endsAtLocal: '',
+});
 
 const canCreateProcedure = computed(
   () =>
@@ -62,11 +68,18 @@ const resourceOptions = computed(() =>
 );
 const orderedAvailabilityRules = computed(() =>
   [...availabilityRules.value].sort((firstRule, secondRule) => {
+    if (firstRule.date && secondRule.date) {
+      return firstRule.date.localeCompare(secondRule.date);
+    }
+    if (firstRule.date) return 1;
+    if (secondRule.date) return -1;
     if (firstRule.weekday !== secondRule.weekday) {
       return firstRule.weekday - secondRule.weekday;
     }
 
-    return firstRule.starts_at_local.localeCompare(secondRule.starts_at_local);
+    return (firstRule.starts_at_local || '').localeCompare(
+      secondRule.starts_at_local || ''
+    );
   })
 );
 const weekdayLabel = weekday =>
@@ -100,6 +113,12 @@ const resetForms = () => {
     weekday: '1',
     startsAtLocal: '09:00',
     endsAtLocal: '18:00',
+  };
+  exceptionForm.value = {
+    kind: 'block',
+    date: '',
+    startsAtLocal: '',
+    endsAtLocal: '',
   };
   error.value = '';
 };
@@ -230,6 +249,79 @@ const addWeeklyAvailability = async () => {
   } finally {
     isSaving.value = false;
   }
+};
+
+const addDateException = async () => {
+  if (
+    !availabilityResourceId.value ||
+    !exceptionForm.value.date ||
+    isSaving.value
+  ) {
+    return;
+  }
+
+  isSaving.value = true;
+  error.value = '';
+  try {
+    const rule = {
+      kind: exceptionForm.value.kind,
+      date: exceptionForm.value.date,
+      active: true,
+    };
+    if (exceptionForm.value.kind === 'date_override') {
+      rule.starts_at_local = exceptionForm.value.startsAtLocal;
+      rule.ends_at_local = exceptionForm.value.endsAtLocal;
+    } else if (
+      exceptionForm.value.startsAtLocal &&
+      exceptionForm.value.endsAtLocal
+    ) {
+      rule.starts_at_local = exceptionForm.value.startsAtLocal;
+      rule.ends_at_local = exceptionForm.value.endsAtLocal;
+    }
+    const response = await CalendarAPI.createAvailabilityRule(
+      availabilityResourceId.value,
+      { availability_rule: rule }
+    );
+    availabilityRules.value = [...availabilityRules.value, response.data];
+    exceptionForm.value = {
+      kind: 'block',
+      date: '',
+      startsAtLocal: '',
+      endsAtLocal: '',
+    };
+  } catch (saveError) {
+    error.value = getErrorMessage(saveError);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const availabilityRuleLabel = rule => {
+  if (rule.kind === 'weekly_window') {
+    return t('CALENDAR.SETTINGS.AVAILABILITY.RULE', {
+      weekday: weekdayLabel(rule.weekday),
+      start: rule.starts_at_local,
+      end: rule.ends_at_local,
+    });
+  }
+  if (rule.kind === 'date_override') {
+    return t('CALENDAR.SETTINGS.AVAILABILITY.DATE_OVERRIDE_RULE', {
+      date: rule.date,
+      start: rule.starts_at_local,
+      end: rule.ends_at_local,
+    });
+  }
+  if (!rule.starts_at_local) {
+    return t('CALENDAR.SETTINGS.AVAILABILITY.FULL_DAY_BLOCK_RULE', {
+      date: rule.date,
+    });
+  }
+
+  return t('CALENDAR.SETTINGS.AVAILABILITY.BLOCK_RULE', {
+    date: rule.date,
+    start: rule.starts_at_local,
+    end: rule.ends_at_local,
+  });
 };
 
 const removeAvailabilityRule = async rule => {
@@ -554,6 +646,65 @@ defineExpose({ open });
               :disabled="isSaving"
             />
           </form>
+          <form
+            class="grid gap-2 rounded-md border border-dashed border-n-weak p-2.5 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_7rem_auto] sm:items-end"
+            @submit.prevent="addDateException"
+          >
+            <label class="grid gap-1">
+              <span class="text-xs font-medium text-n-slate-12">{{
+                t('CALENDAR.SETTINGS.AVAILABILITY.EXCEPTION_TYPE')
+              }}</span>
+              <select
+                v-model="exceptionForm.kind"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              >
+                <option value="block">
+                  {{ t('CALENDAR.SETTINGS.AVAILABILITY.BLOCK') }}
+                </option>
+                <option value="date_override">
+                  {{ t('CALENDAR.SETTINGS.AVAILABILITY.DATE_OVERRIDE') }}
+                </option>
+              </select>
+            </label>
+            <label class="grid gap-1">
+              <span class="text-xs font-medium text-n-slate-12">{{
+                t('CALENDAR.SETTINGS.AVAILABILITY.DATE')
+              }}</span>
+              <input
+                v-model="exceptionForm.date"
+                type="date"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <label class="grid gap-1">
+              <span class="text-xs font-medium text-n-slate-12">{{
+                t('CALENDAR.SETTINGS.AVAILABILITY.START')
+              }}</span>
+              <input
+                v-model="exceptionForm.startsAtLocal"
+                type="time"
+                :required="exceptionForm.kind === 'date_override'"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <label class="grid gap-1">
+              <span class="text-xs font-medium text-n-slate-12">{{
+                t('CALENDAR.SETTINGS.AVAILABILITY.END')
+              }}</span>
+              <input
+                v-model="exceptionForm.endsAtLocal"
+                type="time"
+                :required="exceptionForm.kind === 'date_override'"
+                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              />
+            </label>
+            <NextButton
+              type="submit"
+              size="sm"
+              :label="t('CALENDAR.SETTINGS.AVAILABILITY.ADD_EXCEPTION')"
+              :disabled="isSaving || !exceptionForm.date"
+            />
+          </form>
           <p v-if="isLoadingAvailability" class="mb-0 text-sm text-n-slate-11">
             {{ t('CALENDAR.SETTINGS.AVAILABILITY.LOADING') }}
           </p>
@@ -569,15 +720,7 @@ defineExpose({ open });
               :key="rule.id"
               class="flex items-center justify-between gap-2 rounded-md bg-n-surface-1 px-2.5 py-2 text-sm text-n-slate-12"
             >
-              <span>
-                {{
-                  t('CALENDAR.SETTINGS.AVAILABILITY.RULE', {
-                    weekday: weekdayLabel(rule.weekday),
-                    start: rule.starts_at_local,
-                    end: rule.ends_at_local,
-                  })
-                }}
-              </span>
+              <span>{{ availabilityRuleLabel(rule) }}</span>
               <NextButton
                 type="button"
                 xs

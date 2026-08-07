@@ -1,6 +1,6 @@
 # PRD: Agenda Operacional do RAEVO CRM
 
-Status: P0 em implementacao. A aba principal `Agenda`, o catalogo inicial de procedimentos/recursos, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento com escopo de serie estao implementados localmente. A configuracao por funil escolhe ativacao, etapas e procedimentos; recursos tambem podem receber janelas semanais de disponibilidade. Excecoes por data, cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
+Status: P0 em implementacao. A aba principal `Agenda`, o catalogo inicial de procedimentos/recursos, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento com escopo de serie estao implementados localmente. A configuracao por funil escolhe ativacao, etapas e procedimentos; recursos tambem podem receber janelas semanais, bloqueios e horarios especiais por data. O compositor consulta horarios livres respeitando essas regras. Cancelamento em lote, atalhos por etapa e integracoes seguem pendentes.
 
 Produto relacionado: [Kanban Comercial](./kanban-sales-prd.md)
 
@@ -188,6 +188,8 @@ Os lembretes existentes devem migrar gradualmente de `field_key` para a ocorrenc
 - `kanban.appointment.no_show`;
 - `kanban.appointment.series_created`;
 - `kanban.appointment.series_completed`.
+
+Os eventos de ocorrencia ja sao publicados quando a agenda esta vinculada a uma oportunidade. Cada evento e idempotente por ocorrencia, tipo e versao; um reagendamento publica `rescheduled` sem disparar uma segunda criacao para a mesma troca de horario.
 
 O editor visual pode iniciar por esses eventos e usar `Aguardar ate data` contra `appointment.starts_at`. O envio ainda respeita opt-in, janela de WhatsApp, template aprovado, horario silencioso e idempotencia. Cancelamento ou reagendamento precisa encerrar automaticamente entregas pendentes da versao anterior.
 

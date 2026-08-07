@@ -31,6 +31,7 @@
 #  fk_rails_...  (account_id => accounts.id)
 #  fk_rails_...  (kanban_board_id => kanban_boards.id)
 #
+# rubocop:disable Metrics/ClassLength -- Validation and workflow contract remain in the model.
 class KanbanAutomationRule < ApplicationRecord
   EVENT_NAMES = [
     Events::Types::KANBAN_CARD_CREATED,
@@ -48,7 +49,10 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::KANBAN_CARD_RESTORED,
     Events::Types::KANBAN_CARD_MANUAL_STARTED,
     Events::Types::KANBAN_CARD_CUSTOMER_MESSAGE_RECEIVED,
-    Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED
+    Events::Types::KANBAN_CARD_WEBHOOK_RECEIVED,
+    Events::Types::KANBAN_APPOINTMENT_CREATED, Events::Types::KANBAN_APPOINTMENT_RESCHEDULED,
+    Events::Types::KANBAN_APPOINTMENT_CANCELED, Events::Types::KANBAN_APPOINTMENT_CONFIRMED,
+    Events::Types::KANBAN_APPOINTMENT_COMPLETED, Events::Types::KANBAN_APPOINTMENT_NO_SHOW
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze
   ACTION_NAMES = %w[
@@ -242,3 +246,4 @@ class KanbanAutomationRule < ApplicationRecord
     KanbanAutomations::FlowDefinitionValidator.new(rule: self).validate
   end
 end
+# rubocop:enable Metrics/ClassLength

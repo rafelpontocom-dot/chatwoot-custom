@@ -1083,6 +1083,12 @@
         },
         "EVENTS": {
           "CREATED": "Oportunidade criada",
+          "APPOINTMENT_CREATED": "Agendamento criado",
+          "APPOINTMENT_RESCHEDULED": "Agendamento remarcado",
+          "APPOINTMENT_CANCELED": "Agendamento cancelado",
+          "APPOINTMENT_CONFIRMED": "Agendamento confirmado",
+          "APPOINTMENT_COMPLETED": "Atendimento concluído",
+          "APPOINTMENT_NO_SHOW": "Falta registrada",
           "STAGE_CHANGED": "Etapa alterada",
           "CUSTOMER_MESSAGE_RECEIVED": "Cliente respondeu",
           "WEBHOOK_RECEIVED": "Webhook recebido",

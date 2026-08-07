@@ -263,6 +263,30 @@ const eventOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.CREATED'),
   },
   {
+    value: 'kanban.appointment.created',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.APPOINTMENT_CREATED'),
+  },
+  {
+    value: 'kanban.appointment.rescheduled',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.APPOINTMENT_RESCHEDULED'),
+  },
+  {
+    value: 'kanban.appointment.canceled',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.APPOINTMENT_CANCELED'),
+  },
+  {
+    value: 'kanban.appointment.confirmed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.APPOINTMENT_CONFIRMED'),
+  },
+  {
+    value: 'kanban.appointment.completed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.APPOINTMENT_COMPLETED'),
+  },
+  {
+    value: 'kanban.appointment.no_show',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.APPOINTMENT_NO_SHOW'),
+  },
+  {
     value: 'kanban.card.stage_changed',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.STAGE_CHANGED'),
   },
