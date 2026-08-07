@@ -190,6 +190,7 @@ const saveReschedule = async () => {
 };
 
 const close = () => dialog.value?.close();
+const reloadAppointment = () => open(appointment.value?.id);
 
 const openOpportunity = () => {
   const card = appointment.value?.kanban_card;
@@ -446,9 +447,21 @@ defineExpose({ open, openForReschedule });
             </div>
           </div>
         </div>
-        <p v-if="error" class="mb-0 text-sm text-n-ruby-11" role="alert">
-          {{ error }}
-        </p>
+        <div
+          v-if="error"
+          class="flex items-center justify-between gap-2"
+          role="alert"
+        >
+          <p class="mb-0 text-sm text-n-ruby-11">{{ error }}</p>
+          <NextButton
+            type="button"
+            outline
+            size="sm"
+            :label="t('CALENDAR.DETAIL.RELOAD')"
+            :disabled="isSaving"
+            @click="reloadAppointment"
+          />
+        </div>
       </div>
     </template>
     <template #footer>

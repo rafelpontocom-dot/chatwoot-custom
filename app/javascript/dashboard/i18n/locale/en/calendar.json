@@ -159,6 +159,7 @@
       "NO_AVAILABLE_TIMES": "There are no available times on this date.",
       "RESCHEDULE": "Reschedule",
       "SAVE_RESCHEDULE": "Save reschedule",
+      "RELOAD": "Reload appointment",
       "RESCHEDULE_SCOPE": "Apply reschedule to",
       "RESCHEDULE_SCOPES": {
         "THIS_OCCURRENCE": "This appointment only",

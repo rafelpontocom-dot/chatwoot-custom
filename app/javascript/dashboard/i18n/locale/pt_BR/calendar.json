@@ -159,6 +159,7 @@
       "NO_AVAILABLE_TIMES": "Não há horários livres nesta data.",
       "RESCHEDULE": "Reagendar",
       "SAVE_RESCHEDULE": "Salvar remarcação",
+      "RELOAD": "Recarregar consulta",
       "RESCHEDULE_SCOPE": "Aplicar remarcação",
       "RESCHEDULE_SCOPES": {
         "THIS_OCCURRENCE": "Somente esta sessão",

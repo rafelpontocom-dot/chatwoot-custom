@@ -128,4 +128,24 @@ describe('CalendarAppointmentDetailsDialog', () => {
       appointment: expect.objectContaining({ action: 'check_in' }),
     });
   });
+
+  it('offers to reload after a concurrent update conflict', async () => {
+    CalendarAPI.getAppointment.mockResolvedValue({
+      data: { ...appointment, status: 'confirmed' },
+    });
+    CalendarAPI.updateAppointment.mockRejectedValue({
+      response: { data: { message: 'This appointment changed.' } },
+    });
+    const wrapper = mountDialog();
+
+    await wrapper.vm.open(appointment.id);
+    await flushPromises();
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.DETAIL.CHECK_IN')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('CALENDAR.DETAIL.RELOAD');
+  });
 });
