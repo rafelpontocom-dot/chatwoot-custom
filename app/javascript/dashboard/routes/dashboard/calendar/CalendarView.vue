@@ -378,6 +378,17 @@ onMounted(() => {
                 {{ appointment.procedure.name }}
               </span>
               <span
+                v-if="appointment.resources?.length"
+                data-testid="calendar-appointment-resource"
+                class="block truncate text-xs text-n-slate-11"
+              >
+                {{
+                  appointment.resources
+                    .map(resource => resource.name)
+                    .join(', ')
+                }}
+              </span>
+              <span
                 data-testid="calendar-appointment-status"
                 class="block truncate text-xs font-medium text-n-slate-12"
               >

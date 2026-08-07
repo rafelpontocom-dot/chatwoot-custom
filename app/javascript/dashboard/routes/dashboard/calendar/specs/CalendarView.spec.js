@@ -122,4 +122,26 @@ describe('CalendarView', () => {
       wrapper.find('[data-testid="calendar-appointment-status"]').text()
     ).toBe('CALENDAR.DETAIL.STATUS.CONFIRMED');
   });
+
+  it('shows the reserved resource on the calendar card', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        {
+          id: 7,
+          starts_at: new Date().toISOString(),
+          status: 'scheduled',
+          contact: { name: 'Ana Silva' },
+          procedure: { name: 'Consulta' },
+          resources: [{ id: 3, name: 'Dra. Ana' }],
+        },
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-appointment-resource"]').text()
+    ).toBe('Dra. Ana');
+  });
 });
