@@ -22,6 +22,7 @@ const isLoadingAvailability = ref(false);
 const isLoading = ref(false);
 const isSaving = ref(false);
 const error = ref('');
+const editingProcedureId = ref(null);
 const procedureForm = ref({
   name: '',
   durationMinutes: '50',
@@ -53,6 +54,11 @@ const canCreateResource = computed(
     resourceForm.value.name.trim() &&
     (resourceForm.value.resourceType !== 'user' || resourceForm.value.userId) &&
     !isSaving.value
+);
+const procedureSubmitLabel = computed(() =>
+  editingProcedureId.value
+    ? t('CALENDAR.SETTINGS.SAVE_PROCEDURE')
+    : t('CALENDAR.SETTINGS.ADD_PROCEDURE')
 );
 const resourceTypeLabel = resourceType =>
   ({
@@ -141,6 +147,43 @@ const resetForms = () => {
     endsAtLocal: '',
   };
   error.value = '';
+  editingProcedureId.value = null;
+};
+
+const procedurePayload = () => {
+  const procedure = {
+    name: procedureForm.value.name.trim(),
+    duration_minutes: Number(procedureForm.value.durationMinutes),
+    recurrence_allowed: procedureForm.value.recurrenceAllowed,
+    resource_ids: procedureForm.value.resourceIds.map(Number),
+    active: true,
+  };
+  if (procedure.recurrence_allowed && procedureForm.value.maxSessions) {
+    procedure.max_sessions = Number(procedureForm.value.maxSessions);
+  }
+  return procedure;
+};
+
+const resetProcedureForm = () => {
+  procedureForm.value = {
+    name: '',
+    durationMinutes: '50',
+    recurrenceAllowed: false,
+    maxSessions: '',
+    resourceIds: [],
+  };
+  editingProcedureId.value = null;
+};
+
+const editProcedure = procedure => {
+  editingProcedureId.value = procedure.id;
+  procedureForm.value = {
+    name: procedure.name,
+    durationMinutes: String(procedure.duration_minutes),
+    recurrenceAllowed: procedure.recurrence_allowed,
+    maxSessions: procedure.max_sessions ? String(procedure.max_sessions) : '',
+    resourceIds: procedure.resource_ids || [],
+  };
 };
 
 const loadSettings = async () => {
@@ -175,25 +218,18 @@ const createProcedure = async () => {
   isSaving.value = true;
   error.value = '';
   try {
-    const procedure = {
-      name: procedureForm.value.name.trim(),
-      duration_minutes: Number(procedureForm.value.durationMinutes),
-      recurrence_allowed: procedureForm.value.recurrenceAllowed,
-      resource_ids: procedureForm.value.resourceIds.map(Number),
-      active: true,
-    };
-    if (procedure.recurrence_allowed && procedureForm.value.maxSessions) {
-      procedure.max_sessions = Number(procedureForm.value.maxSessions);
-    }
-    const response = await CalendarAPI.createProcedure({ procedure });
-    procedures.value = [...procedures.value, response.data];
-    procedureForm.value = {
-      name: '',
-      durationMinutes: '50',
-      recurrenceAllowed: false,
-      maxSessions: '',
-      resourceIds: [],
-    };
+    const procedure = procedurePayload();
+    const response = editingProcedureId.value
+      ? await CalendarAPI.updateProcedure(editingProcedureId.value, {
+          procedure,
+        })
+      : await CalendarAPI.createProcedure({ procedure });
+    procedures.value = editingProcedureId.value
+      ? procedures.value.map(item =>
+          item.id === response.data.id ? response.data : item
+        )
+      : [...procedures.value, response.data];
+    resetProcedureForm();
     emit('updated');
   } catch (saveError) {
     error.value = getErrorMessage(saveError);
@@ -423,6 +459,7 @@ defineExpose({ open });
       <template v-else-if="activeTab === 'procedures'">
         <form
           class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
+          data-testid="calendar-procedure-form"
           @submit.prevent="createProcedure"
         >
           <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
@@ -432,6 +469,7 @@ defineExpose({ open });
               </span>
               <input
                 v-model="procedureForm.name"
+                data-testid="calendar-procedure-name"
                 type="text"
                 class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
               />
@@ -442,6 +480,7 @@ defineExpose({ open });
               </span>
               <input
                 v-model="procedureForm.durationMinutes"
+                data-testid="calendar-procedure-duration"
                 min="5"
                 max="480"
                 type="number"
@@ -493,9 +532,17 @@ defineExpose({ open });
             <NextButton
               type="submit"
               size="sm"
-              :label="t('CALENDAR.SETTINGS.ADD_PROCEDURE')"
+              :label="procedureSubmitLabel"
               :disabled="!canCreateProcedure"
               :is-loading="isSaving"
+            />
+            <NextButton
+              v-if="editingProcedureId"
+              type="button"
+              size="sm"
+              outline
+              :label="t('GENERAL.CANCEL')"
+              @click="resetProcedureForm"
             />
           </div>
         </form>
@@ -518,6 +565,14 @@ defineExpose({ open });
                 })
               }}
             </span>
+            <NextButton
+              type="button"
+              xs
+              outline
+              data-testid="calendar-edit-procedure"
+              :label="t('CALENDAR.SETTINGS.EDIT_PROCEDURE')"
+              @click="editProcedure(procedure)"
+            />
           </article>
         </div>
       </template>

@@ -80,6 +80,8 @@
       "ALLOW_RECURRENCE": "Allow recurrence",
       "MAX_SESSIONS": "Maximum sessions",
       "ADD_PROCEDURE": "Add procedure",
+      "EDIT_PROCEDURE": "Edit",
+      "SAVE_PROCEDURE": "Save procedure",
       "NO_PROCEDURES": "No procedures registered.",
       "DURATION_VALUE": "{minutes} min",
       "RESOURCE_NAME": "Resource name",

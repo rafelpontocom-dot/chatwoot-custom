@@ -80,6 +80,8 @@
       "ALLOW_RECURRENCE": "Permitir recorrência",
       "MAX_SESSIONS": "Máximo de sessões",
       "ADD_PROCEDURE": "Adicionar procedimento",
+      "EDIT_PROCEDURE": "Editar",
+      "SAVE_PROCEDURE": "Salvar procedimento",
       "NO_PROCEDURES": "Nenhum procedimento cadastrado.",
       "DURATION_VALUE": "{minutes} min",
       "RESOURCE_NAME": "Nome do recurso",

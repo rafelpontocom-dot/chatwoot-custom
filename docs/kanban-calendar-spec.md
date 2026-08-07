@@ -320,7 +320,7 @@ O roteiro `tests/playwright/tests/e2e/ui/calendar-workspace.spec.ts` cobre no de
 - [x] pagina Agenda dia/semana;
 - [x] compositor pela conversa/card/agenda;
 - [x] drawer de detalhe, confirmar, concluir, falta e cancelar;
-- [x] configuracao de procedimentos e recursos.
+- [x] configuracao e edicao de procedimentos e recursos.
 
 ### Fase C: Series E Automacoes
 

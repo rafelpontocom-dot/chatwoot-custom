@@ -16,6 +16,7 @@ vi.mock('dashboard/api/calendar', () => ({
   default: {
     getProcedures: vi.fn(),
     getResources: vi.fn(),
+    updateProcedure: vi.fn(),
     createResource: vi.fn(),
   },
 }));
@@ -65,6 +66,58 @@ describe('CalendarSettingsDialog', () => {
         name: 'Dra. Ana',
         resource_type: 'user',
         user_id: 12,
+      }),
+    });
+  });
+
+  it('updates an existing procedure instead of creating a duplicate', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 7,
+          name: 'Consulta inicial',
+          duration_minutes: 50,
+          recurrence_allowed: false,
+          max_sessions: null,
+          resource_ids: [],
+          active: true,
+        },
+      ],
+    });
+    CalendarAPI.updateProcedure.mockResolvedValue({
+      data: {
+        id: 7,
+        name: 'Consulta de avaliação',
+        duration_minutes: 60,
+        recurrence_allowed: false,
+        max_sessions: null,
+        resource_ids: [],
+        active: true,
+      },
+    });
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="calendar-edit-procedure"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-procedure-name"]')
+      .setValue('Consulta de avaliação');
+    await wrapper
+      .find('[data-testid="calendar-procedure-duration"]')
+      .setValue('60');
+    await wrapper
+      .find('[data-testid="calendar-procedure-form"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(CalendarAPI.updateProcedure).toHaveBeenCalledWith(7, {
+      procedure: expect.objectContaining({
+        name: 'Consulta de avaliação',
+        duration_minutes: 60,
       }),
     });
   });

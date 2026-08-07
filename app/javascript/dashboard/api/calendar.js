@@ -30,6 +30,10 @@ class CalendarAPI extends ApiClient {
     return axios.post(`${this.url}/procedures`, payload);
   }
 
+  updateProcedure(id, payload) {
+    return axios.patch(`${this.url}/procedures/${id}`, payload);
+  }
+
   createResource(payload) {
     return axios.post(`${this.url}/resources`, payload);
   }
