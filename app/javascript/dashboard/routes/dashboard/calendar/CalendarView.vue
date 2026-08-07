@@ -13,6 +13,7 @@ const view = ref('week');
 const appointments = ref([]);
 const resources = ref([]);
 const selectedResourceId = ref('');
+const selectedStatus = ref('');
 const searchQuery = ref('');
 const isLoading = ref(false);
 const loadError = ref(false);
@@ -99,6 +100,13 @@ const gridClass = computed(() =>
     ? 'grid-cols-[4rem_minmax(16rem,1fr)]'
     : 'grid-cols-[4rem_repeat(7,minmax(10rem,1fr))]'
 );
+const calendarStatuses = computed(() => [
+  { value: 'scheduled', label: t('CALENDAR.DETAIL.STATUS.SCHEDULED') },
+  { value: 'confirmed', label: t('CALENDAR.DETAIL.STATUS.CONFIRMED') },
+  { value: 'completed', label: t('CALENDAR.DETAIL.STATUS.COMPLETED') },
+  { value: 'no_show', label: t('CALENDAR.DETAIL.STATUS.NO_SHOW') },
+  { value: 'canceled', label: t('CALENDAR.DETAIL.STATUS.CANCELED') },
+]);
 
 const isoDate = date => date.toISOString();
 
@@ -114,6 +122,7 @@ const loadAppointments = async () => {
       resource_ids: selectedResourceId.value
         ? [Number(selectedResourceId.value)]
         : undefined,
+      status: selectedStatus.value || undefined,
       q: searchQuery.value.trim() || undefined,
     });
     appointments.value = data;
@@ -218,7 +227,10 @@ const handleAppointmentCreated = () => loadAppointments();
 
 const debouncedLoadAppointments = debounce(loadAppointments, 250, false);
 
-watch([selectedDate, view, selectedResourceId], loadAppointments);
+watch(
+  [selectedDate, view, selectedResourceId, selectedStatus],
+  loadAppointments
+);
 watch(searchQuery, debouncedLoadAppointments);
 onMounted(() => {
   loadAppointments();
@@ -269,6 +281,23 @@ onMounted(() => {
             :value="String(resource.id)"
           >
             {{ resource.name }}
+          </option>
+        </select>
+        <label class="sr-only" for="calendar-status-filter">
+          {{ t('CALENDAR.STATUS_FILTER') }}
+        </label>
+        <select
+          id="calendar-status-filter"
+          v-model="selectedStatus"
+          class="h-9 max-w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+        >
+          <option value="">{{ t('CALENDAR.ALL_STATUSES') }}</option>
+          <option
+            v-for="status in calendarStatuses"
+            :key="status.value"
+            :value="status.value"
+          >
+            {{ status.label }}
           </option>
         </select>
         <label class="sr-only" for="calendar-search">

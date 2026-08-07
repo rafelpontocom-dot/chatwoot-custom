@@ -4,15 +4,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
     authorize KanbanCalendarAppointment, :index?
     return unless index_query_provided?
 
-    appointments = appointment_scope
-    appointments = appointments.within(range_start, range_end) if date_range_provided?
-    appointments = appointments.where(kanban_card: scoped_index_kanban_card) if scoped_index_kanban_card
-    appointments = appointments.merge(appointment_search_scope) if search_query.present?
-    if resource_ids.present?
-      appointments = appointments.joins(:kanban_calendar_appointment_resources)
-                                 .where(kanban_calendar_appointment_resources: { kanban_calendar_resource_id: resource_ids })
-    end
-    render json: appointments.distinct.map { |appointment| appointment_payload(appointment) }
+    render json: index_appointments.map { |appointment| appointment_payload(appointment) }
   end
 
   def show
@@ -157,26 +149,18 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
     @scoped_index_kanban_card ||= policy_scope(KanbanCard).find(params[:kanban_card_id])
   end
 
-  def resource_ids
-    Array(params[:resource_ids]).filter_map(&:presence).map(&:to_i).uniq
-  end
-
-  def search_query
-    params[:q].to_s.strip
-  end
-
-  def appointment_search_scope
-    query = "%#{KanbanCalendarAppointment.sanitize_sql_like(search_query)}%"
-    KanbanCalendarAppointment.left_joins(:contact, :kanban_card).where(
-      'contacts.name ILIKE :query OR contacts.email ILIKE :query OR contacts.phone_number ILIKE :query OR kanban_cards.subject ILIKE :query',
-      query: query
-    )
-  end
-
   def appointment_scope
     policy_scope(KanbanCalendarAppointment)
       .includes(:contact, :kanban_calendar_appointment_series, :kanban_calendar_procedure, :kanban_calendar_resources)
       .order(:starts_at)
+  end
+
+  def index_appointments
+    KanbanCalendar::AppointmentsIndexQuery.new(
+      scope: appointment_scope,
+      kanban_card: scoped_index_kanban_card,
+      filters: params.slice(:starts_at, :ends_at, :status, :resource_ids, :q)
+    ).call
   end
 
   def appointment_payload(appointment, include_events: false)

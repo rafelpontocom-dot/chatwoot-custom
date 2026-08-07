@@ -293,7 +293,7 @@ Nao implementar bidirecional sem esses seis itens. O Google Calendar exige timez
 ### Frontend E2E
 
 - criar pela conversa, card e pagina Agenda;
-- navegar por dia/semana/mes e recurso;
+- navegar por dia/semana/mes, recurso e status;
 - buscar por contato, telefone e oportunidade;
 - criar serie, revisar previa e confirmar;
 - reagendar por drawer, menu e drag com confirmacao;

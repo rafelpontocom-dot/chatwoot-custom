@@ -153,4 +153,36 @@ RSpec.describe 'Calendar appointments API', type: :request do
       expect(response.parsed_body).to contain_exactly(include('id' => appointment.id))
     end
   end
+
+  it 'filters appointments by operational status' do
+    scheduled = KanbanCalendar::BookAppointmentService.new(
+      account: account,
+      contact: contact,
+      procedure: procedure,
+      resource_ids: [resource.id],
+      starts_at: Time.iso8601('2026-08-12T13:00:00-03:00'),
+      timezone: 'America/Sao_Paulo'
+    ).perform!
+    canceled = KanbanCalendar::BookAppointmentService.new(
+      account: account,
+      contact: contact,
+      procedure: procedure,
+      resource_ids: [resource.id],
+      starts_at: Time.iso8601('2026-08-12T15:00:00-03:00'),
+      timezone: 'America/Sao_Paulo'
+    ).perform!
+    canceled.update!(status: 'canceled', canceled_at: Time.current)
+
+    get "/api/v1/accounts/#{account.id}/calendar/appointments",
+        headers: administrator.create_new_auth_token,
+        params: {
+          starts_at: '2026-08-12T00:00:00-03:00',
+          ends_at: '2026-08-13T00:00:00-03:00',
+          status: 'scheduled'
+        },
+        as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to contain_exactly(include('id' => scheduled.id))
+  end
 end

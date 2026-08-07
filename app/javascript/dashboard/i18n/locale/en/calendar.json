@@ -10,6 +10,8 @@
     "NEW_APPOINTMENT": "New appointment",
     "RESOURCE_FILTER": "Filter by professional or resource",
     "ALL_RESOURCES": "All resources",
+    "STATUS_FILTER": "Filter by status",
+    "ALL_STATUSES": "All statuses",
     "SEARCH": "Search calendar",
     "SEARCH_PLACEHOLDER": "Search patient or opportunity",
     "GRID_LABEL": "Appointments calendar",

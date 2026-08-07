@@ -104,6 +104,18 @@ describe('CalendarView', () => {
     ).toBe(true);
   });
 
+  it('filters the calendar by the selected appointment status', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    await wrapper.find('#calendar-status-filter').setValue('confirmed');
+    await flushPromises();
+
+    expect(CalendarAPI.getAppointments).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'confirmed' })
+    );
+  });
+
   it('keeps appointments outside the default business hours visible', async () => {
     const startsAt = new Date();
     startsAt.setHours(19, 30, 0, 0);

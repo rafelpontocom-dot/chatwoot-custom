@@ -10,6 +10,8 @@
     "NEW_APPOINTMENT": "Novo agendamento",
     "RESOURCE_FILTER": "Filtrar por profissional ou recurso",
     "ALL_RESOURCES": "Todos os recursos",
+    "STATUS_FILTER": "Filtrar por status",
+    "ALL_STATUSES": "Todos os status",
     "SEARCH": "Buscar agenda",
     "SEARCH_PLACEHOLDER": "Buscar paciente ou oportunidade",
     "GRID_LABEL": "Agenda de atendimentos",
