@@ -2,19 +2,23 @@
 class KanbanCalendar::RescheduleAppointmentService
   SCOPES = %w[this_occurrence this_and_future all_occurrences].freeze
 
-  def initialize(appointment:, starts_at:, resource_ids:, scope: 'this_occurrence', actor: nil)
+  # rubocop:disable Metrics/ParameterLists -- Mirrors the reschedule request contract.
+  def initialize(appointment:, starts_at:, resource_ids:, scope: 'this_occurrence', actor: nil, expected_lock_version: nil)
     @appointment = appointment
     @starts_at = starts_at
     @resource_ids = Array(resource_ids).map(&:to_i).uniq
     @scope = scope.presence || 'this_occurrence'
     @actor = actor
+    @expected_lock_version = expected_lock_version
   end
+  # rubocop:enable Metrics/ParameterLists
 
   def perform!
     validate_references!
 
     replacement = ActiveRecord::Base.transaction do
       @appointment.lock!
+      validate_lock_version!
       @scope == 'this_occurrence' ? reschedule_single_appointment! : replace_future_series!
     end
     dispatch_rescheduled_event(replacement)
@@ -34,6 +38,12 @@ class KanbanCalendar::RescheduleAppointmentService
     validate_resources!
     validate_procedure_resources!
     validate_resource_availability!
+  end
+
+  def validate_lock_version!
+    return if @expected_lock_version.blank? || @appointment.lock_version == @expected_lock_version.to_i
+
+    raise ActiveRecord::StaleObjectError.new(@appointment, 'update')
   end
 
   def validate_reschedulable_appointment!

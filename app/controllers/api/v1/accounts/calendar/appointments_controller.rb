@@ -60,11 +60,14 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
       starts_at: Time.zone.parse(reschedule_params[:starts_at]),
       resource_ids: reschedule_params[:resource_ids],
       scope: reschedule_params[:scope],
+      expected_lock_version: reschedule_params[:lock_version],
       actor: Current.user
     ).perform!
     render json: appointment_payload(appointment, include_events: true)
   rescue KanbanCalendar::ConflictError => e
     render json: { message: e.message, resource_ids: e.resource_ids }, status: :conflict
+  rescue ActiveRecord::StaleObjectError
+    render json: { message: 'This appointment changed. Reload it and try again.' }, status: :conflict
   rescue ActiveRecord::RecordInvalid => e
     render_invalid_record(e.record)
   end
@@ -94,7 +97,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
   end
 
   def reschedule_params
-    params.require(:appointment).permit(:starts_at, :scope, resource_ids: [])
+    params.require(:appointment).permit(:starts_at, :scope, :lock_version, resource_ids: [])
   end
 
   def scoped_contact

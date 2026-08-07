@@ -175,6 +175,7 @@ const saveReschedule = async () => {
           starts_at: new Date(rescheduleStartsAt.value).toISOString(),
           resource_ids: [Number(rescheduleResourceId.value)],
           scope: rescheduleScope.value,
+          lock_version: appointment.value.lock_version,
         },
       }
     );
