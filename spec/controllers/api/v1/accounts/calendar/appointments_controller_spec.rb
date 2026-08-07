@@ -115,4 +115,42 @@ RSpec.describe 'Calendar appointments API', type: :request do
       )
     )
   end
+
+  it 'searches appointments by contact details and opportunity title' do
+    contact.update!(email: 'marina@example.com', phone_number: '+5511999999999')
+    board = create(:kanban_board, account: account)
+    board.update!(calendar_enabled: true, calendar_procedure_ids: [procedure.id])
+    stage = create(:kanban_stage, account: account, kanban_board: board)
+    card = create(
+      :kanban_card,
+      account: account,
+      kanban_board: board,
+      kanban_stage: stage,
+      contact: contact,
+      subject: 'Plano de acompanhamento Marina'
+    )
+    appointment = KanbanCalendar::BookAppointmentService.new(
+      account: account,
+      contact: contact,
+      procedure: procedure,
+      resource_ids: [resource.id],
+      starts_at: Time.iso8601('2026-08-12T13:00:00-03:00'),
+      timezone: 'America/Sao_Paulo',
+      kanban_card: card
+    ).perform!
+
+    ['Marina Costa', 'marina@example.com', '999999999', 'acompanhamento'].each do |query|
+      get "/api/v1/accounts/#{account.id}/calendar/appointments",
+          headers: administrator.create_new_auth_token,
+          params: {
+            starts_at: '2026-08-12T00:00:00-03:00',
+            ends_at: '2026-08-13T00:00:00-03:00',
+            q: query
+          },
+          as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to contain_exactly(include('id' => appointment.id))
+    end
+  end
 end

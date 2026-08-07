@@ -69,7 +69,9 @@ class KanbanCalendarAppointment < ApplicationRecord
   validate :account_matches_related_records
 
   scope :active, -> { where(status: ACTIVE_STATUSES) }
-  scope :within, ->(starts_at, ends_at) { where('starts_at < ? AND ends_at > ?', ends_at, starts_at) }
+  scope :within, lambda { |starts_at, ends_at|
+    where('kanban_calendar_appointments.starts_at < ? AND kanban_calendar_appointments.ends_at > ?', ends_at, starts_at)
+  }
 
   def active_for_conflict?
     status.in?(ACTIVE_STATUSES)
