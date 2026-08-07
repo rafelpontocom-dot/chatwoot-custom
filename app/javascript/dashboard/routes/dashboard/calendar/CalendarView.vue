@@ -132,6 +132,15 @@ const formatTime = value =>
     minute: '2-digit',
   }).format(new Date(value));
 
+const statusLabel = status =>
+  ({
+    scheduled: t('CALENDAR.DETAIL.STATUS.SCHEDULED'),
+    confirmed: t('CALENDAR.DETAIL.STATUS.CONFIRMED'),
+    completed: t('CALENDAR.DETAIL.STATUS.COMPLETED'),
+    no_show: t('CALENDAR.DETAIL.STATUS.NO_SHOW'),
+    canceled: t('CALENDAR.DETAIL.STATUS.CANCELED'),
+  })[status] || status;
+
 const changeDay = amount => {
   const nextDate = new Date(selectedDate.value);
   nextDate.setDate(nextDate.getDate() + amount);
@@ -367,6 +376,12 @@ onMounted(() => {
               </span>
               <span class="block truncate text-xs text-n-slate-11">
                 {{ appointment.procedure.name }}
+              </span>
+              <span
+                data-testid="calendar-appointment-status"
+                class="block truncate text-xs font-medium text-n-slate-12"
+              >
+                {{ statusLabel(appointment.status) }}
               </span>
             </button>
           </div>

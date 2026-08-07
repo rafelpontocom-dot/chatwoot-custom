@@ -101,4 +101,25 @@ describe('CalendarView', () => {
         .attributes('draggable')
     ).toBe('true');
   });
+
+  it('shows the appointment status as text on the calendar card', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        {
+          id: 7,
+          starts_at: new Date().toISOString(),
+          status: 'confirmed',
+          contact: { name: 'Ana Silva' },
+          procedure: { name: 'Consulta' },
+        },
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-appointment-status"]').text()
+    ).toBe('CALENDAR.DETAIL.STATUS.CONFIRMED');
+  });
 });
