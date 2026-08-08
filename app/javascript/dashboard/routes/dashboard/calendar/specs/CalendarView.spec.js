@@ -113,6 +113,24 @@ describe('CalendarView', () => {
     ).toEqual(expect.arrayContaining(['w-full']));
   });
 
+  it('separates calendar actions, filters, search, and date controls in the toolbar', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-header-actions"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="calendar-toolbar-filters"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="calendar-toolbar-search"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="calendar-toolbar-period"]').exists()
+    ).toBe(true);
+  });
+
   it('filters the calendar by the selected appointment status', async () => {
     const wrapper = mountCalendar();
     await flushPromises();

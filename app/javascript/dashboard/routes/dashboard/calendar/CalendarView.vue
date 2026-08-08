@@ -245,168 +245,185 @@ onMounted(() => {
     data-testid="calendar-workspace"
     class="flex h-full min-h-0 w-full flex-col bg-n-background px-4 py-4 lg:px-6"
   >
-    <header
-      class="mb-4 flex flex-col gap-3 border-b border-n-weak pb-4 lg:flex-row lg:items-center lg:justify-between"
-    >
-      <div class="flex min-w-0 items-center gap-2">
-        <div
-          class="flex size-9 flex-none items-center justify-center rounded-md bg-n-brand/10 text-n-brand"
-        >
-          <i class="i-lucide-calendar-days size-5" aria-hidden="true" />
-        </div>
-        <div class="min-w-0">
-          <h1 class="mb-0 truncate text-lg font-semibold text-n-slate-12">
-            {{ t('CALENDAR.TITLE') }}
-          </h1>
-          <p
-            data-testid="calendar-date-label"
-            class="mb-0 text-sm text-n-slate-11"
+    <header class="mb-4 border-b border-n-weak pb-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-2">
+          <div
+            class="flex size-9 flex-none items-center justify-center rounded-md bg-n-brand/10 text-n-brand"
           >
-            {{ dateLabel }}
-          </p>
+            <i class="i-lucide-calendar-days size-5" aria-hidden="true" />
+          </div>
+          <div class="min-w-0">
+            <h1 class="mb-0 truncate text-lg font-semibold text-n-slate-12">
+              {{ t('CALENDAR.TITLE') }}
+            </h1>
+            <p
+              data-testid="calendar-date-label"
+              class="mb-0 text-sm text-n-slate-11"
+            >
+              {{ dateLabel }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          data-testid="calendar-header-actions"
+          class="flex items-center gap-2"
+        >
+          <button
+            type="button"
+            data-testid="calendar-open-settings"
+            class="flex size-9 items-center justify-center rounded-md border border-n-weak text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+            :aria-label="t('CALENDAR.SETTINGS.OPEN')"
+            :title="t('CALENDAR.SETTINGS.OPEN')"
+            @click="openSettings"
+          >
+            <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            data-testid="calendar-new-appointment"
+            class="inline-flex items-center gap-2 rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand/90 focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-2"
+            @click="openBooking"
+          >
+            <i class="i-lucide-plus size-4" aria-hidden="true" />
+            {{ t('CALENDAR.NEW_APPOINTMENT') }}
+          </button>
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <label class="sr-only" for="calendar-resource-filter">
-          {{ t('CALENDAR.RESOURCE_FILTER') }}
-        </label>
-        <select
-          id="calendar-resource-filter"
-          v-model="selectedResourceId"
-          class="h-9 max-w-48 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+      <div class="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center">
+        <div
+          data-testid="calendar-toolbar-filters"
+          class="flex flex-wrap items-center gap-2"
         >
-          <option value="">{{ t('CALENDAR.ALL_RESOURCES') }}</option>
-          <option
-            v-for="resource in resources"
-            :key="resource.id"
-            :value="String(resource.id)"
+          <label class="sr-only" for="calendar-resource-filter">
+            {{ t('CALENDAR.RESOURCE_FILTER') }}
+          </label>
+          <select
+            id="calendar-resource-filter"
+            v-model="selectedResourceId"
+            class="h-9 max-w-48 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
           >
-            {{ resource.name }}
-          </option>
-        </select>
-        <label class="sr-only" for="calendar-status-filter">
-          {{ t('CALENDAR.STATUS_FILTER') }}
-        </label>
-        <select
-          id="calendar-status-filter"
-          v-model="selectedStatus"
-          class="h-9 max-w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-        >
-          <option value="">{{ t('CALENDAR.ALL_STATUSES') }}</option>
-          <option
-            v-for="status in calendarStatuses"
-            :key="status.value"
-            :value="status.value"
+            <option value="">{{ t('CALENDAR.ALL_RESOURCES') }}</option>
+            <option
+              v-for="resource in resources"
+              :key="resource.id"
+              :value="String(resource.id)"
+            >
+              {{ resource.name }}
+            </option>
+          </select>
+          <label class="sr-only" for="calendar-status-filter">
+            {{ t('CALENDAR.STATUS_FILTER') }}
+          </label>
+          <select
+            id="calendar-status-filter"
+            v-model="selectedStatus"
+            class="h-9 max-w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
           >
-            {{ status.label }}
-          </option>
-        </select>
+            <option value="">{{ t('CALENDAR.ALL_STATUSES') }}</option>
+            <option
+              v-for="status in calendarStatuses"
+              :key="status.value"
+              :value="status.value"
+            >
+              {{ status.label }}
+            </option>
+          </select>
+        </div>
         <label class="sr-only" for="calendar-search">
           {{ t('CALENDAR.SEARCH') }}
         </label>
-        <input
-          id="calendar-search"
-          v-model="searchQuery"
-          type="search"
-          :placeholder="t('CALENDAR.SEARCH_PLACEHOLDER')"
-          class="h-9 w-56 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus-visible:ring-2 focus-visible:ring-n-brand"
-        />
-        <button
-          type="button"
-          data-testid="calendar-open-settings"
-          class="flex size-9 items-center justify-center rounded-md border border-n-weak text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
-          :aria-label="t('CALENDAR.SETTINGS.OPEN')"
-          :title="t('CALENDAR.SETTINGS.OPEN')"
-          @click="openSettings"
-        >
-          <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
-        </button>
-        <div
-          class="inline-flex rounded-md border border-n-weak bg-n-solid-1 p-0.5"
-          role="group"
-        >
-          <button
-            type="button"
-            class="flex size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
-            :aria-label="t('CALENDAR.PREVIOUS')"
-            :title="t('CALENDAR.PREVIOUS')"
-            @click="changePeriod(-1)"
-          >
-            <i class="i-lucide-chevron-left size-4" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            class="px-2 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
-            @click="goToToday"
-          >
-            {{ t('CALENDAR.TODAY') }}
-          </button>
-          <button
-            type="button"
-            class="flex size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
-            :aria-label="t('CALENDAR.NEXT')"
-            :title="t('CALENDAR.NEXT')"
-            @click="changePeriod(1)"
-          >
-            <i class="i-lucide-chevron-right size-4" aria-hidden="true" />
-          </button>
+        <div data-testid="calendar-toolbar-search" class="w-full xl:w-80">
+          <input
+            id="calendar-search"
+            v-model="searchQuery"
+            type="search"
+            :placeholder="t('CALENDAR.SEARCH_PLACEHOLDER')"
+            class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus-visible:ring-2 focus-visible:ring-n-brand"
+          />
         </div>
-
         <div
-          class="inline-flex rounded-md border border-n-weak bg-n-solid-1 p-0.5"
-          role="group"
+          data-testid="calendar-toolbar-period"
+          class="flex flex-wrap items-center gap-2 xl:ml-auto"
         >
-          <button
-            type="button"
-            class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-            :aria-pressed="view === 'day'"
-            :class="
-              view === 'day'
-                ? 'bg-n-brand text-white'
-                : 'text-n-slate-11 hover:bg-n-alpha-2'
-            "
-            @click="view = 'day'"
+          <div
+            class="inline-flex rounded-md border border-n-weak bg-n-solid-1 p-0.5"
+            role="group"
           >
-            {{ t('CALENDAR.DAY') }}
-          </button>
-          <button
-            type="button"
-            class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-            :aria-pressed="view === 'week'"
-            :class="
-              view === 'week'
-                ? 'bg-n-brand text-white'
-                : 'text-n-slate-11 hover:bg-n-alpha-2'
-            "
-            @click="view = 'week'"
-          >
-            {{ t('CALENDAR.WEEK') }}
-          </button>
-          <button
-            type="button"
-            class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-            :aria-pressed="view === 'month'"
-            :class="
-              view === 'month'
-                ? 'bg-n-brand text-white'
-                : 'text-n-slate-11 hover:bg-n-alpha-2'
-            "
-            @click="view = 'month'"
-          >
-            {{ t('CALENDAR.MONTH') }}
-          </button>
-        </div>
+            <button
+              type="button"
+              class="flex size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-label="t('CALENDAR.PREVIOUS')"
+              :title="t('CALENDAR.PREVIOUS')"
+              @click="changePeriod(-1)"
+            >
+              <i class="i-lucide-chevron-left size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="px-2 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+              @click="goToToday"
+            >
+              {{ t('CALENDAR.TODAY') }}
+            </button>
+            <button
+              type="button"
+              class="flex size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-label="t('CALENDAR.NEXT')"
+              :title="t('CALENDAR.NEXT')"
+              @click="changePeriod(1)"
+            >
+              <i class="i-lucide-chevron-right size-4" aria-hidden="true" />
+            </button>
+          </div>
 
-        <button
-          type="button"
-          data-testid="calendar-new-appointment"
-          class="inline-flex items-center gap-2 rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand/90 focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-2"
-          @click="openBooking"
-        >
-          <i class="i-lucide-plus size-4" aria-hidden="true" />
-          {{ t('CALENDAR.NEW_APPOINTMENT') }}
-        </button>
+          <div
+            class="inline-flex rounded-md border border-n-weak bg-n-solid-1 p-0.5"
+            role="group"
+          >
+            <button
+              type="button"
+              class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-pressed="view === 'day'"
+              :class="
+                view === 'day'
+                  ? 'bg-n-brand text-white'
+                  : 'text-n-slate-11 hover:bg-n-alpha-2'
+              "
+              @click="view = 'day'"
+            >
+              {{ t('CALENDAR.DAY') }}
+            </button>
+            <button
+              type="button"
+              class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-pressed="view === 'week'"
+              :class="
+                view === 'week'
+                  ? 'bg-n-brand text-white'
+                  : 'text-n-slate-11 hover:bg-n-alpha-2'
+              "
+              @click="view = 'week'"
+            >
+              {{ t('CALENDAR.WEEK') }}
+            </button>
+            <button
+              type="button"
+              class="rounded px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-pressed="view === 'month'"
+              :class="
+                view === 'month'
+                  ? 'bg-n-brand text-white'
+                  : 'text-n-slate-11 hover:bg-n-alpha-2'
+              "
+              @click="view = 'month'"
+            >
+              {{ t('CALENDAR.MONTH') }}
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
