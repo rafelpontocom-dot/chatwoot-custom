@@ -123,6 +123,53 @@ describe('CalendarSettingsDialog', () => {
     });
   });
 
+  it('uses a recurrence limit when enabling recurrence for an existing procedure', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 7,
+          name: 'Consulta inicial',
+          duration_minutes: 50,
+          recurrence_allowed: false,
+          max_sessions: null,
+          resource_ids: [],
+          active: true,
+        },
+      ],
+    });
+    CalendarAPI.updateProcedure.mockResolvedValue({
+      data: {
+        id: 7,
+        name: 'Consulta inicial',
+        duration_minutes: 50,
+        recurrence_allowed: true,
+        max_sessions: 10,
+        resource_ids: [],
+        active: true,
+      },
+    });
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="calendar-edit-procedure"]')
+      .trigger('click');
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await wrapper
+      .find('[data-testid="calendar-procedure-form"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(CalendarAPI.updateProcedure).toHaveBeenCalledWith(7, {
+      procedure: expect.objectContaining({
+        recurrence_allowed: true,
+        max_sessions: 10,
+      }),
+    });
+  });
+
   it('deactivates an existing resource without removing it', async () => {
     CalendarAPI.getResources.mockResolvedValue({
       data: [

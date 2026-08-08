@@ -250,9 +250,15 @@ onMounted(() => {
     data-testid="calendar-workspace"
     class="flex h-full min-h-0 w-full flex-col bg-n-background px-4 py-4 lg:px-6"
   >
-    <header class="mb-4 border-b border-n-weak pb-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-2">
+    <header
+      class="mb-4 grid gap-2 border-b border-n-weak pb-4 2xl:grid 2xl:grid-cols-[minmax(10rem,1fr)_auto_minmax(14rem,18rem)_auto_auto] 2xl:items-center"
+    >
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 2xl:contents"
+      >
+        <div
+          class="flex min-w-0 items-center gap-2 2xl:col-start-1 2xl:row-start-1"
+        >
           <div
             class="flex size-9 flex-none items-center justify-center rounded-md bg-n-brand/10 text-n-brand"
           >
@@ -273,7 +279,7 @@ onMounted(() => {
 
         <div
           data-testid="calendar-header-actions"
-          class="flex items-center gap-2"
+          class="flex items-center gap-2 2xl:col-start-5 2xl:row-start-1"
         >
           <button
             type="button"
@@ -297,10 +303,12 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center">
+      <div
+        class="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center 2xl:contents"
+      >
         <div
           data-testid="calendar-toolbar-filters"
-          class="flex shrink-0 flex-wrap items-center gap-2"
+          class="flex shrink-0 flex-nowrap items-center gap-2 2xl:col-start-2 2xl:row-start-1"
         >
           <label class="sr-only" for="calendar-resource-filter">
             {{ t('CALENDAR.RESOURCE_FILTER') }}
@@ -340,7 +348,10 @@ onMounted(() => {
         <label class="sr-only" for="calendar-search">
           {{ t('CALENDAR.SEARCH') }}
         </label>
-        <div data-testid="calendar-toolbar-search" class="w-full xl:w-80">
+        <div
+          data-testid="calendar-toolbar-search"
+          class="w-full xl:w-80 2xl:col-start-3 2xl:row-start-1 2xl:w-full"
+        >
           <input
             id="calendar-search"
             v-model="searchQuery"
@@ -351,7 +362,7 @@ onMounted(() => {
         </div>
         <div
           data-testid="calendar-toolbar-period"
-          class="flex flex-wrap items-center gap-2 xl:ml-auto"
+          class="flex flex-nowrap items-center gap-2 xl:ml-auto 2xl:col-start-4 2xl:row-start-1 2xl:ml-0"
         >
           <div
             class="inline-flex rounded-md border border-n-weak bg-n-solid-1 p-0.5"

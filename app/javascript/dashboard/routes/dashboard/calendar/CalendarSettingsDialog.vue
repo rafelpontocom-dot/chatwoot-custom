@@ -28,7 +28,7 @@ const procedureForm = ref({
   name: '',
   durationMinutes: '50',
   recurrenceAllowed: false,
-  maxSessions: '',
+  maxSessions: '10',
   resourceIds: [],
 });
 const resourceForm = ref({ name: '', resourceType: 'generic', userId: '' });
@@ -48,6 +48,10 @@ const canCreateProcedure = computed(
   () =>
     procedureForm.value.name.trim() &&
     Number(procedureForm.value.durationMinutes) > 0 &&
+    (!procedureForm.value.recurrenceAllowed ||
+      (Number.isInteger(Number(procedureForm.value.maxSessions)) &&
+        Number(procedureForm.value.maxSessions) >= 1 &&
+        Number(procedureForm.value.maxSessions) <= 100)) &&
     !isSaving.value
 );
 const canCreateResource = computed(
@@ -169,7 +173,7 @@ const procedurePayload = () => {
     resource_ids: procedureForm.value.resourceIds.map(Number),
     active: true,
   };
-  if (procedure.recurrence_allowed && procedureForm.value.maxSessions) {
+  if (procedure.recurrence_allowed) {
     procedure.max_sessions = Number(procedureForm.value.maxSessions);
   }
   return procedure;
@@ -180,7 +184,7 @@ const resetProcedureForm = () => {
     name: '',
     durationMinutes: '50',
     recurrenceAllowed: false,
-    maxSessions: '',
+    maxSessions: '10',
     resourceIds: [],
   };
   editingProcedureId.value = null;
@@ -206,7 +210,7 @@ const editProcedure = procedure => {
     name: procedure.name,
     durationMinutes: String(procedure.duration_minutes),
     recurrenceAllowed: procedure.recurrence_allowed,
-    maxSessions: procedure.max_sessions ? String(procedure.max_sessions) : '',
+    maxSessions: procedure.max_sessions ? String(procedure.max_sessions) : '10',
     resourceIds: procedure.resource_ids || [],
   };
 };

@@ -142,6 +142,9 @@ describe('CalendarView', () => {
     expect(
       wrapper.find('[data-testid="calendar-toolbar-filters"]').classes()
     ).toEqual(expect.arrayContaining(['shrink-0']));
+    expect(
+      wrapper.find('[data-testid="calendar-workspace"] header').classes()
+    ).toEqual(expect.arrayContaining(['2xl:grid']));
   });
 
   it('filters the calendar by the selected appointment status', async () => {
