@@ -23,6 +23,7 @@
     "RETRY": "Tentar novamente",
     "EMPTY_TITLE": "Os agendamentos aparecerão aqui",
     "EMPTY_DESCRIPTION": "Crie procedimentos e recursos para começar a marcar atendimentos.",
+    "EMPTY_FILTERED_DESCRIPTION": "Altere os filtros ou o período, ou crie um novo agendamento.",
     "OPPORTUNITY": {
       "TITLE": "Agenda",
       "BOOK": "Agendar",

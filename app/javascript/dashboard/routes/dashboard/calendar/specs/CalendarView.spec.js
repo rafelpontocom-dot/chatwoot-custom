@@ -113,6 +113,16 @@ describe('CalendarView', () => {
     ).toEqual(expect.arrayContaining(['w-full']));
   });
 
+  it('explains that filters or dates may hide appointments after resources exist', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [{ id: 1, name: 'Dra. Ana', active: true }],
+    });
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('CALENDAR.EMPTY_FILTERED_DESCRIPTION');
+  });
+
   it('separates calendar actions, filters, search, and date controls in the toolbar', async () => {
     const wrapper = mountCalendar();
     await flushPromises();
@@ -129,6 +139,9 @@ describe('CalendarView', () => {
     expect(
       wrapper.find('[data-testid="calendar-toolbar-period"]').exists()
     ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="calendar-toolbar-filters"]').classes()
+    ).toEqual(expect.arrayContaining(['shrink-0']));
   });
 
   it('filters the calendar by the selected appointment status', async () => {

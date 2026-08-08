@@ -23,6 +23,7 @@
     "RETRY": "Try again",
     "EMPTY_TITLE": "Your appointments will appear here",
     "EMPTY_DESCRIPTION": "Create procedures and resources to start booking appointments.",
+    "EMPTY_FILTERED_DESCRIPTION": "Change the filters or period, or create a new appointment.",
     "OPPORTUNITY": {
       "TITLE": "Calendar",
       "BOOK": "Book",

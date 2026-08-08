@@ -108,6 +108,11 @@ const calendarStatuses = computed(() => [
   { value: 'no_show', label: t('CALENDAR.DETAIL.STATUS.NO_SHOW') },
   { value: 'canceled', label: t('CALENDAR.DETAIL.STATUS.CANCELED') },
 ]);
+const emptyDescriptionKey = computed(() =>
+  resources.value.length
+    ? 'CALENDAR.EMPTY_FILTERED_DESCRIPTION'
+    : 'CALENDAR.EMPTY_DESCRIPTION'
+);
 
 const isoDate = date => date.toISOString();
 
@@ -295,7 +300,7 @@ onMounted(() => {
       <div class="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center">
         <div
           data-testid="calendar-toolbar-filters"
-          class="flex flex-wrap items-center gap-2"
+          class="flex shrink-0 flex-wrap items-center gap-2"
         >
           <label class="sr-only" for="calendar-resource-filter">
             {{ t('CALENDAR.RESOURCE_FILTER') }}
@@ -585,7 +590,7 @@ onMounted(() => {
             {{ t('CALENDAR.EMPTY_TITLE') }}
           </p>
           <p class="mb-0 text-sm text-n-slate-11">
-            {{ t('CALENDAR.EMPTY_DESCRIPTION') }}
+            {{ t(emptyDescriptionKey) }}
           </p>
         </div>
       </div>
