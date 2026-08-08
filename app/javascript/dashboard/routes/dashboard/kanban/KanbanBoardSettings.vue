@@ -933,6 +933,19 @@ const formulaPreviewResult = computed(() => {
   );
 });
 
+function customFieldSectionLabel(sectionKey) {
+  if (sectionKey === 'details') {
+    return t('KANBAN.SETTINGS.SALES.TABS.GENERAL');
+  }
+  if (sectionKey === 'marketing') {
+    return t('KANBAN.SETTINGS.SALES.TABS.MARKETING');
+  }
+
+  return sectionKey
+    .replace(/[_-]+/g, ' ')
+    .replace(/^./, character => character.toUpperCase());
+}
+
 const applyBirthdayAutomation = payload => {
   const settings = camelcaseKeys(payload || {}, { deep: true });
   birthdayAutomation.active = Boolean(settings.active);
@@ -1043,7 +1056,14 @@ const applySettings = payload => {
         color: 'slate',
         ...group,
       }));
-      return { color: 'slate', ...section, groups };
+      return {
+        color: 'slate',
+        ...section,
+        label: ['details', 'marketing'].includes(section.key)
+          ? customFieldSectionLabel(section.key)
+          : section.label,
+        groups,
+      };
     }
   );
   const builtInSections = [
@@ -1342,18 +1362,6 @@ const removeCustomFieldOption = (definition, option) => {
   syncCustomFieldDefinitionsText();
 };
 
-const customFieldSectionLabel = sectionKey => {
-  if (sectionKey === 'details') {
-    return t('KANBAN.SETTINGS.SALES.TABS.GENERAL');
-  }
-  if (sectionKey === 'marketing') {
-    return t('KANBAN.SETTINGS.SALES.TABS.MARKETING');
-  }
-
-  return sectionKey
-    .replace(/[_-]+/g, ' ')
-    .replace(/^./, character => character.toUpperCase());
-};
 const customFieldLayoutSections = computed(() => {
   const configuredSections = [];
   const seenKeys = new Set();
@@ -2737,7 +2745,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="flex h-full min-h-0 w-full bg-n-surface-1 text-n-slate-12">
+  <main
+    data-testid="kanban-settings-workspace"
+    class="flex h-full min-h-0 w-full bg-n-background text-n-slate-12"
+  >
     <div class="flex w-full flex-col gap-4 overflow-y-auto p-4 lg:p-6">
       <header class="flex items-center justify-between gap-4">
         <div class="min-w-0">

@@ -304,6 +304,14 @@ describe('KanbanBoardSettings', () => {
     KanbanBoardsAPI.deleteCadence.mockResolvedValue({ data: {} });
   });
 
+  it('uses the workspace background instead of a full white settings canvas', async () => {
+    const { wrapper } = await mountSettings();
+
+    expect(
+      wrapper.find('[data-testid="kanban-settings-workspace"]').classes()
+    ).toContain('bg-n-background');
+  });
+
   it('loads the page settings', async () => {
     const { wrapper, dispatch } = await mountSettings();
 
@@ -1070,6 +1078,33 @@ describe('KanbanBoardSettings', () => {
       },
       { key: 'consulta', label: 'Consulta', color: 'slate', groups: [] },
     ]);
+  });
+
+  it('keeps built-in opportunity tab labels localized when they were persisted in English', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_sections: [
+            { key: 'details', label: 'Details', color: 'slate', groups: [] },
+            {
+              key: 'marketing',
+              label: 'Marketing',
+              color: 'slate',
+              groups: [],
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-settings-section-tab-details"]').text()
+    ).toContain('KANBAN.SETTINGS.SALES.TABS.GENERAL');
   });
 
   it('moves a custom tab directly after the general tab', async () => {

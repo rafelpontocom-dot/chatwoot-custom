@@ -243,7 +243,7 @@ onMounted(() => {
 <template>
   <main
     data-testid="calendar-workspace"
-    class="flex h-full min-h-0 flex-col bg-n-background px-4 py-4 lg:px-6"
+    class="flex h-full min-h-0 w-full flex-col bg-n-background px-4 py-4 lg:px-6"
   >
     <header
       class="mb-4 flex flex-col gap-3 border-b border-n-weak pb-4 lg:flex-row lg:items-center lg:justify-between"

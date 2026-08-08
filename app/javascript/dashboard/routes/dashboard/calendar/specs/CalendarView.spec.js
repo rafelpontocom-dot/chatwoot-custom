@@ -104,6 +104,15 @@ describe('CalendarView', () => {
     ).toBe(true);
   });
 
+  it('uses the full workspace width on desktop', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-workspace"]').classes()
+    ).toEqual(expect.arrayContaining(['w-full']));
+  });
+
   it('filters the calendar by the selected appointment status', async () => {
     const wrapper = mountCalendar();
     await flushPromises();

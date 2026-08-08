@@ -46,7 +46,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 
-const selectedValues = ref(props.modelValue);
+const selectedValues = ref([...props.modelValue]);
 const open = ref(false);
 const search = ref('');
 const dropdownRef = ref(null);
@@ -71,20 +71,24 @@ const selectedTags = computed(() => {
 });
 
 const toggleOption = option => {
-  const index = selectedValues.value.indexOf(option.value);
+  const nextSelectedValues = [...selectedValues.value];
+  const index = nextSelectedValues.indexOf(option.value);
   if (index === -1) {
-    selectedValues.value.push(option.value);
+    nextSelectedValues.push(option.value);
   } else {
-    selectedValues.value.splice(index, 1);
+    nextSelectedValues.splice(index, 1);
   }
-  emit('update:modelValue', selectedValues.value);
+  selectedValues.value = nextSelectedValues;
+  emit('update:modelValue', nextSelectedValues);
 };
 
 const removeTag = value => {
-  const index = selectedValues.value.indexOf(value);
+  const nextSelectedValues = [...selectedValues.value];
+  const index = nextSelectedValues.indexOf(value);
   if (index !== -1) {
-    selectedValues.value.splice(index, 1);
-    emit('update:modelValue', selectedValues.value);
+    nextSelectedValues.splice(index, 1);
+    selectedValues.value = nextSelectedValues;
+    emit('update:modelValue', nextSelectedValues);
   }
 };
 
@@ -100,7 +104,7 @@ const toggleDropdown = () => {
 watch(
   () => props.modelValue,
   newValue => {
-    selectedValues.value = newValue;
+    selectedValues.value = [...newValue];
   }
 );
 
