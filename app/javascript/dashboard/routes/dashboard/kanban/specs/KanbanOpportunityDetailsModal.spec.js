@@ -260,6 +260,12 @@ const mountModal = async ({
       boardId: 10,
       boardName: 'Sales funnel',
       cardId: 501,
+      stages: [
+        { id: 1, name: 'Qualification', category: 'open' },
+        { id: 2, name: 'Proposal sent', category: 'open' },
+        { id: 3, name: 'Won', category: 'won' },
+        { id: 4, name: 'Lost', category: 'lost' },
+      ],
       nextActionTypes: ['Enviar proposta', 'Enviar link de pagamento'],
       lostReasonOptions: ['Preço', 'Sem resposta'],
       customFieldDefinitions,
@@ -313,6 +319,10 @@ const labelButtons = wrapper =>
   wrapper.findAll('[data-testid="kanban-opportunity-label"]');
 const saveLabelsButton = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-save-labels"]');
+const openContactTab = wrapper =>
+  wrapper
+    .find('[data-testid="kanban-opportunity-tab-contact-details"]')
+    .trigger('click');
 
 describe('KanbanOpportunityDetailsModal', () => {
   beforeEach(() => {
@@ -320,13 +330,70 @@ describe('KanbanOpportunityDetailsModal', () => {
     storeMocks.labels = [];
   });
 
-  it('uses a wide two-column layout for opportunity details', async () => {
+  it('uses a single-column layout so opportunity details stay readable', async () => {
     const wrapper = await mountModal();
     const layout = wrapper.find('[data-testid="kanban-opportunity-layout"]');
 
     expect(
       layout.classes().some(className => className.startsWith('xl:grid-cols-'))
+    ).toBe(false);
+  });
+
+  it('keeps the pipeline stage in the compact header instead of a side context panel', async () => {
+    const wrapper = await mountModal();
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-header-stage"]').exists()
     ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-commercial-context"]')
+        .exists()
+    ).toBe(false);
+  });
+
+  it('puts conversation access beside the title controls', async () => {
+    const wrapper = await mountModal();
+
+    const conversationButton = wrapper.find(
+      '[data-testid="kanban-opportunity-header-open-conversation"]'
+    );
+    expect(conversationButton.exists()).toBe(true);
+
+    await conversationButton.trigger('click');
+
+    expect(wrapper.emitted('openConversation')).toHaveLength(1);
+  });
+
+  it('organizes contact and conversation agent in dedicated tabs', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        contact: {
+          id: 91,
+          name: 'Acme Buyer',
+          email: 'buyer@example.com',
+          phone_number: '+55 62 99999-0000',
+        },
+      }),
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
+        .text()
+    ).toBe('Contact');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-tab-agent-details"]')
+        .text()
+    ).toBe('Agent');
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-contact-details"]')
+      .trigger('click');
+
+    expect(wrapper.text()).toContain('buyer@example.com');
+    expect(wrapper.text()).toContain('+55 62 99999-0000');
   });
 
   it('offers contextual field management to administrators', async () => {
@@ -415,7 +482,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(
       wrapper
-        .find('[data-testid="kanban-opportunity-tab-marketing"]')
+        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
         .attributes('aria-selected')
     ).toBe('true');
   });
@@ -479,7 +546,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toContain('Entered Proposta enviada');
   });
 
-  it('renders a responsive two-column layout', async () => {
+  it('renders a responsive single-column layout', async () => {
     const wrapper = await mountModal();
 
     expect(wrapper.text()).toContain('Enterprise expansion');
@@ -496,7 +563,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toContain('grid');
     expect(
       wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
-    ).toContain('xl:grid-cols-[minmax(0,1fr)_18rem]');
+    ).not.toContain('xl:grid-cols-[minmax(0,1fr)_18rem]');
   });
 
   it('keeps drawer content in one column so the commercial context cannot overlap fields', async () => {
@@ -947,77 +1014,62 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(history.text()).toContain('Enviar no WhatsApp');
   });
 
-  it('marks opportunity as won', async () => {
+  it('records a won opportunity through the selected pipeline stage', async () => {
     KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
-      data: buildCard({ wonAt: '2026-07-23T12:00:00.000Z' }),
+      data: buildCard({ kanbanStageId: 3, wonAt: '2026-07-23T12:00:00.000Z' }),
     });
     const wrapper = await mountModal();
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-mark-won"]')
-      .trigger('click');
-    expect(
-      wrapper
-        .find('[data-testid="kanban-opportunity-confirm-close-status"]')
-        .exists()
-    ).toBe(true);
-    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
-    await wrapper
-      .find('[data-testid="kanban-opportunity-confirm-close-status"]')
-      .trigger('click');
+      .find('[data-testid="kanban-opportunity-header-stage"]')
+      .setValue('3');
+    await wrapper.find('form').trigger('submit');
     await flushPromises();
 
     expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
       10,
       501,
       expect.objectContaining({
-        won_at: expect.any(String),
+        kanban_stage_id: 3,
       })
     );
   });
 
-  it('requires a reason before marking opportunity as lost', async () => {
+  it('requires a reason before saving an opportunity in a lost stage', async () => {
     const wrapper = await mountModal();
 
-    await lostReasonInput(wrapper).setValue('   ');
     await wrapper
-      .find('[data-testid="kanban-opportunity-mark-lost"]')
-      .trigger('click');
+      .find('[data-testid="kanban-opportunity-header-stage"]')
+      .setValue('4');
+    await wrapper.find('form').trigger('submit');
 
     expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain('Enter a lost reason.');
   });
 
-  it('marks opportunity as lost with reason', async () => {
+  it('records a lost opportunity through the selected pipeline stage', async () => {
     KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
       data: buildCard({
+        kanbanStageId: 4,
         lostAt: '2026-07-23T12:00:00.000Z',
         lostReason: 'Preço',
       }),
     });
     const wrapper = await mountModal();
 
+    await wrapper
+      .find('[data-testid="kanban-opportunity-header-stage"]')
+      .setValue('4');
     expect(lostReasonInput(wrapper).text()).toContain('Sem resposta');
     await lostReasonInput(wrapper).setValue('Preço');
-    await wrapper
-      .find('[data-testid="kanban-opportunity-mark-lost"]')
-      .trigger('click');
-    expect(
-      wrapper
-        .find('[data-testid="kanban-opportunity-confirm-close-status"]')
-        .exists()
-    ).toBe(true);
-    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
-    await wrapper
-      .find('[data-testid="kanban-opportunity-confirm-close-status"]')
-      .trigger('click');
+    await wrapper.find('form').trigger('submit');
     await flushPromises();
 
     expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
       10,
       501,
       expect.objectContaining({
-        lost_at: expect.any(String),
+        kanban_stage_id: 4,
         lost_reason: 'Preço',
       })
     );
@@ -1078,17 +1130,14 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.emitted('updated')).toEqual([[updatedCard]]);
   });
 
-  it('renders linked conversation and open action', async () => {
+  it('renders linked conversation as a compact title action', async () => {
     const wrapper = await mountModal();
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-conversation"]').text()
-    ).toContain('Conversation #42');
-    expect(
       wrapper
-        .find('[data-testid="kanban-opportunity-open-conversation"]')
-        .text()
-    ).toContain('Open conversation');
+        .find('[data-testid="kanban-opportunity-header-open-conversation"]')
+        .attributes('aria-label')
+    ).toBe('Open conversation');
   });
 
   it('emits open conversation with card payload', async () => {
@@ -1096,7 +1145,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     const wrapper = await mountModal({ card });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-open-conversation"]')
+      .find('[data-testid="kanban-opportunity-header-open-conversation"]')
       .trigger('click');
 
     expect(wrapper.emitted('openConversation')).toEqual([[card]]);
@@ -1108,41 +1157,48 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-no-conversation"]').text()
-    ).toContain('No linked conversation');
+      wrapper
+        .find('[data-testid="kanban-opportunity-header-open-conversation"]')
+        .exists()
+    ).toBe(false);
   });
 
-  it('renders linked contact', async () => {
+  it('renders linked contact details in the contact tab', async () => {
     const wrapper = await mountModal();
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-contact-details"]')
+      .trigger('click');
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-contact"]').text()
+      wrapper.find('[data-testid="kanban-opportunity-contact-details"]').text()
     ).toContain('Acme Buyer');
   });
 
-  it('renders assignee as read-only text', async () => {
+  it('renders assignee in the dedicated agent tab', async () => {
     const wrapper = await mountModal();
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-agent-details"]')
+      .trigger('click');
 
     expect(
       wrapper.find('[data-testid="kanban-opportunity-assignee"]').text()
     ).toContain('Jane Agent');
   });
 
-  it('keeps stage, owner and conversation assignee in one compact commercial context', async () => {
+  it('keeps stage in the header and separates commercial ownership from the conversation agent', async () => {
     const wrapper = await mountModal();
-    const context = wrapper.find(
-      '[data-testid="kanban-opportunity-commercial-context"]'
-    );
 
-    expect(context.exists()).toBe(true);
     expect(
-      context.find('[data-testid="kanban-opportunity-stage"]').exists()
+      wrapper.find('[data-testid="kanban-opportunity-header-stage"]').exists()
     ).toBe(true);
     expect(
-      context.find('[data-testid="kanban-opportunity-owner"]').exists()
+      wrapper.find('[data-testid="kanban-opportunity-owner"]').exists()
     ).toBe(true);
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-agent-details"]')
+      .trigger('click');
     expect(
-      context.find('[data-testid="kanban-opportunity-assignee"]').exists()
+      wrapper.find('[data-testid="kanban-opportunity-assignee"]').exists()
     ).toBe(true);
   });
 
@@ -1160,6 +1216,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('renders label title and color', async () => {
     const wrapper = await mountModal();
+    await openContactTab(wrapper);
     const firstLabel = labelButtons(wrapper)[0];
 
     expect(firstLabel.text()).toContain('hot');
@@ -1170,6 +1227,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('marks assigned labels as selected', async () => {
     const wrapper = await mountModal();
+    await openContactTab(wrapper);
 
     expect(labelButtons(wrapper)[0].attributes('aria-pressed')).toBe('true');
     expect(labelButtons(wrapper)[1].attributes('aria-pressed')).toBe('false');
@@ -1180,6 +1238,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       data: { payload: labels },
     });
     const wrapper = await mountModal();
+    await openContactTab(wrapper);
 
     await labelButtons(wrapper)[1].trigger('click');
     await saveLabelsButton(wrapper).trigger('click');
@@ -1196,8 +1255,12 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     await subjectInput(wrapper).setValue('Modified subject');
     await descriptionInput(wrapper).setValue('Modified description');
+    await openContactTab(wrapper);
     await saveLabelsButton(wrapper).trigger('click');
     await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-details"]')
+      .trigger('click');
 
     expect(subjectInput(wrapper).element.value).toBe('Modified subject');
     expect(descriptionInput(wrapper).element.value).toBe(

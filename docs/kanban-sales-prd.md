@@ -670,10 +670,14 @@ Clicar no card abre o detalhe lateral real, sobre o board, sem recalcular ou est
 
 O drawer usa:
 
-- cabeçalho fixo com título, contato, etapa, valor e responsável;
-- abas Resumo, Atividades e Conversa;
+- cabeçalho fixo com título editável, identificador do card, funil e seletor da etapa atual;
+- ícone de conversa no cabeçalho para abrir o atendimento sem perder a referência visual da oportunidade;
+- abas `Geral`, `Contato`, `Agente`, campos configurados pelo board e `Linha do tempo`;
+- responsável comercial em `Geral`; o agente pertence à conversa vinculada e aparece na aba `Agente`;
+- dados do contato e etiquetas do Chatwoot na aba `Contato`, sem competir com os dados de venda;
 - grupos de campos compactos, com edição contextual;
-- conversa e linha do tempo sem abandonar a oportunidade;
+- planejamento interno recolhido por padrão; data de início e vencimento não representam consulta e não substituem a Agenda;
+- ganho e perda são consequência da categoria da etapa escolhida. Uma etapa `Perdida` exige motivo antes de salvar;
 - rodapé fixo com ações primárias.
 
 Configuração de campos não deve ficar misturada à edição normal. A engrenagem abre o gerenciador do board em padrão lista/tabela e detalhe progressivo, enquanto a edição do card mostra somente dados da oportunidade. O administrador vê uma lista compacta de campos, abas e regras; abre o item necessário para editar, sem várias caixas grandes concorrendo pela mesma tela.
