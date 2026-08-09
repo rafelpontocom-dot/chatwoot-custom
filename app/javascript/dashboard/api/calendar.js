@@ -26,6 +26,22 @@ class CalendarAPI extends ApiClient {
     return axios.get(`${this.url}/resources`);
   }
 
+  getBookingPage() {
+    return axios.get(`${this.url}/booking_page`);
+  }
+
+  updateBookingPage(payload) {
+    return axios.patch(`${this.url}/booking_page`, payload);
+  }
+
+  getBookingLinks() {
+    return axios.get(`${this.url}/booking_links`);
+  }
+
+  createBookingLink(payload) {
+    return axios.post(`${this.url}/booking_links`, payload);
+  }
+
   createProcedure(payload) {
     return axios.post(`${this.url}/procedures`, payload);
   }
@@ -40,6 +56,30 @@ class CalendarAPI extends ApiClient {
 
   updateResource(id, payload) {
     return axios.patch(`${this.url}/resources/${id}`, payload);
+  }
+
+  getGoogleCalendarConnection(resourceId) {
+    return axios.get(
+      `${this.url}/resources/${resourceId}/google_calendar_connection`
+    );
+  }
+
+  getGoogleCalendarAuthorizationUrl(resourceId) {
+    return axios.post(
+      `${this.url}/resources/${resourceId}/google_calendar_connection/authorization_url`
+    );
+  }
+
+  disconnectGoogleCalendar(resourceId) {
+    return axios.delete(
+      `${this.url}/resources/${resourceId}/google_calendar_connection`
+    );
+  }
+
+  retryGoogleCalendar(resourceId) {
+    return axios.post(
+      `${this.url}/resources/${resourceId}/google_calendar_connection/retry`
+    );
   }
 
   getAvailabilityRules(resourceId) {

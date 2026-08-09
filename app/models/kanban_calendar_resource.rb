@@ -36,6 +36,7 @@ class KanbanCalendarResource < ApplicationRecord
   has_many :kanban_calendar_appointment_resources, dependent: :restrict_with_error
   has_many :kanban_calendar_appointments, through: :kanban_calendar_appointment_resources
   has_many :kanban_calendar_availability_rules, dependent: :destroy
+  has_one :kanban_calendar_google_connection, dependent: :destroy
 
   validates :name, :timezone, presence: true
   validates :resource_type, inclusion: { in: RESOURCE_TYPES }

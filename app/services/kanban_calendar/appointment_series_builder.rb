@@ -8,7 +8,8 @@ class KanbanCalendar::AppointmentSeriesBuilder
     :timezone,
     :occurrence_count,
     :interval_kind,
-    :interval_days
+    :interval_days,
+    :external_refs
   )
 
   def initialize(attributes:)
@@ -37,9 +38,11 @@ class KanbanCalendar::AppointmentSeriesBuilder
       starts_at: occurrence_starts_at,
       ends_at: occurrence_starts_at + procedure.duration_minutes.minutes,
       timezone: timezone,
-      occurrence_number: occurrence_number
+      occurrence_number: occurrence_number,
+      external_refs: external_refs
     )
   end
 
-  delegate :account, :contact, :card, :procedure, :starts_at, :timezone, :occurrence_count, :interval_kind, :interval_days, to: :@attributes
+  delegate :account, :contact, :card, :procedure, :starts_at, :timezone, :occurrence_count, :interval_kind, :interval_days,
+           :external_refs, to: :@attributes
 end

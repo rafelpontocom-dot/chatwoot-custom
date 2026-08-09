@@ -40,6 +40,16 @@ Rails.application.routes.draw do
 
   get '/health', to: 'health#show'
   get '/api', to: 'api#index'
+  get '/calendar/google/callback', to: 'calendar/google_callbacks#show'
+  get '/agendar/:public_token', to: 'public/calendar_bookings#show'
+  get '/agendar/convite/:private_token', to: 'public/calendar_bookings#private_show'
+  get '/agendar/convite/:private_token/:procedure_slug', to: 'public/calendar_bookings#private_procedure'
+  get '/agendar/convite/:private_token/:procedure_slug/disponibilidade', to: 'public/calendar_bookings#private_availability'
+  post '/agendar/convite/:private_token/:procedure_slug/reservas', to: 'public/calendar_bookings#private_create'
+  get '/agendar/:public_token/:procedure_slug', to: 'public/calendar_bookings#procedure'
+  get '/agendar/:public_token/:procedure_slug/disponibilidade', to: 'public/calendar_bookings#availability'
+  post '/agendar/:public_token/:procedure_slug/reservas', to: 'public/calendar_bookings#create'
+
   namespace :api, defaults: { format: 'json' } do
     namespace :v1 do
       # ----------------------------------
@@ -118,7 +128,15 @@ Rails.application.routes.draw do
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           namespace :calendar do
             resources :procedures, only: [:index, :show, :create, :update]
+            resource :booking_page, controller: 'booking_page', only: [:show, :update]
+            resources :booking_links, controller: 'booking_links', only: [:index, :create]
             resources :resources, only: [:index, :show, :create, :update] do
+              resource :google_calendar_connection,
+                       controller: 'google_calendar_connections',
+                       only: [:show, :destroy] do
+                post :authorization_url
+                post :retry
+              end
               resources :availability_rules,
                         controller: 'resource_availability_rules',
                         only: [:index, :create, :update, :destroy]

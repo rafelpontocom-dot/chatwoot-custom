@@ -2,7 +2,7 @@
 
 Baseado em: [PRD da Agenda](./kanban-calendar-prd.md)
 
-Status: P0 em implementacao. O catalogo inicial de procedimentos/recursos, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento e cancelamento por escopo, e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil, janelas semanais, excecoes datadas e consulta de slots por recurso tambem estao disponiveis. O detalhe de reagendamento mostra os slots livres do recurso e a grade preserva agendamentos fora da faixa comercial inicial. A etapa de agendamento abre o drawer da oportunidade para sugerir a reserva; o detalhe da consulta oferece retorno ao card vinculado. Integracoes seguem pendentes.
+Status: P0 implementado localmente; autoagendamento publico e exportacao unilateral Google P1 pronto para validacao integrada. O catalogo inicial de procedimentos/agendas, a rota `/calendar`, os endpoints iniciais, a reserva com exclusao PostgreSQL de conflito, series simples, reagendamento e cancelamento por escopo, e os estados confirmar, concluir, falta e cancelar estao implementados localmente. A configuracao do modulo por funil, janelas semanais, excecoes datadas e consulta de slots por agenda tambem estao disponiveis. Buffers de procedimento participam da disponibilidade, do bloqueio transacional e do reagendamento. O detalhe de reagendamento mostra os slots livres do recurso e a grade preserva agendamentos fora da faixa comercial inicial. A etapa de agendamento abre o drawer da oportunidade para sugerir a reserva; o grupo Agenda apresenta proximo agendamento e status como dados de sistema. A pagina publica suporta campos dinamicos, Turnstile opcional e convite privado com expiracao e consumo sob lock. A conexao Google e por Agenda, armazena tokens com criptografia quando habilitada na instalacao e exporta eventos em fila sem importacao externa.
 
 ## Fronteira
 
@@ -15,7 +15,7 @@ O payload do board inclui os tres primeiros campos para que o drawer da oportuni
 ### Direcao De Integracao Aprovada
 
 - P0: agenda nativa e fonte de verdade.
-- P1: exportacao unidirecional para Google Calendar por recurso/profissional.
+- P1: exportacao unidirecional para Google Calendar por Agenda/profissional.
 - Futuro: Cal.com apenas para autoagendamento; FEEGOW e N8N recebem eventos por conexoes aprovadas.
 - Nenhum provedor externo pode criar uma segunda fonte de verdade para horarios, series ou status sem uma politica explicita de sincronizacao.
 
@@ -26,6 +26,44 @@ As ocorrencias vinculadas a uma oportunidade publicam `kanban.appointment.create
 O contexto de execucao preserva `appointment_starts_at`. O no visual `wait_until_field` aceita `system_appointment_starts_at`, permitindo offsets negativos para lembretes antes da consulta.
 
 ## Modelo De Dados P0
+
+## Autoagendamento Publico P1
+
+`KanbanCalendarBookingPage` pertence a uma conta e concentra a publicacao
+segura da agenda. Ele possui token publico aleatorio, titulo, descricao,
+estado, board, etapa, inbox, politica de duplicidade, antecedencia minima,
+janela maxima e intervalo de slots. Ao ativar a pagina, o destino CRM completo
+e validado no servidor.
+
+`KanbanCalendarProcedure` recebe `public_booking_enabled`, `public_title`,
+`public_description`, `public_slug` e configuracao publica. O slug e unico por
+conta entre procedimentos publicados e gera a rota individual.
+
+Rotas publicas iniciais:
+
+| Metodo | Rota | Uso |
+| --- | --- | --- |
+| `GET` | `/agendar/:public_token` | pagina HTML e JSON da clinica |
+| `GET` | `/agendar/:public_token/:procedure_slug` | pagina HTML ja selecionando o procedimento |
+| `GET` | `/agendar/:public_token/:procedure_slug/disponibilidade?date&resource_id` | slots publicos |
+| `POST` | `/agendar/:public_token/:procedure_slug/reservas` | reserva publica |
+
+A reserva exige nome e telefone ou e-mail, consentimento e campo honeypot
+vazio. O endpoint aplica limite de dez tentativas por minuto para cada IP e
+pagina. A conversao busca primeiro contato por e-mail e depois por telefone;
+em seguida cria uma oportunidade nova, usa a aberta mais recente ou a mais
+recente do board, conforme a politica da pagina. O `external_refs` da
+ocorrencia registra `source: public_booking`, pagina, procedimento e politica.
+
+O frontend publico e um app Vue pequeno e isolado, servido pela mesma rota,
+com escolha de procedimento, recurso, data/slot, dados basicos e consentimento.
+O dashboard mostra link geral, link por procedimento e snippet de iframe.
+O convite privado possui token, expiração, limite de uso e consumo sob lock. Ele
+pode fixar um procedimento ou expor a lista de procedimentos publicados. O
+formulario configuravel aceita texto, data e selecao. Turnstile e validado no
+servidor com `RAEVO_TURNSTILE_SECRET_KEY`; uma pagina configurada com CAPTCHA
+nao aceita reserva sem uma resposta validada. A tela admin configura campos,
+CAPTCHA e cria convites.
 
 ### CalendarResource
 
@@ -316,6 +354,18 @@ CALENDAR_E2E_APPOINTMENT_CONTACT='Paciente E2E' \
 pnpm playwright:run tests/e2e/ui/calendar-workspace.spec.ts
 ```
 
+### Configuracao Da Agenda
+
+`CalendarSettingsDialog.vue` mantem o catalogo de procedimentos e recursos
+como superficie principal. Os formularios de criacao e edicao sao progressivos:
+ficam fechados na abertura e sao exibidos por `Adicionar` ou `Editar`.
+O dialog usa largura `3xl` para acomodar leitura e edicao sem comprimir os
+campos. As abas declaram `role=tab`, `aria-selected` e `aria-controls`; novos
+paineis devem completar o contrato com o painel associado e foco previsivel.
+
+Os testes de componente cobrem a exposicao das abas e a abertura progressiva
+do editor de procedimento, alem da criacao/edicao existente.
+
 ## Plano De Entrega
 
 ### Fase A: Fundacao
@@ -345,5 +395,5 @@ pnpm playwright:run tests/e2e/ui/calendar-workspace.spec.ts
 
 - [ ] E2E desktop, teclado e acessibilidade: desktop e teclado cobertos; mobile e leitor de tela ainda pendentes;
 - [ ] carga, concorrencia e smoke de migration;
-- [ ] Google Calendar unilateral;
+- [x] Google Calendar unilateral por Agenda, com OAuth dedicado, fila de exportacao, backfill de consultas futuras, id externo persistente e reprocessamento de erro recuperavel;
 - [ ] sincronizacao bidirecional somente apos auditoria da fase anterior.

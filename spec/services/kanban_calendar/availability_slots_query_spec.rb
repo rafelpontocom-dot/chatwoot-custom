@@ -34,6 +34,21 @@ RSpec.describe KanbanCalendar::AvailabilitySlotsQuery do
       .to eq(['09:00', '09:15', '09:30', '09:45', '10:00'])
   end
 
+  it 'keeps the configured buffers inside the working window' do
+    procedure.update!(buffer_before_minutes: 10, buffer_after_minutes: 10)
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window',
+      weekday: date.wday,
+      starts_at_local: '09:00',
+      ends_at_local: '11:00'
+    )
+
+    slots = described_class.new(resource: resource, procedure: procedure, date: date).call
+
+    expect(slots.map { |slot| slot.in_time_zone(resource.timezone).strftime('%H:%M') })
+      .to eq(['09:10', '09:25', '09:40', '09:55'])
+  end
+
   it 'omits starts occupied by an active appointment' do
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window',

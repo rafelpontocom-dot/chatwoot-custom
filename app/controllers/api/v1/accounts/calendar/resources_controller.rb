@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::BaseController
-  before_action :fetch_resource, only: [:show, :update]
+  before_action :fetch_calendar_resource, only: [:show, :update]
 
   def index
     authorize KanbanCalendarResource, :index?
@@ -7,8 +7,8 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
   end
 
   def show
-    authorize @resource, :show?
-    render json: resource_payload(@resource)
+    authorize @calendar_resource, :show?
+    render json: resource_payload(@calendar_resource)
   end
 
   def create
@@ -21,17 +21,17 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
   end
 
   def update
-    authorize @resource, :configure?
-    @resource.update!(resource_params)
-    render json: resource_payload(@resource)
+    authorize @calendar_resource, :configure?
+    @calendar_resource.update!(resource_params)
+    render json: resource_payload(@calendar_resource)
   rescue ActiveRecord::RecordInvalid => e
     render_invalid_record(e.record)
   end
 
   private
 
-  def fetch_resource
-    @resource = policy_scope(KanbanCalendarResource).find(params[:id])
+  def fetch_calendar_resource
+    @calendar_resource = policy_scope(KanbanCalendarResource).find(params[:id])
   end
 
   def resource_params

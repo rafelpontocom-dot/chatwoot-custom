@@ -1,0 +1,2 @@
+class KanbanCalendarBookingPagePolicy < KanbanCalendarPolicy
+end

@@ -60,6 +60,7 @@
 #  index_kanban_cards_on_kanban_board_id_and_next_action_at       (kanban_board_id,next_action_at)
 #  index_kanban_cards_on_kanban_board_id_and_won_at               (kanban_board_id,won_at)
 #  index_kanban_cards_on_owner_id_and_next_action_at              (owner_id,next_action_at)
+#  index_open_kanban_cards_on_next_action_at                      (next_action_at) WHERE ((active = true) AND (next_action_completed_at IS NULL) AND (won_at IS NULL) AND (lost_at IS NULL))
 #
 # Foreign Keys
 #

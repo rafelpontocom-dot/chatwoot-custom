@@ -1,6 +1,6 @@
 # PRD: Agenda Operacional do RAEVO CRM
 
-Status: P0 em implementacao. A aba principal `Agenda`, o catalogo inicial de procedimentos/recursos, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento ou cancelamento com escopo de serie estao implementados localmente. A configuracao por funil escolhe ativacao, etapas e procedimentos; recursos tambem podem receber janelas semanais, bloqueios e horarios especiais por data. O compositor e o reagendamento consultam horarios livres respeitando essas regras. A grade amplia sua escala quando existem consultas fora do horario comercial padrao. Ao mover uma oportunidade para uma etapa configurada, o drawer abre para sugerir o agendamento; a consulta tambem retorna ao card vinculado no funil. Integracoes seguem pendentes.
+Status: P0 implementado localmente; P1 de autoagendamento e exportacao unilateral para Google Agenda pronto para validacao integrada. A aba principal `Agenda`, o catalogo inicial de procedimentos/agendas, a reserva com bloqueio transacional de conflito, a recorrencia basica, os estados operacionais e o reagendamento ou cancelamento com escopo de serie estao implementados localmente. A configuracao por funil escolhe ativacao, etapas e procedimentos; agendas tambem podem receber janelas semanais, bloqueios e horarios especiais por data. O compositor e o reagendamento consultam horarios livres respeitando essas regras. A grade amplia sua escala quando existem consultas fora do horario comercial padrao. Ao mover uma oportunidade para uma etapa configurada, o drawer abre para sugerir o agendamento; o grupo Agenda mostra proximo agendamento e status como dados de sistema. A pagina publica possui procedimento publicado, link geral, link individual, embed, consentimento, anti-spam por honeypot, limite de tentativas, campos dinamicos, Turnstile opcional, convites privados e conversao para contato/oportunidade. Cada Agenda pode conectar um Google Calendar e exportar criacoes, remarcacoes e cancelamentos sem importar eventos externos.
 
 Produto relacionado: [Kanban Comercial](./kanban-sales-prd.md)
 
@@ -28,7 +28,6 @@ O resultado e trabalho manual, dados duplicados e lembretes que ficam desatualiz
 ## Nao Objetivos Do MVP
 
 - Prontuario, evolucao clinica, faturamento, guia de convenio ou prontuario medico.
-- Portal publico de autoagendamento.
 - Sincronizacao bidirecional com Google Calendar, Cal.com ou FEEGOW.
 - Disponibilidade calculada a partir de calendarios externos.
 - Substituir o sistema clinico quando ele for a fonte legal de atendimento.
@@ -120,7 +119,58 @@ Para serie, uma terceira etapa curta mostra a previa das ocorrencias e as exceco
 
 O campo `Data e hora da proxima consulta` deixa de ser a fonte primaria quando existir ocorrencia de agenda. Ele pode receber espelhamento configuravel para compatibilidade com automacoes antigas, mas nao deve gerar duas fontes de verdade.
 
+## Autoagendamento Publico P1
+
+Cada procedimento publicado funciona como um tipo de agendamento compartilhavel.
+A referencia de organizacao e o fluxo de configuracao do Kommo, sem copiar sua
+interface ou depender do seu produto.
+
+- cada procedimento pode ser publicado ou mantido interno;
+- o gestor recebe link individual, pagina publica da conta e snippet de embed;
+- a URL pode ser usada em WhatsApp, Instagram, site e como link de Booking no
+  Perfil da Empresa no Google;
+- cada procedimento configura profissionais elegiveis, escolha pelo cliente,
+  janela de agendamento, buffers e formulario; distribuicao sequencial fica
+  para a proxima fase, quando houver criterio auditavel de distribuicao;
+- reservas publicas localizam ou criam o contato por telefone/e-mail e seguem
+  uma politica explicita: nova oportunidade, oportunidade aberta recente ou
+  oportunidade mais recente;
+- toda reserva registra `autoagendamento`, procedimento, link usado e politica
+  aplicada, evitando duplicidade silenciosa;
+- links privados usam token aleatorio, podem fixar um procedimento ou permitir
+  escolha entre os publicados, e vencem por data ou numero de usos;
+- a primeira entrega publica possui pagina geral e por procedimento, link de
+  embed, consentimento LGPD, campo anti-automacao invisivel e limite de dez
+  tentativas por minuto por IP e pagina;
+- o formulario inicial coleta nome, telefone e/ou e-mail e aceita campos de
+  texto, data ou selecao configurados pela conta; CAPTCHA Turnstile so aparece
+  quando existe chave publica e segredo configurado no ambiente.
+
+O Google Meu Negocio recebe a URL manualmente no MVP. Reserva nativa dentro do
+Google exige parceria separada e nao faz parte deste escopo.
+
 ## Configuracao P0
+
+### Area De Configuracao
+
+A configuracao da Agenda e uma area de administracao, nao um formulario
+permanente. A referencia e a hierarquia de configuracao de agendamento do
+Kommo, adaptada aos fluxos clinicos do RAEVO:
+
+- a abertura mostra uma lista tranquila de procedimentos ou recursos, com
+  resumo e uma acao primaria `Adicionar`;
+- criar ou editar abre o formulario somente quando necessario, sem disputar
+  espaco com a lista;
+- procedimentos e recursos ficam em abas semanticas e acessiveis;
+- disponibilidade pertence ao recurso escolhido e so aparece ao configurar
+  seus horarios;
+- `Pagina de agendamentos` aparece porque publica a pagina, configura destino
+  CRM, prazo, intervalo, deduplicacao, links e embed; automacoes e integracoes
+  continuam fora dela ate terem comportamento real.
+
+Em desktop, a area tem largura suficiente para listas e formularios de duas
+colunas. A secretaria ve termos de negocio (`Procedimentos`, `Profissionais`,
+`Horarios`), nao nomes tecnicos de modelos ou regras.
 
 ### Procedimento
 
@@ -206,12 +256,12 @@ O editor visual pode iniciar por esses eventos e usar `Aguardar ate data` contra
 
 ### Google Calendar: P1/P2
 
-P1 oferece conexao OAuth por recurso e exportacao unidirecional dos agendamentos RAEVO. P2 habilita sincronizacao bidirecional somente depois de existir:
+P1 oferece conexao OAuth por Agenda e exportacao unidirecional dos agendamentos RAEVO. A conexao fica na edicao da Agenda, usa o calendario `primary` da conta Google autorizada e requer `GOOGLE_CALENDAR_OAUTH_CLIENT_ID`, `GOOGLE_CALENDAR_OAUTH_CLIENT_SECRET` e `GOOGLE_CALENDAR_OAUTH_CALLBACK_URL` apontando para `/calendar/google/callback`. Essas credenciais sao separadas do login Google. Ao conectar, consultas futuras ja existentes entram na fila de exportacao. O RAEVO cria, atualiza ou cancela eventos sem expor observacoes internas, diagnosticos ou valores. Se uma exportacao falhar, a Agenda preserva o erro e permite reprocessar as consultas futuras sem refazer o OAuth. P2 habilita sincronizacao bidirecional somente depois de existir:
 
 - mapeamento persistente entre ocorrencia e `calendarId/eventId` externo;
 - sincronizacao inicial e incremental por `syncToken`;
 - politica de conflito, exclusao e edicao concorrente;
-- tela de diagnostico e reprocessamento;
+- tela de diagnostico ampliada por ocorrencia e sincronizacao;
 - regra explicita de privacidade do titulo e convidados externos.
 
 ### Cal.com, FEEGOW E N8N: Futuro

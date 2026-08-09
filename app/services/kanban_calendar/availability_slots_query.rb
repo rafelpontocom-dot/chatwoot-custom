@@ -33,8 +33,8 @@ class KanbanCalendar::AvailabilitySlotsQuery
   end
 
   def slots_for(window)
-    starts_at = local_time(window.starts_at_local)
-    last_start = local_time(window.ends_at_local) - @procedure.duration_minutes.minutes
+    starts_at = local_time(window.starts_at_local) + @procedure.buffer_before_minutes.minutes
+    last_start = local_time(window.ends_at_local) - @procedure.duration_minutes.minutes - @procedure.buffer_after_minutes.minutes
     slots = []
     while starts_at <= last_start
       slots << starts_at if available?(starts_at)

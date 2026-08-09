@@ -13,8 +13,9 @@
 #
 # Indexes
 #
-#  exclude_calendar_resource_appointment_overlaps                (kanban_calendar_resource_id, tsrange(starts_at, ends_at, '[)'::text))
-#                                                               WHERE active statuses overlap, USING gist
+# rubocop:disable Layout/LineLength
+#  exclude_calendar_resource_appointment_overlaps                (kanban_calendar_resource_id, tsrange(starts_at, ends_at, '[)'::text)) WHERE ((appointment_status)::text = ANY ((ARRAY['scheduled'::character varying, 'confirmed'::character varying, 'checked_in'::character varying])::text[])) USING gist
+# rubocop:enable Layout/LineLength
 #  index_calendar_appointment_resources_on_appointment_resource  (kanban_calendar_appointment_id,kanban_calendar_resource_id) UNIQUE
 #  index_calendar_appointment_resources_on_resource_and_range    (kanban_calendar_resource_id,starts_at,ends_at)
 #

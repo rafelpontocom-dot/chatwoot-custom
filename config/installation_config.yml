@@ -501,6 +501,25 @@
   type: boolean
 ## ------ End of Configs added for Google OAuth ------ ##
 
+## ------ Configs added for Google Calendar ------ ##
+- name: GOOGLE_CALENDAR_OAUTH_CLIENT_ID
+  display_title: 'Google Calendar OAuth Client ID'
+  value:
+  locked: false
+  description: 'Google OAuth Client ID used only to export calendar appointments'
+- name: GOOGLE_CALENDAR_OAUTH_CLIENT_SECRET
+  display_title: 'Google Calendar OAuth Client Secret'
+  value:
+  locked: false
+  description: 'Google OAuth Client Secret used only to export calendar appointments'
+  type: secret
+- name: GOOGLE_CALENDAR_OAUTH_CALLBACK_URL
+  display_title: 'Google Calendar OAuth Callback URL'
+  value:
+  locked: false
+  description: 'Callback URL configured in the Google Calendar OAuth client'
+## ------ End of Configs added for Google Calendar ------ ##
+
 ## ------ Configs added for SAML SSO ------ ##
 - name: ENABLE_SAML_SSO_LOGIN
   display_title: 'Enable SAML SSO login'

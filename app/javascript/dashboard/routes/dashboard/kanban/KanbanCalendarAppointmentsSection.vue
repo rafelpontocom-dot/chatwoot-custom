@@ -29,12 +29,27 @@ const sortedAppointments = computed(() =>
       new Date(secondAppointment.starts_at)
   )
 );
+const nextAppointment = computed(() =>
+  sortedAppointments.value.find(appointment =>
+    ['scheduled', 'confirmed', 'checked_in'].includes(appointment.status)
+  )
+);
 const formatAppointmentTime = appointment =>
   new Intl.DateTimeFormat(undefined, {
     dateStyle: 'short',
     timeStyle: 'short',
     timeZone: appointment.timezone,
   }).format(new Date(appointment.starts_at));
+const appointmentStatusLabels = computed(() => ({
+  scheduled: t('CALENDAR.DETAIL.STATUS.SCHEDULED'),
+  confirmed: t('CALENDAR.DETAIL.STATUS.CONFIRMED'),
+  checked_in: t('CALENDAR.DETAIL.STATUS.CHECKED_IN'),
+  completed: t('CALENDAR.DETAIL.STATUS.COMPLETED'),
+  no_show: t('CALENDAR.DETAIL.STATUS.NO_SHOW'),
+  canceled: t('CALENDAR.DETAIL.STATUS.CANCELED'),
+}));
+const appointmentStatusLabel = status =>
+  appointmentStatusLabels.value[status] || status;
 
 const loadAppointments = async () => {
   isLoading.value = true;
@@ -105,6 +120,27 @@ onMounted(loadAppointments);
       {{ t('CALENDAR.OPPORTUNITY.EMPTY') }}
     </p>
     <div v-else class="grid gap-2">
+      <dl
+        v-if="nextAppointment"
+        class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2.5 text-sm sm:grid-cols-2"
+      >
+        <div class="grid gap-0.5">
+          <dt class="text-xs text-n-slate-11">
+            {{ t('CALENDAR.OPPORTUNITY.NEXT_APPOINTMENT') }}
+          </dt>
+          <dd class="m-0 font-medium text-n-slate-12">
+            {{ formatAppointmentTime(nextAppointment) }}
+          </dd>
+        </div>
+        <div class="grid gap-0.5">
+          <dt class="text-xs text-n-slate-11">
+            {{ t('CALENDAR.OPPORTUNITY.APPOINTMENT_STATUS') }}
+          </dt>
+          <dd class="m-0 font-medium text-n-slate-12">
+            {{ appointmentStatusLabel(nextAppointment.status) }}
+          </dd>
+        </div>
+      </dl>
       <button
         v-for="appointment in sortedAppointments"
         :key="appointment.id"

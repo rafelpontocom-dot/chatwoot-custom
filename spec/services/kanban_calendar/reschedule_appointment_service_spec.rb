@@ -51,6 +51,22 @@ RSpec.describe KanbanCalendar::RescheduleAppointmentService do
     )
   end
 
+  it 'rebuilds the resource reservation with procedure buffers' do
+    procedure.update!(buffer_before_minutes: 10, buffer_after_minutes: 15)
+    new_starts_at = Time.zone.parse('2026-08-11 15:00:00')
+
+    described_class.new(
+      appointment: appointment,
+      resource_ids: [resource.id],
+      starts_at: new_starts_at
+    ).perform!
+
+    expect(appointment.reload.kanban_calendar_appointment_resources.sole).to have_attributes(
+      starts_at: new_starts_at - 10.minutes,
+      ends_at: new_starts_at + 65.minutes
+    )
+  end
+
   it 'rejects a reschedule made from a stale appointment version' do
     expected_lock_version = appointment.lock_version
     appointment.update!(notes: 'Alterada por outro agente')

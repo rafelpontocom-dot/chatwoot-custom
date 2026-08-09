@@ -14,15 +14,27 @@ class KanbanCalendar::AppointmentEventDispatcher
   end
 
   def dispatch
-    return unless event_name && @appointment.kanban_card
+    return unless event_name
 
-    Rails.configuration.dispatcher.dispatch(event_name, Time.current, event_data)
+    dispatch_automation_event if @appointment.kanban_card
+    schedule_google_calendar_sync
   end
 
   private
 
   def event_name
     EVENT_NAMES[@event_type]
+  end
+
+  def dispatch_automation_event
+    Rails.configuration.dispatcher.dispatch(event_name, Time.current, event_data)
+  end
+
+  def schedule_google_calendar_sync
+    return unless @appointment.kanban_calendar_resources.joins(:kanban_calendar_google_connection)
+                              .exists?(kanban_calendar_google_connections: { status: 'connected' })
+
+    KanbanCalendar::SyncGoogleCalendarAppointmentJob.perform_later(@appointment.id)
   end
 
   def event_data

@@ -24,7 +24,7 @@ class KanbanCalendar::AvailabilityCheckService
   def conflict?
     @conflict ||= KanbanCalendarAppointmentResource.where(kanban_calendar_resource: @resource)
                                                    .where(appointment_status: KanbanCalendarAppointment::ACTIVE_STATUSES)
-                                                   .exists?(['starts_at < ? AND ends_at > ?', ends_at, @starts_at])
+                                                   .exists?(['starts_at < ? AND ends_at > ?', reservation_ends_at, reservation_starts_at])
   end
 
   def resource_allowed?
@@ -35,12 +35,20 @@ class KanbanCalendar::AvailabilityCheckService
   def availability_query
     KanbanCalendar::AvailabilityQuery.new(
       resource: @resource,
-      starts_at: @starts_at,
-      ends_at: ends_at
+      starts_at: reservation_starts_at,
+      ends_at: reservation_ends_at
     )
   end
 
   def ends_at
     @ends_at ||= @starts_at + @procedure.duration_minutes.minutes
+  end
+
+  def reservation_starts_at
+    @reservation_starts_at ||= @starts_at - @procedure.buffer_before_minutes.minutes
+  end
+
+  def reservation_ends_at
+    @reservation_ends_at ||= ends_at + @procedure.buffer_after_minutes.minutes
   end
 end

@@ -104,6 +104,9 @@ class Account < ApplicationRecord
   has_many :kanban_calendar_resources, dependent: :destroy_async
   has_many :kanban_calendar_appointment_series, dependent: :destroy_async
   has_many :kanban_calendar_appointments, dependent: :destroy_async
+  has_many :kanban_calendar_google_connections, dependent: :destroy_async
+  has_one :kanban_calendar_booking_page, dependent: :destroy
+  has_many :kanban_calendar_booking_links, dependent: :destroy
 
   has_one_attached :contacts_export
 

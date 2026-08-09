@@ -1,0 +1,6 @@
+<main
+  id="public-booking-app"
+  data-booking-page-url="<%= @booking_link ? "/agendar/convite/#{@booking_link.token}" : "/agendar/#{@booking_page.public_token}" %>"
+  data-procedure-slug="<%= @procedure&.public_slug %>"
+  data-private-booking="<%= @booking_link.present? %>"
+></main>

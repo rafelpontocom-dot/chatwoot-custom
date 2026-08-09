@@ -44,6 +44,10 @@ class KanbanCalendarProcedure < ApplicationRecord
   validates :buffer_before_minutes, :buffer_after_minutes, numericality: { only_integer: true, in: 0..120 }
   validates :location_type, inclusion: { in: LOCATION_TYPES }
   validates :max_sessions, numericality: { only_integer: true, in: 1..100 }, if: :recurrence_allowed?
+  validates :public_slug,
+            format: { with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/ },
+            allow_blank: true
+  validates :public_slug, presence: true, if: :public_booking_enabled?
   validate :max_sessions_absent_without_recurrence
   validate :allowed_intervals_are_supported
 

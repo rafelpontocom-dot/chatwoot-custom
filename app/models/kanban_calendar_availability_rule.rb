@@ -1,3 +1,27 @@
+# == Schema Information
+#
+# Table name: kanban_calendar_availability_rules
+#
+#  id                          :bigint           not null, primary key
+#  active                      :boolean          default(TRUE), not null
+#  date                        :date
+#  ends_at_local               :time
+#  kind                        :string           not null
+#  starts_at_local             :time
+#  weekday                     :integer
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  kanban_calendar_resource_id :bigint           not null
+#
+# Indexes
+#
+#  index_calendar_availability_rules_on_resource_date          (kanban_calendar_resource_id,date)
+#  index_calendar_availability_rules_on_resource_kind_weekday  (kanban_calendar_resource_id,kind,weekday)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (kanban_calendar_resource_id => kanban_calendar_resources.id)
+#
 class KanbanCalendarAvailabilityRule < ApplicationRecord
   KINDS = %w[weekly_window date_override block].freeze
 

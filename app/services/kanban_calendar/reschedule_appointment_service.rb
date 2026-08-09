@@ -22,6 +22,7 @@ class KanbanCalendar::RescheduleAppointmentService
       @scope == 'this_occurrence' ? reschedule_single_appointment! : replace_future_series!
     end
     dispatch_rescheduled_event(replacement)
+    schedule_google_calendar_syncs(except_appointment_id: replacement.id)
     mirror_legacy_next_appointment
     replacement
   rescue ActiveRecord::StatementInvalid => e
@@ -71,8 +72,8 @@ class KanbanCalendar::RescheduleAppointmentService
     return if resources.all? do |resource|
       KanbanCalendar::AvailabilityQuery.new(
         resource: resource,
-        starts_at: @starts_at,
-        ends_at: ends_at
+        starts_at: reservation_starts_at,
+        ends_at: reservation_ends_at
       ).available?
     end
 
@@ -100,6 +101,14 @@ class KanbanCalendar::RescheduleAppointmentService
     @ends_at ||= @starts_at + procedure.duration_minutes.minutes
   end
 
+  def reservation_starts_at
+    @reservation_starts_at ||= @starts_at - procedure.buffer_before_minutes.minutes
+  end
+
+  def reservation_ends_at
+    @reservation_ends_at ||= ends_at + procedure.buffer_after_minutes.minutes
+  end
+
   def reschedule_single_appointment!
     raise KanbanCalendar::ConflictError, conflicting_resource_ids if conflicting_resource_ids.any?
 
@@ -120,6 +129,7 @@ class KanbanCalendar::RescheduleAppointmentService
 
     cancel_replaced_appointments!(appointments)
     replacement = create_replacement_series!(appointments.length)
+    @google_calendar_sync_appointments = appointments + replacement.kanban_calendar_appointment_series.kanban_calendar_appointments.to_a
     mark_original_series_complete_if_needed!
     replacement
   end
@@ -178,7 +188,7 @@ class KanbanCalendar::RescheduleAppointmentService
     KanbanCalendarAppointmentResource.where(kanban_calendar_resource_id: @resource_ids)
                                      .where(appointment_status: KanbanCalendarAppointment::ACTIVE_STATUSES)
                                      .where.not(kanban_calendar_appointment_id: @appointment.id)
-                                     .where('starts_at < ? AND ends_at > ?', ends_at, @starts_at)
+                                     .where('starts_at < ? AND ends_at > ?', reservation_ends_at, reservation_starts_at)
                                      .distinct
                                      .pluck(:kanban_calendar_resource_id)
   end
@@ -196,8 +206,8 @@ class KanbanCalendar::RescheduleAppointmentService
     resources.each do |resource|
       @appointment.kanban_calendar_appointment_resources.create!(
         kanban_calendar_resource: resource,
-        starts_at: @appointment.starts_at,
-        ends_at: @appointment.ends_at,
+        starts_at: reservation_starts_at,
+        ends_at: reservation_ends_at,
         appointment_status: @appointment.status
       )
     end
@@ -221,6 +231,16 @@ class KanbanCalendar::RescheduleAppointmentService
 
   def dispatch_rescheduled_event(appointment)
     KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'rescheduled').dispatch
+  end
+
+  def schedule_google_calendar_syncs(except_appointment_id: nil)
+    return if @google_calendar_sync_appointments.blank?
+
+    @google_calendar_sync_appointments.each do |appointment|
+      next if appointment.id == except_appointment_id
+
+      KanbanCalendar::SyncGoogleCalendarAppointmentJob.perform_later(appointment.id)
+    end
   end
 
   def mirror_legacy_next_appointment

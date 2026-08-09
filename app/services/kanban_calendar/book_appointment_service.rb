@@ -12,6 +12,7 @@ class KanbanCalendar::BookAppointmentService
     @interval_days = attributes[:interval_days].presence&.to_i
     @kanban_card = attributes[:kanban_card]
     @actor = attributes[:actor]
+    @external_refs = attributes.fetch(:external_refs, {})
     @dispatch_events = attributes.fetch(:dispatch_events, true)
   end
 
@@ -87,8 +88,8 @@ class KanbanCalendar::BookAppointmentService
   def validate_resource_availability!
     KanbanCalendar::ResourceAvailabilityValidator.new(
       resources: resources,
-      starts_at: appointment_starts,
-      duration_minutes: @procedure.duration_minutes,
+      starts_at: appointment_starts.map { |starts_at| reservation_starts_at(starts_at) },
+      duration_minutes: reservation_duration_minutes,
       record: @procedure
     ).validate!
   end
@@ -140,7 +141,11 @@ class KanbanCalendar::BookAppointmentService
     appointment_starts.flat_map do |occurrence_starts_at|
       KanbanCalendarAppointmentResource.where(kanban_calendar_resource_id: @resource_ids)
                                        .where(appointment_status: KanbanCalendarAppointment::ACTIVE_STATUSES)
-                                       .where('starts_at < ? AND ends_at > ?', occurrence_ends_at(occurrence_starts_at), occurrence_starts_at)
+                                       .where(
+                                         'starts_at < ? AND ends_at > ?',
+                                         reservation_ends_at(occurrence_starts_at),
+                                         reservation_starts_at(occurrence_starts_at)
+                                       )
                                        .distinct
                                        .pluck(:kanban_calendar_resource_id)
     end.uniq
@@ -162,6 +167,18 @@ class KanbanCalendar::BookAppointmentService
     occurrence_starts_at + @procedure.duration_minutes.minutes
   end
 
+  def reservation_starts_at(occurrence_starts_at)
+    occurrence_starts_at - @procedure.buffer_before_minutes.minutes
+  end
+
+  def reservation_ends_at(occurrence_starts_at)
+    occurrence_ends_at(occurrence_starts_at) + @procedure.buffer_after_minutes.minutes
+  end
+
+  def reservation_duration_minutes
+    @procedure.duration_minutes + @procedure.buffer_before_minutes + @procedure.buffer_after_minutes
+  end
+
   def appointment_series_builder
     KanbanCalendar::AppointmentSeriesBuilder.new(attributes: {
                                                    account: @account,
@@ -172,7 +189,8 @@ class KanbanCalendar::BookAppointmentService
                                                    timezone: @timezone,
                                                    occurrence_count: @occurrence_count,
                                                    interval_kind: @interval_kind,
-                                                   interval_days: @interval_days
+                                                   interval_days: @interval_days,
+                                                   external_refs: @external_refs
                                                  })
   end
 
@@ -206,8 +224,8 @@ class KanbanCalendar::BookAppointmentService
     resources.each do |resource|
       appointment.kanban_calendar_appointment_resources.create!(
         kanban_calendar_resource: resource,
-        starts_at: appointment.starts_at,
-        ends_at: appointment.ends_at,
+        starts_at: reservation_starts_at(appointment.starts_at),
+        ends_at: reservation_ends_at(appointment.starts_at),
         appointment_status: appointment.status
       )
     end

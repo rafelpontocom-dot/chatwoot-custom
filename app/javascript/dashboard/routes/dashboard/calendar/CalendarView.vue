@@ -108,10 +108,10 @@ const calendarStatuses = computed(() => [
   { value: 'no_show', label: t('CALENDAR.DETAIL.STATUS.NO_SHOW') },
   { value: 'canceled', label: t('CALENDAR.DETAIL.STATUS.CANCELED') },
 ]);
-const emptyDescriptionKey = computed(() =>
+const emptyDescription = computed(() =>
   resources.value.length
-    ? 'CALENDAR.EMPTY_FILTERED_DESCRIPTION'
-    : 'CALENDAR.EMPTY_DESCRIPTION'
+    ? t('CALENDAR.EMPTY_FILTERED_DESCRIPTION')
+    : t('CALENDAR.EMPTY_DESCRIPTION')
 );
 
 const isoDate = date => date.toISOString();
@@ -125,10 +125,14 @@ const loadAppointments = async () => {
     const { data } = await calendarAPI.getAppointments({
       starts_at: isoDate(startsAt),
       ends_at: isoDate(endsAt),
-      resource_ids: selectedResourceId.value
-        ? [Number(selectedResourceId.value)]
-        : undefined,
-      status: selectedStatus.value || undefined,
+      resource_ids:
+        selectedResourceId.value && selectedResourceId.value !== 'all'
+          ? [Number(selectedResourceId.value)]
+          : undefined,
+      status:
+        selectedStatus.value && selectedStatus.value !== 'all'
+          ? selectedStatus.value
+          : undefined,
       q: searchQuery.value.trim() || undefined,
     });
     appointments.value = data;
@@ -318,7 +322,10 @@ onMounted(() => {
             v-model="selectedResourceId"
             class="h-9 max-w-48 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
           >
-            <option value="">{{ t('CALENDAR.ALL_RESOURCES') }}</option>
+            <option value="" disabled>
+              {{ t('CALENDAR.RESOURCE_FILTER') }}
+            </option>
+            <option value="all">{{ t('CALENDAR.ALL_RESOURCES') }}</option>
             <option
               v-for="resource in resources"
               :key="resource.id"
@@ -335,7 +342,8 @@ onMounted(() => {
             v-model="selectedStatus"
             class="h-9 max-w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
           >
-            <option value="">{{ t('CALENDAR.ALL_STATUSES') }}</option>
+            <option value="" disabled>{{ t('CALENDAR.STATUS_FILTER') }}</option>
+            <option value="all">{{ t('CALENDAR.ALL_STATUSES') }}</option>
             <option
               v-for="status in calendarStatuses"
               :key="status.value"
@@ -601,7 +609,7 @@ onMounted(() => {
             {{ t('CALENDAR.EMPTY_TITLE') }}
           </p>
           <p class="mb-0 text-sm text-n-slate-11">
-            {{ t(emptyDescriptionKey) }}
+            {{ emptyDescription }}
           </p>
         </div>
       </div>

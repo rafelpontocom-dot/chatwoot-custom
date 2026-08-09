@@ -1,4 +1,10 @@
 class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::BaseController
+  PROCEDURE_SCALAR_PARAMS = %i[
+    name color duration_minutes buffer_before_minutes buffer_after_minutes
+    location_type recurrence_allowed max_sessions active public_booking_enabled
+    public_title public_description public_slug
+  ].freeze
+
   before_action :fetch_procedure, only: [:show, :update]
 
   def index
@@ -35,26 +41,32 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
   end
 
   def procedure_params
+    normalize_resource_ids(permitted_procedure_params)
+  end
+
+  def permitted_procedure_params
     params.require(:procedure).permit(
-      :name,
-      :color,
-      :duration_minutes,
-      :buffer_before_minutes,
-      :buffer_after_minutes,
-      :location_type,
-      :recurrence_allowed,
-      :max_sessions,
-      :active,
+      *PROCEDURE_SCALAR_PARAMS,
       allowed_intervals: [],
       board_ids: [],
       resource_ids: [],
-      stage_policy: {}
-    ).tap do |attributes|
-      attributes[:kanban_calendar_resource_ids] = attributes.delete(:resource_ids) if attributes.key?(:resource_ids)
-    end
+      stage_policy: {},
+      public_booking_config: {}
+    )
+  end
+
+  def normalize_resource_ids(attributes)
+    return attributes unless attributes.key?(:resource_ids)
+
+    attributes[:kanban_calendar_resource_ids] = attributes.delete(:resource_ids)
+    attributes
   end
 
   def procedure_payload(procedure)
+    procedure_attributes(procedure).merge(public_booking_payload(procedure))
+  end
+
+  def procedure_attributes(procedure)
     {
       id: procedure.id,
       name: procedure.name,
@@ -70,6 +82,16 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
       resource_ids: procedure.kanban_calendar_resource_ids,
       stage_policy: procedure.stage_policy,
       active: procedure.active
+    }
+  end
+
+  def public_booking_payload(procedure)
+    {
+      public_booking_enabled: procedure.public_booking_enabled,
+      public_title: procedure.public_title,
+      public_description: procedure.public_description,
+      public_slug: procedure.public_slug,
+      public_booking_config: procedure.public_booking_config
     }
   end
 

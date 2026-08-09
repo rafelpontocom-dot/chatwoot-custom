@@ -79,6 +79,35 @@ RSpec.describe KanbanCalendar::BookAppointmentService do
     end.to raise_error(KanbanCalendar::ConflictError)
   end
 
+  it 'reserves the configured buffers and prevents bookings against them' do
+    procedure.update!(buffer_before_minutes: 10, buffer_after_minutes: 10)
+    appointment = described_class.new(
+      account: account,
+      contact: contact,
+      procedure: procedure,
+      resource_ids: [resource.id],
+      starts_at: starts_at,
+      timezone: 'America/Sao_Paulo'
+    ).perform!
+
+    reservation = appointment.kanban_calendar_appointment_resources.sole
+    expect(reservation).to have_attributes(
+      starts_at: starts_at - 10.minutes,
+      ends_at: starts_at + 60.minutes
+    )
+
+    expect do
+      described_class.new(
+        account: account,
+        contact: create(:contact, account: account),
+        procedure: procedure,
+        resource_ids: [resource.id],
+        starts_at: starts_at + 50.minutes,
+        timezone: 'America/Sao_Paulo'
+      ).perform!
+    end.to raise_error(KanbanCalendar::ConflictError)
+  end
+
   it 'allows only one simultaneous booking for the same resource and time' do
     contacts = create_list(:contact, 2, account: account)
     ready = Queue.new

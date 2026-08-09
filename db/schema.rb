@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_07_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_09_100000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1344,6 +1344,64 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_07_120000) do
     t.index ["kanban_calendar_resource_id", "kind", "weekday"], name: "index_calendar_availability_rules_on_resource_kind_weekday"
   end
 
+  create_table "kanban_calendar_booking_links", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_calendar_booking_page_id", null: false
+    t.bigint "kanban_calendar_procedure_id"
+    t.string "token", null: false
+    t.datetime "expires_at"
+    t.integer "max_uses"
+    t.integer "uses_count", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_calendar_booking_links_on_account_id"
+    t.index ["kanban_calendar_booking_page_id"], name: "index_calendar_booking_links_on_page_id"
+    t.index ["kanban_calendar_procedure_id"], name: "idx_on_kanban_calendar_procedure_id_e0a8311a49"
+    t.index ["token"], name: "index_kanban_calendar_booking_links_on_token", unique: true
+  end
+
+  create_table "kanban_calendar_booking_pages", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_board_id"
+    t.bigint "kanban_stage_id"
+    t.bigint "inbox_id"
+    t.string "public_token", null: false
+    t.string "title"
+    t.text "description"
+    t.string "duplicate_policy", default: "create_new", null: false
+    t.integer "minimum_notice_minutes", default: 1440, null: false
+    t.integer "maximum_notice_days", default: 60, null: false
+    t.integer "slot_interval_minutes", default: 15, null: false
+    t.boolean "active", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "public_form_fields", default: [], null: false
+    t.string "captcha_provider"
+    t.string "captcha_site_key"
+    t.index ["account_id"], name: "index_kanban_calendar_booking_pages_on_account_id", unique: true
+    t.index ["inbox_id"], name: "index_kanban_calendar_booking_pages_on_inbox_id"
+    t.index ["kanban_board_id"], name: "index_kanban_calendar_booking_pages_on_kanban_board_id"
+    t.index ["kanban_stage_id"], name: "index_kanban_calendar_booking_pages_on_kanban_stage_id"
+    t.index ["public_token"], name: "index_kanban_calendar_booking_pages_on_public_token", unique: true
+  end
+
+  create_table "kanban_calendar_google_connections", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_calendar_resource_id", null: false
+    t.string "access_token"
+    t.string "refresh_token"
+    t.datetime "expires_at"
+    t.string "calendar_id", default: "primary", null: false
+    t.string "status", default: "disconnected", null: false
+    t.text "last_error"
+    t.datetime "last_synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_calendar_google_connections_on_account_id"
+    t.index ["kanban_calendar_resource_id"], name: "idx_on_kanban_calendar_resource_id_82d8f650ee", unique: true
+  end
+
   create_table "kanban_calendar_procedure_resources", force: :cascade do |t|
     t.bigint "kanban_calendar_procedure_id", null: false
     t.bigint "kanban_calendar_resource_id", null: false
@@ -1368,7 +1426,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_07_120000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "public_booking_enabled", default: false, null: false
+    t.string "public_title"
+    t.text "public_description"
+    t.string "public_slug"
+    t.jsonb "public_booking_config", default: {}, null: false
     t.index "account_id, lower((name)::text)", name: "index_kanban_calendar_procedures_on_account_and_lower_name", unique: true
+    t.index "account_id, lower((public_slug)::text)", name: "index_calendar_procedures_on_account_and_public_slug", unique: true, where: "(public_slug IS NOT NULL)"
     t.index ["account_id"], name: "index_kanban_calendar_procedures_on_account_id"
   end
 
@@ -1973,6 +2037,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_07_120000) do
   add_foreign_key "kanban_calendar_appointments", "kanban_cards"
   add_foreign_key "kanban_calendar_appointments", "users", column: "canceled_by_id"
   add_foreign_key "kanban_calendar_availability_rules", "kanban_calendar_resources"
+  add_foreign_key "kanban_calendar_booking_links", "accounts"
+  add_foreign_key "kanban_calendar_booking_links", "kanban_calendar_booking_pages"
+  add_foreign_key "kanban_calendar_booking_links", "kanban_calendar_procedures"
+  add_foreign_key "kanban_calendar_booking_pages", "accounts"
+  add_foreign_key "kanban_calendar_booking_pages", "inboxes"
+  add_foreign_key "kanban_calendar_booking_pages", "kanban_boards"
+  add_foreign_key "kanban_calendar_booking_pages", "kanban_stages"
+  add_foreign_key "kanban_calendar_google_connections", "accounts"
+  add_foreign_key "kanban_calendar_google_connections", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_procedures"
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_procedures", "accounts"
