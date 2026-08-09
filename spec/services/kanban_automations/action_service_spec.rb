@@ -166,6 +166,22 @@ RSpec.describe KanbanAutomations::ActionService do
     expect(note).to have_attributes(content: 'Revisar proposta antes da ligação.', private: true)
   end
 
+  it 'adds a label to the contact without changing the opportunity labels' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      actions: [{ action_name: 'add_contact_label', action_params: { label: 'Retorno prioritário' } }]
+    )
+
+    result = described_class.new(rule: rule, card: card).perform!
+
+    expect(card.contact.reload.label_list).to include('Retorno prioritário')
+    expect(card.reload.label_list).not_to include('Retorno prioritário')
+    expect(result).to include(hash_including('action_name' => 'add_contact_label', 'label' => 'Retorno prioritário'))
+  end
+
   it 'updates an explicitly configured contact attribute' do
     card = create(:kanban_card)
     rule = create(

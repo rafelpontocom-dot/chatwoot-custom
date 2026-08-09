@@ -25,9 +25,12 @@ class KanbanAutomations::WorkflowService
     'send_message' => :message_node,
     'condition' => :condition_node,
     'filter' => :filter_node,
+    'duplicate_check' => :duplicate_check_node,
     'message_eligibility' => :message_eligibility_node,
     'round_robin' => :round_robin_node,
     'human_handoff' => :human_handoff_node,
+    'notify_team' => :notify_team_node,
+    'create_opportunity' => :create_opportunity_node,
     'audit_log' => :audit_log_node,
     'webhook' => :webhook_node,
     'end' => :end_node
@@ -273,6 +276,22 @@ class KanbanAutomations::WorkflowService
     [nil, completed(results)]
   end
 
+  def duplicate_check_node(node, results)
+    duplicate_card_ids = duplicate_cards.pluck(:id)
+    branch = duplicate_card_ids.present? ? 'duplicate' : 'unique'
+    results << {
+      'node_id' => node.fetch('id'),
+      'status' => 'succeeded',
+      'branch' => branch,
+      'duplicate_card_ids' => duplicate_card_ids
+    }
+    [next_node_id(node, source_handle: branch), nil]
+  end
+
+  def duplicate_cards
+    rule.kanban_board.kanban_cards.active.where(contact: card.contact).where.not(id: card.id)
+  end
+
   def message_eligibility_node(node, results)
     data = node.fetch('data', {})
     result = KanbanAutomations::WorkflowMessageService.new(card: card, data: data, now: now).eligibility
@@ -310,6 +329,86 @@ class KanbanAutomations::WorkflowService
     return if data[data_key].blank?
 
     { 'action_name' => action_name, 'action_params' => { parameter => data.fetch(data_key) } }
+  end
+
+  def notify_team_node(node, results)
+    unless card.conversation
+      results << { 'node_id' => node.fetch('id'), 'status' => 'skipped', 'reason' => 'no_linked_conversation' }
+      return [next_node_id(node), nil]
+    end
+
+    message, teams = create_team_notification(node)
+    results << team_notification_result(node, message, teams)
+    [next_node_id(node), nil]
+  end
+
+  def create_team_notification(node)
+    data = node.fetch('data', {}).deep_stringify_keys
+    teams = notification_teams!(data.fetch('team_ids', []))
+    message = Messages::MessageBuilder.new(nil, card.conversation, notification_message_attributes(data, teams)).perform
+    [message, teams]
+  end
+
+  def notification_message_attributes(data, teams)
+    {
+      content: notification_content(data.fetch('content'), teams),
+      message_type: 'outgoing',
+      private: true
+    }
+  end
+
+  def team_notification_result(node, message, teams)
+    {
+      'node_id' => node.fetch('id'),
+      'status' => 'succeeded',
+      'message_id' => message.id,
+      'team_ids' => teams.pluck(:id)
+    }
+  end
+
+  def notification_teams!(team_ids)
+    ids = Array(team_ids).filter_map { |team_id| Integer(team_id, exception: false) }.uniq
+    teams = rule.account.teams.where(id: ids)
+    raise ActiveRecord::RecordNotFound, 'Notification team was not found' unless teams.count == ids.length
+
+    teams
+  end
+
+  def notification_content(content, teams)
+    mentions = teams.map { |team| "(mention://team/#{team.id}/#{team.name})" }
+    [content.to_s.strip, *mentions].join("\n")
+  end
+
+  def create_opportunity_node(node, results)
+    unless card.conversation
+      results << { 'node_id' => node.fetch('id'), 'status' => 'skipped', 'reason' => 'no_linked_conversation' }
+      return [next_node_id(node), nil]
+    end
+
+    created_card = create_opportunity_from_conversation(node)
+    results << {
+      'node_id' => node.fetch('id'),
+      'status' => 'succeeded',
+      'created_card_id' => created_card.id
+    }
+    [next_node_id(node), nil]
+  end
+
+  def create_opportunity_from_conversation(node)
+    data = node.fetch('data', {}).deep_stringify_keys
+    stage = rule.kanban_board.kanban_stages.active.find(data.fetch('stage_id'))
+    KanbanCards::CreateFromConversationService.new(
+      account: rule.account,
+      user: automation_actor!,
+      conversation: card.conversation,
+      kanban_board: rule.kanban_board,
+      kanban_stage: stage,
+      subject: data.fetch('subject')
+    ).perform!
+  end
+
+  def automation_actor!
+    rule.account.administrators.first || raise(ActiveRecord::RecordNotFound, 'Automation account has no administrator')
   end
 
   def audit_log_node(node, results)

@@ -95,6 +95,60 @@ RSpec.describe KanbanAutomationRule do
     expect(rule.errors[:flow_definition]).to be_present
   end
 
+  it 'rejects a notify-team node that references a team outside the account' do
+    board = create(:kanban_board)
+    foreign_team = create(:team)
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          {
+            id: 'notify',
+            type: 'notify_team',
+            data: { team_ids: [foreign_team.id], content: 'Revisar oportunidade' }
+          }
+        ],
+        edges: [{ source: 'trigger', target: 'notify' }]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include('Notify-team node notify references a team outside this account')
+  end
+
+  it 'rejects a create-opportunity node whose stage is outside the board' do
+    board = create(:kanban_board)
+    foreign_stage = create(:kanban_stage)
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'create',
+            type: 'create_opportunity',
+            data: { stage_id: foreign_stage.id, subject: 'Nova oportunidade' }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'create' },
+          { source: 'create', target: 'end' }
+        ]
+      }
+    )
+
+    expect(rule).not_to be_valid
+    expect(rule.errors[:flow_definition]).to include(
+      include('Create-opportunity node create needs a stage from this board')
+    )
+  end
+
   it 'rejects a routed date wait without both result paths' do
     board = create(
       :kanban_board,

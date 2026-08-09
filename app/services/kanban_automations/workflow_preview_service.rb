@@ -19,7 +19,10 @@ class KanbanAutomations::WorkflowPreviewService
     'filter' => :preview_filter,
     'message_eligibility' => :preview_message_eligibility,
     'round_robin' => :preview_round_robin,
+    'duplicate_check' => :preview_duplicate_check,
     'human_handoff' => :preview_human_handoff,
+    'notify_team' => :preview_notify_team,
+    'create_opportunity' => :preview_create_opportunity,
     'audit_log' => :preview_audit_log,
     'action' => :preview_action,
     'set_field' => :preview_action,
@@ -169,6 +172,16 @@ class KanbanAutomations::WorkflowPreviewService
     nil
   end
 
+  def preview_notify_team(node, steps)
+    data = node.fetch('data', {})
+    steps << data.slice('team_ids', 'content').merge('node_id' => node.fetch('id'), 'type' => 'notify_team')
+  end
+
+  def preview_create_opportunity(node, steps)
+    data = node.fetch('data', {})
+    steps << data.slice('stage_id', 'subject').merge('node_id' => node.fetch('id'), 'type' => 'create_opportunity')
+  end
+
   def preview_audit_log(node, steps)
     steps << node.fetch('data', {}).slice('content').merge('node_id' => node.fetch('id'), 'type' => 'audit_log')
     next_node_id(node)
@@ -178,6 +191,14 @@ class KanbanAutomations::WorkflowPreviewService
     option = Array(node.dig('data', 'options')).first || {}
     steps << { 'node_id' => node.fetch('id'), 'type' => 'round_robin', 'option_id' => option['id'] }
     next_node_id(node, source_handle: option.fetch('id'))
+  end
+
+  def preview_duplicate_check(node, steps)
+    steps << {
+      'node_id' => node.fetch('id'),
+      'type' => 'duplicate_check',
+      'scope' => 'active_opportunities_for_same_contact'
+    }
   end
 
   def preview_action(node, steps)

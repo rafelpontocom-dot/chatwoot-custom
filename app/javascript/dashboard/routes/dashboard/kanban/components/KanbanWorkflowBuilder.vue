@@ -17,6 +17,8 @@ import KanbanWorkflowContactInspector from './KanbanWorkflowContactInspector.vue
 import KanbanWorkflowOutcomeInspector from './KanbanWorkflowOutcomeInspector.vue';
 import KanbanWorkflowMessageInspector from './KanbanWorkflowMessageInspector.vue';
 import KanbanWorkflowActionInspector from './KanbanWorkflowActionInspector.vue';
+import KanbanWorkflowCreateOpportunityInspector from './KanbanWorkflowCreateOpportunityInspector.vue';
+import KanbanWorkflowDuplicateCheckInspector from './KanbanWorkflowDuplicateCheckInspector.vue';
 import KanbanWorkflowNode from './KanbanWorkflowNode.vue';
 import KanbanWorkflowPalette from './KanbanWorkflowPalette.vue';
 import KanbanWorkflowEdge from './KanbanWorkflowEdge.vue';
@@ -161,10 +163,13 @@ const nodeTypes = {
   mark_lost: markRaw(KanbanWorkflowNode),
   condition: markRaw(KanbanWorkflowNode),
   filter: markRaw(KanbanWorkflowNode),
+  duplicate_check: markRaw(KanbanWorkflowNode),
   message_eligibility: markRaw(KanbanWorkflowNode),
   round_robin: markRaw(KanbanWorkflowNode),
   human_handoff: markRaw(KanbanWorkflowNode),
   update_contact: markRaw(KanbanWorkflowNode),
+  notify_team: markRaw(KanbanWorkflowNode),
+  create_opportunity: markRaw(KanbanWorkflowNode),
   audit_log: markRaw(KanbanWorkflowNode),
   webhook: markRaw(KanbanWorkflowNode),
   end: markRaw(KanbanWorkflowNode),
@@ -277,6 +282,14 @@ const actionOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.REMOVE_LABEL'),
   },
   {
+    value: 'add_contact_label',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ADD_CONTACT_LABEL'),
+  },
+  {
+    value: 'remove_contact_label',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.REMOVE_CONTACT_LABEL'),
+  },
+  {
     value: 'add_note',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.ACTIONS.ADD_NOTE'),
   },
@@ -386,6 +399,13 @@ const selectedNodeOutputOptions = computed(() => {
       })),
       { value: data.fallback_id, label: data.fallbackLabel },
     ].filter(option => option.value);
+  }
+
+  if (node.type === 'duplicate_check') {
+    return (data.outputs || []).map(output => ({
+      value: output.id,
+      label: output.label,
+    }));
   }
 
   if (node.type === 'round_robin') {
@@ -577,6 +597,7 @@ const defaultData = type => {
       conditions: [{ field_key: '', operator: 'equals', value: '' }],
     };
   }
+  if (type === 'duplicate_check') return {};
   if (type === 'message_eligibility') {
     return {
       channel: 'whatsapp',
@@ -605,6 +626,8 @@ const defaultData = type => {
   if (type === 'update_contact') {
     return { action_params: { attribute_key: '', value: '' } };
   }
+  if (type === 'notify_team') return { team_ids: [], content: '' };
+  if (type === 'create_opportunity') return { stage_id: '', subject: '' };
   if (type === 'audit_log') return { content: '' };
   if (type === 'mark_lost') return { action_params: { lost_reason: '' } };
   if (type === 'webhook') return { connection_id: '', failure_mode: 'stop' };
@@ -707,6 +730,9 @@ const nodeSummary = node => {
   }
   if (node.type === 'mark_lost') return data.action_params?.lost_reason;
   if (node.type === 'condition') return '';
+  if (node.type === 'duplicate_check') {
+    return t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DUPLICATE_CHECK_SUMMARY');
+  }
   if (node.type === 'filter') {
     const fieldKey = data.conditions?.[0]?.field_key || data.field_key;
     return conditionFieldsForWorkflow.value.find(
@@ -727,6 +753,16 @@ const nodeSummary = node => {
       props.agents.find(agent => agent.id === Number(data.owner_id))?.name ||
       props.teams.find(team => team.id === Number(data.team_id))?.name
     );
+  }
+  if (node.type === 'notify_team') {
+    return props.teams
+      .filter(team => data.team_ids?.map(Number).includes(team.id))
+      .map(team => team.name)
+      .join(', ');
+  }
+  if (node.type === 'create_opportunity') {
+    const stage = props.stages.find(item => item.id === Number(data.stage_id));
+    return stage?.name || data.subject;
   }
   if (node.type === 'update_contact') return data.action_params?.attribute_key;
   if (node.type === 'audit_log') return data.content;
@@ -811,8 +847,11 @@ const nodeState = node => {
     filter: (data.conditions || []).every(condition =>
       Boolean(condition.field_key)
     ),
+    duplicate_check: true,
     webhook: Boolean(data.connection_id),
     human_handoff: Boolean(data.owner_id || data.team_id),
+    notify_team: Boolean(data.content && data.team_ids?.length),
+    create_opportunity: Boolean(data.stage_id && data.subject),
     audit_log: Boolean(data.content),
     mark_lost: Boolean(data.action_params?.lost_reason),
   };
@@ -998,7 +1037,14 @@ const nodeChips = node => {
     if (data.action_name === 'set_next_action') {
       return [params.next_action_type, params.next_action_at].filter(Boolean);
     }
-    if (['add_label', 'remove_label'].includes(data.action_name)) {
+    if (
+      [
+        'add_label',
+        'remove_label',
+        'add_contact_label',
+        'remove_contact_label',
+      ].includes(data.action_name)
+    ) {
       return [params.label].filter(Boolean);
     }
     if (data.action_name === 'add_note') {
@@ -1121,6 +1167,20 @@ const decorateNode = node => {
       {
         id: 'otherwise',
         label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OTHERWISE'),
+      },
+    ];
+  }
+  if (node.type === 'duplicate_check') {
+    data.outputs = [
+      {
+        id: 'duplicate',
+        label: t(
+          'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DUPLICATE_CHECK_DUPLICATE'
+        ),
+      },
+      {
+        id: 'unique',
+        label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DUPLICATE_CHECK_UNIQUE'),
       },
     ];
   }
@@ -1252,6 +1312,7 @@ const decorateNode = node => {
         !getKanbanWorkflowNodeDefinition(node.type)?.terminal &&
         ![
           'condition',
+          'duplicate_check',
           'round_robin',
           'message_eligibility',
           'send_message',
@@ -2302,6 +2363,7 @@ const handleBuilderKeydown = event => {
                 'webhook',
                 'end',
                 'human_handoff',
+                'notify_team',
                 'audit_log',
                 'message_eligibility',
               ].includes(selectedNode.type)
@@ -2313,6 +2375,19 @@ const handleBuilderKeydown = event => {
             :end-outcomes="endOutcomeOptions"
             :t="t"
             @update="updateNode"
+          />
+
+          <KanbanWorkflowCreateOpportunityInspector
+            v-else-if="selectedNode.type === 'create_opportunity'"
+            :node="selectedNode"
+            :stages="stages"
+            :t="t"
+            @update="updateNode"
+          />
+
+          <KanbanWorkflowDuplicateCheckInspector
+            v-else-if="selectedNode.type === 'duplicate_check'"
+            :t="t"
           />
 
           <p

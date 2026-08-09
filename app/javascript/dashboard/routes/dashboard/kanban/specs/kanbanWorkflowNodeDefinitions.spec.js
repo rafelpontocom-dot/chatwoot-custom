@@ -82,6 +82,20 @@ describe('kanban workflow node definitions', () => {
     );
   });
 
+  it('lists duplicate checking as a decision with two explicit paths', () => {
+    const groups = getKanbanWorkflowPaletteGroups(t);
+    const decisionGroup = groups.find(group => group.key === 'DECISION');
+
+    expect(decisionGroup.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'duplicate_check',
+          icon: 'i-lucide-copy-check',
+        }),
+      ])
+    );
+  });
+
   it('marks a human handoff as a terminal customer node', () => {
     expect(getKanbanWorkflowNodeDefinition('human_handoff')).toEqual(
       expect.objectContaining({
@@ -101,6 +115,23 @@ describe('kanban workflow node definitions', () => {
     );
   });
 
+  it('lists creation of a linked opportunity as a non-terminal opportunity node', () => {
+    const groups = getKanbanWorkflowPaletteGroups(t);
+    const opportunityGroup = groups.find(group => group.key === 'OPPORTUNITY');
+
+    expect(opportunityGroup.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'create_opportunity',
+          icon: 'i-lucide-circle-plus',
+        }),
+      ])
+    );
+    expect(getKanbanWorkflowNodeDefinition('create_opportunity')).toEqual(
+      expect.objectContaining({ category: 'OPPORTUNITY', terminal: false })
+    );
+  });
+
   it('lists a concise internal audit node in the operation palette', () => {
     const groups = getKanbanWorkflowPaletteGroups(t);
     const operationGroup = groups.find(group => group.key === 'OPERATION');
@@ -112,6 +143,23 @@ describe('kanban workflow node definitions', () => {
           icon: 'i-lucide-notebook-pen',
         }),
       ])
+    );
+  });
+
+  it('lists a team notification as a non-terminal operation node', () => {
+    const groups = getKanbanWorkflowPaletteGroups(t);
+    const operationGroup = groups.find(group => group.key === 'OPERATION');
+
+    expect(operationGroup.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'notify_team',
+          icon: 'i-lucide-bell-ring',
+        }),
+      ])
+    );
+    expect(getKanbanWorkflowNodeDefinition('notify_team')).toEqual(
+      expect.objectContaining({ category: 'OPERATION', terminal: false })
     );
   });
 

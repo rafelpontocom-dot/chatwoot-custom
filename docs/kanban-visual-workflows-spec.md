@@ -84,7 +84,7 @@ Uma regra sem `flow_definition.nodes` continua usando o formato legado `actions`
 }
 ```
 
-Tipos permitidos na base atual: `trigger`, `delay`, `random_delay`, `wait_until_field`, `wait_for_response`, `wait_for_inactivity`, `wait_for_business_hours`, `stage_guard`, `send_message`, `action`, `set_field`, `update_contact`, `complete_next_action`, `mark_won`, `mark_lost`, `condition`, `filter`, `message_eligibility`, `round_robin`, `human_handoff`, `audit_log`, `webhook`, `end`.
+Tipos permitidos na base atual: `trigger`, `delay`, `random_delay`, `wait_until_field`, `wait_for_response`, `wait_for_inactivity`, `wait_for_business_hours`, `stage_guard`, `send_message`, `action`, `set_field`, `update_contact`, `complete_next_action`, `mark_won`, `mark_lost`, `condition`, `filter`, `message_eligibility`, `round_robin`, `human_handoff`, `notify_team`, `audit_log`, `webhook`, `end`.
 
 ## Catálogo Técnico E Evolução
 
@@ -109,9 +109,11 @@ Todos os nós persistem somente `id`, `type`, `position` e `data`. Ícone, cor, 
 | Cliente | `human_handoff` | equipe comercial, responsável e nota opcional; encerra a execução | atual |
 | Cliente | `update_contact` | atributo personalizado seguro e valor explícito | atual |
 | Oportunidade | `action` | ação comercial e parâmetros autorizados | atual |
+| Oportunidade | etiquetas de contato | adiciona ou remove etiqueta do contato sem alterar as etiquetas da oportunidade | atual |
 | Oportunidade | atualização de campo | definir, incrementar ou limpar um campo configurado | atual |
 | Oportunidade | `mark_won` e `mark_lost` | resultado ganho/perdido, motivo configurado na perda | atual |
 | Operação | `audit_log` | mensagem interna segura e imutável na linha do tempo | atual |
+| Operação | `notify_team` | mensagem privada e equipes do board; usa menção nativa, exige conversa vinculada e continua o fluxo | atual |
 | Integração | webhook com `failure_mode: route` | mantém retry seguro ou expõe saídas `succeeded` e `failed` | atual |
 | Integração | `webhook` | id de conexão aprovada e mapeamento permitido | atual |
 | Controle | `end` | resultado terminal opcional | atual/em evolução |
@@ -135,6 +137,7 @@ Um novo tipo de nó exige, no mesmo pull request: validação no servidor, semâ
 - etapa, agente ou campo personalizado que não pertencem ao board ou conta.
 - Router sem ao menos uma saída, com id de saída duplicado, regra inválida, conexão sem `sourceHandle` ou sem a rota `fallback_id`;
 - webhook sem uma conexão ativa do mesmo board;
+- criação de oportunidade sem título ou sem etapa ativa do mesmo board;
 - registro interno sem conteúdo;
 - atualização de contato que tente usar uma coluna nativa, em vez de um atributo personalizado;
 - elegibilidade de mensagem sem canal, opt-in ou as duas conexões obrigatórias;
@@ -322,6 +325,10 @@ O canvas preserva a maior parte da largura. Clicar em nó ou conexão abre um di
 O diálogo configura o nó selecionado e usa o nome do nó na sua abertura. Antes das abas, ele mostra um resumo comercial curto da etapa selecionada; o bloco de ícone herda a cor semântica da categoria do nó para manter a relação imediata com o canvas. O formulário completo continua dentro da aba Configurar. O nó de mensagem oferece emoji, busca de variáveis, imagem de até 10 MB, preview e remoção da mídia. O upload persiste somente o `signed_id` do Active Storage e o backend aceita exclusivamente blobs de imagem válidos. A mesma estrutura de mensagem está disponível na automação anual de aniversário. Quando a validação local encontra um nó inválido, ele é destacado, selecionado e aberto para correção. O canvas tem zoom e controles, mas a edição do evento e das condições permanece no formulário da regra comercial para evitar duplicação de fontes de verdade. A paleta permanece recolhível e pesquisável; o canvas é sempre a superfície dominante e o histórico só é mostrado por solicitação.
 
 O diálogo deve aceitar todos os formulários de nó e conexão. Em desktop, sua largura é `min(44rem, calc(100vw - 4rem))`; em mobile usa `inset` de `1rem`. Formulários longos usam rolagem vertical sem overflow horizontal, enquanto cabeçalho e abas permanecem visíveis. O contêiner tem `role="dialog"`, `aria-modal="true"`, nome programático pelo título real do elemento e focus trap por Tab/Shift+Tab. Fechar por Escape, botão ou fundo restaura o foco no elemento de origem; alterações continuam no rascunho da regra até salvar ou cancelar.
+
+O nó `Criar oportunidade` não é uma importação nem uma cópia irrestrita: exige conversa vinculada, cria no mesmo board da regra, aceita apenas etapa ativa daquele board e exige título explícito. A execução usa a política de criação já existente e rejeita a combinação repetida de conversa, inbox e título, preservando autorização e prevenção de duplicidade.
+
+O nó `Checar duplicidade` é um roteador sem parâmetros editáveis. Ele consulta apenas cards ativos do board da regra com o mesmo contato, exclui o card que disparou a execução e exige exatamente as saídas `duplicate` e `unique`. O resultado persiste os ids encontrados no histórico da execução; telefone, e-mail, fuzzy matching e comparação entre funis ficam fora deste contrato inicial para não produzir bloqueios ambíguos.
 
 Para fluxos maiores, o minimapa só deve ser exibido quando o conteúdo extrapolar a área visível. Controles devem ter rótulo acessível, foco visível e uma alternativa sem arrastar: selecionar um nó, usar o inseridor `+` e escolher o próximo passo pelo teclado. Paleta, canvas, arestas e diálogo devem ter ordem de foco previsível; Escape fecha o diálogo e devolve foco ao nó ou à aresta que o abriu.
 

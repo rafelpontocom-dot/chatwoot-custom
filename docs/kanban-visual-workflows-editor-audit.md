@@ -89,11 +89,11 @@ aprovado.
 
 | Prioridade | Nó | Motivo e limite |
 | --- | --- | --- |
-| P0 | Notificar equipe | Aviso interno para agente/equipe quando uma oportunidade exige ação. Não envia e-mail ou WhatsApp externo por conta própria. |
-| P0 | Criar oportunidade | Cria uma oportunidade de forma explícita a partir de conversa/contato; deve oferecer prevenção de duplicidade. |
-| P0 | Atualizar etiqueta do contato | Separar etiqueta do contato de etiqueta da oportunidade, com escopo auditável. |
+| P0 | Notificar equipe | Presente: cria nota privada com menção de uma ou mais equipes, reutiliza as notificações nativas do Chatwoot e segue o fluxo. Não envia e-mail ou WhatsApp externo por conta própria. |
+| P0 | Criar oportunidade | Presente: cria uma oportunidade explícita a partir da conversa vinculada, no mesmo board, em etapa ativa escolhida e com título obrigatório; reutiliza autorização e prevenção de duplicidade da criação por conversa. |
+| P0 | Atualizar etiqueta do contato | Presente como ações distintas para adicionar/remover etiqueta do contato, sem alterar a etiqueta da oportunidade. |
 | P0 | Parar execução | Encerra a execução atual com motivo comercial, sem apagar histórico. |
-| P1 | Checar duplicidade | Compara telefone, e-mail e oportunidade aberta antes de criar ou avançar um lead. |
+| P1 | Checar duplicidade | Presente com escopo seguro: compara oportunidade ativa do mesmo board para o mesmo contato e abre saídas distintas para duplicada ou sem duplicidade. Telefone/e-mail entre contatos e correspondência aproximada exigem contrato posterior, pois podem gerar falsos positivos. |
 | P1 | Definir atividade interna | Cria uma próxima ação para agente/equipe, incluindo data, tipo e responsável; não substitui agenda externa. |
 | P1 | Limite de frequência comercial | Reutilizável por canal e por oportunidade para evitar excesso de follow-up. |
 | P1 | Janela de conversão | Mede e registra etapa/tempo de conversão; não é um nó de relatório genérico. |

@@ -198,6 +198,7 @@ const stateTone = state =>
     v-else-if="
       [
         'message_eligibility',
+        'duplicate_check',
         'send_message',
         'wait_until_field',
         'wait_for_response',
@@ -244,6 +245,7 @@ const stateTone = state =>
       data.kind !== 'end' &&
       ![
         'condition',
+        'duplicate_check',
         'round_robin',
         'message_eligibility',
         'send_message',

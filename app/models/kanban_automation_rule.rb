@@ -58,12 +58,12 @@ class KanbanAutomationRule < ApplicationRecord
   ACTION_NAMES = %w[
     move_stage assign_owner assign_round_robin set_next_action complete_next_action
     mark_won mark_lost set_field increment_field clear_field update_contact archive_card
-    enroll_cadence add_label remove_label add_note
+    enroll_cadence add_label remove_label add_contact_label remove_contact_label add_note
   ].freeze
   FLOW_NODE_TYPES = %w[
     trigger delay random_delay wait_until_field wait_for_response wait_for_inactivity wait_for_business_hours stage_guard
     send_message action set_field update_contact complete_next_action mark_won mark_lost
-    condition filter message_eligibility round_robin human_handoff audit_log webhook end
+    condition filter duplicate_check message_eligibility round_robin human_handoff notify_team create_opportunity audit_log webhook end
   ].freeze
   belongs_to :account
   belongs_to :kanban_board

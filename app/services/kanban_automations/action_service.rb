@@ -24,6 +24,8 @@ class KanbanAutomations::ActionService
     'enroll_cadence' => :enroll_cadence,
     'add_label' => :add_label,
     'remove_label' => :remove_label,
+    'add_contact_label' => :add_contact_label,
+    'remove_contact_label' => :remove_contact_label,
     'add_note' => :add_note
   }.freeze
 
@@ -269,6 +271,26 @@ class KanbanAutomations::ActionService
     @card.label_list.remove(label)
     @card.save!
     result('remove_label', 'succeeded', label: label)
+  end
+
+  def add_contact_label(params)
+    label = contact_label!(params)
+    @card.contact.add_labels([label])
+    result('add_contact_label', 'succeeded', label: label)
+  end
+
+  def remove_contact_label(params)
+    label = contact_label!(params)
+    @card.contact.label_list.remove(label)
+    @card.contact.save!
+    result('remove_contact_label', 'succeeded', label: label)
+  end
+
+  def contact_label!(params)
+    label = params.fetch(:label).to_s.strip
+    raise ArgumentError, 'Label cannot be blank' if label.blank?
+
+    label
   end
 
   def add_note(params)

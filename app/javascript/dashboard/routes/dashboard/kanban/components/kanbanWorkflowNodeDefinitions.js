@@ -61,6 +61,12 @@ const NODE_DEFINITIONS = Object.freeze({
     labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.FILTER',
     addable: true,
   },
+  duplicate_check: {
+    category: 'DECISION',
+    icon: 'i-lucide-copy-check',
+    labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.DUPLICATE_CHECK',
+    addable: true,
+  },
   message_eligibility: {
     category: 'DECISION',
     icon: 'i-lucide-shield-check',
@@ -91,6 +97,20 @@ const NODE_DEFINITIONS = Object.freeze({
     icon: 'i-lucide-notebook-pen',
     labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.AUDIT_LOG',
     addable: true,
+  },
+  notify_team: {
+    category: 'OPERATION',
+    icon: 'i-lucide-bell-ring',
+    labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.NOTIFY_TEAM',
+    addable: true,
+    terminal: false,
+  },
+  create_opportunity: {
+    category: 'OPPORTUNITY',
+    icon: 'i-lucide-circle-plus',
+    labelKey: 'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.CREATE_OPPORTUNITY',
+    addable: true,
+    terminal: false,
   },
   send_message: {
     category: 'CUSTOMER',

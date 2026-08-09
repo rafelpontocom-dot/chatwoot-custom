@@ -25,6 +25,9 @@ const selectedChangedField = computed(() =>
 const selectedChangedFieldOptions = computed(
   () => selectedChangedField.value?.conditionOptions || []
 );
+const activeConnections = computed(() =>
+  props.connections.filter(connection => connection.active)
+);
 const updateChangedField = value =>
   emit('update:config', { changedFieldKey: value, changedFieldValue: '' });
 
@@ -276,7 +279,7 @@ const toggleStageEvent = (eventName, checked) => {
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ANY_CONNECTION') }}
         </option>
         <option
-          v-for="connection in connections"
+          v-for="connection in activeConnections"
           :key="connection.id"
           :value="connection.id"
         >

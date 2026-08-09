@@ -394,6 +394,44 @@ RSpec.describe KanbanAutomations::WorkflowService do
     )
   end
 
+  it 'notifies a commercial team with a private conversation mention and continues the workflow' do
+    conversation = create(:conversation)
+    card = create(:kanban_card, :conversation_origin, conversation: conversation)
+    team = create(:team, account: card.account)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'notify',
+            type: 'notify_team',
+            data: { team_ids: [team.id], content: 'Revisar esta oportunidade hoje.' }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'notify' },
+          { source: 'notify', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(conversation.messages.last).to have_attributes(
+      private: true,
+      content: include('Revisar esta oportunidade hoje.', "(mention://team/#{team.id}/#{team.name})")
+    )
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'notify', 'status' => 'succeeded', 'team_ids' => [team.id])
+    )
+  end
+
   it 'waits until the next configured business window before a follow-up message' do
     card = create(:kanban_card)
     rule = create(
@@ -1117,6 +1155,113 @@ RSpec.describe KanbanAutomations::WorkflowService do
 
     expect(card.reload.label_list).to include('prioridade')
     expect(conversation.messages.where(private: true).last.content).to eq('Revisar proposta comercial.')
+  end
+
+  it 'creates a second opportunity from the linked conversation in a selected stage' do
+    conversation = create(:conversation)
+    card = create(:kanban_card, :conversation_origin, conversation: conversation)
+    create(:user, :administrator, account: card.account)
+    target_stage = create(:kanban_stage, account: card.account, kanban_board: card.kanban_board)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          {
+            id: 'create',
+            type: 'create_opportunity',
+            data: { stage_id: target_stage.id, subject: 'Retorno comercial' }
+          },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'create' },
+          { source: 'create', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = nil
+    expect do
+      result = described_class.new(execution: execution, rule: rule, card: card).perform!
+    end.to change(KanbanCard, :count).by(1)
+
+    created_card = card.kanban_board.kanban_cards.find_by!(subject: 'Retorno comercial')
+    expect(created_card).to have_attributes(conversation: conversation, kanban_stage: target_stage)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'create', 'status' => 'succeeded', 'created_card_id' => created_card.id)
+    )
+  end
+
+  it 'routes to the duplicate path when another active opportunity has the same contact' do
+    card = create(:kanban_card)
+    duplicate = create(
+      :kanban_card,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      contact: card.contact,
+      inbox: card.inbox,
+      subject: 'Outra oportunidade aberta'
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'dedupe', type: 'duplicate_check', data: {} },
+          { id: 'duplicate-end', type: 'end', data: { outcome: 'stopped' } },
+          { id: 'unique-end', type: 'end', data: { outcome: 'completed' } }
+        ],
+        edges: [
+          { source: 'trigger', target: 'dedupe' },
+          { source: 'dedupe', sourceHandle: 'duplicate', target: 'duplicate-end' },
+          { source: 'dedupe', sourceHandle: 'unique', target: 'unique-end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'dedupe', 'branch' => 'duplicate', 'duplicate_card_ids' => [duplicate.id])
+    )
+  end
+
+  it 'routes to the unique path when the current card is the contact only active opportunity' do
+    card = create(:kanban_card)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'dedupe', type: 'duplicate_check', data: {} },
+          { id: 'duplicate-end', type: 'end', data: { outcome: 'stopped' } },
+          { id: 'unique-end', type: 'end', data: { outcome: 'completed' } }
+        ],
+        edges: [
+          { source: 'trigger', target: 'dedupe' },
+          { source: 'dedupe', sourceHandle: 'duplicate', target: 'duplicate-end' },
+          { source: 'dedupe', sourceHandle: 'unique', target: 'unique-end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:status]).to eq(:succeeded)
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'dedupe', 'branch' => 'unique', 'duplicate_card_ids' => [])
+    )
   end
 
   it 'delivers a signed webhook node without exposing its secret in the execution log' do

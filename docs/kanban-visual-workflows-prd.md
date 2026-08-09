@@ -73,7 +73,7 @@ O catálogo não replica o n8n. Ele cobre eventos, decisões e ações comerciai
 | Distribuir caminhos | Alterna saídas sequencialmente para testes ou campanhas.          | Duas ou mais saídas.       |
 | Fim               | Encerra o caminho.                                                 | Nenhuma.                   |
 
-As ações comerciais disponíveis são: mover etapa, definir responsável, distribuir novos cards em rodízio, criar próxima ação, preencher, incrementar ou limpar campo personalizado, arquivar oportunidade, adicionar/remover etiqueta e registrar nota interna na conversa vinculada.
+As ações comerciais disponíveis são: mover etapa, definir responsável, distribuir novos cards em rodízio, criar próxima ação, preencher, incrementar ou limpar campo personalizado, arquivar oportunidade, adicionar/remover etiqueta da oportunidade, adicionar/remover etiqueta do contato e registrar nota interna na conversa vinculada.
 
 ### Próximos Nós Comerciais
 
@@ -89,7 +89,10 @@ As ações comerciais disponíveis são: mover etapa, definir responsável, dist
 | Cliente | Atualizar contato | Atualiza atributo permitido, como opt-in ou data de nascimento. |
 | Oportunidade | Ganhar ou perder | Fecha a oportunidade com dados obrigatórios e motivo quando aplicável. |
 | Oportunidade | Concluir próxima ação | Registra a nota de conclusão e pode agendar a próxima atividade comercial. |
+| Oportunidade | Criar oportunidade | Cria uma oportunidade adicional para a conversa vinculada, no mesmo funil, com etapa e título escolhidos. A proteção existente bloqueia repetição da mesma conversa, inbox e título. |
+| Decisão | Checar duplicidade | Compara oportunidades ativas do mesmo funil para o mesmo contato, exclui o card atual e encaminha por `Já existe oportunidade aberta` ou `Sem oportunidade aberta`. |
 | Operação | Registrar execução | Adiciona uma observação imutável à linha do tempo, sem expor dados técnicos ao cliente. |
+| Operação | Notificar equipe | Cria uma nota privada com menção das equipes escolhidas e segue o fluxo; nunca envia mensagem externa ao cliente. |
 | Operação | Tratar falha | Define parar, tentar novamente ou seguir pela saída de falha para nós permitidos. |
 
 ### Fora Do Escopo Do Construtor
@@ -144,7 +147,7 @@ O modelo `Follow-up comercial` começa em rascunho e representa uma cadência de
 - Inserir um nó pelo `+` e manter as conexões válidas depois da inserção.
 - Rejeitar fluxo com nó desconhecido, ids duplicados ou conexão inválida.
 - Aguardar e retomar na data persistida.
-- Executar cada ação comercial com referências válidas.
+- Executar cada ação comercial com referências válidas, inclusive criação de oportunidade no mesmo funil e etapa ativa.
 - Não enviar mensagem sem opt-in, conversa compatível ou janela de WhatsApp.
 - Interromper execução pendente quando a regra for desativada ou o card arquivado.
 - Mostrar textos da interface em Português Brasil e manter traduções em inglês para a base do produto.

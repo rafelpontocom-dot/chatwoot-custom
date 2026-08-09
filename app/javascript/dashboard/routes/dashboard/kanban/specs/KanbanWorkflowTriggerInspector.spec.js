@@ -72,4 +72,24 @@ describe('KanbanWorkflowTriggerInspector', () => {
       { changedFieldValue: 'meta' },
     ]);
   });
+
+  it('only offers approved active connections for an inbound webhook trigger', () => {
+    const wrapper = shallowMount(KanbanWorkflowTriggerInspector, {
+      props: {
+        triggerValue: 'kanban.webhook.received',
+        triggerOptions: [
+          { value: 'kanban.webhook.received', label: 'Webhook recebido' },
+        ],
+        triggerContext: 'webhook',
+        connections: [
+          { id: 7, name: 'n8n aprovado', active: true },
+          { id: 8, name: 'Integração desativada', active: false },
+        ],
+        t,
+      },
+    });
+
+    expect(wrapper.text()).toContain('n8n aprovado');
+    expect(wrapper.text()).not.toContain('Integração desativada');
+  });
 });

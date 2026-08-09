@@ -95,6 +95,8 @@ config.global.stubs.KanbanWorkflowTimeInspector = false;
 config.global.stubs.KanbanWorkflowRoundRobinInspector = false;
 config.global.stubs.KanbanWorkflowDecisionInspector = false;
 config.global.stubs.KanbanWorkflowUtilityInspector = false;
+config.global.stubs.KanbanWorkflowCreateOpportunityInspector = false;
+config.global.stubs.KanbanWorkflowDuplicateCheckInspector = false;
 config.global.stubs.KanbanWorkflowContactInspector = false;
 config.global.stubs.KanbanWorkflowOutcomeInspector = false;
 config.global.stubs.KanbanWorkflowMessageInspector = false;
@@ -1481,6 +1483,94 @@ describe('KanbanWorkflowBuilder', () => {
       .setValue('4');
 
     expect(wrapper.vm.selectedNode.data.team_id).toBe(4);
+  });
+
+  it('configures a team notification without ending the workflow', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        teams: [{ id: 4, name: 'Comercial' }],
+        modelValue: {
+          nodes: [
+            {
+              id: 'notify',
+              type: 'notify_team',
+              data: { team_ids: [], content: '' },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .find('[data-testid="kanban-workflow-notify-team-4"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-workflow-notify-team-content"]')
+      .setValue('Revisar proposta hoje');
+
+    expect(wrapper.vm.selectedNode.data.team_ids).toEqual([4]);
+    expect(wrapper.vm.nodes[0].data.summary).toBe('Comercial');
+    expect(wrapper.vm.nodes[0].data.canAddAfter).toBe(true);
+  });
+
+  it('configures a new opportunity in a selected pipeline stage', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        stages: [{ id: 8, name: 'Retorno comercial' }],
+        modelValue: {
+          nodes: [
+            {
+              id: 'create',
+              type: 'create_opportunity',
+              data: { stage_id: '', subject: '' },
+            },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .find('[data-testid="kanban-workflow-create-opportunity-stage"]')
+      .setValue('8');
+    await wrapper
+      .find('[data-testid="kanban-workflow-create-opportunity-subject"]')
+      .setValue('Retorno comercial');
+
+    expect(wrapper.vm.selectedNode.data).toMatchObject({
+      stage_id: 8,
+      subject: 'Retorno comercial',
+    });
+    expect(wrapper.vm.nodes[0].data.summary).toBe('Retorno comercial');
+    expect(wrapper.vm.nodes[0].data.canAddAfter).toBe(true);
+  });
+
+  it('shows the two paths of a duplicate check without exposing technical rules', async () => {
+    const wrapper = shallowMount(KanbanWorkflowBuilder, {
+      props: {
+        modelValue: {
+          nodes: [{ id: 'dedupe', type: 'duplicate_check', data: {} }],
+          edges: [],
+        },
+      },
+    });
+
+    wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.nodes[0].data.outputs).toEqual([
+      expect.objectContaining({ id: 'duplicate' }),
+      expect.objectContaining({ id: 'unique' }),
+    ]);
+    expect(wrapper.vm.nodes[0].data.canAddAfter).toBe(false);
+    expect(wrapper.text()).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DUPLICATE_CHECK_HINT'
+    );
   });
 
   it('explains the dedicated next-action completion node', async () => {

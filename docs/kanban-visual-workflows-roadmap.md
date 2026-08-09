@@ -78,9 +78,9 @@ Aceite:
 ### Gatilho
 
 - [x] Mostrar evento selecionado no card do gatilho.
-- [-] Mostrar somente filtros compatíveis com o evento: etapa, responsável, campo, valor e próxima ação aparecem apenas nos gatilhos correspondentes. Falta explicitar `qualquer` versus critério, filtrar webhook por conexão aprovada e permitir valor/campo anterior ou novo quando o evento disponibilizar essa informação.
+- [-] Mostrar somente filtros compatíveis com o evento: etapa, responsável, campo, valor e próxima ação aparecem apenas nos gatilhos correspondentes; todos explicitam `qualquer` versus critério e webhook mostra apenas conexão ativa aprovada. Falta somente permitir valor/campo anterior ou novo quando o evento disponibilizar essa informação.
 - [x] Separar claramente gatilho de condições posteriores: o gatilho é uma categoria própria, enquanto Router e Filtro pertencem a Decisão e são adicionados como passos posteriores.
-- [-] Implementar os nós comerciais priorizados pela auditoria: notificar equipe, criar oportunidade, atualizar etiqueta do contato, parar execução, checar duplicidade e definir atividade interna. Ver [auditoria do editor](kanban-visual-workflows-editor-audit.md).
+- [x] Implementar os nós comerciais priorizados pela auditoria: `Notificar equipe` está disponível como nota privada com menção nativa de equipes e continuação do fluxo; adicionar/remover etiqueta de contato entrou como ação comercial distinta; `Criar oportunidade` cria, com autorização e proteção de duplicidade, uma oportunidade da conversa vinculada no mesmo board e em etapa escolhida; `Checar duplicidade` roteia entre oportunidade aberta existente e sem oportunidade aberta, comparando apenas cards ativos do mesmo board para o mesmo contato; `Definir atividade interna` é coberto por `Concluir próxima ação` com opção de agendar a seguinte. `Parar execução` é coberto pelo nó final com resultado `Interrompido`. Ver [auditoria do editor](kanban-visual-workflows-editor-audit.md).
 
 ### Tempo
 

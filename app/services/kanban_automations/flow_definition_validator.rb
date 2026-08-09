@@ -19,6 +19,8 @@ class KanbanAutomations::FlowDefinitionValidator
     'enroll_cadence' => :validate_action_cadence,
     'add_label' => :validate_action_label,
     'remove_label' => :validate_action_label,
+    'add_contact_label' => :validate_action_label,
+    'remove_contact_label' => :validate_action_label,
     'add_note' => :validate_action_note,
     'update_contact' => :validate_action_contact,
     'complete_next_action' => :validate_action_next_action,
@@ -124,17 +126,21 @@ class KanbanAutomations::FlowDefinitionValidator
   def validate_decision_nodes(node, data)
     validate_condition_node(node, data)
     validate_filter_node(node, data)
+    validate_duplicate_check_node(node)
     validate_message_eligibility_node(node, data)
     validate_round_robin_node(node, data)
   end
 
   def validate_operation_nodes(node, data)
     validate_human_handoff_node(node, data)
+    validate_notify_team_node(node, data)
+    validate_create_opportunity_node(node, data)
     validate_audit_log_node(node, data)
   end
 
   def validate_node_paths(node, data)
     validate_condition_paths(node)
+    validate_duplicate_check_paths(node)
     validate_message_eligibility_paths(node)
     validate_message_paths(node, data)
     validate_date_wait_paths(node, data)
@@ -382,6 +388,13 @@ class KanbanAutomations::FlowDefinitionValidator
     add_error("Filter node #{node[:id]} is incomplete")
   end
 
+  def validate_duplicate_check_node(node)
+    return unless node[:type] == 'duplicate_check'
+    return if outgoing_node_ids(node[:id].to_s).length == 2
+
+    add_error("Duplicate-check node #{node[:id]} needs duplicate and unique paths")
+  end
+
   def validate_message_eligibility_node(node, data)
     return unless node[:type] == 'message_eligibility'
 
@@ -395,6 +408,30 @@ class KanbanAutomations::FlowDefinitionValidator
     references = human_handoff_references(data)
     validate_human_handoff_destinations(node, data, references)
     add_error("Human handoff node #{node[:id]} cannot have an outgoing path") if outgoing_node_ids(node[:id].to_s).present?
+  end
+
+  def validate_notify_team_node(node, data)
+    return unless node[:type] == 'notify_team'
+
+    team_ids = Array(data[:team_ids]).filter_map { |team_id| Integer(team_id, exception: false) }
+    if data[:content].to_s.strip.blank? || team_ids.blank?
+      add_error("Notify-team node #{node[:id]} needs a message and at least one team")
+      return
+    end
+
+    teams = rule.account.teams.where(id: team_ids)
+    return if teams.count == team_ids.uniq.length
+
+    add_error("Notify-team node #{node[:id]} references a team outside this account")
+  end
+
+  def validate_create_opportunity_node(node, data)
+    return unless node[:type] == 'create_opportunity'
+
+    stage = rule.kanban_board.kanban_stages.active.find_by(id: data[:stage_id])
+    return if stage.present? && data[:subject].to_s.strip.present?
+
+    add_error("Create-opportunity node #{node[:id]} needs a stage from this board and a title")
   end
 
   def human_handoff_references(data)
@@ -535,6 +572,17 @@ class KanbanAutomations::FlowDefinitionValidator
     return if handles.tally.slice('eligible', 'otherwise') == { 'eligible' => 1, 'otherwise' => 1 }
 
     add_error("Message eligibility node #{node[:id]} needs eligible and otherwise paths")
+  end
+
+  def validate_duplicate_check_paths(node)
+    return unless node[:type] == 'duplicate_check'
+
+    handles = edges.filter_map do |edge|
+      edge[:sourceHandle].to_s if edge[:source].to_s == node[:id].to_s
+    end
+    return if handles.tally.slice('duplicate', 'unique') == { 'duplicate' => 1, 'unique' => 1 }
+
+    add_error("Duplicate-check node #{node[:id]} needs duplicate and unique paths")
   end
 
   def validate_condition_branch_paths(node, handles, branches)

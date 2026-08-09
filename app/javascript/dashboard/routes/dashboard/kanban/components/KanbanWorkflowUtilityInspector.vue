@@ -25,6 +25,9 @@ const title = computed(() => {
   if (props.node.type === 'human_handoff') {
     return props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.HUMAN_HANDOFF');
   }
+  if (props.node.type === 'notify_team') {
+    return props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.NOTIFY_TEAM');
+  }
   if (props.node.type === 'audit_log') {
     return props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.AUDIT_LOG');
   }
@@ -33,6 +36,17 @@ const title = computed(() => {
     'KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.MESSAGE_ELIGIBILITY'
   );
 });
+
+const notificationTeamSelected = teamId =>
+  data.value.team_ids?.map(Number).includes(Number(teamId));
+
+const toggleNotificationTeam = (teamId, selected) => {
+  const teamIds = data.value.team_ids?.map(Number) || [];
+  data.value.team_ids = selected
+    ? [...new Set([...teamIds, Number(teamId)])]
+    : teamIds.filter(id => id !== Number(teamId));
+  emit('update');
+};
 </script>
 
 <template>
@@ -45,6 +59,9 @@ const title = computed(() => {
         </template>
         <template v-else-if="node.type === 'human_handoff'">
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HANDOFF_HINT') }}
+        </template>
+        <template v-else-if="node.type === 'notify_team'">
+          {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NOTIFY_TEAM_HINT') }}
         </template>
         <template v-else-if="node.type === 'audit_log'">
           {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUDIT_LOG_HINT') }}
@@ -165,6 +182,40 @@ const title = computed(() => {
         {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.HANDOFF_NOTE') }}
         <textarea
           v-model="data.note"
+          rows="3"
+          class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          @change="emit('update')"
+        />
+      </label>
+    </template>
+
+    <template v-else-if="node.type === 'notify_team'">
+      <fieldset class="grid gap-2">
+        <legend class="text-xs font-medium text-n-slate-11">
+          {{
+            t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NOTIFY_TEAM_DESTINATIONS')
+          }}
+        </legend>
+        <label
+          v-for="team in teams"
+          :key="team.id"
+          class="flex items-center gap-2 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12"
+        >
+          <input
+            :data-testid="`kanban-workflow-notify-team-${team.id}`"
+            type="checkbox"
+            class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+            :checked="notificationTeamSelected(team.id)"
+            @change="toggleNotificationTeam(team.id, $event.target.checked)"
+          />
+          {{ team.name }}
+        </label>
+      </fieldset>
+      <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+        {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NOTIFY_TEAM_CONTENT') }}
+        <textarea
+          v-model="data.content"
+          data-testid="kanban-workflow-notify-team-content"
           rows="3"
           class="resize-y rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
           @change="emit('update')"
