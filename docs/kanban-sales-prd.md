@@ -673,14 +673,21 @@ O drawer usa:
 - cabeçalho fixo com título editável, identificador do card, funil e seletor da etapa atual;
 - ícone de conversa no cabeçalho para abrir o atendimento sem perder a referência visual da oportunidade;
 - abas `Geral`, `Contato`, `Agente`, campos configurados pelo board e `Linha do tempo`;
+- quando a Agenda estiver habilitada no board, ela ocupa sua própria aba e não aparece como um bloco dentro de `Geral`;
 - responsável comercial em `Geral`; o agente pertence à conversa vinculada e aparece na aba `Agente`;
 - dados do contato e etiquetas do Chatwoot na aba `Contato`, sem competir com os dados de venda;
+- dados de contato são exibidos em lista vertical com quebra de linhas para preservar leitura de telefone, e-mail e valores longos;
 - grupos de campos compactos, com edição contextual;
+- campos usam instrução interna ou a primeira opção do seletor; rótulos continuam disponíveis para leitor de tela e não consomem altura desnecessária;
+- o resumo é uma ficha de decisão: `o que precisa acontecer agora`, `quem conduz`, `o que foi combinado`, `existe agendamento` e `qual é o cenário comercial`;
+- campos aparecem como linhas compactas e editáveis por intenção, não como uma parede de caixas de formulário;
 - planejamento interno recolhido por padrão; data de início e vencimento não representam consulta e não substituem a Agenda;
 - ganho e perda são consequência da categoria da etapa escolhida. Uma etapa `Perdida` exige motivo antes de salvar;
 - rodapé fixo com ações primárias.
 
 Configuração de campos não deve ficar misturada à edição normal. A engrenagem abre o gerenciador do board em padrão lista/tabela e detalhe progressivo, enquanto a edição do card mostra somente dados da oportunidade. O administrador vê uma lista compacta de campos, abas e regras; abre o item necessário para editar, sem várias caixas grandes concorrendo pela mesma tela.
+
+Uma aba não é criada para cada campo. `Resumo`, `Contato`, `Agente`, `Agenda` e `Histórico` são superfícies fixas. Uma aba configurável só é indicada quando existe uma rotina própria, por exemplo `Financeiro`, `Consulta`, `Contrato` ou `Marketing`. Dentro dela, grupos devem ser nomeados como perguntas ou decisões de trabalho, por exemplo `Quanto foi combinado?`, `Como será pago?` e `O pagamento aconteceu?`. Um ou dois campos novos devem entrar no grupo existente mais próximo.
 
 As etapas seguem o mesmo padrão: a lista mostra apenas ordem, cor, nome, quantidade e categoria. Clicar em uma etapa abre seu detalhe único com categoria, alerta de capacidade e probabilidade; criar uma etapa acontece em diálogo curto com nome e cor, sem expandir a tela inteira.
 

@@ -114,8 +114,6 @@ const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
 const activeTabKey = ref('details');
 const expandedGroupKeys = ref({
-  commercial: true,
-  nextAction: true,
   organization: false,
   labels: false,
 });
@@ -298,6 +296,10 @@ const customFieldSectionLabel = sectionKey => {
     .replace(/[_-]+/g, ' ')
     .replace(/^./, character => character.toUpperCase());
 };
+const customFieldGroupLabel = groupKey =>
+  groupKey
+    .replace(/[_-]+/g, ' ')
+    .replace(/^./, character => character.toUpperCase());
 const customFieldTabs = computed(() => {
   const sections = new Map([
     [
@@ -358,6 +360,14 @@ const opportunityTabs = computed(() => {
       key: 'agent-details',
       label: t('KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE'),
     },
+    ...(props.calendarEnabled
+      ? [
+          {
+            key: 'calendar',
+            label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.CALENDAR'),
+          },
+        ]
+      : []),
     ...fieldTabs,
     timelineTab.value,
   ];
@@ -471,21 +481,41 @@ const activeTabGroups = computed(() => {
     });
   }
 
+  definitions
+    .filter(definition => {
+      const groupKey = customFieldGroupKey(definition);
+      return groupKey && !seenGroupKeys.has(groupKey);
+    })
+    .forEach(definition => {
+      const key = customFieldGroupKey(definition);
+      if (seenGroupKeys.has(key)) return;
+
+      seenGroupKeys.add(key);
+      groups.push({
+        key,
+        label: customFieldGroupLabel(key),
+        color: 'slate',
+        definitions: definitions.filter(
+          groupedDefinition => customFieldGroupKey(groupedDefinition) === key
+        ),
+      });
+    });
+
   return groups.filter(group => group.definitions.length);
 });
 const customFieldGroupClass = color =>
   ({
-    slate: 'border-n-weak bg-n-surface-2',
-    blue: 'border-n-blue-4 bg-n-blue-2',
-    teal: 'border-n-teal-4 bg-n-teal-2',
-    green: 'border-green-200 bg-green-50',
-    amber: 'border-n-amber-4 bg-n-amber-2',
-    orange: 'border-orange-200 bg-orange-50',
-    ruby: 'border-n-ruby-4 bg-n-ruby-2',
-    rose: 'border-rose-200 bg-rose-50',
-    violet: 'border-n-violet-4 bg-n-violet-2',
-    iris: 'border-n-iris-4 bg-n-iris-2',
-  })[color] || 'border-n-weak bg-n-surface-2';
+    slate: 'border-l-n-slate-7',
+    blue: 'border-l-n-blue-7',
+    teal: 'border-l-n-teal-7',
+    green: 'border-l-green-600',
+    amber: 'border-l-n-amber-7',
+    orange: 'border-l-orange-600',
+    ruby: 'border-l-n-ruby-7',
+    rose: 'border-l-rose-600',
+    violet: 'border-l-n-violet-7',
+    iris: 'border-l-n-iris-7',
+  })[color] || 'border-l-n-slate-7';
 const groupToggleKey = (sectionKey, groupKey) => `${sectionKey}:${groupKey}`;
 const isGroupExpanded = groupKey => expandedGroupKeys.value[groupKey] !== false;
 const toggleGroup = groupKey => {
@@ -504,14 +534,6 @@ const setCustomFieldValue = (definition, value) => {
     ...customFieldValues.value,
     [definition.key]: value,
   };
-};
-const customFieldLayoutClass = definition => {
-  const width = definition.layout?.width || 'full';
-  return {
-    full: 'md:col-span-6',
-    half: 'md:col-span-3',
-    third: 'md:col-span-2',
-  }[width];
 };
 const selectedMultiselectValues = event =>
   Array.from(event.target.selectedOptions).map(option => option.value);
@@ -1062,39 +1084,133 @@ watch(showUnsavedChanges, async visible => {
           <section class="grid min-w-0 content-start gap-4">
             <template v-if="activeTabKey === 'details'">
               <section
-                data-testid="kanban-opportunity-commercial-group"
-                class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
+                data-testid="kanban-opportunity-next-action-section"
+                class="grid gap-2 border-b border-n-weak pb-3"
               >
-                <button
-                  type="button"
-                  class="flex items-center justify-between gap-3 text-left"
-                  :aria-expanded="isGroupExpanded('commercial')"
-                  @click="toggleGroup('commercial')"
-                >
-                  <span class="text-sm font-semibold text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL') }}
-                  </span>
-                  <i
-                    class="size-4 text-n-slate-10"
-                    :class="
-                      isGroupExpanded('commercial')
-                        ? 'i-lucide-chevron-up'
-                        : 'i-lucide-chevron-down'
+                <div class="flex items-center justify-between gap-3">
+                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.NEXT_ACTION') }}
+                  </h3>
+                  <NextButton
+                    v-if="nextActionAt && !card.nextActionCompletedAt"
+                    type="button"
+                    xs
+                    outline
+                    emerald
+                    data-testid="kanban-opportunity-complete-next-action"
+                    icon="i-lucide-check-check"
+                    :label="
+                      t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')
                     "
+                    :disabled="isSaving"
+                    @click="completeNextAction"
                   />
-                </button>
-                <div v-show="isGroupExpanded('commercial')" class="grid gap-3">
-                  <label class="grid gap-1.5">
-                    <span class="text-sm font-medium text-n-slate-12">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER') }}
+                </div>
+                <div class="grid">
+                  <div
+                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2"
+                  >
+                    <span class="text-xs text-n-slate-11">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE') }}
                     </span>
+                    <select
+                      v-model="nextActionType"
+                      data-testid="kanban-opportunity-next-action-type"
+                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
+                      :aria-label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE')
+                      "
+                    >
+                      <option
+                        v-for="option in nextActionTypeOptions"
+                        :key="option.value || 'none'"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div
+                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2"
+                  >
+                    <span class="text-xs text-n-slate-11">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT') }}
+                    </span>
+                    <NextInput
+                      v-model="nextActionAt"
+                      type="datetime-local"
+                      data-testid="kanban-opportunity-next-action-at"
+                      class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
+                      :aria-label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')
+                      "
+                    />
+                  </div>
+                  <label
+                    class="grid grid-cols-[9rem_1fr] items-start gap-3 py-2"
+                  >
+                    <span class="pt-1 text-xs text-n-slate-11">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE') }}
+                    </span>
+                    <textarea
+                      v-model="nextActionNote"
+                      rows="2"
+                      data-testid="kanban-opportunity-next-action-note"
+                      class="min-h-12 max-w-full w-full min-w-0 resize-y border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
+                      :placeholder="
+                        t(
+                          'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER'
+                        )
+                      "
+                      :aria-label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE')
+                      "
+                    />
+                  </label>
+                </div>
+                <div
+                  v-if="card.nextActionHistory?.length"
+                  data-testid="kanban-opportunity-next-action-history"
+                  class="grid gap-2 border-t border-n-weak pt-3"
+                >
+                  <h4 class="mb-0 text-xs font-medium text-n-slate-11">
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_HISTORY') }}
+                  </h4>
+                  <div
+                    v-for="(historyItem, index) in card.nextActionHistory
+                      .slice()
+                      .reverse()"
+                    :key="`${historyItem.completedAt || historyItem.completed_at}-${index}`"
+                    class="grid gap-0.5 text-xs text-n-slate-11"
+                  >
+                    <span class="font-medium text-n-slate-12">
+                      {{ historyItem.type }}
+                    </span>
+                    <span v-if="historyItem.note">{{ historyItem.note }}</span>
+                  </div>
+                </div>
+              </section>
+              <section
+                data-testid="kanban-opportunity-commercial-group"
+                class="grid"
+              >
+                <section
+                  class="grid gap-2 border-b border-n-weak py-3 first:pt-0"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER') }}
+                    </h3>
+                  </div>
+                  <label class="grid">
                     <select
                       v-model="ownerId"
                       data-testid="kanban-opportunity-owner"
-                      class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                      class="h-9 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
+                      :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.OWNER')"
                     >
                       <option value="">
-                        {{ t('KANBAN.OPPORTUNITY_DETAILS.UNASSIGNED') }}
+                        {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER') }}
                       </option>
                       <option
                         v-for="option in ownerOptions"
@@ -1105,43 +1221,76 @@ watch(showUnsavedChanges, async visible => {
                       </option>
                     </select>
                   </label>
-                  <label class="grid gap-1.5">
-                    <span class="text-sm font-medium text-n-slate-12">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION') }}
-                    </span>
+                </section>
+                <section class="grid gap-2 border-b border-n-weak py-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT') }}
+                    </h3>
+                  </div>
+                  <label class="grid">
                     <textarea
                       v-model="description"
                       rows="3"
                       data-testid="kanban-opportunity-description"
-                      class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                      class="min-h-16 max-w-full w-full min-w-0 resize-y border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
                       :placeholder="
                         t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
                       "
-                    />
-                  </label>
-
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    <NextInput
-                      v-model="amountValue"
-                      data-testid="kanban-opportunity-amount"
-                      class="w-full"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
-                    />
-
-                    <NextInput
-                      v-model="expectedCloseDate"
-                      data-testid="kanban-opportunity-expected-close-date"
-                      class="w-full"
-                      type="date"
-                      :label="
-                        t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
+                      :aria-label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION')
                       "
                     />
+                  </label>
+                </section>
+                <section class="grid gap-2 py-3 last:pb-0">
+                  <div class="flex items-center justify-between gap-3">
+                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.SCENARIO') }}
+                    </h3>
                   </div>
-                </div>
+                  <div class="grid">
+                    <div
+                      class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2"
+                    >
+                      <span class="text-xs text-n-slate-11">
+                        {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT') }}
+                      </span>
+                      <NextInput
+                        v-model="amountValue"
+                        data-testid="kanban-opportunity-amount"
+                        class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        :placeholder="
+                          t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')
+                        "
+                        :aria-label="
+                          t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')
+                        "
+                      />
+                    </div>
+                    <div
+                      class="grid grid-cols-[9rem_1fr] items-center gap-3 py-2"
+                    >
+                      <span class="text-xs text-n-slate-11">
+                        {{
+                          t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
+                        }}
+                      </span>
+                      <NextInput
+                        v-model="expectedCloseDate"
+                        data-testid="kanban-opportunity-expected-close-date"
+                        class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
+                        type="date"
+                        :aria-label="
+                          t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
+                        "
+                      />
+                    </div>
+                  </div>
+                </section>
               </section>
 
               <section
@@ -1187,20 +1336,20 @@ watch(showUnsavedChanges, async visible => {
               data-testid="kanban-opportunity-contact-details"
               class="grid gap-4"
             >
-              <section
-                class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
-              >
+              <section class="grid gap-3 border-b border-n-weak pb-4">
                 <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
                 </h3>
-                <dl class="grid gap-3 sm:grid-cols-2">
+                <dl class="grid gap-3">
                   <div
                     v-for="detail in contactDetails"
                     :key="detail.key"
-                    class="grid gap-0.5"
+                    class="grid gap-0.5 border-b border-n-weak pb-2 last:border-b-0 last:pb-0"
                   >
                     <dt class="text-xs text-n-slate-11">{{ detail.label }}</dt>
-                    <dd class="m-0 text-sm font-medium text-n-slate-12">
+                    <dd
+                      class="m-0 break-words text-sm font-medium text-n-slate-12"
+                    >
                       {{ detail.value }}
                     </dd>
                   </div>
@@ -1208,16 +1357,16 @@ watch(showUnsavedChanges, async visible => {
               </section>
               <section
                 v-if="contactAttributeEntries.length"
-                class="grid gap-3 rounded-lg border border-n-weak p-3"
+                class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
               >
                 <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
                 </h3>
-                <dl class="grid gap-3 sm:grid-cols-2">
+                <dl class="grid gap-3">
                   <div
                     v-for="[key, value] in contactAttributeEntries"
                     :key="key"
-                    class="grid gap-0.5"
+                    class="grid gap-0.5 border-b border-n-weak pb-2 last:border-b-0 last:pb-0"
                   >
                     <dt class="text-xs text-n-slate-11">
                       {{ formatContactAttributeLabel(key) }}
@@ -1233,7 +1382,7 @@ watch(showUnsavedChanges, async visible => {
             <section
               v-if="activeTabKey === 'agent-details'"
               data-testid="kanban-opportunity-agent-details"
-              class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
+              class="grid gap-3 border-b border-n-weak pb-4"
             >
               <div class="flex items-center gap-2">
                 <i class="i-lucide-user-round size-4 text-n-slate-10" />
@@ -1317,13 +1466,13 @@ watch(showUnsavedChanges, async visible => {
             <section
               v-if="hasCustomFields"
               data-testid="kanban-opportunity-custom-fields"
-              class="grid gap-3"
+              class="grid"
             >
-              <div class="grid gap-3">
+              <div class="grid">
                 <section
                   v-for="group in activeTabGroups"
                   :key="group.key"
-                  class="grid gap-3 rounded-md border p-3"
+                  class="grid gap-2 border-b border-n-weak py-3 pl-3 first:pt-0 last:border-b-0 last:pb-0 border-l-2"
                   :class="customFieldGroupClass(group.color)"
                 >
                   <button
@@ -1336,7 +1485,7 @@ watch(showUnsavedChanges, async visible => {
                       toggleGroup(groupToggleKey(activeTabKey, group.key))
                     "
                   >
-                    <span class="text-xs font-semibold text-n-slate-12">
+                    <span class="text-sm font-semibold text-n-slate-12">
                       {{ group.label }}
                     </span>
                     <i
@@ -1352,15 +1501,14 @@ watch(showUnsavedChanges, async visible => {
                     v-show="
                       isGroupExpanded(groupToggleKey(activeTabKey, group.key))
                     "
-                    class="grid gap-3 md:grid-cols-6"
+                    class="grid"
                   >
                     <label
                       v-for="definition in group.definitions"
                       :key="definition.key"
-                      class="grid gap-1.5"
-                      :class="customFieldLayoutClass(definition)"
+                      class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
                     >
-                      <span class="text-sm font-medium text-n-slate-12">
+                      <span class="min-w-0 text-xs text-n-slate-11">
                         {{ definition.label }}
                         <i
                           v-if="definition.important"
@@ -1375,12 +1523,13 @@ watch(showUnsavedChanges, async visible => {
                         v-if="definition.fieldType === 'select'"
                         :value="getCustomFieldValue(definition)"
                         :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
+                        :aria-label="definition.label"
                         @change="
                           setCustomFieldValue(definition, $event.target.value)
                         "
                       >
-                        <option value="" />
+                        <option value="">{{ definition.label }}</option>
                         <option
                           v-for="option in definition.options || []"
                           :key="option"
@@ -1395,7 +1544,8 @@ watch(showUnsavedChanges, async visible => {
                         multiple
                         :value="getCustomFieldValue(definition)"
                         :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="min-h-24 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        class="min-h-16 min-w-0 border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
+                        :aria-label="definition.label"
                         @change="
                           setCustomFieldValue(
                             definition,
@@ -1417,7 +1567,9 @@ watch(showUnsavedChanges, async visible => {
                         :value="getCustomFieldValue(definition)"
                         rows="3"
                         :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="min-h-20 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        class="min-h-16 min-w-0 resize-y border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
+                        :placeholder="definition.label"
+                        :aria-label="definition.label"
                         @input="
                           setCustomFieldValue(definition, $event.target.value)
                         "
@@ -1429,6 +1581,7 @@ watch(showUnsavedChanges, async visible => {
                         :checked="Boolean(getCustomFieldValue(definition))"
                         :data-testid="`kanban-custom-field-${definition.key}`"
                         class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                        :aria-label="definition.label"
                         @change="
                           setCustomFieldValue(definition, $event.target.checked)
                         "
@@ -1458,7 +1611,9 @@ watch(showUnsavedChanges, async visible => {
                         "
                         :disabled="definition.fieldType === 'formula'"
                         :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:border-n-brand"
+                        class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:ring-2 focus:ring-n-brand/40"
+                        :placeholder="definition.label"
+                        :aria-label="definition.label"
                         @input="
                           setCustomFieldValue(definition, $event.target.value)
                         "
@@ -1472,13 +1627,15 @@ watch(showUnsavedChanges, async visible => {
 
           <section
             v-if="
-              activeTabKey === 'details' || activeTabKey === 'contact-details'
+              activeTabKey === 'details' ||
+              activeTabKey === 'contact-details' ||
+              activeTabKey === 'calendar'
             "
             class="grid min-w-0 content-start gap-3"
           >
             <section
               v-if="activeTabKey === 'contact-details'"
-              class="grid gap-3 rounded-lg border border-n-weak p-3"
+              class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
             >
               <div class="flex items-center justify-between gap-3">
                 <button
@@ -1575,7 +1732,7 @@ watch(showUnsavedChanges, async visible => {
             </section>
 
             <KanbanCalendarAppointmentsSection
-              v-if="activeTabKey === 'details' && calendarEnabled"
+              v-if="activeTabKey === 'calendar' && calendarEnabled"
               :card-id="card.id"
               :contact-id="card.contact?.id"
               :contact-name="contactName"
@@ -1587,7 +1744,7 @@ watch(showUnsavedChanges, async visible => {
 
             <section
               v-if="activeTabKey === 'details'"
-              class="grid gap-3 rounded-lg border border-n-weak p-3"
+              class="grid gap-3 border-b border-n-weak py-3"
             >
               <button
                 type="button"
@@ -1607,122 +1764,38 @@ watch(showUnsavedChanges, async visible => {
                   "
                 />
               </button>
-              <div v-show="isGroupExpanded('organization')" class="grid gap-3">
+              <div v-show="isGroupExpanded('organization')" class="grid gap-2">
                 <p class="mb-0 text-xs text-n-slate-11">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.INTERNAL_DATES_HELP') }}
                 </p>
-                <NextInput
-                  v-model="startsAt"
-                  type="datetime-local"
-                  data-testid="kanban-opportunity-starts-at"
-                  :label="t('KANBAN.OPPORTUNITY_DETAILS.START_DATE')"
-                />
-                <NextInput
-                  v-model="dueAt"
-                  type="datetime-local"
-                  data-testid="kanban-opportunity-due-at"
-                  :label="t('KANBAN.OPPORTUNITY_DETAILS.DUE_DATE')"
-                />
-              </div>
-            </section>
-
-            <section
-              v-if="activeTabKey === 'details'"
-              data-testid="kanban-opportunity-next-action-section"
-              class="grid gap-3 rounded-lg border border-n-weak p-3"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
-                  :aria-expanded="isGroupExpanded('nextAction')"
-                  @click="toggleGroup('nextAction')"
-                >
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION') }}
-                  </span>
-                  <i
-                    class="size-4 text-n-slate-10"
-                    :class="
-                      isGroupExpanded('nextAction')
-                        ? 'i-lucide-chevron-up'
-                        : 'i-lucide-chevron-down'
-                    "
-                  />
-                </button>
-                <NextButton
-                  v-if="nextActionAt && !card.nextActionCompletedAt"
-                  type="button"
-                  xs
-                  outline
-                  emerald
-                  data-testid="kanban-opportunity-complete-next-action"
-                  icon="i-lucide-check-check"
-                  :label="t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')"
-                  :disabled="isSaving"
-                  @click="completeNextAction"
-                />
-              </div>
-              <div v-show="isGroupExpanded('nextAction')" class="grid gap-3">
-                <label class="grid gap-1.5">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE') }}
-                  </span>
-                  <select
-                    v-model="nextActionType"
-                    data-testid="kanban-opportunity-next-action-type"
-                    class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  >
-                    <option
-                      v-for="option in nextActionTypeOptions"
-                      :key="option.value || 'none'"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
-                <NextInput
-                  v-model="nextActionAt"
-                  type="datetime-local"
-                  data-testid="kanban-opportunity-next-action-at"
-                  :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')"
-                />
-                <label class="grid gap-1.5">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE') }}
-                  </span>
-                  <textarea
-                    v-model="nextActionNote"
-                    rows="3"
-                    data-testid="kanban-opportunity-next-action-note"
-                    class="min-h-20 max-w-full w-full min-w-0 resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                    :placeholder="
-                      t(
-                        'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER'
-                      )
-                    "
-                  />
-                </label>
-                <div
-                  v-if="card.nextActionHistory?.length"
-                  data-testid="kanban-opportunity-next-action-history"
-                  class="grid gap-2 border-t border-n-weak pt-3"
-                >
-                  <h4 class="mb-0 text-xs font-medium text-n-slate-11">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_HISTORY') }}
-                  </h4>
+                <div class="grid">
                   <div
-                    v-for="(historyItem, index) in card.nextActionHistory
-                      .slice()
-                      .reverse()"
-                    :key="`${historyItem.completedAt || historyItem.completed_at}-${index}`"
-                    class="grid gap-0.5 text-xs text-n-slate-11"
+                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2"
                   >
-                    <span class="font-medium text-n-slate-12">
-                      {{ historyItem.type }}
+                    <span class="text-xs text-n-slate-11">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.START_DATE') }}
                     </span>
-                    <span v-if="historyItem.note">{{ historyItem.note }}</span>
+                    <NextInput
+                      v-model="startsAt"
+                      type="datetime-local"
+                      data-testid="kanban-opportunity-starts-at"
+                      class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
+                      :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.START_DATE')"
+                    />
+                  </div>
+                  <div
+                    class="grid grid-cols-[9rem_1fr] items-center gap-3 py-2"
+                  >
+                    <span class="text-xs text-n-slate-11">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.DUE_DATE') }}
+                    </span>
+                    <NextInput
+                      v-model="dueAt"
+                      type="datetime-local"
+                      data-testid="kanban-opportunity-due-at"
+                      class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
+                      :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.DUE_DATE')"
+                    />
                   </div>
                 </div>
               </div>

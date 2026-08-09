@@ -84,6 +84,13 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_TITLE': 'Title is required.',
         'KANBAN.OPPORTUNITY_DETAILS.CLOSE': 'Close opportunity details',
         'KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL': 'Commercial',
+        'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER':
+          'Who is running this opportunity?',
+        'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT': 'What was agreed?',
+        'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.SCENARIO':
+          'What is the commercial outlook?',
+        'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.NEXT_ACTION':
+          'What needs to happen now?',
         'KANBAN.OPPORTUNITY_DETAILS.CADENCE.TITLE': 'Follow-up cadence',
         'KANBAN.OPPORTUNITY_DETAILS.CADENCE.DESCRIPTION':
           'Internal reminders only. No automatic customer messages.',
@@ -141,7 +148,15 @@ vi.mock('dashboard/composables/store', async () => {
 
 const nextInputStub = {
   inheritAttrs: false,
-  props: ['modelValue', 'label', 'message', 'messageType', 'type', 'autofocus'],
+  props: [
+    'modelValue',
+    'label',
+    'message',
+    'messageType',
+    'type',
+    'autofocus',
+    'placeholder',
+  ],
   emits: ['update:modelValue', 'input'],
   template: `
     <label>
@@ -150,6 +165,7 @@ const nextInputStub = {
         v-bind="$attrs"
         :type="type || 'text'"
         :value="modelValue"
+        :placeholder="placeholder"
         @input="$emit('update:modelValue', $event.target.value); $emit('input', $event)"
       />
       <p v-if="message" :data-message-type="messageType">{{ message }}</p>
@@ -236,6 +252,7 @@ const mountModal = async ({
     },
   ],
   customFieldSections = [],
+  calendarEnabled = false,
 } = {}) => {
   storeMocks.labels = accountLabels;
   storeMocks.dispatch.mockResolvedValue();
@@ -275,11 +292,16 @@ const mountModal = async ({
         { value: 8, label: 'Ana Paula' },
       ],
       canManageFields: true,
+      calendarEnabled,
     },
     global: {
       stubs: {
         NextInput: nextInputStub,
         NextButton: nextButtonStub,
+        KanbanCalendarAppointmentsSection: {
+          template:
+            '<section data-testid="kanban-opportunity-calendar-tab-content" />',
+        },
       },
     },
   });
@@ -394,6 +416,60 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(wrapper.text()).toContain('buyer@example.com');
     expect(wrapper.text()).toContain('+55 62 99999-0000');
+  });
+
+  it('shows Calendar as its own tab instead of rendering it in General', async () => {
+    const wrapper = await mountModal({ calendarEnabled: true });
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-tab-calendar"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-calendar-tab-content"]')
+        .exists()
+    ).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-calendar"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-calendar-tab-content"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('renders contact data as a vertical list and keeps values from overlapping', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        contact: {
+          id: 91,
+          name: 'Acme Buyer',
+          phone_number: '+55 62 99999-9999',
+          email: 'contato-com-endereco-muito-longo@example.com',
+        },
+      }),
+    });
+
+    await openContactTab(wrapper);
+    const contactDetails = wrapper.find(
+      '[data-testid="kanban-opportunity-contact-details"]'
+    );
+
+    expect(contactDetails.find('dl').classes()).not.toContain('sm:grid-cols-2');
+    expect(contactDetails.text()).toContain('contato-com-endereco-muito-longo');
+  });
+
+  it('uses compact in-field instructions for commercial and planning fields', async () => {
+    const wrapper = await mountModal();
+
+    expect(amountInput(wrapper).attributes('placeholder')).toBe('Value');
+    expect(expectedCloseDateInput(wrapper).attributes('aria-label')).toBe(
+      'Expected close date'
+    );
+    expect(startsAtInput(wrapper).attributes('aria-label')).toBe('Start date');
   });
 
   it('offers contextual field management to administrators', async () => {
@@ -584,24 +660,33 @@ describe('KanbanOpportunityDetailsModal', () => {
       .trigger('click');
     expect(subjectInput(wrapper).classes()).toContain('w-full');
     expect(descriptionInput(wrapper).classes()).toEqual(
-      expect.arrayContaining(['max-w-full', 'w-full', 'min-h-20'])
+      expect.arrayContaining(['max-w-full', 'w-full', 'min-h-16'])
     );
     expect(descriptionInput(wrapper).attributes('rows')).toBe('3');
     expect(amountInput(wrapper).element.value).toBe('125.50');
   });
 
-  it('allows the commercial group in the summary to collapse its fields', async () => {
+  it('organizes the summary around commercial questions instead of a generic form card', async () => {
     const wrapper = await mountModal();
     const group = wrapper.find(
       '[data-testid="kanban-opportunity-commercial-group"]'
     );
 
     expect(group.exists()).toBe(true);
-    await group.find('button').trigger('click');
-    expect(
-      group.find('[data-testid="kanban-opportunity-description"]').element
-        .parentElement.parentElement.style.display
-    ).toBe('none');
+    expect(group.classes()).not.toContain('rounded-lg');
+    expect(group.text()).toContain('Who is running this opportunity?');
+    expect(group.text()).toContain('What was agreed?');
+    expect(group.text()).toContain('What is the commercial outlook?');
+  });
+
+  it('puts the next action before commercial context in the summary', async () => {
+    const wrapper = await mountModal();
+    const details = wrapper.text();
+
+    expect(details).toContain('What needs to happen now?');
+    expect(details.indexOf('What needs to happen now?')).toBeLessThan(
+      details.indexOf('Who is running this opportunity?')
+    );
   });
 
   it('renders card ID in the header', async () => {
@@ -730,7 +815,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
-  it('renders grouped custom fields with the configured group color', async () => {
+  it('renders grouped custom fields as compact decision rows', async () => {
     const wrapper = await mountModal({
       card: buildCard({ customFieldValues: { data_consulta: '2026-08-20' } }),
       customFieldDefinitions: [
@@ -758,8 +843,59 @@ describe('KanbanOpportunityDetailsModal', () => {
       '[data-testid="kanban-opportunity-custom-fields"] section'
     );
     expect(group.text()).toContain('Agenda');
-    expect(group.classes()).toEqual(
-      expect.arrayContaining(['bg-n-teal-2', 'border-n-teal-4'])
+    expect(group.classes()).toContain('border-l-2');
+    expect(group.find('label').classes()).toContain('grid-cols-[9rem_1fr]');
+  });
+
+  it('uses a configurable Financeiro tab for a financial workflow, not one tab per field', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        customFieldValues: {
+          forma_pagamento: 'Pix',
+          data_pagamento: '2026-08-11',
+        },
+      }),
+      customFieldDefinitions: [
+        {
+          key: 'forma_pagamento',
+          label: 'Forma de pagamento',
+          fieldType: 'select',
+          options: ['Pix', 'Cartão'],
+          layout: { section: 'financeiro', group: 'como_sera_pago' },
+        },
+        {
+          key: 'data_pagamento',
+          label: 'Data de pagamento',
+          fieldType: 'date',
+          layout: { section: 'financeiro', group: 'pagamento_aconteceu' },
+        },
+      ],
+      customFieldSections: [
+        {
+          key: 'financeiro',
+          label: 'Financeiro',
+          groups: [
+            { key: 'como_sera_pago', label: 'Como será pago?' },
+            { key: 'pagamento_aconteceu', label: 'O pagamento aconteceu?' },
+          ],
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-financeiro"]')
+      .trigger('click');
+
+    const customFields = wrapper.find(
+      '[data-testid="kanban-opportunity-custom-fields"]'
+    );
+    expect(customFields.text()).toContain('Como será pago?');
+    expect(customFields.text()).toContain('O pagamento aconteceu?');
+    expect(customFieldInput(wrapper, 'forma_pagamento').element.value).toBe(
+      'Pix'
+    );
+    expect(customFieldInput(wrapper, 'data_pagamento').element.value).toBe(
+      '2026-08-11'
     );
   });
 
