@@ -9,6 +9,7 @@ json.array! @kanban_boards do |kanban_board|
       json.id kanban_stage.id
       json.name kanban_stage.name
       json.color kanban_stage.color
+      json.category kanban_stage.category
       json.cards_count @overview_cards_count_by_stage_id.fetch(kanban_stage.id, 0)
     end
   end

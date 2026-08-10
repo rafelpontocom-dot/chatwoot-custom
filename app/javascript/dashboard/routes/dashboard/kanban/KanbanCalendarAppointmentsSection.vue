@@ -114,6 +114,41 @@ onMounted(loadAppointments);
     <p v-else-if="error" class="mb-0 text-sm text-n-ruby-11" role="alert">
       {{ error }}
     </p>
+    <dl
+      v-if="!isLoading && !error"
+      class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2.5 text-sm sm:grid-cols-2"
+    >
+      <div class="grid gap-0.5">
+        <dt class="text-xs text-n-slate-11">
+          {{ t('CALENDAR.OPPORTUNITY.NEXT_APPOINTMENT') }}
+        </dt>
+        <dd
+          data-testid="kanban-calendar-next-appointment"
+          class="m-0 font-medium text-n-slate-12"
+        >
+          {{
+            nextAppointment
+              ? formatAppointmentTime(nextAppointment)
+              : t('CALENDAR.OPPORTUNITY.NO_APPOINTMENT_VALUE')
+          }}
+        </dd>
+      </div>
+      <div class="grid gap-0.5">
+        <dt class="text-xs text-n-slate-11">
+          {{ t('CALENDAR.OPPORTUNITY.APPOINTMENT_STATUS') }}
+        </dt>
+        <dd
+          data-testid="kanban-calendar-appointment-status"
+          class="m-0 font-medium text-n-slate-12"
+        >
+          {{
+            nextAppointment
+              ? appointmentStatusLabel(nextAppointment.status)
+              : t('CALENDAR.OPPORTUNITY.NO_APPOINTMENT_STATUS')
+          }}
+        </dd>
+      </div>
+    </dl>
     <p
       v-if="bookingStage && !sortedAppointments.length"
       class="mb-0 rounded-md bg-n-brand/10 px-2.5 py-2 text-xs text-n-brand"
@@ -127,27 +162,6 @@ onMounted(loadAppointments);
       {{ t('CALENDAR.OPPORTUNITY.EMPTY') }}
     </p>
     <div v-else class="grid gap-2">
-      <dl
-        v-if="nextAppointment"
-        class="grid gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2.5 text-sm sm:grid-cols-2"
-      >
-        <div class="grid gap-0.5">
-          <dt class="text-xs text-n-slate-11">
-            {{ t('CALENDAR.OPPORTUNITY.NEXT_APPOINTMENT') }}
-          </dt>
-          <dd class="m-0 font-medium text-n-slate-12">
-            {{ formatAppointmentTime(nextAppointment) }}
-          </dd>
-        </div>
-        <div class="grid gap-0.5">
-          <dt class="text-xs text-n-slate-11">
-            {{ t('CALENDAR.OPPORTUNITY.APPOINTMENT_STATUS') }}
-          </dt>
-          <dd class="m-0 font-medium text-n-slate-12">
-            {{ appointmentStatusLabel(nextAppointment.status) }}
-          </dd>
-        </div>
-      </dl>
       <button
         v-for="appointment in sortedAppointments"
         :key="appointment.id"

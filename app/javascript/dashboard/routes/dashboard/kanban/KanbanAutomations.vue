@@ -144,6 +144,7 @@ const form = reactive({
   ownerId: '',
   changedFieldKey: '',
   changedFieldValue: '',
+  changedFieldValueSource: 'new',
   connectionId: '',
   customerMessageMode: 'any',
   customerMessageContains: '',
@@ -1054,6 +1055,7 @@ const resetForm = () => {
   form.ownerId = '';
   form.changedFieldKey = '';
   form.changedFieldValue = '';
+  form.changedFieldValueSource = 'new';
   form.connectionId = '';
   form.customerMessageContains = '';
   form.customerMessageMode = 'any';
@@ -1101,6 +1103,7 @@ const applyRule = rule => {
   form.ownerId = conditions.ownerIds?.[0] || '';
   form.changedFieldKey = changedFieldKey;
   form.changedFieldValue = changedFieldCondition?.value || '';
+  form.changedFieldValueSource = changedFieldCondition?.valueSource || 'new';
   form.connectionId = conditions.connectionIds?.[0] || '';
   form.customerMessageContains = conditions.customerMessageContains || '';
   form.customerMessageMode = conditions.customerMessageContains
@@ -1115,7 +1118,13 @@ const applyRule = rule => {
   form.triggerNextActionType = nextActionCondition?.value || '';
   form.triggerAmountOperator = amountCondition?.operator || 'greater_than';
   form.triggerAmountValue = amountCondition?.value || '';
-  form.triggerAmountMode = amountCondition ? 'new_value' : 'any';
+  if (!amountCondition) {
+    form.triggerAmountMode = 'any';
+  } else if (amountCondition.valueSource === 'previous') {
+    form.triggerAmountMode = 'previous_value';
+  } else {
+    form.triggerAmountMode = 'new_value';
+  }
   const lostReasonCondition = conditions.fields?.find(
     item => item.fieldKey === 'system_lost_reason'
   );
@@ -1983,6 +1992,7 @@ const payload = () => ({
                 field_key: form.changedFieldKey,
                 operator: 'equals',
                 value: form.changedFieldValue,
+                value_source: form.changedFieldValueSource || 'new',
               },
             ]
           : []),
@@ -1996,13 +2006,17 @@ const payload = () => ({
             ]
           : []),
         ...(triggerContext.value === 'amount' &&
-        form.triggerAmountMode === 'new_value' &&
+        ['new_value', 'previous_value'].includes(form.triggerAmountMode) &&
         form.triggerAmountValue !== ''
           ? [
               {
                 field_key: 'system_amount',
                 operator: form.triggerAmountOperator,
                 value: form.triggerAmountValue,
+                value_source:
+                  form.triggerAmountMode === 'previous_value'
+                    ? 'previous'
+                    : 'new',
               },
             ]
           : []),

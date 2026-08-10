@@ -1683,9 +1683,7 @@ describe('KanbanView drag and drop', () => {
     });
     const wrapper = await mountView();
 
-    await wrapper
-      .find('[data-testid="kanban-toggle-filters"]')
-      .trigger('click');
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('click');
 
     await wrapper
       .find('[data-testid="kanban-saved-filter-select"]')
@@ -2039,7 +2037,7 @@ describe('KanbanView header navigation', () => {
     expect(summary.exists()).toBe(false);
   });
 
-  it('keeps sorting and saved filters hidden until the filter workspace opens', async () => {
+  it('opens the filter workspace from the unified opportunity search', async () => {
     const wrapper = await mountView();
 
     const header = wrapper.find('[data-testid="kanban-workspace-header"]');
@@ -2086,9 +2084,10 @@ describe('KanbanView header navigation', () => {
     );
     expect(secondaryRow.classes()).not.toContain('lg:hidden');
 
-    await wrapper
-      .find('[data-testid="kanban-toggle-filters"]')
-      .trigger('click');
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper.vm.showFiltersPanel).toBe(true);
 
     expect(
       wrapper
@@ -3085,9 +3084,7 @@ describe('KanbanView sales filters', () => {
   it('searches, sorts, and clears active filters', async () => {
     const wrapper = await mountView();
 
-    await wrapper
-      .find('[data-testid="kanban-toggle-filters"]')
-      .trigger('click');
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('focus');
 
     await wrapper
       .find('[data-testid="kanban-search-input"]')
@@ -3167,9 +3164,7 @@ describe('KanbanView sales filters', () => {
     const wrapper = await mountView();
 
     expect(KanbanBoardsAPI.getSavedFilters).toHaveBeenCalledWith(10);
-    await wrapper
-      .find('[data-testid="kanban-toggle-filters"]')
-      .trigger('click');
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('focus');
     await wrapper
       .find('[data-testid="kanban-saved-filter-select"]')
       .setValue('3');
@@ -3188,11 +3183,9 @@ describe('KanbanView sales filters', () => {
       .trigger('keyup.enter');
     await flushPromises();
 
-    await wrapper
-      .find('[data-testid="kanban-toggle-filters"]')
-      .trigger('click');
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('focus');
     const filterPanel = wrapper.find('[data-testid="kanban-filter-panel"]');
-    expect(filterPanel.isVisible()).toBe(true);
+    expect(filterPanel.exists()).toBe(true);
     await filterPanel
       .find('[data-testid="kanban-filter-panel-save-filter"]')
       .trigger('click');

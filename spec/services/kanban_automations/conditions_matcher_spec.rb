@@ -160,6 +160,41 @@ RSpec.describe KanbanAutomations::ConditionsMatcher do
     expect(described_class.new(rule: rule, card: card, event: event).matches?).to be(true)
   end
 
+  it 'matches a selected choice field trigger against its previous value when requested' do
+    board = create(
+      :kanban_board,
+      custom_field_definitions: [
+        { key: 'origem', label: 'Origem', field_type: 'select', options: ['Orgânico', 'Mídia Paga'] }
+      ]
+    )
+    card = create(
+      :kanban_card,
+      account: board.account,
+      kanban_board: board,
+      custom_field_values: { origem: 'Mídia Paga' }
+    )
+    rule = create(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      event_name: Events::Types::KANBAN_CARD_FIELDS_CHANGED,
+      conditions: {
+        changed_field_keys: ['origem'],
+        fields: [{ field_key: 'origem', operator: 'equals', value: 'Orgânico', value_source: 'previous' }]
+      }
+    )
+    event = create(
+      :kanban_card_event,
+      account: board.account,
+      kanban_board: board,
+      kanban_card: card,
+      event_type: 'custom_fields_changed',
+      change_set: { custom_field_values: [{ origem: 'Orgânico' }, { origem: 'Mídia Paga' }] }
+    )
+
+    expect(described_class.new(rule: rule, card: card, event: event).matches?).to be(true)
+  end
+
   it 'matches a selected native field in the any-field trigger' do
     card = create(:kanban_card, amount_cents: 150_000)
     rule = create(

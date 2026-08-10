@@ -19,6 +19,12 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.FIELD_TITLE': 'Title',
         'KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION': 'Description',
         'KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT': 'Value',
+        'KANBAN.OPPORTUNITY_DETAILS.PIPELINE_AND_STAGE': 'Pipeline and stage',
+        'KANBAN.OPPORTUNITY_DETAILS.CURRENT_PIPELINE': 'Current',
+        'KANBAN.OPPORTUNITY_DETAILS.NO_PIPELINE_STAGES': 'No pipeline stages',
+        'KANBAN.OPPORTUNITY_DETAILS.DAYS_IN_STAGE': '{count} days in stage',
+        'KANBAN.OPPORTUNITY_DETAILS.SAVE_BEFORE_TRANSFER':
+          'Save before transfer',
         'KANBAN.OPPORTUNITY_DETAILS.CUSTOM_FIELDS': 'Custom fields',
         'KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL': 'General',
         'KANBAN.OPPORTUNITY_DETAILS.TABS.MARKETING': 'Marketing',
@@ -128,6 +134,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
   default: {
     showCardById: vi.fn(),
     updateCardDetailsById: vi.fn(),
+    transferCardById: vi.fn(),
     getCardTimeline: vi.fn(),
     getCardLabels: vi.fn(),
     updateCardLabels: vi.fn(),
@@ -260,6 +267,7 @@ const mountModal = async ({
   ],
   customFieldSections = [],
   calendarEnabled = false,
+  boards = [],
 } = {}) => {
   storeMocks.labels = accountLabels;
   storeMocks.dispatch.mockResolvedValue();
@@ -283,6 +291,7 @@ const mountModal = async ({
     props: {
       boardId: 10,
       boardName: 'Sales funnel',
+      boards,
       cardId: 501,
       stages: [
         { id: 1, name: 'Qualification', category: 'open' },
@@ -356,6 +365,10 @@ const openContactTab = wrapper =>
   wrapper
     .find('[data-testid="kanban-opportunity-tab-contact-details"]')
     .trigger('click');
+const selectHeaderStage = (wrapper, stageId) =>
+  wrapper
+    .findComponent({ name: 'KanbanOpportunityPipelineMenu' })
+    .vm.$emit('selectStage', { boardId: 10, stageId });
 
 describe('KanbanOpportunityDetailsModal', () => {
   beforeEach(() => {
@@ -1200,9 +1213,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
     const wrapper = await mountModal();
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-header-stage"]')
-      .setValue('3');
+    await selectHeaderStage(wrapper, 3);
     await wrapper.find('form').trigger('submit');
     await flushPromises();
 
@@ -1215,12 +1226,90 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
+  it('transfers an opportunity when a stage from another pipeline is selected', async () => {
+    KanbanBoardsAPI.transferCardById.mockResolvedValue({
+      data: buildCard({ kanbanBoardId: 22, kanbanStageId: 23 }),
+    });
+    const wrapper = await mountModal({
+      boards: [
+        { id: 10, name: 'Sales funnel', stages_summary: [] },
+        {
+          id: 22,
+          name: 'Onboarding',
+          stages_summary: [{ id: 23, name: 'Activation' }],
+        },
+      ],
+    });
+
+    await wrapper
+      .findComponent({ name: 'KanbanOpportunityPipelineMenu' })
+      .vm.$emit('selectStage', { boardId: 22, stageId: 23 });
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.transferCardById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({ kanban_board_id: 22, kanban_stage_id: 23 })
+    );
+    expect(wrapper.emitted('transferred')).toEqual([
+      [expect.objectContaining({ boardId: 22 })],
+    ]);
+  });
+
+  it('asks for the loss reason before transferring an opportunity to a lost stage in another pipeline', async () => {
+    KanbanBoardsAPI.transferCardById.mockResolvedValue({
+      data: buildCard({ kanbanBoardId: 22, kanbanStageId: 24 }),
+    });
+    const wrapper = await mountModal({
+      boards: [
+        { id: 10, name: 'Sales funnel', stages_summary: [] },
+        {
+          id: 22,
+          name: 'Onboarding',
+          stages_summary: [{ id: 24, name: 'Not a fit', category: 'lost' }],
+        },
+      ],
+    });
+
+    await wrapper
+      .findComponent({ name: 'KanbanOpportunityPipelineMenu' })
+      .vm.$emit('selectStage', {
+        boardId: 22,
+        stageId: 24,
+        stage: { id: 24, name: 'Not a fit', category: 'lost' },
+      });
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.transferCardById).not.toHaveBeenCalled();
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-transfer-lost-reason"]')
+        .exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-transfer-lost-reason"]')
+      .setValue('Preço');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-confirm-transfer"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.transferCardById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({
+        kanban_board_id: 22,
+        kanban_stage_id: 24,
+        lost_reason: 'Preço',
+      })
+    );
+  });
+
   it('requires a reason before saving an opportunity in a lost stage', async () => {
     const wrapper = await mountModal();
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-header-stage"]')
-      .setValue('4');
+    await selectHeaderStage(wrapper, 4);
     await wrapper.find('form').trigger('submit');
 
     expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
@@ -1237,9 +1326,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
     const wrapper = await mountModal();
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-header-stage"]')
-      .setValue('4');
+    await selectHeaderStage(wrapper, 4);
     expect(lostReasonInput(wrapper).text()).toContain('Sem resposta');
     await lostReasonInput(wrapper).setValue('Preço');
     await wrapper.find('form').trigger('submit');

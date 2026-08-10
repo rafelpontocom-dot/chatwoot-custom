@@ -66,10 +66,19 @@ describe('KanbanWorkflowTriggerInspector', () => {
     expect(valueSelect.exists()).toBe(true);
     expect(valueSelect.text()).toContain('Mídia Paga: Meta');
 
+    const valueSource = wrapper.find(
+      '[data-testid="kanban-workflow-trigger-field-value-source"]'
+    );
+    expect(valueSource.exists()).toBe(true);
+    await valueSource.setValue('previous');
+
     await valueSelect.setValue('meta');
 
     expect(wrapper.emitted('update:config')).toContainEqual([
       { changedFieldValue: 'meta' },
+    ]);
+    expect(wrapper.emitted('update:config')).toContainEqual([
+      { changedFieldValueSource: 'previous' },
     ]);
   });
 
@@ -91,5 +100,32 @@ describe('KanbanWorkflowTriggerInspector', () => {
 
     expect(wrapper.text()).toContain('n8n aprovado');
     expect(wrapper.text()).not.toContain('Integração desativada');
+  });
+
+  it('allows amount triggers to compare the previous amount', async () => {
+    const wrapper = shallowMount(KanbanWorkflowTriggerInspector, {
+      props: {
+        triggerValue: 'kanban.card.amount_changed',
+        triggerOptions: [
+          { value: 'kanban.card.amount_changed', label: 'Valor alterado' },
+        ],
+        triggerContext: 'amount',
+        config: { triggerAmountMode: 'new_value' },
+        t,
+      },
+    });
+
+    const modeSelect = wrapper.find(
+      '[data-testid="kanban-workflow-trigger-amount-mode"]'
+    );
+    expect(modeSelect.text()).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.RULES.AMOUNT_PREVIOUS_VALUE'
+    );
+
+    await modeSelect.setValue('previous_value');
+
+    expect(wrapper.emitted('update:config')).toContainEqual([
+      { triggerAmountMode: 'previous_value' },
+    ]);
   });
 });

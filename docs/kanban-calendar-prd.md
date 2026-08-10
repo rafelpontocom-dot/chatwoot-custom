@@ -191,7 +191,9 @@ Cada procedimento pertence a uma conta e pode ser associado a boards.
 
 Cada board pode habilitar o modulo `Agenda` sem transformar uma data em campo comercial. A configuracao escolhe etapas que sugerem agendamento, procedimentos permitidos e, apenas quando necessario para automacoes legadas, um campo para espelhar a proxima ocorrencia. O card mostra um resumo de leitura e um atalho `Agendar`; recorrencia, sessoes e datas permanecem na agenda.
 
-No drawer da oportunidade, `Agenda` e uma aba propria. Ela apresenta `Proximo agendamento` e `Status do agendamento` como dados derivados da proxima ocorrencia ativa, em vez de campos duplicados que a secretaria teria de atualizar manualmente. Selecionar uma ocorrencia abre a Agenda no respectivo detalhe; no detalhe da Agenda, a acao de volta abre a oportunidade vinculada.
+No drawer da oportunidade, `Agenda` e uma aba propria. Ela apresenta `Data da proxima consulta` e `Status da consulta` como dados de sistema derivados da proxima ocorrencia ativa, inclusive quando ainda nao existe consulta (`Nenhuma consulta agendada` e `Sem agendamento`). Portanto, a secretaria nao cria campos personalizados duplicados para agenda. Selecionar uma ocorrencia abre a Agenda no respectivo detalhe; no detalhe da Agenda, a acao de volta abre a oportunidade vinculada.
+
+O cabecalho da oportunidade mostra o funil em texto discreto e a etapa atual em destaque com os dias na etapa. Ao abrir esse seletor, todos os funis visiveis aparecem recolhidos, exceto o atual; a pessoa pode trocar de etapa ou transferir a oportunidade para outro funil. A transferencia preserva historico, reordena as colunas com seguranca e aplica as regras obrigatorias do funil de destino.
 
 ### Recurso E Disponibilidade
 

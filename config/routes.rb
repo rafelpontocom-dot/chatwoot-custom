@@ -166,6 +166,7 @@ Rails.application.routes.draw do
               patch 'cards/bulk', to: 'cards#bulk'
               get 'cards/by_id/:id', to: 'cards#show'
               patch 'cards/by_id/:id', to: 'cards#update'
+              patch 'cards/by_id/:id/transfer', to: 'cards#transfer'
               delete 'cards/by_id/:id', to: 'cards#destroy'
               patch 'cards/by_id/:id/reorder', to: 'cards#reorder'
               patch 'cards/by_id/:id/restore', to: 'cards#restore'

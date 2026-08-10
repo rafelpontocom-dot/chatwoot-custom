@@ -147,6 +147,7 @@ const loadPage = async () => {
     const initialSlug =
       props.initialProcedureSlug || page.value.procedures[0]?.slug;
     if (initialSlug) await loadProcedure(initialSlug);
+    else isLoading.value = false;
     await nextTick();
     renderCaptcha();
   } catch (loadError) {
@@ -260,6 +261,16 @@ onBeforeUnmount(() => {
           </p>
         </section>
       </template>
+
+      <section
+        v-else-if="!procedure"
+        data-testid="public-booking-empty-procedures"
+        class="rounded-lg border border-n-weak bg-n-surface-2 p-5 text-center"
+      >
+        <p class="mb-0 text-sm text-n-slate-11">
+          {{ $t('PUBLIC_BOOKING.NO_PROCEDURES') }}
+        </p>
+      </section>
 
       <form v-else class="grid gap-6" @submit.prevent="submit">
         <fieldset class="grid gap-3">

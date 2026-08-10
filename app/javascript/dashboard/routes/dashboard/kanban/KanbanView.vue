@@ -182,17 +182,9 @@ const hasActiveFilters = computed(
     selectedSearch.value ||
     selectedSort.value
 );
-const activeFilterCount = computed(
-  () =>
-    [
-      selectedInboxIds.value.length > 0,
-      selectedAssigneeIds.value.length > 0,
-      Boolean(selectedNextActionFilter.value),
-      Boolean(selectedStatusFilter.value),
-      Boolean(selectedSearch.value),
-      Boolean(selectedSort.value),
-    ].filter(Boolean).length
-);
+const openFilters = () => {
+  showFiltersPanel.value = true;
+};
 const stageListModel = computed({
   get: () => selectedBoard.value?.stages || [],
   set: nextStages => {
@@ -1505,6 +1497,15 @@ const onOpportunityUpdated = updatedCard => {
   );
 };
 
+const onOpportunityTransferred = async ({ boardId, card }) => {
+  selectedOpportunityCardId.value = null;
+  await router.push({
+    name: 'kanban_board_show',
+    params: { accountId: route.params.accountId, boardId },
+    query: { cardId: card.id },
+  });
+};
+
 const onOpportunityOpenConversation = card => {
   openConversation(card, {});
   closeOpportunityDetails();
@@ -1614,7 +1615,7 @@ onUnmounted(() => {
     <section class="flex min-w-0 flex-1 flex-col">
       <header
         data-testid="kanban-workspace-header"
-        class="grid gap-3 border-b border-n-weak px-4 py-3 lg:px-6"
+        class="relative grid gap-3 border-b border-n-weak px-4 py-3 lg:px-6"
       >
         <div
           data-testid="kanban-workspace-primary-row"
@@ -1665,9 +1666,13 @@ onUnmounted(() => {
           </div>
           <template v-if="selectedBoard">
             <div
-              class="col-span-full order-3 min-w-0 self-center md:order-2 lg:col-span-1 lg:max-w-xl"
+              class="col-span-full order-3 min-w-0 self-center md:order-2 lg:col-span-1"
             >
-              <label class="block min-w-0">
+              <label
+                class="block min-w-0"
+                @click="openFilters"
+                @focusin="openFilters"
+              >
                 <span class="sr-only">
                   {{ t('KANBAN.FILTERS.SEARCH_LABEL') }}
                 </span>
@@ -1683,6 +1688,10 @@ onUnmounted(() => {
                     data-testid="kanban-search-input"
                     class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/30"
                     :placeholder="t('KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
+                    :aria-expanded="showFiltersPanel"
+                    aria-controls="kanban-filter-panel"
+                    aria-haspopup="dialog"
+                    @keydown.escape.stop="showFiltersPanel = false"
                     @keyup.enter="applySearch"
                   />
                   <button
@@ -1817,11 +1826,9 @@ onUnmounted(() => {
         <template v-if="selectedBoard">
           <div
             data-testid="kanban-workspace-secondary-row"
-            class="grid min-w-0 grid-cols-2 gap-2 border-t border-n-weak pt-3 sm:flex sm:flex-wrap sm:items-center"
+            class="flex min-w-0 items-center justify-end border-t border-n-weak pt-3"
           >
-            <div
-              class="col-span-full ml-0 flex min-h-10 items-center justify-between gap-1 sm:ml-auto sm:justify-start"
-            >
+            <div class="flex min-h-10 items-center gap-1">
               <div
                 class="flex items-center rounded-md border border-n-weak bg-n-surface-1 p-0.5"
                 :aria-label="t('KANBAN.VIEW.LABEL')"
@@ -1867,29 +1874,15 @@ onUnmounted(() => {
               >
                 <i class="i-lucide-calendar-check-2 size-4" />
               </button>
-              <button
-                type="button"
-                data-testid="kanban-toggle-filters"
-                class="flex items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2.5 py-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                :aria-expanded="showFiltersPanel"
-                aria-controls="kanban-filter-panel"
-                @click="showFiltersPanel = !showFiltersPanel"
-              >
-                <i class="i-lucide-sliders-horizontal size-4" />
-                {{ t('KANBAN.FILTERS.OPEN_FILTERS') }}
-                <span
-                  v-if="activeFilterCount"
-                  class="flex size-5 items-center justify-center rounded-full bg-n-brand text-[11px] text-white"
-                >
-                  {{ activeFilterCount }}
-                </span>
-              </button>
             </div>
             <div
               v-show="showFiltersPanel"
               id="kanban-filter-panel"
               data-testid="kanban-filter-panel"
-              class="grid min-w-0 gap-3 border-t border-n-weak pt-3 lg:grid-cols-[12rem_12rem_minmax(0,1fr)] lg:items-end"
+              class="absolute left-1/2 top-[4.5rem] z-30 grid w-[min(46rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-3 rounded-lg border border-n-weak bg-n-solid-1 p-3 shadow-xl lg:grid-cols-[12rem_12rem_minmax(0,1fr)] lg:items-end"
+              role="dialog"
+              :aria-label="t('KANBAN.FILTERS.OPEN_FILTERS')"
+              @keydown.escape.stop="showFiltersPanel = false"
             >
               <div class="col-span-full flex min-w-0 flex-wrap gap-2">
                 <label class="sr-only" for="kanban-sort-select">
@@ -2823,6 +2816,7 @@ onUnmounted(() => {
           ref="opportunityDetailsModal"
           :board-id="selectedBoard.id"
           :board-name="selectedBoard.name"
+          :boards="boards"
           :stages="stages"
           :card-id="selectedOpportunityCardId"
           :next-action-types="selectedBoard.nextActionTypes || []"
@@ -2839,6 +2833,7 @@ onUnmounted(() => {
           drawer-mode
           @close="closeOpportunityDetails"
           @updated="onOpportunityUpdated"
+          @transferred="onOpportunityTransferred"
           @open-conversation="onOpportunityOpenConversation"
           @manage-fields="openFieldSettings"
         />

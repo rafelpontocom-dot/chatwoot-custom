@@ -102,7 +102,8 @@ class KanbanAutomations::ConditionsMatcher
 
   def field_condition_matches?(condition)
     source = condition.to_h.with_indifferent_access
-    value = field_value(source[:field_key].to_s)
+    field_key = source[:field_key].to_s
+    value = field_value_for_condition(field_key, source[:value_source])
     operator = source[:operator].presence || 'equals'
     expected = source[:value]
 
@@ -114,6 +115,32 @@ class KanbanAutomations::ConditionsMatcher
     return @card.custom_field_values.to_h[field_key] unless field_key.start_with?('system_')
 
     system_field_value(field_key)
+  end
+
+  def field_value_for_condition(field_key, value_source)
+    return field_value(field_key) unless value_source.to_s == 'previous'
+
+    previous_field_value(field_key)
+  end
+
+  def previous_field_value(field_key)
+    changes = @event&.change_set.to_h.with_indifferent_access
+    return field_value(field_key) if changes.blank?
+
+    if field_key.start_with?('system_')
+      previous_system_field_value(field_key, changes)
+    else
+      before_values = Array(changes[:custom_field_values]).first.to_h.stringify_keys
+      before_values[field_key]
+    end
+  end
+
+  def previous_system_field_value(field_key, changes)
+    attribute = SYSTEM_CHANGED_FIELD_KEYS.key(field_key)
+    previous_value = Array(changes[attribute]).first
+    return field_value(field_key) if previous_value.nil?
+
+    field_key == 'system_amount' ? previous_value.to_f / 100 : previous_value
   end
 
   def system_field_value(field_key)

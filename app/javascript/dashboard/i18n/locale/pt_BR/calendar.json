@@ -32,6 +32,8 @@
       "EMPTY": "Nenhuma consulta agendada.",
       "NEXT_APPOINTMENT": "Próximo agendamento",
       "APPOINTMENT_STATUS": "Status do agendamento",
+      "NO_APPOINTMENT_VALUE": "Nenhuma consulta agendada.",
+      "NO_APPOINTMENT_STATUS": "Sem agendamento",
       "BOOKING_STAGE_HINT": "Esta etapa pede agendamento. Escolha um horário para continuar.",
       "BOOK_TITLE": "Agendar consulta",
       "BOOK_DESCRIPTION": "Escolha o procedimento, o profissional e o horário para {contact}.",

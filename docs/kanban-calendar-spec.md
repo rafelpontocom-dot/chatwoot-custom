@@ -12,7 +12,9 @@ O modulo e nativo ao Chatwoot e pertencente a `Account`. Ele se integra ao Kanba
 
 O payload do board inclui os tres primeiros campos para que o drawer da oportunidade exiba a area Agenda somente quando habilitada, filtre procedimentos permitidos e sinalize etapas que pedem agendamento. O frontend nunca cria uma ocorrencia apenas pela mudanca de etapa.
 
-O resumo da aba `Agenda` deriva a proxima ocorrencia ativa e seu status diretamente de `calendar_appointments`; nao persiste campos duplicados em `kanban_cards`. O clique na ocorrencia navega para `/calendar?appointmentId=:id`, onde o drawer de agendamento abre para edicao. O caminho inverso permanece no drawer da Agenda, que abre a oportunidade vinculada.
+O resumo da aba `Agenda` deriva `Data da proxima consulta` e `Status da consulta` diretamente de `calendar_appointments`; nao persiste campos duplicados em `kanban_cards`. Sem ocorrencia ativa, o contrato retorna os estados de interface `Nenhuma consulta agendada` e `Sem agendamento`. O clique na ocorrencia navega para `/calendar?appointmentId=:id`, onde o drawer de agendamento abre para edicao. O caminho inverso permanece no drawer da Agenda, que abre a oportunidade vinculada.
+
+O seletor do cabecalho usa `GET /kanban_boards` para listar todos os boards permitidos e seus `stages_summary` com `id`, `name` e `category`. `PATCH /kanban_boards/:source_board_id/cards/by_id/:id/transfer` recebe `kanban_board_id`, `kanban_stage_id`, `lost_reason` e `lock_version`; valida acesso ao board de destino, campos obrigatorios daquele destino, concorrencia e motivo de perda. A transacao bloqueia as duas etapas, reordena posicoes e cria um evento `stage_changed` com snapshots de funil e etapa de origem/destino.
 
 ### Direcao De Integracao Aprovada
 

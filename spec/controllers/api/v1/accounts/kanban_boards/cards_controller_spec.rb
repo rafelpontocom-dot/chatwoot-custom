@@ -1097,6 +1097,55 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(destination_card.reload.position).to eq(2)
     end
 
+    it 'transfers a card to a stage in another visible board' do
+      target_board = create(:kanban_board, account: account, name: 'Pós-venda')
+      target_stage = create(:kanban_stage, account: account, kanban_board: target_board, name: 'Ativação')
+      card = create_manual_card(position: 1)
+
+      patch "#{stable_card_url(card)}/transfer",
+            headers: agent.create_new_auth_token,
+            params: { transfer: { kanban_board_id: target_board.id, kanban_stage_id: target_stage.id } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(
+        kanban_board_id: target_board.id,
+        kanban_stage_id: target_stage.id,
+        position: 1
+      )
+      expect(card.kanban_card_events.last.metadata).to include(
+        'from_board' => include('id' => kanban_board.id),
+        'to_board' => include('id' => target_board.id)
+      )
+    end
+
+    it 'returns the required field definition from the destination board when a transfer is blocked' do
+      target_board = create(:kanban_board, account: account, name: 'Pós-venda')
+      target_stage = create(:kanban_stage, account: account, kanban_board: target_board, name: 'Ativação')
+      target_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'numero_contrato',
+            label: 'Número do contrato',
+            field_type: 'text',
+            required_stage_ids: [target_stage.id]
+          }
+        ]
+      )
+      card = create_manual_card(position: 1)
+
+      patch "#{stable_card_url(card)}/transfer",
+            headers: agent.create_new_auth_token,
+            params: { transfer: { kanban_board_id: target_board.id, kanban_stage_id: target_stage.id } },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['field_definitions']).to include(
+        include('key' => 'numero_contrato')
+      )
+      expect(card.reload.kanban_board_id).to eq(kanban_board.id)
+    end
+
     it 'emits kanban.card.reordered with source and target stage IDs for cross-stage reorder' do
       destination_stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
       card = create_manual_card(position: 1)

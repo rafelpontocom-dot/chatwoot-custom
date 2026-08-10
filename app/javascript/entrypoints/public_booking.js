@@ -11,6 +11,7 @@ const messages = {
     PUBLIC_BOOKING: {
       EYEBROW: 'Agendamento online',
       DEFAULT_TITLE: 'Agende seu horário',
+      NO_PROCEDURES: 'Ainda não há procedimentos disponíveis para agendamento.',
       LOADING: 'Carregando horários disponíveis...',
       CONFIRMED: 'Agendamento confirmado',
       CONFIRMED_DESCRIPTION:
@@ -38,6 +39,8 @@ const messages = {
     PUBLIC_BOOKING: {
       EYEBROW: 'Marcação online',
       DEFAULT_TITLE: 'Marque o seu horário',
+      NO_PROCEDURES:
+        'Ainda não existem procedimentos disponíveis para marcação.',
       LOADING: 'A carregar horários disponíveis...',
       CONFIRMED: 'Marcação confirmada',
       CONFIRMED_DESCRIPTION:

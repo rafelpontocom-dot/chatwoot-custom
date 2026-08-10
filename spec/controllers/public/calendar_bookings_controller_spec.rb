@@ -57,6 +57,13 @@ RSpec.describe 'Public calendar booking API', type: :request do
     )
   end
 
+  it 'renders the public booking shell for a valid page' do
+    get "/agendar/#{page.public_token}"
+
+    expect(response).to have_http_status(:success)
+    expect(response.body).to include('id="public-booking-app"')
+  end
+
   it 'creates an appointment from the public procedure page' do
     post "/agendar/#{page.public_token}/consulta-inicial/reservas",
          params: {

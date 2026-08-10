@@ -305,6 +305,8 @@ Cada criação, atualização ou restauração registra um snapshot imutável em
 
 `KanbanWorkflowBuilder.vue` recebe `modelValue`, etapas, agentes, campos personalizados e tipos de próxima ação. Ele emite somente nós persistíveis, removendo metadados de apresentação como rótulo, resumo e estado de validação. `KanbanWorkflowPalette.vue` é o catálogo visual independente: agrupa tipos por categoria, filtra por texto e emite a escolha por clique ou início de arraste. O builder converte o ponto de drop por `screenToFlowCoordinate`, preserva a alternativa por clique e insere o nó no canvas. Em viewport menor que `lg`, o controle `data-testid="kanban-workflow-open-mobile-palette"` substitui o seletor compacto de desktop e abre a paleta no drawer; Escape o fecha sem alterar o canvas e devolve foco ao controle que o abriu.
 
+Nos gatilhos de alteração, a condição usa o snapshot do evento, não somente o estado atual do card. Para campos de seleção e para valor monetário, a configuração escolhe explicitamente `novo` ou `anterior`; a comparação é persistida como `value_source` e o backend lê o lado correspondente de `change_set`. Isso permite, por exemplo, disparar apenas quando a origem deixou de ser `Orgânico` ou quando o valor anterior era menor que um limite.
+
 O editor deve evoluir para estes componentes, sem concentrar todo o estado em um arquivo de tela:
 
 | Componente/serviço | Responsabilidade |

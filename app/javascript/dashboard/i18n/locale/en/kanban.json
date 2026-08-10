@@ -293,7 +293,7 @@
       "BLANK": "Blank funnel"
     },
     "FILTERS": {
-      "SEARCH_PLACEHOLDER": "Search opportunities",
+      "SEARCH_PLACEHOLDER": "Search opportunity, contact, phone or email",
       "SEARCH_LABEL": "Search opportunities",
       "APPLY_SEARCH": "Search",
       "CLEAR_SEARCH": "Clear search",
@@ -1149,6 +1149,7 @@
           "ADVANCED": "Advanced options",
           "ANY_AMOUNT_CHANGE": "Any amount change",
           "AMOUNT_NEW_VALUE": "Only when the new value matches a rule",
+          "AMOUNT_PREVIOUS_VALUE": "Only when the previous value matches a rule",
           "SELECT_CONNECTION": "Approved connection",
           "ANY_CONNECTION": "Any approved connection",
           "REENTRY": "Allow re-entry after completion",
@@ -1163,6 +1164,8 @@
           "ANY_FIELD": "Any field",
           "ANY_VALUE": "Any value",
           "CHANGED_FIELD_NEW_VALUE": "New value",
+          "CHANGED_FIELD_PREVIOUS_VALUE": "Previous value",
+          "CHANGED_FIELD_VALUE_SOURCE": "Compare against",
           "EQUALS": "Equals",
           "NOT_EQUALS": "Does not equal",
           "CONTAINS": "Contains",
@@ -1247,6 +1250,16 @@
       "FIELD_DESCRIPTION": "Note",
       "FIELD_AMOUNT": "Value",
       "STAGE": "Stage",
+      "PIPELINE_AND_STAGE": "Pipeline and stage",
+      "CURRENT_PIPELINE": "Current",
+      "NO_PIPELINE_STAGES": "No stages available in this pipeline.",
+      "DAYS_IN_STAGE": "{count} day in stage | {count} days in stage",
+      "SAVE_BEFORE_TRANSFER": "Save this opportunity before moving it to another pipeline.",
+      "TRANSFER_LOSS": {
+        "TITLE": "Confirm loss",
+        "DESCRIPTION": "Enter a reason to move this opportunity to {stage}.",
+        "CONFIRM": "Transfer opportunity"
+      },
       "CUSTOM_FIELDS": "Custom fields",
       "UNGROUPED_FIELDS": "Other fields",
       "IMPORTANT_FIELD": "Important, but not required",

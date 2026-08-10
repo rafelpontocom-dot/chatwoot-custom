@@ -296,7 +296,7 @@
       "BLANK": "Funil em branco"
     },
     "FILTERS": {
-      "SEARCH_PLACEHOLDER": "Buscar oportunidades",
+      "SEARCH_PLACEHOLDER": "Buscar oportunidade, contato, telefone ou e-mail",
       "SEARCH_LABEL": "Buscar oportunidades",
       "APPLY_SEARCH": "Buscar",
       "CLEAR_SEARCH": "Limpar busca",
@@ -1152,6 +1152,7 @@
           "ADVANCED": "Opções avançadas",
           "ANY_AMOUNT_CHANGE": "Qualquer alteração de valor",
           "AMOUNT_NEW_VALUE": "Somente quando o novo valor obedecer à regra",
+          "AMOUNT_PREVIOUS_VALUE": "Somente quando o valor anterior obedecer à regra",
           "SELECT_CONNECTION": "Conexão aprovada",
           "ANY_CONNECTION": "Qualquer conexão aprovada",
           "REENTRY": "Permitir nova entrada após a conclusão",
@@ -1166,6 +1167,8 @@
           "ANY_FIELD": "Qualquer campo",
           "ANY_VALUE": "Qualquer valor",
           "CHANGED_FIELD_NEW_VALUE": "Novo valor",
+          "CHANGED_FIELD_PREVIOUS_VALUE": "Valor anterior",
+          "CHANGED_FIELD_VALUE_SOURCE": "Comparar com",
           "EQUALS": "É igual a",
           "NOT_EQUALS": "É diferente de",
           "CONTAINS": "Contém",
@@ -1250,6 +1253,16 @@
       "FIELD_DESCRIPTION": "Observação",
       "FIELD_AMOUNT": "Valor",
       "STAGE": "Etapa",
+      "PIPELINE_AND_STAGE": "Funil e etapa",
+      "CURRENT_PIPELINE": "Atual",
+      "NO_PIPELINE_STAGES": "Nenhuma etapa disponível neste funil.",
+      "DAYS_IN_STAGE": "{count} dia na etapa | {count} dias na etapa",
+      "SAVE_BEFORE_TRANSFER": "Salve as alterações desta oportunidade antes de transferi-la para outro funil.",
+      "TRANSFER_LOSS": {
+        "TITLE": "Confirmar perda",
+        "DESCRIPTION": "Informe o motivo para mover esta oportunidade para {stage}.",
+        "CONFIRM": "Transferir oportunidade"
+      },
       "CUSTOM_FIELDS": "Campos personalizados",
       "UNGROUPED_FIELDS": "Outros campos",
       "IMPORTANT_FIELD": "Importante, mas não obrigatório",

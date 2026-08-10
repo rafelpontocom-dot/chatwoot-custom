@@ -19,6 +19,10 @@ class KanbanCardPolicy < ApplicationPolicy
     show? && can_move?
   end
 
+  def transfer?
+    reorder?
+  end
+
   def assign?
     show? && kanban_permission?('kanban_assign')
   end

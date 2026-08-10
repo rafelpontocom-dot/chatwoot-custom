@@ -32,6 +32,8 @@
       "EMPTY": "No appointments booked.",
       "NEXT_APPOINTMENT": "Next appointment",
       "APPOINTMENT_STATUS": "Appointment status",
+      "NO_APPOINTMENT_VALUE": "No appointment scheduled.",
+      "NO_APPOINTMENT_STATUS": "No appointment",
       "BOOKING_STAGE_HINT": "This stage requires scheduling. Choose a time to continue.",
       "BOOK_TITLE": "Book appointment",
       "BOOK_DESCRIPTION": "Choose the procedure, professional, and time for {contact}.",

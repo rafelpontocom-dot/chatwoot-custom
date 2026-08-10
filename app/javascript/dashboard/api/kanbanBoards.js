@@ -323,6 +323,15 @@ class KanbanBoardsAPI extends ApiClient {
     });
   }
 
+  transferCardById(boardId, cardId, payload) {
+    return axios.patch(
+      `${this.url}/${boardId}/cards/by_id/${cardId}/transfer`,
+      {
+        transfer: payload,
+      }
+    );
+  }
+
   getCardLabels(boardId, cardId) {
     return axios.get(`${this.url}/${boardId}/cards/by_id/${cardId}/labels`);
   }

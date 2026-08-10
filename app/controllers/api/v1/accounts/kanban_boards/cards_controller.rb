@@ -3,10 +3,10 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   before_action :fetch_kanban_board
   before_action :authorize_kanban_board_show
   before_action :fetch_manual_card_records, only: [:create_manual]
-  before_action :fetch_kanban_card, only: [:show, :update, :destroy, :reorder, :timeline]
+  before_action :fetch_kanban_card, only: [:show, :update, :destroy, :reorder, :transfer, :timeline]
   before_action :fetch_archived_kanban_card, only: [:restore]
   before_action :fetch_kanban_stage, only: [:update]
-  before_action :authorize_mutation_target, only: [:show, :update, :destroy, :reorder, :restore, :timeline]
+  before_action :authorize_mutation_target, only: [:show, :update, :destroy, :reorder, :transfer, :restore, :timeline]
 
   def show
     render_card
@@ -67,6 +67,23 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     reorder_kanban_card
   rescue ActiveRecord::StaleObjectError
     render_stale_card
+  end
+
+  def transfer
+    return render_stale_card unless card_version_current?(transfer_params[:lock_version])
+
+    source_board = @kanban_board
+    source_stage = @kanban_card.kanban_stage
+    target_stage = transfer_target_stage
+    @kanban_card = transfer_card_to(target_stage)
+
+    dispatch_kanban_card_event(Events::Types::KANBAN_CARD_DELETED, stage_id: source_stage.id, board_id: source_board.id)
+    dispatch_kanban_card_event(Events::Types::KANBAN_CARD_CREATED, stage_id: target_stage.id)
+    render_card
+  rescue ActiveRecord::RecordInvalid => e
+    return render_missing_lost_reason if @transfer_target_stage&.category == 'lost' && transfer_params[:lost_reason].blank?
+
+    render_assisted_move_fields(e.record, board: @transfer_target_board || @kanban_board)
   end
 
   def restore
@@ -411,6 +428,26 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     @reorder_card_params ||= params.require(:card).permit(:kanban_stage_id, :position, :lost_reason, :lock_version, custom_field_values: {})
   end
 
+  def transfer_params
+    params.require(:transfer).permit(:kanban_board_id, :kanban_stage_id, :lost_reason, :lock_version)
+  end
+
+  def transfer_target_stage
+    @transfer_target_board = policy_scope(KanbanBoard).find(transfer_params[:kanban_board_id])
+    authorize @transfer_target_board, :show?
+    @transfer_target_stage = @transfer_target_board.kanban_stages.active.find(transfer_params[:kanban_stage_id])
+  end
+
+  def transfer_card_to(target_stage)
+    KanbanCards::TransferCardService.new(
+      card: @kanban_card,
+      target_board: @transfer_target_board,
+      target_stage: target_stage,
+      actor: Current.user,
+      lost_reason: transfer_params[:lost_reason]
+    ).perform!
+  end
+
   def card_version_current?(client_version)
     client_version.blank? || client_version.to_i == @kanban_card.lock_version
   end
@@ -453,14 +490,14 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     }, status: :unprocessable_entity
   end
 
-  def render_assisted_move_fields(card)
+  def render_assisted_move_fields(card, board: @kanban_board)
     missing_fields = card.missing_required_custom_field_keys
     raise ActiveRecord::RecordInvalid, card if missing_fields.blank?
 
     render json: {
       message: 'Complete the required fields before moving this opportunity.',
       missing_fields: missing_fields,
-      field_definitions: @kanban_board.custom_field_definitions.select { |definition| missing_fields.include?(definition['key']) }
+      field_definitions: board.custom_field_definitions.select { |definition| missing_fields.include?(definition['key']) }
     }, status: :unprocessable_entity
   end
 
@@ -500,12 +537,12 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     }
   end
 
-  def dispatch_kanban_card_event(event_name, stage_id: @kanban_card.kanban_stage_id)
+  def dispatch_kanban_card_event(event_name, stage_id: @kanban_card.kanban_stage_id, board_id: @kanban_card.kanban_board_id)
     Rails.configuration.dispatcher.dispatch(
       event_name,
       Time.zone.now,
       account_id: @kanban_card.account_id,
-      board_id: @kanban_card.kanban_board_id,
+      board_id: board_id,
       stage_id: stage_id,
       card_id: @kanban_card.id,
       conversation_id: @kanban_card.conversation_id

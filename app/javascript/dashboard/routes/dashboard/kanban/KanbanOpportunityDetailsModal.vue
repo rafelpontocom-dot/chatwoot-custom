@@ -8,6 +8,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import KanbanCalendarAppointmentsSection from './KanbanCalendarAppointmentsSection.vue';
+import KanbanOpportunityPipelineMenu from './KanbanOpportunityPipelineMenu.vue';
 
 const props = defineProps({
   boardId: {
@@ -17,6 +18,10 @@ const props = defineProps({
   boardName: {
     type: String,
     default: '',
+  },
+  boards: {
+    type: Array,
+    default: () => [],
   },
   stages: {
     type: Array,
@@ -73,6 +78,7 @@ const emit = defineEmits([
   'updated',
   'openConversation',
   'manageFields',
+  'transferred',
 ]);
 
 const { t } = useI18n();
@@ -114,6 +120,7 @@ const subjectError = ref('');
 const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
 const showLabelsPopover = ref(false);
+const pendingPipelineTransfer = ref(null);
 const activeTabKey = ref('details');
 const contactDraft = ref({
   name: '',
@@ -151,6 +158,7 @@ const contactName = computed(
 const selectedStage = computed(() =>
   props.stages.find(stage => String(stage.id) === String(stageId.value))
 );
+const stageEnteredAt = computed(() => card.value?.stageEnteredAt || '');
 const selectedStageIsLost = computed(
   () => selectedStage.value?.category === 'lost'
 );
@@ -767,6 +775,80 @@ const completeNextAction = () =>
     next_action_completed_at: new Date().toISOString(),
   });
 
+const transferPipelineStage = async ({
+  boardId,
+  stageId: targetStageId,
+  lostReason: transferLostReason,
+}) => {
+  isSaving.value = true;
+  saveError.value = '';
+  try {
+    const response = await KanbanBoardsAPI.transferCardById(
+      props.boardId,
+      props.cardId,
+      {
+        kanban_board_id: boardId,
+        kanban_stage_id: targetStageId,
+        lock_version: card.value?.lockVersion,
+        lost_reason: transferLostReason || undefined,
+      }
+    );
+    pendingPipelineTransfer.value = null;
+    emit('transferred', {
+      boardId,
+      card: normalizeCard(response.data || {}),
+    });
+  } catch (error) {
+    saveError.value = getErrorMessage(
+      error,
+      t('KANBAN.OPPORTUNITY_DETAILS.SAVE_ERROR')
+    );
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const selectPipelineStage = async ({
+  boardId,
+  stageId: targetStageId,
+  stage,
+}) => {
+  if (isSaving.value || !targetStageId) return;
+
+  if (Number(boardId) === Number(props.boardId)) {
+    stageId.value = String(targetStageId);
+    return;
+  }
+
+  if (isFormDirty.value) {
+    saveError.value = t('KANBAN.OPPORTUNITY_DETAILS.SAVE_BEFORE_TRANSFER');
+    return;
+  }
+
+  if (stage?.category === 'lost') {
+    pendingPipelineTransfer.value = {
+      boardId,
+      stageId: targetStageId,
+      stage,
+      lostReason: '',
+    };
+    return;
+  }
+
+  await transferPipelineStage({ boardId, stageId: targetStageId });
+};
+
+const confirmPipelineTransfer = async () => {
+  const transfer = pendingPipelineTransfer.value;
+  if (!transfer || !transfer.lostReason.trim()) return;
+
+  await transferPipelineStage({
+    boardId: transfer.boardId,
+    stageId: transfer.stageId,
+    lostReason: transfer.lostReason.trim(),
+  });
+};
+
 const toggleLabel = title => {
   labelsSaveError.value = '';
 
@@ -985,25 +1067,16 @@ watch(showUnsavedChanges, async visible => {
           >
             {{ t('KANBAN.OPPORTUNITY_DETAILS.CARD_ID', { id: cardDisplayId }) }}
           </span>
-          <span
-            class="max-w-32 truncate border-l border-n-weak pl-2 text-xs text-n-slate-11"
-          >
-            {{ boardName }}
-          </span>
-          <select
-            v-model="stageId"
+          <KanbanOpportunityPipelineMenu
             data-testid="kanban-opportunity-header-stage"
-            class="h-7 max-w-44 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.STAGE')"
-          >
-            <option
-              v-for="stage in stages"
-              :key="stage.id"
-              :value="String(stage.id)"
-            >
-              {{ stage.name }}
-            </option>
-          </select>
+            :board-id="boardId"
+            :board-name="boardName"
+            :boards="boards"
+            :stages="stages"
+            :selected-stage-id="stageId"
+            :stage-entered-at="stageEnteredAt"
+            @select-stage="selectPipelineStage"
+          />
           <div class="relative">
             <button
               type="button"
@@ -1979,6 +2052,74 @@ watch(showUnsavedChanges, async visible => {
             @click="discardChanges"
           >
             {{ t('KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.DISCARD') }}
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      v-if="pendingPipelineTransfer"
+      class="absolute inset-0 z-20 grid place-items-center bg-black/20 p-4"
+      role="presentation"
+    >
+      <section
+        class="grid w-full max-w-sm gap-4 rounded-lg border border-n-weak bg-n-solid-1 p-5 shadow-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="kanban-transfer-loss-title"
+      >
+        <div>
+          <h3
+            id="kanban-transfer-loss-title"
+            class="mb-1 text-base font-semibold text-n-slate-12"
+          >
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.TRANSFER_LOSS.TITLE') }}
+          </h3>
+          <p class="mb-0 text-sm text-n-slate-11">
+            {{
+              t('KANBAN.OPPORTUNITY_DETAILS.TRANSFER_LOSS.DESCRIPTION', {
+                stage: pendingPipelineTransfer.stage.name,
+              })
+            }}
+          </p>
+        </div>
+        <label class="grid gap-1.5">
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON') }}
+          </span>
+          <select
+            v-model="pendingPipelineTransfer.lostReason"
+            data-testid="kanban-opportunity-transfer-lost-reason"
+            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          >
+            <option value="">
+              {{ t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_PLACEHOLDER') }}
+            </option>
+            <option
+              v-for="option in selectableLostReasonOptions"
+              :key="option"
+              :value="option"
+            >
+              {{ option }}
+            </option>
+          </select>
+        </label>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-md px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+            @click="pendingPipelineTransfer = null"
+          >
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.CANCEL') }}
+          </button>
+          <button
+            type="button"
+            data-testid="kanban-opportunity-confirm-transfer"
+            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8 disabled:opacity-50"
+            :disabled="isSaving || !pendingPipelineTransfer.lostReason.trim()"
+            @click="confirmPipelineTransfer"
+          >
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.TRANSFER_LOSS.CONFIRM') }}
           </button>
         </div>
       </section>

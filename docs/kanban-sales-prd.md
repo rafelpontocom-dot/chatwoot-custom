@@ -644,9 +644,9 @@ A visão em lista reutiliza os mesmos filtros, seleção em massa e abertura da 
 O quadro é a superfície principal de trabalho. O cabeçalho é operacional e curto, distribuído em duas linhas:
 
 1. primeira linha: seletor de funil, busca, `Nova oportunidade` e menu de ações;
-2. segunda linha: seletor Kanban/Lista, `Hoje` e abertura de filtros, com a contagem de critérios ativos no próprio botão.
+2. segunda linha: seletor Kanban/Lista e acesso a `Hoje`.
 
-Ordenação e filtros salvos ficam no popover de filtros. Exportação, métricas, automações, configurações e ações administrativas ficam no menu de ações. Filtros rápidos como sem ação, atrasadas e ganhos também pertencem ao popover, nunca a uma linha permanente. Métricas do funil são consultadas sob demanda e não competem com os cards.
+Busca e filtros formam uma única superfície: clicar ou focar a busca abre um popover contextual logo abaixo, sem uma linha permanente de filtros. A busca encontra oportunidade, contato, telefone e e-mail. Ordenação e filtros salvos ficam nesse popover. Exportação, métricas, automações, configurações e ações administrativas ficam no menu de ações. Filtros rápidos como sem ação, atrasadas e ganhos também pertencem ao popover. Métricas do funil são consultadas sob demanda e não competem com os cards.
 
 Ordenar, salvar, renomear, excluir e limpar filtros também acontecem dentro desse painel. Ao iniciar uma dessas ações, o painel abre automaticamente e mantém a ação no mesmo contexto dos critérios que serão salvos. A busca tem `Enter`, uma ação visível de buscar e uma limpeza própria, que não altera os demais critérios ativos.
 
@@ -758,7 +758,7 @@ Antes de iniciar o módulo de automações, o Kanban precisa fechar estas lacuna
 - `Implementado`: `date_of_birth` provisionado por conta, automação anual de aniversário com opt-in, timezone, horário, canais WhatsApp/email e idempotência de entrega.
 - `Preparado para aceite`: suíte Playwright real em desktop Chrome e Pixel 7 cobre foco, teclado, drawer, abas, nomes acessíveis e responsividade; leitor de tela ainda precisa ser executado com VoiceOver/NVDA em ambiente real.
 - `Pendente de produção`: concorrência entre agentes, retries de jobs e carga elevada precisam ser executados no Swarm com dados representativos.
-- `Pendente de acabamento`: renomear, reordenar e excluir abas personalizadas; renomear e excluir filtros salvos pela interface; mostrar uma prévia numérica da fórmula antes de salvar.
+- `Implementado no acabamento`: renomear, reordenar e excluir abas personalizadas com realocação explícita dos campos; renomear e excluir filtros salvos pela interface; prévia numérica da fórmula antes de salvar.
 - `Futuro`: fórmulas com datas e horas dependem de semântica explícita para soma de dias, duração, diferença entre datas, resultado e fuso horário.
 
 O módulo de automações segue separado do Kanban. O aniversário já possui uma primeira automação controlada; cadências, lembretes e demais notificações devem continuar obedecendo opt-in, janela, timezone, idempotência e auditoria.

@@ -25,6 +25,11 @@ const selectedChangedField = computed(() =>
 const selectedChangedFieldOptions = computed(
   () => selectedChangedField.value?.conditionOptions || []
 );
+const changedFieldValueLabel = computed(() =>
+  props.config.changedFieldValueSource === 'previous'
+    ? props.t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CHANGED_FIELD_PREVIOUS_VALUE')
+    : props.t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CHANGED_FIELD_NEW_VALUE')
+);
 const activeConnections = computed(() =>
   props.connections.filter(connection => connection.active)
 );
@@ -174,7 +179,30 @@ const toggleStageEvent = (eventName, checked) => {
         v-if="selectedChangedFieldOptions.length"
         class="grid gap-1 text-xs font-medium text-n-slate-11"
       >
-        {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CHANGED_FIELD_NEW_VALUE') }}
+        {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CHANGED_FIELD_VALUE_SOURCE') }}
+        <select
+          :value="config.changedFieldValueSource || 'new'"
+          data-testid="kanban-workflow-trigger-field-value-source"
+          class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+          @change="updateConfig('changedFieldValueSource', $event.target.value)"
+        >
+          <option value="new">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.CHANGED_FIELD_NEW_VALUE') }}
+          </option>
+          <option value="previous">
+            {{
+              t(
+                'KANBAN.SETTINGS.AUTOMATIONS.RULES.CHANGED_FIELD_PREVIOUS_VALUE'
+              )
+            }}
+          </option>
+        </select>
+      </label>
+      <label
+        v-if="selectedChangedFieldOptions.length"
+        class="grid gap-1 text-xs font-medium text-n-slate-11"
+      >
+        {{ changedFieldValueLabel }}
         <select
           :value="config.changedFieldValue || ''"
           data-testid="kanban-workflow-trigger-field-value"
@@ -223,6 +251,7 @@ const toggleStageEvent = (eventName, checked) => {
         {{ t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.AMOUNT') }}
         <select
           :value="config.triggerAmountMode || 'any'"
+          data-testid="kanban-workflow-trigger-amount-mode"
           class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
           @change="updateConfig('triggerAmountMode', $event.target.value)"
         >
@@ -232,10 +261,15 @@ const toggleStageEvent = (eventName, checked) => {
           <option value="new_value">
             {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.AMOUNT_NEW_VALUE') }}
           </option>
+          <option value="previous_value">
+            {{ t('KANBAN.SETTINGS.AUTOMATIONS.RULES.AMOUNT_PREVIOUS_VALUE') }}
+          </option>
         </select>
       </label>
       <div
-        v-if="config.triggerAmountMode === 'new_value'"
+        v-if="
+          ['new_value', 'previous_value'].includes(config.triggerAmountMode)
+        "
         class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2"
       >
         <select
