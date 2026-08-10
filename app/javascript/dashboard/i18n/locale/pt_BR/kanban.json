@@ -1274,6 +1274,8 @@
       "CONTACT_ATTRIBUTES": "Outros dados do contato",
       "CONTACT_VALUE_TRUE": "Sim",
       "CONTACT_VALUE_FALSE": "Não",
+      "SAVE_CONTACT": "Salvar contato",
+      "SAVE_CONTACT_ERROR": "Não foi possível salvar os dados do contato.",
       "NO_CONTACT": "Sem contato vinculado",
       "ASSIGNEE_HELP": "O agente é definido na conversa vinculada.",
       "QUESTIONS": {

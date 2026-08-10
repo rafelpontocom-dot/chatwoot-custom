@@ -12,6 +12,8 @@ O modulo e nativo ao Chatwoot e pertencente a `Account`. Ele se integra ao Kanba
 
 O payload do board inclui os tres primeiros campos para que o drawer da oportunidade exiba a area Agenda somente quando habilitada, filtre procedimentos permitidos e sinalize etapas que pedem agendamento. O frontend nunca cria uma ocorrencia apenas pela mudanca de etapa.
 
+O resumo da aba `Agenda` deriva a proxima ocorrencia ativa e seu status diretamente de `calendar_appointments`; nao persiste campos duplicados em `kanban_cards`. O clique na ocorrencia navega para `/calendar?appointmentId=:id`, onde o drawer de agendamento abre para edicao. O caminho inverso permanece no drawer da Agenda, que abre a oportunidade vinculada.
+
 ### Direcao De Integracao Aprovada
 
 - P0: agenda nativa e fonte de verdade.

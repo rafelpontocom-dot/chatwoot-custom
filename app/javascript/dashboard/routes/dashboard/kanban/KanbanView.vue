@@ -1618,7 +1618,7 @@ onUnmounted(() => {
       >
         <div
           data-testid="kanban-workspace-primary-row"
-          class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 lg:grid-cols-[minmax(12rem,auto)_minmax(16rem,1fr)_auto] lg:items-center lg:gap-3"
+          class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 lg:grid-cols-[minmax(12rem,auto)_minmax(16rem,1fr)_auto] lg:gap-3"
         >
           <div class="min-w-0 flex-1">
             <OnClickOutside @trigger="isBoardDropdownOpen = false">
@@ -1665,7 +1665,7 @@ onUnmounted(() => {
           </div>
           <template v-if="selectedBoard">
             <div
-              class="col-span-full order-3 min-w-0 md:order-2 lg:col-span-1 lg:max-w-xl"
+              class="col-span-full order-3 min-w-0 self-center md:order-2 lg:col-span-1 lg:max-w-xl"
             >
               <label class="block min-w-0">
                 <span class="sr-only">
@@ -1712,7 +1712,7 @@ onUnmounted(() => {
           </template>
           <template v-if="selectedBoard">
             <div
-              class="order-2 flex items-center gap-1 justify-self-end md:order-3"
+              class="order-2 flex items-center gap-1 self-center justify-self-end md:order-3"
             >
               <button
                 type="button"

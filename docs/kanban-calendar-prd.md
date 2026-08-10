@@ -191,6 +191,8 @@ Cada procedimento pertence a uma conta e pode ser associado a boards.
 
 Cada board pode habilitar o modulo `Agenda` sem transformar uma data em campo comercial. A configuracao escolhe etapas que sugerem agendamento, procedimentos permitidos e, apenas quando necessario para automacoes legadas, um campo para espelhar a proxima ocorrencia. O card mostra um resumo de leitura e um atalho `Agendar`; recorrencia, sessoes e datas permanecem na agenda.
 
+No drawer da oportunidade, `Agenda` e uma aba propria. Ela apresenta `Proximo agendamento` e `Status do agendamento` como dados derivados da proxima ocorrencia ativa, em vez de campos duplicados que a secretaria teria de atualizar manualmente. Selecionar uma ocorrencia abre a Agenda no respectivo detalhe; no detalhe da Agenda, a acao de volta abre a oportunidade vinculada.
+
 ### Recurso E Disponibilidade
 
 Um recurso e qualquer capacidade que nao pode ter conflito: profissional, sala, equipamento ou fila generica.

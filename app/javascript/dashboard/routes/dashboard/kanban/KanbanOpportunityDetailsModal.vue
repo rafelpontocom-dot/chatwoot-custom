@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
+import ContactAPI from 'dashboard/api/contacts';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
@@ -112,7 +113,18 @@ const labelsSaveError = ref('');
 const subjectError = ref('');
 const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
+const showLabelsPopover = ref(false);
 const activeTabKey = ref('details');
+const contactDraft = ref({
+  name: '',
+  phone_number: '',
+  email: '',
+  identifier: '',
+  custom_attributes: {},
+  additional_attributes: {},
+});
+const isSavingContact = ref(false);
+const contactSaveError = ref('');
 const expandedGroupKeys = ref({
   organization: false,
   labels: false,
@@ -129,14 +141,6 @@ const modalTitle = computed(() =>
 const headerTitle = computed(() => subject.value || modalTitle.value);
 const cardDisplayId = computed(() => card.value?.id || props.cardId);
 const hasConversation = computed(() => !!card.value?.conversationId);
-const conversationAssignee = computed(
-  () => card.value?.conversation?.meta?.assignee || card.value?.assignee
-);
-const assigneeName = computed(
-  () =>
-    conversationAssignee.value?.name ||
-    t('KANBAN.OPPORTUNITY_DETAILS.UNASSIGNED')
-);
 const contactName = computed(
   () =>
     card.value?.contact?.name ||
@@ -150,41 +154,40 @@ const selectedStage = computed(() =>
 const selectedStageIsLost = computed(
   () => selectedStage.value?.category === 'lost'
 );
-const contactDetails = computed(() => {
-  const contact = card.value?.contact || {};
-
-  return [
+const contactDetails = computed(() =>
+  [
     {
       key: 'name',
       label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_NAME'),
-      value: contact.name,
+      value: contactDraft.value.name,
     },
     {
       key: 'phone',
       label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_PHONE'),
-      value: contact.phone_number,
+      value: contactDraft.value.phone_number,
     },
     {
       key: 'email',
       label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_EMAIL'),
-      value: contact.email,
+      value: contactDraft.value.email,
     },
     {
       key: 'identifier',
       label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_IDENTIFIER'),
-      value: contact.identifier,
+      value: contactDraft.value.identifier,
     },
-  ].filter(detail => detail.value);
-});
+  ].filter(detail => detail.value || detail.key !== 'identifier')
+);
 const contactAttributeEntries = computed(() => {
-  const contact = card.value?.contact || {};
-  const attributes = {
-    ...(contact.additional_attributes || {}),
-    ...(contact.custom_attributes || {}),
-  };
+  const additionalEntries = Object.entries(
+    contactDraft.value.additional_attributes || {}
+  ).map(([key, value]) => ({ key, value, source: 'additional_attributes' }));
+  const customEntries = Object.entries(
+    contactDraft.value.custom_attributes || {}
+  ).map(([key, value]) => ({ key, value, source: 'custom_attributes' }));
 
-  return Object.entries(attributes).filter(
-    ([, value]) => value !== '' && value !== null && value !== undefined
+  return [...additionalEntries, ...customEntries].filter(
+    ({ value }) => value !== '' && value !== null && value !== undefined
   );
 });
 const formatContactAttributeLabel = key =>
@@ -200,6 +203,15 @@ const formatContactAttributeValue = value => {
   }
 
   return String(value);
+};
+const setContactAttributeValue = (entry, value) => {
+  contactDraft.value = {
+    ...contactDraft.value,
+    [entry.source]: {
+      ...contactDraft.value[entry.source],
+      [entry.key]: value,
+    },
+  };
 };
 const selectedLabelTitleSet = computed(
   () => new Set(selectedLabelTitles.value)
@@ -355,10 +367,6 @@ const opportunityTabs = computed(() => {
     {
       key: 'contact-details',
       label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT'),
-    },
-    {
-      key: 'agent-details',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE'),
     },
     ...(props.calendarEnabled
       ? [
@@ -573,6 +581,16 @@ const isFormDirty = computed(
 
 const setFormState = payload => {
   card.value = normalizeCard(payload);
+  contactDraft.value = {
+    name: card.value.contact?.name || '',
+    phone_number: card.value.contact?.phone_number || '',
+    email: card.value.contact?.email || '',
+    identifier: card.value.contact?.identifier || '',
+    custom_attributes: { ...(card.value.contact?.custom_attributes || {}) },
+    additional_attributes: {
+      ...(card.value.contact?.additional_attributes || {}),
+    },
+  };
   subject.value = card.value.subject || '';
   description.value = card.value.description || '';
   ownerId.value = card.value.ownerId ? String(card.value.ownerId) : '';
@@ -782,6 +800,46 @@ const saveLabels = async () => {
   }
 };
 
+const saveContact = async () => {
+  const contactId = card.value?.contact?.id;
+  if (!contactId || isSavingContact.value) return;
+
+  isSavingContact.value = true;
+  contactSaveError.value = '';
+  try {
+    const response = await ContactAPI.update(contactId, {
+      name: contactDraft.value.name.trim(),
+      phone_number: contactDraft.value.phone_number.trim(),
+      email: contactDraft.value.email.trim(),
+      identifier: contactDraft.value.identifier.trim(),
+      custom_attributes: contactDraft.value.custom_attributes,
+      additional_attributes: contactDraft.value.additional_attributes,
+    });
+    const updatedContact = response.data || {};
+    card.value = {
+      ...card.value,
+      contact: { ...card.value.contact, ...updatedContact },
+    };
+    contactDraft.value = {
+      ...contactDraft.value,
+      ...updatedContact,
+      custom_attributes:
+        updatedContact.custom_attributes ||
+        contactDraft.value.custom_attributes,
+      additional_attributes:
+        updatedContact.additional_attributes ||
+        contactDraft.value.additional_attributes,
+    };
+  } catch (error) {
+    contactSaveError.value = getErrorMessage(
+      error,
+      t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT_ERROR')
+    );
+  } finally {
+    isSavingContact.value = false;
+  }
+};
+
 const openConversation = () => {
   if (!hasConversation.value) return;
 
@@ -946,6 +1004,91 @@ watch(showUnsavedChanges, async visible => {
               {{ stage.name }}
             </option>
           </select>
+          <div class="relative">
+            <button
+              type="button"
+              data-testid="kanban-opportunity-toggle-labels"
+              class="flex h-7 items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+              :aria-expanded="showLabelsPopover"
+              aria-controls="kanban-opportunity-labels-popover"
+              @click="showLabelsPopover = !showLabelsPopover"
+            >
+              <i class="i-lucide-tags size-3.5" />
+              {{ t('KANBAN.OPPORTUNITY_DETAILS.LABELS') }}
+              <span v-if="selectedLabelTitles.length" class="text-n-slate-10">
+                {{ selectedLabelTitles.length }}
+              </span>
+            </button>
+            <div
+              v-if="showLabelsPopover"
+              id="kanban-opportunity-labels-popover"
+              class="absolute left-0 z-30 mt-2 grid w-72 gap-3 rounded-lg border border-n-weak bg-n-solid-1 p-3 shadow-lg"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.LABELS') }}
+                </span>
+                <button
+                  type="button"
+                  data-testid="kanban-opportunity-save-labels"
+                  class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  :aria-label="
+                    isSavingLabels
+                      ? t('KANBAN.OPPORTUNITY_DETAILS.SAVING_LABELS')
+                      : t('KANBAN.OPPORTUNITY_DETAILS.SAVE_LABELS')
+                  "
+                  :disabled="isSavingLabels"
+                  @click="saveLabels"
+                >
+                  <i class="i-lucide-save size-4" />
+                </button>
+              </div>
+              <p
+                v-if="labelsLoadError || labelsSaveError"
+                class="mb-0 text-xs text-n-ruby-11"
+                role="alert"
+              >
+                {{ labelsLoadError || labelsSaveError }}
+              </p>
+              <div
+                v-if="accountLabels.length"
+                data-testid="kanban-opportunity-labels"
+                class="flex flex-wrap gap-1.5"
+              >
+                <button
+                  v-for="label in accountLabels"
+                  :key="label.id || label.title"
+                  type="button"
+                  data-testid="kanban-opportunity-label"
+                  class="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition"
+                  :class="
+                    selectedLabelTitleSet.has(label.title)
+                      ? 'border-n-blue-9 bg-n-blue-3 text-n-blue-12'
+                      : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
+                  "
+                  :aria-pressed="selectedLabelTitleSet.has(label.title)"
+                  @click="toggleLabel(label.title)"
+                >
+                  <span
+                    class="size-2 rounded-full"
+                    :style="{ backgroundColor: label.color }"
+                  />
+                  <span>{{ label.title }}</span>
+                  <i
+                    v-if="selectedLabelTitleSet.has(label.title)"
+                    class="i-lucide-check size-3"
+                  />
+                </button>
+              </div>
+              <p
+                v-else-if="!isLoadingLabels"
+                data-testid="kanban-opportunity-no-labels"
+                class="mb-0 text-xs text-n-slate-11"
+              >
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.NO_LABELS_AVAILABLE') }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
       <div class="flex flex-shrink-0 items-center gap-1">
@@ -1337,23 +1480,74 @@ watch(showUnsavedChanges, async visible => {
               class="grid gap-4"
             >
               <section class="grid gap-3 border-b border-n-weak pb-4">
-                <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
-                </h3>
-                <dl class="grid gap-3">
-                  <div
+                <div class="flex items-center justify-between gap-3">
+                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
+                  </h3>
+                  <button
+                    type="button"
+                    data-testid="kanban-opportunity-save-contact"
+                    class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="isSavingContact || !card.contact?.id"
+                    :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
+                    :title="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
+                    @click="saveContact"
+                  >
+                    <i class="i-lucide-save size-4" />
+                  </button>
+                </div>
+                <div class="grid gap-1">
+                  <label
                     v-for="detail in contactDetails"
                     :key="detail.key"
-                    class="grid gap-0.5 border-b border-n-weak pb-2 last:border-b-0 last:pb-0"
+                    class="grid border-b border-n-weak py-2 last:border-b-0"
                   >
-                    <dt class="text-xs text-n-slate-11">{{ detail.label }}</dt>
-                    <dd
-                      class="m-0 break-words text-sm font-medium text-n-slate-12"
-                    >
-                      {{ detail.value }}
-                    </dd>
-                  </div>
-                </dl>
+                    <span class="sr-only">{{ detail.label }}</span>
+                    <input
+                      v-if="detail.key === 'name'"
+                      v-model="contactDraft.name"
+                      data-testid="kanban-opportunity-contact-name"
+                      type="text"
+                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm font-medium text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
+                      :placeholder="detail.label"
+                      :aria-label="detail.label"
+                    />
+                    <input
+                      v-else-if="detail.key === 'phone'"
+                      v-model="contactDraft.phone_number"
+                      data-testid="kanban-opportunity-contact-phone"
+                      type="tel"
+                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
+                      :placeholder="detail.label"
+                      :aria-label="detail.label"
+                    />
+                    <input
+                      v-else-if="detail.key === 'email'"
+                      v-model="contactDraft.email"
+                      data-testid="kanban-opportunity-contact-email"
+                      type="email"
+                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
+                      :placeholder="detail.label"
+                      :aria-label="detail.label"
+                    />
+                    <input
+                      v-else
+                      v-model="contactDraft.identifier"
+                      data-testid="kanban-opportunity-contact-identifier"
+                      type="text"
+                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
+                      :placeholder="detail.label"
+                      :aria-label="detail.label"
+                    />
+                  </label>
+                </div>
+                <p
+                  v-if="contactSaveError"
+                  class="mb-0 text-xs text-n-ruby-11"
+                  role="alert"
+                >
+                  {{ contactSaveError }}
+                </p>
               </section>
               <section
                 v-if="contactAttributeEntries.length"
@@ -1362,43 +1556,44 @@ watch(showUnsavedChanges, async visible => {
                 <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
                 </h3>
-                <dl class="grid gap-3">
-                  <div
-                    v-for="[key, value] in contactAttributeEntries"
-                    :key="key"
-                    class="grid gap-0.5 border-b border-n-weak pb-2 last:border-b-0 last:pb-0"
+                <div class="grid gap-1">
+                  <label
+                    v-for="entry in contactAttributeEntries"
+                    :key="`${entry.source}-${entry.key}`"
+                    class="grid border-b border-n-weak py-2 last:border-b-0"
                   >
-                    <dt class="text-xs text-n-slate-11">
-                      {{ formatContactAttributeLabel(key) }}
-                    </dt>
-                    <dd class="m-0 break-words text-sm text-n-slate-12">
-                      {{ formatContactAttributeValue(value) }}
-                    </dd>
-                  </div>
-                </dl>
+                    <span class="sr-only">
+                      {{ formatContactAttributeLabel(entry.key) }}
+                    </span>
+                    <input
+                      v-if="typeof entry.value !== 'boolean'"
+                      :value="formatContactAttributeValue(entry.value)"
+                      type="text"
+                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
+                      :placeholder="formatContactAttributeLabel(entry.key)"
+                      :aria-label="formatContactAttributeLabel(entry.key)"
+                      @input="
+                        setContactAttributeValue(entry, $event.target.value)
+                      "
+                    />
+                    <span
+                      v-else
+                      class="flex h-8 items-center gap-2 text-sm text-n-slate-12"
+                    >
+                      <input
+                        :checked="entry.value"
+                        type="checkbox"
+                        class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                        :aria-label="formatContactAttributeLabel(entry.key)"
+                        @change="
+                          setContactAttributeValue(entry, $event.target.checked)
+                        "
+                      />
+                      {{ formatContactAttributeLabel(entry.key) }}
+                    </span>
+                  </label>
+                </div>
               </section>
-            </section>
-
-            <section
-              v-if="activeTabKey === 'agent-details'"
-              data-testid="kanban-opportunity-agent-details"
-              class="grid gap-3 border-b border-n-weak pb-4"
-            >
-              <div class="flex items-center gap-2">
-                <i class="i-lucide-user-round size-4 text-n-slate-10" />
-                <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE') }}
-                </h3>
-              </div>
-              <p
-                data-testid="kanban-opportunity-assignee"
-                class="mb-0 text-sm text-n-slate-12"
-              >
-                {{ assigneeName }}
-              </p>
-              <p class="mb-0 text-xs text-n-slate-11">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE_HELP') }}
-              </p>
             </section>
 
             <section
@@ -1633,104 +1828,6 @@ watch(showUnsavedChanges, async visible => {
             "
             class="grid min-w-0 content-start gap-3"
           >
-            <section
-              v-if="activeTabKey === 'contact-details'"
-              class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
-                  :aria-expanded="isGroupExpanded('labels')"
-                  @click="toggleGroup('labels')"
-                >
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LABELS') }}
-                  </span>
-                  <i
-                    class="size-4 text-n-slate-10"
-                    :class="
-                      isGroupExpanded('labels')
-                        ? 'i-lucide-chevron-up'
-                        : 'i-lucide-chevron-down'
-                    "
-                  />
-                </button>
-                <button
-                  type="button"
-                  data-testid="kanban-opportunity-save-labels"
-                  class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
-                  :aria-label="
-                    isSavingLabels
-                      ? t('KANBAN.OPPORTUNITY_DETAILS.SAVING_LABELS')
-                      : t('KANBAN.OPPORTUNITY_DETAILS.SAVE_LABELS')
-                  "
-                  :disabled="isSavingLabels"
-                  @click="saveLabels"
-                >
-                  <i class="i-lucide-save size-4" />
-                </button>
-              </div>
-              <div v-show="isGroupExpanded('labels')" class="grid gap-3">
-                <p
-                  v-if="labelsLoadError"
-                  data-testid="kanban-opportunity-labels-load-error"
-                  class="mb-0 text-sm text-n-ruby-11"
-                  role="alert"
-                >
-                  {{ labelsLoadError }}
-                </p>
-
-                <div
-                  v-if="accountLabels.length"
-                  data-testid="kanban-opportunity-labels"
-                  class="flex flex-wrap gap-2"
-                >
-                  <button
-                    v-for="label in accountLabels"
-                    :key="label.id || label.title"
-                    type="button"
-                    data-testid="kanban-opportunity-label"
-                    class="flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition"
-                    :class="
-                      selectedLabelTitleSet.has(label.title)
-                        ? 'border-n-blue-9 bg-n-blue-3 text-n-blue-12'
-                        : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
-                    "
-                    :aria-pressed="selectedLabelTitleSet.has(label.title)"
-                    @click="toggleLabel(label.title)"
-                  >
-                    <span
-                      class="size-2 rounded-full"
-                      :style="{ backgroundColor: label.color }"
-                    />
-                    <span>{{ label.title }}</span>
-                    <i
-                      v-if="selectedLabelTitleSet.has(label.title)"
-                      class="i-lucide-check size-3"
-                    />
-                  </button>
-                </div>
-
-                <p
-                  v-else-if="!isLoadingLabels"
-                  data-testid="kanban-opportunity-no-labels"
-                  class="mb-0 text-sm text-n-slate-11"
-                >
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.NO_LABELS_AVAILABLE') }}
-                </p>
-
-                <p
-                  v-if="labelsSaveError"
-                  data-testid="kanban-opportunity-labels-save-error"
-                  class="mb-0 text-sm text-n-ruby-11"
-                  role="alert"
-                >
-                  {{ labelsSaveError }}
-                </p>
-              </div>
-            </section>
-
             <KanbanCalendarAppointmentsSection
               v-if="activeTabKey === 'calendar' && calendarEnabled"
               :card-id="card.id"

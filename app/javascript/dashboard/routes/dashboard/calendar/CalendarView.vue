@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { debounce } from '@chatwoot/utils';
 import calendarAPI from 'dashboard/api/calendar';
 import KanbanCalendarBookingDialog from '../kanban/KanbanCalendarBookingDialog.vue';
@@ -8,6 +9,7 @@ import CalendarAppointmentDetailsDialog from './CalendarAppointmentDetailsDialog
 import CalendarSettingsDialog from './CalendarSettingsDialog.vue';
 
 const { t, locale } = useI18n();
+const route = useRoute() || { query: {} };
 const selectedDate = ref(new Date());
 const view = ref('week');
 const appointments = ref([]);
@@ -219,6 +221,13 @@ const openBooking = () => bookingDialog.value?.open();
 const openSettings = () => settingsDialog.value?.open();
 const openAppointment = appointment =>
   appointmentDetailsDialog.value?.open(appointment.id);
+const openRequestedAppointment = async appointmentId => {
+  const id = Number(appointmentId);
+  if (!id) return;
+
+  await nextTick();
+  appointmentDetailsDialog.value?.open(id);
+};
 const beginRescheduleDrag = appointment => {
   draggedAppointment.value = appointment;
 };
@@ -243,9 +252,11 @@ watch(
   loadAppointments
 );
 watch(searchQuery, debouncedLoadAppointments);
+watch(() => route.query?.appointmentId, openRequestedAppointment);
 onMounted(() => {
   loadAppointments();
   loadResources();
+  openRequestedAppointment(route.query?.appointmentId);
 });
 </script>
 

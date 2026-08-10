@@ -1,11 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 
 import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import KanbanCalendarBookingDialog from './KanbanCalendarBookingDialog.vue';
-import CalendarAppointmentDetailsDialog from '../calendar/CalendarAppointmentDetailsDialog.vue';
 
 const props = defineProps({
   cardId: { type: [Number, String], required: true },
@@ -16,11 +16,12 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const appointments = ref([]);
 const isLoading = ref(false);
 const error = ref('');
 const bookingDialog = ref(null);
-const detailsDialog = ref(null);
 
 const sortedAppointments = computed(() =>
   [...appointments.value].sort(
@@ -71,7 +72,13 @@ const loadAppointments = async () => {
 };
 
 const openBooking = () => bookingDialog.value?.open();
-const openDetails = appointment => detailsDialog.value?.open(appointment.id);
+const openDetails = appointment => {
+  router.push({
+    name: 'calendar_index',
+    params: { accountId: route.params.accountId },
+    query: { appointmentId: appointment.id },
+  });
+};
 const handleCreated = () => loadAppointments();
 
 onMounted(loadAppointments);
@@ -169,10 +176,6 @@ onMounted(loadAppointments);
       :contact-name="contactName"
       :allowed-procedure-ids="allowedProcedureIds"
       @created="handleCreated"
-    />
-    <CalendarAppointmentDetailsDialog
-      ref="detailsDialog"
-      @updated="handleCreated"
     />
   </section>
 </template>

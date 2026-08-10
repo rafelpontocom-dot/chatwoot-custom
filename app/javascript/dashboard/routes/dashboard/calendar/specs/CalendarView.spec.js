@@ -10,6 +10,10 @@ vi.mock('vue-i18n', () => ({
   }),
 }));
 
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: {} }),
+}));
+
 vi.mock('dashboard/api/calendar', () => ({
   default: {
     getAppointments: vi.fn(),

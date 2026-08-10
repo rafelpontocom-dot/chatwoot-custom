@@ -1271,6 +1271,8 @@
       "CONTACT_ATTRIBUTES": "Other contact details",
       "CONTACT_VALUE_TRUE": "Yes",
       "CONTACT_VALUE_FALSE": "No",
+      "SAVE_CONTACT": "Save contact",
+      "SAVE_CONTACT_ERROR": "Could not save the contact details.",
       "NO_CONTACT": "No contact linked",
       "ASSIGNEE_HELP": "The agent is assigned from the linked conversation.",
       "QUESTIONS": {

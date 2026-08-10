@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import KanbanOpportunityDetailsModal from '../KanbanOpportunityDetailsModal.vue';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
+import ContactAPI from 'dashboard/api/contacts';
 
 const storeMocks = vi.hoisted(() => ({
   labels: [],
@@ -134,6 +135,12 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     getCardCadence: vi.fn(),
     enrollCardInCadence: vi.fn(),
     cancelCardCadence: vi.fn(),
+  },
+}));
+
+vi.mock('dashboard/api/contacts', () => ({
+  default: {
+    update: vi.fn(),
   },
 }));
 
@@ -341,6 +348,10 @@ const labelButtons = wrapper =>
   wrapper.findAll('[data-testid="kanban-opportunity-label"]');
 const saveLabelsButton = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-save-labels"]');
+const openLabels = wrapper =>
+  wrapper
+    .find('[data-testid="kanban-opportunity-toggle-labels"]')
+    .trigger('click');
 const openContactTab = wrapper =>
   wrapper
     .find('[data-testid="kanban-opportunity-tab-contact-details"]')
@@ -387,7 +398,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.emitted('openConversation')).toHaveLength(1);
   });
 
-  it('organizes contact and conversation agent in dedicated tabs', async () => {
+  it('keeps contact editable and removes the one-field conversation agent tab', async () => {
     const wrapper = await mountModal({
       card: buildCard({
         contact: {
@@ -407,15 +418,45 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper
         .find('[data-testid="kanban-opportunity-tab-agent-details"]')
-        .text()
-    ).toBe('Agent');
+        .exists()
+    ).toBe(false);
 
     await wrapper
       .find('[data-testid="kanban-opportunity-tab-contact-details"]')
       .trigger('click');
 
-    expect(wrapper.text()).toContain('buyer@example.com');
-    expect(wrapper.text()).toContain('+55 62 99999-0000');
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-contact-email"]').element
+        .value
+    ).toBe('buyer@example.com');
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-contact-phone"]').element
+        .value
+    ).toBe('+55 62 99999-0000');
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-contact-name"]').exists()
+    ).toBe(true);
+  });
+
+  it('saves basic contact details from the opportunity contact tab', async () => {
+    ContactAPI.update.mockResolvedValue({
+      data: { id: 91, name: 'Acme Updated', phone_number: '+55 62 98888-0000' },
+    });
+    const wrapper = await mountModal();
+
+    await openContactTab(wrapper);
+    await wrapper
+      .find('[data-testid="kanban-opportunity-contact-name"]')
+      .setValue('Acme Updated');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-save-contact"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(ContactAPI.update).toHaveBeenCalledWith(
+      91,
+      expect.objectContaining({ name: 'Acme Updated' })
+    );
   });
 
   it('shows Calendar as its own tab instead of rendering it in General', async () => {
@@ -458,8 +499,11 @@ describe('KanbanOpportunityDetailsModal', () => {
       '[data-testid="kanban-opportunity-contact-details"]'
     );
 
-    expect(contactDetails.find('dl').classes()).not.toContain('sm:grid-cols-2');
-    expect(contactDetails.text()).toContain('contato-com-endereco-muito-longo');
+    expect(contactDetails.classes()).toContain('grid');
+    expect(
+      contactDetails.find('[data-testid="kanban-opportunity-contact-email"]')
+        .element.value
+    ).toBe('contato-com-endereco-muito-longo@example.com');
   });
 
   it('uses compact in-field instructions for commercial and planning fields', async () => {
@@ -1306,22 +1350,12 @@ describe('KanbanOpportunityDetailsModal', () => {
       .trigger('click');
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-contact-details"]').text()
-    ).toContain('Acme Buyer');
+      wrapper.find('[data-testid="kanban-opportunity-contact-name"]').element
+        .value
+    ).toBe('Acme Buyer');
   });
 
-  it('renders assignee in the dedicated agent tab', async () => {
-    const wrapper = await mountModal();
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-agent-details"]')
-      .trigger('click');
-
-    expect(
-      wrapper.find('[data-testid="kanban-opportunity-assignee"]').text()
-    ).toContain('Jane Agent');
-  });
-
-  it('keeps stage in the header and separates commercial ownership from the conversation agent', async () => {
+  it('keeps stage and commercial ownership editable without a conversation-agent tab', async () => {
     const wrapper = await mountModal();
 
     expect(
@@ -1330,12 +1364,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper.find('[data-testid="kanban-opportunity-owner"]').exists()
     ).toBe(true);
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-agent-details"]')
-      .trigger('click');
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-assignee"]').exists()
-    ).toBe(true);
+      wrapper
+        .find('[data-testid="kanban-opportunity-tab-agent-details"]')
+        .exists()
+    ).toBe(false);
   });
 
   it('loads assigned card labels through getCardLabels', async () => {
@@ -1352,7 +1385,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('renders label title and color', async () => {
     const wrapper = await mountModal();
-    await openContactTab(wrapper);
+    await openLabels(wrapper);
     const firstLabel = labelButtons(wrapper)[0];
 
     expect(firstLabel.text()).toContain('hot');
@@ -1363,7 +1396,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('marks assigned labels as selected', async () => {
     const wrapper = await mountModal();
-    await openContactTab(wrapper);
+    await openLabels(wrapper);
 
     expect(labelButtons(wrapper)[0].attributes('aria-pressed')).toBe('true');
     expect(labelButtons(wrapper)[1].attributes('aria-pressed')).toBe('false');
@@ -1374,7 +1407,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       data: { payload: labels },
     });
     const wrapper = await mountModal();
-    await openContactTab(wrapper);
+    await openLabels(wrapper);
 
     await labelButtons(wrapper)[1].trigger('click');
     await saveLabelsButton(wrapper).trigger('click');
@@ -1391,7 +1424,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     await subjectInput(wrapper).setValue('Modified subject');
     await descriptionInput(wrapper).setValue('Modified description');
-    await openContactTab(wrapper);
+    await openLabels(wrapper);
     await saveLabelsButton(wrapper).trigger('click');
     await flushPromises();
     await wrapper
