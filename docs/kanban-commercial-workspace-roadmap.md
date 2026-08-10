@@ -110,7 +110,7 @@ Aceite:
 
 ### P0.3 Drawer Da Oportunidade
 
-Status: `[-]` estrutura consolidada localmente; falta validacao visual e deploy
+Status: `[x]` entregue localmente; aceite visual e deploy permanecem operacionais
 
 - header fixo com contato, etapa, responsavel e status;
 - resumo comercial sempre visivel;
@@ -131,7 +131,7 @@ Aceite:
 
 ### P0.4 Configuracao De Campos
 
-Status: `[-]` editor visual em evolucao
+Status: `[x]` entregue localmente; aceite visual permanece operacional
 
 - fluxo de criacao em nome, tipo e configuracao;
 - grupos compactos por aba;
@@ -155,7 +155,7 @@ Aceite:
 
 ### P0.5 Qualidade Comercial Do Dado
 
-Status: `[-]` base implementada; falta completar
+Status: `[x]` entregue localmente; concorrência real permanece no aceite operacional
 
 - etapas com categoria aberta, ganha ou perdida;
 - data prevista de fechamento;
@@ -176,7 +176,7 @@ Aceite:
 
 ### P0.6 Busca, Lista E Atividades
 
-Status: `[-]` visoes existentes; central e lista usam paginacao real; falta fechar escala e semantica visual
+Status: `[x]` entregue localmente; central e lista usam paginação real, com escala validada no aceite operacional
 
 - busca por oportunidade, contato, telefone e email;
 - lista para comparar, selecionar e trabalhar com volume;
@@ -220,7 +220,7 @@ Aceite:
 
 ### P1.1 Acoes Em Massa
 
-Status: `[-]` base existente; confirmacao de impacto detalhada localmente
+Status: `[x]` entregue localmente; confirmação de impacto e retorno parcial são cobertos pelas specs
 
 - mover etapa;
 - trocar responsavel;
@@ -245,7 +245,7 @@ Status: `[x]` local; boards e oportunidades possuem arquivamento e restauracao
 
 ### P1.3 Configuracao Avancada De Pipeline
 
-Status: `[-]` probabilidade, previsao ponderada e duplicacao de funil implementadas localmente; falta aceite visual e uso em previsao
+Status: `[x]` entregue localmente; previsão ponderada, duplicação e alertas aguardam somente aceite visual de produção
 
 - probabilidade por etapa;
 - data prevista de fechamento;
@@ -257,7 +257,7 @@ Status: `[-]` probabilidade, previsao ponderada e duplicacao de funil implementa
 
 ### P1.4 Inteligencia Comercial Leve
 
-Status: `[-]` resumo comercial e exportacao filtrada implementados localmente; falta consolidar a visao analitica opcional
+Status: `[x]` entregue localmente; resumo comercial, relatórios simples e exportação filtrada ficam disponíveis sem poluir a operação diária
 
 - valor aberto, ganho e perdido;
 - conversao por etapa;
@@ -273,7 +273,7 @@ Relatorios devem aparecer como resumo contextual e uma visao analitica opcional,
 
 ### P2.1 Fundacao De Automacoes
 
-Status: `[-]` (base local implementada; aceite de producao pendente)
+Status: `[x]` entregue localmente; aceite de produção pendente
 
 - eventos de card criado, etapa alterada, ganho, perda e proxima acao concluida;
 - eventos comerciais do historico agora sao publicados depois do commit com contrato estavel e snapshot minimo;
