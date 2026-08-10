@@ -24,6 +24,7 @@ import KanbanActivityCenter from './KanbanActivityCenter.vue';
 import KanbanOpportunityDetailsModal from './KanbanOpportunityDetailsModal.vue';
 import KanbanOpportunityPicker from './KanbanOpportunityPicker.vue';
 import KanbanListView from './KanbanListView.vue';
+import KanbanConversationDrawer from './KanbanConversationDrawer.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -48,6 +49,7 @@ const showFiltersPanel = ref(false);
 const showSalesSummary = ref(false);
 const showBoardActionsMenu = ref(false);
 const showQuickCreate = ref(false);
+const activeConversationCard = ref(null);
 const activeActionKey = ref('');
 const hasError = ref(false);
 const selectedInboxIds = ref([]);
@@ -1399,14 +1401,13 @@ const openConversation = (card, event = {}) => {
     return;
   }
 
-  const path = frontendURL(
-    conversationUrl({
-      accountId: route.params.accountId,
-      id: card.conversationId,
-    })
-  );
-
   if (event.metaKey || event.ctrlKey) {
+    const path = frontendURL(
+      conversationUrl({
+        accountId: route.params.accountId,
+        id: card.conversationId,
+      })
+    );
     window.open(
       `${window.chatwootConfig.hostURL}${path}`,
       '_blank',
@@ -1415,7 +1416,25 @@ const openConversation = (card, event = {}) => {
     return;
   }
 
-  router.push({ path });
+  activeConversationCard.value = card;
+};
+
+const closeConversationDrawer = () => {
+  activeConversationCard.value = null;
+};
+
+const openFullConversation = () => {
+  const card = activeConversationCard.value;
+  if (!card?.conversationId) return;
+
+  router.push({
+    path: frontendURL(
+      conversationUrl({
+        accountId: route.params.accountId,
+        id: card.conversationId,
+      })
+    ),
+  });
 };
 
 const openDetails = card => {
@@ -1508,7 +1527,6 @@ const onOpportunityTransferred = async ({ boardId, card }) => {
 
 const onOpportunityOpenConversation = card => {
   openConversation(card, {});
-  closeOpportunityDetails();
 };
 
 const handleRealtimeCardUpdated = async data => {
@@ -2883,6 +2901,14 @@ onUnmounted(() => {
           openDetails(card);
         }
       "
+    />
+
+    <KanbanConversationDrawer
+      :show="!!activeConversationCard"
+      :conversation-id="activeConversationCard?.conversationId"
+      :title="getContactName(activeConversationCard || {})"
+      @close="closeConversationDrawer"
+      @open-full-conversation="openFullConversation"
     />
 
     <woot-modal

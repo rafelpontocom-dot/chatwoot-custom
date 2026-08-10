@@ -1445,6 +1445,10 @@
       },
       "STALE_IN_STAGE": "Parada na etapa"
     },
+    "CONVERSATION_DRAWER": {
+      "TITLE": "Conversa",
+      "OPEN_FULL": "Abrir atendimento completo"
+    },
     "NOTES": {
       "TITLE": "Notas do contato",
       "LOADING": "Carregando notas...",

@@ -1445,6 +1445,10 @@
       },
       "STALE_IN_STAGE": "Stale in stage"
     },
+    "CONVERSATION_DRAWER": {
+      "TITLE": "Conversation",
+      "OPEN_FULL": "Open full conversation"
+    },
     "NOTES": {
       "TITLE": "Contact notes",
       "LOADING": "Loading notes...",

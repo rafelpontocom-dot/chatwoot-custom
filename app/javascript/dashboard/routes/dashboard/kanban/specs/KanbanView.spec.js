@@ -82,6 +82,13 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
   },
 }));
 
+vi.mock(
+  'dashboard/components/widgets/conversation/ConversationBox.vue',
+  () => ({
+    default: { name: 'ConversationBox', template: '<div />' },
+  })
+);
+
 KanbanBoardsAPI.showBoard = KanbanBoardsAPI.show;
 
 const buildInboxes = () => [
@@ -1747,7 +1754,7 @@ describe('KanbanView drag and drop', () => {
     mockRoute.query = {};
   });
 
-  it('navigates to conversation on card openConversation event', async () => {
+  it('opens the conversation workspace without leaving the pipeline', async () => {
     const wrapper = await mountView();
     const cardComponent = wrapper.findComponent({
       name: 'KanbanConversationCard',
@@ -1760,9 +1767,12 @@ describe('KanbanView drag and drop', () => {
     );
     await flushPromises();
 
-    expect(mockPush).toHaveBeenCalledWith({
-      path: '/app/accounts/1/conversations/123',
-    });
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(
+      wrapper
+        .findComponent({ name: 'KanbanConversationDrawer' })
+        .props('conversationId')
+    ).toBe(123);
   });
 
   it('does not navigate from card openConversation event without conversationId', async () => {
@@ -1942,7 +1952,7 @@ describe('KanbanView drag and drop', () => {
     expect(KanbanBoardsAPI.show).not.toHaveBeenCalled();
   });
 
-  it('navigates to conversation on modal openConversation event', async () => {
+  it('opens the conversation workspace from opportunity details', async () => {
     const wrapper = await mountView();
     const cardComponent = wrapper.findComponent({
       name: 'KanbanConversationCard',
@@ -1957,12 +1967,15 @@ describe('KanbanView drag and drop', () => {
     modal.vm.$emit('openConversation', { conversationId: 123 });
     await flushPromises();
 
-    expect(mockPush).toHaveBeenCalledWith({
-      path: '/app/accounts/1/conversations/123',
-    });
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(
+      wrapper
+        .findComponent({ name: 'KanbanConversationDrawer' })
+        .props('conversationId')
+    ).toBe(123);
   });
 
-  it('closes modal after navigating to conversation', async () => {
+  it('keeps opportunity details open behind the conversation workspace', async () => {
     const wrapper = await mountView();
     const cardComponent = wrapper.findComponent({
       name: 'KanbanConversationCard',
@@ -1979,7 +1992,7 @@ describe('KanbanView drag and drop', () => {
 
     expect(
       wrapper.findComponent({ name: 'KanbanOpportunityDetailsModal' }).exists()
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
