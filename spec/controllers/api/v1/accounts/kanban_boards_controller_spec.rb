@@ -1738,8 +1738,20 @@ RSpec.describe 'Kanban Boards API', type: :request do
 
   def overview_stages_summary(overview_data)
     [
-      { 'id' => overview_data[:first_stage].id, 'name' => 'Lead', 'color' => 'blue', 'cards_count' => 1 },
-      { 'id' => overview_data[:second_stage].id, 'name' => 'Won', 'color' => 'green', 'cards_count' => 2 }
+      {
+        'id' => overview_data[:first_stage].id,
+        'name' => 'Lead',
+        'color' => 'blue',
+        'category' => overview_data[:first_stage].category,
+        'cards_count' => 1
+      },
+      {
+        'id' => overview_data[:second_stage].id,
+        'name' => 'Won',
+        'color' => 'green',
+        'category' => overview_data[:second_stage].category,
+        'cards_count' => 2
+      }
     ]
   end
 
