@@ -52,13 +52,11 @@ test.describe('Kanban accessibility and responsive workspace', () => {
     const search = page.getByTestId('kanban-search-input');
     await search.focus();
     await expect(search).toBeFocused();
+    await expect(search).toHaveAttribute('aria-controls', 'kanban-filter-panel');
+    await expect(search).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('kanban-filter-panel')).toBeVisible();
     await page.keyboard.press('Tab');
     await expect(page.locator(':focus')).toHaveAccessibleName(/.+/);
-
-    const filterToggle = page.getByTestId('kanban-toggle-filters');
-    await expect(filterToggle).toHaveAccessibleName(/.+/);
-    await filterToggle.click();
-    await expect(page.getByTestId('kanban-filter-panel')).toBeVisible();
 
     const filterControls = page
       .getByTestId('kanban-filter-panel')
@@ -114,7 +112,7 @@ test.describe('Kanban accessibility and responsive workspace', () => {
     await openFirstBoard(page);
 
     const header = page.getByTestId('kanban-workspace-header');
-    const filters = page.getByTestId('kanban-toggle-filters');
+    const search = page.getByTestId('kanban-search-input');
 
     await expect(header).toBeVisible();
     await expect
@@ -122,8 +120,8 @@ test.describe('Kanban accessibility and responsive workspace', () => {
         header.evaluate(element => element.scrollWidth <= element.clientWidth)
       )
       .toBe(true);
-    await expect(filters).toBeVisible();
-    await filters.focus();
+    await expect(search).toBeVisible();
+    await search.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByTestId('kanban-filter-panel')).toBeVisible();
 
