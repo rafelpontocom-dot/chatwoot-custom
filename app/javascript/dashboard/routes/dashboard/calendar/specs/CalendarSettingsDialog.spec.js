@@ -25,6 +25,7 @@ vi.mock('dashboard/api/calendar', () => ({
     disconnectGoogleCalendar: vi.fn(),
     retryGoogleCalendar: vi.fn(),
     updateBookingPage: vi.fn(),
+    createProcedure: vi.fn(),
     updateProcedure: vi.fn(),
     createResource: vi.fn(),
     updateResource: vi.fn(),
@@ -377,6 +378,34 @@ describe('CalendarSettingsDialog', () => {
       procedure: expect.objectContaining({
         public_booking_enabled: true,
         public_slug: 'consulta-inicial',
+      }),
+    });
+  });
+
+  it('uses a safe booking slug from the procedure name when publishing', async () => {
+    CalendarAPI.createProcedure.mockResolvedValue({ data: {} });
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="calendar-add-procedure"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-procedure-name"]')
+      .setValue('Consulta de Avaliação');
+    await wrapper
+      .find('[data-testid="calendar-procedure-public-enabled"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="calendar-procedure-form"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(CalendarAPI.createProcedure).toHaveBeenCalledWith({
+      procedure: expect.objectContaining({
+        public_booking_enabled: true,
+        public_slug: 'consulta-de-avaliacao',
       }),
     });
   });

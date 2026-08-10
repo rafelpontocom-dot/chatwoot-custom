@@ -3207,4 +3207,21 @@ describe('KanbanView sales filters', () => {
       },
     });
   });
+
+  it('closes the filter workspace with its visible close action', async () => {
+    const wrapper = await mountView();
+
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('focus');
+    expect(wrapper.find('[data-testid="kanban-filter-panel"]').exists()).toBe(
+      true
+    );
+
+    await wrapper
+      .find('[data-testid="kanban-filter-panel-close"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-filter-panel"]').isVisible()
+    ).toBe(false);
+  });
 });

@@ -1,9 +1,10 @@
 class KanbanCalendar::AppointmentsIndexQuery
-  def initialize(scope:, kanban_card:, filters:)
+  def initialize(scope:, kanban_card:, filters:, contact: nil)
     @scope = scope
     @starts_at = filters[:starts_at]
     @ends_at = filters[:ends_at]
     @kanban_card = kanban_card
+    @contact = contact
     @status = filters[:status]
     @resource_ids = Array(filters[:resource_ids]).filter_map(&:presence).map(&:to_i).uniq
     @query = filters[:q].to_s.strip
@@ -19,6 +20,7 @@ class KanbanCalendar::AppointmentsIndexQuery
     result = @scope
     result = result.within(Time.zone.parse(@starts_at), Time.zone.parse(@ends_at)) if date_range_provided?
     result = result.where(kanban_card: @kanban_card) if @kanban_card
+    result = result.where(contact: @contact) if @contact
     result = result.where(status: @status) if @status.present?
     result = result.merge(search_scope) if @query.present?
     result = filter_resources(result) if @resource_ids.present?

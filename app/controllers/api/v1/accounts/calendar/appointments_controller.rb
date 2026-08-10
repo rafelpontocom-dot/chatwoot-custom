@@ -143,7 +143,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
   end
 
   def index_query_provided?
-    return true if date_range_provided? || params[:kanban_card_id].present?
+    return true if date_range_provided? || params[:kanban_card_id].present? || params[:contact_id].present?
 
     render json: { message: 'A date range or opportunity is required' }, status: :unprocessable_entity
     false
@@ -153,6 +153,12 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
     return if params[:kanban_card_id].blank?
 
     @scoped_index_kanban_card ||= policy_scope(KanbanCard).find(params[:kanban_card_id])
+  end
+
+  def scoped_index_contact
+    return if params[:contact_id].blank?
+
+    @scoped_index_contact ||= Current.account.contacts.find(params[:contact_id])
   end
 
   def appointment_scope
@@ -165,6 +171,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
     KanbanCalendar::AppointmentsIndexQuery.new(
       scope: appointment_scope,
       kanban_card: scoped_index_kanban_card,
+      contact: scoped_index_contact,
       filters: params.slice(:starts_at, :ends_at, :status, :resource_ids, :q)
     ).call
   end

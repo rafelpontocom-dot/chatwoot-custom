@@ -57,9 +57,14 @@ const loadAppointments = async () => {
   error.value = '';
 
   try {
-    const response = await CalendarAPI.getAppointments({
+    let response = await CalendarAPI.getAppointments({
       kanban_card_id: props.cardId,
     });
+    if (!(response.data || []).length && props.contactId) {
+      response = await CalendarAPI.getAppointments({
+        contact_id: props.contactId,
+      });
+    }
     appointments.value = response.data || [];
   } catch (loadError) {
     error.value =

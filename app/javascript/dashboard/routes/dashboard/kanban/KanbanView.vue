@@ -1879,12 +1879,41 @@ onUnmounted(() => {
               v-show="showFiltersPanel"
               id="kanban-filter-panel"
               data-testid="kanban-filter-panel"
-              class="absolute left-1/2 top-[4.5rem] z-30 grid w-[min(46rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-3 rounded-lg border border-n-weak bg-n-solid-1 p-3 shadow-xl lg:grid-cols-[12rem_12rem_minmax(0,1fr)] lg:items-end"
+              class="absolute left-1/2 top-[4.5rem] z-30 grid w-[min(58rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-4 rounded-lg border border-n-weak bg-n-solid-1 p-4 shadow-xl lg:grid-cols-[15rem_minmax(0,1fr)]"
               role="dialog"
               :aria-label="t('KANBAN.FILTERS.OPEN_FILTERS')"
               @keydown.escape.stop="showFiltersPanel = false"
             >
-              <div class="col-span-full flex min-w-0 flex-wrap gap-2">
+              <div
+                class="col-span-full flex min-w-0 items-center justify-between gap-3 border-b border-n-weak pb-3"
+              >
+                <div>
+                  <h2 class="mb-0 text-sm font-semibold text-n-slate-12">
+                    {{ t('KANBAN.FILTERS.OPEN_FILTERS') }}
+                  </h2>
+                  <p class="mb-0 text-xs text-n-slate-11">
+                    {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  data-testid="kanban-filter-panel-close"
+                  class="flex size-9 shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  :aria-label="t('GENERAL.CLOSE')"
+                  @click="showFiltersPanel = false"
+                >
+                  <i class="i-lucide-x size-4" />
+                </button>
+              </div>
+              <div
+                class="grid min-w-0 gap-2 border-r border-n-weak pr-4 lg:col-span-1"
+              >
+                <label
+                  class="text-xs font-medium text-n-slate-11"
+                  for="kanban-saved-filter-select"
+                >
+                  {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
+                </label>
                 <label class="sr-only" for="kanban-sort-select">
                   {{ t('KANBAN.FILTERS.SORT_LABEL') }}
                 </label>
@@ -1892,7 +1921,7 @@ onUnmounted(() => {
                   id="kanban-sort-select"
                   :value="selectedSort"
                   data-testid="kanban-sort-select"
-                  class="h-9 min-w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
                   :aria-label="t('KANBAN.FILTERS.SORT_LABEL')"
                   @change="updateSort"
                 >
@@ -1904,6 +1933,8 @@ onUnmounted(() => {
                     {{ option.label }}
                   </option>
                 </select>
+              </div>
+              <div class="flex min-w-0 flex-wrap gap-2">
                 <label class="sr-only" for="kanban-saved-filter-select">
                   {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
                 </label>

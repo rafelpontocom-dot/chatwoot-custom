@@ -78,14 +78,25 @@ const exceptionForm = ref({
   endsAtLocal: '',
 });
 
+const suggestedPublicSlug = computed(() => {
+  const explicitSlug = procedureForm.value.publicSlug.trim();
+  if (explicitSlug) return explicitSlug;
+
+  return procedureForm.value.name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+});
 const canCreateProcedure = computed(
   () =>
     procedureForm.value.name.trim() &&
     Number(procedureForm.value.durationMinutes) > 0 &&
     Number(procedureForm.value.bufferBeforeMinutes) >= 0 &&
     Number(procedureForm.value.bufferAfterMinutes) >= 0 &&
-    (!procedureForm.value.publicBookingEnabled ||
-      procedureForm.value.publicSlug.trim()) &&
+    (!procedureForm.value.publicBookingEnabled || suggestedPublicSlug.value) &&
     (!procedureForm.value.recurrenceAllowed ||
       (Number.isInteger(Number(procedureForm.value.maxSessions)) &&
         Number(procedureForm.value.maxSessions) >= 1 &&
@@ -269,7 +280,7 @@ const procedurePayload = () => {
     public_booking_enabled: procedureForm.value.publicBookingEnabled,
     public_title: procedureForm.value.publicTitle.trim() || null,
     public_description: procedureForm.value.publicDescription.trim() || null,
-    public_slug: procedureForm.value.publicSlug.trim() || null,
+    public_slug: suggestedPublicSlug.value || null,
   };
   if (procedure.recurrence_allowed) {
     procedure.max_sessions = Number(procedureForm.value.maxSessions);
