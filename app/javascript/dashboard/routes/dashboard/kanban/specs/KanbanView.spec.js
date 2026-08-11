@@ -3188,6 +3188,34 @@ describe('KanbanView sales filters', () => {
     });
   });
 
+  it('clears the saved filter selection when applying a shortcut', async () => {
+    KanbanBoardsAPI.getSavedFilters.mockResolvedValue({
+      data: [
+        {
+          id: 3,
+          name: 'Minhas atrasadas',
+          filters: { next_action: 'overdue' },
+        },
+      ],
+    });
+    const wrapper = await mountView();
+
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('focus');
+    await wrapper
+      .find('[data-testid="kanban-saved-filter-select"]')
+      .setValue('3');
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="kanban-filter-shortcut-won"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="kanban-saved-filter-select"]').element.value
+    ).toBe('');
+  });
+
   it('names and saves the active filters without a browser prompt', async () => {
     const wrapper = await mountView();
     await wrapper.find('[data-testid="kanban-search-input"]').setValue('Ana');
@@ -3236,5 +3264,18 @@ describe('KanbanView sales filters', () => {
     expect(
       wrapper.find('[data-testid="kanban-filter-panel"]').isVisible()
     ).toBe(false);
+  });
+
+  it('separates saved filters from the filter criteria workspace', async () => {
+    const wrapper = await mountView();
+
+    await wrapper.find('[data-testid="kanban-search-input"]').trigger('focus');
+
+    expect(
+      wrapper.find('[data-testid="kanban-filter-saved-sidebar"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-filter-criteria"]').exists()
+    ).toBe(true);
   });
 });

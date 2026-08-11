@@ -566,12 +566,14 @@ const updateAssigneeFilter = async assigneeIds => {
 const updateNextActionFilter = async value => {
   selectedNextActionFilter.value =
     selectedNextActionFilter.value === value ? '' : value;
+  selectedSavedFilterId.value = '';
   await refreshSelectedBoard();
 };
 
 const updateStatusFilter = async value => {
   selectedStatusFilter.value =
     selectedStatusFilter.value === value ? '' : value;
+  selectedSavedFilterId.value = '';
   await refreshSelectedBoard();
 };
 
@@ -1897,7 +1899,7 @@ onUnmounted(() => {
               v-show="showFiltersPanel"
               id="kanban-filter-panel"
               data-testid="kanban-filter-panel"
-              class="absolute left-1/2 top-[4.5rem] z-30 grid w-[min(58rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-4 rounded-lg border border-n-weak bg-n-solid-1 p-4 shadow-xl lg:grid-cols-[15rem_minmax(0,1fr)]"
+              class="absolute left-1/2 top-[4.5rem] z-30 grid w-[min(64rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-4 rounded-lg border border-n-weak bg-n-solid-1 p-4 shadow-xl lg:grid-cols-[16rem_minmax(0,1fr)]"
               role="dialog"
               :aria-label="t('KANBAN.FILTERS.OPEN_FILTERS')"
               @keydown.escape.stop="showFiltersPanel = false"
@@ -1909,9 +1911,6 @@ onUnmounted(() => {
                   <h2 class="mb-0 text-sm font-semibold text-n-slate-12">
                     {{ t('KANBAN.FILTERS.OPEN_FILTERS') }}
                   </h2>
-                  <p class="mb-0 text-xs text-n-slate-11">
-                    {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
-                  </p>
                 </div>
                 <button
                   type="button"
@@ -1924,7 +1923,8 @@ onUnmounted(() => {
                 </button>
               </div>
               <div
-                class="grid min-w-0 gap-2 border-r border-n-weak pr-4 lg:col-span-1"
+                data-testid="kanban-filter-saved-sidebar"
+                class="grid min-w-0 content-start gap-2 border-r border-n-weak pr-4 lg:col-span-1"
               >
                 <label
                   class="text-xs font-medium text-n-slate-11"
@@ -1932,35 +1932,11 @@ onUnmounted(() => {
                 >
                   {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
                 </label>
-                <label class="sr-only" for="kanban-sort-select">
-                  {{ t('KANBAN.FILTERS.SORT_LABEL') }}
-                </label>
-                <select
-                  id="kanban-sort-select"
-                  :value="selectedSort"
-                  data-testid="kanban-sort-select"
-                  class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-                  :aria-label="t('KANBAN.FILTERS.SORT_LABEL')"
-                  @change="updateSort"
-                >
-                  <option
-                    v-for="option in sortOptions"
-                    :key="option.value || 'default'"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-              </div>
-              <div class="flex min-w-0 flex-wrap gap-2">
-                <label class="sr-only" for="kanban-saved-filter-select">
-                  {{ t('KANBAN.FILTERS.SAVED_FILTERS') }}
-                </label>
                 <select
                   id="kanban-saved-filter-select"
                   :value="selectedSavedFilterId"
                   data-testid="kanban-saved-filter-select"
-                  class="h-9 min-w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
                   :aria-label="t('KANBAN.FILTERS.SAVED_FILTERS')"
                   @change="applySavedFilter"
                 >
@@ -1976,187 +1952,264 @@ onUnmounted(() => {
                   </option>
                 </select>
                 <button
-                  v-if="selectedSavedFilter && !showRenameSavedFilterForm"
                   type="button"
-                  data-testid="kanban-filter-panel-rename-saved-filter"
-                  class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
-                  :aria-label="t('KANBAN.FILTERS.RENAME_FILTER')"
-                  :title="t('KANBAN.FILTERS.RENAME_FILTER')"
-                  @click="openRenameSavedFilter"
+                  data-testid="kanban-filter-shortcut-open"
+                  :aria-pressed="selectedStatusFilter === 'open'"
+                  class="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  @click="updateStatusFilter('open')"
                 >
-                  <i class="i-lucide-pencil size-4" />
+                  <i class="i-lucide-circle-dot size-4" />
+                  {{ t('KANBAN.FILTERS.OPEN') }}
                 </button>
                 <button
-                  v-if="selectedSavedFilter && !showRenameSavedFilterForm"
                   type="button"
-                  data-testid="kanban-filter-panel-delete-saved-filter"
-                  class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8"
-                  :aria-label="t('KANBAN.FILTERS.DELETE_FILTER')"
-                  :title="t('KANBAN.FILTERS.DELETE_FILTER')"
-                  @click="showDeleteSavedFilterConfirmation = true"
+                  data-testid="kanban-filter-shortcut-won"
+                  :aria-pressed="selectedStatusFilter === 'won'"
+                  class="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  @click="updateStatusFilter('won')"
                 >
-                  <i class="i-lucide-trash-2 size-4" />
+                  <i class="i-lucide-circle-check size-4" />
+                  {{ t('KANBAN.FILTERS.WON') }}
                 </button>
                 <button
-                  v-if="hasActiveFilters"
                   type="button"
-                  data-testid="kanban-filter-panel-save-filter"
-                  class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
-                  :aria-label="t('KANBAN.FILTERS.SAVE_FILTER')"
-                  :title="t('KANBAN.FILTERS.SAVE_FILTER')"
-                  @click="toggleSaveFilterForm"
+                  data-testid="kanban-filter-shortcut-lost"
+                  :aria-pressed="selectedStatusFilter === 'lost'"
+                  class="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  @click="updateStatusFilter('lost')"
                 >
-                  <i class="i-lucide-bookmark-plus size-4" />
+                  <i class="i-lucide-circle-x size-4" />
+                  {{ t('KANBAN.FILTERS.LOST') }}
+                </button>
+                <div class="my-1 border-t border-n-weak" />
+                <button
+                  type="button"
+                  data-testid="kanban-filter-shortcut-missing"
+                  :aria-pressed="selectedNextActionFilter === 'missing'"
+                  class="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  @click="updateNextActionFilter('missing')"
+                >
+                  <i class="i-lucide-calendar-x-2 size-4" />
+                  {{ t('KANBAN.FILTERS.MISSING_NEXT_ACTION') }}
                 </button>
                 <button
-                  v-if="hasActiveFilters"
                   type="button"
-                  data-testid="kanban-filter-panel-clear-filters"
-                  class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
-                  :aria-label="t('KANBAN.FILTERS.CLEAR')"
-                  :title="t('KANBAN.FILTERS.CLEAR')"
-                  @click="clearFilters"
+                  data-testid="kanban-filter-shortcut-overdue"
+                  :aria-pressed="selectedNextActionFilter === 'overdue'"
+                  class="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  @click="updateNextActionFilter('overdue')"
                 >
-                  <i class="i-lucide-filter-x size-4" />
+                  <i class="i-lucide-clock-3 size-4" />
+                  {{ t('KANBAN.FILTERS.OVERDUE') }}
                 </button>
               </div>
-              <label class="grid min-w-0 gap-1">
-                <span class="text-xs font-medium text-n-slate-11">{{
-                  t('KANBAN.FILTERS.INBOXES')
-                }}</span>
-                <div class="min-w-0" data-testid="kanban-inbox-filter">
-                  <TagMultiSelectComboBox
-                    :model-value="selectedInboxIds"
-                    :options="inboxFilterOptions"
-                    :placeholder="t('KANBAN.SETTINGS.INBOXES.PLACEHOLDER')"
-                    :search-placeholder="t('KANBAN.SETTINGS.INBOXES.SEARCH')"
-                    :empty-state="t('KANBAN.SETTINGS.INBOXES.EMPTY')"
-                    :disabled="!hasInboxFilterOptions"
-                    @update:model-value="updateInboxFilter"
-                  />
-                </div>
-              </label>
-              <label class="grid min-w-0 gap-1">
-                <span class="text-xs font-medium text-n-slate-11">{{
-                  t('KANBAN.FILTERS.AGENTS')
-                }}</span>
-                <div class="min-w-0" data-testid="kanban-agent-filter">
-                  <TagMultiSelectComboBox
-                    :model-value="selectedAssigneeIds"
-                    :options="agentFilterOptions"
-                    :placeholder="t('KANBAN.FILTERS.AGENTS')"
-                    :search-placeholder="t('KANBAN.SETTINGS.AGENTS.SEARCH')"
-                    :empty-state="t('KANBAN.SETTINGS.AGENTS.EMPTY')"
-                    :disabled="!hasAgentFilterOptions"
-                    @update:model-value="updateAssigneeFilter"
-                  />
-                </div>
-              </label>
-              <div class="grid min-w-0 gap-2 md:grid-cols-2">
-                <fieldset class="grid min-w-0 gap-1">
-                  <legend class="text-xs font-medium text-n-slate-11">
-                    {{ t('KANBAN.FILTERS.NEXT_ACTION_LABEL') }}
-                  </legend>
-                  <div class="flex min-w-0 flex-wrap gap-1">
-                    <button
-                      v-for="option in nextActionFilterOptions"
-                      :key="option.value || 'all'"
-                      type="button"
-                      :data-testid="`kanban-next-action-filter-${option.value || 'all'}`"
-                      :aria-pressed="selectedNextActionFilter === option.value"
-                      class="rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition focus:ring-2 focus:ring-n-brand/40"
-                      :class="
-                        selectedNextActionFilter === option.value
-                          ? 'border-n-brand bg-n-brand text-white'
-                          : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
-                      "
-                      @click="updateNextActionFilter(option.value)"
-                    >
-                      {{ option.label }}
-                    </button>
-                  </div>
-                </fieldset>
-                <fieldset class="grid min-w-0 gap-1">
-                  <legend class="text-xs font-medium text-n-slate-11">
-                    {{ t('KANBAN.FILTERS.STATUS_LABEL') }}
-                  </legend>
-                  <div class="flex min-w-0 flex-wrap gap-1">
-                    <button
-                      v-for="option in statusFilterOptions"
-                      :key="option.value || 'all'"
-                      type="button"
-                      :data-testid="`kanban-status-filter-${option.value || 'all'}`"
-                      :aria-pressed="selectedStatusFilter === option.value"
-                      class="rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition focus:ring-2 focus:ring-n-brand/40"
-                      :class="
-                        selectedStatusFilter === option.value
-                          ? 'border-n-brand bg-n-brand text-white'
-                          : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
-                      "
-                      @click="updateStatusFilter(option.value)"
-                    >
-                      {{ option.label }}
-                    </button>
-                  </div>
-                </fieldset>
-              </div>
-
               <div
-                v-if="showRenameSavedFilterForm || showSaveFilterForm"
-                :data-testid="
-                  showRenameSavedFilterForm
-                    ? 'kanban-rename-saved-filter-form'
-                    : 'kanban-save-filter-form'
-                "
-                class="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2"
+                data-testid="kanban-filter-criteria"
+                class="grid min-w-0 content-start gap-4"
               >
-                <label class="min-w-48 flex-1">
-                  <span class="sr-only">{{
-                    t('KANBAN.FILTERS.SAVED_NAME_PROMPT')
-                  }}</span>
-                  <input
-                    v-if="showRenameSavedFilterForm"
-                    id="kanban-saved-filter-rename-input"
-                    v-model="savedFilterRename"
-                    data-testid="kanban-saved-filter-rename-input"
-                    type="text"
-                    class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none"
-                    :placeholder="t('KANBAN.FILTERS.RENAME_FILTER')"
-                    @keyup.enter="renameSavedFilter"
-                  />
-                  <input
-                    v-else
-                    id="kanban-save-filter-name"
-                    v-model="savedFilterName"
-                    data-testid="kanban-save-filter-name"
-                    type="text"
-                    class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none"
-                    :placeholder="t('KANBAN.FILTERS.SAVED_NAME_PROMPT')"
-                    @keyup.enter="saveCurrentFilter"
-                  />
+                <label
+                  class="grid gap-1 text-sm font-medium text-n-slate-12"
+                  for="kanban-sort-select"
+                >
+                  {{ t('KANBAN.FILTERS.SORT_LABEL') }}
+                  <select
+                    id="kanban-sort-select"
+                    :value="selectedSort"
+                    data-testid="kanban-sort-select"
+                    class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                    @change="updateSort"
+                  >
+                    <option
+                      v-for="option in sortOptions"
+                      :key="option.value || 'default'"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
                 </label>
-                <button
-                  v-if="showRenameSavedFilterForm"
-                  type="button"
-                  data-testid="kanban-confirm-rename-saved-filter"
-                  class="flex size-9 items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
-                  :disabled="!savedFilterRename.trim()"
-                  :aria-label="t('KANBAN.FILTERS.RENAME_FILTER')"
-                  @click="renameSavedFilter"
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    v-if="selectedSavedFilter && !showRenameSavedFilterForm"
+                    type="button"
+                    data-testid="kanban-filter-panel-rename-saved-filter"
+                    class="flex h-9 items-center gap-2 rounded-md border border-n-weak px-3 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+                    @click="openRenameSavedFilter"
+                  >
+                    <i class="i-lucide-pencil size-4" />
+                    {{ t('KANBAN.FILTERS.RENAME_FILTER') }}
+                  </button>
+                  <button
+                    v-if="selectedSavedFilter && !showRenameSavedFilterForm"
+                    type="button"
+                    data-testid="kanban-filter-panel-delete-saved-filter"
+                    class="flex h-9 items-center gap-2 rounded-md border border-n-weak px-3 text-sm font-medium text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8"
+                    @click="showDeleteSavedFilterConfirmation = true"
+                  >
+                    <i class="i-lucide-trash-2 size-4" />
+                    {{ t('KANBAN.FILTERS.DELETE_FILTER') }}
+                  </button>
+                  <button
+                    v-if="hasActiveFilters"
+                    type="button"
+                    data-testid="kanban-filter-panel-save-filter"
+                    class="flex h-9 items-center gap-2 rounded-md bg-n-brand px-3 text-sm font-medium text-white outline-none hover:opacity-90 focus:ring-2 focus:ring-n-brand/40"
+                    @click="toggleSaveFilterForm"
+                  >
+                    <i class="i-lucide-bookmark-plus size-4" />
+                    {{ t('KANBAN.FILTERS.SAVE_FILTER') }}
+                  </button>
+                  <button
+                    v-if="hasActiveFilters"
+                    type="button"
+                    data-testid="kanban-filter-panel-clear-filters"
+                    class="flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+                    @click="clearFilters"
+                  >
+                    <i class="i-lucide-filter-x size-4" />
+                    {{ t('KANBAN.FILTERS.CLEAR') }}
+                  </button>
+                </div>
+                <label class="grid min-w-0 gap-1">
+                  <span class="text-xs font-medium text-n-slate-11">{{
+                    t('KANBAN.FILTERS.INBOXES')
+                  }}</span>
+                  <div class="min-w-0" data-testid="kanban-inbox-filter">
+                    <TagMultiSelectComboBox
+                      :model-value="selectedInboxIds"
+                      :options="inboxFilterOptions"
+                      :placeholder="t('KANBAN.SETTINGS.INBOXES.PLACEHOLDER')"
+                      :search-placeholder="t('KANBAN.SETTINGS.INBOXES.SEARCH')"
+                      :empty-state="t('KANBAN.SETTINGS.INBOXES.EMPTY')"
+                      :disabled="!hasInboxFilterOptions"
+                      @update:model-value="updateInboxFilter"
+                    />
+                  </div>
+                </label>
+                <label class="grid min-w-0 gap-1">
+                  <span class="text-xs font-medium text-n-slate-11">{{
+                    t('KANBAN.FILTERS.AGENTS')
+                  }}</span>
+                  <div class="min-w-0" data-testid="kanban-agent-filter">
+                    <TagMultiSelectComboBox
+                      :model-value="selectedAssigneeIds"
+                      :options="agentFilterOptions"
+                      :placeholder="t('KANBAN.FILTERS.AGENTS')"
+                      :search-placeholder="t('KANBAN.SETTINGS.AGENTS.SEARCH')"
+                      :empty-state="t('KANBAN.SETTINGS.AGENTS.EMPTY')"
+                      :disabled="!hasAgentFilterOptions"
+                      @update:model-value="updateAssigneeFilter"
+                    />
+                  </div>
+                </label>
+                <div class="grid min-w-0 gap-4">
+                  <fieldset class="grid min-w-0 gap-1">
+                    <legend class="text-xs font-medium text-n-slate-11">
+                      {{ t('KANBAN.FILTERS.NEXT_ACTION_LABEL') }}
+                    </legend>
+                    <div class="flex min-w-0 flex-wrap gap-1">
+                      <button
+                        v-for="option in nextActionFilterOptions"
+                        :key="option.value || 'all'"
+                        type="button"
+                        :data-testid="`kanban-next-action-filter-${option.value || 'all'}`"
+                        :aria-pressed="
+                          selectedNextActionFilter === option.value
+                        "
+                        class="rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition focus:ring-2 focus:ring-n-brand/40"
+                        :class="
+                          selectedNextActionFilter === option.value
+                            ? 'border-n-brand bg-n-brand text-white'
+                            : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
+                        "
+                        @click="updateNextActionFilter(option.value)"
+                      >
+                        {{ option.label }}
+                      </button>
+                    </div>
+                  </fieldset>
+                  <fieldset class="grid min-w-0 gap-1">
+                    <legend class="text-xs font-medium text-n-slate-11">
+                      {{ t('KANBAN.FILTERS.STATUS_LABEL') }}
+                    </legend>
+                    <div class="flex min-w-0 flex-wrap gap-1">
+                      <button
+                        v-for="option in statusFilterOptions"
+                        :key="option.value || 'all'"
+                        type="button"
+                        :data-testid="`kanban-status-filter-${option.value || 'all'}`"
+                        :aria-pressed="selectedStatusFilter === option.value"
+                        class="rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition focus:ring-2 focus:ring-n-brand/40"
+                        :class="
+                          selectedStatusFilter === option.value
+                            ? 'border-n-brand bg-n-brand text-white'
+                            : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
+                        "
+                        @click="updateStatusFilter(option.value)"
+                      >
+                        {{ option.label }}
+                      </button>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <div
+                  v-if="showRenameSavedFilterForm || showSaveFilterForm"
+                  :data-testid="
+                    showRenameSavedFilterForm
+                      ? 'kanban-rename-saved-filter-form'
+                      : 'kanban-save-filter-form'
+                  "
+                  class="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-n-weak bg-n-surface-2 p-2"
                 >
-                  <i class="i-lucide-check size-4" />
-                </button>
-                <button
-                  v-else
-                  type="button"
-                  data-testid="kanban-save-filter-confirm"
-                  class="flex size-9 items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
-                  :disabled="!savedFilterName.trim()"
-                  :aria-label="t('KANBAN.FILTERS.SAVE_FILTER')"
-                  @click="saveCurrentFilter"
-                >
-                  <i class="i-lucide-check size-4" />
-                </button>
+                  <label class="min-w-48 flex-1">
+                    <span class="sr-only">{{
+                      t('KANBAN.FILTERS.SAVED_NAME_PROMPT')
+                    }}</span>
+                    <input
+                      v-if="showRenameSavedFilterForm"
+                      id="kanban-saved-filter-rename-input"
+                      v-model="savedFilterRename"
+                      data-testid="kanban-saved-filter-rename-input"
+                      type="text"
+                      class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none"
+                      :placeholder="t('KANBAN.FILTERS.RENAME_FILTER')"
+                      @keyup.enter="renameSavedFilter"
+                    />
+                    <input
+                      v-else
+                      id="kanban-save-filter-name"
+                      v-model="savedFilterName"
+                      data-testid="kanban-save-filter-name"
+                      type="text"
+                      class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none"
+                      :placeholder="t('KANBAN.FILTERS.SAVED_NAME_PROMPT')"
+                      @keyup.enter="saveCurrentFilter"
+                    />
+                  </label>
+                  <button
+                    v-if="showRenameSavedFilterForm"
+                    type="button"
+                    data-testid="kanban-confirm-rename-saved-filter"
+                    class="flex size-9 items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
+                    :disabled="!savedFilterRename.trim()"
+                    :aria-label="t('KANBAN.FILTERS.RENAME_FILTER')"
+                    @click="renameSavedFilter"
+                  >
+                    <i class="i-lucide-check size-4" />
+                  </button>
+                  <button
+                    v-else
+                    type="button"
+                    data-testid="kanban-save-filter-confirm"
+                    class="flex size-9 items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
+                    :disabled="!savedFilterName.trim()"
+                    :aria-label="t('KANBAN.FILTERS.SAVE_FILTER')"
+                    @click="saveCurrentFilter"
+                  >
+                    <i class="i-lucide-check size-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
