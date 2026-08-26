@@ -1956,6 +1956,32 @@ describe('KanbanBoardSettings', () => {
     });
   });
 
+  it('keeps the archive success when refreshing the board list fails', async () => {
+    const { wrapper } = await mountSettings();
+    wrapper.vm.$store.dispatch = vi.fn(type => {
+      if (type === 'kanbanBoards/refreshBoards') {
+        return Promise.reject(new Error('Board list unavailable'));
+      }
+
+      return Promise.resolve();
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-delete"]')
+      .trigger('click');
+    await wrapper.find('[data-testid="confirm-delete"]').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.delete).toHaveBeenCalledWith(10);
+    expect(mockReplace).toHaveBeenCalledWith({
+      name: 'kanban_boards',
+      params: { accountId: '1' },
+    });
+    expect(useAlert).toHaveBeenCalledWith(
+      'KANBAN.ACTIONS.REMOVE_BOARD_SUCCESS'
+    );
+  });
+
   it('does not show an editable form for agents', async () => {
     const { wrapper } = await mountSettings({
       role: 'agent',

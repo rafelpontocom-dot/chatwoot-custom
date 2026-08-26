@@ -2674,7 +2674,11 @@ const deleteBoard = async () => {
 
   try {
     await KanbanBoardsAPI.delete(boardId.value);
-    await store.dispatch('kanbanBoards/refreshBoards');
+    try {
+      await store.dispatch('kanbanBoards/refreshBoards');
+    } catch {
+      // The board is already archived; the overview reloads its own data.
+    }
     closeDeleteConfirmation();
     await router.replace({
       name: 'kanban_boards',
