@@ -1954,6 +1954,12 @@ describe('KanbanBoardSettings', () => {
       name: 'kanban_boards',
       params: { accountId: '1' },
     });
+    expect(mockReplace.mock.invocationCallOrder[0]).toBeLessThan(
+      dispatch.mock.invocationCallOrder.find(
+        (_, index) =>
+          dispatch.mock.calls[index][0] === 'kanbanBoards/refreshBoards'
+      )
+    );
   });
 
   it('keeps the archive success when refreshing the board list fails', async () => {

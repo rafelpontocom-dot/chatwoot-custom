@@ -2674,16 +2674,16 @@ const deleteBoard = async () => {
 
   try {
     await KanbanBoardsAPI.delete(boardId.value);
-    try {
-      await store.dispatch('kanbanBoards/refreshBoards');
-    } catch {
-      // The board is already archived; the overview reloads its own data.
-    }
     closeDeleteConfirmation();
     await router.replace({
       name: 'kanban_boards',
       params: { accountId: route.params.accountId },
     });
+    try {
+      await store.dispatch('kanbanBoards/refreshBoards');
+    } catch {
+      // The board is already archived; the overview reloads its own data.
+    }
     useAlert(t('KANBAN.ACTIONS.REMOVE_BOARD_SUCCESS'));
   } catch (error) {
     saveError.value = getErrorMessage(
