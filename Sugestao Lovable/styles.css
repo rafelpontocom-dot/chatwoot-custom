@@ -1,0 +1,241 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Grow Plataforma — design system
+ * Dark "graphite" workspace with a signal-green accent.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-trigger: var(--trigger);
+  --color-condition: var(--condition);
+  --color-action: var(--action);
+  --color-delay: var(--delay);
+  --color-exit: var(--exit);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* LIGHT — default, matches Chatwoot's light mode */
+:root {
+  --radius: 0.75rem;
+  color-scheme: light;
+
+  --background: oklch(0.985 0.003 250);
+  --foreground: oklch(0.24 0.018 260);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.965 0.005 250);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.018 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.018 260);
+
+  --primary: oklch(0.62 0.16 152);
+  --primary-foreground: oklch(0.99 0.005 150);
+
+  --secondary: oklch(0.955 0.006 250);
+  --secondary-foreground: oklch(0.28 0.018 260);
+
+  --muted: oklch(0.955 0.006 250);
+  --muted-foreground: oklch(0.5 0.017 258);
+
+  --accent: oklch(0.94 0.008 250);
+  --accent-foreground: oklch(0.24 0.018 260);
+
+  --destructive: oklch(0.57 0.21 25);
+  --destructive-foreground: oklch(0.99 0.005 250);
+
+  --border: oklch(0.9 0.008 255);
+  --input: oklch(0.9 0.008 255);
+  --ring: oklch(0.62 0.16 152);
+
+  /* node semantics */
+  --trigger: oklch(0.66 0.15 78);
+  --condition: oklch(0.56 0.17 285);
+  --action: oklch(0.62 0.16 152);
+  --delay: oklch(0.58 0.12 232);
+  --exit: oklch(0.57 0.2 22);
+
+  --gradient-brand: linear-gradient(135deg, oklch(0.66 0.16 152), oklch(0.7 0.13 190));
+  --gradient-surface: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 96%, black 4%),
+    var(--surface)
+  );
+  --shadow-panel: 0 20px 44px -28px oklch(0.35 0.03 260 / 0.35);
+  --shadow-node: 0 8px 20px -12px oklch(0.35 0.03 260 / 0.4);
+
+  --sidebar: oklch(0.975 0.004 250);
+  --sidebar-foreground: oklch(0.28 0.018 260);
+  --sidebar-primary: oklch(0.62 0.16 152);
+  --sidebar-primary-foreground: oklch(0.99 0.005 150);
+  --sidebar-accent: oklch(0.93 0.008 250);
+  --sidebar-accent-foreground: oklch(0.24 0.018 260);
+  --sidebar-border: oklch(0.9 0.008 255);
+  --sidebar-ring: oklch(0.62 0.16 152);
+}
+
+/* DARK — applied when Chatwoot sets .dark on <html> */
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.19 0.014 260);
+  --foreground: oklch(0.965 0.006 250);
+  --surface: oklch(0.229 0.016 260);
+  --surface-2: oklch(0.268 0.018 260);
+
+  --card: oklch(0.235 0.016 260);
+  --card-foreground: oklch(0.965 0.006 250);
+  --popover: oklch(0.245 0.017 260);
+  --popover-foreground: oklch(0.965 0.006 250);
+
+  --primary: oklch(0.79 0.19 150);
+  --primary-foreground: oklch(0.19 0.05 155);
+
+  --secondary: oklch(0.29 0.018 260);
+  --secondary-foreground: oklch(0.95 0.006 250);
+
+  --muted: oklch(0.28 0.017 260);
+  --muted-foreground: oklch(0.7 0.018 258);
+
+  --accent: oklch(0.31 0.02 260);
+  --accent-foreground: oklch(0.97 0.006 250);
+
+  --destructive: oklch(0.64 0.2 22);
+  --destructive-foreground: oklch(0.98 0.005 250);
+
+  --border: oklch(0.32 0.017 260);
+  --input: oklch(0.32 0.017 260);
+  --ring: oklch(0.79 0.19 150);
+
+  --trigger: oklch(0.78 0.17 92);
+  --condition: oklch(0.72 0.16 285);
+  --action: oklch(0.79 0.19 150);
+  --delay: oklch(0.75 0.12 225);
+  --exit: oklch(0.68 0.19 20);
+
+  --gradient-brand: linear-gradient(135deg, oklch(0.79 0.19 150), oklch(0.82 0.16 190));
+  --gradient-surface: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 92%, white 8%),
+    var(--surface)
+  );
+  --shadow-panel: 0 24px 60px -24px oklch(0.1 0.02 260 / 0.75);
+  --shadow-node: 0 10px 24px -12px oklch(0.08 0.02 260 / 0.9);
+
+  --sidebar: oklch(0.215 0.015 260);
+  --sidebar-foreground: oklch(0.94 0.006 250);
+  --sidebar-primary: oklch(0.79 0.19 150);
+  --sidebar-primary-foreground: oklch(0.19 0.05 155);
+  --sidebar-accent: oklch(0.29 0.018 260);
+  --sidebar-accent-foreground: oklch(0.96 0.006 250);
+  --sidebar-border: oklch(0.3 0.017 260);
+  --sidebar-ring: oklch(0.79 0.19 150);
+}
+
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility text-gradient-brand {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility panel {
+  background: var(--gradient-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
+}
+
+@utility grid-canvas {
+  background-color: var(--background);
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--foreground) 12%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+@utility scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+/* React Flow theming through design tokens */
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 2px solid var(--background);
+  background: var(--muted-foreground);
+}
+.react-flow__handle:hover {
+  background: var(--primary);
+}
+.react-flow__attribution {
+  display: none;
+}

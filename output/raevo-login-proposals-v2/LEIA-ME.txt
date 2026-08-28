@@ -1,0 +1,12 @@
+PROPOSTAS DE LOGIN RAEVO CRM - RODADA 2
+
+Abra index.html em um navegador com acesso a internet.
+
+As cinco propostas agora usam bases diferentes:
+1. Editorial: Pedra.
+2. Rodape de marca: branco com faixa Pedra.
+3. Areia: Areia, com a arte original do logotipo.
+4. Caian: Caian predominante, com superficie Pedra.
+5. Carvao: alternativa escura, com placa branca para preservar o contraste do logotipo.
+
+Clique em "Gerar PDF" para imprimir todas as propostas e escolher "Salvar como PDF".

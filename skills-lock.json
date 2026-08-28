@@ -19,11 +19,35 @@
       "skillPath": "frappe-ui-patterns/SKILL.md",
       "computedHash": "851a4cdf456a171a0676ca91147e1a723c837d0e4ac99bb0ef3feba4e9b4e24b"
     },
+    "playwright": {
+      "source": "secondsky/claude-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/playwright/skills/playwright/SKILL.md",
+      "computedHash": "a4d3bdb9bdee41a841c59e1360afec67d44b6770c291fd9c244021fa51f1d813"
+    },
+    "signup-login-page-generator": {
+      "source": "kostja94/marketing-skills",
+      "sourceType": "github",
+      "skillPath": "skills/pages/utility/signup-login/SKILL.md",
+      "computedHash": "46e5c7b451c20a6aca5f1288caac3ef53781e8edd8c1a7eece5728045e5f178c"
+    },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
       "computedHash": "f0916ca326ad6dbde1d0770b46956a213406b8ea4a19ed931bb4f2dc7d04c16d"
+    },
+    "ui-visual-validator": {
+      "source": "rmyndharis/antigravity-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-visual-validator/SKILL.md",
+      "computedHash": "55b92232dbc54ed72db4b8cafa0884bfc7ad2a5da0bbfb1f12520e2982fee219"
+    },
+    "web-design-guidelines": {
+      "source": "asyrafhussin/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "e27800d4c6a4cf98c50776af70d0b0ea1ebf5b81a03992b2019309f0ea9e7012"
     }
   }
 }

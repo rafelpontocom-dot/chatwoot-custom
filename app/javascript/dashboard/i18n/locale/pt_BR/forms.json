@@ -1,0 +1,231 @@
+{
+  "FORMS": {
+    "TITLE": "Formulários",
+    "SUBTITLE": "Crie jornadas de captação e pré-consulta conectadas ao CRM.",
+    "TABS": { "TEMPLATES": "Modelos", "SUBMISSIONS": "Respostas" },
+    "ACTIONS": {
+      "NEW": "Novo formulário",
+      "SAVE": "Salvar e publicar",
+      "VERSIONS": "Histórico",
+      "DUPLICATE": "Duplicar",
+      "COPY_LINK": "Copiar link",
+      "COPIED": "Link copiado",
+      "PREVIEW": "Visualizar",
+      "ADD_GROUP": "Adicionar bloco",
+      "ADD_SECTION": "Adicionar seção",
+      "ADD_FIELD": "Adicionar campo",
+      "MOVE_UP": "Mover para cima",
+      "MOVE_DOWN": "Mover para baixo",
+      "REMOVE": "Remover",
+      "CLOSE": "Fechar"
+    },
+    "EMPTY": {
+      "TEMPLATES_TITLE": "Nenhum formulário criado",
+      "TEMPLATES_DESCRIPTION": "Comece com uma jornada curta de captação ou pré-consulta.",
+      "SUBMISSIONS_TITLE": "Nenhuma resposta recebida",
+      "SUBMISSIONS_DESCRIPTION": "As respostas enviadas por links públicos e convites aparecerão aqui."
+    },
+    "NEW_DIALOG": {
+      "TITLE": "Criar formulário",
+      "DESCRIPTION": "Você poderá definir campos, destino comercial e publicação em seguida.",
+      "NAME": "Nome do formulário",
+      "SLUG": "Identificador do link",
+      "CATEGORY": "Finalidade",
+      "STARTER": "Começar com",
+      "STARTER_HINT": "Você poderá alterar todas as perguntas, textos e destinos depois.",
+      "CREATE": "Criar formulário"
+    },
+    "STARTERS": {
+      "BLANK": { "TITLE": "Em branco" },
+      "LEAD_CAPTURE": {
+        "TITLE": "Captação de lead",
+        "SECTION": "Seus dados",
+        "INTEREST": "Como podemos ajudar?"
+      },
+      "PRE_CONSULTATION": {
+        "TITLE": "Pré-consulta",
+        "IDENTIFICATION_SECTION": "Seus dados",
+        "SECTION": "Sobre sua consulta",
+        "REASON": "Conte brevemente o motivo da consulta",
+        "PREFERRED_PERIOD": "Qual período costuma ser melhor para você?",
+        "MORNING": "Manhã",
+        "AFTERNOON": "Tarde",
+        "EVENING": "Noite"
+      },
+      "CLINICAL_INTAKE": {
+        "TITLE": "Anamnese",
+        "SECTION": "Informações de saúde",
+        "ALLERGIES": "Você possui alergias?",
+        "MEDICATIONS": "Quais medicamentos você utiliza atualmente?",
+        "CONDITIONS": "Há alguma condição de saúde relevante para o atendimento?",
+        "OBSERVATIONS": "Há mais alguma informação importante para a equipe?",
+        "CONSENT": "Autorizo o tratamento destas informações de saúde exclusivamente para meu atendimento."
+      },
+      "FIELDS": {
+        "NAME": "Como podemos chamar você?",
+        "PHONE": "WhatsApp",
+        "EMAIL": "E-mail",
+        "CONSENT": "Autorizo o contato sobre esta solicitação."
+      }
+    },
+    "FIELD_GROUPS": {
+      "TITLE": "Adicionar bloco de perguntas",
+      "DESCRIPTION": "Comece por uma estrutura comercial pronta e ajuste cada pergunta depois.",
+      "CONTACT": {
+        "TITLE": "Dados de contato",
+        "DESCRIPTION": "Nome, WhatsApp e e-mail já preparados para vincular o contato.",
+        "NAME": "Como podemos chamar você?",
+        "PHONE": "WhatsApp",
+        "EMAIL": "E-mail"
+      },
+      "APPOINTMENT": {
+        "TITLE": "Preferência de agenda",
+        "DESCRIPTION": "Uma data e um período de preferência, sem criar um agendamento.",
+        "DATE": "Data preferida",
+        "PERIOD": "Período preferido",
+        "MORNING": "Manhã",
+        "AFTERNOON": "Tarde",
+        "EVENING": "Noite"
+      },
+      "COMMERCIAL": {
+        "TITLE": "Origem e interesse",
+        "DESCRIPTION": "Origem comercial e contexto para qualificar a oportunidade.",
+        "ORIGIN": "Como conheceu a clínica?",
+        "GOOGLE": "Google",
+        "INSTAGRAM": "Instagram",
+        "REFERRAL": "Indicação",
+        "INTEREST": "Como podemos ajudar?"
+      }
+    },
+    "EDITOR": {
+      "DETAILS": "Informações",
+      "FIELDS": "Campos e etapas",
+      "PUBLIC_LINK": "Link público",
+      "PUBLIC_ENABLED": "Permitir formulário público",
+      "SENSITIVE_HEALTH_NOTICE": "Anamnese é privada: só pode ser enviada por convite individual vinculado ao paciente e não atualiza o CRM automaticamente.",
+      "PUBLIC_DESCRIPTION": "Descrição para quem preenche",
+      "LOCALE": "Idioma",
+      "BRAND_NAME": "Nome exibido para o cliente",
+      "BRAND_NAME_PLACEHOLDER": "Ex.: Clínica Exemplo",
+      "THEME": "Aparência do formulário",
+      "THEMES": {
+        "CALM": "Clara e profissional",
+        "WARM": "Acolhedora",
+        "CONTRAST": "Alto contraste"
+      },
+      "CONTACT_MAPPING": "Salvar também no contato",
+      "DESTINATION": "Criar ou reaproveitar oportunidade",
+      "OPPORTUNITY_MAPPING": "Atualizar campo da oportunidade",
+      "NO_OPPORTUNITY_MAPPING": "Não atualizar oportunidade",
+      "OPPORTUNITY_MAPPING_HELP": "Depois de escolher o funil, campos compatíveis podem receber respostas automaticamente.",
+      "BOARD": "Funil de destino",
+      "STAGE": "Etapa inicial",
+      "INBOX": "Caixa de entrada",
+      "POLICY": "Quando já houver oportunidade aberta",
+      "POLICY_REUSE": "Reaproveitar a oportunidade aberta mais recente",
+      "POLICY_CREATE": "Criar uma nova oportunidade",
+      "SECTION_TITLE": "Título da seção",
+      "SECTION_DESCRIPTION": "Descrição da seção",
+      "SECTION_DESCRIPTION_PLACEHOLDER": "Contextualize esta etapa para quem vai responder",
+      "SECTION_KEY": "Identificador da seção",
+      "FIELD_LABEL": "Pergunta",
+      "FIELD_HELP": "Texto de apoio",
+      "FIELD_HELP_PLACEHOLDER": "Explique brevemente como responder",
+      "FIELD_KEY": "Identificador do campo",
+      "FIELD_TYPE": "Tipo de resposta",
+      "FIELD_REQUIRED": "Obrigatório",
+      "CONDITION_FIELD": "Mostrar esta pergunta quando",
+      "CONDITION_VALUE": "For igual a",
+      "CONDITION_NONE": "Sempre mostrar",
+      "CONDITION_TRUE": "Marcado",
+      "CONDITION_FALSE": "Não marcado",
+      "FIELD_MAPPING": "Destino no contato",
+      "NO_MAPPING": "Somente na resposta",
+      "NAME_MAPPING": "Nome",
+      "EMAIL_MAPPING": "E-mail",
+      "PHONE_MAPPING": "Telefone",
+      "CUSTOM_MAPPING": "Atributo personalizado",
+      "CUSTOM_MAPPING_PLACEHOLDER": "Ex.: origem_formulario",
+      "TYPE": {
+        "TEXT": "Texto curto",
+        "TEXTAREA": "Texto longo",
+        "EMAIL": "E-mail",
+        "PHONE": "Telefone",
+        "NUMBER": "Número",
+        "CURRENCY": "Valor",
+        "DATE": "Data",
+        "DATETIME": "Data e hora",
+        "SELECT": "Seleção",
+        "MULTI_SELECT": "Múltipla seleção",
+        "CHECKBOX": "Confirmação",
+        "CONSENT": "Consentimento"
+      }
+    },
+    "STATUS": { "DRAFT": "Rascunho" },
+    "VERSIONS": {
+      "TITLE": "Histórico de versões",
+      "DESCRIPTION": "Cada publicação preserva a versão que recebeu respostas.",
+      "ITEM": "Versão {version}"
+    },
+    "DUPLICATE": {
+      "TITLE": "Duplicar formulário",
+      "DESCRIPTION": "A cópia mantém perguntas e mapeamentos, mas começa privada e sem respostas ou convites.",
+      "DEFAULT_NAME": "Cópia de {name}",
+      "CREATE": "Criar cópia"
+    },
+    "LOCALES": {
+      "PT_BR": "Português - Brasil",
+      "PT_PT": "Português - Portugal"
+    },
+    "SUBMISSIONS": {
+      "FORM": "Formulário",
+      "CONTACT": "Contato",
+      "OPPORTUNITY": "Oportunidade",
+      "RECEIVED_AT": "Recebido em",
+      "OPEN": "Abrir resposta",
+      "DETAIL_TITLE": "Resposta do formulário",
+      "NO_ANSWER": "Não respondido",
+      "YES": "Sim",
+      "NO": "Não",
+      "HISTORY": "Respostas recebidas",
+      "NO_CONTACT": "Contato não vinculado",
+      "NO_OPPORTUNITY": "Sem oportunidade vinculada"
+    },
+    "INVITATION": {
+      "TITLE": "Enviar formulário",
+      "DESCRIPTION": "O link fica vinculado a este contato e oportunidade.",
+      "TEMPLATE": "Modelo publicado",
+      "EXPIRES_AT": "Expira em",
+      "MAX_USES": "Quantidade máxima de respostas",
+      "CREATE": "Gerar link",
+      "COPY": "Copiar link",
+      "COPIED": "Link copiado",
+      "SEND": "Preparar para envio na conversa",
+      "HISTORY": "Convites enviados",
+      "HISTORY_EMPTY": "Nenhum formulário foi enviado para esta oportunidade.",
+      "USES": "{used} de {total} respostas",
+      "STATUS": {
+        "ACTIVE": "Disponível",
+        "CONSUMED": "Concluído",
+        "EXPIRED": "Expirado",
+        "REVOKED": "Revogado"
+      },
+      "EMPTY": "Publique um modelo antes de enviar um convite.",
+      "SENSITIVE_HEALTH_NOTICE": "Este link é individual, de uso único e não deve ser encaminhado.",
+      "OPEN": "Enviar formulário"
+    },
+    "CATEGORIES": {
+      "LEAD_CAPTURE": "Captação",
+      "PRE_CONSULTATION": "Pré-consulta",
+      "CLINICAL": "Anamnese",
+      "CONSENT": "Consentimento",
+      "OTHER": "Outro"
+    },
+    "ERROR": {
+      "LOAD": "Não foi possível carregar os formulários.",
+      "SAVE": "Não foi possível salvar o formulário.",
+      "REQUIRED": "Preencha nome, identificador e pelo menos uma seção.",
+      "INVALID_CONFIGURATION": "Revise os campos obrigatórios, as opções de seleção e as condições antes de publicar."
+    }
+  }
+}

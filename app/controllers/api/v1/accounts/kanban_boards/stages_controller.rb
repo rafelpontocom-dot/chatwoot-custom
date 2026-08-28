@@ -78,7 +78,17 @@ class Api::V1::Accounts::KanbanBoards::StagesController < Api::V1::Accounts::Bas
   end
 
   def kanban_stage_params
-    params.require(:stage).permit(:name, :position, :active, :color, :category, :wip_limit, :probability)
+    params.require(:stage).permit(
+      :name,
+      :position,
+      :active,
+      :color,
+      :category,
+      :wip_limit,
+      :probability,
+      :icon,
+      :description
+    )
   end
 
   def stage_params_with_probability

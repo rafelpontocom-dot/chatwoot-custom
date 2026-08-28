@@ -3,6 +3,8 @@ json.account_id kanban_stage.account_id
 json.kanban_board_id kanban_stage.kanban_board_id
 json.name kanban_stage.name
 json.color kanban_stage.color
+json.icon kanban_stage.icon
+json.description kanban_stage.description
 json.category kanban_stage.category
 json.wip_limit kanban_stage.wip_limit
 json.probability kanban_stage.probability

@@ -132,6 +132,7 @@ class KanbanCard < ApplicationRecord
 
   has_many :kanban_card_events, dependent: :restrict_with_exception
   has_many :kanban_cadence_enrollments, dependent: :destroy
+  has_many :finance_payments, dependent: :nullify
 
   enum :origin, {
     conversation: 'conversation',

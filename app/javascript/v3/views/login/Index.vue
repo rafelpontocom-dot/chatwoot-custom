@@ -318,7 +318,7 @@ export default {
 
       <section class="flex items-center bg-white px-6 py-10 sm:px-10">
         <div
-          class="w-full [&_input]:!bg-white [&_input]:!outline-[#B8AB98] [&_input:focus]:!outline-[#00B8C6] [&_input:focus]:!ring-[#00B8C6]"
+          class="w-full [&_label]:!text-[#1F1F1F] [&_input]:!bg-white [&_input]:!text-[#1F1F1F] [&_input]:!outline-[#B8AB98] [&_input:focus]:!outline-[#00B8C6] [&_input:focus]:!ring-[#00B8C6]"
         >
           <p
             class="mb-8 text-center font-interDisplay text-xl font-semibold text-[#1F1F1F]"

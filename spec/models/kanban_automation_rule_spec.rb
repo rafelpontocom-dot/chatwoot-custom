@@ -55,6 +55,19 @@ RSpec.describe KanbanAutomationRule do
     expect(rule).to be_valid
   end
 
+  it 'accepts a payment-received trigger for an opportunity workflow' do
+    board = create(:kanban_board)
+    rule = build(
+      :kanban_automation_rule,
+      account: board.account,
+      kanban_board: board,
+      event_name: Events::Types::FINANCE_PAYMENT_RECEIVED,
+      conditions: { trigger_event_names: [Events::Types::FINANCE_PAYMENT_RECEIVED] }
+    )
+
+    expect(rule).to be_valid
+  end
+
   it 'rejects unsupported events, field operators and actions' do
     rule = build(
       :kanban_automation_rule,

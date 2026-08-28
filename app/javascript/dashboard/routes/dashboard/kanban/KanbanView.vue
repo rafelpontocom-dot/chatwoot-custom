@@ -17,8 +17,10 @@ import {
   KANBAN_STAGE_COLOR_OPTIONS,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
+import { getKanbanStageIconOption } from 'dashboard/helper/kanbanStageIcons';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import KanbanConversationCard from './KanbanConversationCard.vue';
 import KanbanActivityCenter from './KanbanActivityCenter.vue';
 import KanbanOpportunityDetailsModal from './KanbanOpportunityDetailsModal.vue';
@@ -1531,6 +1533,30 @@ const onOpportunityOpenConversation = card => {
   openConversation(card, {});
 };
 
+const onOpportunitySendPaymentLink = ({ card, payment }) => {
+  if (!card?.conversationId || !payment?.invoice_url) return;
+
+  const key = `draft-${card.conversationId}-${REPLY_EDITOR_MODES.REPLY}`;
+  const currentDraft = store.getters['draftMessages/get'](key);
+  const message = [currentDraft, payment.invoice_url]
+    .filter(Boolean)
+    .join('\n');
+
+  store.dispatch('draftMessages/set', { key, message });
+  openConversation(card, {});
+};
+
+const onOpportunitySendFormLink = ({ card, url }) => {
+  if (!card?.conversationId || !url) return;
+
+  const key = `draft-${card.conversationId}-${REPLY_EDITOR_MODES.REPLY}`;
+  const currentDraft = store.getters['draftMessages/get'](key);
+  const message = [currentDraft, url].filter(Boolean).join('\n');
+
+  store.dispatch('draftMessages/set', { key, message });
+  openConversation(card, {});
+};
+
 const handleRealtimeCardUpdated = async data => {
   if (Object.keys(currentFilterParams()).length > 0) {
     await refreshStageFirstPage(data.stage_id);
@@ -2528,10 +2554,31 @@ onUnmounted(() => {
                   </div>
                 </form>
                 <template v-else>
-                  <div class="flex min-w-0 flex-1 items-center gap-2">
-                    <h3 class="truncate text-sm font-medium">
-                      <span :title="stage.name">{{ stage.name }}</span>
+                  <div class="flex min-w-0 flex-1 items-start gap-2">
+                    <i
+                      class="mt-0.5 size-4 shrink-0"
+                      :class="[getKanbanStageIconOption(stage.icon).iconClass]"
+                      aria-hidden="true"
+                    />
+                    <h3
+                      class="min-w-0 break-words text-sm font-medium leading-5"
+                    >
+                      <span :title="stage.description || stage.name">{{
+                        stage.name
+                      }}</span>
                     </h3>
+                    <button
+                      v-if="stage.description"
+                      type="button"
+                      class="flex size-6 shrink-0 items-center justify-center rounded text-white/80 outline-none hover:bg-white/15 hover:text-white focus:ring-2 focus:ring-white/70"
+                      :aria-label="stage.description"
+                      :title="stage.description"
+                    >
+                      <i
+                        class="i-lucide-circle-help size-4"
+                        aria-hidden="true"
+                      />
+                    </button>
                     <span
                       class="flex-shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium"
                     >
@@ -2937,6 +2984,8 @@ onUnmounted(() => {
           @updated="onOpportunityUpdated"
           @transferred="onOpportunityTransferred"
           @open-conversation="onOpportunityOpenConversation"
+          @send-payment-link="onOpportunitySendPaymentLink"
+          @send-form-link="onOpportunitySendFormLink"
           @manage-fields="openFieldSettings"
         />
       </aside>

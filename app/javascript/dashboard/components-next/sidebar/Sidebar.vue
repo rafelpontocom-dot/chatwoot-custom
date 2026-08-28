@@ -347,6 +347,21 @@ const menuItems = computed(() => {
       activeOn: ['calendar_index'],
     },
     {
+      name: 'Finance',
+      label: t('SIDEBAR.FINANCE'),
+      icon: 'i-lucide-wallet-cards',
+      to: accountScopedRoute('finance_index'),
+      activeOn: ['finance_index'],
+    },
+    {
+      name: 'Forms',
+      label: t('SIDEBAR.FORMS'),
+      icon: 'i-lucide-clipboard-list',
+      to: accountScopedRoute('forms_index'),
+      activeOn: ['forms_index'],
+      permissions: ['administrator'],
+    },
+    {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',

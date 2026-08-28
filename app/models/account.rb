@@ -107,6 +107,13 @@ class Account < ApplicationRecord
   has_many :kanban_calendar_google_connections, dependent: :destroy_async
   has_one :kanban_calendar_booking_page, dependent: :destroy
   has_many :kanban_calendar_booking_links, dependent: :destroy
+  has_one :finance_module_setting, dependent: :destroy
+  has_many :finance_provider_connections, dependent: :destroy_async
+  has_many :finance_customers, dependent: :destroy_async
+  has_many :finance_payments, dependent: :destroy_async
+  has_many :finance_payment_events, dependent: :destroy_async
+  has_many :form_templates, dependent: :destroy_async
+  has_many :form_submissions, dependent: :destroy_async
 
   has_one_attached :contacts_export
 

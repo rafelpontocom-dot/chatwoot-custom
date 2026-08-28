@@ -6,6 +6,8 @@
 #  active          :boolean          default(TRUE), not null
 #  category        :string           default("open"), not null
 #  color           :string           default("slate"), not null
+#  description     :text
+#  icon            :string           default("circle-dot"), not null
 #  name            :string           not null
 #  position        :integer          default(0), not null
 #  probability     :integer          default(0), not null
@@ -26,6 +28,19 @@
 #
 class KanbanStage < ApplicationRecord
   CATEGORIES = %w[open won lost].freeze
+  ICONS = %w[
+    circle-dot
+    search
+    clipboard-list
+    message-circle
+    calendar-check
+    file-text
+    send
+    handshake
+    circle-dollar-sign
+    trophy
+    circle-x
+  ].freeze
 
   belongs_to :account
   belongs_to :kanban_board
@@ -37,6 +52,8 @@ class KanbanStage < ApplicationRecord
   validates :name, presence: true, uniqueness: { scope: :kanban_board_id, conditions: -> { active } }, if: :active?
   validates :position, presence: true, numericality: { only_integer: true }
   validates :category, inclusion: { in: CATEGORIES }
+  validates :icon, inclusion: { in: ICONS }
+  validates :description, length: { maximum: 240 }, allow_blank: true
   validates :wip_limit, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :probability, numericality: { only_integer: true, in: 0..100 }
   validate :validate_board_account

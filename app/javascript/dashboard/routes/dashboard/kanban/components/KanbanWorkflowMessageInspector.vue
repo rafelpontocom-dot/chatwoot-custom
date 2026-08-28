@@ -33,6 +33,18 @@ const preview = computed(() =>
       '{{opportunity_amount}}',
       props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_AMOUNT')
     )
+    .replaceAll(
+      '{{finance_payment_link}}',
+      props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_PAYMENT_LINK')
+    )
+    .replaceAll(
+      '{{finance_payment_amount}}',
+      props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_PAYMENT_AMOUNT')
+    )
+    .replaceAll(
+      '{{finance_payment_due_on}}',
+      props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PREVIEW_PAYMENT_DUE_ON')
+    )
 );
 const filteredVariables = computed(() => {
   const query = variableQuery.value.trim().toLocaleLowerCase();

@@ -288,6 +288,38 @@ const eventOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.APPOINTMENT_NO_SHOW'),
   },
   {
+    value: 'finance.payment.created',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_CREATED'),
+  },
+  {
+    value: 'finance.payment.overdue',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_OVERDUE'),
+  },
+  {
+    value: 'finance.payment.confirmed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_CONFIRMED'),
+  },
+  {
+    value: 'finance.payment.received',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_RECEIVED'),
+  },
+  {
+    value: 'finance.payment.canceled',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_CANCELED'),
+  },
+  {
+    value: 'finance.payment.refunded',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_REFUNDED'),
+  },
+  {
+    value: 'finance.payment.chargeback',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_CHARGEBACK'),
+  },
+  {
+    value: 'forms.submission.completed',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_SUBMISSION_COMPLETED'),
+  },
+  {
     value: 'kanban.card.stage_changed',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.STAGE_CHANGED'),
   },

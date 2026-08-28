@@ -1,0 +1,137 @@
+# Migração Kommo → Chatwoot — Dra. Anna Alice
+
+Status: checklist de configuração manual. A migração permanece paralela; não
+desabilitar workflows, Kommo ou WAHA até o cutover aprovado.
+
+## Boards Kanban a criar
+
+### Captação
+
+Origem Kommo: `Captação & 1° Consulta`.
+
+| Ordem | Etapa Chatwoot | Categoria |
+|---:|---|---|
+| 1 | Incoming leads | open |
+| 2 | QUALIFICAÇÃO | open |
+| 3 | Nao é oportunidade apagar | open |
+| 4 | NÃO RESPONDE | open |
+| 5 | PROPOSTA ENVIADA | open |
+| 6 | RETORNO FUTURO | open |
+| 7 | AGENDAR | open |
+| 8 | AGENDADO | open |
+| 9 | CONSULTA REALIZADA | open |
+| 10 | Consulta concluída – ganho | won |
+| 11 | Consulta cancelada – perdido | lost |
+
+### Tratamento
+
+Origem Kommo: `Tratamento (Execução)`.
+
+| Ordem | Etapa Chatwoot | Categoria |
+|---:|---|---|
+| 1 | Incoming leads | open |
+| 2 | Pacote Ativo - boas-vindas | open |
+| 3 | realizar agendamento | open |
+| 4 | agendado | open |
+| 5 | tratamento pausado | open |
+| 6 | encerrando pacote | open |
+| 7 | avaliação final ( última sessão ) | open |
+| 8 | alta/renovação | won |
+| 9 | perdido - abandono de tratamento | lost |
+
+O funil `Relacionamento` não entra nesta fase.
+
+## Campos de contato
+
+Criar como atributos do contato no Chatwoot:
+
+- Telefone
+- E-mail
+- CPF
+- Data de nascimento
+- Indicado por (nome)
+- Gênero
+- Profissão
+- Endereço completo
+- Estado civil
+- Peso
+- Altura
+- Origem
+- SubOrigem
+- NPS / Satisfação
+- Quantidade de indicações feitas
+- Google Review?
+
+## Campos do card — Captação
+
+- Canal de entrada
+- Queixa principal
+- Urgência
+- Interesse
+- Contexto IA
+- Data do primeiro contato
+- Data prometida de retorno
+- Retorno futuro
+- Motivo de perda
+- Motivo de não ter fechado o pacote
+- Forma de pagamento
+- Status do pagamento
+- Data do pagamento
+- Valor da consulta
+- Valor do pacote
+- Sinal da consulta
+- Data e horário da consulta
+- Status do agendamento
+- Modalidade
+- Duração da consulta (min)
+- ID paciente Feegow
+- ID agendamento Feegow
+- Cal.com
+- Reunião Cal.com
+- UTM source, medium, campaign, content, term, referrer
+- gclid, fbclid, gclientid, TikTok ad id e TikTok ad name
+
+## Campos do card — Tratamento
+
+- Próxima consulta
+- Data e hora da próxima sessão
+- Data de retorno prevista
+- Sessões que faltam
+- Número de pacote
+- Tipo
+- Forma de pagamento
+- Status do pagamento
+- Data do pagamento
+- Valor do pacote
+- Motivo da pausa
+- Decisão de continuidade
+- Desfecho clínico
+
+## Labels
+
+- `bloqueado`
+- `intervencao-humana`
+- `paciente`
+- `PsyMeet` (somente quando a origem justificar)
+
+## Automações / robôs para configurar manualmente
+
+1. **Novo contato no inbox**: criar card no board Captação, etapa `Incoming leads`.
+2. **Handoff humano**: aplicar `bloqueado` e `intervencao-humana`, criar nota privada, atribuir responsável/time e criar próxima ação.
+3. **Preço enviado**: mover card para `PROPOSTA ENVIADA` somente após ACK de envio da Elis.
+4. **Intenção de agenda**: mover para `AGENDAR`.
+5. **Agendamento confirmado pela AgendaTool**: mover para `AGENDADO`, gravar data/hora e IDs do provider.
+6. **Consulta concluída**: mover para `CONSULTA REALIZADA`; conclusão comercial vai para `Consulta concluída – ganho`.
+7. **Cancelamento**: mover para `Consulta cancelada – perdido` e exigir `Motivo de perda`.
+8. **Follow-up Não Responde**: até dois contatos, em 24h e 72h; após dois, aguardar 120 minutos e mover para perdido.
+9. **Follow-up Proposta Enviada**: até dois contatos, em 24h e 72h; após dois, aguardar 120 minutos e mover para perdido.
+10. **Tratamento pausado**: exigir `Motivo da pausa` e `Data de retorno prevista`.
+11. **Última sessão**: exigir `Desfecho clínico`; mover para `alta/renovação` ou `perdido - abandono de tratamento` conforme decisão humana.
+
+## Integração Elis (não configurar como automação de texto)
+
+- Webhook de mensagem recebida → novo workflow n8n Chatwoot.
+- Resposta da Elis → API de mensagem do Chatwoot.
+- O runtime é a autoridade para handoff, agenda, estágio e delivery.
+- Só ACK de envio confirmado pode avançar fatos conversacionais.
+- Mensagens da própria Elis e notas privadas não podem reentrar como inbound.

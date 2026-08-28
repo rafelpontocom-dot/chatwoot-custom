@@ -31,11 +31,11 @@
   display_title: 'Logo Dark Mode'
   description: 'The logo that would be used on the dashboard, login page etc. for dark mode'
 - name: BRAND_URL
-  value: 'https://chatwt.growautomacao.com.br'
+  value: 'https://crm.raevo.io'
   display_title: 'Brand URL'
   description: 'The URL that would be used in emails under the section “Powered By”'
 - name: WIDGET_BRAND_URL
-  value: 'https://chatwt.growautomacao.com.br'
+  value: 'https://crm.raevo.io'
   display_title: 'Widget Brand URL'
   description: 'The URL that would be used in the widget under the section “Powered By”'
 - name: BRAND_NAME
@@ -54,6 +54,12 @@
   value: true
   display_title: 'Chatwoot Metadata'
   description: 'Display default Chatwoot metadata like favicons and upgrade warnings'
+  type: boolean
+- name: DISPLAY_UPDATE_BANNER
+  value: false
+  display_title: 'Show version update banner'
+  description: 'Show administrators when a new upstream Chatwoot version is available'
+  locked: false
   type: boolean
 # ------- End of Branding Related Config ------- #
 

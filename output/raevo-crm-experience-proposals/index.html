@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RAEVO CRM - propostas de experiencia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root { --stone:#e9e4da; --sand:#dccfbe; --taupe:#b8ab98; --ink:#1f1f1f; --champagne:#c7a97a; --cyan:#00b8c6; --paper:#fcfbf8; --line:#ded8cd; --muted:#77716a; }
+      * { box-sizing:border-box; }
+      body { margin:0; min-width:1120px; color:var(--ink); background:var(--stone); font-family:Inter, sans-serif; }
+      button { font:inherit; cursor:pointer; }
+      .intro { max-width:1240px; margin:0 auto; padding:42px 42px 28px; }
+      .eyebrow { margin:0 0 10px; color:#746955; font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+      h1,h2,h3 { font-family:Sora, sans-serif; letter-spacing:0; }
+      h1 { margin:0; max-width:900px; font-size:32px; line-height:1.2; }
+      .intro > p:last-child { max-width:840px; color:#5f5952; line-height:1.6; }
+      .choices { display:flex; max-width:1240px; gap:8px; margin:0 auto; padding:0 42px 24px; }
+      .choice { border:1px solid rgba(31,31,31,.12); border-radius:7px; background:rgba(255,255,255,.42); padding:11px 15px; color:#4b463f; text-align:left; transition:transform .18s ease, background .18s ease, border .18s ease; }
+      .choice:hover,.choice:focus-visible { transform:translateY(-1px); border-color:var(--cyan); outline:2px solid rgba(0,184,198,.25); outline-offset:2px; }
+      .choice.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+      .choice b,.choice small { display:block; }
+      .choice small { margin-top:2px; font-size:11px; opacity:.76; }
+      .proposal { display:none; max-width:1324px; margin:0 auto 44px; padding:0 42px; }
+      .proposal.active { display:block; }
+      .proposal-title { display:flex; align-items:center; justify-content:space-between; margin:0 0 12px; }
+      .proposal-title h2 { margin:0; font-size:17px; }
+      .badge { border-radius:999px; background:var(--champagne); padding:5px 9px; font-size:11px; font-weight:700; }
+      .shell { display:grid; grid-template-columns:70px minmax(0,1fr); min-height:700px; overflow:hidden; border:1px solid rgba(31,31,31,.14); border-radius:10px; background:var(--paper); box-shadow:0 18px 44px rgba(48,42,31,.13); }
+      .rail { display:flex; flex-direction:column; align-items:center; gap:18px; padding:20px 0; background:#252525; color:#eee8dd; }
+      .mark { display:grid; place-items:center; width:34px; height:34px; border:1px solid rgba(255,255,255,.34); border-radius:50%; color:var(--champagne); font-family:Sora; font-size:12px; font-weight:700; }
+      .rail-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:7px; color:#cfcac1; font-size:17px; }
+      .rail-icon.active { color:#1f1f1f; background:var(--champagne); }
+      .spacer { flex:1; }
+      .workspace { display:flex; min-width:0; flex-direction:column; background:#f8f7f4; }
+      .topbar { display:grid; grid-template-columns:minmax(170px,auto) minmax(260px,1fr) auto; gap:18px; align-items:center; min-height:68px; padding:12px 20px; border-bottom:1px solid var(--line); background:rgba(252,251,248,.95); }
+      .pipeline { display:flex; align-items:center; gap:9px; min-width:0; }
+      .pipeline b { display:block; max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; }
+      .pipeline span { color:var(--muted); font-size:11px; }
+      .chev { color:#766e63; font-size:19px; }
+      .search { display:flex; align-items:center; gap:8px; min-width:0; height:36px; border:1px solid var(--line); border-radius:6px; padding:0 10px; color:#8b8379; background:#fff; font-size:12px; }
+      .search i { color:var(--cyan); font-style:normal; font-size:16px; }
+      .top-actions { display:flex; gap:7px; align-items:center; }
+      .btn { min-height:34px; border:1px solid var(--line); border-radius:6px; padding:0 11px; color:#464039; background:#fff; font-size:12px; font-weight:600; }
+      .btn.primary { border-color:var(--cyan); background:var(--cyan); color:#073c40; }
+      .subbar { display:flex; min-height:48px; align-items:center; gap:8px; padding:8px 20px; border-bottom:1px solid var(--line); background:#fffdfa; }
+      .filter { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:6px; padding:7px 9px; color:#5f5952; background:#fff; font-size:12px; }
+      .filter strong { color:var(--ink); }
+      .subbar .right { margin-left:auto; display:flex; gap:7px; }
+      .stats { display:flex; gap:24px; padding:10px 20px; border-bottom:1px solid var(--line); background:#f3f0ea; font-size:11px; }
+      .stats span { color:var(--muted); } .stats b { margin-left:5px; color:var(--ink); font-size:12px; }
+      .board { display:grid; min-height:0; flex:1; grid-template-columns:repeat(4,minmax(230px,1fr)); gap:10px; overflow:hidden; padding:15px; }
+      .stage { min-width:0; padding:0 8px; border-top:3px solid var(--taupe); }
+      .stage:nth-child(2) { border-color:var(--cyan); } .stage:nth-child(3) { border-color:var(--champagne); } .stage:nth-child(4) { border-color:#758c7a; }
+      .stage-head { display:flex; align-items:center; justify-content:space-between; min-height:42px; }
+      .stage-head h3 { max-width:145px; margin:0; font-size:12px; line-height:1.25; } .stage-head span { color:var(--muted); font-size:11px; }
+      .deal { display:grid; gap:8px; margin-bottom:8px; border:1px solid #e4ded3; border-radius:6px; padding:11px; background:#fff; box-shadow:0 1px 0 rgba(31,31,31,.02); }
+      .deal:hover { border-color:#a49a8d; }
+      .deal-title { display:flex; justify-content:space-between; gap:7px; font-size:12px; font-weight:700; } .deal-title span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .deal-title b { color:#007a84; font-size:11px; white-space:nowrap; }
+      .meta { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:10px; } .avatar { display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:var(--sand); color:#504940; font-size:9px; font-weight:700; }
+      .due { color:#8c5b10; font-weight:700; } .due.late { color:#a24d45; }
+      .drawer { width:360px; border-left:1px solid var(--line); padding:18px; background:#fffdfa; }
+      .drawer h2 { margin:0 0 4px; font-size:16px; line-height:1.32; } .drawer .id { color:var(--muted); font-size:10px; }
+      .stage-select { display:flex; align-items:center; justify-content:space-between; margin:15px 0; border:1px solid #d5cbbb; border-radius:6px; padding:9px 10px; background:#f9f6ef; }
+      .stage-select small,.field small { color:var(--muted); font-size:10px; } .stage-select b { display:block; margin-top:2px; font-size:11px; }
+      .tabs { display:flex; gap:14px; overflow:hidden; border-bottom:1px solid var(--line); } .tabs span { padding:9px 1px; color:var(--muted); font-size:11px; white-space:nowrap; } .tabs .selected { border-bottom:2px solid var(--cyan); color:var(--ink); font-weight:700; }
+      .now { margin:15px 0; border-radius:7px; padding:11px; background:#eefafa; } .now b { display:block; margin-bottom:4px; font-size:11px; } .now p { margin:0; color:#4b6c6f; font-size:11px; line-height:1.45; }
+      .field { display:grid; grid-template-columns:1fr auto; gap:10px; padding:10px 0; border-bottom:1px solid #eee9e1; } .field b { font-size:11px; } .field p { grid-column:1/2; margin:2px 0 0; color:#5e5851; font-size:11px; } .field em { color:#5d7d80; font-size:11px; font-style:normal; }
+      .callout { margin:16px 2px 0; color:#5c554b; font-size:12px; line-height:1.55; }
+      .agenda { display:grid; grid-template-columns:185px minmax(0,1fr); min-height:0; flex:1; }
+      .agenda-side { border-right:1px solid var(--line); padding:15px; background:#fffdfa; } .agenda-side h3 { margin:0 0 10px; font-size:12px; } .agenda-side div { padding:9px 8px; border-radius:5px; font-size:11px; } .agenda-side .selected { background:#e8f9fa; color:#006f77; font-weight:700; }
+      .agenda-grid { display:grid; grid-template-columns:52px repeat(5,1fr); grid-template-rows:45px repeat(6,1fr); min-height:0; background:linear-gradient(to bottom,#fffdfa,#fbfaf7); }
+      .agenda-grid > div { min-width:0; border-right:1px solid #eee9e1; border-bottom:1px solid #eee9e1; padding:7px; font-size:10px; } .agenda-grid .day { color:#615a51; text-align:center; font-weight:700; } .agenda-grid .hour { color:#8b8379; text-align:right; }
+      .event { border-left:3px solid var(--cyan); border-radius:3px; padding:5px; background:#e6f8f9; color:#075b61; font-size:10px; line-height:1.35; } .event.gold { border-left-color:var(--champagne); background:#faf4e8; color:#795e27; }
+      .list { flex:1; padding:15px 20px; } .table-head,.row { display:grid; grid-template-columns:1.5fr 1.2fr .8fr .8fr 34px; gap:12px; align-items:center; } .table-head { padding:0 10px 8px; color:var(--muted); font-size:10px; text-transform:uppercase; } .row { min-height:54px; border-top:1px solid var(--line); padding:0 10px; font-size:11px; } .row b { font-size:12px; } .tag { width:max-content; border-radius:999px; padding:4px 7px; background:#e8f9fa; color:#00727a; font-size:10px; font-weight:700; } .tag.late { background:#f9e8e7; color:#9c4b45; }
+      .clinic-shell .workspace { background:#f8f6f1; } .clinic-shell .topbar { grid-template-columns:minmax(170px,auto) minmax(240px,1fr) auto; }
+      .clinic-shell .board { grid-template-columns:1.18fr .82fr; padding:0; gap:0; } .clinic-shell .drawer { width:auto; border-left:1px solid var(--line); border-top:0; }
+      .clinic-shell .agenda { grid-template-columns:170px minmax(0,1fr); }
+      .console-shell .workspace { background:#fbfaf8; } .console-shell .board { display:block; overflow:auto; padding:16px 20px; } .console-shell .drawer { width:340px; }
+      .proposal-note { margin:12px 4px 0; color:#5e574e; font-size:13px; line-height:1.55; }
+      .proposal-note b { color:var(--ink); }
+    </style>
+  </head>
+  <body>
+    <header class="intro">
+      <p class="eyebrow">RAEVO CRM / direção de experiência</p>
+      <h1>Três formas de tornar o CRM mais humano, mais claro e mais rápido para trabalhar.</h1>
+      <p>As propostas usam a identidade Raevo e preservam as capacidades já construídas. A diferença está na ordem em que o usuário enxerga e executa cada coisa: operação primeiro, contexto depois e configuração somente quando necessária.</p>
+    </header>
+    <nav class="choices" aria-label="Escolha uma proposta">
+      <button class="choice active" data-proposal="mesa"><b>1. Mesa Comercial</b><small>Recomendada: venda, consulta e cobrança.</small></button>
+      <button class="choice" data-proposal="clinica"><b>2. Central Clínica</b><small>Agenda e paciente no centro da operação.</small></button>
+      <button class="choice" data-proposal="console"><b>3. Console de Receita</b><small>Lista, velocidade e alto volume.</small></button>
+    </nav>
+
+    <section class="proposal active" id="mesa">
+      <div class="proposal-title"><h2>1. Mesa Comercial</h2><span class="badge">Recomendação Raevo</span></div>
+      <div class="shell">
+        <nav class="rail" aria-label="Navegação"><span class="mark">R</span><span class="rail-icon">◌</span><span class="rail-icon active">▥</span><span class="rail-icon">◫</span><span class="rail-icon">¤</span><span class="rail-icon">▤</span><span class="spacer"></span><span class="rail-icon">⚙</span></nav>
+        <main class="workspace">
+          <header class="topbar"><div class="pipeline"><span class="chev">⌄</span><div><b>Funil Comercial</b><span>24 oportunidades abertas</span></div></div><div class="search"><i>⌕</i> Buscar por contato, telefone, e-mail ou oportunidade</div><div class="top-actions"><button class="btn">Filtros <b>3</b></button><button class="btn">▥</button><button class="btn primary">+ Nova oportunidade</button></div></header>
+          <div class="subbar"><span class="filter"><strong>Ativas</strong> 24</span><span class="filter">Minha equipe</span><span class="filter">Próxima ação</span><span class="right"><button class="btn">Hoje</button><button class="btn">⋯</button></span></div>
+          <div class="stats"><span>Em aberto <b>R$ 82.400</b></span><span>Sem próxima ação <b>3</b></span><span>Atrasadas <b>2</b></span><span>Ganhas no mês <b>R$ 31.800</b></span></div>
+          <div class="board"><section class="stage"><header class="stage-head"><h3>Qualificação</h3><span>6 · R$ 18k</span></header><article class="deal"><div class="deal-title"><span>Pedro Raevo</span><b>R$ 1.500</b></div><div class="meta"><span class="due">Hoje, 15:00</span><span class="avatar">PA</span></div></article><article class="deal"><div class="deal-title"><span>Mariana Oliveira</span><b>R$ 2.800</b></div><div class="meta"><span>Sem ação</span><span class="avatar">MM</span></div></article></section><section class="stage"><header class="stage-head"><h3>Consulta agendada</h3><span>5 · R$ 21k</span></header><article class="deal"><div class="deal-title"><span>Juliana Santos</span><b>R$ 4.200</b></div><div class="meta"><span class="due">Amanhã, 09:30</span><span class="avatar">DR</span></div></article><article class="deal"><div class="deal-title"><span>Lucas Ribeiro</span><b>R$ 3.600</b></div><div class="meta"><span>25 ago · Consulta</span><span class="avatar">PA</span></div></article></section><section class="stage"><header class="stage-head"><h3>Proposta enviada</h3><span>8 · R$ 32k</span></header><article class="deal"><div class="deal-title"><span>Paulo Matos</span><b>R$ 7.900</b></div><div class="meta"><span class="due late">2 dias atrasada</span><span class="avatar">MM</span></div></article><article class="deal"><div class="deal-title"><span>Fernanda Lima</span><b>R$ 3.200</b></div><div class="meta"><span>Sex · Follow-up</span><span class="avatar">DR</span></div></article></section><section class="stage"><header class="stage-head"><h3>Negociação</h3><span>5 · R$ 11k</span></header><article class="deal"><div class="deal-title"><span>Bruno Nunes</span><b>R$ 2.400</b></div><div class="meta"><span>Hoje · Cobrança</span><span class="avatar">PA</span></div></article></section></div>
+        </main>
+        <aside class="drawer"><span class="id">#A1003</span><h2>Tratamento de acompanhamento</h2><div class="stage-select"><div><small>Funil Comercial</small><b>CONSULTA AGENDADA · há 2 dias</b></div><span>⌄</span></div><div class="tabs"><span class="selected">Resumo</span><span>Contato</span><span>Agenda</span><span>Financeiro</span><span>Histórico</span></div><section class="now"><b>PRÓXIMA AÇÃO · Hoje às 15:00</b><p>Confirmar consulta por WhatsApp e validar forma de pagamento.</p></section><div class="field"><div><b>Responsável</b><p>Paula Andrade</p></div><em>Editar</em></div><div class="field"><div><b>Valor estimado</b><p>R$ 1.500,00</p></div><em>Editar</em></div><div class="field"><div><b>Consulta</b><p>24 ago · 15:30 · Dra. Ana</p></div><em>Ver Agenda</em></div><div class="field"><div><b>Etiquetas</b><p>Google Ads · Primeira consulta</p></div><em>+ Adicionar</em></div><p class="callout"><b>O detalhe não ocupa a tela.</b> Fecha com Esc e o quadro volta inteiro, exatamente onde a secretaria estava.</p></aside>
+      </div><p class="proposal-note"><b>Por que é a recomendada:</b> preserva o ritmo de atendimento no Chatwoot, deixa o funil escaneável e não transforma a oportunidade em formulário gigante.</p>
+    </section>
+
+    <section class="proposal" id="clinica">
+      <div class="proposal-title"><h2>2. Central Clínica</h2><span class="badge">Agenda no centro</span></div>
+      <div class="shell clinic-shell"><nav class="rail"><span class="mark">R</span><span class="rail-icon">◌</span><span class="rail-icon">▥</span><span class="rail-icon active">◫</span><span class="rail-icon">¤</span><span class="rail-icon">▤</span><span class="spacer"></span><span class="rail-icon">⚙</span></nav><main class="workspace"><header class="topbar"><div class="pipeline"><span class="chev">⌄</span><div><b>Agenda da clínica</b><span>Terça, 24 de agosto</span></div></div><div class="search"><i>⌕</i> Buscar paciente ou oportunidade</div><div class="top-actions"><button class="btn">Agenda</button><button class="btn">Semana</button><button class="btn primary">+ Agendar</button></div></header><div class="subbar"><span class="filter"><strong>Hoje</strong></span><span class="filter">Todos os profissionais</span><span class="filter">Status</span><span class="right"><button class="btn">Pendências 4</button></span></div><div class="board"><section class="agenda"><aside class="agenda-side"><h3>Minha agenda</h3><div class="selected">Todos os profissionais</div><div>Dra. Ana Alice</div><div>Dra. Telma</div><div>Sala 01</div><h3 style="margin-top:26px">Hoje</h3><div>2 confirmações</div><div>1 cobrança pendente</div><div>1 anamnese pendente</div></aside><section class="agenda-grid"><div></div><div class="day">SEG 23</div><div class="day">TER 24</div><div class="day">QUA 25</div><div class="day">QUI 26</div><div class="day">SEX 27</div><div class="hour">09:00</div><div></div><div><div class="event">09:30<br><b>Pedro Raevo</b><br>Consulta inicial</div></div><div></div><div></div><div></div><div class="hour">11:00</div><div></div><div></div><div><div class="event gold">11:15<br><b>Julia Martins</b><br>Retorno</div></div><div></div><div></div><div class="hour">14:00</div><div></div><div><div class="event">14:00<br><b>Carla Souza</b><br>Consulta inicial</div></div><div></div><div></div><div></div><div class="hour">16:00</div><div></div><div></div><div></div><div><div class="event gold">16:30<br><b>Lucas Oliveira</b><br>Sessão 3 de 10</div></div><div></div></section></section></div></main><aside class="drawer"><span class="id">PACIENTE · PEDRO RAEVO</span><h2>Consulta inicial</h2><div class="stage-select"><div><small>24 de agosto</small><b>15:30 · DRA. ANA ALICE</b></div><span>⋯</span></div><div class="tabs"><span class="selected">Consulta</span><span>Paciente</span><span>Plano</span><span>Financeiro</span></div><section class="now"><b>ANTES DA CONSULTA</b><p>Anamnese recebida · confirmação pendente · conversa com 3 novas mensagens.</p></section><div class="field"><div><b>Status</b><p>Agendado</p></div><em>Alterar</em></div><div class="field"><div><b>Plano</b><p>Consulta avulsa</p></div><em>Editar</em></div><div class="field"><div><b>Pagamento</b><p>Link Pix pendente</p></div><em>Enviar</em></div><div class="field"><div><b>Conversa</b><p>Última mensagem há 14 min</p></div><em>Abrir</em></div></aside></div></div><p class="proposal-note"><b>O que muda:</b> a Agenda vira a abertura natural da secretaria; o funil permanece completo para captação e proposta, mas a rotina de consulta deixa de parecer uma adaptação de CRM de vendas.</p>
+    </section>
+
+    <section class="proposal" id="console">
+      <div class="proposal-title"><h2>3. Console de Receita</h2><span class="badge">Volume e velocidade</span></div>
+      <div class="shell console-shell"><nav class="rail"><span class="mark">R</span><span class="rail-icon">◌</span><span class="rail-icon active">▥</span><span class="rail-icon">◫</span><span class="rail-icon">¤</span><span class="rail-icon">▤</span><span class="spacer"></span><span class="rail-icon">⚙</span></nav><main class="workspace"><header class="topbar"><div class="pipeline"><span class="chev">⌄</span><div><b>Oportunidades</b><span>Funil Comercial</span></div></div><div class="search"><i>⌕</i> Buscar por nome, telefone, e-mail, etapa ou campo</div><div class="top-actions"><button class="btn">Filtros <b>3</b></button><button class="btn">Lista</button><button class="btn primary">+ Nova oportunidade</button></div></header><div class="subbar"><span class="filter"><strong>Ativas</strong></span><span class="filter">Minhas ações</span><span class="filter">Vencidas</span><span class="filter">Sem próxima ação</span><span class="right"><button class="btn">Salvar visão</button><button class="btn">Colunas</button></span></div><div class="stats"><span>24 oportunidades <b>R$ 82.400</b></span><span>Taxa de ganho <b>31%</b></span><span>Ciclo médio <b>12 dias</b></span><span>Em risco <b>4</b></span></div><div class="board"><div class="table-head"><span>Oportunidade</span><span>Etapa e responsável</span><span>Próxima ação</span><span>Valor</span><span></span></div><div class="row"><div><b>Pedro Raevo</b><br><small>Consulta inicial · Google Ads</small></div><div>Consulta agendada<br><small>Paula Andrade</small></div><div class="due">Hoje, 15:00</div><div><b>R$ 1.500</b></div><div>›</div></div><div class="row"><div><b>Juliana Santos</b><br><small>Tratamento ortodôntico</small></div><div>Proposta enviada<br><small>Mariana M.</small></div><div class="due late">2 dias</div><div><b>R$ 4.200</b></div><div>›</div></div><div class="row"><div><b>Lucas Oliveira</b><br><small>Plano de 10 sessões</small></div><div>Negociação<br><small>Paula Andrade</small></div><div>Sex, 10:00</div><div><b>R$ 6.500</b></div><div>›</div></div><div class="row"><div><b>Carla Souza</b><br><small>Consulta avulsa</small></div><div>Qualificação<br><small>Sem responsável</small></div><div>Sem ação</div><div><b>R$ 850</b></div><div>›</div></div></div></main><aside class="drawer"><span class="id">#A1003</span><h2>Pedro Raevo</h2><div class="stage-select"><div><small>Funil Comercial</small><b>CONSULTA AGENDADA</b></div><span>⌄</span></div><section class="now"><b>TRABALHO DE HOJE</b><p>Confirmar consulta e enviar link Pix. Atalho: responder na conversa.</p></section><div class="field"><div><b>Próxima ação</b><p>Hoje, 15:00 · Confirmar por WhatsApp</p></div><em>✓</em></div><div class="field"><div><b>Consulta</b><p>24 ago · 15:30 · Dra. Ana</p></div><em>Ver</em></div><div class="field"><div><b>Financeiro</b><p>R$ 1.500 · Pix pendente</p></div><em>Enviar</em></div><div class="field"><div><b>Campos importantes</b><p>Origem: Google Ads · Procedimento: Consulta</p></div><em>Editar</em></div></aside></div><p class="proposal-note"><b>Quando escolher:</b> ideal para uma operação com muito volume e gestão diária por filtros, ações em massa e busca. O Kanban continua disponível, mas deixa de ser a única forma de trabalhar.</p>
+    </section>
+
+    <script>
+      const buttons = document.querySelectorAll('.choice');
+      const proposals = document.querySelectorAll('.proposal');
+      buttons.forEach(button => button.addEventListener('click', () => {
+        buttons.forEach(item => item.classList.toggle('active', item === button));
+        proposals.forEach(item => item.classList.toggle('active', item.id === button.dataset.proposal));
+      }));
+    </script>
+  </body>
+</html>

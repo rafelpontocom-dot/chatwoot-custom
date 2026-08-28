@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_09_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_28_141000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -883,12 +883,229 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_09_100000) do
     t.index ["name", "account_id"], name: "index_email_templates_on_name_and_account_id", unique: true
   end
 
+  create_table "finance_customers", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "finance_provider_connection_id", null: false
+    t.string "provider_customer_id", null: false
+    t.jsonb "provider_payload", default: {}, null: false
+    t.datetime "last_synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_finance_customers_on_account_id"
+    t.index ["contact_id"], name: "index_finance_customers_on_contact_id"
+    t.index ["finance_provider_connection_id", "contact_id"], name: "index_finance_customers_on_connection_and_contact", unique: true
+    t.index ["finance_provider_connection_id", "provider_customer_id"], name: "index_finance_customers_on_connection_and_provider_customer", unique: true
+    t.index ["finance_provider_connection_id"], name: "index_finance_customers_on_finance_provider_connection_id"
+  end
+
+  create_table "finance_module_settings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.boolean "enabled", default: false, null: false
+    t.string "market", default: "BR", null: false
+    t.string "default_payment_provider"
+    t.string "default_invoicing_provider"
+    t.datetime "enabled_at"
+    t.bigint "enabled_by_id"
+    t.datetime "disabled_at"
+    t.bigint "disabled_by_id"
+    t.jsonb "settings", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_finance_module_settings_on_account_id", unique: true
+    t.index ["disabled_by_id"], name: "index_finance_module_settings_on_disabled_by_id"
+    t.index ["enabled_by_id"], name: "index_finance_module_settings_on_enabled_by_id"
+  end
+
+  create_table "finance_payment_events", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "finance_payment_id", null: false
+    t.bigint "finance_provider_connection_id", null: false
+    t.bigint "actor_id"
+    t.string "provider_event_id"
+    t.string "event_type", null: false
+    t.datetime "occurred_at", null: false
+    t.string "processing_status", default: "processed", null: false
+    t.text "error_message"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_finance_payment_events_on_account_id"
+    t.index ["actor_id"], name: "index_finance_payment_events_on_actor_id"
+    t.index ["finance_payment_id"], name: "index_finance_payment_events_on_finance_payment_id"
+    t.index ["finance_provider_connection_id", "provider_event_id"], name: "index_finance_payment_events_on_connection_and_provider_event", unique: true, where: "(provider_event_id IS NOT NULL)"
+    t.index ["finance_provider_connection_id"], name: "index_finance_payment_events_on_finance_provider_connection_id"
+  end
+
+  create_table "finance_payments", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "kanban_card_id"
+    t.bigint "finance_customer_id"
+    t.bigint "finance_provider_connection_id", null: false
+    t.string "provider_payment_id"
+    t.string "provider_customer_id"
+    t.string "external_reference", null: false
+    t.string "kind", default: "charge", null: false
+    t.string "status", default: "draft", null: false
+    t.string "billing_type", default: "undefined", null: false
+    t.integer "amount_cents", null: false
+    t.string "currency", default: "BRL", null: false
+    t.date "due_on"
+    t.datetime "paid_at"
+    t.text "invoice_url"
+    t.text "description"
+    t.jsonb "provider_payload", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "external_reference"], name: "index_finance_payments_on_account_id_and_external_reference", unique: true
+    t.index ["account_id", "kanban_card_id"], name: "index_finance_payments_on_account_id_and_kanban_card_id"
+    t.index ["account_id", "status"], name: "index_finance_payments_on_account_id_and_status"
+    t.index ["account_id"], name: "index_finance_payments_on_account_id"
+    t.index ["contact_id"], name: "index_finance_payments_on_contact_id"
+    t.index ["finance_customer_id"], name: "index_finance_payments_on_finance_customer_id"
+    t.index ["finance_provider_connection_id", "provider_payment_id"], name: "index_finance_payments_on_connection_and_provider_payment", unique: true, where: "(provider_payment_id IS NOT NULL)"
+    t.index ["finance_provider_connection_id"], name: "index_finance_payments_on_finance_provider_connection_id"
+    t.index ["kanban_card_id"], name: "index_finance_payments_on_kanban_card_id"
+  end
+
+  create_table "finance_provider_connections", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "provider", null: false
+    t.string "environment", default: "sandbox", null: false
+    t.string "api_key"
+    t.string "webhook_token"
+    t.string "provider_account_id"
+    t.string "display_name"
+    t.string "status", default: "disconnected", null: false
+    t.text "last_error"
+    t.datetime "last_verified_at"
+    t.datetime "last_webhook_at"
+    t.jsonb "settings", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "provider"], name: "index_finance_provider_connections_on_account_id_and_provider", unique: true
+    t.index ["account_id"], name: "index_finance_provider_connections_on_account_id"
+  end
+
+  create_table "finance_webhook_deliveries", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "finance_provider_connection_id", null: false
+    t.string "provider_event_id"
+    t.string "payload_digest", null: false
+    t.text "raw_payload", null: false
+    t.string "processing_status", default: "failed", null: false
+    t.text "error_message"
+    t.datetime "received_at", null: false
+    t.datetime "processed_at"
+    t.integer "retry_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_finance_webhook_deliveries_on_account_id"
+    t.index ["finance_provider_connection_id", "payload_digest"], name: "index_finance_webhook_deliveries_on_connection_and_digest", unique: true
+    t.index ["finance_provider_connection_id", "processing_status", "received_at"], name: "index_finance_webhook_deliveries_for_connection_status"
+    t.index ["finance_provider_connection_id", "provider_event_id"], name: "index_finance_webhook_deliveries_on_connection_and_event", unique: true, where: "(provider_event_id IS NOT NULL)"
+    t.index ["finance_provider_connection_id"], name: "idx_on_finance_provider_connection_id_58dd06212f"
+  end
+
   create_table "folders", force: :cascade do |t|
     t.integer "account_id", null: false
     t.integer "category_id", null: false
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "form_access_audits", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "form_submission_id", null: false
+    t.bigint "actor_id"
+    t.string "action", null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "action", "occurred_at"], name: "idx_on_account_id_action_occurred_at_5ce9ba1709"
+    t.index ["account_id"], name: "index_form_access_audits_on_account_id"
+    t.index ["actor_id"], name: "index_form_access_audits_on_actor_id"
+    t.index ["form_submission_id", "occurred_at"], name: "index_form_access_audits_on_form_submission_id_and_occurred_at"
+    t.index ["form_submission_id"], name: "index_form_access_audits_on_form_submission_id"
+  end
+
+  create_table "form_invitations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "form_template_version_id", null: false
+    t.bigint "contact_id"
+    t.bigint "kanban_card_id"
+    t.string "token_digest", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "expires_at"
+    t.integer "max_uses", default: 1, null: false
+    t.integer "uses_count", default: 0, null: false
+    t.datetime "sent_at"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status", "expires_at"], name: "index_form_invitations_for_account_status"
+    t.index ["account_id"], name: "index_form_invitations_on_account_id"
+    t.index ["contact_id"], name: "index_form_invitations_on_contact_id"
+    t.index ["form_template_version_id"], name: "index_form_invitations_on_form_template_version_id"
+    t.index ["kanban_card_id"], name: "index_form_invitations_on_kanban_card_id"
+    t.index ["token_digest"], name: "index_form_invitations_on_token_digest", unique: true
+  end
+
+  create_table "form_submissions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "form_template_version_id", null: false
+    t.bigint "form_invitation_id"
+    t.bigint "contact_id"
+    t.bigint "kanban_card_id"
+    t.string "status", default: "submitted", null: false
+    t.jsonb "answers", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "submitted_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "sensitive_answers_ciphertext"
+    t.index ["account_id", "status", "submitted_at"], name: "idx_on_account_id_status_submitted_at_b7c663f56a"
+    t.index ["account_id"], name: "index_form_submissions_on_account_id"
+    t.index ["contact_id"], name: "index_form_submissions_on_contact_id"
+    t.index ["form_invitation_id", "created_at"], name: "index_form_submissions_on_form_invitation_id_and_created_at"
+    t.index ["form_invitation_id"], name: "index_form_submissions_on_form_invitation_id"
+    t.index ["form_template_version_id"], name: "index_form_submissions_on_form_template_version_id"
+    t.index ["kanban_card_id"], name: "index_form_submissions_on_kanban_card_id"
+  end
+
+  create_table "form_template_versions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "form_template_id", null: false
+    t.integer "version_number", null: false
+    t.jsonb "schema", default: {}, null: false
+    t.datetime "published_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_form_template_versions_on_account_id"
+    t.index ["form_template_id", "version_number"], name: "idx_form_template_versions_unique", unique: true
+  end
+
+  create_table "form_templates", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.string "category", default: "lead_capture", null: false
+    t.string "access_classification", default: "commercial", null: false
+    t.jsonb "settings", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "active_version_id"
+    t.boolean "public_enabled", default: false, null: false
+    t.string "public_token"
+    t.index ["account_id", "slug"], name: "index_form_templates_on_account_id_and_slug", unique: true
+    t.index ["account_id"], name: "index_form_templates_on_account_id"
+    t.index ["active_version_id"], name: "index_form_templates_on_active_version_id"
+    t.index ["public_token"], name: "index_form_templates_on_public_token", unique: true
   end
 
   create_table "inbox_assignment_policies", force: :cascade do |t|
@@ -1273,7 +1490,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_09_100000) do
     t.datetime "updated_at", null: false
     t.index ["kanban_calendar_appointment_id", "kanban_calendar_resource_id"], name: "index_calendar_appointment_resources_on_appointment_resource", unique: true
     t.index ["kanban_calendar_resource_id", "starts_at", "ends_at"], name: "index_calendar_appointment_resources_on_resource_and_range"
-    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY ((ARRAY['scheduled'::character varying, 'confirmed'::character varying, 'checked_in'::character varying])::text[])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
+    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY (ARRAY[('scheduled'::character varying)::text, ('confirmed'::character varying)::text, ('checked_in'::character varying)::text])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
   end
 
   create_table "kanban_calendar_appointment_series", force: :cascade do |t|
@@ -1554,6 +1771,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_09_100000) do
     t.string "category", default: "open", null: false
     t.integer "wip_limit"
     t.integer "probability", default: 0, null: false
+    t.text "description"
+    t.string "icon", default: "circle-dot", null: false
     t.index ["account_id", "active"], name: "index_kanban_stages_on_account_id_and_active"
     t.index ["account_id"], name: "index_kanban_stages_on_account_id"
     t.index ["kanban_board_id", "category"], name: "index_kanban_stages_on_kanban_board_id_and_category"
@@ -1978,6 +2197,40 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_09_100000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "finance_customers", "accounts"
+  add_foreign_key "finance_customers", "contacts"
+  add_foreign_key "finance_customers", "finance_provider_connections"
+  add_foreign_key "finance_module_settings", "accounts"
+  add_foreign_key "finance_module_settings", "users", column: "disabled_by_id"
+  add_foreign_key "finance_module_settings", "users", column: "enabled_by_id"
+  add_foreign_key "finance_payment_events", "accounts"
+  add_foreign_key "finance_payment_events", "finance_payments"
+  add_foreign_key "finance_payment_events", "finance_provider_connections"
+  add_foreign_key "finance_payment_events", "users", column: "actor_id"
+  add_foreign_key "finance_payments", "accounts"
+  add_foreign_key "finance_payments", "contacts"
+  add_foreign_key "finance_payments", "finance_customers"
+  add_foreign_key "finance_payments", "finance_provider_connections"
+  add_foreign_key "finance_payments", "kanban_cards"
+  add_foreign_key "finance_provider_connections", "accounts"
+  add_foreign_key "finance_webhook_deliveries", "accounts"
+  add_foreign_key "finance_webhook_deliveries", "finance_provider_connections"
+  add_foreign_key "form_access_audits", "accounts"
+  add_foreign_key "form_access_audits", "form_submissions"
+  add_foreign_key "form_access_audits", "users", column: "actor_id"
+  add_foreign_key "form_invitations", "accounts"
+  add_foreign_key "form_invitations", "contacts"
+  add_foreign_key "form_invitations", "form_template_versions"
+  add_foreign_key "form_invitations", "kanban_cards"
+  add_foreign_key "form_submissions", "accounts"
+  add_foreign_key "form_submissions", "contacts"
+  add_foreign_key "form_submissions", "form_invitations"
+  add_foreign_key "form_submissions", "form_template_versions"
+  add_foreign_key "form_submissions", "kanban_cards"
+  add_foreign_key "form_template_versions", "accounts"
+  add_foreign_key "form_template_versions", "form_templates"
+  add_foreign_key "form_templates", "accounts"
+  add_foreign_key "form_templates", "form_template_versions", column: "active_version_id"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "kanban_appointment_reminder_deliveries", "accounts"
   add_foreign_key "kanban_appointment_reminder_deliveries", "kanban_appointment_reminder_rules"
@@ -2059,68 +2312,33 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_09_100000) do
   add_foreign_key "kanban_saved_filters", "kanban_boards"
   add_foreign_key "kanban_saved_filters", "users"
   add_foreign_key "user_sessions", "users"
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute(<<-SQL)
-CREATE OR REPLACE FUNCTION public.accounts_after_insert_row_tr()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    execute format('create sequence IF NOT EXISTS conv_dpid_seq_%s', NEW.id);
-    RETURN NULL;
-END;
-$function$
-  SQL
+  create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
+      on("accounts").
+      after(:insert).
+      for_each(:row) do
+    "execute format('create sequence IF NOT EXISTS conv_dpid_seq_%s', NEW.id);"
+  end
 
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute("CREATE TRIGGER accounts_after_insert_row_tr AFTER INSERT ON \"accounts\" FOR EACH ROW EXECUTE FUNCTION accounts_after_insert_row_tr()")
+  create_trigger("conversations_before_insert_row_tr", :generated => true, :compatibility => 1).
+      on("conversations").
+      before(:insert).
+      for_each(:row) do
+    "NEW.display_id := nextval('conv_dpid_seq_' || NEW.account_id);"
+  end
 
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute(<<-SQL)
-CREATE OR REPLACE FUNCTION public.camp_dpid_before_insert()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    execute format('create sequence IF NOT EXISTS camp_dpid_seq_%s', NEW.id);
-    RETURN NULL;
-END;
-$function$
-  SQL
+  create_trigger("camp_dpid_before_insert", :generated => true, :compatibility => 1).
+      on("accounts").
+      name("camp_dpid_before_insert").
+      after(:insert).
+      for_each(:row) do
+    "execute format('create sequence IF NOT EXISTS camp_dpid_seq_%s', NEW.id);"
+  end
 
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute("CREATE TRIGGER camp_dpid_before_insert AFTER INSERT ON \"accounts\" FOR EACH ROW EXECUTE FUNCTION camp_dpid_before_insert()")
-
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute(<<-SQL)
-CREATE OR REPLACE FUNCTION public.campaigns_before_insert_row_tr()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    NEW.display_id := nextval('camp_dpid_seq_' || NEW.account_id);
-    RETURN NEW;
-END;
-$function$
-  SQL
-
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute("CREATE TRIGGER campaigns_before_insert_row_tr BEFORE INSERT ON \"campaigns\" FOR EACH ROW EXECUTE FUNCTION campaigns_before_insert_row_tr()")
-
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute(<<-SQL)
-CREATE OR REPLACE FUNCTION public.conversations_before_insert_row_tr()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    NEW.display_id := nextval('conv_dpid_seq_' || NEW.account_id);
-    RETURN NEW;
-END;
-$function$
-  SQL
-
-  # no candidate create_trigger statement could be found, creating an adapter-specific one
-  execute("CREATE TRIGGER conversations_before_insert_row_tr BEFORE INSERT ON \"conversations\" FOR EACH ROW EXECUTE FUNCTION conversations_before_insert_row_tr()")
+  create_trigger("campaigns_before_insert_row_tr", :generated => true, :compatibility => 1).
+      on("campaigns").
+      before(:insert).
+      for_each(:row) do
+    "NEW.display_id := nextval('camp_dpid_seq_' || NEW.account_id);"
+  end
 
 end

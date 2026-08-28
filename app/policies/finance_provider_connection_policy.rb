@@ -1,0 +1,2 @@
+class FinanceProviderConnectionPolicy < FinanceModuleSettingPolicy
+end

@@ -32,6 +32,9 @@ class TriggerScheduledItemsJob < ApplicationJob
     # Trigger commercial automations for open opportunities with overdue next actions.
     KanbanAutomations::DispatchOverdueNextActionsJob.perform_later
 
+    # Keep externally controlled manual charges aligned with their due date.
+    Finance::MarkOverduePaymentsJob.perform_later
+
     # Job to sync whatsapp templates
     Channels::Whatsapp::TemplatesSyncSchedulerJob.perform_later
   end

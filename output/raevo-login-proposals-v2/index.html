@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAEVO CRM - Estudos de login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              pedra: '#E9E4DA',
+              areia: '#DCCFBE',
+              taupe: '#B8AB98',
+              carvao: '#1F1F1F',
+              champagne: '#C7A97A',
+              caian: '#00B8C6',
+            },
+            fontFamily: {
+              sora: ['Sora', 'sans-serif'],
+              inter: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @page { size: landscape; margin: 8mm; }
+      @media print {
+        body { background: white !important; }
+        main { max-width: none !important; padding: 0 !important; }
+        header { display: none !important; }
+        .concept-panel { display: block !important; break-after: page; page-break-after: always; }
+        .concept-panel:last-of-type { break-after: auto; page-break-after: auto; }
+        .concept-panel > div { min-height: 0 !important; box-shadow: none !important; }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-carvao font-inter text-carvao">
+    <main class="mx-auto max-w-[1600px] px-6 py-10 lg:px-10">
+      <header class="mb-8 flex flex-col gap-5 border-b border-white/15 pb-8 text-white md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-champagne">RAEVO CRM</p>
+          <h1 class="mt-2 font-sora text-2xl font-semibold">Estudos para a tela de acesso</h1>
+        </div>
+        <div class="flex flex-wrap gap-2" role="tablist" aria-label="Propostas de login">
+          <button class="concept-tab rounded-md bg-white px-4 py-2 text-sm font-semibold text-carvao focus:outline-none focus:ring-2 focus:ring-caian" data-target="editorial" role="tab" aria-selected="true">1. Editorial</button>
+          <button class="concept-tab rounded-md border border-white/30 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-caian" data-target="footer" role="tab" aria-selected="false">2. Rodapé de marca</button>
+          <button class="concept-tab rounded-md border border-white/30 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-caian" data-target="areia" role="tab" aria-selected="false">3. Areia</button>
+          <button class="concept-tab rounded-md border border-white/30 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-caian" data-target="caian" role="tab" aria-selected="false">4. Caian</button>
+          <button class="concept-tab rounded-md border border-white/30 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-caian" data-target="taupe" role="tab" aria-selected="false">5. Carvão</button>
+          <button id="print-proposals" class="rounded-md bg-champagne px-4 py-2 text-sm font-semibold text-carvao focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-carvao">Gerar PDF</button>
+        </div>
+      </header>
+
+      <section id="editorial" class="concept-panel" role="tabpanel">
+        <div class="min-h-[760px] overflow-hidden rounded-lg bg-pedra p-6 shadow-2xl sm:p-12">
+          <div class="mx-auto flex min-h-[660px] max-w-xl flex-col items-center justify-center">
+            <img src="brand-assets/raevo-login-banner.svg" alt="RAEVO CRM" class="mb-12 h-auto w-full max-w-[340px]" />
+            <form class="w-full rounded-lg border border-stone-300 bg-white p-8 shadow-[0_16px_42px_rgba(31,31,31,0.10)] sm:p-10" aria-label="Acesso ao RAEVO CRM">
+              <div class="mb-8">
+                <p class="font-sora text-lg font-semibold text-carvao">Acesse sua conta</p>
+                <p class="mt-1 text-sm text-stone-600">Use suas credenciais para continuar.</p>
+              </div>
+              <label class="mb-2 block text-sm font-semibold" for="editorial-email">E-mail</label>
+              <input id="editorial-email" type="email" placeholder="voce@empresa.com.br" class="mb-5 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <div class="flex items-center justify-between gap-4"><label class="text-sm font-semibold" for="editorial-password">Senha</label><a href="#" class="text-sm font-semibold underline decoration-champagne decoration-2 underline-offset-4">Esqueci minha senha</a></div>
+              <input id="editorial-password" type="password" placeholder="Sua senha" class="mb-7 mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <button type="button" class="w-full rounded-md bg-caian px-4 py-3 text-base font-bold text-carvao transition hover:bg-[#14c5d1] focus:outline-none focus:ring-2 focus:ring-caian focus:ring-offset-2">Entrar</button>
+            </form>
+            <div class="mt-10 w-full max-w-lg text-center font-sora"><p class="text-lg font-semibold tracking-tight">Visão para evoluir.</p><p class="mt-1 text-lg font-semibold tracking-tight text-champagne">Sistemas para crescer.</p><div class="mx-auto my-5 h-px w-16 bg-champagne"></div><p class="font-inter text-sm leading-6 text-stone-700">Sistemas inteligente para empresas em transformação.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="footer" class="concept-panel hidden" role="tabpanel">
+        <div class="flex min-h-[760px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
+          <div class="flex flex-1 items-center justify-center p-8 sm:p-16">
+            <form class="w-full max-w-md" aria-label="Acesso ao RAEVO CRM">
+              <img src="brand-assets/raevo-login-banner.svg" alt="RAEVO CRM" class="mx-auto mb-12 h-auto w-full max-w-[370px]" />
+              <p class="font-sora text-xl font-semibold">Acesse sua conta</p><p class="mb-8 mt-2 text-sm text-stone-600">Use suas credenciais para continuar.</p>
+              <label class="mb-2 block text-sm font-semibold" for="footer-email">E-mail</label><input id="footer-email" type="email" placeholder="voce@empresa.com.br" class="mb-5 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <div class="flex items-center justify-between gap-4"><label class="text-sm font-semibold" for="footer-password">Senha</label><a href="#" class="text-sm font-semibold underline decoration-champagne decoration-2 underline-offset-4">Esqueci minha senha</a></div>
+              <input id="footer-password" type="password" placeholder="Sua senha" class="mb-7 mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <button type="button" class="w-full rounded-md bg-caian px-4 py-3 text-base font-bold text-carvao transition hover:bg-[#14c5d1] focus:outline-none focus:ring-2 focus:ring-caian focus:ring-offset-2">Entrar</button>
+            </form>
+          </div>
+          <footer class="bg-pedra px-8 py-9 text-center"><div class="mx-auto max-w-xl font-sora"><p class="text-2xl font-semibold tracking-tight">Visão para evoluir.</p><p class="mt-1 text-2xl font-semibold tracking-tight text-champagne">Sistemas para crescer.</p><div class="mx-auto my-5 h-px w-16 bg-champagne"></div><p class="font-inter text-sm leading-6 text-stone-700">Sistemas inteligente para empresas em transformação.</p></div></footer>
+        </div>
+      </section>
+
+      <section id="areia" class="concept-panel hidden" role="tabpanel">
+        <div class="min-h-[760px] overflow-hidden rounded-lg bg-areia p-6 shadow-2xl sm:p-12">
+          <div class="mx-auto flex min-h-[660px] max-w-xl flex-col items-center justify-center text-center">
+            <div class="mb-9 w-full max-w-[360px] rounded-lg bg-white p-4 shadow-[0_10px_24px_rgba(31,31,31,0.10)]"><img src="brand-assets/raevo-login-banner.svg" alt="RAEVO CRM" class="h-auto w-full contrast-125 saturate-125" /></div>
+            <div class="mb-7 font-sora"><p class="text-xl font-semibold">Visão para evoluir.</p><p class="mt-1 text-xl font-semibold text-champagne">Sistemas para crescer.</p></div>
+            <form class="w-full rounded-lg bg-white p-8 text-left shadow-[0_16px_42px_rgba(31,31,31,0.10)] sm:p-10" aria-label="Acesso ao RAEVO CRM">
+              <label class="mb-2 block text-sm font-semibold" for="areia-email">E-mail</label><input id="areia-email" type="email" placeholder="voce@empresa.com.br" class="mb-5 w-full rounded-md border border-taupe/70 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <div class="flex items-center justify-between gap-4"><label class="text-sm font-semibold" for="areia-password">Senha</label><a href="#" class="text-sm font-semibold underline decoration-champagne decoration-2 underline-offset-4">Esqueci minha senha</a></div>
+              <input id="areia-password" type="password" placeholder="Sua senha" class="mb-7 mt-2 w-full rounded-md border border-taupe/70 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <button type="button" class="w-full rounded-md bg-caian px-4 py-3 text-base font-bold text-carvao transition hover:bg-[#14c5d1] focus:outline-none focus:ring-2 focus:ring-caian focus:ring-offset-2">Entrar</button>
+            </form>
+            <p class="mt-8 max-w-sm text-sm leading-6 text-stone-700">Sistemas inteligente para empresas em transformação.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="caian" class="concept-panel hidden" role="tabpanel">
+        <div class="min-h-[760px] overflow-hidden rounded-lg bg-caian p-6 shadow-2xl sm:p-12">
+          <div class="mx-auto flex min-h-[660px] max-w-xl flex-col items-center justify-center rounded-lg border-t-8 border-carvao bg-pedra p-8 text-center shadow-[0_16px_42px_rgba(31,31,31,0.18)] sm:p-12">
+            <img src="brand-assets/raevo-login-banner.svg" alt="RAEVO CRM" class="mb-10 h-auto w-full max-w-[330px]" />
+            <p class="mb-8 max-w-sm font-sora text-xl font-semibold leading-8">Visão para evoluir.<br /><span class="text-champagne">Sistemas para crescer.</span></p>
+            <form class="w-full text-left" aria-label="Acesso ao RAEVO CRM">
+              <label class="mb-2 block text-sm font-semibold" for="caian-email">E-mail</label><input id="caian-email" type="email" placeholder="voce@empresa.com.br" class="mb-5 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <label class="mb-2 block text-sm font-semibold" for="caian-password">Senha</label><input id="caian-password" type="password" placeholder="Sua senha" class="mb-3 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <a href="#" class="mb-7 inline-block text-sm font-semibold underline decoration-champagne decoration-2 underline-offset-4">Esqueci minha senha</a><button type="button" class="w-full rounded-md bg-caian px-4 py-3 text-base font-bold text-carvao transition hover:bg-[#14c5d1] focus:outline-none focus:ring-2 focus:ring-caian focus:ring-offset-2">Entrar</button>
+            </form>
+            <div class="mt-8 h-px w-16 bg-champagne"></div><p class="mt-5 text-sm leading-6 text-stone-700">Sistemas inteligente para empresas em transformação.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="taupe" class="concept-panel hidden" role="tabpanel">
+        <div class="min-h-[760px] overflow-hidden rounded-lg bg-carvao p-6 shadow-2xl sm:p-12">
+          <div class="mx-auto flex min-h-[660px] max-w-xl flex-col items-center justify-center text-center">
+            <div class="w-full rounded-lg border border-champagne/50 bg-white px-8 py-6 shadow-[0_16px_42px_rgba(0,0,0,0.35)] sm:px-12">
+              <img src="brand-assets/raevo-login-banner.svg" alt="RAEVO CRM" class="mx-auto h-auto w-full max-w-[330px] contrast-125 saturate-125" />
+            </div>
+            <div class="my-8 h-px w-20 bg-champagne"></div>
+            <p class="mb-8 font-sora text-xl font-semibold text-white">Visão para evoluir.<br /><span class="text-champagne">Sistemas para crescer.</span></p>
+            <form class="w-full rounded-lg bg-white p-8 text-left shadow-[0_16px_42px_rgba(0,0,0,0.32)] sm:p-10" aria-label="Acesso ao RAEVO CRM">
+              <label class="mb-2 block text-sm font-semibold" for="taupe-email">E-mail</label><input id="taupe-email" type="email" placeholder="voce@empresa.com.br" class="mb-5 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <div class="flex items-center justify-between gap-4"><label class="text-sm font-semibold" for="taupe-password">Senha</label><a href="#" class="text-sm font-semibold underline decoration-champagne decoration-2 underline-offset-4">Esqueci minha senha</a></div>
+              <input id="taupe-password" type="password" placeholder="Sua senha" class="mb-7 mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-caian focus:ring-2 focus:ring-caian/25" />
+              <button type="button" class="w-full rounded-md bg-caian px-4 py-3 text-base font-bold text-carvao transition hover:bg-[#14c5d1] focus:outline-none focus:ring-2 focus:ring-caian focus:ring-offset-2">Entrar</button>
+            </form>
+            <p class="mt-8 max-w-sm text-sm leading-6 text-white/70">Sistemas inteligente para empresas em transformação.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script>
+      const tabs = document.querySelectorAll('.concept-tab');
+      const panels = document.querySelectorAll('.concept-panel');
+      tabs.forEach(tab => tab.addEventListener('click', () => {
+        tabs.forEach(item => {
+          const active = item === tab;
+          item.setAttribute('aria-selected', active);
+          item.className = active ? 'concept-tab rounded-md bg-white px-4 py-2 text-sm font-semibold text-carvao focus:outline-none focus:ring-2 focus:ring-caian' : 'concept-tab rounded-md border border-white/30 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-caian';
+        });
+        panels.forEach(panel => panel.classList.toggle('hidden', panel.id !== tab.dataset.target));
+      }));
+      document.getElementById('print-proposals').addEventListener('click', () => window.print());
+    </script>
+  </body>
+</html>

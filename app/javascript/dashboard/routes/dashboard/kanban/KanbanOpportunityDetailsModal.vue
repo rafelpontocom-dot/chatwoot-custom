@@ -4,11 +4,17 @@ import { useI18n } from 'vue-i18n';
 
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import ContactAPI from 'dashboard/api/contacts';
+import FinanceAPI from 'dashboard/api/finance';
+import FormsAPI from 'dashboard/api/forms';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanCalendarAppointmentsSection from './KanbanCalendarAppointmentsSection.vue';
 import KanbanOpportunityPipelineMenu from './KanbanOpportunityPipelineMenu.vue';
+import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
+import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
+import FormsInvitationDialog from '../forms/FormsInvitationDialog.vue';
 
 const props = defineProps({
   boardId: {
@@ -77,6 +83,8 @@ const emit = defineEmits([
   'close',
   'updated',
   'openConversation',
+  'sendPaymentLink',
+  'sendFormLink',
   'manageFields',
   'transferred',
 ]);
@@ -84,6 +92,7 @@ const emit = defineEmits([
 const { t } = useI18n();
 const store = useStore();
 const accountLabels = useMapGetter('labels/getLabels');
+const currentAccount = useMapGetter('getCurrentAccount');
 
 const card = ref(null);
 const subject = ref('');
@@ -95,6 +104,18 @@ const amountCurrency = ref('BRL');
 const expectedCloseDate = ref('');
 const customFieldValues = ref({});
 const timeline = ref([]);
+const financeModule = ref(null);
+const financeConnections = ref([]);
+const financePayments = ref([]);
+const isLoadingFinance = ref(false);
+const financeError = ref('');
+const paymentDialog = ref(null);
+const paymentDetailsDialog = ref(null);
+const formsInvitationDialog = ref(null);
+const formsContext = ref({ invitations: [], submissions: [] });
+const isLoadingFormsContext = ref(false);
+const formsContextError = ref('');
+const copiedFinancePaymentId = ref(null);
 const isLoadingTimeline = ref(false);
 const timelineError = ref('');
 const startsAt = ref('');
@@ -162,6 +183,54 @@ const stageEnteredAt = computed(() => card.value?.stageEnteredAt || '');
 const selectedStageIsLost = computed(
   () => selectedStage.value?.category === 'lost'
 );
+const financeEnabled = computed(() => financeModule.value?.enabled === true);
+const financePermissions = computed(
+  () => currentAccount.value?.permissions || []
+);
+const canCreateFinancePayment = computed(() =>
+  ['administrator', 'agent', 'finance_create'].some(permission =>
+    financePermissions.value.includes(permission)
+  )
+);
+const canManageFinancePayments = computed(() =>
+  ['administrator', 'agent', 'finance_manage'].some(permission =>
+    financePermissions.value.includes(permission)
+  )
+);
+const canRefundFinancePayments = computed(() =>
+  ['administrator', 'finance_refund'].some(permission =>
+    financePermissions.value.includes(permission)
+  )
+);
+const canCreateFormInvitation = computed(() =>
+  financePermissions.value.includes('administrator')
+);
+const connectedFinanceConnections = computed(() =>
+  financeConnections.value.filter(
+    connection => connection.status === 'connected'
+  )
+);
+const financeSummary = computed(() => {
+  const receivedPayments = financePayments.value.filter(
+    payment => payment.status === 'received'
+  );
+  const latestPayment = financePayments.value[0];
+  const latestReceivedAt = receivedPayments
+    .map(payment => payment.paid_at)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  return {
+    status: latestPayment?.status,
+    receivedCents: receivedPayments.reduce(
+      (total, payment) => total + Number(payment.amount_cents || 0),
+      0
+    ),
+    currency: latestPayment?.currency || amountCurrency.value || 'BRL',
+    latestReceivedAt,
+  };
+});
 const contactDetails = computed(() =>
   [
     {
@@ -381,6 +450,22 @@ const opportunityTabs = computed(() => {
           {
             key: 'calendar',
             label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.CALENDAR'),
+          },
+        ]
+      : []),
+    ...(financeEnabled.value
+      ? [
+          {
+            key: 'finance',
+            label: t('FINANCE.TITLE'),
+          },
+        ]
+      : []),
+    ...(canCreateFormInvitation.value
+      ? [
+          {
+            key: 'forms',
+            label: t('FORMS.TITLE'),
           },
         ]
       : []),
@@ -681,6 +766,127 @@ const loadTimeline = async () => {
   } finally {
     isLoadingTimeline.value = false;
   }
+};
+
+const loadFinanceModule = async () => {
+  try {
+    const { data } = await FinanceAPI.getModule();
+    financeModule.value = data;
+    if (data.enabled) {
+      const connectionsResponse = await FinanceAPI.getProviderConnections();
+      financeConnections.value = connectionsResponse.data;
+    }
+  } catch {
+    financeModule.value = null;
+    financeConnections.value = [];
+  }
+};
+
+const loadFinancePayments = async () => {
+  if (!financeEnabled.value || isLoadingFinance.value) return;
+
+  isLoadingFinance.value = true;
+  financeError.value = '';
+  try {
+    const { data } = await FinanceAPI.getPayments({
+      kanban_card_id: props.cardId,
+    });
+    financePayments.value = data;
+  } catch {
+    financeError.value = t('FINANCE.ERROR.LOAD');
+  } finally {
+    isLoadingFinance.value = false;
+  }
+};
+
+const openFinancePaymentDialog = () => {
+  paymentDialog.value?.open();
+};
+
+const openFormsInvitationDialog = () => {
+  formsInvitationDialog.value?.open();
+};
+
+const loadFormsContext = async () => {
+  if (!card.value?.id || isLoadingFormsContext.value) return;
+
+  isLoadingFormsContext.value = true;
+  formsContextError.value = '';
+  try {
+    const { data } = await FormsAPI.getCardContext(card.value.id);
+    formsContext.value = data;
+  } catch {
+    formsContext.value = { invitations: [], submissions: [] };
+    formsContextError.value = t('FORMS.ERROR.LOAD');
+  } finally {
+    isLoadingFormsContext.value = false;
+  }
+};
+
+const formInvitationStatusLabel = status => {
+  const labels = {
+    active: t('FORMS.INVITATION.STATUS.ACTIVE'),
+    consumed: t('FORMS.INVITATION.STATUS.CONSUMED'),
+    expired: t('FORMS.INVITATION.STATUS.EXPIRED'),
+    revoked: t('FORMS.INVITATION.STATUS.REVOKED'),
+  };
+  return labels[status] || status;
+};
+
+const sendFormsInvitationLink = url => {
+  if (!hasConversation.value || !url) return;
+
+  emit('sendFormLink', { card: card.value, url });
+};
+
+const openFinancePaymentDetails = payment => {
+  paymentDetailsDialog.value?.open(payment.id);
+};
+
+const addFinancePayment = payment => {
+  financePayments.value = [payment, ...financePayments.value];
+};
+
+const updateFinancePayment = updatedPayment => {
+  financePayments.value = financePayments.value.map(payment =>
+    payment.id === updatedPayment.id ? updatedPayment : payment
+  );
+};
+
+const copyFinancePaymentLink = async payment => {
+  if (!payment.invoice_url) return;
+
+  await copyTextToClipboard(payment.invoice_url);
+  copiedFinancePaymentId.value = payment.id;
+  window.setTimeout(() => {
+    copiedFinancePaymentId.value = null;
+  }, 2000);
+};
+
+const formatFinanceAmount = (amountCents, currency) =>
+  new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: currency || 'BRL',
+  }).format(Number(amountCents || 0) / 100);
+
+const formatFinanceDate = value => {
+  if (!value) return t('FINANCE.SUMMARY.NO_PAYMENT_DATE');
+
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
+    new Date(value)
+  );
+};
+
+const financeStatusLabel = status => {
+  if (!status) return t('FINANCE.SUMMARY.NO_STATUS');
+
+  return t(`FINANCE.PAYMENTS.STATUS.${status.toUpperCase()}`);
+};
+
+const sendFinancePaymentLink = payment => {
+  if (!hasConversation.value || !payment.invoice_url) return;
+
+  emit('sendPaymentLink', { card: card.value, payment });
 };
 
 const timelineEventLabel = event => {
@@ -1017,6 +1223,12 @@ onMounted(() => {
   loadCard();
   loadLabels();
   loadTimeline();
+  loadFinanceModule();
+});
+
+watch(activeTabKey, tab => {
+  if (tab === 'finance') loadFinancePayments();
+  if (tab === 'forms') loadFormsContext();
 });
 
 watch(showUnsavedChanges, async visible => {
@@ -1670,6 +1882,282 @@ watch(showUnsavedChanges, async visible => {
             </section>
 
             <section
+              v-if="activeTabKey === 'finance'"
+              data-testid="kanban-opportunity-finance"
+              class="grid gap-3"
+            >
+              <div
+                class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
+              >
+                <div>
+                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                    {{ t('FINANCE.PAYMENTS.TITLE') }}
+                  </h3>
+                  <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                    {{ t('FINANCE.PAYMENTS.DESCRIPTION') }}
+                  </p>
+                </div>
+                <NextButton
+                  v-if="
+                    canCreateFinancePayment &&
+                    connectedFinanceConnections.length
+                  "
+                  type="button"
+                  sm
+                  :label="t('FINANCE.PAYMENTS.CREATE')"
+                  data-testid="kanban-opportunity-new-payment"
+                  @click="openFinancePaymentDialog"
+                />
+              </div>
+
+              <dl
+                class="grid gap-3 rounded-md bg-n-alpha-2 p-3 sm:grid-cols-3"
+                data-testid="kanban-opportunity-finance-summary"
+              >
+                <div class="min-w-0">
+                  <dt class="text-xs font-medium text-n-slate-10">
+                    {{ t('FINANCE.SUMMARY.STATUS') }}
+                  </dt>
+                  <dd
+                    class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                  >
+                    {{ financeStatusLabel(financeSummary.status) }}
+                  </dd>
+                </div>
+                <div class="min-w-0">
+                  <dt class="text-xs font-medium text-n-slate-10">
+                    {{ t('FINANCE.SUMMARY.RECEIVED_AMOUNT') }}
+                  </dt>
+                  <dd
+                    class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                  >
+                    {{
+                      formatFinanceAmount(
+                        financeSummary.receivedCents,
+                        financeSummary.currency
+                      )
+                    }}
+                  </dd>
+                </div>
+                <div class="min-w-0">
+                  <dt class="text-xs font-medium text-n-slate-10">
+                    {{ t('FINANCE.SUMMARY.LAST_RECEIVED_AT') }}
+                  </dt>
+                  <dd
+                    class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                  >
+                    {{ formatFinanceDate(financeSummary.latestReceivedAt) }}
+                  </dd>
+                </div>
+              </dl>
+
+              <p v-if="isLoadingFinance" class="mb-0 text-sm text-n-slate-11">
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+              </p>
+              <p
+                v-else-if="financeError"
+                class="mb-0 text-sm text-n-ruby-11"
+                role="alert"
+              >
+                {{ financeError }}
+              </p>
+              <p
+                v-else-if="financePayments.length === 0"
+                class="mb-0 text-sm text-n-slate-11"
+              >
+                {{ t('FINANCE.PAYMENTS.EMPTY') }}
+              </p>
+              <div v-else class="grid divide-y divide-n-weak">
+                <article
+                  v-for="payment in financePayments"
+                  :key="payment.id"
+                  class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4"
+                >
+                  <div class="min-w-0">
+                    <p
+                      class="mb-0 truncate text-sm font-medium text-n-slate-12"
+                    >
+                      {{ payment.description || t('FINANCE.PAYMENTS.TITLE') }}
+                    </p>
+                    <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                      {{ payment.due_on || t('FINANCE.PAYMENTS.NO_DUE_DATE') }}
+                    </p>
+                  </div>
+                  <span class="text-sm font-semibold text-n-slate-12">
+                    {{ (payment.amount_cents / 100).toFixed(2) }}
+                    {{ payment.currency }}
+                  </span>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      data-testid="kanban-opportunity-payment-details"
+                      class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                      :aria-label="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
+                      :title="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
+                      @click="openFinancePaymentDetails(payment)"
+                    >
+                      <i class="i-lucide-history size-4" />
+                    </button>
+                    <a
+                      v-if="payment.invoice_url"
+                      :href="payment.invoice_url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-sm font-medium text-n-brand outline-none hover:underline focus:ring-2 focus:ring-n-brand/40"
+                    >
+                      {{ t('FINANCE.PAYMENTS.OPEN_LINK') }}
+                    </a>
+                    <button
+                      v-if="payment.invoice_url"
+                      type="button"
+                      data-testid="kanban-opportunity-copy-payment-link"
+                      class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                      :aria-label="
+                        copiedFinancePaymentId === payment.id
+                          ? t('FINANCE.PAYMENTS.COPIED')
+                          : t('FINANCE.PAYMENTS.COPY_LINK')
+                      "
+                      :title="
+                        copiedFinancePaymentId === payment.id
+                          ? t('FINANCE.PAYMENTS.COPIED')
+                          : t('FINANCE.PAYMENTS.COPY_LINK')
+                      "
+                      @click="copyFinancePaymentLink(payment)"
+                    >
+                      <i
+                        class="size-4"
+                        :class="
+                          copiedFinancePaymentId === payment.id
+                            ? 'i-lucide-check'
+                            : 'i-lucide-copy'
+                        "
+                      />
+                    </button>
+                    <button
+                      v-if="hasConversation && payment.invoice_url"
+                      type="button"
+                      data-testid="kanban-opportunity-send-payment-link"
+                      class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                      :aria-label="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
+                      :title="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
+                      @click="sendFinancePaymentLink(payment)"
+                    >
+                      <i class="i-lucide-send size-4" />
+                    </button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section
+              v-if="activeTabKey === 'forms'"
+              data-testid="kanban-opportunity-forms"
+              class="grid gap-3"
+            >
+              <div
+                class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
+              >
+                <div>
+                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                    {{ t('FORMS.TITLE') }}
+                  </h3>
+                  <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                    {{ t('FORMS.INVITATION.DESCRIPTION') }}
+                  </p>
+                </div>
+                <NextButton
+                  type="button"
+                  sm
+                  :label="t('FORMS.INVITATION.OPEN')"
+                  data-testid="kanban-opportunity-send-form"
+                  @click="openFormsInvitationDialog"
+                />
+              </div>
+              <p
+                v-if="formsContextError"
+                role="alert"
+                class="mb-0 rounded border border-n-ruby-6 bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
+              >
+                {{ formsContextError }}
+              </p>
+              <p
+                v-else-if="isLoadingFormsContext"
+                class="mb-0 text-sm text-n-slate-11"
+              >
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+              </p>
+              <template v-else>
+                <section
+                  v-if="formsContext.invitations.length"
+                  class="grid gap-2"
+                >
+                  <h4
+                    class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
+                  >
+                    {{ t('FORMS.INVITATION.HISTORY') }}
+                  </h4>
+                  <article
+                    v-for="invitation in formsContext.invitations"
+                    :key="invitation.id"
+                    class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
+                  >
+                    <div class="min-w-0">
+                      <p
+                        class="mb-0 break-words text-sm font-medium text-n-slate-12"
+                      >
+                        {{ invitation.form_name }}
+                      </p>
+                      <p class="mb-0 mt-0.5 text-xs text-n-slate-10">
+                        {{
+                          t('FORMS.INVITATION.USES', {
+                            used: invitation.uses_count,
+                            total: invitation.max_uses,
+                          })
+                        }}
+                      </p>
+                    </div>
+                    <span class="shrink-0 text-xs text-n-slate-11">
+                      {{ formInvitationStatusLabel(invitation.status) }}
+                    </span>
+                  </article>
+                </section>
+                <section
+                  v-if="formsContext.submissions.length"
+                  class="grid gap-2"
+                >
+                  <h4
+                    class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
+                  >
+                    {{ t('FORMS.SUBMISSIONS.HISTORY') }}
+                  </h4>
+                  <article
+                    v-for="submission in formsContext.submissions"
+                    :key="submission.id"
+                    class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
+                  >
+                    <p
+                      class="mb-0 break-words text-sm font-medium text-n-slate-12"
+                    >
+                      {{ submission.form_name }}
+                    </p>
+                    <span class="shrink-0 text-xs text-n-slate-10">
+                      {{ submission.status }}
+                    </span>
+                  </article>
+                </section>
+                <p
+                  v-if="
+                    !formsContext.invitations.length &&
+                    !formsContext.submissions.length
+                  "
+                  class="mb-0 text-sm text-n-slate-10"
+                >
+                  {{ t('FORMS.INVITATION.HISTORY_EMPTY') }}
+                </p>
+              </template>
+            </section>
+
+            <section
               v-if="activeTabKey === 'timeline'"
               data-testid="kanban-opportunity-timeline"
               class="grid gap-3"
@@ -2010,6 +2498,36 @@ watch(showUnsavedChanges, async visible => {
         </div>
       </form>
     </div>
+
+    <FinancePaymentDialog
+      v-if="financeEnabled && card"
+      ref="paymentDialog"
+      :connections="financeConnections"
+      :contact="card.contact"
+      :kanban-card-id="card.id"
+      :market="financeModule.market"
+      @created="addFinancePayment"
+    />
+    <FinancePaymentDetailsDialog
+      v-if="financeEnabled && card"
+      ref="paymentDetailsDialog"
+      :can-manage="canManageFinancePayments"
+      :can-refund="canRefundFinancePayments"
+      @canceled="updateFinancePayment"
+      @received="updateFinancePayment"
+      @refund-requested="updateFinancePayment"
+    />
+    <FormsInvitationDialog
+      v-if="
+        activeTabKey === 'forms' && canCreateFormInvitation && card?.contact
+      "
+      ref="formsInvitationDialog"
+      :contact="card.contact"
+      :kanban-card-id="card.id"
+      :can-send-to-conversation="hasConversation"
+      @created="loadFormsContext"
+      @send="sendFormsInvitationLink"
+    />
 
     <div
       v-if="showUnsavedChanges"

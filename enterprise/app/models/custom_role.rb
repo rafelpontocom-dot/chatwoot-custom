@@ -37,6 +37,11 @@
 # - 'kanban_automation_execution': Can view, retry and cancel automation executions.
 # - 'kanban_manage': Can archive, restore and delete commercial boards.
 # - 'kanban_report': Can view commercial reports and exports.
+# - 'finance_view': Can view financial charges and their history.
+# - 'finance_create': Can create payment charges.
+# - 'finance_manage': Can cancel charges and confirm external payments.
+# - 'finance_refund': Can request provider refunds.
+# - 'finance_configure': Can configure the Finance module and providers.
 
 class CustomRole < ApplicationRecord
   belongs_to :account
@@ -63,6 +68,11 @@ class CustomRole < ApplicationRecord
     kanban_automation_execution
     kanban_manage
     kanban_report
+    finance_view
+    finance_create
+    finance_manage
+    finance_refund
+    finance_configure
   ].freeze
 
   validates :name, presence: true

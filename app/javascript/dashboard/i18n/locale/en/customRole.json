@@ -48,7 +48,12 @@
       "KANBAN_BULK": "Execute bulk commercial actions",
       "KANBAN_CONFIGURE": "Configure commercial boards",
       "KANBAN_MANAGE": "Archive, restore and delete commercial boards",
-      "KANBAN_REPORT": "View commercial reports and exports"
+      "KANBAN_REPORT": "View commercial reports and exports",
+      "FINANCE_VIEW": "View financial charges and history",
+      "FINANCE_CREATE": "Create charges",
+      "FINANCE_MANAGE": "Cancel charges and confirm external payments",
+      "FINANCE_REFUND": "Request provider refunds",
+      "FINANCE_CONFIGURE": "Configure the finance module and providers"
     },
     "FORM": {
       "NAME": {

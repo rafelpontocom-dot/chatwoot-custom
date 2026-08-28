@@ -1,0 +1,180 @@
+version: "3.7"
+
+##############
+#
+# Para configurar o chatwoot, execute o comando abaixo no console do container:
+#
+# bundle exec rails db:chatwoot_prepare
+#
+# Variáveis de Ambiente:
+#
+# https://www.chatwoot.com/docs/self-hosted/configuration/environment-variables
+#
+# Valores Padrão:
+# https://github.com/chatwoot/chatwoot/blob/develop/.env.example
+#
+#############
+
+# Definição dos Serviços
+services:
+  # Definição do Nome do Serviço da Interface Web
+  chatwoot_admin:
+    # imagem oficial do chatwoot
+    # https://hub.docker.com/r/chatwoot/chatwoot/tags
+    image: ghcr.io/rafelpontocom-dot/chatwoot-custom:ee-20260809-18cf5f2
+
+
+    # Define o hotname do container
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    # comando padrão para subir o servidor web
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    # entrypoint para configurar o aplicativo
+    entrypoint: docker/entrypoints/rails.sh
+    # configura os volumes do chatwoot
+    volumes:
+      - chatwoot_data:/app/storage # arquivos do usuário
+    # configura a rede do serviço
+    networks:
+      # Define a nossa rede padrão do swarm
+      - GrowNet
+    # Configura as variáveis de ambiente do chatwoot
+    environment:
+      ##########################################
+      # Nome do Setup
+      ##########################################
+      - CHATWOOT_HUB_URL=https://oriondesign.art.br/setup#
+      - INSTALLATION_NAME=RAEVO CRM
+      # Ambiente de Execução do Node
+      - NODE_ENV=production
+      # Ambiente de Execução do Rails
+      - RAILS_ENV=production
+      # Tipo de Instalação
+      - INSTALLATION_ENV=docker
+      # Chave de Segurança
+      - SECRET_KEY_BASE=---
+      # URL do Frontend
+      - FRONTEND_URL=https://crm.raevo.io
+      # Configura o idioma padrão
+      # https://www.chatwoot.com/hc/user-guide/articles/1677695546-languages-supported-in-chatwoot
+      - DEFAULT_LOCALE=pt-BR
+      # Configura o SSL
+      - FORCE_SSL=true
+      # Configura a criação de novas contas
+      - ENABLE_ACCOUNT_SIGNUP=false
+      # Configura o Log
+      - RAILS_LOG_TO_STDOUT=true
+      # Configura o Avatar do Bot
+      - USE_INBOX_AVATAR_FOR_BOT=true
+      # Hablitia o Relay Server para Push do Chatwoot Mobile
+      - ENABLE_PUSH_RELAY_SERVER=true
+      ##########################################
+      # Configura o Redis
+      ##########################################
+      # Configura o Redis
+      - REDIS_URL=redis://redis:6379
+      # Se você habilitou a senha do redis
+      - REDIS_PASSWORD=------
+      ##########################################
+      # Configura o Banco de Dados
+      ##########################################
+      # Configura o endereço do Postgres ou PgBouncer
+      - POSTGRES_HOST=postgres
+      # Configura o Usuário do Postgres
+      - POSTGRES_USERNAME=postgres
+      # Configura a Senha do Postgres
+      - POSTGRES_PASSWORD=------
+      # Configura o Banco de Dados do Postgres
+      - POSTGRES_DATABASE=chatwootDB
+      ##########################################
+      # Configurações do Email
+      ##########################################
+      # Endereço de Remetente
+      - MAILER_SENDER_EMAIL=growbusinessadm@gmail.com
+      # Hostname do Provedor SMTP
+      - SMTP_ADDRESS=smtp.gmail.com
+      # Tipo de Autenticação
+      - SMTP_AUTHENTICATION=plain
+      # Domínio do SMTP
+      - SMTP_DOMAIN=smtp.gmail.com
+      # Habilita o uso de TLS no SMTP
+      - SMTP_ENABLE_STARTTLS_AUTO=false
+      # Configura a porta do SMTP
+      - SMTP_PORT=587
+      # Usuário do SMTP
+      - SMTP_USERNAME=growbusinessadm@gmail.com
+      # Senha do SMTP
+      - SMTP_PASSWORD=------
+      ##########################################
+      # Configura o Object Storage Externo
+      ##########################################
+      # Seleciona o Tipo de Storage
+      - ACTIVE_STORAGE_SERVICE=s3_compatible
+      # Nome do Bucket do Minio
+      - STORAGE_BUCKET_NAME=chatwootgrow
+      # Access Key do Minio
+      - STORAGE_ACCESS_KEY_ID=------
+      # Secret Key do Minio
+      - STORAGE_SECRET_ACCESS_KEY=------
+      # Região
+      - STORAGE_REGION=us-east-005
+      # Endereço Público do Minio
+      - STORAGE_ENDPOINT=https://s3.us-east-005.backblazeb2.com
+      # Força a usar o caminho na URL (obrigatório pro minio)
+      - STORAGE_FORCE_PATH_STYLE=true
+      ##########################################
+      # Configura o Backend
+      ##########################################
+      # Configuraçoes de Concorrência do Sidekiq
+      - SIDEKIQ_CONCURRENCY=10
+      ##########################################
+      # Configurações de Escalabilidade
+      ##########################################
+      # Configura o Número de Workers do Puma
+      # A conta seria o número de (núcleos da CPU - 1)
+      # o valor 0 ativa somente 1 worker
+      - WEB_CONCURRENCY=0
+      # Configura o Número Máximo de Threads
+      - RAILS_MAX_THREADS=5
+      ##########################################
+      # Configura API Server
+      ##########################################
+      - CW_API_ONLY_SERVER=false
+    # Configura o Modo de Deploy da Aplicação
+    deploy:
+      # Configura o modo de deploy
+      mode: replicated
+      # Configura o numero de replicas
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+          # - node.hostname == worker1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+      labels:
+        # Configura o Roteamento do Traefik
+        - traefik.enable=true # habilita o traefik
+        - traefik.swarm.network=GrowNet
+        # Configura o Roteamento do Traefik para o Chatwoot
+        - traefik.http.routers.raevo_crm.rule=Host(`chatwt.growautomacao.com.br`) || Host(`crm.raevo.io`)
+        # Define o tipo de entrada para HTTPS
+        - traefik.http.routers.raevo_crm.entrypoints=websecure
+        # Define o certificado
+        - traefik.http.routers.raevo_crm.tls.certresolver=letsencryptresolver
+        # Define o serviço do Chatwoot
+        - traefik.http.routers.raevo_crm.service=raevo_crm
+        # Define a porta do Chatwoot
+        - traefik.http.services.raevo_crm.loadbalancer.server.port=3000
+        # Define os Headers do Chatwoot
+        - traefik.http.services.raevo_crm.loadbalancer.passhostheader=true
+
+volumes:
+  chatwoot_data:
+    external: true
+    name: chatwoot_data
+networks:
+  GrowNet:
+    external: true
+    name: GrowNet

@@ -2,25 +2,31 @@
 #
 # Table name: kanban_calendar_procedures
 #
-#  id                    :bigint           not null, primary key
-#  active                :boolean          default(TRUE), not null
-#  allowed_intervals     :jsonb            not null
-#  board_ids             :jsonb            not null
-#  buffer_after_minutes  :integer          default(0), not null
-#  buffer_before_minutes :integer          default(0), not null
-#  color                 :string
-#  duration_minutes      :integer          not null
-#  location_type         :string           default("in_person"), not null
-#  max_sessions          :integer
-#  name                  :string           not null
-#  recurrence_allowed    :boolean          default(FALSE), not null
-#  stage_policy          :jsonb            not null
-#  created_at            :datetime         not null
-#  updated_at            :datetime         not null
-#  account_id            :bigint           not null
+#  id                     :bigint           not null, primary key
+#  active                 :boolean          default(TRUE), not null
+#  allowed_intervals      :jsonb            not null
+#  board_ids              :jsonb            not null
+#  buffer_after_minutes   :integer          default(0), not null
+#  buffer_before_minutes  :integer          default(0), not null
+#  color                  :string
+#  duration_minutes       :integer          not null
+#  location_type          :string           default("in_person"), not null
+#  max_sessions           :integer
+#  name                   :string           not null
+#  public_booking_config  :jsonb            not null
+#  public_booking_enabled :boolean          default(FALSE), not null
+#  public_description     :text
+#  public_slug            :string
+#  public_title           :string
+#  recurrence_allowed     :boolean          default(FALSE), not null
+#  stage_policy           :jsonb            not null
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  account_id             :bigint           not null
 #
 # Indexes
 #
+#  index_calendar_procedures_on_account_and_public_slug        (account_id, lower((public_slug)::text)) UNIQUE WHERE (public_slug IS NOT NULL)
 #  index_kanban_calendar_procedures_on_account_and_lower_name  (account_id, lower((name)::text)) UNIQUE
 #  index_kanban_calendar_procedures_on_account_id              (account_id)
 #

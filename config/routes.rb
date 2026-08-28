@@ -146,6 +146,31 @@ Rails.application.routes.draw do
               post :reschedule, on: :member
             end
           end
+          namespace :finance do
+            resource :module, controller: 'module', only: [:show, :update]
+            resources :provider_connections, only: [:index, :create, :update, :destroy] do
+              post :verify, on: :member
+              resources :webhook_deliveries, only: [:index] do
+                post :retry, on: :member
+              end
+            end
+            resources :payments, only: [:index, :show, :create] do
+              get :summary, on: :collection
+              post :cancel, on: :member
+              post :mark_received, on: :member
+              post :refund, on: :member
+            end
+          end
+          namespace :forms do
+            resources :templates, only: %i[index show create update] do
+              post :publish, on: :member
+              post :duplicate, on: :member
+              get :versions, on: :member
+              resources :invitations, controller: 'template_invitations', only: [:create]
+            end
+            resources :submissions, only: %i[index show]
+            get 'kanban_cards/:kanban_card_id', to: 'card_context#show'
+          end
           resources :kanban_boards, only: [:index, :create, :show, :destroy], constraints: { id: /\d+/ } do
             patch '', on: :member, action: :update
             get :archived, on: :collection
@@ -691,6 +716,11 @@ Rails.application.routes.draw do
                                             defaults: { format: :md }
   get 'hc/:slug/articles/:article_slug', to: 'public/api/v1/portals/articles#show', as: :public_portal_article
 
+  get 'formularios/convites/:token', to: 'public/forms#show'
+  post 'formularios/convites/:token/respostas', to: 'public/forms#create'
+  get 'formularios/:public_token', to: 'public/form_templates#show'
+  post 'formularios/:public_token/respostas', to: 'public/form_templates#create'
+
   # ----------------------------------------------------------------------
   # Used in mailer templates
   resource :app, only: [:index] do
@@ -708,6 +738,7 @@ Rails.application.routes.draw do
   post 'webhooks/telegram/:bot_token', to: 'webhooks/telegram#process_payload'
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
   post 'webhooks/kanban/:inbound_token', to: 'webhooks/kanban_automations#receive'
+  post 'webhooks/finance/asaas/:connection_id', to: 'webhooks/finance/asaas#receive'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'
   get 'webhooks/instagram', to: 'webhooks/instagram#verify'

@@ -143,6 +143,23 @@ const createTestStore = (
           get: vi.fn(),
         },
       },
+      draftMessages: {
+        namespaced: true,
+        state: { records: {} },
+        getters: {
+          get: state => key => state.records[key] || '',
+        },
+        mutations: {
+          set(state, { key, message }) {
+            state.records = { ...state.records, [key]: message };
+          },
+        },
+        actions: {
+          set({ commit }, payload) {
+            commit('set', payload);
+          },
+        },
+      },
     },
   });
 
@@ -1968,6 +1985,62 @@ describe('KanbanView drag and drop', () => {
     await flushPromises();
 
     expect(mockPush).not.toHaveBeenCalled();
+    expect(
+      wrapper
+        .findComponent({ name: 'KanbanConversationDrawer' })
+        .props('conversationId')
+    ).toBe(123);
+  });
+
+  it('adds a payment link to the existing conversation draft', async () => {
+    const wrapper = await mountView();
+    const cardComponent = wrapper.findComponent({
+      name: 'KanbanConversationCard',
+    });
+
+    cardComponent.vm.$emit('openDetails', { id: 501, conversationId: 123 }, {});
+    await nextTick();
+
+    const modal = wrapper.findComponent({
+      name: 'KanbanOpportunityDetailsModal',
+    });
+    modal.vm.$emit('sendPaymentLink', {
+      card: { id: 501, conversationId: 123 },
+      payment: { invoice_url: 'https://pay.example/31' },
+    });
+    await flushPromises();
+
+    expect(
+      wrapper.vm.$store.getters['draftMessages/get']('draft-123-REPLY')
+    ).toBe('https://pay.example/31');
+    expect(
+      wrapper
+        .findComponent({ name: 'KanbanConversationDrawer' })
+        .props('conversationId')
+    ).toBe(123);
+  });
+
+  it('adds a form invitation link to the existing conversation draft', async () => {
+    const wrapper = await mountView();
+    const cardComponent = wrapper.findComponent({
+      name: 'KanbanConversationCard',
+    });
+
+    cardComponent.vm.$emit('openDetails', { id: 501, conversationId: 123 }, {});
+    await nextTick();
+
+    const modal = wrapper.findComponent({
+      name: 'KanbanOpportunityDetailsModal',
+    });
+    modal.vm.$emit('sendFormLink', {
+      card: { id: 501, conversationId: 123 },
+      url: 'https://crm.raevo.io/formularios/convites/form-31',
+    });
+    await flushPromises();
+
+    expect(
+      wrapper.vm.$store.getters['draftMessages/get']('draft-123-REPLY')
+    ).toBe('https://crm.raevo.io/formularios/convites/form-31');
     expect(
       wrapper
         .findComponent({ name: 'KanbanConversationDrawer' })

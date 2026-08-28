@@ -1,0 +1,231 @@
+{
+  "FORMS": {
+    "TITLE": "Forms",
+    "SUBTITLE": "Create lead capture and pre-consultation journeys connected to CRM.",
+    "TABS": { "TEMPLATES": "Templates", "SUBMISSIONS": "Responses" },
+    "ACTIONS": {
+      "NEW": "New form",
+      "SAVE": "Save and publish",
+      "VERSIONS": "History",
+      "DUPLICATE": "Duplicate",
+      "COPY_LINK": "Copy link",
+      "COPIED": "Link copied",
+      "PREVIEW": "Preview",
+      "ADD_GROUP": "Add question group",
+      "ADD_SECTION": "Add section",
+      "ADD_FIELD": "Add field",
+      "MOVE_UP": "Move up",
+      "MOVE_DOWN": "Move down",
+      "REMOVE": "Remove",
+      "CLOSE": "Close"
+    },
+    "EMPTY": {
+      "TEMPLATES_TITLE": "No forms yet",
+      "TEMPLATES_DESCRIPTION": "Start with a short lead capture or pre-consultation journey.",
+      "SUBMISSIONS_TITLE": "No responses yet",
+      "SUBMISSIONS_DESCRIPTION": "Responses from public links and invitations will appear here."
+    },
+    "NEW_DIALOG": {
+      "TITLE": "Create form",
+      "DESCRIPTION": "You can define fields, CRM destination, and publishing next.",
+      "NAME": "Form name",
+      "SLUG": "Link identifier",
+      "CATEGORY": "Purpose",
+      "STARTER": "Start with",
+      "STARTER_HINT": "You can change every question, text, and destination afterwards.",
+      "CREATE": "Create form"
+    },
+    "STARTERS": {
+      "BLANK": { "TITLE": "Blank form" },
+      "LEAD_CAPTURE": {
+        "TITLE": "Lead capture",
+        "SECTION": "Your details",
+        "INTEREST": "How can we help?"
+      },
+      "PRE_CONSULTATION": {
+        "TITLE": "Pre-consultation",
+        "IDENTIFICATION_SECTION": "Your details",
+        "SECTION": "About your appointment",
+        "REASON": "Briefly tell us why you need an appointment",
+        "PREFERRED_PERIOD": "Which time of day usually works best for you?",
+        "MORNING": "Morning",
+        "AFTERNOON": "Afternoon",
+        "EVENING": "Evening"
+      },
+      "CLINICAL_INTAKE": {
+        "TITLE": "Clinical intake",
+        "SECTION": "Health information",
+        "ALLERGIES": "Do you have any allergies?",
+        "MEDICATIONS": "Which medications are you currently taking?",
+        "CONDITIONS": "Are there relevant health conditions for this appointment?",
+        "OBSERVATIONS": "Is there anything else the care team should know?",
+        "CONSENT": "I authorize the processing of this health information exclusively for my care."
+      },
+      "FIELDS": {
+        "NAME": "What should we call you?",
+        "PHONE": "WhatsApp",
+        "EMAIL": "Email",
+        "CONSENT": "I authorize contact regarding this request."
+      }
+    },
+    "FIELD_GROUPS": {
+      "TITLE": "Add question group",
+      "DESCRIPTION": "Start with a ready commercial structure and adjust every question afterwards.",
+      "CONTACT": {
+        "TITLE": "Contact details",
+        "DESCRIPTION": "Name, WhatsApp, and email ready to link the contact.",
+        "NAME": "What should we call you?",
+        "PHONE": "WhatsApp",
+        "EMAIL": "Email"
+      },
+      "APPOINTMENT": {
+        "TITLE": "Appointment preference",
+        "DESCRIPTION": "A preferred date and time period without creating an appointment.",
+        "DATE": "Preferred date",
+        "PERIOD": "Preferred time of day",
+        "MORNING": "Morning",
+        "AFTERNOON": "Afternoon",
+        "EVENING": "Evening"
+      },
+      "COMMERCIAL": {
+        "TITLE": "Source and interest",
+        "DESCRIPTION": "Commercial source and context to qualify the opportunity.",
+        "ORIGIN": "How did you hear about the clinic?",
+        "GOOGLE": "Google",
+        "INSTAGRAM": "Instagram",
+        "REFERRAL": "Referral",
+        "INTEREST": "How can we help?"
+      }
+    },
+    "EDITOR": {
+      "DETAILS": "Details",
+      "FIELDS": "Fields and steps",
+      "PUBLIC_LINK": "Public link",
+      "PUBLIC_ENABLED": "Allow public form",
+      "SENSITIVE_HEALTH_NOTICE": "Clinical intake is private: it can only be sent through an individual invitation linked to the patient and never updates CRM data automatically.",
+      "PUBLIC_DESCRIPTION": "Description for the respondent",
+      "LOCALE": "Language",
+      "BRAND_NAME": "Customer-facing name",
+      "BRAND_NAME_PLACEHOLDER": "E.g. Example Clinic",
+      "THEME": "Form appearance",
+      "THEMES": {
+        "CALM": "Clean and professional",
+        "WARM": "Welcoming",
+        "CONTRAST": "High contrast"
+      },
+      "CONTACT_MAPPING": "Also save on contact",
+      "DESTINATION": "Create or reuse opportunity",
+      "OPPORTUNITY_MAPPING": "Update opportunity field",
+      "NO_OPPORTUNITY_MAPPING": "Do not update opportunity",
+      "OPPORTUNITY_MAPPING_HELP": "After choosing the pipeline, compatible fields can receive answers automatically.",
+      "BOARD": "Destination pipeline",
+      "STAGE": "Starting stage",
+      "INBOX": "Inbox",
+      "POLICY": "When an open opportunity already exists",
+      "POLICY_REUSE": "Reuse the most recent open opportunity",
+      "POLICY_CREATE": "Create a new opportunity",
+      "SECTION_TITLE": "Section title",
+      "SECTION_DESCRIPTION": "Section description",
+      "SECTION_DESCRIPTION_PLACEHOLDER": "Give the respondent context for this step",
+      "SECTION_KEY": "Section identifier",
+      "FIELD_LABEL": "Question",
+      "FIELD_HELP": "Supporting text",
+      "FIELD_HELP_PLACEHOLDER": "Briefly explain how to answer",
+      "FIELD_KEY": "Field identifier",
+      "FIELD_TYPE": "Answer type",
+      "FIELD_REQUIRED": "Required",
+      "CONDITION_FIELD": "Show this question when",
+      "CONDITION_VALUE": "Equals",
+      "CONDITION_NONE": "Always show",
+      "CONDITION_TRUE": "Checked",
+      "CONDITION_FALSE": "Not checked",
+      "FIELD_MAPPING": "Contact destination",
+      "NO_MAPPING": "Only in the response",
+      "NAME_MAPPING": "Name",
+      "EMAIL_MAPPING": "Email",
+      "PHONE_MAPPING": "Phone",
+      "CUSTOM_MAPPING": "Custom attribute",
+      "CUSTOM_MAPPING_PLACEHOLDER": "E.g. form_source",
+      "TYPE": {
+        "TEXT": "Short text",
+        "TEXTAREA": "Long text",
+        "EMAIL": "Email",
+        "PHONE": "Phone",
+        "NUMBER": "Number",
+        "CURRENCY": "Amount",
+        "DATE": "Date",
+        "DATETIME": "Date and time",
+        "SELECT": "Select",
+        "MULTI_SELECT": "Multiple select",
+        "CHECKBOX": "Confirmation",
+        "CONSENT": "Consent"
+      }
+    },
+    "STATUS": { "DRAFT": "Draft" },
+    "VERSIONS": {
+      "TITLE": "Version history",
+      "DESCRIPTION": "Every publish preserves the version that received responses.",
+      "ITEM": "Version {version}"
+    },
+    "DUPLICATE": {
+      "TITLE": "Duplicate form",
+      "DESCRIPTION": "The copy keeps questions and mappings, but starts private with no responses or invitations.",
+      "DEFAULT_NAME": "Copy of {name}",
+      "CREATE": "Create copy"
+    },
+    "LOCALES": {
+      "PT_BR": "Portuguese - Brazil",
+      "PT_PT": "Portuguese - Portugal"
+    },
+    "SUBMISSIONS": {
+      "FORM": "Form",
+      "CONTACT": "Contact",
+      "OPPORTUNITY": "Opportunity",
+      "RECEIVED_AT": "Received at",
+      "OPEN": "Open response",
+      "DETAIL_TITLE": "Form response",
+      "NO_ANSWER": "Not answered",
+      "YES": "Yes",
+      "NO": "No",
+      "HISTORY": "Received responses",
+      "NO_CONTACT": "No linked contact",
+      "NO_OPPORTUNITY": "No linked opportunity"
+    },
+    "INVITATION": {
+      "TITLE": "Send form",
+      "DESCRIPTION": "The link is tied to this contact and opportunity.",
+      "TEMPLATE": "Published template",
+      "EXPIRES_AT": "Expires at",
+      "MAX_USES": "Maximum responses",
+      "CREATE": "Generate link",
+      "COPY": "Copy link",
+      "COPIED": "Link copied",
+      "SEND": "Prepare to send in conversation",
+      "HISTORY": "Sent invitations",
+      "HISTORY_EMPTY": "No form has been sent for this opportunity.",
+      "USES": "{used} of {total} responses",
+      "STATUS": {
+        "ACTIVE": "Available",
+        "CONSUMED": "Completed",
+        "EXPIRED": "Expired",
+        "REVOKED": "Revoked"
+      },
+      "EMPTY": "Publish a template before sending an invitation.",
+      "SENSITIVE_HEALTH_NOTICE": "This link is individual, single-use, and should not be forwarded.",
+      "OPEN": "Send form"
+    },
+    "CATEGORIES": {
+      "LEAD_CAPTURE": "Lead capture",
+      "PRE_CONSULTATION": "Pre-consultation",
+      "CLINICAL": "Clinical intake",
+      "CONSENT": "Consent",
+      "OTHER": "Other"
+    },
+    "ERROR": {
+      "LOAD": "Could not load forms.",
+      "SAVE": "Could not save form.",
+      "REQUIRED": "Fill in name, identifier, and at least one section.",
+      "INVALID_CONFIGURATION": "Review required fields, selection options, and conditions before publishing."
+    }
+  }
+}

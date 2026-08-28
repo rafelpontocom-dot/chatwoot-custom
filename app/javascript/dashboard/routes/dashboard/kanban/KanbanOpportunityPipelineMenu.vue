@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getKanbanStageIconOption } from 'dashboard/helper/kanbanStageIcons';
 
 const props = defineProps({
   boardId: { type: [Number, String], required: true },
@@ -81,9 +82,15 @@ watch(
         <span class="block truncate text-[11px] text-n-slate-11">{{
           boardName
         }}</span>
-        <span class="flex items-center gap-1.5">
+        <span class="flex items-start gap-1.5">
+          <i
+            class="mt-0.5 size-3.5 shrink-0 text-n-slate-11"
+            :class="[getKanbanStageIconOption(currentStage?.icon).iconClass]"
+            aria-hidden="true"
+          />
           <strong
-            class="truncate text-xs font-semibold uppercase text-n-slate-12"
+            class="min-w-0 break-words text-xs font-semibold uppercase text-n-slate-12"
+            :title="currentStage?.description || currentStage?.name"
           >
             {{ currentStage?.name || t('KANBAN.OPPORTUNITY_DETAILS.STAGE') }}
           </strong>
@@ -161,11 +168,16 @@ watch(
                 String(stage.id) === String(selectedStageId) &&
                 String(board.id) === String(boardId)
                   ? 'i-lucide-check'
-                  : 'i-lucide-circle'
+                  : getKanbanStageIconOption(stage.icon).iconClass
               "
               aria-hidden="true"
             />
-            <span class="truncate">{{ stage.name }}</span>
+            <span
+              class="min-w-0 break-words"
+              :title="stage.description || stage.name"
+            >
+              {{ stage.name }}
+            </span>
           </button>
           <p
             v-if="!board.stages.length"

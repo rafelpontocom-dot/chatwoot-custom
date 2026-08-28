@@ -158,6 +158,18 @@ describe('KanbanAutomations', () => {
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
   });
 
+  it('offers finance payment events as visual workflow triggers', async () => {
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-automations-trigger-event"]').text()
+    ).toContain('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_RECEIVED');
+  });
+
   it('shows the business description of an existing automation rule', async () => {
     const wrapper = await mountWorkspace({
       rules: [

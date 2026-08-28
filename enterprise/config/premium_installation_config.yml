@@ -8,9 +8,9 @@
 - name: LOGO_DARK
   value: '/brand-assets/raevo-logo.svg'
 - name: BRAND_URL
-  value: 'https://chatwt.growautomacao.com.br'
+  value: 'https://crm.raevo.io'
 - name: WIDGET_BRAND_URL
-  value: 'https://chatwt.growautomacao.com.br'
+  value: 'https://crm.raevo.io'
 - name: BRAND_NAME
   value: 'RAEVO CRM'
 - name: TERMS_URL
@@ -19,4 +19,8 @@
   value: 'https://www.chatwoot.com/privacy-policy'
 - name: DISPLAY_MANIFEST
   value: true
+- name: DISPLAY_UPDATE_BANNER
+  value: false
+  locked: false
+  type: boolean
 # ------- End of Branding Related Config ------- #

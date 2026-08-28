@@ -28,6 +28,30 @@ RSpec.describe 'Kanban Stages API', type: :request do
       expect(response.parsed_body['probability']).to eq(65)
     end
 
+    it 'stores the stage guidance shown to commercial users', :aggregate_failures do
+      post "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/stages",
+           headers: administrator.create_new_auth_token,
+           params: {
+             stage: {
+               name: 'Qualification',
+               color: 'teal',
+               icon: 'clipboard-list',
+               description: 'Confirm the need and next commercial action before moving forward.'
+             }
+           },
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include(
+        'icon' => 'clipboard-list',
+        'description' => 'Confirm the need and next commercial action before moving forward.'
+      )
+      expect(KanbanStage.last).to have_attributes(
+        icon: 'clipboard-list',
+        description: 'Confirm the need and next commercial action before moving forward.'
+      )
+    end
+
     it 'emits kanban.stage.created with a compact payload' do
       allow(Rails.configuration.dispatcher).to receive(:dispatch)
 

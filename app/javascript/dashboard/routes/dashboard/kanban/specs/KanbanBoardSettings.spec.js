@@ -374,16 +374,16 @@ describe('KanbanBoardSettings', () => {
       wrapper.findAll('[data-testid="kanban-settings-stage-category"]')
     ).toHaveLength(1);
     expect(
-      wrapper.find('[data-testid="kanban-settings-selected-stage-name"]').text()
-    ).toContain('Lead');
+      wrapper.find('[data-testid="kanban-settings-stage-name"]').element.value
+    ).toBe('Lead');
 
     await wrapper
       .findAll('[data-testid="kanban-settings-stage-select"]')[1]
       .trigger('click');
 
     expect(
-      wrapper.find('[data-testid="kanban-settings-selected-stage-name"]').text()
-    ).toContain('Won');
+      wrapper.find('[data-testid="kanban-settings-stage-name"]').element.value
+    ).toBe('Won');
   });
 
   it('moves a stage up through an explicit keyboard-accessible control', async () => {
@@ -416,7 +416,13 @@ describe('KanbanBoardSettings', () => {
     await flushPromises();
 
     expect(KanbanBoardsAPI.updateStage).toHaveBeenCalledWith(10, 100, {
-      stage: { category: 'won', wip_limit: 8 },
+      stage: {
+        name: 'Lead',
+        icon: 'circle-dot',
+        description: '',
+        category: 'won',
+        wip_limit: 8,
+      },
     });
   });
 
@@ -433,7 +439,41 @@ describe('KanbanBoardSettings', () => {
     await flushPromises();
 
     expect(KanbanBoardsAPI.updateStage).toHaveBeenCalledWith(10, 100, {
-      stage: { category: 'open', wip_limit: null, probability: 65 },
+      stage: {
+        name: 'Lead',
+        icon: 'circle-dot',
+        description: '',
+        category: 'open',
+        wip_limit: null,
+        probability: 65,
+      },
+    });
+  });
+
+  it('saves a stage icon and guidance without expanding every stage row', async () => {
+    const { wrapper } = await mountSettings();
+    const editor = wrapper.find('[data-testid="kanban-settings-stage-editor"]');
+
+    await editor
+      .find('[data-testid="kanban-settings-stage-description"]')
+      .setValue('Confirm the procedure and next action before advancing.');
+    await editor
+      .find('[data-testid="kanban-settings-stage-icon-clipboard-list"]')
+      .trigger('click');
+    await editor
+      .find('[data-testid="kanban-settings-save-stage-rules"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateStage).toHaveBeenCalledWith(10, 100, {
+      stage: {
+        name: 'Lead',
+        icon: 'clipboard-list',
+        description: 'Confirm the procedure and next action before advancing.',
+        category: 'open',
+        wip_limit: null,
+        probability: 40,
+      },
     });
   });
 
@@ -466,6 +506,8 @@ describe('KanbanBoardSettings', () => {
       stage: {
         name: 'Follow up',
         color: 'slate',
+        icon: 'circle-dot',
+        description: '',
         position: 3,
       },
     });

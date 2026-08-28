@@ -75,6 +75,52 @@ RSpec.describe KanbanAutomations::WorkflowMessageService do
     )
   end
 
+  it 'renders the payment that started the finance workflow instead of another card charge' do
+    connection = FinanceProviderConnection.create!(
+      account: card.account,
+      provider: 'asaas',
+      environment: 'sandbox',
+      api_key: 'asaas-test-key',
+      status: 'connected'
+    )
+    previous_payment = FinancePayment.create!(
+      account: card.account,
+      contact: card.contact,
+      kanban_card: card,
+      finance_provider_connection: connection,
+      amount_cents: 10_000,
+      billing_type: 'pix',
+      due_on: Date.new(2026, 8, 20),
+      invoice_url: 'https://pay.example/previous',
+      status: 'pending'
+    )
+    payment = FinancePayment.create!(
+      account: card.account,
+      contact: card.contact,
+      kanban_card: card,
+      finance_provider_connection: connection,
+      amount_cents: 15_900,
+      billing_type: 'pix',
+      due_on: Date.new(2026, 8, 31),
+      invoice_url: 'https://pay.example/current',
+      status: 'pending'
+    )
+    service = described_class.new(
+      card: card,
+      event_data: { payment_id: payment.id },
+      data: {
+        channel: 'whatsapp',
+        opt_in_attribute_key: 'marketing_messages_opt_in',
+        content: '{{finance_payment_link}} - {{finance_payment_amount}} - {{finance_payment_due_on}}'
+      }
+    )
+
+    expect(service.send(:rendered_content)).to eq(
+      'https://pay.example/current - 159.00 - 31/08/2026'
+    )
+    expect(service.send(:finance_payment)).not_to eq(previous_payment)
+  end
+
   it 'passes a validated image upload to the message builder' do
     attachment_service = instance_double(KanbanAutomations::MessageAttachmentService, signed_id: 'signed-image')
     allow(KanbanAutomations::MessageAttachmentService).to receive(:new).and_return(attachment_service)

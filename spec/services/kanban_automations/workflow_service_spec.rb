@@ -135,13 +135,23 @@ RSpec.describe KanbanAutomations::WorkflowService do
         ]
       }
     )
-    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule, kanban_card: card)
+    execution = create(
+      :kanban_automation_execution,
+      account: card.account,
+      kanban_automation_rule: rule,
+      kanban_card: card,
+      workflow_state: { event_data: { payment_id: 42 } }
+    )
     now = Time.zone.parse('2026-07-23 10:00:00')
 
     result = described_class.new(execution: execution, rule: rule, card: card, now: now).perform!
 
     expect(result).to include(status: :waiting, scheduled_at: now + 48.hours)
-    expect(result[:workflow_state]).to include('next_node_id' => 'end', 'waiting_for' => 'customer_message')
+    expect(result[:workflow_state]).to include(
+      'next_node_id' => 'end',
+      'waiting_for' => 'customer_message',
+      'event_data' => { 'payment_id' => 42 }
+    )
   end
 
   it 'stores separate response and timeout paths when the response wait is routed' do

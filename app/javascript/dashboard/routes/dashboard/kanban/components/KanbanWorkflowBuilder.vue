@@ -509,6 +509,18 @@ const messageVariables = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.AMOUNT'),
     token: '{{opportunity_amount}}',
   },
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.PAYMENT_LINK'),
+    token: '{{finance_payment_link}}',
+  },
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.PAYMENT_AMOUNT'),
+    token: '{{finance_payment_amount}}',
+  },
+  {
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.VARIABLES.PAYMENT_DUE_ON'),
+    token: '{{finance_payment_due_on}}',
+  },
   ...props.customFields.map(field => ({
     label: field.label || field.key,
     token: `{{field.${field.key}}}`,

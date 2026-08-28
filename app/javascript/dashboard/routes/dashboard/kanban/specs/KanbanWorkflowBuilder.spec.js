@@ -1357,6 +1357,9 @@ describe('KanbanWorkflowBuilder', () => {
     const variableOptions = wrapper.findAll(
       '[data-testid="kanban-message-variable-option"]'
     );
+    expect(
+      variableOptions.some(option => option.text().includes('PAYMENT_LINK'))
+    ).toBe(true);
     const originOption = variableOptions.find(option =>
       option.text().includes('Origem')
     );

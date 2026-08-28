@@ -1,0 +1,7 @@
+PROPOSTAS DE LOGIN RAEVO CRM
+
+1. Abra index.html em um navegador com acesso a internet.
+2. Use as abas no topo para comparar as cinco propostas.
+3. Para compartilhar em PDF, clique em "Gerar PDF" e escolha "Salvar como PDF" na janela de impressao.
+
+O pacote tambem contem a arte de marca utilizada pelas propostas.

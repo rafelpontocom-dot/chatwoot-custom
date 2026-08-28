@@ -596,7 +596,12 @@ class KanbanAutomations::WorkflowService
   end
 
   def send_message(node)
-    result = KanbanAutomations::WorkflowMessageService.new(card: card, data: node.fetch('data', {}), now: now).perform!
+    result = KanbanAutomations::WorkflowMessageService.new(
+      card: card,
+      data: node.fetch('data', {}),
+      event_data: workflow_state['event_data'],
+      now: now
+    ).perform!
     result.merge('node_id' => node.fetch('id'))
   end
 
@@ -655,7 +660,14 @@ class KanbanAutomations::WorkflowService
   def stamp_outcome(outcome, results_count)
     action_results = outcome.fetch(:action_results, [])
     stamp_results(action_results, results_count)
+    preserve_event_data_while_waiting(outcome)
     outcome
+  end
+
+  def preserve_event_data_while_waiting(outcome)
+    return unless outcome[:status] == :waiting && workflow_state['event_data'].present?
+
+    outcome[:workflow_state] = outcome.fetch(:workflow_state, {}).merge('event_data' => workflow_state['event_data'])
   end
 
   def stamp_results(results, start_index)

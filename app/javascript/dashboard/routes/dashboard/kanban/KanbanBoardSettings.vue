@@ -19,6 +19,11 @@ import {
   KANBAN_STAGE_COLOR_OPTIONS,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
+import {
+  DEFAULT_KANBAN_STAGE_ICON,
+  KANBAN_STAGE_ICON_OPTIONS,
+  getKanbanStageIconOption,
+} from 'dashboard/helper/kanbanStageIcons';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -54,6 +59,8 @@ const stages = ref([]);
 const selectedStageId = ref(null);
 const newStageName = ref('');
 const newStageColor = ref(DEFAULT_KANBAN_STAGE_COLOR);
+const newStageIcon = ref(DEFAULT_KANBAN_STAGE_ICON);
+const newStageDescription = ref('');
 const activeStageActionKey = ref('');
 const ignoreGroupsForImport = ref(false);
 const activeFormulaFieldId = ref(null);
@@ -2520,6 +2527,41 @@ const cancelAutomationExecution = async (rule, execution) => {
 const getStageColorClass = stage =>
   getKanbanStageColorOption(stage.color).swatchClass;
 
+const getStageIconClass = stage =>
+  getKanbanStageIconOption(stage.icon).iconClass;
+
+const getStageIconLabel = icon => {
+  if (icon === 'search' || icon === 'clipboard-list') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.QUALIFY');
+  }
+  if (icon === 'message-circle') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.CONTACT');
+  }
+  if (icon === 'calendar-check') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.SCHEDULE');
+  }
+  if (icon === 'file-text') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.PROPOSAL');
+  }
+  if (icon === 'send') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.FOLLOW_UP');
+  }
+  if (icon === 'handshake') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.NEGOTIATE');
+  }
+  if (icon === 'circle-dollar-sign') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.PAYMENT');
+  }
+  if (icon === 'trophy') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.WON');
+  }
+  if (icon === 'circle-x') {
+    return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.LOST');
+  }
+
+  return t('KANBAN.SETTINGS.STAGES.ICON_OPTIONS.DEFAULT');
+};
+
 const getStageCardsCount = stage =>
   stage.cardsCount ?? stage.cards?.length ?? 0;
 
@@ -2547,6 +2589,8 @@ const closeCreateStageForm = () => {
   showCreateStageForm.value = false;
   newStageName.value = '';
   newStageColor.value = DEFAULT_KANBAN_STAGE_COLOR;
+  newStageIcon.value = DEFAULT_KANBAN_STAGE_ICON;
+  newStageDescription.value = '';
 };
 
 const createStage = async () => {
@@ -2561,6 +2605,8 @@ const createStage = async () => {
       stage: {
         name,
         color: newStageColor.value,
+        icon: newStageIcon.value,
+        description: newStageDescription.value.trim(),
         position: stages.value.length + 1,
       },
     });
@@ -2588,6 +2634,9 @@ const saveStageRules = async stage => {
   try {
     await KanbanBoardsAPI.updateStage(boardId.value, stage.id, {
       stage: {
+        name: stage.name.trim(),
+        icon: stage.icon || DEFAULT_KANBAN_STAGE_ICON,
+        description: stage.description?.trim() || '',
         category: stage.category || 'open',
         wip_limit: Number(stage.wipLimit) || null,
         ...(stage.category === 'open'
@@ -2909,6 +2958,48 @@ onMounted(async () => {
                     :placeholder="t('KANBAN.ACTIONS.STAGE_NAME_PLACEHOLDER')"
                   />
                 </label>
+                <label class="grid gap-1 text-sm font-medium text-n-slate-12">
+                  {{ t('KANBAN.SETTINGS.STAGES.DESCRIPTION') }}
+                  <textarea
+                    v-model="newStageDescription"
+                    data-testid="kanban-settings-new-stage-description"
+                    rows="2"
+                    maxlength="240"
+                    class="resize-none rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                    :placeholder="
+                      t('KANBAN.SETTINGS.STAGES.DESCRIPTION_PLACEHOLDER')
+                    "
+                  />
+                </label>
+                <div class="grid gap-2">
+                  <p class="text-sm font-medium text-n-slate-12">
+                    {{ t('KANBAN.SETTINGS.STAGES.ICON') }}
+                  </p>
+                  <div class="flex flex-wrap gap-2" role="radiogroup">
+                    <button
+                      v-for="iconOption in KANBAN_STAGE_ICON_OPTIONS"
+                      :key="iconOption.value"
+                      type="button"
+                      :data-testid="`kanban-settings-new-stage-icon-${iconOption.value}`"
+                      class="flex size-9 items-center justify-center rounded-md border outline-none transition-colors focus:ring-2 focus:ring-n-brand/40"
+                      :class="
+                        newStageIcon === iconOption.value
+                          ? 'border-n-brand bg-n-brand/10 text-n-brand'
+                          : 'border-n-weak text-n-slate-11 hover:border-n-strong hover:bg-n-alpha-2'
+                      "
+                      role="radio"
+                      :aria-checked="newStageIcon === iconOption.value"
+                      :aria-label="getStageIconLabel(iconOption.value)"
+                      @click="newStageIcon = iconOption.value"
+                    >
+                      <i
+                        class="size-4"
+                        :class="[iconOption.iconClass]"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </div>
+                </div>
                 <div class="grid gap-2">
                   <p class="text-sm font-medium text-n-slate-12">
                     {{ t('KANBAN.ACTIONS.STAGE_COLOR') }}
@@ -3023,7 +3114,12 @@ onMounted(async () => {
                       class="size-4 flex-none rounded-full"
                       :class="getStageColorClass(stage)"
                     />
-                    <span class="min-w-0 truncate text-sm text-n-slate-12">
+                    <i
+                      class="size-4 flex-none text-n-slate-11"
+                      :class="[getStageIconClass(stage)]"
+                      aria-hidden="true"
+                    />
+                    <span class="min-w-0 break-words text-sm text-n-slate-12">
                       {{ stage.name }}
                     </span>
                     <span
@@ -3065,18 +3161,68 @@ onMounted(async () => {
             <section
               v-if="selectedStage"
               data-testid="kanban-settings-stage-editor"
-              class="grid gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3 lg:grid-cols-[minmax(10rem,0.85fr)_minmax(8rem,0.45fr)_minmax(8rem,0.45fr)_auto] lg:items-end"
+              class="grid gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,0.55fr)_minmax(8rem,0.45fr)_minmax(8rem,0.45fr)_auto] lg:items-end"
             >
-              <div class="lg:col-span-4">
+              <div class="lg:col-span-5">
                 <p class="text-xs font-medium uppercase text-n-slate-10">
                   {{ t('KANBAN.SETTINGS.STAGES.TITLE') }}
                 </p>
-                <h3
+                <label
                   data-testid="kanban-settings-selected-stage-name"
-                  class="mt-1 text-sm font-medium text-n-slate-12"
+                  class="mt-2 grid gap-1 text-xs text-n-slate-11"
                 >
-                  {{ selectedStage.name }}
-                </h3>
+                  {{ t('KANBAN.ACTIONS.STAGE_NAME_PLACEHOLDER') }}
+                  <input
+                    v-model="selectedStage.name"
+                    data-testid="kanban-settings-stage-name"
+                    type="text"
+                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  />
+                </label>
+                <label class="mt-3 grid gap-1 text-xs text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.STAGES.DESCRIPTION') }}
+                  <textarea
+                    v-model="selectedStage.description"
+                    data-testid="kanban-settings-stage-description"
+                    rows="2"
+                    maxlength="240"
+                    class="resize-none rounded-md border border-n-weak bg-n-surface-1 px-2 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                    :placeholder="
+                      t('KANBAN.SETTINGS.STAGES.DESCRIPTION_PLACEHOLDER')
+                    "
+                  />
+                </label>
+                <div class="mt-3 grid gap-1 text-xs text-n-slate-11">
+                  <span>{{ t('KANBAN.SETTINGS.STAGES.ICON') }}</span>
+                  <div class="flex flex-wrap gap-1.5" role="radiogroup">
+                    <button
+                      v-for="iconOption in KANBAN_STAGE_ICON_OPTIONS"
+                      :key="iconOption.value"
+                      type="button"
+                      :data-testid="`kanban-settings-stage-icon-${iconOption.value}`"
+                      class="flex size-8 items-center justify-center rounded border outline-none transition-colors focus:ring-2 focus:ring-n-brand/40"
+                      :class="
+                        (selectedStage.icon || DEFAULT_KANBAN_STAGE_ICON) ===
+                        iconOption.value
+                          ? 'border-n-brand bg-n-brand/10 text-n-brand'
+                          : 'border-n-weak text-n-slate-11 hover:border-n-strong hover:bg-n-alpha-2'
+                      "
+                      role="radio"
+                      :aria-checked="
+                        (selectedStage.icon || DEFAULT_KANBAN_STAGE_ICON) ===
+                        iconOption.value
+                      "
+                      :aria-label="getStageIconLabel(iconOption.value)"
+                      @click="selectedStage.icon = iconOption.value"
+                    >
+                      <i
+                        class="size-4"
+                        :class="[iconOption.iconClass]"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
               <label class="grid gap-1 text-xs text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.STAGES.CATEGORY') }}

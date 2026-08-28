@@ -94,4 +94,12 @@ module Events::Types
   KANBAN_APPOINTMENT_CONFIRMED = 'kanban.appointment.confirmed'
   KANBAN_APPOINTMENT_COMPLETED = 'kanban.appointment.completed'
   KANBAN_APPOINTMENT_NO_SHOW = 'kanban.appointment.no_show'
+  FINANCE_PAYMENT_CREATED = 'finance.payment.created'
+  FINANCE_PAYMENT_OVERDUE = 'finance.payment.overdue'
+  FINANCE_PAYMENT_CONFIRMED = 'finance.payment.confirmed'
+  FINANCE_PAYMENT_RECEIVED = 'finance.payment.received'
+  FINANCE_PAYMENT_CANCELED = 'finance.payment.canceled'
+  FINANCE_PAYMENT_REFUNDED = 'finance.payment.refunded'
+  FINANCE_PAYMENT_CHARGEBACK = 'finance.payment.chargeback'
+  FORMS_SUBMISSION_COMPLETED = 'forms.submission.completed'
 end

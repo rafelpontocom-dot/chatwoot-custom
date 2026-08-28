@@ -147,6 +147,34 @@ The Kanban automation editor is a commercial workflow product, not a general-pur
 - Use Tailwind utility classes and existing semantic color tokens only. Keep visual state understandable without color, maintain visible focus rings, and use Lucide icons rather than custom SVG markup.
 - Follow TDD: write and run a failing focused test before new node behavior, then implement the smallest change, run affected suites, lint, and `git diff --check`.
 
+## Financeiro Raevo
+
+- Financeiro é opt-in por conta. Nunca exponha credenciais, token de webhook, payload bruto ou identificadores sensíveis em serializadores, histórico comercial ou store do dashboard.
+- `FinancePayment` é a fonte de verdade do estado financeiro. Redirecionamento de navegador, clique em link ou mensagem enviada não confirma pagamento; somente webhook idempotente ou confirmação manual elegível altera o estado.
+- Mantenha provedores como adaptadores. Asaas é P0 Brasil; Portugal P0 é controle manual em EUR. ifthenpay, Moloni, recorrência e emissão fiscal automática são P1 e não devem ser simulados como concluídos.
+- A matriz mínima é: secretaria padrão consulta/cria cobranças e gere somente cobranças manuais; configuração, credenciais, reprocessamento de webhook e estorno exigem permissão financeira explícita. Funções personalizadas usam `finance_view`, `finance_create`, `finance_manage`, `finance_refund` e `finance_configure`.
+- O envio automático de cobrança pertence ao Vue Flow: use o gatilho `finance.payment.created` e o nó `send_message` com `{{finance_payment_link}}`. Preserve `payment_id` durante esperas; nunca recupere silenciosamente um link de outra cobrança. Continue exigindo opt-in, janela de canal, template oficial, horário silencioso e limite de frequência.
+- Antes de liberar Financeiro, execute request/service specs, teste criação idempotente, webhook repetido/fora de ordem, cancelamento, recebimento manual, estorno, permissões da secretaria e cópia/envio de link. Para avaliação de jornada/visual, aplique `ui-ux-pro-max`, `frappe-ui-patterns`, `accessibility-compliance`, `agentic-browser-testing` e `visual-testing` juntos.
+
+## Porta de Qualidade Visual Raevo
+
+Para qualquer mudança em Kanban, oportunidade, Agenda, Financeiro, Formulários ou Automação, aplique esta sequência antes de chamar a interface de pronta:
+
+1. `ui-ux-pro-max`: defina hierarquia, densidade, estados e transições. Em superfícies operacionais, prefira densidade alta, progressão clara e microinterações de 150–250 ms; não use movimento puramente decorativo.
+2. `frappe-ui-patterns`: valide a jornada lista/quadro → detalhe → ação, edição progressiva e configuração separada do trabalho operacional.
+3. `accessibility-compliance`: valide rótulos, foco, teclado, contraste, mensagens de erro próximas ao campo e alternativa a qualquer gesto de arrastar.
+4. `agentic-browser-testing`: execute uma jornada real com dados de teste, incluindo criação, alteração, erro e recuperação.
+5. `visual-testing`: registre screenshot de desktop 1280px antes/depois e investigue sobreposição, corte de texto, vazio excessivo e regressão visual.
+
+Todo controle só por ícone precisa de rótulo acessível e tooltip. Títulos de etapa, oportunidade, procedimento e campo nunca podem depender de `truncate` para caber: use quebra de palavra, largura estável ou detalhe progressivo. Não introduza efeitos, sombras, gradientes ou animações sem ajudar o usuário a compreender estado, prioridade ou transição.
+
+## Manutenção do Upstream Chatwoot
+
+- Chatwoot continua sendo o núcleo de atendimento: identidade, contas, conversas, canais, permissões base e tempo real. Raevo CRM, Agenda, Financeiro, Formulários e Automação devem permanecer como módulos delimitados, com serviços, policies, rotas e componentes próprios.
+- Antes de alterar um fluxo de Chatwoot, procure extensão equivalente em `enterprise/`, listener, evento ou service object. Evite editar contratos centrais quando uma composição local resolve o caso.
+- Cada atualização do upstream deve acontecer em uma branch `upgrade/chatwoot-x.y.z`, partindo de uma tag imutável da base Raevo. Compare o diff com `upstream`, resolva conflitos por módulo, rode as suites core e Raevo, faça smoke visual e publique primeiro em canário.
+- Nunca substitua uma imagem em produção por uma tag mutável. A versão da imagem e as migrations necessárias devem estar registradas no rollout. Consulte `docs/raevo-chatwoot-upstream-maintenance.md` antes de iniciar um upgrade.
+
 ## Ruby Best Practices
 
 - Use compact `module/class` definitions; avoid nested styles

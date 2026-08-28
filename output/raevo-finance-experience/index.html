@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAEVO CRM | Estudo Financeiro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      :root {
+        --pedra: #e9e4da;
+        --areia: #dccfbe;
+        --taupe: #b8ab98;
+        --carvao: #1f1f1f;
+        --champagne: #c7a97a;
+        --caian: #00b8c6;
+        --paper: #fffdf9;
+        --canvas: #f5f2eb;
+        --line: #ded8cd;
+        --muted: #706b63;
+        --green: #27765a;
+        --green-bg: #edf8f2;
+        --amber: #96691e;
+        --amber-bg: #fff7e7;
+        --red: #aa4a46;
+        --red-bg: #fff1ef;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #ece8df; color: var(--carvao); font: 14px/1.45 Inter, sans-serif; }
+      button, input, select { font: inherit; }
+      button { cursor: pointer; }
+      button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(0, 184, 198, 0.35); outline-offset: 2px; }
+      .presentation { max-width: 1480px; margin: 0 auto; padding: 26px; }
+      .presentation-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
+      .presentation-head h1 { margin: 0; font: 600 22px/1.25 Sora, sans-serif; }
+      .presentation-head p { max-width: 640px; margin: 5px 0 0; color: var(--muted); }
+      .concept-switch { display: flex; flex-wrap: wrap; gap: 7px; }
+      .concept-switch button { border: 1px solid #cac3b6; border-radius: 7px; background: #f9f7f2; color: #555048; padding: 8px 11px; font-size: 12px; font-weight: 600; }
+      .concept-switch button[aria-selected="true"] { background: var(--carvao); border-color: var(--carvao); color: #fffaf1; }
+      .app { display: flex; min-height: 790px; overflow: hidden; border: 1px solid #d4cdc0; border-radius: 12px; background: var(--canvas); box-shadow: 0 28px 70px rgba(42, 34, 22, 0.14); }
+      .rail { width: 66px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 18px 0; background: var(--carvao); }
+      .brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: var(--champagne); color: var(--carvao); font: 700 15px Sora, sans-serif; }
+      .rail-nav { display: grid; gap: 10px; }
+      .rail button { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #cfc7bb; }
+      .rail button.active { background: #413e39; color: #fffdf9; }
+      .rail button:hover { background: #34312d; color: #fffdf9; }
+      .workspace { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+      .app-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 65px; padding: 0 26px; border-bottom: 1px solid var(--line); background: rgba(255,253,249,.83); }
+      .crumb { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+      .crumb strong { color: var(--carvao); font: 600 15px Sora, sans-serif; }
+      .head-actions { display: flex; align-items: center; gap: 9px; }
+      .icon { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: #585249; }
+      .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--carvao); font-size: 12px; font-weight: 600; }
+      .button.primary { border-color: var(--caian); background: var(--caian); color: #05363a; }
+      .button:hover { border-color: #9b9285; }
+      .button.primary:hover { background: #00aab7; border-color: #00aab7; }
+      .view { display: none; flex: 1; min-height: 0; }
+      .view.active { display: flex; }
+
+      /* Visão geral */
+      .finance-layout { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 288px; gap: 22px; padding: 24px 26px; }
+      .main { min-width: 0; }
+      .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+      .toolbar h2 { margin: 0; font: 600 21px Sora, sans-serif; }
+      .toolbar small { display: block; margin-top: 3px; color: var(--muted); }
+      .search-box { min-width: 290px; position: relative; }
+      .search-box i { position: absolute; top: 10px; left: 11px; width: 16px; color: var(--muted); }
+      .search-box input { width: 100%; height: 37px; padding: 0 11px 0 35px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--carvao); }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+      .metric { min-height: 96px; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+      .metric .label { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11px; font-weight: 600; }
+      .metric .value { margin-top: 12px; font: 600 18px Sora, sans-serif; }
+      .metric .note { margin-top: 4px; color: var(--muted); font-size: 11px; }
+      .metric.green { border-top: 3px solid var(--green); }
+      .metric.amber { border-top: 3px solid var(--champagne); }
+      .metric.cyan { border-top: 3px solid var(--caian); }
+      .panel { border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+      .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 16px; border-bottom: 1px solid var(--line); }
+      .panel-title h3 { margin: 0; font: 600 13px Sora, sans-serif; }
+      .panel-title span { color: var(--muted); font-size: 12px; }
+      .filters { display: flex; align-items: center; gap: 7px; }
+      .filters button { padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--muted); font-size: 11px; }
+      .filters button.active { border-color: #afdedd; background: #f2ffff; color: #076c75; }
+      .payment-row { display: grid; grid-template-columns: minmax(200px, 1.3fr) 120px 105px 110px 105px 30px; gap: 12px; align-items: center; padding: 13px 16px; border-bottom: 1px solid #eee9e0; }
+      .payment-row:last-child { border-bottom: 0; }
+      .person { display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .avatar { width: 30px; height: 30px; display: grid; place-items: center; flex: none; border-radius: 50%; background: var(--areia); color: #5a4f40; font-size: 11px; font-weight: 700; }
+      .person b, .person small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .person b { font-size: 12px; }
+      .person small { margin-top: 2px; color: var(--muted); font-size: 11px; }
+      .money { font-weight: 600; font-size: 12px; }
+      .date { color: var(--muted); font-size: 12px; }
+      .pill { display: inline-flex; width: fit-content; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+      .pill::before { width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ''; }
+      .pill.pending { background: var(--amber-bg); color: var(--amber); }
+      .pill.paid { background: var(--green-bg); color: var(--green); }
+      .pill.overdue { background: var(--red-bg); color: var(--red); }
+      .row-more { width: 28px; height: 28px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); }
+      .row-more:hover { background: #f0ece5; color: var(--carvao); }
+      .side-stack { display: grid; align-content: start; gap: 13px; }
+      .side-card { padding: 15px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+      .side-card h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 7px; font: 600 13px Sora, sans-serif; }
+      .side-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+      .side-card .button { width: 100%; margin-top: 13px; }
+      .quiet-list { display: grid; gap: 1px; margin-top: 9px; }
+      .quiet-list div { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 8px 0; border-bottom: 1px solid #eee9e0; color: var(--muted); font-size: 11px; }
+      .quiet-list div:last-child { border-bottom: 0; }
+      .quiet-list strong { color: var(--carvao); font-size: 11px; }
+
+      /* Oportunidade */
+      .opportunity-shell { width: 100%; display: grid; grid-template-columns: 1fr 520px; background: #e9e5dd; }
+      .pipeline-ghost { padding: 28px; }
+      .pipeline-ghost h2 { margin: 0 0 18px; font: 600 18px Sora, sans-serif; }
+      .ghost-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
+      .ghost-col { min-height: 570px; padding: 11px; border: 1px solid #d5cec2; border-radius: 8px; background: rgba(255,255,255,.36); }
+      .ghost-col span { display: block; height: 9px; margin-bottom: 12px; border-radius: 99px; background: #d2cbbf; }
+      .ghost-card { height: 90px; margin: 11px 0; border: 1px solid #ddd6ca; border-radius: 7px; background: #faf8f4; }
+      .drawer { display: flex; flex-direction: column; background: var(--paper); box-shadow: -18px 0 44px rgba(50,42,30,.16); }
+      .drawer-head { padding: 20px 22px 0; border-bottom: 1px solid var(--line); }
+      .drawer-top { display: flex; justify-content: space-between; gap: 14px; }
+      .drawer h2 { margin: 0; font: 600 18px/1.3 Sora, sans-serif; }
+      .drawer .meta { margin: 5px 0 14px; color: var(--muted); font-size: 12px; }
+      .stage-chip { display: inline-flex; align-items: center; gap: 7px; max-width: 230px; margin-bottom: 14px; padding: 7px 9px; border: 1px solid #d8d1c4; border-radius: 7px; background: #fbfaf7; color: var(--carvao); font-size: 11px; font-weight: 600; text-align: left; }
+      .stage-chip span { color: var(--muted); font-weight: 500; }
+      .tabs { display: flex; gap: 17px; overflow: auto; }
+      .tabs button { padding: 10px 0; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font-size: 12px; white-space: nowrap; }
+      .tabs button.active { border-color: var(--caian); color: var(--carvao); font-weight: 700; }
+      .drawer-body { flex: 1; overflow: auto; padding: 18px 22px 24px; }
+      .finance-summary { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 14px; border: 1px solid #cfe7e4; border-radius: 8px; background: #f6ffff; }
+      .finance-summary strong { display: block; font: 600 17px Sora, sans-serif; }
+      .finance-summary small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+      .section-head { display: flex; align-items: center; justify-content: space-between; margin: 21px 0 10px; }
+      .section-head h3 { margin: 0; font: 600 13px Sora, sans-serif; }
+      .link-button { border: 0; background: none; color: #087781; font-size: 11px; font-weight: 700; }
+      .charge { display: grid; gap: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+      .charge-top, .charge-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .charge b { font-size: 13px; }
+      .charge small { color: var(--muted); font-size: 11px; }
+      .charge-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+      .charge-actions button { padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #4d4841; font-size: 11px; font-weight: 600; }
+      .timeline { display: grid; gap: 0; }
+      .timeline-item { display: grid; grid-template-columns: 16px 1fr; gap: 9px; padding: 9px 0; }
+      .timeline-dot { width: 9px; height: 9px; margin-top: 4px; border: 2px solid var(--paper); border-radius: 50%; background: var(--caian); box-shadow: 0 0 0 1px #a8dedd; }
+      .timeline-item p { margin: 0; font-size: 11px; }
+      .timeline-item span { color: var(--muted); font-size: 10px; }
+
+      /* Configuração */
+      .settings-layout { width: 100%; display: grid; grid-template-columns: 225px minmax(0, 1fr); padding: 24px 26px; gap: 22px; }
+      .settings-nav { padding: 8px; border: 1px solid var(--line); border-radius: 9px; align-self: start; background: var(--paper); }
+      .settings-nav p { margin: 7px 8px 8px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+      .settings-nav button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); text-align: left; font-size: 12px; }
+      .settings-nav button.active { background: var(--areia); color: var(--carvao); font-weight: 700; }
+      .settings-main { max-width: 850px; }
+      .settings-main h2 { margin: 0; font: 600 21px Sora, sans-serif; }
+      .settings-main > p { margin: 6px 0 20px; color: var(--muted); }
+      .connection-card { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+      .connection-state { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 18px; border-bottom: 1px solid var(--line); background: #f6fffd; }
+      .connection-state .state { display: flex; align-items: center; gap: 9px; color: var(--green); font-size: 12px; font-weight: 700; }
+      .connection-state .state i { width: 18px; }
+      .connection-state h3 { margin: 5px 0 3px; font: 600 15px Sora, sans-serif; color: var(--carvao); }
+      .connection-state p { margin: 0; color: var(--muted); font-size: 12px; }
+      .connection-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+      .connection-detail { padding: 15px 18px; border-bottom: 1px solid #eee9e0; }
+      .connection-detail:nth-child(odd) { border-right: 1px solid #eee9e0; }
+      .connection-detail label { display: block; margin-bottom: 4px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+      .connection-detail strong, .connection-detail span { display: block; font-size: 12px; }
+      .connection-detail span { color: var(--muted); }
+      .connection-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 15px 18px; }
+      .disclosure { margin-top: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+      .disclosure summary { display: flex; align-items: center; justify-content: space-between; padding: 14px 15px; color: var(--carvao); cursor: pointer; font-size: 12px; font-weight: 700; list-style: none; }
+      .disclosure summary::after { content: '+'; color: #06737c; font-size: 18px; font-weight: 400; }
+      .disclosure[open] summary::after { content: '−'; }
+      .disclosure-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px 15px; }
+      .info-row { padding: 10px; border-radius: 6px; background: #faf8f4; }
+      .info-row b { display: block; margin-bottom: 2px; font-size: 11px; }
+      .info-row span { color: var(--muted); font-size: 11px; }
+      .modal-backdrop { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(29,27,23,.45); }
+      .modal-backdrop.open { display: flex; }
+      .modal { width: min(460px, 100%); border-radius: 11px; background: var(--paper); box-shadow: 0 24px 60px rgba(0,0,0,.25); }
+      .modal header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 15px; border-bottom: 1px solid var(--line); }
+      .modal h2 { margin: 0; font: 600 17px Sora, sans-serif; }
+      .modal p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+      .modal main { display: grid; gap: 13px; padding: 18px 20px; }
+      .modal label { display: grid; gap: 6px; color: var(--carvao); font-size: 12px; font-weight: 600; }
+      .modal input, .modal select { height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--carvao); }
+      .modal footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); }
+
+      @media (max-width: 1050px) { .finance-layout { grid-template-columns: 1fr; } .side-stack { grid-template-columns: repeat(2, 1fr); } .metrics { grid-template-columns: repeat(2, 1fr); } .opportunity-shell { grid-template-columns: 1fr 470px; } }
+      @media (max-width: 760px) { .presentation { padding: 14px; } .presentation-head { align-items: flex-start; flex-direction: column; } .rail { display: none; } .app { min-height: 720px; } .finance-layout, .settings-layout { display: block; padding: 16px; } .settings-nav { margin-bottom: 14px; } .side-stack { grid-template-columns: 1fr; margin-top: 14px; } .payment-row { grid-template-columns: 1fr auto; } .payment-row > :nth-child(2), .payment-row > :nth-child(3), .payment-row > :nth-child(4) { display: none; } .pipeline-ghost { display: none; } .opportunity-shell { display: block; } .drawer { min-height: 700px; } .connection-body, .disclosure-inner { grid-template-columns: 1fr; } .connection-detail:nth-child(odd) { border-right: 0; } }
+    </style>
+  </head>
+  <body>
+    <div class="presentation">
+      <header class="presentation-head">
+        <div>
+          <h1>Financeiro RAEVO: proposta de experiência</h1>
+          <p>Estudo para validar antes da integração Asaas. A cobrança fica no contexto da oportunidade; a conexão da conta fica protegida e progressiva.</p>
+        </div>
+        <nav class="concept-switch" aria-label="Telas do estudo">
+          <button type="button" data-view="overview" aria-selected="true">1. Operação financeira</button>
+          <button type="button" data-view="opportunity" aria-selected="false">2. Dentro da oportunidade</button>
+          <button type="button" data-view="settings" aria-selected="false">3. Conexão Asaas</button>
+        </nav>
+      </header>
+
+      <div class="app">
+        <aside class="rail" aria-label="Navegação do Raevo">
+          <div>
+            <div class="brand-mark">R</div>
+            <nav class="rail-nav" aria-label="Módulos">
+              <button type="button" title="Conversas"><i data-lucide="messages-square"></i></button>
+              <button type="button" title="Kanban"><i data-lucide="columns-3"></i></button>
+              <button type="button" title="Agenda"><i data-lucide="calendar-days"></i></button>
+              <button class="active" type="button" title="Financeiro"><i data-lucide="wallet-cards"></i></button>
+            </nav>
+          </div>
+          <button type="button" title="Configurações"><i data-lucide="settings"></i></button>
+        </aside>
+
+        <section class="workspace">
+          <header class="app-head">
+            <div class="crumb"><span>RAEVO CRM</span><i data-lucide="chevron-right"></i><strong id="crumb-title">Financeiro</strong></div>
+            <div class="head-actions"><button class="icon" type="button" title="Ajuda"><i data-lucide="circle-help"></i></button><button class="icon" type="button" title="Notificações"><i data-lucide="bell"></i></button></div>
+          </header>
+
+          <section class="view active" id="overview">
+            <div class="finance-layout">
+              <main class="main">
+                <div class="toolbar">
+                  <div><h2>Financeiro</h2><small>Recebimentos e cobranças que pedem atenção.</small></div>
+                  <div class="head-actions"><div class="search-box"><i data-lucide="search"></i><input aria-label="Buscar cobrança" placeholder="Buscar contato ou oportunidade" /></div><button class="button primary" type="button" data-open-modal><i data-lucide="plus"></i>Nova cobrança</button></div>
+                </div>
+                <div class="metrics" aria-label="Resumo financeiro">
+                  <article class="metric cyan"><div class="label">A receber <i data-lucide="arrow-up-right"></i></div><div class="value">R$ 18.450</div><div class="note">12 cobranças em aberto</div></article>
+                  <article class="metric green"><div class="label">Recebido no mês <i data-lucide="circle-check"></i></div><div class="value">R$ 42.800</div><div class="note">18 pagamentos conciliados</div></article>
+                  <article class="metric amber"><div class="label">Vence hoje <i data-lucide="clock-3"></i></div><div class="value">R$ 2.350</div><div class="note">3 clientes aguardando</div></article>
+                  <article class="metric"><div class="label">Em atraso <i data-lucide="triangle-alert"></i></div><div class="value">R$ 1.780</div><div class="note">2 cobranças para agir</div></article>
+                </div>
+                <section class="panel">
+                  <header class="panel-title"><div><h3>Cobranças recentes</h3><span>Atualizadas pelo Asaas</span></div><div class="filters"><button class="active" type="button">Todas</button><button type="button">Em aberto</button><button type="button">Atrasadas</button></div></header>
+                  <div class="payment-row"><div class="person"><div class="avatar">PR</div><div><b>Pedro Raevo</b><small>Consulta inicial · Oportunidade #A1003</small></div></div><span class="money">R$ 1.500,00</span><span class="pill pending">Aguardando</span><span class="date">Vence 29 ago</span><span class="date">Pix + cartão</span><button class="row-more" type="button" title="Mais opções"><i data-lucide="more-horizontal"></i></button></div>
+                  <div class="payment-row"><div class="person"><div class="avatar">MM</div><div><b>Mariana Moura</b><small>Plano de acompanhamento · #A1001</small></div></div><span class="money">R$ 2.400,00</span><span class="pill paid">Recebido</span><span class="date">Recebido 26 ago</span><span class="date">Cartão</span><button class="row-more" type="button" title="Mais opções"><i data-lucide="more-horizontal"></i></button></div>
+                  <div class="payment-row"><div class="person"><div class="avatar">LC</div><div><b>Lucas Cardoso</b><small>Avaliação · #A0997</small></div></div><span class="money">R$ 890,00</span><span class="pill overdue">Em atraso</span><span class="date">Venceu 23 ago</span><span class="date">Boleto</span><button class="row-more" type="button" title="Mais opções"><i data-lucide="more-horizontal"></i></button></div>
+                  <div class="payment-row"><div class="person"><div class="avatar">AF</div><div><b>Ana Ferreira</b><small>Consulta de retorno · #A0992</small></div></div><span class="money">R$ 650,00</span><span class="pill paid">Recebido</span><span class="date">Recebido 21 ago</span><span class="date">Pix</span><button class="row-more" type="button" title="Mais opções"><i data-lucide="more-horizontal"></i></button></div>
+                </section>
+              </main>
+              <aside class="side-stack">
+                <section class="side-card"><h3><i data-lucide="sparkles"></i>Hoje</h3><p>Três cobranças vencem hoje. Comece pelas que já têm conversa aberta.</p><button class="button" type="button"><i data-lucide="list-checks"></i>Ver pendências</button></section>
+                <section class="side-card"><h3><i data-lucide="plug-zap"></i>Conta Asaas</h3><p>Conectada e recebendo eventos.</p><div class="quiet-list"><div><span>Último evento</span><strong>há 4 min</strong></div><div><span>Notas fiscais</span><strong>não configuradas</strong></div></div><button class="button" type="button" data-go-settings>Gerenciar conexão</button></section>
+              </aside>
+            </div>
+          </section>
+
+          <section class="view" id="opportunity">
+            <div class="opportunity-shell">
+              <main class="pipeline-ghost"><h2>Funil RAEVO</h2><div class="ghost-columns"><div class="ghost-col"><span style="width:40%"></span><div class="ghost-card"></div><div class="ghost-card"></div></div><div class="ghost-col"><span style="width:55%"></span><div class="ghost-card"></div><div class="ghost-card"></div><div class="ghost-card"></div></div><div class="ghost-col"><span style="width:45%"></span><div class="ghost-card"></div></div></div></main>
+              <aside class="drawer">
+                <header class="drawer-head"><div class="drawer-top"><div><h2>Consulta inicial - Pedro Raevo</h2><p class="meta">PEDRO RAEVO · WhatsApp · há 2 dias</p></div><button class="icon" type="button" title="Fechar"><i data-lucide="x"></i></button></div><button class="stage-chip" type="button"><span>Funil RAEVO</span> Qualificação <i data-lucide="chevron-down"></i></button><nav class="tabs"><button type="button">Resumo</button><button class="active" type="button">Financeiro</button><button type="button">Agenda</button><button type="button">Contato</button></nav></header>
+                <main class="drawer-body"><section class="finance-summary"><div><small>Valor negociado</small><strong>R$ 1.500,00</strong><small>1 cobrança em aberto</small></div><span class="pill pending">Aguardando</span></section><div class="section-head"><h3>Cobranças</h3><button class="link-button" type="button" data-open-modal>+ Nova cobrança</button></div><article class="charge"><div class="charge-top"><div><b>Consulta inicial</b><small>Vencimento em 29 de agosto</small></div><span class="pill pending">Aguardando</span></div><div class="charge-bottom"><span class="money">R$ 1.500,00</span><small>Pix e cartão</small></div><div class="charge-actions"><button type="button"><i data-lucide="copy"></i> Copiar link</button><button type="button"><i data-lucide="send"></i> Enviar no WhatsApp</button><button type="button"><i data-lucide="external-link"></i> Abrir fatura</button></div></article><div class="section-head"><h3>Histórico financeiro</h3></div><div class="timeline"><div class="timeline-item"><div class="timeline-dot"></div><div><p>Cobrança criada pela secretaria</p><span>Hoje, 10:42</span></div></div><div class="timeline-item"><div class="timeline-dot"></div><div><p>Link enviado na conversa</p><span>Hoje, 10:43</span></div></div></div></main>
+              </aside>
+            </div>
+          </section>
+
+          <section class="view" id="settings">
+            <div class="settings-layout"><aside class="settings-nav"><p>Financeiro</p><button type="button"><i data-lucide="layout-list"></i>Visão geral</button><button class="active" type="button"><i data-lucide="landmark"></i>Conta Asaas</button><button type="button"><i data-lucide="receipt-text"></i>Nota fiscal</button><button type="button"><i data-lucide="shield-check"></i>Permissões</button></aside><main class="settings-main"><h2>Conta Asaas</h2><p>O RAEVO usa esta conta para criar cobranças e receber atualizações financeiras.</p><section class="connection-card"><header class="connection-state"><div><div class="state"><i data-lucide="circle-check"></i>Financeiro ativo · Brasil</div><h3>Clínica Raevo</h3><p>Asaas em produção · validada hoje às 09:12</p></div><button class="button" type="button" data-open-modal>Trocar chave</button></header><div class="connection-body"><div class="connection-detail"><label>Módulo</label><strong>Financeiro ativo</strong><span>Desativar preserva o histórico.</span></div><div class="connection-detail"><label>Mercado e provedor</label><strong>Brasil · Asaas</strong><span>Pix, cartão e boleto</span></div><div class="connection-detail"><label>Chave de API</label><span>•••••••••••• 8F29</span></div><div class="connection-detail"><label>Webhook</label><strong>Recebendo eventos</strong><span>Última entrega hoje, 10:46</span></div></div><footer class="connection-actions"><button class="button" type="button"><i data-lucide="refresh-cw"></i>Testar conexão</button><button class="button" type="button"><i data-lucide="copy"></i>Copiar URL do webhook</button><button class="button" type="button"><i data-lucide="circle-off"></i>Desativar módulo</button></footer></section><details class="disclosure"><summary>Configuração fiscal</summary><div class="disclosure-inner"><div class="info-row"><b>Emissão automática</b><span>Desativada até a revisão fiscal.</span></div><div class="info-row"><b>Serviço padrão</b><span>Nenhum serviço configurado.</span></div></div></details><details class="disclosure"><summary>Histórico e diagnósticos</summary><div class="disclosure-inner"><div class="info-row"><b>Eventos processados hoje</b><span>18 entregas, nenhuma pendente.</span></div><div class="info-row"><b>Dados protegidos</b><span>Chaves e payloads completos não aparecem aqui.</span></div></div></details></main></div>
+          </section>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="charge-modal" role="dialog" aria-modal="true" aria-labelledby="charge-title">
+      <section class="modal"><header><div><h2 id="charge-title">Nova cobrança</h2><p>A cobrança será criada pelo Asaas e vinculada a esta oportunidade.</p></div><button class="icon" type="button" data-close-modal title="Fechar"><i data-lucide="x"></i></button></header><main><label>Valor<input value="R$ 1.500,00" /></label><label>Vencimento<input type="date" value="2026-08-29" /></label><label>Formas aceitas<select><option>Pix e cartão</option><option>Pix</option><option>Boleto</option></select></label></main><footer><button class="button" type="button" data-close-modal>Cancelar</button><button class="button primary" type="button" data-close-modal>Criar cobrança</button></footer></section>
+    </div>
+
+    <script>
+      const titleByView = { overview: 'Financeiro', opportunity: 'Oportunidade', settings: 'Configurações financeiras' };
+      const buttons = document.querySelectorAll('[data-view]');
+      const views = document.querySelectorAll('.view');
+      const crumb = document.getElementById('crumb-title');
+      const setView = view => {
+        views.forEach(item => item.classList.toggle('active', item.id === view));
+        buttons.forEach(item => item.setAttribute('aria-selected', item.dataset.view === view));
+        crumb.textContent = titleByView[view];
+      };
+      buttons.forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+      document.querySelectorAll('[data-go-settings]').forEach(button => button.addEventListener('click', () => setView('settings')));
+      const modal = document.getElementById('charge-modal');
+      document.querySelectorAll('[data-open-modal]').forEach(button => button.addEventListener('click', () => modal.classList.add('open')));
+      document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', () => modal.classList.remove('open')));
+      modal.addEventListener('click', event => { if (event.target === modal) modal.classList.remove('open'); });
+      document.addEventListener('keydown', event => { if (event.key === 'Escape') modal.classList.remove('open'); });
+      lucide.createIcons({ attrs: { width: 16, height: 16, 'stroke-width': 1.8 } });
+    </script>
+  </body>
+</html>

@@ -19,6 +19,11 @@ export const AVAILABLE_CUSTOM_ROLE_PERMISSIONS = [
   'kanban_automation_execution',
   'kanban_manage',
   'kanban_report',
+  'finance_view',
+  'finance_create',
+  'finance_manage',
+  'finance_refund',
+  'finance_configure',
 ];
 
 export const ROLES = ['agent', 'administrator'];

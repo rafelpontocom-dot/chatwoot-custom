@@ -38,7 +38,12 @@
       "CONVERSATION_PARTICIPATING_MANAGE": "Gerenciar conversas que participa e aquelas atribuídas a elas",
       "CONTACT_MANAGE": "Gerenciar contatos",
       "REPORT_MANAGE": "Gerenciar relatórios",
-      "KNOWLEDGE_BASE_MANAGE": "Gerenciar base de conhecimento"
+      "KNOWLEDGE_BASE_MANAGE": "Gerenciar base de conhecimento",
+      "FINANCE_VIEW": "Ver cobranças e histórico financeiro",
+      "FINANCE_CREATE": "Criar cobranças",
+      "FINANCE_MANAGE": "Cancelar cobranças e confirmar recebimentos externos",
+      "FINANCE_REFUND": "Solicitar estornos ao provedor",
+      "FINANCE_CONFIGURE": "Configurar módulo e provedores financeiros"
     },
     "FORM": {
       "NAME": {

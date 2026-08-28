@@ -2,10 +2,17 @@ import { flushPromises, mount } from '@vue/test-utils';
 import KanbanOpportunityDetailsModal from '../KanbanOpportunityDetailsModal.vue';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import ContactAPI from 'dashboard/api/contacts';
+import FinanceAPI from 'dashboard/api/finance';
+import FormsAPI from 'dashboard/api/forms';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
 
 const storeMocks = vi.hoisted(() => ({
   labels: [],
+  currentAccount: { permissions: ['administrator'] },
   dispatch: vi.fn(),
+}));
+const formsInvitationMocks = vi.hoisted(() => ({
+  open: vi.fn(),
 }));
 
 vi.mock('vue-i18n', () => ({
@@ -151,12 +158,37 @@ vi.mock('dashboard/api/contacts', () => ({
   },
 }));
 
+vi.mock('dashboard/api/finance', () => ({
+  default: {
+    getModule: vi.fn(),
+    getProviderConnections: vi.fn(),
+    getPayments: vi.fn(),
+    getPayment: vi.fn(),
+  },
+}));
+
+vi.mock('dashboard/api/forms', () => ({
+  default: {
+    getCardContext: vi.fn(),
+  },
+}));
+
+vi.mock('shared/helpers/clipboard', () => ({
+  copyTextToClipboard: vi.fn(),
+}));
+
 vi.mock('dashboard/composables/store', async () => {
   const { computed } = await vi.importActual('vue');
 
   return {
     useStore: () => ({ dispatch: storeMocks.dispatch }),
-    useMapGetter: () => computed(() => storeMocks.labels),
+    useMapGetter: key => {
+      if (key === 'getCurrentAccount') {
+        return computed(() => storeMocks.currentAccount);
+      }
+
+      return computed(() => storeMocks.labels);
+    },
   };
 });
 
@@ -268,12 +300,23 @@ const mountModal = async ({
   customFieldSections = [],
   calendarEnabled = false,
   boards = [],
+  financeModule = { enabled: false },
+  financeConnections = [],
+  financePayments = [],
 } = {}) => {
   storeMocks.labels = accountLabels;
   storeMocks.dispatch.mockResolvedValue();
   KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
   KanbanBoardsAPI.getCardCadence.mockResolvedValue({
     data: { enrollment: null },
+  });
+  FinanceAPI.getModule.mockResolvedValue({ data: financeModule });
+  FinanceAPI.getProviderConnections.mockResolvedValue({
+    data: financeConnections,
+  });
+  FinanceAPI.getPayments.mockResolvedValue({ data: financePayments });
+  FormsAPI.getCardContext.mockResolvedValue({
+    data: { invitations: [], submissions: [] },
   });
 
   if (resolveLabels) {
@@ -317,6 +360,21 @@ const mountModal = async ({
         KanbanCalendarAppointmentsSection: {
           template:
             '<section data-testid="kanban-opportunity-calendar-tab-content" />',
+        },
+        FinancePaymentDialog: {
+          template: '<section data-testid="finance-payment-dialog" />',
+        },
+        FinancePaymentDetailsDialog: {
+          setup(_, { expose }) {
+            expose({ open: vi.fn() });
+          },
+          template: '<section data-testid="finance-payment-details-dialog" />',
+        },
+        FormsInvitationDialog: {
+          setup(_, { expose }) {
+            expose({ open: formsInvitationMocks.open });
+          },
+          template: '<section data-testid="forms-invitation-dialog" />',
         },
       },
     },
@@ -374,6 +432,7 @@ describe('KanbanOpportunityDetailsModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storeMocks.labels = [];
+    storeMocks.currentAccount = { permissions: ['administrator'] };
   });
 
   it('uses a single-column layout so opportunity details stay readable', async () => {
@@ -383,6 +442,107 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       layout.classes().some(className => className.startsWith('xl:grid-cols-'))
     ).toBe(false);
+  });
+
+  it('shows finance as a dedicated opportunity tab when the module is active', async () => {
+    FinanceAPI.getProviderConnections.mockResolvedValue({ data: [] });
+    const wrapper = await mountModal({ financeModule: { enabled: true } });
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-tab-finance"]').exists()
+    ).toBe(true);
+  });
+
+  it('does not offer charge creation to a financial read-only custom role', async () => {
+    storeMocks.currentAccount = { permissions: ['finance_view'] };
+    const wrapper = await mountModal({
+      financeModule: { enabled: true },
+      financeConnections: [{ id: 11, provider: 'asaas', status: 'connected' }],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-new-payment"]').exists()
+    ).toBe(false);
+  });
+
+  it('loads charges scoped to the open opportunity', async () => {
+    copyTextToClipboard.mockResolvedValue();
+    const wrapper = await mountModal({
+      financeModule: { enabled: true },
+      financePayments: [
+        {
+          id: 31,
+          amount_cents: 15025,
+          currency: 'BRL',
+          description: 'Consulta',
+          due_on: '2026-09-01',
+          invoice_url: 'https://pay.example/31',
+          status: 'pending',
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(FinanceAPI.getPayments).toHaveBeenCalledWith({
+      kanban_card_id: 501,
+    });
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-finance"]').text()
+    ).toContain('Consulta');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-copy-payment-link"]')
+      .trigger('click');
+    expect(copyTextToClipboard).toHaveBeenCalledWith('https://pay.example/31');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-payment-details"]')
+      .trigger('click');
+    expect(wrapper.vm.$refs.paymentDetailsDialog.open).toHaveBeenCalledWith(31);
+    await wrapper
+      .find('[data-testid="kanban-opportunity-send-payment-link"]')
+      .trigger('click');
+    expect(wrapper.emitted('sendPaymentLink')).toEqual([
+      [
+        {
+          card: expect.objectContaining({ id: 501, conversationId: 42 }),
+          payment: expect.objectContaining({ id: 31 }),
+        },
+      ],
+    ]);
+  });
+
+  it('shows read-only financial indicators derived from linked charges', async () => {
+    const wrapper = await mountModal({
+      financeModule: { enabled: true },
+      financePayments: [
+        {
+          id: 31,
+          amount_cents: 15025,
+          currency: 'BRL',
+          status: 'received',
+          paid_at: '2026-09-01T10:30:00Z',
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .trigger('click');
+    await flushPromises();
+
+    const summary = wrapper.get(
+      '[data-testid="kanban-opportunity-finance-summary"]'
+    );
+    expect(summary.text()).toContain('FINANCE.SUMMARY.STATUS');
+    expect(summary.text()).toContain('FINANCE.PAYMENTS.STATUS.RECEIVED');
+    expect(summary.text()).toContain('FINANCE.SUMMARY.RECEIVED_AMOUNT');
   });
 
   it('keeps the pipeline stage in the compact header instead of a side context panel', async () => {
@@ -1440,6 +1600,50 @@ describe('KanbanOpportunityDetailsModal', () => {
       wrapper.find('[data-testid="kanban-opportunity-contact-name"]').element
         .value
     ).toBe('Acme Buyer');
+  });
+
+  it('opens the invitation creator from the forms tab for administrators', async () => {
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-send-form"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-forms"]').exists()
+    ).toBe(true);
+    expect(formsInvitationMocks.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads invitation and submission summaries when the forms tab opens', async () => {
+    const wrapper = await mountModal();
+    FormsAPI.getCardContext.mockResolvedValue({
+      data: {
+        invitations: [
+          {
+            id: 11,
+            form_name: 'Pré-consulta',
+            status: 'active',
+            uses_count: 0,
+            max_uses: 1,
+          },
+        ],
+        submissions: [
+          { id: 12, form_name: 'Pré-consulta', status: 'submitted' },
+        ],
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(FormsAPI.getCardContext).toHaveBeenCalledWith(501);
+    expect(wrapper.text()).toContain('Pré-consulta');
   });
 
   it('keeps stage and commercial ownership editable without a conversation-agent tab', async () => {

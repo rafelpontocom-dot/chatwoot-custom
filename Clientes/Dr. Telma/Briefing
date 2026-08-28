@@ -1,0 +1,110 @@
+FUNIS CRM — Dra. Telma Sousa
+Total: 4 funis (2 por clínica)
+
+FUNIL 1A: Vendas / Consulta — Clínica Covilhã
+FUNIL 1B: Vendas / Consulta — Clínica Fundão
+(Mesma estrutura, separados por clínica no Kommo)
+
+
+Notas:
+Contactos identificados como público/hospital saem directamente para Perdido (motivo: público/hospital).
+Muitos contactos podem saltar de Qualificação → Agendar (captação boca-a-boca já vem decidida).
+Paciente que fez 2ª Consulta e não é candidato V360 → Ganho (acompanhamento regular).
+Paciente candidato V360 → Orçamento Enviado → se aceitar, entra no Funil 2.
+
+FUNIL 2A: Vitalidade 360 — Clínica Covilhã
+FUNIL 2B: Vitalidade 360 — Clínica Fundão
+(Mesma estrutura, separados por clínica no Kommo)
+
+
+Regra de Renovação:
+Renovação aceite → automação move card actual para Concluído + duplica novo card em Onboarding (campo "Ciclo" incrementa: 2, 3, etc.)
+Não renovou → Cancelado (motivo: não renovou) ou Concluído (se terminou naturalmente)
+
+CAMPOS CRM — Dra. Telma Sousa (Kommo)
+Total: 19 campos | Secretária preenche no máximo 7 no dia a dia.
+Princípio: o mínimo necessário para o sistema funcionar sem sobrecarregar quem opera.
+
+CONTACTO (secretária preenche na entrada)
+
+GERAL (secretária preenche na triagem/qualificação)
+
+CONSULTA (secretária + Dra. Telma)
+
+VITALIDADE 360
+
+FINANCEIRO
+
+Resumo operacional
+Secretária preenche (dia a dia): Nome, Telemóvel, Clínica, Paciente, Tipo, Motivo, Data Próxima Consulta = 7 campos
+Dra. Telma preenche (em consulta): Categoria Principal, Próxima Acção, Exames Solicitados, Data Prevista Execução Exames, Observações, Protocolo V360 Indicado = 6 campos
+Automação preenche: Ciclo, Estado do Protocolo, Valores (Consulta, Protocolo, Renovação) = 5 campos
+Opcionais: Email, Origem do Contacto, Motivo de Perda = 3 campos (só quando aplicável)
+
+SCRIPTS — Dra. Telma Sousa
+Tom: próximo, profissional, orientado para segurança e qualidade do acompanhamento.
+Idioma: Português de Portugal.
+
+MENSAGEM DE BOAS-VINDAS
+Clínica Covilhã
+Olá [Nome], obrigada por entrar em contacto com a Clínica [Nome Clínica Covilhã]. 🙂
+Sou a [Nome Secretária], assistente da Dra. Telma Mendes.
+Para que possamos ajudá-lo(a) da melhor forma, diga-nos por favor:
+É a primeira vez que consulta a Dra. Telma?
+Qual o motivo do seu contacto?
+Respondemos com a maior brevidade possível. Obrigada!
+Clínica Fundão
+Olá [Nome], obrigada por entrar em contacto com a Clínica [Nome Clínica Fundão]. 🙂
+Sou a [Nome Secretária], assistente da Dra. Telma Mendes.
+Para que possamos ajudá-lo(a) da melhor forma, diga-nos por favor:
+É a primeira vez que consulta a Dra. Telma?
+Qual o motivo do seu contacto?
+Respondemos com a maior brevidade possível. Obrigada!
+
+FOLLOW-UPS: NÃO RESPONDE (5 mensagens)
+FU1 (24h após último contacto):
+Olá [Nome], verificámos que ainda não obtivemos resposta da sua parte. Ficamos disponíveis para ajudar no agendamento da sua consulta com a Dra. Telma. Pode responder a esta mensagem quando lhe for conveniente. 🙂
+
+FU2 (48h):
+Olá [Nome], voltamos a contactá-lo(a) apenas para garantir que recebeu a nossa mensagem. Se tiver alguma dúvida sobre a consulta ou disponibilidade, estamos aqui para esclarecer.
+
+FU3 (5 dias):
+Olá [Nome], gostaríamos de saber se ainda tem interesse em agendar a sua consulta com a Dra. Telma. Caso o momento não seja o ideal, pode responder-nos quando estiver pronto(a). Guardamos o seu contacto.
+
+FU4 (10 dias):
+Olá [Nome], passamos apenas para informar que temos disponibilidade para consultas nas próximas semanas. Se desejar agendar ou tiver alguma questão, responda-nos e tratamos de tudo.
+
+FU5 (20 dias, última tentativa):
+Olá [Nome], como não obtivemos retorno, vamos encerrar este contacto por agora. Caso no futuro deseje agendar consulta com a Dra. Telma, basta enviar-nos mensagem por aqui. Estamos sempre disponíveis. Desejamos-lhe saúde e bem-estar! 🙂
+
+FOLLOW-UPS: VALORES ENVIADOS (5 mensagens)
+FU1 (24h após envio de valores):
+Olá [Nome], enviámos-lhe os valores da consulta com a Dra. Telma. Ficou com alguma dúvida? Estamos disponíveis para esclarecer e ajudar no agendamento.
+
+FU2 (48h):
+Olá [Nome], apenas para confirmar se recebeu a informação sobre os valores. Se pretender avançar com o agendamento, diga-nos a sua disponibilidade e tratamos de tudo.
+
+FU3 (5 dias):
+Olá [Nome], gostaríamos de saber se tem interesse em agendar a sua consulta. A Dra. Telma tem disponibilidade nas próximas semanas. Posso sugerir-lhe algumas datas?
+
+FU4 (10 dias):
+Olá [Nome], compreendemos que possa estar a avaliar. Caso tenha alguma questão sobre a consulta, o acompanhamento ou os valores, estamos aqui para esclarecer sem qualquer compromisso.
+
+FU5 (20 dias, última tentativa):
+Olá [Nome], como não obtivemos resposta, vamos encerrar este contacto por agora. Quando desejar agendar a sua consulta, basta enviar-nos mensagem. Estamos sempre disponíveis para si. Votos de saúde! 🙂
+
+FOLLOW-UPS: ORÇAMENTO ENVIADO — VITALIDADE 360 (5 mensagens)
+FU1 (48h após envio do orçamento):
+Olá [Nome], a Dra. Telma indicou o Protocolo Vitalidade 360 como ideal para o seu caso. Enviámos-lhe a proposta detalhada. Ficou com alguma dúvida que possamos esclarecer?
+
+FU2 (5 dias):
+Olá [Nome], voltamos a contactá-lo(a) sobre o Protocolo Vitalidade 360. Este programa foi desenhado para garantir um acompanhamento contínuo e estruturado da sua saúde. Se tiver questões sobre o funcionamento ou as etapas, estamos disponíveis para explicar.
+
+FU3 (10 dias):
+Olá [Nome], compreendemos que é uma decisão importante. O Vitalidade 360 existe para que o seu acompanhamento seja mais seguro, organizado e com resultados consistentes. Posso agendar uma breve conversa com a Dra. Telma para esclarecer dúvidas?
+
+FU4 (15 dias):
+Olá [Nome], passamos apenas para saber se ainda está a considerar o Protocolo Vitalidade 360. Caso o momento não seja o ideal, pode avançar quando se sentir confortável. O importante é que o seu acompanhamento continue assegurado.
+
+FU5 (25 dias, última tentativa):
+Olá [Nome], como não obtivemos retorno sobre o Vitalidade 360, vamos encerrar este contacto por agora. O protocolo fica disponível para si quando fizer sentido. Entretanto, se precisar de agendar consulta de seguimento, é só contactar-nos. Estamos cá para si! 🙂

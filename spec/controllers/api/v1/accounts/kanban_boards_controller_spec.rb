@@ -1738,21 +1738,21 @@ RSpec.describe 'Kanban Boards API', type: :request do
 
   def overview_stages_summary(overview_data)
     [
-      {
-        'id' => overview_data[:first_stage].id,
-        'name' => 'Lead',
-        'color' => 'blue',
-        'category' => overview_data[:first_stage].category,
-        'cards_count' => 1
-      },
-      {
-        'id' => overview_data[:second_stage].id,
-        'name' => 'Won',
-        'color' => 'green',
-        'category' => overview_data[:second_stage].category,
-        'cards_count' => 2
-      }
+      overview_stage_summary(overview_data[:first_stage], name: 'Lead', color: 'blue', cards_count: 1),
+      overview_stage_summary(overview_data[:second_stage], name: 'Won', color: 'green', cards_count: 2)
     ]
+  end
+
+  def overview_stage_summary(stage, name:, color:, cards_count:)
+    {
+      'id' => stage.id,
+      'name' => name,
+      'color' => color,
+      'icon' => stage.icon,
+      'description' => stage.description,
+      'category' => stage.category,
+      'cards_count' => cards_count
+    }
   end
 
   def create_board_listing_manual_cards(stage, inbox, count)

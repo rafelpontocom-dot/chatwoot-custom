@@ -1,3 +1,4 @@
+# rubocop:disable Layout/LineLength
 # == Schema Information
 #
 # Table name: kanban_calendar_appointment_resources
@@ -13,9 +14,7 @@
 #
 # Indexes
 #
-# rubocop:disable Layout/LineLength
 #  exclude_calendar_resource_appointment_overlaps                (kanban_calendar_resource_id, tsrange(starts_at, ends_at, '[)'::text)) WHERE ((appointment_status)::text = ANY ((ARRAY['scheduled'::character varying, 'confirmed'::character varying, 'checked_in'::character varying])::text[])) USING gist
-# rubocop:enable Layout/LineLength
 #  index_calendar_appointment_resources_on_appointment_resource  (kanban_calendar_appointment_id,kanban_calendar_resource_id) UNIQUE
 #  index_calendar_appointment_resources_on_resource_and_range    (kanban_calendar_resource_id,starts_at,ends_at)
 #
@@ -24,6 +23,8 @@
 #  fk_rails_...  (kanban_calendar_appointment_id => kanban_calendar_appointments.id)
 #  fk_rails_...  (kanban_calendar_resource_id => kanban_calendar_resources.id)
 #
+# rubocop:enable Layout/LineLength
+
 class KanbanCalendarAppointmentResource < ApplicationRecord
   belongs_to :kanban_calendar_appointment
   belongs_to :kanban_calendar_resource

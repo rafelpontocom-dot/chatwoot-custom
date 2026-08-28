@@ -88,6 +88,84 @@ RSpec.describe KanbanCardListener do
     end
   end
 
+  describe '#finance_payment_received' do
+    it 'enqueues the matching workflow with safe payment context' do
+      card = create(:kanban_card)
+      rule = create(
+        :kanban_automation_rule,
+        account: card.account,
+        kanban_board: card.kanban_board,
+        event_name: Events::Types::FINANCE_PAYMENT_RECEIVED
+      )
+      event = Events::Base.new(
+        Events::Types::FINANCE_PAYMENT_RECEIVED,
+        Time.zone.now,
+        account_id: card.account_id,
+        board_id: card.kanban_board_id,
+        card_id: card.id,
+        payment_id: 42,
+        payment_status: 'received',
+        payment_amount_cents: 15_025,
+        payment_currency: 'BRL',
+        event_key: 'finance-payment:42:event:evt_001'
+      )
+
+      expect do
+        listener.finance_payment_received(event)
+      end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob).with(
+        rule.id,
+        Events::Types::FINANCE_PAYMENT_RECEIVED,
+        'finance-payment:42:event:evt_001',
+        card.id,
+        {
+          event_data: hash_including(
+            payment_id: 42,
+            payment_status: 'received',
+            payment_amount_cents: 15_025,
+            payment_currency: 'BRL'
+          )
+        }
+      ).on_queue('critical')
+    end
+  end
+
+  describe '#forms_submission_completed' do
+    it 'enqueues the matching workflow without exposing form answers' do
+      card = create(:kanban_card)
+      rule = create(
+        :kanban_automation_rule,
+        account: card.account,
+        kanban_board: card.kanban_board,
+        event_name: Events::Types::FORMS_SUBMISSION_COMPLETED
+      )
+      event = Events::Base.new(
+        Events::Types::FORMS_SUBMISSION_COMPLETED,
+        Time.zone.now,
+        account_id: card.account_id,
+        board_id: card.kanban_board_id,
+        card_id: card.id,
+        form_submission_id: 41,
+        form_template_id: 12,
+        event_key: 'forms-submission:41:completed'
+      )
+
+      expect do
+        listener.forms_submission_completed(event)
+      end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob).with(
+        rule.id,
+        Events::Types::FORMS_SUBMISSION_COMPLETED,
+        'forms-submission:41:completed',
+        card.id,
+        {
+          event_data: hash_including(
+            form_submission_id: 41,
+            form_template_id: 12
+          )
+        }
+      ).on_queue('critical')
+    end
+  end
+
   describe '#message_created' do
     it 'pauses an active cadence after an incoming customer message' do
       conversation = create(:conversation)

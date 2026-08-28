@@ -313,6 +313,8 @@
     "CONVERSATIONS": "Conversations",
     "KANBAN": "Kanban",
     "CALENDAR": "Calendar",
+    "FINANCE": "Finance",
+    "FORMS": "Forms",
     "INBOX": "My Inbox",
     "ALL_CONVERSATIONS": "All Conversations",
     "MENTIONED_CONVERSATIONS": "Mentions",

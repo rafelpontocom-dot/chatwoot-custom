@@ -1,7 +1,8 @@
 class KanbanAutomations::WorkflowMessageService
-  def initialize(card:, data:, now: Time.current)
+  def initialize(card:, data:, event_data: {}, now: Time.current)
     @card = card
     @data = data.to_h.deep_stringify_keys
+    @event_data = event_data.to_h.deep_stringify_keys
     @now = now
   end
 
@@ -32,7 +33,7 @@ class KanbanAutomations::WorkflowMessageService
 
   private
 
-  attr_reader :card, :data, :now
+  attr_reader :card, :data, :event_data, :now
 
   def compatible_conversation
     inbox_type = data.fetch('channel') == 'email' ? 'Email' : 'Whatsapp'
@@ -77,18 +78,45 @@ class KanbanAutomations::WorkflowMessageService
   end
 
   def message_variable_value(token)
-    case token
-    when 'contact_name'
-      card.contact.name.to_s
-    when 'opportunity_subject'
-      card.subject.to_s
-    when 'opportunity_amount'
-      format('%.2f', card.amount_cents.to_i / 100.0)
-    when /\Afield\.(?<key>[a-zA-Z_][a-zA-Z0-9_]*)\z/
-      card.custom_field_values.fetch(Regexp.last_match[:key], '').to_s
-    else
-      "{{#{token}}}"
-    end
+    return custom_field_value(token) if token.match?(/\Afield\.[a-zA-Z_][a-zA-Z0-9_]*\z/)
+
+    standard_message_variable_value(token) || finance_message_variable_value(token) || "{{#{token}}}"
+  end
+
+  def standard_message_variable_value(token)
+    {
+      'contact_name' => card.contact.name.to_s,
+      'opportunity_subject' => card.subject.to_s,
+      'opportunity_amount' => format('%.2f', card.amount_cents.to_i / 100.0)
+    }[token]
+  end
+
+  def finance_message_variable_value(token)
+    {
+      'finance_payment_link' => finance_payment&.invoice_url.to_s,
+      'finance_payment_amount' => format('%.2f', finance_payment&.amount_cents.to_i / 100.0),
+      'finance_payment_due_on' => finance_payment&.due_on&.strftime('%d/%m/%Y').to_s
+    }[token]
+  end
+
+  def custom_field_value(token)
+    key = token.delete_prefix('field.')
+    card.custom_field_values.fetch(key, '').to_s
+  end
+
+  def finance_payment
+    @finance_payment ||= payment_from_event || latest_payment_with_link
+  end
+
+  def payment_from_event
+    payment_id = event_data['payment_id'].presence
+    return if payment_id.blank?
+
+    card.finance_payments.find_by(id: payment_id)
+  end
+
+  def latest_payment_with_link
+    card.finance_payments.where.not(invoice_url: [nil, '']).order(created_at: :desc).first
   end
 
   def quiet_hours_resume_at

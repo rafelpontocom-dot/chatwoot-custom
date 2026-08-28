@@ -1,0 +1,3 @@
+# Local Portainer stack files with production secrets — never commit/push these.
+*
+!.gitignore

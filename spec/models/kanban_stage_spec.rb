@@ -32,6 +32,13 @@ RSpec.describe KanbanStage do
       expect(stage.errors[:category]).to be_present
     end
 
+    it 'rejects stage icons outside the supported visual catalogue' do
+      stage = build(:kanban_stage, icon: 'custom-html')
+
+      expect(stage).not_to be_valid
+      expect(stage.errors[:icon]).to be_present
+    end
+
     it 'accepts a positive optional work in progress limit' do
       board = create(:kanban_board)
       stage_attributes = { account: board.account, kanban_board: board }

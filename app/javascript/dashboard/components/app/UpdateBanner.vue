@@ -37,6 +37,7 @@ export default {
       return (
         !this.userDismissedBanner &&
         this.globalConfig.displayManifest &&
+        this.globalConfig.displayUpdateBanner &&
         this.updateAvailable &&
         !this.isVersionNotificationDismissed(this.latestChatwootVersion) &&
         this.isAdmin

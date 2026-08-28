@@ -1,3 +1,41 @@
+# == Schema Information
+#
+# Table name: kanban_calendar_booking_pages
+#
+#  id                     :bigint           not null, primary key
+#  active                 :boolean          default(FALSE), not null
+#  captcha_provider       :string
+#  captcha_site_key       :string
+#  description            :text
+#  duplicate_policy       :string           default("create_new"), not null
+#  maximum_notice_days    :integer          default(60), not null
+#  minimum_notice_minutes :integer          default(1440), not null
+#  public_form_fields     :jsonb            not null
+#  public_token           :string           not null
+#  slot_interval_minutes  :integer          default(15), not null
+#  title                  :string
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  account_id             :bigint           not null
+#  inbox_id               :bigint
+#  kanban_board_id        :bigint
+#  kanban_stage_id        :bigint
+#
+# Indexes
+#
+#  index_kanban_calendar_booking_pages_on_account_id       (account_id) UNIQUE
+#  index_kanban_calendar_booking_pages_on_inbox_id         (inbox_id)
+#  index_kanban_calendar_booking_pages_on_kanban_board_id  (kanban_board_id)
+#  index_kanban_calendar_booking_pages_on_kanban_stage_id  (kanban_stage_id)
+#  index_kanban_calendar_booking_pages_on_public_token     (public_token) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (inbox_id => inboxes.id)
+#  fk_rails_...  (kanban_board_id => kanban_boards.id)
+#  fk_rails_...  (kanban_stage_id => kanban_stages.id)
+#
 class KanbanCalendarBookingPage < ApplicationRecord
   DUPLICATE_POLICIES = %w[create_new open_or_recent most_recent].freeze
   PUBLIC_FIELD_KINDS = %w[text date select].freeze
