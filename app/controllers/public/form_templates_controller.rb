@@ -11,6 +11,7 @@ class Public::FormTemplatesController < PublicController
 
   def create
     return render_invalid_request if submission_params[:website].present?
+    return render_invalid_request if captcha_required? && !captcha_valid?
 
     submission = Forms::SubmitPublicTemplateService.new(
       form_template: @form_template,
@@ -34,7 +35,20 @@ class Public::FormTemplatesController < PublicController
   end
 
   def submission_params
-    params.require(:submission).permit(:website, answers: {}).to_h.symbolize_keys
+    params.require(:submission).permit(:website, :captcha_token, answers: {}).to_h.symbolize_keys
+  end
+
+  def captcha_required?
+    @form_template.public_captcha_provider.present?
+  end
+
+  def captcha_valid?
+    return false unless @form_template.public_captcha_provider == 'turnstile'
+
+    Forms::TurnstileVerificationService.new(
+      token: submission_params[:captcha_token],
+      remote_ip: request.remote_ip
+    ).valid?
   end
 
   def enforce_submission_rate_limit

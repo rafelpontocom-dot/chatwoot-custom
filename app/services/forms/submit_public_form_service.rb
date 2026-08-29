@@ -1,8 +1,11 @@
 class Forms::SubmitPublicFormService
-  def initialize(invitation:, answers:, metadata: {})
+  BOOLEAN_FIELD_TYPES = %w[checkbox consent].freeze
+
+  def initialize(invitation:, answers:, metadata: {}, attachments: {})
     @invitation = invitation
-    @answers = answers.to_h.stringify_keys
+    @answers = normalize_answers(answers)
     @metadata = metadata.to_h.stringify_keys
+    @attachments = attachments
   end
 
   def perform!
@@ -12,7 +15,9 @@ class Forms::SubmitPublicFormService
 
         submission = build_submission
         validate_answers!(submission)
+        validate_attachments!(submission)
         submission.save!
+        attach_clinical_documents!(submission)
         @invitation.consume!
         submission
       end
@@ -59,5 +64,49 @@ class Forms::SubmitPublicFormService
       schema: @invitation.form_template_version.schema,
       answers: @answers
     )
+  end
+
+  def validate_attachments!(submission)
+    return if attachment_validator.valid?
+
+    attachment_validator.errors.each { |error| submission.errors.add(:attachments, error) }
+    raise ActiveRecord::RecordInvalid, submission
+  end
+
+  def attach_clinical_documents!(submission)
+    return if attachment_validator.files.empty?
+
+    submission.clinical_attachments.attach(attachment_validator.files.map { |file| attachment_attributes(file) })
+  end
+
+  def attachment_validator
+    @attachment_validator ||= Forms::ClinicalAttachmentValidator.new(
+      schema: @invitation.form_template_version.schema,
+      answers: permitted_answers,
+      attachments: @attachments
+    )
+  end
+
+  def attachment_attributes(file)
+    {
+      io: file.tempfile,
+      filename: file.original_filename,
+      content_type: file.content_type
+    }
+  end
+
+  def normalize_answers(answers)
+    normalized = answers.to_h.stringify_keys
+    checkbox_fields.each do |field|
+      key = field['key']
+      normalized[key] = ActiveModel::Type::Boolean.new.cast(normalized[key]) if normalized.key?(key)
+    end
+    normalized
+  end
+
+  def checkbox_fields
+    @invitation.form_template_version.schema.fetch('sections', []).flat_map do |section|
+      section.fetch('fields', []).select { |field| BOOLEAN_FIELD_TYPES.include?(field['type']) }
+    end
   end
 end

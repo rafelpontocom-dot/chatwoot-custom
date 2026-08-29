@@ -22,6 +22,25 @@ RSpec.describe Forms::SchemaValidator do
     expect(validator).to be_valid
   end
 
+  it 'accepts a visual acceptance signature' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'aceite',
+          'fields' => [
+            {
+              'key' => 'assinatura_paciente',
+              'type' => 'signature',
+              'label' => 'Digite seu nome para confirmar o aceite'
+            }
+          ]
+        }
+      ]
+    )
+
+    expect(validator).to be_valid
+  end
+
   it 'rejects repeated field keys across sections' do
     validator = described_class.new(
       'sections' => [
@@ -118,5 +137,64 @@ RSpec.describe Forms::SchemaValidator do
 
     expect(validator).not_to be_valid
     expect(validator.errors).to include('opportunity mapping requires a CRM destination')
+  end
+
+  it 'requires contact mapping before a commercial form is published publicly' do
+    validator = described_class.new(
+      {
+        'sections' => [
+          {
+            'key' => 'identificacao',
+            'fields' => [
+              { 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' },
+              { 'key' => 'telefone', 'type' => 'phone', 'label' => 'Telefone' }
+            ]
+          }
+        ],
+        'crm_mapping' => { 'contact' => { 'name' => 'nome' } }
+      },
+      require_public_contact_mapping: true
+    )
+
+    expect(validator).not_to be_valid
+    expect(validator.errors).to include('public forms require contact mapping for name and email or phone')
+  end
+
+  it 'accepts contact name and phone mappings for a public form' do
+    validator = described_class.new(
+      {
+        'sections' => [
+          {
+            'key' => 'identificacao',
+            'fields' => [
+              { 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' },
+              { 'key' => 'telefone', 'type' => 'phone', 'label' => 'Telefone' }
+            ]
+          }
+        ],
+        'crm_mapping' => {
+          'contact' => { 'name' => 'nome', 'phone_number' => 'telefone' }
+        }
+      },
+      require_public_contact_mapping: true
+    )
+
+    expect(validator).to be_valid
+  end
+
+  it 'rejects attachment questions when the form is not allowed to collect clinical files' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'documentos',
+          'fields' => [
+            { 'key' => 'exame', 'type' => 'attachment', 'label' => 'Exame recente' }
+          ]
+        }
+      ]
+    )
+
+    expect(validator).not_to be_valid
+    expect(validator.errors).to include('attachment fields require a private clinical form')
   end
 end

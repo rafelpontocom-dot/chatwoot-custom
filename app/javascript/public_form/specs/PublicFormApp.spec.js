@@ -109,6 +109,7 @@ describe('PublicFormApp', () => {
           form: {
             ...formPayload.form,
             brand_name: 'Clínica Raevo',
+            brand_logo_url: 'https://cdn.raevo.io/clinica.svg',
             theme: 'warm',
           },
         }),
@@ -123,6 +124,59 @@ describe('PublicFormApp', () => {
     );
     expect(wrapper.get('[data-test="public-form-brand"]').text()).toContain(
       'Clínica Raevo'
+    );
+    expect(wrapper.get('img').attributes('src')).toBe(
+      'https://cdn.raevo.io/clinica.svg'
+    );
+    expect(
+      wrapper.get('[data-test="public-form-progress"] span').classes()
+    ).toContain('bg-n-amber-9');
+  });
+
+  it('shows the configured privacy policy without exposing configuration details', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...formPayload,
+          form: {
+            ...formPayload.form,
+            privacy_policy_url: 'https://clinica.raevo.io/privacidade',
+          },
+        }),
+      })
+    );
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-test="public-form-privacy-policy"]').attributes('href')
+    ).toBe('https://clinica.raevo.io/privacidade');
+  });
+
+  it('shows Turnstile only when the public form enables it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...formPayload,
+          form: {
+            ...formPayload.form,
+            captcha_provider: 'turnstile',
+            captcha_site_key: 'turnstile-public-key',
+          },
+        }),
+      })
+    );
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+
+    expect(wrapper.find('[data-test="public-form-captcha"]').exists()).toBe(
+      true
     );
   });
 
@@ -189,5 +243,149 @@ describe('PublicFormApp', () => {
       'Conte-nos sua preferência antes da consulta.'
     );
     expect(wrapper.text()).not.toContain('Descrição geral do formulário.');
+  });
+
+  it('uses Portuguese from Portugal in the public confirmation', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            ...formPayload,
+            form: { ...formPayload.form, locale: 'pt_PT' },
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+    );
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(
+      'Recebemos as suas informações. A equipa dará continuidade ao atendimento.'
+    );
+  });
+
+  it('renders only the long-text control for a textarea question', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...formPayload,
+          schema: {
+            sections: [
+              {
+                key: 'detalhes',
+                title: 'Detalhes',
+                fields: [
+                  {
+                    key: 'observacoes',
+                    type: 'textarea',
+                    label: 'Observações',
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      })
+    );
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+
+    expect(wrapper.findAll('#form-field-observacoes')).toHaveLength(1);
+    expect(wrapper.get('#form-field-observacoes').element.tagName).toBe(
+      'TEXTAREA'
+    );
+  });
+
+  it('renders a typed acceptance signature as a safe text control', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...formPayload,
+          schema: {
+            sections: [
+              {
+                key: 'aceite',
+                title: 'Aceite',
+                fields: [
+                  {
+                    key: 'assinatura_paciente',
+                    type: 'signature',
+                    label: 'Digite seu nome para confirmar',
+                    required: true,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      })
+    );
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+
+    expect(
+      wrapper.get('#form-field-assinatura_paciente').attributes('type')
+    ).toBe('text');
+    expect(wrapper.text()).toContain('Digite seu nome para confirmar');
+  });
+
+  it('sends a clinical document as multipart data instead of exposing it in answers', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...formPayload,
+          schema: {
+            sections: [
+              {
+                key: 'documentos',
+                title: 'Documentos',
+                fields: [
+                  {
+                    key: 'exames',
+                    type: 'attachment',
+                    label: 'Envie seus exames recentes',
+                    required: true,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetch);
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+    const fileInput = wrapper.get('#form-field-exames');
+    const file = new File(['resultado'], 'exame.pdf', {
+      type: 'application/pdf',
+    });
+    Object.defineProperty(fileInput.element, 'files', { value: [file] });
+    await fileInput.trigger('change');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    const [, options] = fetch.mock.calls[1];
+    expect(options.headers).toEqual({ Accept: 'application/json' });
+    expect(options.body).toBeInstanceOf(FormData);
+    expect(options.body.get('submission[attachments][exames][]').name).toBe(
+      'exame.pdf'
+    );
+    expect(options.body.get('submission[answers][exames]')).toBeNull();
   });
 });

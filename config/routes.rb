@@ -162,13 +162,19 @@ Rails.application.routes.draw do
             end
           end
           namespace :forms do
+            resources :field_groups, only: %i[index create destroy]
             resources :templates, only: %i[index show create update] do
               post :publish, on: :member
               post :duplicate, on: :member
+              post :logo, on: :member, action: :upload_logo
+              delete :logo, on: :member, action: :destroy_logo
               get :versions, on: :member
               resources :invitations, controller: 'template_invitations', only: [:create]
             end
-            resources :submissions, only: %i[index show]
+            resources :submissions, only: %i[index show] do
+              get :export, on: :member
+              get 'attachments/:attachment_id', on: :member, action: :download_attachment
+            end
             get 'kanban_cards/:kanban_card_id', to: 'card_context#show'
           end
           resources :kanban_boards, only: [:index, :create, :show, :destroy], constraints: { id: /\d+/ } do

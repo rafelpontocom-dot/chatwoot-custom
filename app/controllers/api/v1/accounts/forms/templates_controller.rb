@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Forms::TemplatesController < Api::V1::Accounts::BaseController
-  before_action :fetch_template, only: %i[show update publish duplicate versions]
+  before_action :fetch_template, only: %i[show update publish duplicate versions upload_logo destroy_logo]
 
   def index
     authorize FormTemplate.new(account: Current.account), :index?
@@ -50,6 +50,21 @@ class Api::V1::Accounts::Forms::TemplatesController < Api::V1::Accounts::BaseCon
     render json: versions.map(&:history_payload)
   end
 
+  def upload_logo
+    authorize @form_template, :update?
+    @form_template.brand_logo.attach(brand_logo_params)
+    @form_template.save!
+    render json: @form_template.admin_payload
+  rescue ActiveRecord::RecordInvalid => e
+    render_invalid(e.record)
+  end
+
+  def destroy_logo
+    authorize @form_template, :update?
+    @form_template.brand_logo.purge if @form_template.brand_logo.attached?
+    render json: @form_template.admin_payload
+  end
+
   private
 
   def fetch_template
@@ -66,6 +81,10 @@ class Api::V1::Accounts::Forms::TemplatesController < Api::V1::Accounts::BaseCon
 
   def duplicate_params
     params.require(:form_template).permit(:name, :slug).to_h.symbolize_keys
+  end
+
+  def brand_logo_params
+    params.require(:form_template).require(:brand_logo)
   end
 
   def render_invalid(record)

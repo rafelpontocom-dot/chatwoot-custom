@@ -26,7 +26,7 @@
 #  fk_rails_...  (form_submission_id => form_submissions.id)
 #
 class FormAccessAudit < ApplicationRecord
-  ACTIONS = %w[view].freeze
+  ACTIONS = %w[view attachment_view export retention_discarded].freeze
 
   belongs_to :account
   belongs_to :form_submission

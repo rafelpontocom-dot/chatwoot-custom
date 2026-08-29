@@ -14,7 +14,8 @@ class Public::FormsController < PublicController
 
     submission = Forms::SubmitPublicFormService.new(
       invitation: @invitation,
-      answers: submission_params[:answers]
+      answers: submission_params[:answers],
+      attachments: submission_attachments
     ).perform!
 
     render json: { id: submission.id, status: submission.status, submitted_at: submission.submitted_at }, status: :created
@@ -33,6 +34,14 @@ class Public::FormsController < PublicController
 
   def submission_params
     params.require(:submission).permit(:website, answers: {}).to_h.symbolize_keys
+  end
+
+  def submission_attachments
+    attachments = params.dig(:submission, :attachments)
+    return {} if attachments.blank?
+    return attachments.to_unsafe_h if attachments.respond_to?(:to_unsafe_h)
+
+    { '_invalid' => [attachments] }
   end
 
   def form_payload

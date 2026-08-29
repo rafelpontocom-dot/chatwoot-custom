@@ -31,7 +31,8 @@
 #  index_finance_payments_on_account_id_and_external_reference  (account_id,external_reference) UNIQUE
 #  index_finance_payments_on_account_id_and_kanban_card_id      (account_id,kanban_card_id)
 #  index_finance_payments_on_account_id_and_status              (account_id,status)
-#  unique provider payment index (finance_provider_connection_id, provider_payment_id)
+#  index_finance_payments_on_connection_and_provider_payment
+#    (finance_provider_connection_id,provider_payment_id) UNIQUE WHERE (provider_payment_id IS NOT NULL)
 #  index_finance_payments_on_contact_id                         (contact_id)
 #  index_finance_payments_on_finance_customer_id                (finance_customer_id)
 #  index_finance_payments_on_finance_provider_connection_id     (finance_provider_connection_id)

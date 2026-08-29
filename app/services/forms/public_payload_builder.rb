@@ -8,14 +8,7 @@ class Forms::PublicPayloadBuilder
 
   def call
     {
-      form: {
-        name: form_template.name,
-        category: form_template.category,
-        locale: form_template.settings['locale'].presence || form_template.account.locale,
-        description: form_template.settings['description'],
-        brand_name: public_brand_name,
-        theme: public_theme
-      },
+      form: form_payload,
       version: form_template_version.version_number,
       schema: public_schema
     }
@@ -24,6 +17,21 @@ class Forms::PublicPayloadBuilder
   private
 
   attr_reader :form_template, :form_template_version
+
+  def form_payload
+    {
+      name: form_template.name,
+      category: form_template.category,
+      locale: form_template.settings['locale'].presence || form_template.account.locale,
+      description: form_template.settings['description'],
+      brand_name: public_brand_name,
+      brand_logo_url: form_template.brand_logo_url || public_brand_logo_url,
+      privacy_policy_url: public_privacy_policy_url,
+      theme: public_theme,
+      captcha_provider: form_template.public_captcha_provider,
+      captcha_site_key: form_template.public_captcha_site_key
+    }
+  end
 
   def public_schema
     schema = form_template_version.schema.deep_dup
@@ -42,5 +50,23 @@ class Forms::PublicPayloadBuilder
   def public_theme
     configured_theme = form_template.settings['theme'].to_s
     PUBLIC_THEMES.include?(configured_theme) ? configured_theme : 'calm'
+  end
+
+  def public_brand_logo_url
+    public_http_url('brand_logo_url')
+  end
+
+  def public_privacy_policy_url
+    public_http_url('privacy_policy_url')
+  end
+
+  def public_http_url(setting)
+    value = form_template.settings[setting].to_s.strip
+    return if value.blank? || value.length > 2048
+
+    uri = URI.parse(value)
+    value if uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    nil
   end
 end

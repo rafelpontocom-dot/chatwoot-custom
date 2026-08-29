@@ -1,17 +1,23 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
 
 const payload = ref(null);
 const answers = ref({});
+const attachments = ref({});
 const currentSectionIndex = ref(0);
 const isLoading = ref(true);
 const isSubmitting = ref(false);
 const submitted = ref(false);
 const errorMessage = ref('');
+const brandLogoFailed = ref(false);
 const invalidFieldKey = ref('');
 const honeypot = ref('');
+const captchaToken = ref('');
+const captchaError = ref('');
+const turnstileContainer = ref(null);
 const requiredMarker = '*';
+let turnstileWidgetId = null;
 
 const appearanceThemes = {
   calm: {
@@ -19,7 +25,8 @@ const appearanceThemes = {
     card: 'border-n-slate-4 bg-n-solid-1',
     brandMark: 'bg-n-teal-3 text-n-teal-11',
     eyebrow: 'text-n-teal-11',
-    progress: 'accent-n-teal-9',
+    progressFilled: 'bg-n-teal-9',
+    progressEmpty: 'bg-n-slate-4',
     submit: 'bg-n-teal-9 hover:bg-n-teal-10 focus-visible:ring-n-teal-6',
   },
   warm: {
@@ -27,7 +34,8 @@ const appearanceThemes = {
     card: 'border-n-amber-5 bg-n-solid-1',
     brandMark: 'bg-n-amber-4 text-n-amber-11',
     eyebrow: 'text-n-amber-11',
-    progress: 'accent-n-amber-9',
+    progressFilled: 'bg-n-amber-9',
+    progressEmpty: 'bg-n-amber-5',
     submit: 'bg-n-amber-9 hover:bg-n-amber-10 focus-visible:ring-n-amber-6',
   },
   contrast: {
@@ -35,7 +43,8 @@ const appearanceThemes = {
     card: 'border-n-slate-6 bg-n-solid-1',
     brandMark: 'bg-n-slate-3 text-n-slate-12',
     eyebrow: 'text-n-slate-11',
-    progress: 'accent-n-slate-12',
+    progressFilled: 'bg-n-slate-12',
+    progressEmpty: 'bg-n-slate-5',
     submit: 'bg-n-slate-12 hover:bg-n-slate-11 focus-visible:ring-n-slate-9',
   },
 };
@@ -52,6 +61,10 @@ const translations = {
     unavailable: 'Não foi possível abrir este formulário.',
     required: 'Campo obrigatório',
     step: 'Etapa {current} de {total}',
+    signatureHint: 'Digite seu nome completo para registrar este aceite.',
+    attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por arquivo.',
+    captchaRequired: 'Conclua a verificação de segurança para enviar.',
+    privacyPolicy: 'Política de privacidade',
   },
   'pt-PT': {
     back: 'Voltar',
@@ -64,6 +77,10 @@ const translations = {
     unavailable: 'Não foi possível abrir este formulário.',
     required: 'Campo obrigatório',
     step: 'Etapa {current} de {total}',
+    signatureHint: 'Digite o seu nome completo para registar este aceite.',
+    attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por ficheiro.',
+    captchaRequired: 'Conclua a verificação de segurança para enviar.',
+    privacyPolicy: 'Política de privacidade',
   },
   default: {
     back: 'Voltar',
@@ -76,6 +93,10 @@ const translations = {
     unavailable: 'Não foi possível abrir este formulário.',
     required: 'Campo obrigatório',
     step: 'Etapa {current} de {total}',
+    signatureHint: 'Digite seu nome completo para registrar este aceite.',
+    attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por arquivo.',
+    captchaRequired: 'Conclua a verificação de segurança para enviar.',
+    privacyPolicy: 'Política de privacidade',
   },
 };
 
@@ -88,6 +109,10 @@ const appearance = computed(
 const brandName = computed(
   () => payload.value?.form?.brand_name || payload.value?.form?.name || ''
 );
+const brandLogoUrl = computed(() => payload.value?.form?.brand_logo_url || '');
+const privacyPolicyUrl = computed(
+  () => payload.value?.form?.privacy_policy_url || ''
+);
 const brandInitial = computed(() => brandName.value.trim().charAt(0) || 'R');
 const sections = computed(() => payload.value?.schema?.sections || []);
 const currentSection = computed(
@@ -96,11 +121,71 @@ const currentSection = computed(
 const isLastSection = computed(
   () => currentSectionIndex.value === sections.value.length - 1
 );
+const captchaRequired = computed(
+  () => payload.value?.form?.captcha_provider === 'turnstile'
+);
 const progressDescription = computed(() =>
   copy.value.step
     .replace('{current}', currentSectionIndex.value + 1)
     .replace('{total}', sections.value.length)
 );
+onBeforeUnmount(() => {
+  if (turnstileWidgetId !== null && window.turnstile) {
+    window.turnstile.remove(turnstileWidgetId);
+  }
+});
+
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('[data-raevo-turnstile]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.turnstile), {
+        once: true,
+      });
+      existing.addEventListener('error', reject, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src =
+      'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.defer = true;
+    script.dataset.raevoTurnstile = 'true';
+    script.addEventListener('load', () => resolve(window.turnstile), {
+      once: true,
+    });
+    script.addEventListener('error', reject, { once: true });
+    document.head.appendChild(script);
+  });
+}
+
+async function renderCaptcha() {
+  if (!captchaRequired.value || !turnstileContainer.value) return;
+
+  try {
+    const turnstile = await loadTurnstile();
+    turnstileWidgetId = turnstile.render(turnstileContainer.value, {
+      sitekey: payload.value.form.captcha_site_key,
+      callback: token => {
+        captchaToken.value = token;
+        captchaError.value = '';
+      },
+      'expired-callback': () => {
+        captchaToken.value = '';
+      },
+      'error-callback': () => {
+        captchaToken.value = '';
+        captchaError.value = copy.value.captchaRequired;
+      },
+    });
+  } catch {
+    captchaError.value = copy.value.captchaRequired;
+  }
+}
+
 onMounted(async () => {
   try {
     const response = await fetch(window.location.pathname, {
@@ -108,7 +193,10 @@ onMounted(async () => {
     });
     if (!response.ok) throw new Error('form_unavailable');
     payload.value = await response.json();
+    brandLogoFailed.value = false;
     document.title = payload.value.form.name;
+    await nextTick();
+    renderCaptcha();
   } catch {
     errorMessage.value = translations.default.unavailable;
   } finally {
@@ -130,6 +218,10 @@ function optionLabel(option) {
 
 function isRequiredMissing(field) {
   if (!field.required) return false;
+  if (field.type === 'attachment') {
+    return !attachments.value[field.key]?.length;
+  }
+
   const value = answers.value[field.key];
   return (
     value === undefined ||
@@ -165,6 +257,14 @@ function visibleFields(section) {
   return section?.fields?.filter(isFieldVisible) || [];
 }
 
+function selectedAttachments(field) {
+  return attachments.value[field.key] || [];
+}
+
+function setAttachments(field, event) {
+  attachments.value[field.key] = Array.from(event.target.files || []);
+}
+
 function validateCurrentSection() {
   const invalid = visibleFields(currentSection.value).find(isRequiredMissing);
   if (!invalid) return true;
@@ -188,22 +288,47 @@ function goBack() {
   currentSectionIndex.value -= 1;
 }
 
+const appendAnswers = formData => {
+  Object.entries(answers.value).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach(item =>
+        formData.append(`submission[answers][${key}][]`, item)
+      );
+      return;
+    }
+
+    formData.append(`submission[answers][${key}]`, value);
+  });
+};
+
+const appendAttachments = formData => {
+  Object.entries(attachments.value).forEach(([key, files]) => {
+    files.forEach(file =>
+      formData.append(`submission[attachments][${key}][]`, file)
+    );
+  });
+};
+
 async function submitForm() {
   if (!validateCurrentSection()) return;
+  if (captchaRequired.value && !captchaToken.value) {
+    errorMessage.value = captchaError.value || copy.value.captchaRequired;
+    return;
+  }
 
   isSubmitting.value = true;
   errorMessage.value = '';
   invalidFieldKey.value = '';
   try {
+    const formData = new FormData();
+    appendAnswers(formData);
+    formData.append('submission[website]', honeypot.value);
+    formData.append('submission[captcha_token]', captchaToken.value);
+    appendAttachments(formData);
     const response = await fetch(`${window.location.pathname}/respostas`, {
       method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        submission: { answers: answers.value, website: honeypot.value },
-      }),
+      headers: { Accept: 'application/json' },
+      body: formData,
     });
     const body = await response.json();
     if (!response.ok) throw new Error(body.message || 'submission_failed');
@@ -224,7 +349,15 @@ async function submitForm() {
   >
     <div class="mx-auto w-full max-w-2xl">
       <header v-if="payload" class="mb-5 flex items-center gap-3 px-1 sm:mb-6">
+        <img
+          v-if="brandLogoUrl && !brandLogoFailed"
+          :src="brandLogoUrl"
+          :alt="brandName"
+          class="size-11 shrink-0 rounded-md border border-n-slate-4 bg-n-solid-1 object-contain p-1"
+          @error="brandLogoFailed = true"
+        />
         <div
+          v-else
           class="flex size-11 shrink-0 items-center justify-center rounded-md text-base font-semibold"
           :class="appearance.brandMark"
           aria-hidden="true"
@@ -319,12 +452,25 @@ async function submitForm() {
             </p>
           </header>
 
-          <div class="mt-7 flex items-center gap-3" aria-hidden="true">
-            <progress
-              class="h-1.5 w-full overflow-hidden rounded-full"
-              :class="appearance.progress"
-              :value="currentSectionIndex + 1"
-              :max="sections.length"
+          <div
+            data-test="public-form-progress"
+            class="mt-7 flex gap-1.5"
+            role="progressbar"
+            :aria-label="progressDescription"
+            aria-valuemin="1"
+            :aria-valuenow="currentSectionIndex + 1"
+            :aria-valuemax="sections.length"
+          >
+            <span
+              v-for="step in sections.length"
+              :key="step"
+              class="h-1.5 flex-1 rounded-full"
+              :class="
+                step <= currentSectionIndex + 1
+                  ? appearance.progressFilled
+                  : appearance.progressEmpty
+              "
+              aria-hidden="true"
             />
           </div>
 
@@ -390,7 +536,7 @@ async function submitForm() {
                   </span>
                 </label>
                 <p
-                  v-if="field.help_text"
+                  v-if="field.help_text && field.type !== 'signature'"
                   :id="`${fieldId(field)}-help`"
                   class="-mt-1 mb-2 text-sm leading-5 text-n-slate-10"
                 >
@@ -434,6 +580,63 @@ async function submitForm() {
                   </option>
                 </select>
 
+                <div v-else-if="field.type === 'attachment'">
+                  <input
+                    :id="fieldId(field)"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/jpeg,image/png,image/heic,image/heif"
+                    :required="field.required"
+                    :aria-invalid="invalidFieldKey === field.key"
+                    :aria-describedby="`${fieldId(field)}-attachment-help`"
+                    class="block min-h-11 w-full cursor-pointer rounded border border-dashed border-n-slate-6 bg-n-slate-2 px-3 py-2 text-sm text-n-slate-11 file:mr-3 file:rounded file:border-0 file:bg-n-teal-3 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-n-teal-11 hover:file:bg-n-teal-4 focus:outline-none focus:ring-2 focus:ring-n-teal-6"
+                    @change="setAttachments(field, $event)"
+                  />
+                  <p
+                    :id="`${fieldId(field)}-attachment-help`"
+                    class="mt-2 text-sm leading-5 text-n-slate-10"
+                  >
+                    {{ field.help_text || copy.attachmentHint }}
+                  </p>
+                  <ul
+                    v-if="selectedAttachments(field).length"
+                    class="mt-3 space-y-1 text-sm text-n-slate-11"
+                    :aria-label="field.label"
+                  >
+                    <li
+                      v-for="file in selectedAttachments(field)"
+                      :key="`${file.name}-${file.lastModified}`"
+                      class="flex items-center gap-2"
+                    >
+                      <FluentIcon
+                        icon="document"
+                        size="16"
+                        aria-hidden="true"
+                      />
+                      <span class="min-w-0 break-all">{{ file.name }}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <template v-else-if="field.type === 'signature'">
+                  <input
+                    :id="fieldId(field)"
+                    v-model="answers[field.key]"
+                    type="text"
+                    autocomplete="name"
+                    :required="field.required"
+                    :aria-invalid="invalidFieldKey === field.key"
+                    :aria-describedby="`${fieldId(field)}-signature-help`"
+                    class="min-h-11 w-full border-x-0 border-b border-t-0 border-n-slate-8 bg-transparent px-1 py-2 font-serif text-xl italic text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-0"
+                  />
+                  <p
+                    :id="`${fieldId(field)}-signature-help`"
+                    class="mt-2 text-sm leading-5 text-n-slate-10"
+                  >
+                    {{ field.help_text || copy.signatureHint }}
+                  </p>
+                </template>
+
                 <input
                   v-else
                   :id="fieldId(field)"
@@ -465,6 +668,21 @@ async function submitForm() {
             </div>
           </div>
 
+          <div
+            v-if="captchaRequired"
+            data-test="public-form-captcha"
+            class="mt-6"
+          >
+            <div ref="turnstileContainer" />
+            <p
+              v-if="captchaError"
+              role="alert"
+              class="mt-2 text-sm text-n-ruby-11"
+            >
+              {{ captchaError }}
+            </p>
+          </div>
+
           <footer
             class="mt-9 flex items-center justify-between gap-3 border-t border-n-slate-4 pt-5"
           >
@@ -486,6 +704,16 @@ async function submitForm() {
               {{ isLastSection ? copy.submit : copy.continue }}
             </button>
           </footer>
+          <a
+            v-if="privacyPolicyUrl"
+            data-test="public-form-privacy-policy"
+            :href="privacyPolicyUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="mt-5 inline-flex text-sm font-medium text-n-teal-11 underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+          >
+            {{ copy.privacyPolicy }}
+          </a>
         </form>
       </div>
     </div>

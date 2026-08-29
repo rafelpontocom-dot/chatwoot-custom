@@ -56,6 +56,23 @@ RSpec.describe 'Public form templates API', type: :request do
     expect(contact.custom_attributes).to include('origem' => 'Google')
   end
 
+  it 'normalizes a Brazilian phone number supplied without country code' do
+    template.update!(settings: { 'locale' => 'pt_BR' })
+    phone_version = template.publish!(schema: phone_schema)
+
+    post "#{public_path}/respostas",
+         params: {
+           submission: {
+             answers: { nome: 'Pedro Raevo', telefone: '(11) 99999-9999' }
+           }
+         },
+         as: :json
+
+    expect(response).to have_http_status(:created)
+    expect(FormSubmission.last).to have_attributes(form_template_version: phone_version)
+    expect(FormSubmission.last.contact).to have_attributes(phone_number: '+5511999999999')
+  end
+
   it 'does not expose a sensitive-health form through a general public link' do
     template.update!(public_enabled: false, access_classification: 'sensitive_health')
 
@@ -68,6 +85,8 @@ RSpec.describe 'Public form templates API', type: :request do
     template.update!(settings: {
                        'brand_name' => 'Clínica Raevo',
                        'theme' => 'warm',
+                       'brand_logo_url' => 'https://cdn.raevo.io/clinica.svg',
+                       'privacy_policy_url' => 'https://clinica.raevo.io/privacidade',
                        'internal_note' => 'never expose this'
                      })
     version
@@ -77,9 +96,65 @@ RSpec.describe 'Public form templates API', type: :request do
     expect(response).to have_http_status(:success)
     expect(response.parsed_body['form']).to include(
       'brand_name' => 'Clínica Raevo',
-      'theme' => 'warm'
+      'theme' => 'warm',
+      'brand_logo_url' => 'https://cdn.raevo.io/clinica.svg',
+      'privacy_policy_url' => 'https://clinica.raevo.io/privacidade'
     )
     expect(response.parsed_body.to_s).not_to include('internal_note')
+  end
+
+  it 'prefers an uploaded brand logo over an external appearance URL' do
+    template.brand_logo.attach(
+      io: File.open(Rails.root.join('spec/assets/avatar.png')),
+      filename: 'clinica.png',
+      content_type: 'image/png'
+    )
+    template.update!(settings: { 'brand_logo_url' => 'https://cdn.raevo.io/old-logo.svg' })
+    version
+
+    get public_path, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body.dig('form', 'brand_logo_url')).to start_with('/rails/active_storage/blobs/')
+  end
+
+  it 'requires a valid Turnstile response when the public form enables it' do
+    template.update!(settings: {
+                       'captcha_provider' => 'turnstile',
+                       'captcha_site_key' => 'turnstile-public-key'
+                     })
+    version
+    verifier = instance_double(Forms::TurnstileVerificationService, valid?: true)
+    allow(Forms::TurnstileVerificationService).to receive(:new).and_return(verifier)
+
+    post "#{public_path}/respostas",
+         params: {
+           submission: {
+             answers: { nome: 'Pedro Raevo', email: 'pedro@raevo.io', aceite: true },
+             captcha_token: 'verified-token'
+           }
+         },
+         as: :json
+
+    expect(response).to have_http_status(:created)
+    expect(Forms::TurnstileVerificationService).to have_received(:new).with(
+      token: 'verified-token',
+      remote_ip: kind_of(String)
+    )
+  end
+
+  it 'rejects a public form submission without the configured Turnstile response' do
+    template.update!(settings: {
+                       'captcha_provider' => 'turnstile',
+                       'captcha_site_key' => 'turnstile-public-key'
+                     })
+    version
+
+    post "#{public_path}/respostas",
+         params: { submission: { answers: { nome: 'Pedro Raevo', email: 'pedro@raevo.io', aceite: true } } },
+         as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
   end
 
   private
@@ -106,6 +181,23 @@ RSpec.describe 'Public form templates API', type: :request do
       'name' => 'nome',
       'email' => 'email',
       'custom_attributes' => { 'origem' => 'origem' }
+    }
+  end
+
+  def phone_schema
+    {
+      'crm_mapping' => {
+        'contact' => { 'name' => 'nome', 'phone_number' => 'telefone' }
+      },
+      'sections' => [
+        {
+          'key' => 'identificacao',
+          'fields' => [
+            { 'key' => 'nome', 'type' => 'text', 'label' => 'Nome', 'required' => true },
+            { 'key' => 'telefone', 'type' => 'phone', 'label' => 'Telefone', 'required' => true }
+          ]
+        }
+      ]
     }
   end
 end

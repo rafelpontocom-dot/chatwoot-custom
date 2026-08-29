@@ -25,6 +25,7 @@ const tailwindConfig = {
     './enterprise/app/views/**/*.erb',
     './app/javascript/widget/**/*.vue',
     './app/javascript/v3/**/*.vue',
+    './app/javascript/public_form/**/*.vue',
     './app/javascript/dashboard/**/*.vue',
     './app/javascript/portal/**/*.vue',
     './app/javascript/shared/**/*.vue',

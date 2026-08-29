@@ -22,6 +22,16 @@ class FormsAPI extends ApiClient {
     return axios.patch(`${this.url}/templates/${id}`, payload);
   }
 
+  uploadTemplateLogo(id, file) {
+    const payload = new FormData();
+    payload.append('form_template[brand_logo]', file);
+    return axios.post(`${this.url}/templates/${id}/logo`, payload);
+  }
+
+  removeTemplateLogo(id) {
+    return axios.delete(`${this.url}/templates/${id}/logo`);
+  }
+
   publishTemplate(id, schema) {
     return axios.post(`${this.url}/templates/${id}/publish`, {
       form_template: { schema },
@@ -40,12 +50,37 @@ class FormsAPI extends ApiClient {
     return axios.post(`${this.url}/templates/${id}/invitations`, payload);
   }
 
+  getFieldGroups() {
+    return axios.get(`${this.url}/field_groups`);
+  }
+
+  createFieldGroup(payload) {
+    return axios.post(`${this.url}/field_groups`, payload);
+  }
+
+  deleteFieldGroup(id) {
+    return axios.delete(`${this.url}/field_groups/${id}`);
+  }
+
   getSubmissions() {
     return axios.get(`${this.url}/submissions`);
   }
 
   getSubmission(id) {
     return axios.get(`${this.url}/submissions/${id}`);
+  }
+
+  downloadSubmissionExport(id) {
+    return axios.get(`${this.url}/submissions/${id}/export`, {
+      responseType: 'blob',
+    });
+  }
+
+  downloadSubmissionAttachment(submissionId, attachmentId) {
+    return axios.get(
+      `${this.url}/submissions/${submissionId}/attachments/${attachmentId}`,
+      { responseType: 'blob' }
+    );
   }
 
   getCardContext(kanbanCardId) {

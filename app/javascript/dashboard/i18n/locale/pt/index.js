@@ -7,6 +7,8 @@ import automation from './automation.json';
 import bulkActions from './bulkActions.json';
 import campaign from './campaign.json';
 import calendar from '../pt_BR/calendar.json';
+import finance from '../pt_BR/finance.json';
+import forms from '../pt_BR/forms.json';
 import cannedMgmt from './cannedMgmt.json';
 import chatlist from './chatlist.json';
 import companies from './companies.json';
@@ -51,6 +53,7 @@ export default {
   ...bulkActions,
   ...campaign,
   ...calendar,
+  ...finance,
   ...cannedMgmt,
   ...chatlist,
   ...companies,
@@ -64,6 +67,7 @@ export default {
   ...emoji,
   ...general,
   ...generalSettings,
+  FORMS: { ...generalSettings.FORMS, ...forms.FORMS },
   ...helpCenter,
   ...inbox,
   ...inboxMgmt,

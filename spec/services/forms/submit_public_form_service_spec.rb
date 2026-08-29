@@ -189,6 +189,64 @@ RSpec.describe Forms::SubmitPublicFormService do
     ).perform!
   end
 
+  it 'stores a permitted document with a clinical anamnese submission' do
+    with_modified_env 'ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY' => 'forms-test-encryption-key' do
+      clinical_template = FormTemplate.create!(
+        account: account,
+        name: 'Anamnese com exame',
+        slug: 'anamnese-com-exame',
+        category: 'clinical',
+        access_classification: 'sensitive_health'
+      )
+      clinical_version = clinical_template.publish!(schema: clinical_schema)
+      clinical_invitation = Forms::CreateInvitationService.new(
+        account: account,
+        form_template_version: clinical_version,
+        contact: contact
+      ).perform.invitation
+
+      submission = described_class.new(
+        invitation: clinical_invitation,
+        answers: { 'alergias' => 'Penicilina', 'consentimento_clinico' => true },
+        attachments: { 'exames' => [uploaded_pdf] }
+      ).perform!
+
+      expect(submission.clinical_attachments).to be_attached
+      expect(submission.clinical_attachments.first.filename.to_s).to eq('exame.pdf')
+      expect(submission.answers).to eq({})
+      expect(clinical_invitation.reload).to be_consumed
+    end
+  end
+
+  it 'does not consume an anamnese invitation when the attachment type is not allowed' do
+    with_modified_env 'ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY' => 'forms-test-encryption-key' do
+      clinical_template = FormTemplate.create!(
+        account: account,
+        name: 'Anamnese com documento',
+        slug: 'anamnese-com-documento',
+        category: 'clinical',
+        access_classification: 'sensitive_health'
+      )
+      clinical_version = clinical_template.publish!(schema: clinical_schema)
+      clinical_invitation = Forms::CreateInvitationService.new(
+        account: account,
+        form_template_version: clinical_version,
+        contact: contact
+      ).perform.invitation
+
+      expect do
+        described_class.new(
+          invitation: clinical_invitation,
+          answers: { 'alergias' => 'Penicilina', 'consentimento_clinico' => true },
+          attachments: { 'exames' => [uploaded_text_file] }
+        ).perform!
+      end.to raise_error(ActiveRecord::RecordInvalid, /arquivo permitido/)
+
+      expect(clinical_invitation.reload).to be_active
+      expect(FormSubmission).not_to exist
+    end
+  end
+
   private
 
   def schema
@@ -217,5 +275,41 @@ RSpec.describe Forms::SubmitPublicFormService do
         }
       ]
     }
+  end
+
+  def clinical_schema
+    {
+      'sections' => [
+        {
+          'key' => 'saude',
+          'fields' => [
+            { 'key' => 'alergias', 'type' => 'textarea', 'label' => 'Alergias', 'required' => true },
+            { 'key' => 'exames', 'type' => 'attachment', 'label' => 'Exames recentes', 'required' => true },
+            {
+              'key' => 'consentimento_clinico',
+              'type' => 'consent',
+              'label' => 'Autorizo o tratamento dos dados de saúde para atendimento',
+              'required' => true
+            }
+          ]
+        }
+      ]
+    }
+  end
+
+  def uploaded_pdf
+    uploaded_file('exame.pdf', 'application/pdf', '%PDF-1.4 exame')
+  end
+
+  def uploaded_text_file
+    uploaded_file('anotacao.txt', 'text/plain', 'anotação')
+  end
+
+  def uploaded_file(filename, content_type, content)
+    tempfile = Tempfile.new(File.basename(filename, '.*'))
+    tempfile.binmode
+    tempfile.write(content)
+    tempfile.rewind
+    ActionDispatch::Http::UploadedFile.new(tempfile: tempfile, filename: filename, type: content_type)
   end
 end

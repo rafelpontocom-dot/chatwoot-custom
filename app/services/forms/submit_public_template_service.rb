@@ -59,6 +59,7 @@ class Forms::SubmitPublicTemplateService
       attributes = contact_mapping.slice(*CONTACT_FIELDS).filter_map do |attribute, answer_key|
         [attribute, answer_value(answer_key)] if answer_value(answer_key).present?
       end.to_h.symbolize_keys
+      attributes[:phone_number] = normalized_phone_number(attributes[:phone_number]) if attributes[:phone_number]
       invalid_submission!('O formulário público precisa mapear nome e e-mail ou telefone') unless valid_contact_attributes?(attributes)
       attributes
     end
@@ -91,6 +92,13 @@ class Forms::SubmitPublicTemplateService
 
   def answer_value(key)
     permitted_answers[key.to_s]
+  end
+
+  def normalized_phone_number(phone_number)
+    Forms::PhoneNumberNormalizer.new(
+      phone_number: phone_number,
+      locale: form_template.settings['locale'].presence || form_template.account.locale
+    ).call
   end
 
   def invalid_submission!(message)

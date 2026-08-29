@@ -20,7 +20,8 @@
 #
 #  index_finance_payment_events_on_account_id                      (account_id)
 #  index_finance_payment_events_on_actor_id                        (actor_id)
-#  unique provider event index (finance_provider_connection_id, provider_event_id)
+#  index_finance_payment_events_on_connection_and_provider_event
+#    (finance_provider_connection_id,provider_event_id) UNIQUE WHERE (provider_event_id IS NOT NULL)
 #  index_finance_payment_events_on_finance_payment_id              (finance_payment_id)
 #  index_finance_payment_events_on_finance_provider_connection_id  (finance_provider_connection_id)
 #

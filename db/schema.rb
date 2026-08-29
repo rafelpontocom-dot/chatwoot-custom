@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_28_141000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_28_150000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1032,6 +1032,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_28_141000) do
     t.index ["actor_id"], name: "index_form_access_audits_on_actor_id"
     t.index ["form_submission_id", "occurred_at"], name: "index_form_access_audits_on_form_submission_id_and_occurred_at"
     t.index ["form_submission_id"], name: "index_form_access_audits_on_form_submission_id"
+  end
+
+  create_table "form_field_groups", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.jsonb "section", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_form_field_groups_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_form_field_groups_on_account_id"
   end
 
   create_table "form_invitations", force: :cascade do |t|
@@ -2218,6 +2228,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_28_141000) do
   add_foreign_key "form_access_audits", "accounts"
   add_foreign_key "form_access_audits", "form_submissions"
   add_foreign_key "form_access_audits", "users", column: "actor_id"
+  add_foreign_key "form_field_groups", "accounts"
   add_foreign_key "form_invitations", "accounts"
   add_foreign_key "form_invitations", "contacts"
   add_foreign_key "form_invitations", "form_template_versions"

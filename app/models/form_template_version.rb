@@ -61,7 +61,11 @@ class FormTemplateVersion < ApplicationRecord
   end
 
   def schema_has_sections
-    validator = Forms::SchemaValidator.new(schema)
+    validator = Forms::SchemaValidator.new(
+      schema,
+      require_public_contact_mapping: form_template&.public_enabled? && !form_template.sensitive_health?,
+      allow_attachments: form_template&.sensitive_health?
+    )
     return if validator.valid?
 
     validator.errors.each { |error| errors.add(:schema, error) }

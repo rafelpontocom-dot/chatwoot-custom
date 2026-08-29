@@ -17,11 +17,16 @@ RSpec.describe Forms::DuplicateTemplateService do
   before do
     source.publish!(
       schema: {
-        'crm_mapping' => { 'contact' => { 'name' => 'nome' } },
+        'crm_mapping' => {
+          'contact' => { 'name' => 'nome', 'phone_number' => 'telefone' }
+        },
         'sections' => [
           {
             'key' => 'dados',
-            'fields' => [{ 'key' => 'nome', 'label' => 'Nome', 'type' => 'text' }]
+            'fields' => [
+              { 'key' => 'nome', 'label' => 'Nome', 'type' => 'text' },
+              { 'key' => 'telefone', 'label' => 'Telefone', 'type' => 'phone' }
+            ]
           }
         ]
       }

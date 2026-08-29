@@ -1,6 +1,6 @@
 class Forms::SchemaValidator
   FIELD_TYPES = %w[
-    text textarea email phone number currency date datetime select multi_select checkbox consent hidden
+    text textarea email phone number currency date datetime select multi_select checkbox consent signature attachment hidden
   ].freeze
   SELECTION_TYPES = %w[select multi_select].freeze
   OPPORTUNITY_POLICIES = %w[create_new reuse_open].freeze
@@ -8,8 +8,10 @@ class Forms::SchemaValidator
 
   attr_reader :errors
 
-  def initialize(schema)
-    @schema = schema.to_h
+  def initialize(schema = nil, require_public_contact_mapping: false, allow_attachments: false, **schema_keywords)
+    @schema = (schema || schema_keywords).to_h
+    @require_public_contact_mapping = require_public_contact_mapping
+    @allow_attachments = allow_attachments
     @errors = []
   end
 
@@ -33,6 +35,7 @@ class Forms::SchemaValidator
     validate_condition_references(field_keys)
     validate_crm_destination
     validate_opportunity_mapping(field_keys)
+    validate_public_contact_mapping(field_keys)
   end
 
   def validate_section(section, section_keys, field_keys)
@@ -59,8 +62,15 @@ class Forms::SchemaValidator
 
     errors << 'field keys must be unique' if field_keys.include?(key)
     field_keys << key
+    validate_attachment_field(type)
     errors << 'selection fields must include options' if SELECTION_TYPES.include?(type) && invalid_options?(field['options'])
     validate_condition(field)
+  end
+
+  def validate_attachment_field(type)
+    return unless type == 'attachment' && !@allow_attachments
+
+    errors << 'attachment fields require a private clinical form'
   end
 
   def invalid_options?(options)
@@ -117,5 +127,19 @@ class Forms::SchemaValidator
     end
     errors << 'opportunity mapping must reference published fields' unless entries_are_valid
     errors << 'opportunity mapping requires a CRM destination' if @schema['crm_destination'].blank?
+  end
+
+  def validate_public_contact_mapping(field_keys)
+    return unless @require_public_contact_mapping
+
+    contact_mapping = @schema.dig('crm_mapping', 'contact').to_h
+    mapped_name = contact_mapping['name'].to_s
+    mapped_email = contact_mapping['email'].to_s
+    mapped_phone = contact_mapping['phone_number'].to_s
+    has_name = field_keys.include?(mapped_name)
+    has_contact_method = field_keys.include?(mapped_email) || field_keys.include?(mapped_phone)
+    return if has_name && has_contact_method
+
+    errors << 'public forms require contact mapping for name and email or phone'
   end
 end

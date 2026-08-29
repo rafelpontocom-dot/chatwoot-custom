@@ -36,6 +36,7 @@
 #
 class FormSubmission < ApplicationRecord
   STATUSES = %w[submitted discarded].freeze
+  CONSENT_FIELD_TYPES = %w[consent signature].freeze
 
   belongs_to :account
   belongs_to :form_template_version
@@ -43,6 +44,7 @@ class FormSubmission < ApplicationRecord
   belongs_to :contact, optional: true
   belongs_to :kanban_card, optional: true
   has_many :form_access_audits, dependent: :restrict_with_exception
+  has_many_attached :clinical_attachments
 
   enum :status, STATUSES.index_by(&:itself), validate: true
 
@@ -108,7 +110,9 @@ class FormSubmission < ApplicationRecord
     summary_payload.merge(
       version_number: form_template_version.version_number,
       answers: sensitive_answers,
-      fields: response_fields
+      fields: response_fields,
+      consent_snapshot: consent_snapshot,
+      attachments: clinical_attachment_payload
     )
   end
 
@@ -124,13 +128,48 @@ class FormSubmission < ApplicationRecord
   def response_fields
     form_template_version.schema.fetch('sections', []).flat_map do |section|
       section.fetch('fields', []).filter_map do |field|
-        field.slice('key', 'label', 'type') unless field['type'] == 'hidden'
+        next if field['type'] == 'hidden'
+
+        field.slice('key', 'label', 'type').merge('section_title' => section['title'])
       end
     end
   end
 
+  def consent_snapshot
+    return [] unless sensitive_health_form?
+
+    answers = sensitive_answers
+    form_template_version.schema.fetch('sections', []).flat_map do |section|
+      section.fetch('fields', []).filter_map do |field|
+        next unless CONSENT_FIELD_TYPES.include?(field['type'])
+
+        value = answers[field['key']]
+        next if value.blank? || value == false
+
+        {
+          key: field['key'],
+          label: field['label'],
+          type: field['type'],
+          value: value,
+          recorded_at: submitted_at
+        }
+      end
+    end
+  end
+
+  def clinical_attachment_payload
+    clinical_attachments.map do |attachment|
+      {
+        id: attachment.id,
+        filename: attachment.filename.to_s,
+        content_type: attachment.content_type,
+        byte_size: attachment.byte_size
+      }
+    end
+  end
+
   def sensitive_answers_are_separated
-    return unless sensitive_health_form?
+    return unless sensitive_health_form? && !discarded?
 
     errors.add(:answers, 'must be empty for sensitive health forms') if answers.present?
     errors.add(:sensitive_answers_ciphertext, 'must be present for sensitive health forms') if sensitive_answers_ciphertext.blank?

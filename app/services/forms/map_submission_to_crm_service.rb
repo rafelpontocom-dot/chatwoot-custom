@@ -27,19 +27,40 @@ class Forms::MapSubmissionToCrmService
   end
 
   def mapped_contact_attributes
-    mapped_fields = contact_mapping.slice(*CONTACT_FIELDS).filter_map do |attribute, answer_key|
-      [attribute, answer_value(answer_key)] if answer_value(answer_key).present?
-    end.to_h
-
-    custom_attributes = contact_mapping.fetch('custom_attributes', {}).filter_map do |attribute, answer_key|
-      [attribute, answer_value(answer_key)] if answer_value(answer_key).present?
-    end.to_h
-    mapped_fields[:custom_attributes] = contact.custom_attributes.merge(custom_attributes) if custom_attributes.present?
+    mapped_fields = mapped_answers_for(contact_mapping.slice(*CONTACT_FIELDS))
+    normalize_phone_number!(mapped_fields)
+    append_custom_attributes!(mapped_fields)
     mapped_fields
+  end
+
+  def mapped_answers_for(mapping)
+    mapping.filter_map do |attribute, answer_key|
+      [attribute, answer_value(answer_key)] if answer_value(answer_key).present?
+    end.to_h
+  end
+
+  def normalize_phone_number!(mapped_fields)
+    return unless mapped_fields['phone_number']
+
+    mapped_fields['phone_number'] = Forms::PhoneNumberNormalizer.new(
+      phone_number: mapped_fields['phone_number'],
+      locale: form_template.settings['locale'].presence || submission.account.locale
+    ).call
+  end
+
+  def append_custom_attributes!(mapped_fields)
+    custom_attributes = mapped_answers_for(contact_mapping.fetch('custom_attributes', {}))
+    return if custom_attributes.blank?
+
+    mapped_fields[:custom_attributes] = contact.custom_attributes.merge(custom_attributes)
   end
 
   def contact_mapping
     submission.form_template_version.schema.fetch('crm_mapping', {}).fetch('contact', {}).to_h
+  end
+
+  def form_template
+    submission.form_template_version.form_template
   end
 
   def answer_value(key)

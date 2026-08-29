@@ -5,6 +5,7 @@ class Internal::TriggerDailyScheduledItemsJob < ApplicationJob
     # Schedule daily deferred jobs here so each installation can spread load
     # across the day without changing its slot on deploys or restarts.
     schedule_version_check
+    schedule_clinical_retention
   end
 
   private
@@ -15,8 +16,18 @@ class Internal::TriggerDailyScheduledItemsJob < ApplicationJob
     Internal::CheckNewVersionsJob.set(wait_until: version_check_run_at).perform_later
   end
 
+  def schedule_clinical_retention
+    return unless Rails.env.production?
+
+    Forms::ProcessClinicalRetentionJob.set(wait_until: retention_run_at).perform_later
+  end
+
   def version_check_run_at
     Time.current.utc.beginning_of_day + designated_minute.minutes
+  end
+
+  def retention_run_at
+    Time.current.utc.beginning_of_day + ((designated_minute + 30) % 1440).minutes
   end
 
   def designated_minute

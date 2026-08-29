@@ -68,6 +68,35 @@ RSpec.describe 'Public forms API', type: :request do
     end
   end
 
+  it 'accepts a permitted clinical document through an individual invitation' do
+    with_modified_env 'ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY' => 'forms-test-encryption-key' do
+      clinical_template = FormTemplate.create!(
+        account: account,
+        name: 'Anamnese com documento',
+        slug: 'anamnese-com-documento',
+        category: 'clinical',
+        access_classification: 'sensitive_health'
+      )
+      clinical_version = clinical_template.publish!(schema: clinical_schema_with_attachment)
+      invitation = Forms::CreateInvitationService.new(
+        account: account,
+        form_template_version: clinical_version,
+        contact: contact
+      ).perform
+
+      post "/formularios/convites/#{invitation.token}/respostas",
+           params: {
+             submission: {
+               answers: { alergias: 'Penicilina', consentimento_clinico: true },
+               attachments: { exames: [uploaded_pdf] }
+             }
+           }
+
+      expect(response).to have_http_status(:created)
+      expect(FormSubmission.last.clinical_attachments).to be_attached
+    end
+  end
+
   it 'renders the immutable version selected by the invitation' do
     invitation_result
     template.publish!(
@@ -169,5 +198,29 @@ RSpec.describe 'Public forms API', type: :request do
         }
       ]
     }
+  end
+
+  def clinical_schema_with_attachment
+    clinical_schema.deep_merge(
+      'sections' => [
+        {
+          'key' => 'saude',
+          'fields' => [
+            { 'key' => 'alergias', 'type' => 'textarea', 'label' => 'Alergias', 'required' => true },
+            { 'key' => 'exames', 'type' => 'attachment', 'label' => 'Exames recentes', 'required' => true },
+            {
+              'key' => 'consentimento_clinico',
+              'type' => 'consent',
+              'label' => 'Autorizo o tratamento dos dados de saúde para atendimento',
+              'required' => true
+            }
+          ]
+        }
+      ]
+    )
+  end
+
+  def uploaded_pdf
+    fixture_file_upload(Rails.root.join('spec/assets/sample.pdf'), 'application/pdf')
   end
 end

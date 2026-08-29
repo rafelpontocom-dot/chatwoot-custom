@@ -7,10 +7,12 @@ RSpec.describe Internal::TriggerDailyScheduledItemsJob do
   let(:designated_minute) { Digest::MD5.hexdigest(installation_id).hex % 1440 }
   let(:scheduled_time) { Time.current.utc.beginning_of_day + designated_minute.minutes }
   let(:configured_job) { instance_double(ActiveJob::ConfiguredJob, perform_later: true) }
+  let(:retention_configured_job) { instance_double(ActiveJob::ConfiguredJob, perform_later: true) }
 
   before do
     allow(ChatwootHub).to receive(:installation_identifier).and_return(installation_id)
     allow(Internal::CheckNewVersionsJob).to receive(:set).and_return(configured_job)
+    allow(Forms::ProcessClinicalRetentionJob).to receive(:set).and_return(retention_configured_job)
   end
 
   it 'enqueues the job' do
@@ -35,5 +37,16 @@ RSpec.describe Internal::TriggerDailyScheduledItemsJob do
     perform_job
 
     expect(Internal::CheckNewVersionsJob).not_to have_received(:set)
+    expect(Forms::ProcessClinicalRetentionJob).not_to have_received(:set)
+  end
+
+  it 'schedules clinical retention at a stable time in production' do
+    allow(Rails.env).to receive(:production?).and_return(true)
+    retention_time = Time.current.utc.beginning_of_day + ((designated_minute + 30) % 1440).minutes
+
+    perform_job
+
+    expect(Forms::ProcessClinicalRetentionJob).to have_received(:set).with(wait_until: retention_time)
+    expect(retention_configured_job).to have_received(:perform_later)
   end
 end

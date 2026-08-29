@@ -58,6 +58,49 @@ RSpec.describe 'Form templates API', type: :request do
     expect(response.parsed_body.first).not_to include('schema')
   end
 
+  it 'uploads a validated brand logo for a template' do
+    template = FormTemplate.create!(
+      account: account,
+      name: 'Pré-consulta',
+      slug: 'pre-consulta-logo',
+      category: 'pre_consultation',
+      access_classification: 'commercial'
+    )
+
+    post "#{templates_path}/#{template.id}/logo",
+         headers: administrator.create_new_auth_token,
+         params: {
+           form_template: {
+             brand_logo: fixture_file_upload(Rails.root.join('spec/assets/avatar.png'), 'image/png')
+           }
+         }
+
+    expect(response).to have_http_status(:success)
+    expect(template.reload.brand_logo).to be_attached
+    expect(response.parsed_body.fetch('brand_logo_url')).to start_with('/rails/active_storage/blobs/')
+  end
+
+  it 'removes an uploaded brand logo without changing the template settings' do
+    template = FormTemplate.create!(
+      account: account,
+      name: 'Pré-consulta',
+      slug: 'pre-consulta-logo-removivel',
+      category: 'pre_consultation',
+      access_classification: 'commercial',
+      settings: { 'brand_logo_url' => 'https://assets.example.test/logo.svg' }
+    )
+    template.brand_logo.attach(
+      io: StringIO.new('logo'), filename: 'logo.png', content_type: 'image/png'
+    )
+
+    delete "#{templates_path}/#{template.id}/logo", headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(template.reload.brand_logo).not_to be_attached
+    expect(response.parsed_body.fetch('brand_logo_url')).to be_nil
+    expect(template.settings.fetch('brand_logo_url')).to eq('https://assets.example.test/logo.svg')
+  end
+
   it 'duplicates a published template as a private reusable copy' do
     template = FormTemplate.create!(
       account: account,
@@ -140,10 +183,16 @@ RSpec.describe 'Form templates API', type: :request do
 
   def schema
     {
+      crm_mapping: {
+        contact: { name: 'nome', phone_number: 'telefone' }
+      },
       sections: [
         {
           key: 'identificacao',
-          fields: [{ key: 'nome', type: 'text', label: 'Nome completo' }]
+          fields: [
+            { key: 'nome', type: 'text', label: 'Nome completo' },
+            { key: 'telefone', type: 'phone', label: 'Telefone' }
+          ]
         }
       ]
     }

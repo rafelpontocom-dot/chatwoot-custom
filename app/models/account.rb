@@ -113,6 +113,7 @@ class Account < ApplicationRecord
   has_many :finance_payments, dependent: :destroy_async
   has_many :finance_payment_events, dependent: :destroy_async
   has_many :form_templates, dependent: :destroy_async
+  has_many :form_field_groups, dependent: :destroy_async
   has_many :form_submissions, dependent: :destroy_async
 
   has_one_attached :contacts_export

@@ -30,11 +30,16 @@
 class FormTemplate < ApplicationRecord
   CATEGORIES = %w[lead_capture pre_consultation clinical consent other].freeze
   ACCESS_CLASSIFICATIONS = %w[commercial restricted sensitive_health].freeze
+  BRAND_LOGO_CONTENT_TYPES = %w[image/jpeg image/png image/webp].freeze
+  BRAND_LOGO_MAX_SIZE = 2.megabytes
+
+  include Rails.application.routes.url_helpers
 
   belongs_to :account
   belongs_to :active_version, class_name: 'FormTemplateVersion', optional: true
 
   has_many :form_template_versions, dependent: :destroy
+  has_one_attached :brand_logo
 
   validates :name, :slug, presence: true
   validates :slug, uniqueness: { scope: :account_id }
@@ -44,6 +49,11 @@ class FormTemplate < ApplicationRecord
   validates :access_classification, inclusion: { in: ACCESS_CLASSIFICATIONS }
   validate :active_version_belongs_to_template
   validate :sensitive_health_not_public
+  validate :public_form_contact_mapping
+  validate :clinical_access_belongs_to_account
+  validate :clinical_retention_is_valid
+  validate :public_captcha_is_valid
+  validate :brand_logo_is_valid
   before_validation :assign_public_token
   before_destroy :clear_active_version, prepend: true
 
@@ -64,6 +74,35 @@ class FormTemplate < ApplicationRecord
     access_classification == 'sensitive_health'
   end
 
+  def clinical_retention_days
+    return unless sensitive_health?
+
+    Integer(settings&.fetch('clinical_retention_days', nil), exception: false)
+  end
+
+  def public_captcha_provider
+    settings&.fetch('captcha_provider', nil).presence
+  end
+
+  def public_captcha_site_key
+    settings&.fetch('captcha_site_key', nil).to_s.strip.presence
+  end
+
+  def clinical_access_user_ids
+    clinical_access_ids('user_ids')
+  end
+
+  def clinical_access_team_ids
+    clinical_access_ids('team_ids')
+  end
+
+  def clinically_accessible_to?(user)
+    return false unless sensitive_health? && user.present?
+    return true if clinical_access_user_ids.include?(user.id)
+
+    user.teams.where(account_id: account_id).exists?(id: clinical_access_team_ids)
+  end
+
   def admin_payload
     {
       id: id,
@@ -73,11 +112,18 @@ class FormTemplate < ApplicationRecord
       access_classification: access_classification,
       public_enabled: public_enabled,
       public_token: public_token,
+      brand_logo_url: brand_logo_url,
       settings: settings,
       active_version: active_version&.admin_payload,
       created_at: created_at,
       updated_at: updated_at
     }
+  end
+
+  def brand_logo_url
+    return unless brand_logo.attached?
+
+    rails_blob_path(brand_logo, only_path: true)
   end
 
   private
@@ -100,6 +146,58 @@ class FormTemplate < ApplicationRecord
     return unless sensitive_health? && public_enabled?
 
     errors.add(:public_enabled, 'cannot be enabled for sensitive health forms')
+  end
+
+  def public_form_contact_mapping
+    return unless public_enabled? && active_version.present? && !sensitive_health?
+
+    validator = Forms::SchemaValidator.new(
+      active_version.schema,
+      require_public_contact_mapping: true
+    )
+    return if validator.valid?
+
+    validator.errors.each { |error| errors.add(:active_version, error) }
+  end
+
+  def clinical_access_belongs_to_account
+    return unless sensitive_health?
+
+    invalid_users = clinical_access_user_ids - account.users.where(id: clinical_access_user_ids).pluck(:id)
+    invalid_teams = clinical_access_team_ids - account.teams.where(id: clinical_access_team_ids).pluck(:id)
+
+    errors.add(:settings, 'contains a user outside this account') if invalid_users.any?
+    errors.add(:settings, 'contains a team outside this account') if invalid_teams.any?
+  end
+
+  def clinical_retention_is_valid
+    return unless sensitive_health?
+    return if settings&.fetch('clinical_retention_days', nil).blank?
+    return if clinical_retention_days.to_i.positive?
+
+    errors.add(:settings, 'clinical retention must be at least one day')
+  end
+
+  def public_captcha_is_valid
+    return if public_captcha_provider.blank?
+
+    errors.add(:settings, 'captcha provider is invalid') unless public_captcha_provider == 'turnstile'
+    errors.add(:settings, 'captcha site key is required') if public_captcha_site_key.blank?
+  end
+
+  def brand_logo_is_valid
+    return unless brand_logo.attached?
+
+    errors.add(:brand_logo, 'is too big') if brand_logo.byte_size > BRAND_LOGO_MAX_SIZE
+    return if BRAND_LOGO_CONTENT_TYPES.include?(brand_logo.content_type)
+
+    errors.add(:brand_logo, 'filetype not supported')
+  end
+
+  def clinical_access_ids(key)
+    Array(settings&.dig('clinical_access', key)).filter_map do |value|
+      Integer(value, exception: false)
+    end.uniq
   end
 
   def clear_active_version

@@ -41,6 +41,29 @@ RSpec.describe Forms::AnswersValidator do
     expect(validator).to be_valid
   end
 
+  it 'accepts a typed visual acceptance signature' do
+    validator = described_class.new(
+      schema: {
+        'sections' => [
+          {
+            'key' => 'aceite',
+            'fields' => [
+              {
+                'key' => 'assinatura_paciente',
+                'type' => 'signature',
+                'label' => 'Digite seu nome',
+                'required' => true
+              }
+            ]
+          }
+        ]
+      },
+      answers: { assinatura_paciente: 'Pedro Raevo' }
+    )
+
+    expect(validator).to be_valid
+  end
+
   it 'returns only visible non-hidden answers for persistence' do
     validator = described_class.new(
       schema: {

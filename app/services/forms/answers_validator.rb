@@ -11,13 +11,13 @@ class Forms::AnswersValidator
     return errors.empty? if @validated
 
     @validated = true
-    visible_fields.each { |field| validate_field(field) }
+    answer_fields.each { |field| validate_field(field) }
     errors.empty?
   end
 
   def permitted_answers
     valid?
-    visible_fields.each_with_object({}) do |field, result|
+    answer_fields.each_with_object({}) do |field, result|
       key = field.fetch('key')
       result[key] = @answers[key] if @answers.key?(key)
     end
@@ -31,6 +31,10 @@ class Forms::AnswersValidator
 
   def visible_fields
     fields.select { |field| field['type'] != 'hidden' && visible?(field) }
+  end
+
+  def answer_fields
+    visible_fields.reject { |field| field['type'] == 'attachment' }
   end
 
   def validate_field(field)

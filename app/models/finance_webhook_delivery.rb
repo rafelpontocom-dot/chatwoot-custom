@@ -22,7 +22,8 @@
 #  index_finance_webhook_deliveries_for_connection_status     (finance_provider_connection_id,processing_status,received_at)
 #  index_finance_webhook_deliveries_on_account_id             (account_id)
 #  index_finance_webhook_deliveries_on_connection_and_digest  (finance_provider_connection_id,payload_digest) UNIQUE
-#  unique provider event index (finance_provider_connection_id, provider_event_id)
+#  index_finance_webhook_deliveries_on_connection_and_event
+#    (finance_provider_connection_id,provider_event_id) UNIQUE WHERE (provider_event_id IS NOT NULL)
 #
 # Foreign Keys
 #

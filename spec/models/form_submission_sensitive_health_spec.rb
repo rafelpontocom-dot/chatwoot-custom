@@ -34,6 +34,56 @@ RSpec.describe FormSubmission do
     expect(submission.summary_payload).not_to have_key(:answers)
   end
 
+  it 'keeps permitted clinical documents attached only to the sensitive submission' do
+    submission = described_class.create_from_answers!(
+      account: account,
+      form_template_version: version,
+      contact: contact,
+      answers: { 'alergias' => 'Penicilina', 'consentimento_clinico' => true }
+    )
+
+    submission.clinical_attachments.attach(
+      io: StringIO.new('%PDF-1.4 exame'),
+      filename: 'exame.pdf',
+      content_type: 'application/pdf'
+    )
+
+    expect(submission.clinical_attachments).to be_attached
+    expect(submission.summary_payload).not_to have_key(:attachments)
+  end
+
+  it 'allows a discarded sensitive submission to have its protected answers removed' do
+    submission = described_class.create_from_answers!(
+      account: account,
+      form_template_version: version,
+      contact: contact,
+      answers: { 'alergias' => 'Penicilina', 'consentimento_clinico' => true }
+    )
+
+    submission.update!(status: 'discarded', answers: {}, sensitive_answers_ciphertext: nil, metadata: {})
+
+    expect(submission.sensitive_answers).to eq({})
+  end
+
+  it 'derives the clinical consent evidence from the immutable form version' do
+    submission = described_class.create_from_answers!(
+      account: account,
+      form_template_version: version,
+      contact: contact,
+      answers: { 'alergias' => 'Penicilina', 'consentimento_clinico' => true }
+    )
+
+    expect(submission.sensitive_health_payload.fetch(:consent_snapshot)).to include(
+      include(
+        key: 'consentimento_clinico',
+        label: 'Autorizo o tratamento destas informações para meu atendimento',
+        type: 'consent',
+        value: true,
+        recorded_at: submission.submitted_at
+      )
+    )
+  end
+
   private
 
   def schema
