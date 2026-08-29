@@ -131,7 +131,7 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
   end
 
   def create_payment_service
-    payment_service_class.new(payment_service_arguments)
+    payment_service_class.new(**payment_service_arguments)
   end
 
   def payment_service_arguments

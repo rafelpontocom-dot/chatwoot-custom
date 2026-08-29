@@ -22,7 +22,18 @@ RSpec.describe 'Finance payments API', type: :request do
   it 'creates a payment link from a contact' do
     payment = instance_double(FinancePayment, public_payload: { id: 12, status: 'pending' })
     service = instance_double(Finance::Asaas::CreatePaymentService, perform: payment)
-    allow(Finance::Asaas::CreatePaymentService).to receive(:new).and_return(service)
+    expect(Finance::Asaas::CreatePaymentService).to receive(:new).with(
+      connection: connection,
+      contact: contact,
+      kanban_card: nil,
+      actor: administrator,
+      amount_cents: 15_025,
+      billing_type: 'pix',
+      due_on: '2026-08-31',
+      cpf_cnpj: '12345678909',
+      description: 'Consulta',
+      currency: 'BRL'
+    ).and_return(service)
 
     post payments_path,
          headers: administrator.create_new_auth_token,
@@ -41,9 +52,6 @@ RSpec.describe 'Finance payments API', type: :request do
 
     expect(response).to have_http_status(:created)
     expect(response.parsed_body).to include('id' => 12, 'status' => 'pending')
-    expect(Finance::Asaas::CreatePaymentService).to have_received(:new).with(
-      hash_including(connection: connection, contact: contact, amount_cents: 15_025, billing_type: 'pix')
-    )
   end
 
   it 'creates a payment link linked to an opportunity' do
