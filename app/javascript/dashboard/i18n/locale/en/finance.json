@@ -64,6 +64,7 @@
       "SEARCHING_CONTACT": "Searching contacts",
       "AMOUNT": "Charge amount",
       "AMOUNT_PLACEHOLDER": "Example: 150.00",
+      "ASAAS_MINIMUM_AMOUNT": "Asaas accepts charges from R$ 5.00.",
       "BILLING_TYPE": "Payment method",
       "DUE_ON": "Due date",
       "CPF_CNPJ": "CPF or CNPJ",

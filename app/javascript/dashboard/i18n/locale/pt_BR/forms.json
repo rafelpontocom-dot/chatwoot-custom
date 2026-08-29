@@ -11,6 +11,7 @@
       "COPY_LINK": "Copiar link",
       "COPIED": "Link copiado",
       "PREVIEW": "Visualizar",
+      "OPEN_PREVIEW": "Abrir prévia",
       "ADD_GROUP": "Adicionar bloco",
       "SAVE_GROUP": "Salvar seção como bloco",
       "ADD_SECTION": "Adicionar seção",
@@ -61,6 +62,42 @@
       "ADD_QUESTION_DESCRIPTION": "Escolha o formato que a pessoa verá ao responder o formulário.",
       "ADD_SECTION": "Adicionar seção",
       "PUBLISHING": "Publicação e destino"
+    },
+    "RICH_TEXT": {
+      "BOLD": "Negrito",
+      "ITALIC": "Itálico",
+      "STRIKE": "Tachado",
+      "BULLET_LIST": "Lista com marcadores",
+      "ORDERED_LIST": "Lista numerada",
+      "LINK": "Adicionar link",
+      "LINK_URL": "Endereço do link",
+      "LINK_URL_PLACEHOLDER": "https://exemplo.com",
+      "APPLY_LINK": "Aplicar",
+      "INVALID_LINK": "Informe um endereço que comece com http:// ou https://."
+    },
+    "CONTENT_BLOCKS": {
+      "TITLE": "Adicionar conteúdo",
+      "DESCRIPTION": "Inclua orientações e elementos visuais antes das perguntas desta seção.",
+      "ADD": "Adicionar conteúdo",
+      "SETTINGS": "Configurar conteúdo",
+      "HEADING": "Título",
+      "RICH_TEXT": "Texto com formatação",
+      "IMAGE": "Imagem e legenda",
+      "DIVIDER": "Divisor",
+      "DEFAULT_HEADING": "Novo título",
+      "DEFAULT_RICH_TEXT": "Escreva uma orientação para quem vai responder.",
+      "IMAGE_UPLOAD": "Imagem do formulário",
+      "IMAGE_UPLOAD_ACTION": "Selecionar imagem",
+      "IMAGE_UPLOADING": "Enviando imagem...",
+      "IMAGE_UPLOAD_HINT": "PNG, JPEG ou WebP de até 5 MB. Você também pode informar um endereço.",
+      "IMAGE_URL": "Endereço da imagem",
+      "IMAGE_ALT": "Descrição da imagem",
+      "IMAGE_CAPTION": "Legenda opcional",
+      "DIVIDER_DESCRIPTION": "Use o divisor para separar conteúdos e perguntas sem criar outra seção.",
+      "REMOVE": "Remover conteúdo",
+      "LAYOUT": "Distribuição das perguntas",
+      "LAYOUT_SINGLE": "Uma coluna",
+      "LAYOUT_TWO_COLUMNS": "Duas colunas no computador"
     },
     "EMPTY": {
       "TEMPLATES_TITLE": "Nenhum formulário criado",
@@ -191,6 +228,7 @@
       },
       "CONTACT_MAPPING": "Salvar também no contato",
       "DESTINATION": "Criar ou reaproveitar oportunidade",
+      "DESTINATION_REQUIRED": "Todo formulário comercial precisa definir onde a oportunidade será criada ou atualizada antes de ser publicado.",
       "OPPORTUNITY_MAPPING": "Atualizar campo da oportunidade",
       "NO_OPPORTUNITY_MAPPING": "Não atualizar oportunidade",
       "OPPORTUNITY_MAPPING_HELP": "Depois de escolher o funil, campos compatíveis podem receber respostas automaticamente.",
@@ -282,6 +320,10 @@
       "YES": "Sim",
       "NO": "Não",
       "HISTORY": "Respostas recebidas",
+      "STATUS": {
+        "SUBMITTED": "Enviado",
+        "DISCARDED": "Descartado"
+      },
       "NO_CONTACT": "Contato não vinculado",
       "NO_OPPORTUNITY": "Sem oportunidade vinculada"
     },
@@ -295,9 +337,15 @@
       "COPY": "Copiar link",
       "COPIED": "Link copiado",
       "SEND": "Preparar para envio na conversa",
+      "REVOKE": "Revogar link",
+      "REVOKE_TITLE": "Revogar link do formulário?",
+      "REVOKE_DESCRIPTION": "A pessoa não conseguirá mais abrir este link. As respostas já recebidas serão preservadas.",
       "HISTORY": "Convites enviados",
       "HISTORY_EMPTY": "Nenhum formulário foi enviado para esta oportunidade.",
       "USES": "{used} de {total} respostas",
+      "CREATED_AT": "Gerado em {date}",
+      "EXPIRES_ON": "Expira em {date}",
+      "COMPLETED_AT": "Concluído em {date}",
       "STATUS": {
         "ACTIVE": "Disponível",
         "CONSUMED": "Concluído",
@@ -317,6 +365,7 @@
     },
     "ERROR": {
       "LOAD": "Não foi possível carregar os formulários.",
+      "REVOKE": "Não foi possível revogar o link do formulário.",
       "SAVE": "Não foi possível salvar o formulário.",
       "REQUIRED": "Preencha nome, identificador e pelo menos uma seção.",
       "INVALID_CONFIGURATION": "Revise os campos obrigatórios, as opções de seleção e as condições antes de publicar."

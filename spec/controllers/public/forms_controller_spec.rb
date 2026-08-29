@@ -3,6 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Public forms API', type: :request do
   let(:account) { create(:account) }
   let(:contact) { create(:contact, account: account, name: 'Pedro Raevo') }
+  let(:card) { create(:kanban_card, account: account, contact: contact) }
   let(:template) do
     FormTemplate.create!(
       account: account,
@@ -18,7 +19,8 @@ RSpec.describe 'Public forms API', type: :request do
     Forms::CreateInvitationService.new(
       account: account,
       form_template_version: version,
-      contact: contact
+      contact: contact,
+      kanban_card: card
     ).perform
   end
 
@@ -44,6 +46,13 @@ RSpec.describe 'Public forms API', type: :request do
     expect(response.body).to include('id="public-form-app"')
   end
 
+  it 'renders the private preview shell without exposing form data' do
+    get '/formularios/previsao/rascunho-local'
+
+    expect(response).to have_http_status(:success)
+    expect(response.body).to include('id="public-form-app"')
+  end
+
   it 'renders a sensitive-health form only through its individual invitation' do
     with_modified_env 'ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY' => 'forms-test-encryption-key' do
       clinical_template = FormTemplate.create!(
@@ -57,7 +66,8 @@ RSpec.describe 'Public forms API', type: :request do
       invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: clinical_version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform
 
       get "/formularios/convites/#{invitation.token}", as: :json
@@ -81,7 +91,8 @@ RSpec.describe 'Public forms API', type: :request do
       invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: clinical_version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform
 
       post "/formularios/convites/#{invitation.token}/respostas",
@@ -101,6 +112,7 @@ RSpec.describe 'Public forms API', type: :request do
     invitation_result
     template.publish!(
       schema: {
+        'crm_destination' => crm_destination,
         'sections' => [
           {
             'key' => 'nova_etapa',
@@ -130,12 +142,48 @@ RSpec.describe 'Public forms API', type: :request do
     expect(invitation_result.invitation.reload).to be_consumed
   end
 
+  it 'saves and restores a draft only for the available invitation' do
+    patch "/formularios/convites/#{invitation_result.token}/rascunho",
+          params: { draft: { answers: { nome_completo: 'Pedro Raevo', inesperado: 'ignorar' }, current_section_index: 99 } },
+          as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to include(
+      'answers' => { 'nome_completo' => 'Pedro Raevo' },
+      'current_section_index' => 0
+    )
+    expect(invitation_result.invitation.form_invitation_draft).to have_attributes(
+      answers: { 'nome_completo' => 'Pedro Raevo' },
+      current_section_index: 0
+    )
+
+    get "/formularios/convites/#{invitation_result.token}", as: :json
+
+    expect(response.parsed_body).to include(
+      'draft' => include(
+        'answers' => { 'nome_completo' => 'Pedro Raevo' },
+        'current_section_index' => 0
+      )
+    )
+  end
+
   it 'does not reveal a consumed invitation' do
     invitation_result.invitation.consume!
 
     get "/formularios/convites/#{invitation_result.token}", as: :json
 
     expect(response).to have_http_status(:not_found)
+  end
+
+  it 'does not recreate a draft after the invitation has been consumed' do
+    invitation_result.invitation.consume!
+
+    patch "/formularios/convites/#{invitation_result.token}/rascunho",
+          params: { draft: { answers: { nome_completo: 'Pedro Raevo' }, current_section_index: 0 } },
+          as: :json
+
+    expect(response).to have_http_status(:not_found)
+    expect(FormInvitationDraft.where(form_invitation: invitation_result.invitation)).not_to exist
   end
 
   it 'limits repeated submissions from the same address' do
@@ -167,6 +215,7 @@ RSpec.describe 'Public forms API', type: :request do
 
   def schema
     {
+      'crm_destination' => crm_destination,
       'crm_mapping' => { 'contact' => { 'email' => 'email' } },
       'sections' => [
         {
@@ -178,6 +227,15 @@ RSpec.describe 'Public forms API', type: :request do
           ]
         }
       ]
+    }
+  end
+
+  def crm_destination
+    {
+      'kanban_board_id' => card.kanban_board_id,
+      'kanban_stage_id' => card.kanban_stage_id,
+      'inbox_id' => card.inbox_id,
+      'opportunity_policy' => 'reuse_open'
     }
   end
 

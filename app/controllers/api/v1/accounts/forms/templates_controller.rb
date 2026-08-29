@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Forms::TemplatesController < Api::V1::Accounts::BaseController
-  before_action :fetch_template, only: %i[show update publish duplicate versions upload_logo destroy_logo]
+  before_action :fetch_template, only: %i[show update publish duplicate versions upload_logo destroy_logo upload_content_image]
 
   def index
     authorize FormTemplate.new(account: Current.account), :index?
@@ -65,6 +65,17 @@ class Api::V1::Accounts::Forms::TemplatesController < Api::V1::Accounts::BaseCon
     render json: @form_template.admin_payload
   end
 
+  def upload_content_image
+    authorize @form_template, :update?
+    @form_template.content_images.attach(content_image_params)
+    @form_template.save!
+
+    image = @form_template.content_images.blobs.last
+    render json: { url: @form_template.content_image_url(image) }
+  rescue ActiveRecord::RecordInvalid => e
+    render_invalid(e.record)
+  end
+
   private
 
   def fetch_template
@@ -85,6 +96,10 @@ class Api::V1::Accounts::Forms::TemplatesController < Api::V1::Accounts::BaseCon
 
   def brand_logo_params
     params.require(:form_template).require(:brand_logo)
+  end
+
+  def content_image_params
+    params.require(:form_template).require(:content_image)
   end
 
   def render_invalid(record)

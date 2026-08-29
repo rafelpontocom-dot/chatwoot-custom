@@ -40,6 +40,7 @@ class FormInvitation < ApplicationRecord
   belongs_to :form_template_version
   belongs_to :contact, optional: true
   belongs_to :kanban_card, optional: true
+  has_one :form_invitation_draft, dependent: :destroy
   has_many :form_submissions, dependent: :restrict_with_exception
 
   enum :status, STATUSES.index_by(&:itself), validate: true
@@ -49,11 +50,12 @@ class FormInvitation < ApplicationRecord
   validates :uses_count, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validate :context_belongs_to_account
   validate :contact_matches_kanban_card
-  validate :sensitive_health_requires_contact
+  validate :individual_forms_require_context
   validate :sensitive_health_requires_single_use
 
   def self.find_available_by_token(token)
     invitation = find_by(token_digest: digest_token(token))
+    invitation&.expire_if_needed!
     invitation if invitation&.available?
   end
 
@@ -63,6 +65,15 @@ class FormInvitation < ApplicationRecord
 
   def available?
     active? && (expires_at.blank? || expires_at.future?) && uses_count < max_uses
+  end
+
+  def expire_if_needed!
+    return unless active? && expires_at.present? && expires_at.past?
+
+    transaction do
+      update!(status: 'expired')
+      form_invitation_draft&.destroy!
+    end
   end
 
   def individual_public_access_allowed?
@@ -85,7 +96,16 @@ class FormInvitation < ApplicationRecord
   end
 
   def revoke!
-    update!(status: 'revoked')
+    expire_if_needed!
+    unless active?
+      errors.add(:base, 'only active invitations can be revoked')
+      raise ActiveRecord::RecordInvalid, self
+    end
+
+    transaction do
+      update!(status: 'revoked')
+      form_invitation_draft&.destroy!
+    end
   end
 
   def admin_payload
@@ -94,7 +114,8 @@ class FormInvitation < ApplicationRecord
       form_template_version_id: form_template_version_id,
       contact_id: contact_id,
       kanban_card_id: kanban_card_id,
-      status: status,
+      status: display_status,
+      created_at: created_at,
       expires_at: expires_at,
       max_uses: max_uses,
       uses_count: uses_count,
@@ -104,6 +125,12 @@ class FormInvitation < ApplicationRecord
   end
 
   private
+
+  def display_status
+    return 'expired' if active? && expires_at.present? && expires_at.past?
+
+    status
+  end
 
   def context_belongs_to_account
     records = [form_template_version, contact, kanban_card].compact
@@ -118,11 +145,16 @@ class FormInvitation < ApplicationRecord
     errors.add(:base, 'Invitation contact must match the linked opportunity')
   end
 
-  def sensitive_health_requires_contact
-    return unless form_template_version&.form_template&.sensitive_health?
-    return if contact.present?
+  def individual_forms_require_context
+    return unless individual_form?
 
-    errors.add(:contact, 'must be present for sensitive health forms')
+    errors.add(:contact, 'must be present for individual forms') if contact.blank?
+    errors.add(:kanban_card, 'must be present for individual forms') if kanban_card.blank?
+  end
+
+  def individual_form?
+    template = form_template_version&.form_template
+    template&.access_classification == 'commercial' || template&.sensitive_health?
   end
 
   def sensitive_health_requires_single_use

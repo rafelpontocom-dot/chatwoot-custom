@@ -32,6 +32,12 @@ class FormsAPI extends ApiClient {
     return axios.delete(`${this.url}/templates/${id}/logo`);
   }
 
+  uploadTemplateContentImage(id, file) {
+    const payload = new FormData();
+    payload.append('form_template[content_image]', file);
+    return axios.post(`${this.url}/templates/${id}/content_images`, payload);
+  }
+
   publishTemplate(id, schema) {
     return axios.post(`${this.url}/templates/${id}/publish`, {
       form_template: { schema },
@@ -48,6 +54,10 @@ class FormsAPI extends ApiClient {
 
   createInvitation(id, payload) {
     return axios.post(`${this.url}/templates/${id}/invitations`, payload);
+  }
+
+  revokeInvitation(id) {
+    return axios.post(`${this.url}/invitations/${id}/revoke`);
   }
 
   getFieldGroups() {

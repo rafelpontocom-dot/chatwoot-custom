@@ -1,6 +1,14 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
+import FormRichTextContent from './FormRichTextContent.vue';
 
 const payload = ref(null);
 const answers = ref({});
@@ -16,7 +24,12 @@ const honeypot = ref('');
 const captchaToken = ref('');
 const captchaError = ref('');
 const turnstileContainer = ref(null);
+const isPrivatePreview = ref(false);
 const requiredMarker = '*';
+const PREVIEW_STORAGE_PREFIX = 'raevo-form-preview:';
+let draftSaveTimer = null;
+let isHydratingDraft = false;
+let lastSavedDraftSignature = null;
 let turnstileWidgetId = null;
 
 const appearanceThemes = {
@@ -65,6 +78,10 @@ const translations = {
     attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por arquivo.',
     captchaRequired: 'Conclua a verificação de segurança para enviar.',
     privacyPolicy: 'Política de privacidade',
+    preview: 'Prévia privada:',
+    previewDescription:
+      'Você pode testar a experiência, mas esta prévia não envia respostas.',
+    previewSubmit: 'Envio desativado na prévia',
   },
   'pt-PT': {
     back: 'Voltar',
@@ -81,6 +98,10 @@ const translations = {
     attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por ficheiro.',
     captchaRequired: 'Conclua a verificação de segurança para enviar.',
     privacyPolicy: 'Política de privacidade',
+    preview: 'Prévia privada:',
+    previewDescription:
+      'Você pode testar a experiência, mas esta prévia não envia respostas.',
+    previewSubmit: 'Envio desativado na prévia',
   },
   default: {
     back: 'Voltar',
@@ -97,6 +118,10 @@ const translations = {
     attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por arquivo.',
     captchaRequired: 'Conclua a verificação de segurança para enviar.',
     privacyPolicy: 'Política de privacidade',
+    preview: 'Prévia privada:',
+    previewDescription:
+      'Você pode testar a experiência, mas esta prévia não envia respostas.',
+    previewSubmit: 'Envio desativado na prévia',
   },
 };
 
@@ -118,6 +143,9 @@ const sections = computed(() => payload.value?.schema?.sections || []);
 const currentSection = computed(
   () => sections.value[currentSectionIndex.value]
 );
+const currentContentBlocks = computed(
+  () => currentSection.value?.content_blocks || []
+);
 const isLastSection = computed(
   () => currentSectionIndex.value === sections.value.length - 1
 );
@@ -130,10 +158,57 @@ const progressDescription = computed(() =>
     .replace('{total}', sections.value.length)
 );
 onBeforeUnmount(() => {
+  window.clearTimeout(draftSaveTimer);
   if (turnstileWidgetId !== null && window.turnstile) {
     window.turnstile.remove(turnstileWidgetId);
   }
 });
+
+const invitationDraftPath = computed(() => {
+  const path = window.location.pathname;
+  return /^\/formularios\/convites\/[^/]+$/.test(path)
+    ? `${path}/rascunho`
+    : '';
+});
+
+const draftPayload = () => ({
+  answers: answers.value,
+  current_section_index: currentSectionIndex.value,
+});
+
+const draftSignature = () => JSON.stringify(draftPayload());
+
+const saveDraft = async () => {
+  if (!invitationDraftPath.value || isPrivatePreview.value || submitted.value)
+    return;
+  const signature = draftSignature();
+  if (signature === lastSavedDraftSignature) return;
+
+  try {
+    const response = await fetch(invitationDraftPath.value, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ draft: draftPayload() }),
+    });
+    if (response.ok) lastSavedDraftSignature = signature;
+  } catch {
+    // Draft saving is best effort and must not interrupt completion.
+  }
+};
+
+watch(
+  [answers, currentSectionIndex],
+  () => {
+    if (!payload.value || isHydratingDraft) return;
+
+    window.clearTimeout(draftSaveTimer);
+    draftSaveTimer = window.setTimeout(saveDraft, 600);
+  },
+  { deep: true }
+);
 
 function loadTurnstile() {
   if (window.turnstile) return Promise.resolve(window.turnstile);
@@ -162,6 +237,27 @@ function loadTurnstile() {
   });
 }
 
+function privatePreviewPayload() {
+  const previewId = window.location.pathname.match(
+    /^\/formularios\/previsao\/([^/]+)$/
+  )?.[1];
+  if (!previewId) return null;
+
+  try {
+    const storedPreview = JSON.parse(
+      window.localStorage.getItem(`${PREVIEW_STORAGE_PREFIX}${previewId}`)
+    );
+    if (!storedPreview?.payload || storedPreview.expiresAt < Date.now()) {
+      window.localStorage.removeItem(`${PREVIEW_STORAGE_PREFIX}${previewId}`);
+      return null;
+    }
+
+    return storedPreview.payload;
+  } catch {
+    return null;
+  }
+}
+
 async function renderCaptcha() {
   if (!captchaRequired.value || !turnstileContainer.value) return;
 
@@ -188,11 +284,28 @@ async function renderCaptcha() {
 
 onMounted(async () => {
   try {
-    const response = await fetch(window.location.pathname, {
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error('form_unavailable');
-    payload.value = await response.json();
+    const previewPayload = privatePreviewPayload();
+    if (previewPayload) {
+      payload.value = previewPayload;
+      isPrivatePreview.value = true;
+    } else {
+      const response = await fetch(window.location.pathname, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error('form_unavailable');
+      payload.value = await response.json();
+      if (payload.value.draft) {
+        isHydratingDraft = true;
+        answers.value = payload.value.draft.answers || {};
+        currentSectionIndex.value = Math.min(
+          Math.max(Number(payload.value.draft.current_section_index) || 0, 0),
+          Math.max(sections.value.length - 1, 0)
+        );
+        lastSavedDraftSignature = draftSignature();
+        await nextTick();
+        isHydratingDraft = false;
+      }
+    }
     brandLogoFailed.value = false;
     document.title = payload.value.form.name;
     await nextTick();
@@ -257,6 +370,14 @@ function visibleFields(section) {
   return section?.fields?.filter(isFieldVisible) || [];
 }
 
+function contentText(block) {
+  return typeof block.content === 'string' ? block.content : '';
+}
+
+function isRichTextDocument(block) {
+  return typeof block.content === 'object' && block.content !== null;
+}
+
 function selectedAttachments(field) {
   return attachments.value[field.key] || [];
 }
@@ -311,6 +432,10 @@ const appendAttachments = formData => {
 
 async function submitForm() {
   if (!validateCurrentSection()) return;
+  if (isPrivatePreview.value) {
+    errorMessage.value = copy.value.previewDescription;
+    return;
+  }
   if (captchaRequired.value && !captchaToken.value) {
     errorMessage.value = captchaError.value || copy.value.captchaRequired;
     return;
@@ -418,6 +543,14 @@ async function submitForm() {
           novalidate
           @submit.prevent="isLastSection ? submitForm() : continueForm()"
         >
+          <p
+            v-if="isPrivatePreview"
+            data-test="public-form-preview-notice"
+            class="mt-5 rounded border border-n-teal-6 bg-n-teal-2 px-3 py-2 text-sm text-n-teal-11"
+          >
+            <span class="font-semibold">{{ copy.preview }}</span>
+            {{ copy.previewDescription }}
+          </p>
           <div
             aria-hidden="true"
             class="absolute -left-[10000px] size-px overflow-hidden"
@@ -483,188 +616,239 @@ async function submitForm() {
           </p>
 
           <div class="mt-8 space-y-6">
-            <div
-              v-for="field in visibleFields(currentSection)"
-              :key="field.key"
-            >
-              <label
-                v-if="field.type === 'checkbox' || field.type === 'consent'"
-                class="flex min-h-11 items-start gap-3 rounded border border-n-slate-5 px-3 py-3 text-sm text-n-slate-11 transition focus-within:border-n-teal-9 focus-within:ring-2 focus-within:ring-n-teal-6"
+            <template v-for="block in currentContentBlocks" :key="block.id">
+              <h2
+                v-if="block.type === 'heading'"
+                data-test="public-form-content-heading"
+                class="text-xl font-semibold leading-tight text-n-slate-12"
               >
-                <input
-                  :id="fieldId(field)"
-                  v-model="answers[field.key]"
-                  type="checkbox"
-                  :required="field.required"
-                  :aria-invalid="invalidFieldKey === field.key"
-                  :aria-describedby="
-                    field.help_text ? `${fieldId(field)}-help` : undefined
-                  "
-                  class="mt-0.5 size-4 accent-n-teal-9"
+                {{ contentText(block) }}
+              </h2>
+              <p
+                v-else-if="
+                  block.type === 'rich_text' && !isRichTextDocument(block)
+                "
+                data-test="public-form-content-text"
+                class="whitespace-pre-line text-sm leading-6 text-n-slate-11"
+              >
+                {{ contentText(block) }}
+              </p>
+              <FormRichTextContent
+                v-else-if="block.type === 'rich_text'"
+                data-test="public-form-content-text"
+                :content="block.content"
+              />
+              <figure v-else-if="block.type === 'image'" class="space-y-2">
+                <img
+                  data-test="public-form-content-image"
+                  :src="block.url"
+                  :alt="block.alt || ''"
+                  class="max-h-80 w-full rounded object-cover"
                 />
-                <span>
-                  {{ field.label }}
-                  <span
-                    v-if="field.required"
-                    class="text-n-ruby-10"
-                    aria-hidden="true"
-                  >
-                    {{ requiredMarker }}
-                  </span>
-                  <span
-                    v-if="field.help_text"
-                    :id="`${fieldId(field)}-help`"
-                    class="mt-1 block text-xs font-normal leading-5 text-n-slate-10"
-                  >
-                    {{ field.help_text }}
-                  </span>
-                </span>
-              </label>
-
-              <template v-else>
+                <figcaption
+                  v-if="block.caption"
+                  class="text-xs leading-5 text-n-slate-10"
+                >
+                  {{ block.caption }}
+                </figcaption>
+              </figure>
+              <hr
+                v-else-if="block.type === 'divider'"
+                class="border-0 border-t border-n-slate-4"
+              />
+            </template>
+            <div
+              data-test="public-form-fields"
+              class="grid gap-6"
+              :class="
+                currentSection.layout === 'two_columns'
+                  ? 'sm:grid-cols-2'
+                  : 'grid-cols-1'
+              "
+            >
+              <div
+                v-for="field in visibleFields(currentSection)"
+                :key="field.key"
+              >
                 <label
-                  :for="fieldId(field)"
-                  class="mb-2 block text-sm font-medium text-n-slate-12"
+                  v-if="field.type === 'checkbox' || field.type === 'consent'"
+                  class="flex min-h-11 items-start gap-3 rounded border border-n-slate-5 px-3 py-3 text-sm text-n-slate-11 transition focus-within:border-n-teal-9 focus-within:ring-2 focus-within:ring-n-teal-6"
                 >
-                  {{ field.label }}
-                  <span
-                    v-if="field.required"
-                    class="text-n-ruby-10"
-                    aria-hidden="true"
-                  >
-                    {{ requiredMarker }}
-                  </span>
-                </label>
-                <p
-                  v-if="field.help_text && field.type !== 'signature'"
-                  :id="`${fieldId(field)}-help`"
-                  class="-mt-1 mb-2 text-sm leading-5 text-n-slate-10"
-                >
-                  {{ field.help_text }}
-                </p>
-
-                <textarea
-                  v-if="field.type === 'textarea'"
-                  :id="fieldId(field)"
-                  v-model="answers[field.key]"
-                  :required="field.required"
-                  :aria-invalid="invalidFieldKey === field.key"
-                  :aria-describedby="
-                    field.help_text ? `${fieldId(field)}-help` : undefined
-                  "
-                  rows="4"
-                  class="w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                />
-
-                <select
-                  v-else-if="
-                    field.type === 'select' || field.type === 'multi_select'
-                  "
-                  :id="fieldId(field)"
-                  v-model="answers[field.key]"
-                  :multiple="field.type === 'multi_select'"
-                  :required="field.required"
-                  :aria-invalid="invalidFieldKey === field.key"
-                  :aria-describedby="
-                    field.help_text ? `${fieldId(field)}-help` : undefined
-                  "
-                  class="min-h-11 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                >
-                  <option v-if="field.type === 'select'" value="" disabled />
-                  <option
-                    v-for="option in field.options"
-                    :key="optionValue(option)"
-                    :value="optionValue(option)"
-                  >
-                    {{ optionLabel(option) }}
-                  </option>
-                </select>
-
-                <div v-else-if="field.type === 'attachment'">
-                  <input
-                    :id="fieldId(field)"
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/jpeg,image/png,image/heic,image/heif"
-                    :required="field.required"
-                    :aria-invalid="invalidFieldKey === field.key"
-                    :aria-describedby="`${fieldId(field)}-attachment-help`"
-                    class="block min-h-11 w-full cursor-pointer rounded border border-dashed border-n-slate-6 bg-n-slate-2 px-3 py-2 text-sm text-n-slate-11 file:mr-3 file:rounded file:border-0 file:bg-n-teal-3 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-n-teal-11 hover:file:bg-n-teal-4 focus:outline-none focus:ring-2 focus:ring-n-teal-6"
-                    @change="setAttachments(field, $event)"
-                  />
-                  <p
-                    :id="`${fieldId(field)}-attachment-help`"
-                    class="mt-2 text-sm leading-5 text-n-slate-10"
-                  >
-                    {{ field.help_text || copy.attachmentHint }}
-                  </p>
-                  <ul
-                    v-if="selectedAttachments(field).length"
-                    class="mt-3 space-y-1 text-sm text-n-slate-11"
-                    :aria-label="field.label"
-                  >
-                    <li
-                      v-for="file in selectedAttachments(field)"
-                      :key="`${file.name}-${file.lastModified}`"
-                      class="flex items-center gap-2"
-                    >
-                      <FluentIcon
-                        icon="document"
-                        size="16"
-                        aria-hidden="true"
-                      />
-                      <span class="min-w-0 break-all">{{ file.name }}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <template v-else-if="field.type === 'signature'">
                   <input
                     :id="fieldId(field)"
                     v-model="answers[field.key]"
-                    type="text"
-                    autocomplete="name"
+                    type="checkbox"
                     :required="field.required"
                     :aria-invalid="invalidFieldKey === field.key"
-                    :aria-describedby="`${fieldId(field)}-signature-help`"
-                    class="min-h-11 w-full border-x-0 border-b border-t-0 border-n-slate-8 bg-transparent px-1 py-2 font-serif text-xl italic text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-0"
+                    :aria-describedby="
+                      field.help_text ? `${fieldId(field)}-help` : undefined
+                    "
+                    class="mt-0.5 size-4 accent-n-teal-9"
                   />
-                  <p
-                    :id="`${fieldId(field)}-signature-help`"
-                    class="mt-2 text-sm leading-5 text-n-slate-10"
-                  >
-                    {{ field.help_text || copy.signatureHint }}
-                  </p>
-                </template>
+                  <span>
+                    {{ field.label }}
+                    <span
+                      v-if="field.required"
+                      class="text-n-ruby-10"
+                      aria-hidden="true"
+                    >
+                      {{ requiredMarker }}
+                    </span>
+                    <span
+                      v-if="field.help_text"
+                      :id="`${fieldId(field)}-help`"
+                      class="mt-1 block text-xs font-normal leading-5 text-n-slate-10"
+                    >
+                      {{ field.help_text }}
+                    </span>
+                  </span>
+                </label>
 
-                <input
-                  v-else
-                  :id="fieldId(field)"
-                  v-model="answers[field.key]"
-                  :type="
-                    field.type === 'currency'
-                      ? 'number'
-                      : field.type === 'phone'
-                        ? 'tel'
-                        : field.type === 'datetime'
-                          ? 'datetime-local'
-                          : field.type
-                  "
-                  :required="field.required"
-                  :aria-invalid="invalidFieldKey === field.key"
-                  :aria-describedby="
-                    field.help_text ? `${fieldId(field)}-help` : undefined
-                  "
-                  :step="field.type === 'currency' ? '0.01' : undefined"
-                  class="min-h-11 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                />
-              </template>
-              <p
-                v-if="invalidFieldKey === field.key"
-                class="mt-1.5 text-sm text-n-ruby-11"
-              >
-                {{ copy.required }}
-              </p>
+                <template v-else>
+                  <label
+                    :for="fieldId(field)"
+                    class="mb-2 block text-sm font-medium text-n-slate-12"
+                  >
+                    {{ field.label }}
+                    <span
+                      v-if="field.required"
+                      class="text-n-ruby-10"
+                      aria-hidden="true"
+                    >
+                      {{ requiredMarker }}
+                    </span>
+                  </label>
+                  <p
+                    v-if="field.help_text && field.type !== 'signature'"
+                    :id="`${fieldId(field)}-help`"
+                    class="-mt-1 mb-2 text-sm leading-5 text-n-slate-10"
+                  >
+                    {{ field.help_text }}
+                  </p>
+
+                  <textarea
+                    v-if="field.type === 'textarea'"
+                    :id="fieldId(field)"
+                    v-model="answers[field.key]"
+                    :required="field.required"
+                    :aria-invalid="invalidFieldKey === field.key"
+                    :aria-describedby="
+                      field.help_text ? `${fieldId(field)}-help` : undefined
+                    "
+                    rows="4"
+                    class="w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                  />
+
+                  <select
+                    v-else-if="
+                      field.type === 'select' || field.type === 'multi_select'
+                    "
+                    :id="fieldId(field)"
+                    v-model="answers[field.key]"
+                    :multiple="field.type === 'multi_select'"
+                    :required="field.required"
+                    :aria-invalid="invalidFieldKey === field.key"
+                    :aria-describedby="
+                      field.help_text ? `${fieldId(field)}-help` : undefined
+                    "
+                    class="min-h-11 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                  >
+                    <option v-if="field.type === 'select'" value="" disabled />
+                    <option
+                      v-for="option in field.options"
+                      :key="optionValue(option)"
+                      :value="optionValue(option)"
+                    >
+                      {{ optionLabel(option) }}
+                    </option>
+                  </select>
+
+                  <div v-else-if="field.type === 'attachment'">
+                    <input
+                      :id="fieldId(field)"
+                      type="file"
+                      multiple
+                      accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/jpeg,image/png,image/heic,image/heif"
+                      :required="field.required"
+                      :aria-invalid="invalidFieldKey === field.key"
+                      :aria-describedby="`${fieldId(field)}-attachment-help`"
+                      class="block min-h-11 w-full cursor-pointer rounded border border-dashed border-n-slate-6 bg-n-slate-2 px-3 py-2 text-sm text-n-slate-11 file:mr-3 file:rounded file:border-0 file:bg-n-teal-3 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-n-teal-11 hover:file:bg-n-teal-4 focus:outline-none focus:ring-2 focus:ring-n-teal-6"
+                      @change="setAttachments(field, $event)"
+                    />
+                    <p
+                      :id="`${fieldId(field)}-attachment-help`"
+                      class="mt-2 text-sm leading-5 text-n-slate-10"
+                    >
+                      {{ field.help_text || copy.attachmentHint }}
+                    </p>
+                    <ul
+                      v-if="selectedAttachments(field).length"
+                      class="mt-3 space-y-1 text-sm text-n-slate-11"
+                      :aria-label="field.label"
+                    >
+                      <li
+                        v-for="file in selectedAttachments(field)"
+                        :key="`${file.name}-${file.lastModified}`"
+                        class="flex items-center gap-2"
+                      >
+                        <FluentIcon
+                          icon="document"
+                          size="16"
+                          aria-hidden="true"
+                        />
+                        <span class="min-w-0 break-all">{{ file.name }}</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <template v-else-if="field.type === 'signature'">
+                    <input
+                      :id="fieldId(field)"
+                      v-model="answers[field.key]"
+                      type="text"
+                      autocomplete="name"
+                      :required="field.required"
+                      :aria-invalid="invalidFieldKey === field.key"
+                      :aria-describedby="`${fieldId(field)}-signature-help`"
+                      class="min-h-11 w-full border-x-0 border-b border-t-0 border-n-slate-8 bg-transparent px-1 py-2 font-serif text-xl italic text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-0"
+                    />
+                    <p
+                      :id="`${fieldId(field)}-signature-help`"
+                      class="mt-2 text-sm leading-5 text-n-slate-10"
+                    >
+                      {{ field.help_text || copy.signatureHint }}
+                    </p>
+                  </template>
+
+                  <input
+                    v-else
+                    :id="fieldId(field)"
+                    v-model="answers[field.key]"
+                    :type="
+                      field.type === 'currency'
+                        ? 'number'
+                        : field.type === 'phone'
+                          ? 'tel'
+                          : field.type === 'datetime'
+                            ? 'datetime-local'
+                            : field.type
+                    "
+                    :required="field.required"
+                    :aria-invalid="invalidFieldKey === field.key"
+                    :aria-describedby="
+                      field.help_text ? `${fieldId(field)}-help` : undefined
+                    "
+                    :step="field.type === 'currency' ? '0.01' : undefined"
+                    class="min-h-11 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                  />
+                </template>
+                <p
+                  v-if="invalidFieldKey === field.key"
+                  class="mt-1.5 text-sm text-n-ruby-11"
+                >
+                  {{ copy.required }}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -697,11 +881,17 @@ async function submitForm() {
             <span v-else />
             <button
               type="submit"
-              :disabled="isSubmitting"
+              :disabled="isSubmitting || (isPrivatePreview && isLastSection)"
               class="min-h-11 rounded px-5 text-sm font-medium text-n-solid-1 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-60"
               :class="appearance.submit"
             >
-              {{ isLastSection ? copy.submit : copy.continue }}
+              {{
+                isLastSection && isPrivatePreview
+                  ? copy.previewSubmit
+                  : isLastSection
+                    ? copy.submit
+                    : copy.continue
+              }}
             </button>
           </footer>
           <a

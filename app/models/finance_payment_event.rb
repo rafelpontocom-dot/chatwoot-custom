@@ -1,3 +1,4 @@
+# rubocop:disable Layout/LineLength
 # == Schema Information
 #
 # Table name: finance_payment_events
@@ -20,8 +21,7 @@
 #
 #  index_finance_payment_events_on_account_id                      (account_id)
 #  index_finance_payment_events_on_actor_id                        (actor_id)
-#  index_finance_payment_events_on_connection_and_provider_event
-#    (finance_provider_connection_id,provider_event_id) UNIQUE WHERE (provider_event_id IS NOT NULL)
+#  index_finance_payment_events_on_connection_and_provider_event   (finance_provider_connection_id,provider_event_id) UNIQUE WHERE (provider_event_id IS NOT NULL)
 #  index_finance_payment_events_on_finance_payment_id              (finance_payment_id)
 #  index_finance_payment_events_on_finance_provider_connection_id  (finance_provider_connection_id)
 #
@@ -32,6 +32,7 @@
 #  fk_rails_...  (finance_payment_id => finance_payments.id)
 #  fk_rails_...  (finance_provider_connection_id => finance_provider_connections.id)
 #
+# rubocop:enable Layout/LineLength
 class FinancePaymentEvent < ApplicationRecord
   PROCESSING_STATUSES = %w[processed ignored failed].freeze
 

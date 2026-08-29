@@ -8,6 +8,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Draggable from 'vuedraggable';
 import FormsBuilderPreview from './FormsBuilderPreview.vue';
+import FormRichTextEditor from './FormRichTextEditor.vue';
 import { getFormStarterSchema } from './starterTemplates';
 import { FORM_FIELD_GROUPS, getFormFieldGroup } from './fieldGroups';
 
@@ -24,6 +25,7 @@ const activeTab = ref('templates');
 const selectedTemplateId = ref(null);
 const activeBuilderSectionIndex = ref(0);
 const selectedBuilderFieldKey = ref('');
+const selectedBuilderContentBlockId = ref('');
 const hasUnsavedChanges = ref(false);
 const localDraftRestored = ref(false);
 const localDraftUpdatedAt = ref(null);
@@ -42,12 +44,15 @@ const fieldGroupDialog = ref(null);
 const saveFieldGroupDialog = ref(null);
 const deleteFieldGroupDialog = ref(null);
 const fieldTypeDialog = ref(null);
+const contentBlockDialog = ref(null);
 const duplicateDialog = ref(null);
 const pendingFieldSectionIndex = ref(null);
+const pendingContentSectionIndex = ref(null);
 const selectedSubmission = ref(null);
 const versions = ref([]);
 const isLoadingVersions = ref(false);
 const isUploadingBrandLogo = ref(false);
+const isUploadingContentImage = ref(false);
 const newTemplate = ref({
   name: '',
   slug: '',
@@ -111,6 +116,12 @@ const selectedBuilderField = computed(
   () =>
     activeBuilderSection.value?.fields.find(
       field => field.key === selectedBuilderFieldKey.value
+    ) || null
+);
+const selectedBuilderContentBlock = computed(
+  () =>
+    activeBuilderSection.value?.content_blocks?.find(
+      block => block.id === selectedBuilderContentBlockId.value
     ) || null
 );
 const selectedSubmissionSections = computed(() => {
@@ -224,6 +235,8 @@ function defaultSection(index = 1) {
     key: `etapa_${index}`,
     title: '',
     description: '',
+    layout: 'single',
+    content_blocks: [],
     fields: [defaultField()],
   };
 }
@@ -279,6 +292,8 @@ function hydrateEditor(template) {
 
   schema.sections = (schema.sections || [defaultSection()]).map(section => ({
     ...section,
+    layout: section.layout || 'single',
+    content_blocks: section.content_blocks || [],
     fields: (section.fields || []).map(field => {
       const target = reverseContactMapping[field.key];
       const customAttribute = Object.entries(customMapping).find(
@@ -327,7 +342,8 @@ function hydrateEditor(template) {
       captcha_site_key: template.settings?.captcha_site_key || '',
     },
     schema,
-    crmDestinationEnabled: Boolean(destination.kanban_board_id),
+    crmDestinationEnabled:
+      template.access_classification !== 'sensitive_health',
     crmDestination: {
       boardId: destination.kanban_board_id || '',
       stageId: destination.kanban_stage_id || '',
@@ -346,12 +362,14 @@ function selectTemplate(template) {
   activeBuilderSectionIndex.value = 0;
   selectedBuilderFieldKey.value =
     editor.value.schema.sections[0]?.fields[0]?.key || '';
+  selectedBuilderContentBlockId.value = '';
   activeTab.value = 'templates';
   error.value = '';
 }
 
 function selectBuilderSection(index) {
   activeBuilderSectionIndex.value = index;
+  selectedBuilderContentBlockId.value = '';
   selectedBuilderFieldKey.value =
     editor.value?.schema.sections[index]?.fields[0]?.key || '';
 }
@@ -364,6 +382,12 @@ function selectBuilderField(key) {
 
   activeBuilderSectionIndex.value = sectionIndex;
   selectedBuilderFieldKey.value = key;
+  selectedBuilderContentBlockId.value = '';
+}
+
+function selectBuilderContentBlock(blockId) {
+  selectedBuilderFieldKey.value = '';
+  selectedBuilderContentBlockId.value = blockId;
 }
 
 function syncBuilderSelection() {
@@ -389,6 +413,53 @@ function normalizedConditionValue(field) {
   return field.visibleWhenValue === true || field.visibleWhenValue === 'true';
 }
 
+function previewPayload() {
+  // The schema is assembled below alongside mapping and publishing rules.
+  // eslint-disable-next-line no-use-before-define
+  const schema = buildSchema();
+  delete schema.crm_mapping;
+  delete schema.crm_destination;
+  schema.sections = schema.sections.map(section => ({
+    ...section,
+    fields: section.fields.filter(field => field.type !== 'hidden'),
+  }));
+
+  return {
+    form: {
+      name: editor.value.name.trim(),
+      category: editor.value.category,
+      locale: editor.value.settings.locale,
+      description: editor.value.settings.description,
+      brand_name: editor.value.settings.brand_name || editor.value.name.trim(),
+      brand_logo_url:
+        editor.value.brandLogoUrl || editor.value.settings.brand_logo_url,
+      privacy_policy_url: editor.value.settings.privacy_policy_url,
+      theme: editor.value.settings.theme,
+      captcha_provider: '',
+      captcha_site_key: '',
+    },
+    version: editor.value.activeVersionNumber || 0,
+    schema,
+  };
+}
+
+function openPrivatePreview() {
+  if (!editor.value) return;
+
+  const previewId = `${editor.value.id}-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+  const previewUrl = `${window.location.origin}/formularios/previsao/${previewId}`;
+  window.localStorage.setItem(
+    `raevo-form-preview:${previewId}`,
+    JSON.stringify({
+      expiresAt: Date.now() + 15 * 60 * 1000,
+      payload: previewPayload(),
+    })
+  );
+  window.open(previewUrl, '_blank', 'noopener,noreferrer');
+}
+
 function buildSchema() {
   const schema = clone(editor.value.schema);
   const contact = {};
@@ -410,11 +481,7 @@ function buildSchema() {
         } else if (!isSensitiveHealth.value && field.contactTarget) {
           contact[field.contactTarget] = field.key;
         }
-        if (
-          !isSensitiveHealth.value &&
-          editor.value.crmDestinationEnabled &&
-          field.opportunityTarget
-        ) {
+        if (!isSensitiveHealth.value && field.opportunityTarget) {
           opportunityCustomFields[field.opportunityTarget] = field.key;
         }
         const {
@@ -457,7 +524,7 @@ function buildSchema() {
   if (Object.keys(crmMapping).length) schema.crm_mapping = crmMapping;
   else delete schema.crm_mapping;
 
-  if (!isSensitiveHealth.value && editor.value.crmDestinationEnabled) {
+  if (!isSensitiveHealth.value) {
     schema.crm_destination = {
       kanban_board_id: Number(editor.value.crmDestination.boardId),
       kanban_stage_id: Number(editor.value.crmDestination.stageId),
@@ -492,6 +559,21 @@ function fieldIsValid(field) {
   return Boolean(source && hasConditionValue);
 }
 
+function contentBlockIsValid(block) {
+  if (block.type === 'heading') return Boolean(block.content?.trim());
+  if (block.type === 'rich_text') return Boolean(block.content);
+  if (block.type === 'image') {
+    try {
+      const url = new URL(block.url);
+      return ['http:', 'https:'].includes(url.protocol);
+    } catch {
+      return false;
+    }
+  }
+
+  return block.type === 'divider';
+}
+
 const opportunityFieldTypes = {
   text: ['text', 'textarea', 'url'],
   textarea: ['text', 'textarea'],
@@ -521,7 +603,7 @@ function opportunityFieldOptions(field) {
 }
 
 function opportunityMappingIsValid(field) {
-  if (!editor.value.crmDestinationEnabled || !field.opportunityTarget) {
+  if (isSensitiveHealth.value || !field.opportunityTarget) {
     return true;
   }
 
@@ -550,11 +632,12 @@ function editorIsValid() {
       editor.value.schema.sections.every(
         section =>
           section.key.trim() &&
+          (section.content_blocks || []).every(contentBlockIsValid) &&
           section.fields.every(
             field => fieldIsValid(field) && opportunityMappingIsValid(field)
           )
       ) &&
-      (!editor.value.crmDestinationEnabled ||
+      (isSensitiveHealth.value ||
         (editor.value.crmDestination.boardId &&
           editor.value.crmDestination.stageId &&
           editor.value.crmDestination.inboxId)) &&
@@ -570,7 +653,7 @@ const publishingChecklist = computed(() => {
     field => field.type === 'consent' && field.required
   );
   const destinationConfigured =
-    !editor.value?.crmDestinationEnabled ||
+    isSensitiveHealth.value ||
     Boolean(
       editor.value.crmDestination.boardId &&
         editor.value.crmDestination.stageId &&
@@ -599,7 +682,7 @@ const publishingChecklist = computed(() => {
     {
       complete: destinationConfigured,
       label: t('FORMS.BUILDER.CHECKLIST.DESTINATION'),
-      visible: editor.value?.crmDestinationEnabled,
+      visible: !isSensitiveHealth.value,
     },
   ].filter(item => item.visible !== false);
 });
@@ -806,14 +889,22 @@ async function createTemplate() {
     createdTemplate = data;
     templates.value = [data, ...templates.value];
     const starterSchema = getFormStarterSchema(newTemplate.value.starter, t);
-    const template = starterSchema
-      ? (await FormsAPI.publishTemplate(data.id, starterSchema)).data
-      : data;
-    templates.value = templates.value.map(item =>
-      item.id === template.id ? template : item
-    );
     createDialog.value?.close();
-    selectTemplate(template);
+    selectTemplate(data);
+    if (starterSchema) {
+      editor.value.schema = clone(starterSchema);
+      editor.value.schema.sections = editor.value.schema.sections.map(
+        section => ({
+          ...section,
+          layout: section.layout || 'single',
+          content_blocks: section.content_blocks || [],
+        })
+      );
+      editor.value.crmDestinationEnabled = !isSensitiveHealth.value;
+      selectedBuilderFieldKey.value =
+        editor.value.schema.sections[0]?.fields[0]?.key || '';
+      hasUnsavedChanges.value = true;
+    }
   } catch (saveError) {
     if (createdTemplate) {
       createDialog.value?.close();
@@ -928,6 +1019,28 @@ async function removeBrandLogo() {
   }
 }
 
+async function uploadContentImage(event) {
+  const file = event.target.files?.[0];
+  const contentBlock = selectedBuilderContentBlock.value;
+  if (!file || !editor.value || !contentBlock || contentBlock.type !== 'image')
+    return;
+
+  isUploadingContentImage.value = true;
+  error.value = '';
+  try {
+    const { data } = await FormsAPI.uploadTemplateContentImage(
+      editor.value.id,
+      file
+    );
+    contentBlock.url = data.url;
+  } catch (uploadError) {
+    error.value = uploadError.response?.data?.message || t('FORMS.ERROR.SAVE');
+  } finally {
+    event.target.value = '';
+    isUploadingContentImage.value = false;
+  }
+}
+
 function discardLocalDraft() {
   if (!editor.value) return;
 
@@ -984,6 +1097,104 @@ function openFieldTypeDialog(section) {
   pendingFieldSectionIndex.value =
     editor.value.schema.sections.indexOf(section);
   fieldTypeDialog.value?.open();
+}
+
+const contentBlockTypes = computed(() => [
+  {
+    value: 'heading',
+    icon: 'i-lucide-heading',
+    label: t('FORMS.CONTENT_BLOCKS.HEADING'),
+  },
+  {
+    value: 'rich_text',
+    icon: 'i-lucide-text',
+    label: t('FORMS.CONTENT_BLOCKS.RICH_TEXT'),
+  },
+  {
+    value: 'image',
+    icon: 'i-lucide-image',
+    label: t('FORMS.CONTENT_BLOCKS.IMAGE'),
+  },
+  {
+    value: 'divider',
+    icon: 'i-lucide-minus',
+    label: t('FORMS.CONTENT_BLOCKS.DIVIDER'),
+  },
+]);
+
+function openContentBlockDialog(section) {
+  pendingContentSectionIndex.value =
+    editor.value.schema.sections.indexOf(section);
+  contentBlockDialog.value?.open();
+}
+
+function uniqueContentBlockId(type) {
+  const usedIds = new Set(
+    editor.value.schema.sections.flatMap(section =>
+      (section.content_blocks || []).map(block => block.id)
+    )
+  );
+  let index = 2;
+  let candidate = type;
+  while (usedIds.has(candidate)) {
+    candidate = `${type}_${index}`;
+    index += 1;
+  }
+  return candidate;
+}
+
+function newContentBlock(type) {
+  const id = uniqueContentBlockId(type);
+  if (type === 'heading') {
+    return {
+      id,
+      type,
+      content: t('FORMS.CONTENT_BLOCKS.DEFAULT_HEADING'),
+    };
+  }
+  if (type === 'rich_text') {
+    return {
+      id,
+      type,
+      content: t('FORMS.CONTENT_BLOCKS.DEFAULT_RICH_TEXT'),
+    };
+  }
+  if (type === 'image') {
+    return { id, type, url: '', alt: '', caption: '' };
+  }
+
+  return { id, type };
+}
+
+function addContentBlock(type) {
+  const section =
+    editor.value.schema.sections[pendingContentSectionIndex.value];
+  if (!section) return;
+
+  section.content_blocks ||= [];
+  const block = newContentBlock(type);
+  section.content_blocks.push(block);
+  activeBuilderSectionIndex.value = pendingContentSectionIndex.value;
+  selectBuilderContentBlock(block.id);
+  contentBlockDialog.value?.close();
+}
+
+function removeSelectedBuilderContentBlock() {
+  if (!selectedBuilderContentBlock.value || !activeBuilderSection.value) return;
+
+  const blocks = activeBuilderSection.value.content_blocks || [];
+  const index = blocks.indexOf(selectedBuilderContentBlock.value);
+  blocks.splice(index, 1);
+  selectedBuilderContentBlockId.value = '';
+}
+
+function contentBlockLabel(block) {
+  if (block.type === 'heading') return block.content;
+  if (block.type === 'rich_text') return t('FORMS.CONTENT_BLOCKS.RICH_TEXT');
+  return (
+    contentBlockTypes.value.find(type => type.value === block.type)?.label ||
+    block.type
+  );
 }
 
 function addFieldFromType(type) {
@@ -1060,6 +1271,8 @@ function addCustomFieldGroup(group) {
     key: uniqueFieldKey(section.key, usedSectionKeys),
     title: section.title,
     description: section.description || '',
+    layout: section.layout || 'single',
+    content_blocks: section.content_blocks || [],
     fields: section.fields.map(field => ({
       ...field,
       key: uniqueFieldKey(field.key, usedFieldKeys),
@@ -1086,6 +1299,8 @@ function serializableFieldGroupSection() {
     ...(section.description?.trim()
       ? { description: section.description.trim() }
       : {}),
+    layout: section.layout || 'single',
+    content_blocks: section.content_blocks || [],
     fields: section.fields.map(field => ({
       key: field.key.trim(),
       label: field.label.trim(),
@@ -1520,6 +1735,13 @@ onBeforeUnmount(() => {
                 @click="openVersions"
               />
               <Button
+                variant="faded"
+                color="slate"
+                :label="t('FORMS.ACTIONS.OPEN_PREVIEW')"
+                data-test="forms-open-private-preview"
+                @click="openPrivatePreview"
+              />
+              <Button
                 :label="t('FORMS.ACTIONS.SAVE')"
                 :is-loading="isSaving"
                 @click="saveAndPublish"
@@ -1583,6 +1805,35 @@ onBeforeUnmount(() => {
                         }}
                       </span>
                     </button>
+                    <ol
+                      v-if="section.content_blocks?.length"
+                      class="mt-1 space-y-1 border-l border-n-slate-4 pl-2"
+                    >
+                      <li
+                        v-for="block in section.content_blocks"
+                        :key="block.id"
+                      >
+                        <button
+                          type="button"
+                          class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                          :class="
+                            block.id === selectedBuilderContentBlockId
+                              ? 'bg-n-solid-1 font-semibold text-n-teal-11'
+                              : 'text-n-slate-11'
+                          "
+                          :data-test="`forms-builder-content-${block.id}`"
+                          @click="selectBuilderContentBlock(block.id)"
+                        >
+                          <span
+                            class="i-lucide-align-left size-3.5 shrink-0 text-n-slate-9"
+                            aria-hidden="true"
+                          />
+                          <span class="min-w-0 break-words">
+                            {{ contentBlockLabel(block) }}
+                          </span>
+                        </button>
+                      </li>
+                    </ol>
                     <Draggable
                       v-model="section.fields"
                       item-key="key"
@@ -1618,6 +1869,18 @@ onBeforeUnmount(() => {
                         </li>
                       </template>
                     </Draggable>
+                    <button
+                      type="button"
+                      class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                      :data-test="`forms-builder-add-content-${sectionIndex}`"
+                      @click="openContentBlockDialog(section)"
+                    >
+                      <span
+                        class="i-lucide-text-cursor-input size-3.5"
+                        aria-hidden="true"
+                      />
+                      {{ t('FORMS.CONTENT_BLOCKS.ADD') }}
+                    </button>
                     <button
                       type="button"
                       class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
@@ -1663,7 +1926,105 @@ onBeforeUnmount(() => {
             <aside
               class="min-h-0 overflow-y-auto rounded-md border border-n-slate-4 bg-n-slate-2 p-4"
             >
-              <template v-if="selectedBuilderField">
+              <template v-if="selectedBuilderContentBlock">
+                <h3 class="text-sm font-semibold text-n-slate-12">
+                  {{ t('FORMS.CONTENT_BLOCKS.SETTINGS') }}
+                </h3>
+                <div class="mt-4 grid gap-4">
+                  <label
+                    v-if="selectedBuilderContentBlock.type === 'heading'"
+                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                  >
+                    {{ t('FORMS.CONTENT_BLOCKS.HEADING') }}
+                    <input
+                      v-model="selectedBuilderContentBlock.content"
+                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    />
+                  </label>
+                  <FormRichTextEditor
+                    v-else-if="selectedBuilderContentBlock.type === 'rich_text'"
+                    v-model="selectedBuilderContentBlock.content"
+                    data-test="forms-rich-text-editor"
+                  />
+                  <template
+                    v-else-if="selectedBuilderContentBlock.type === 'image'"
+                  >
+                    <img
+                      v-if="selectedBuilderContentBlock.url"
+                      data-test="forms-content-image-preview"
+                      :src="selectedBuilderContentBlock.url"
+                      :alt="selectedBuilderContentBlock.alt || ''"
+                      class="max-h-40 w-full rounded border border-n-slate-4 object-cover"
+                    />
+                    <div class="grid gap-1.5 text-sm text-n-slate-11">
+                      <p class="font-medium">
+                        {{ t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD') }}
+                      </p>
+                      <label
+                        class="inline-flex min-h-10 w-fit cursor-pointer items-center rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+                      >
+                        <input
+                          data-test="forms-content-image-upload"
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          class="sr-only"
+                          :disabled="isUploadingContentImage"
+                          @change="uploadContentImage"
+                        />
+                        {{
+                          isUploadingContentImage
+                            ? t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOADING')
+                            : t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD_ACTION')
+                        }}
+                      </label>
+                      <p class="text-xs leading-5 text-n-slate-10">
+                        {{ t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD_HINT') }}
+                      </p>
+                    </div>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.CONTENT_BLOCKS.IMAGE_URL') }}
+                      <input
+                        v-model="selectedBuilderContentBlock.url"
+                        data-test="forms-content-image-url"
+                        type="url"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.CONTENT_BLOCKS.IMAGE_ALT') }}
+                      <input
+                        v-model="selectedBuilderContentBlock.alt"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.CONTENT_BLOCKS.IMAGE_CAPTION') }}
+                      <input
+                        v-model="selectedBuilderContentBlock.caption"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                  </template>
+                  <p v-else class="text-sm leading-6 text-n-slate-10">
+                    {{ t('FORMS.CONTENT_BLOCKS.DIVIDER_DESCRIPTION') }}
+                  </p>
+                  <button
+                    type="button"
+                    class="inline-flex min-h-9 items-center gap-2 self-start rounded px-2 text-sm font-medium text-n-ruby-11 transition hover:bg-n-ruby-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6"
+                    @click="removeSelectedBuilderContentBlock"
+                  >
+                    <span class="i-lucide-trash-2 size-4" aria-hidden="true" />
+                    {{ t('FORMS.CONTENT_BLOCKS.REMOVE') }}
+                  </button>
+                </div>
+              </template>
+              <template v-else-if="selectedBuilderField">
                 <h3 class="text-sm font-semibold text-n-slate-12">
                   {{ t('FORMS.BUILDER.QUESTION_SETTINGS') }}
                 </h3>
@@ -1675,19 +2036,6 @@ onBeforeUnmount(() => {
                     <input
                       v-model="selectedBuilderField.label"
                       data-test="forms-builder-question-label"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.PRIVACY_POLICY_URL') }}
-                    <input
-                      v-model="editor.settings.privacy_policy_url"
-                      type="url"
-                      :placeholder="
-                        t('FORMS.EDITOR.PRIVACY_POLICY_URL_PLACEHOLDER')
-                      "
                       class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                     />
                   </label>
@@ -1807,6 +2155,22 @@ onBeforeUnmount(() => {
                       rows="3"
                       class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                     />
+                  </label>
+                  <label
+                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                  >
+                    {{ t('FORMS.CONTENT_BLOCKS.LAYOUT') }}
+                    <select
+                      v-model="activeBuilderSection.layout"
+                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    >
+                      <option value="single">
+                        {{ t('FORMS.CONTENT_BLOCKS.LAYOUT_SINGLE') }}
+                      </option>
+                      <option value="two_columns">
+                        {{ t('FORMS.CONTENT_BLOCKS.LAYOUT_TWO_COLUMNS') }}
+                      </option>
+                    </select>
                   </label>
                 </div>
               </template>
@@ -1978,6 +2342,19 @@ onBeforeUnmount(() => {
                     v-model="editor.settings.description"
                     rows="2"
                     class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                  />
+                </label>
+                <label
+                  class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
+                >
+                  {{ t('FORMS.EDITOR.PRIVACY_POLICY_URL') }}
+                  <input
+                    v-model="editor.settings.privacy_policy_url"
+                    type="url"
+                    :placeholder="
+                      t('FORMS.EDITOR.PRIVACY_POLICY_URL_PLACEHOLDER')
+                    "
+                    class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                   />
                 </label>
                 <label
@@ -2191,20 +2568,21 @@ onBeforeUnmount(() => {
                 v-if="!isSensitiveHealth"
                 class="rounded border border-n-slate-4 bg-n-solid-1 p-5"
               >
-                <label
-                  class="flex min-h-10 items-center gap-3 text-sm font-semibold text-n-slate-12"
-                >
-                  <input
-                    v-model="editor.crmDestinationEnabled"
-                    type="checkbox"
-                    class="size-4 accent-n-teal-9"
+                <div class="flex items-start gap-3">
+                  <span
+                    class="i-lucide-route mt-0.5 size-4 shrink-0 text-n-teal-10"
+                    aria-hidden="true"
                   />
-                  {{ t('FORMS.EDITOR.DESTINATION') }}
-                </label>
-                <div
-                  v-if="editor.crmDestinationEnabled"
-                  class="mt-4 grid gap-4 md:grid-cols-2"
-                >
+                  <div>
+                    <h3 class="text-sm font-semibold text-n-slate-12">
+                      {{ t('FORMS.EDITOR.DESTINATION') }}
+                    </h3>
+                    <p class="mt-1 text-sm leading-6 text-n-slate-10">
+                      {{ t('FORMS.EDITOR.DESTINATION_REQUIRED') }}
+                    </p>
+                  </div>
+                </div>
+                <div class="mt-4 grid gap-4 md:grid-cols-2">
                   <label
                     class="grid gap-1.5 text-sm font-medium text-n-slate-11"
                   >
@@ -2278,10 +2656,7 @@ onBeforeUnmount(() => {
                   </label>
                 </div>
                 <p
-                  v-if="
-                    editor.crmDestinationEnabled &&
-                    selectedBoardCustomFields.length
-                  "
+                  v-if="selectedBoardCustomFields.length"
                   class="mt-3 text-sm leading-6 text-n-slate-10"
                 >
                   {{ t('FORMS.EDITOR.OPPORTUNITY_MAPPING_HELP') }}
@@ -2501,7 +2876,6 @@ onBeforeUnmount(() => {
                     <label
                       v-if="
                         !isSensitiveHealth &&
-                        editor.crmDestinationEnabled &&
                         (opportunityFieldOptions(field).length ||
                           field.opportunityTarget)
                       "
@@ -2898,6 +3272,35 @@ onBeforeUnmount(() => {
           {{ type.label }}
         </span>
         <span class="i-lucide-plus size-4 text-n-teal-10" aria-hidden="true" />
+      </button>
+    </div>
+  </Dialog>
+
+  <Dialog
+    ref="contentBlockDialog"
+    width="lg"
+    :title="t('FORMS.CONTENT_BLOCKS.TITLE')"
+    :description="t('FORMS.CONTENT_BLOCKS.DESCRIPTION')"
+    :show-confirm-button="false"
+    :cancel-button-label="t('FORMS.ACTIONS.CLOSE')"
+  >
+    <div class="grid gap-3 sm:grid-cols-2">
+      <button
+        v-for="type in contentBlockTypes"
+        :key="type.value"
+        type="button"
+        class="flex min-h-14 items-center gap-3 rounded border border-n-slate-4 bg-n-solid-1 px-4 py-3 text-left transition hover:border-n-teal-7 hover:bg-n-teal-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+        :data-test="`forms-add-content-${type.value}`"
+        @click="addContentBlock(type.value)"
+      >
+        <span
+          :class="type.icon"
+          class="size-4 shrink-0 text-n-teal-10"
+          aria-hidden="true"
+        />
+        <span class="text-sm font-semibold text-n-slate-12">
+          {{ type.label }}
+        </span>
       </button>
     </div>
   </Dialog>

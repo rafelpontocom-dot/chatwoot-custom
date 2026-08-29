@@ -4,6 +4,7 @@ RSpec.describe 'Form submissions API', type: :request do
   let(:account) { create(:account) }
   let(:administrator) { create(:user, account: account, role: :administrator) }
   let(:contact) { create(:contact, account: account, name: 'Pedro Raevo') }
+  let(:card) { create(:kanban_card, account: account, contact: contact) }
   let(:template) do
     FormTemplate.create!(
       account: account,
@@ -18,7 +19,8 @@ RSpec.describe 'Form submissions API', type: :request do
     invitation = Forms::CreateInvitationService.new(
       account: account,
       form_template_version: version,
-      contact: contact
+      contact: contact,
+      kanban_card: card
     ).perform.invitation
 
     Forms::SubmitPublicFormService.new(invitation: invitation, answers: { 'nome' => 'Pedro Raevo' }).perform!
@@ -64,7 +66,8 @@ RSpec.describe 'Form submissions API', type: :request do
       invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform.invitation
       clinical_submission = Forms::SubmitPublicFormService.new(
         invitation: invitation,
@@ -109,7 +112,8 @@ RSpec.describe 'Form submissions API', type: :request do
       invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform.invitation
       clinical_submission = Forms::SubmitPublicFormService.new(
         invitation: invitation,
@@ -147,7 +151,8 @@ RSpec.describe 'Form submissions API', type: :request do
       invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform.invitation
       clinical_submission = Forms::SubmitPublicFormService.new(
         invitation: invitation,
@@ -184,7 +189,8 @@ RSpec.describe 'Form submissions API', type: :request do
       invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform.invitation
       clinical_submission = Forms::SubmitPublicFormService.new(
         invitation: invitation,
@@ -218,6 +224,7 @@ RSpec.describe 'Form submissions API', type: :request do
 
   def schema
     {
+      'crm_destination' => crm_destination,
       'sections' => [
         {
           'key' => 'identificacao',
@@ -225,6 +232,15 @@ RSpec.describe 'Form submissions API', type: :request do
           'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }]
         }
       ]
+    }
+  end
+
+  def crm_destination
+    {
+      'kanban_board_id' => card.kanban_board_id,
+      'kanban_stage_id' => card.kanban_stage_id,
+      'inbox_id' => card.inbox_id,
+      'opportunity_policy' => 'reuse_open'
     }
   end
 

@@ -3,14 +3,22 @@ class Forms::SchemaValidator
     text textarea email phone number currency date datetime select multi_select checkbox consent signature attachment hidden
   ].freeze
   SELECTION_TYPES = %w[select multi_select].freeze
+  SECTION_LAYOUTS = %w[single two_columns].freeze
   OPPORTUNITY_POLICIES = %w[create_new reuse_open].freeze
   KEY_PATTERN = /\A[a-z][a-z0-9_]*\z/
 
   attr_reader :errors
 
-  def initialize(schema = nil, require_public_contact_mapping: false, allow_attachments: false, **schema_keywords)
+  def initialize(
+    schema = nil,
+    require_public_contact_mapping: false,
+    require_crm_destination: false,
+    allow_attachments: false,
+    **schema_keywords
+  )
     @schema = (schema || schema_keywords).to_h
     @require_public_contact_mapping = require_public_contact_mapping
+    @require_crm_destination = require_crm_destination
     @allow_attachments = allow_attachments
     @errors = []
   end
@@ -48,7 +56,21 @@ class Forms::SchemaValidator
 
     errors << 'section keys must be unique' if section_keys.include?(key)
     section_keys << key
+    validate_section_layout(section['layout'])
+    validate_content_blocks(section['content_blocks'])
     section['fields'].each { |field| validate_field(field, field_keys) }
+  end
+
+  def validate_section_layout(layout)
+    return if layout.blank? || SECTION_LAYOUTS.include?(layout)
+
+    errors << 'sections must use a supported layout'
+  end
+
+  def validate_content_blocks(blocks)
+    return if Forms::SchemaContentValidator.new(blocks: blocks).valid?
+
+    errors << 'content blocks must use safe supported content'
   end
 
   def validate_field(field, field_keys)
@@ -106,7 +128,10 @@ class Forms::SchemaValidator
 
   def validate_crm_destination
     destination = @schema['crm_destination']
-    return if destination.blank?
+    if destination.blank?
+      errors << 'commercial forms require a CRM destination' if @require_crm_destination
+      return
+    end
 
     destination = destination.to_h
     valid_ids = %w[kanban_board_id kanban_stage_id inbox_id].all? do |key|

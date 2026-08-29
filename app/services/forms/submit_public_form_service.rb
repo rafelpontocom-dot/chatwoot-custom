@@ -19,6 +19,7 @@ class Forms::SubmitPublicFormService
         submission.save!
         attach_clinical_documents!(submission)
         @invitation.consume!
+        @invitation.form_invitation_draft&.destroy!
         submission
       end
     end

@@ -106,7 +106,7 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
   def payment_card
     return if create_payment_params[:kanban_card_id].blank?
 
-    Current.account.kanban_cards.find(create_payment_params[:kanban_card_id])
+    KanbanCard.find_by!(account_id: Current.account.id, id: create_payment_params[:kanban_card_id])
   end
 
   def create_payment_params

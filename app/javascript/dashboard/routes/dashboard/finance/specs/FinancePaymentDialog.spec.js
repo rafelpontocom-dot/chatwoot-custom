@@ -144,4 +144,27 @@ describe('FinancePaymentDialog', () => {
     });
     vi.useRealTimers();
   });
+
+  it('requires at least R$ 5,00 before creating an Asaas charge', async () => {
+    const wrapper = mountDialog({ contact: { id: 22, name: 'Pedro Raevo' } });
+    wrapper.vm.open();
+
+    await wrapper
+      .get('[data-testid="finance-payment-amount"]')
+      .setValue('1,00');
+    await wrapper
+      .get('[data-testid="finance-payment-due-on"]')
+      .setValue('2026-09-01');
+    await wrapper
+      .get('[data-testid="finance-payment-cpf-cnpj"]')
+      .setValue('12345678909');
+
+    expect(
+      wrapper
+        .get('[data-testid="finance-payment-submit"]')
+        .attributes('disabled')
+    ).toBeDefined();
+    expect(wrapper.text()).toContain('FINANCE.PAYMENTS.ASAAS_MINIMUM_AMOUNT');
+    expect(FinanceAPI.createPayment).not.toHaveBeenCalled();
+  });
 });

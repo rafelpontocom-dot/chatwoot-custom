@@ -2,7 +2,7 @@
 
 Baseado em: [PRD Financeiro Asaas e Raevo Formulários](./raevo-finance-and-forms-prd.md)
 
-Status: Financeiro P0 concluído localmente; Formulários comerciais P0 e anamnese clínica P1 (convite individual cifrado) implementados localmente.
+Status: Financeiro P0 concluído localmente; Formulários comerciais P0 e anamnese clínica P1 (convite individual cifrado e rascunho seguro) implementados localmente.
 
 ## Progresso atual
 
@@ -10,7 +10,7 @@ Implementados nesta etapa: `FinanceModuleSetting`, `FinanceProviderConnection`, 
 
 O nó `Enviar mensagem` do Vue Flow aceita `{{finance_payment_link}}`, `{{finance_payment_amount}}` e `{{finance_payment_due_on}}`. Quando o fluxo se origina em um evento financeiro, as três variáveis resolvem o pagamento cujo `payment_id` pertence ao contexto da execução. Enquanto um atraso, horário silencioso ou espera por resposta deixa o fluxo pendente, esse contexto é preservado; só em fluxos sem evento financeiro há fallback para a cobrança mais recente com link da mesma oportunidade.
 
-O bloco comercial de Formulários existe no domínio e no dashboard: `FormTemplate` tem categoria, classificação de acesso, link público opt-in e versão ativa; `FormTemplateVersion` pertence à mesma conta, exige schema com seções e não pode ser alterada depois da publicação. A criação oferece quatro pontos de partida: em branco, captação de lead, pré-consulta e anamnese. Os modelos comerciais publicam uma primeira versão editável com mapeamento explícito de nome, telefone e e-mail; falha de publicação preserva o rascunho para correção. `FormInvitation` emite token opaco com HMAC, armazena apenas seu digest, aplica expiração e consumo transacional. As APIs autenticadas `GET/POST/PATCH /api/v1/accounts/:account_id/forms/templates`, `POST /api/v1/accounts/:account_id/forms/templates/:id/publish` e `POST /api/v1/accounts/:account_id/forms/templates/:template_id/invitations` são exclusivas de administradores. O token só sai na resposta de criação do convite e não retorna em listagens. `FormSubmission` persiste respostas permitidas pelo schema publicado e o mapeamento comercial declarado pode localizar/criar contato e criar/reaproveitar uma oportunidade em destino validado. A rota pública individual e o link geral retornam somente formulário, versão e schema sem IDs de CRM; ambos aplicam rate limit e honeypot. A anamnese `sensitive_health` não possui link público geral: exige contato conhecido, convite individual de uso único e consentimento obrigatório; as respostas são cifradas em coluna separada, não são mapeadas ao CRM nem publicam eventos. A API administrativa lista apenas resumos e entrega o conteúdo clínico somente no detalhe autorizado, registrando auditoria de leitura.
+O bloco comercial de Formulários existe no domínio e no dashboard: `FormTemplate` tem categoria, classificação de acesso, link público opt-in e versão ativa; `FormTemplateVersion` pertence à mesma conta, exige schema com seções e não pode ser alterada depois da publicação. A criação oferece quatro pontos de partida: em branco, captação de lead, pré-consulta e anamnese. Os modelos comerciais publicam uma primeira versão editável com mapeamento explícito de nome, telefone e e-mail; falha de publicação preserva o rascunho para correção. `FormInvitation` emite token opaco com HMAC, armazena apenas seu digest, aplica expiração e consumo transacional. `FormInvitationDraft` pertence a um único convite e guarda somente respostas existentes no schema publicado que não sejam anexos ou contexto oculto; em anamneses, o mesmo conteúdo usa cifra de aplicação e a coluna JSON permanece vazia. A rota individual devolve esse rascunho somente ao portador do token ainda disponível e a conclusão remove o registro dentro da mesma transação da submissão. Convites disponíveis podem ser revogados exclusivamente por administrador através de `POST /api/v1/accounts/:account_id/forms/invitations/:id/revoke`; a operação é escopada à conta, nunca substitui estado consumido/expirado e não remove respostas. As APIs autenticadas `GET/POST/PATCH /api/v1/accounts/:account_id/forms/templates`, `POST /api/v1/accounts/:account_id/forms/templates/:id/publish` e `POST /api/v1/accounts/:account_id/forms/templates/:template_id/invitations` são exclusivas de administradores. O token só sai na resposta de criação do convite e não retorna em listagens. `FormSubmission` persiste respostas permitidas pelo schema publicado e o mapeamento comercial declarado pode localizar/criar contato e criar/reaproveitar uma oportunidade em destino validado. A rota pública individual e o link geral retornam somente formulário, versão e schema sem IDs de CRM; ambos aplicam rate limit e honeypot. A anamnese `sensitive_health` não possui link público geral: exige contato conhecido, convite individual de uso único e consentimento obrigatório; as respostas são cifradas em coluna separada, não são mapeadas ao CRM nem publicam eventos. A API administrativa lista apenas resumos e entrega o conteúdo clínico somente no detalhe autorizado, registrando auditoria de leitura.
 
 ## Fronteira técnica
 
@@ -26,26 +26,26 @@ O payload de dados de saúde não deve ser enviado a N8N, webhook, e-mail, Whats
 
 Uma configuração de disponibilidade por conta.
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório, único |
-| `enabled` | boolean | padrão `false` |
-| `market` | enum | `BR`, `PT`, `OTHER` |
-| `default_payment_provider` | string | opcional; validado pelo catálogo |
-| `default_invoicing_provider` | string | opcional; validado pelo catálogo |
-| `enabled_at` / `enabled_by_id` | datetime/bigint | auditoria |
-| `disabled_at` / `disabled_by_id` | datetime/bigint | auditoria |
-| `settings` | jsonb | apenas preferências não secretas |
+| Campo                            | Tipo            | Regra                            |
+| -------------------------------- | --------------- | -------------------------------- |
+| `account_id`                     | bigint          | obrigatório, único               |
+| `enabled`                        | boolean         | padrão `false`                   |
+| `market`                         | enum            | `BR`, `PT`, `OTHER`              |
+| `default_payment_provider`       | string          | opcional; validado pelo catálogo |
+| `default_invoicing_provider`     | string          | opcional; validado pelo catálogo |
+| `enabled_at` / `enabled_by_id`   | datetime/bigint | auditoria                        |
+| `disabled_at` / `disabled_by_id` | datetime/bigint | auditoria                        |
+| `settings`                       | jsonb           | apenas preferências não secretas |
 
 `FinanceProviderDefinition` é catálogo de código, não tabela administrável pelo cliente. Cada definição expõe `key`, mercados, moedas, métodos, capacidades e adaptador. Catálogo inicial:
 
-| Chave | Mercado | Papel | Estado |
-| --- | --- | --- | --- |
-| `asaas` | BR | pagamentos e NFS-e quando suportada | P0 |
-| `manual` | BR/PT/OTHER | registro manual, sem webhook | P0 |
-| `ifthenpay` | PT | pagamentos pontuais | conector preferencial P1 |
-| `moloni` | PT | faturação/documentos | emissor preferencial P1 |
-| `easypay` | PT | pagamentos amplos/recorrência | alternativa futura |
+| Chave       | Mercado     | Papel                               | Estado                   |
+| ----------- | ----------- | ----------------------------------- | ------------------------ |
+| `asaas`     | BR          | pagamentos e NFS-e quando suportada | P0                       |
+| `manual`    | BR/PT/OTHER | registro manual, sem webhook        | P0                       |
+| `ifthenpay` | PT          | pagamentos pontuais                 | conector preferencial P1 |
+| `moloni`    | PT          | faturação/documentos                | emissor preferencial P1  |
+| `easypay`   | PT          | pagamentos amplos/recorrência       | alternativa futura       |
 
 O administrador não escolhe um candidato P1 na produção enquanto o respectivo adaptador não estiver marcado como disponível por feature flag de instalação.
 
@@ -53,20 +53,20 @@ O administrador não escolhe um candidato P1 na produção enquanto o respectivo
 
 Uma conexão ativa por conta no P0.
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório, único |
-| `provider` | enum | inicialmente `asaas` |
-| `environment` | enum | `sandbox`, `production` |
-| `api_key_ciphertext` | text | obrigatório, cifrado; nunca serializado |
-| `webhook_token_ciphertext` | text | cifrado |
-| `provider_account_id` | string | opcional, retornado na validação |
-| `display_name` | string | opcional |
-| `status` | enum | `disconnected`, `verifying`, `connected`, `attention`, `error` |
-| `last_verified_at` | datetime | opcional |
-| `last_webhook_at` | datetime | opcional |
-| `settings` | jsonb | política de notificação e NF |
-| `lock_version` | integer | optimistic locking |
+| Campo                      | Tipo     | Regra                                                          |
+| -------------------------- | -------- | -------------------------------------------------------------- |
+| `account_id`               | bigint   | obrigatório, único                                             |
+| `provider`                 | enum     | inicialmente `asaas`                                           |
+| `environment`              | enum     | `sandbox`, `production`                                        |
+| `api_key_ciphertext`       | text     | obrigatório, cifrado; nunca serializado                        |
+| `webhook_token_ciphertext` | text     | cifrado                                                        |
+| `provider_account_id`      | string   | opcional, retornado na validação                               |
+| `display_name`             | string   | opcional                                                       |
+| `status`                   | enum     | `disconnected`, `verifying`, `connected`, `attention`, `error` |
+| `last_verified_at`         | datetime | opcional                                                       |
+| `last_webhook_at`          | datetime | opcional                                                       |
+| `settings`                 | jsonb    | política de notificação e NF                                   |
+| `lock_version`             | integer  | optimistic locking                                             |
 
 Índice único: `account_id, provider`.
 
@@ -74,27 +74,27 @@ O nome de implementação pode evoluir para `FinanceProviderConnection`, com `pr
 
 ### Payment
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório, indexado |
-| `contact_id` | bigint | obrigatório |
-| `kanban_card_id` | bigint | opcional |
-| `asaas_connection_id` | bigint | obrigatório |
-| `provider_payment_id` | string | único por conexão quando presente |
-| `provider_customer_id` | string | referência do cliente Asaas |
-| `external_reference` | string | UUID/identificador interno imutável |
-| `kind` | enum | `charge`, `checkout`, `subscription`, `installment` |
-| `status` | enum | estados normalizados abaixo |
-| `billing_type` | enum | `pix`, `credit_card`, `boleto`, `undefined`, `other` |
-| `amount_cents` | integer | maior que zero |
-| `paid_amount_cents` | integer | padrão `0`; nunca substitui `amount_cents` |
-| `currency` | string | padrão `BRL` |
-| `due_on` | date | opcional conforme tipo |
-| `paid_at` | datetime | opcional |
-| `provider_updated_at` | datetime | opcional; ordena eventos externos fora de ordem |
-| `invoice_url` | text | URL externa, não segredo |
-| `provider_payload` | jsonb | payload normalizado e minimizado |
-| `lock_version` | integer | optimistic locking |
+| Campo                  | Tipo     | Regra                                                |
+| ---------------------- | -------- | ---------------------------------------------------- |
+| `account_id`           | bigint   | obrigatório, indexado                                |
+| `contact_id`           | bigint   | obrigatório                                          |
+| `kanban_card_id`       | bigint   | opcional                                             |
+| `asaas_connection_id`  | bigint   | obrigatório                                          |
+| `provider_payment_id`  | string   | único por conexão quando presente                    |
+| `provider_customer_id` | string   | referência do cliente Asaas                          |
+| `external_reference`   | string   | UUID/identificador interno imutável                  |
+| `kind`                 | enum     | `charge`, `checkout`, `subscription`, `installment`  |
+| `status`               | enum     | estados normalizados abaixo                          |
+| `billing_type`         | enum     | `pix`, `credit_card`, `boleto`, `undefined`, `other` |
+| `amount_cents`         | integer  | maior que zero                                       |
+| `paid_amount_cents`    | integer  | padrão `0`; nunca substitui `amount_cents`           |
+| `currency`             | string   | padrão `BRL`                                         |
+| `due_on`               | date     | opcional conforme tipo                               |
+| `paid_at`              | datetime | opcional                                             |
+| `provider_updated_at`  | datetime | opcional; ordena eventos externos fora de ordem      |
+| `invoice_url`          | text     | URL externa, não segredo                             |
+| `provider_payload`     | jsonb    | payload normalizado e minimizado                     |
+| `lock_version`         | integer  | optimistic locking                                   |
 
 Estados internos P0: `draft`, `pending`, `confirmed`, `received`, `overdue`, `refunded`, `chargeback`, `canceled`, `failed`.
 
@@ -108,59 +108,59 @@ Dinheiro é persistido em centavos. `due_on` representa a data comercial no fuso
 
 Registro append-only de eventos recebidos e ações locais.
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `payment_id` | bigint | obrigatório |
-| `account_id` | bigint | obrigatório |
-| `provider_event_id` | string | único por conexão quando externo |
-| `event_type` | string | `payment_received`, etc. |
-| `occurred_at` | datetime | obrigatório |
-| `actor_id` | bigint | nulo para webhook |
-| `metadata` | jsonb | nunca inclui chave ou cartão |
-| `processing_status` | enum | `processed`, `ignored`, `failed` |
+| Campo               | Tipo     | Regra                            |
+| ------------------- | -------- | -------------------------------- |
+| `payment_id`        | bigint   | obrigatório                      |
+| `account_id`        | bigint   | obrigatório                      |
+| `provider_event_id` | string   | único por conexão quando externo |
+| `event_type`        | string   | `payment_received`, etc.         |
+| `occurred_at`       | datetime | obrigatório                      |
+| `actor_id`          | bigint   | nulo para webhook                |
+| `metadata`          | jsonb    | nunca inclui chave ou cartão     |
+| `processing_status` | enum     | `processed`, `ignored`, `failed` |
 
 ### FinanceWebhookDelivery
 
 Registro técnico e reprocessável de webhook autenticado. O corpo original é armazenado somente para o servidor e não integra qualquer serialização pública.
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` / `finance_provider_connection_id` | bigint | obrigatórios e com escopo de conta |
-| `provider_event_id` | string | único por conexão quando o provedor o informar |
-| `payload_digest` | string | SHA-256 único por conexão para deduplicar entrega sem ID |
-| `raw_payload` | text | obrigatório; cifrado quando disponível; nunca serializado |
-| `processing_status` | enum | `processed`, `ignored`, `failed` |
-| `error_message` | text | somente classe sanitizada da falha |
-| `received_at` / `processed_at` | datetime | auditoria operacional |
-| `retry_count` | integer | incrementado por reprocessamento administrativo |
+| Campo                                           | Tipo     | Regra                                                     |
+| ----------------------------------------------- | -------- | --------------------------------------------------------- |
+| `account_id` / `finance_provider_connection_id` | bigint   | obrigatórios e com escopo de conta                        |
+| `provider_event_id`                             | string   | único por conexão quando o provedor o informar            |
+| `payload_digest`                                | string   | SHA-256 único por conexão para deduplicar entrega sem ID  |
+| `raw_payload`                                   | text     | obrigatório; cifrado quando disponível; nunca serializado |
+| `processing_status`                             | enum     | `processed`, `ignored`, `failed`                          |
+| `error_message`                                 | text     | somente classe sanitizada da falha                        |
+| `received_at` / `processed_at`                  | datetime | auditoria operacional                                     |
+| `retry_count`                                   | integer  | incrementado por reprocessamento administrativo           |
 
 ### FiscalInvoice
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório |
-| `payment_id` | bigint | opcional |
-| `provider_invoice_id` | string | único por conexão |
-| `status` | enum | `draft`, `created`, `synchronized`, `authorized`, `canceling`, `canceled`, `error` |
-| `number` | string | após autorização |
-| `validation_code` | string | após autorização |
-| `pdf_url` / `xml_url` | text | após autorização |
-| `error_message` | text | mensagem sanitizada |
-| `issued_at` | datetime | opcional |
+| Campo                 | Tipo     | Regra                                                                              |
+| --------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `account_id`          | bigint   | obrigatório                                                                        |
+| `payment_id`          | bigint   | opcional                                                                           |
+| `provider_invoice_id` | string   | único por conexão                                                                  |
+| `status`              | enum     | `draft`, `created`, `synchronized`, `authorized`, `canceling`, `canceled`, `error` |
+| `number`              | string   | após autorização                                                                   |
+| `validation_code`     | string   | após autorização                                                                   |
+| `pdf_url` / `xml_url` | text     | após autorização                                                                   |
+| `error_message`       | text     | mensagem sanitizada                                                                |
+| `issued_at`           | datetime | opcional                                                                           |
 
 ### FiscalProfile
 
 Objeto P1, separado da conexão de pagamento. Só uma configuração fiscal ativa por conta/provedor pode emitir documentos.
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` / `provider_connection_id` | bigint | obrigatórios, escopo de conta |
-| `legal_name` / `tax_identifier` | string | obrigatório antes de emitir; dado mascarado fora da configuração |
-| `address` / `municipality_code` | jsonb/string | obrigatório quando o provedor/país exigir |
-| `default_service_code` / `default_description` | string | revisável antes de emitir |
-| `document_series` | string | obrigatório somente quando aplicável |
-| `status` | enum | `draft`, `verified`, `attention`, `invalid` |
-| `verified_at` / `verified_by_id` | datetime/bigint | auditoria |
+| Campo                                          | Tipo            | Regra                                                            |
+| ---------------------------------------------- | --------------- | ---------------------------------------------------------------- |
+| `account_id` / `provider_connection_id`        | bigint          | obrigatórios, escopo de conta                                    |
+| `legal_name` / `tax_identifier`                | string          | obrigatório antes de emitir; dado mascarado fora da configuração |
+| `address` / `municipality_code`                | jsonb/string    | obrigatório quando o provedor/país exigir                        |
+| `default_service_code` / `default_description` | string          | revisável antes de emitir                                        |
+| `document_series`                              | string          | obrigatório somente quando aplicável                             |
+| `status`                                       | enum            | `draft`, `verified`, `attention`, `invalid`                      |
+| `verified_at` / `verified_by_id`               | datetime/bigint | auditoria                                                        |
 
 O perfil não autoriza emissão sozinho: o adaptador ainda valida capacidade do mercado, credenciais e dados exigidos pelo município/país.
 
@@ -168,21 +168,27 @@ O perfil não autoriza emissão sozinho: o adaptador ainda valida capacidade do 
 
 `FormTemplate` é o objeto administrativo estável. Cada publicação cria uma `FormTemplateVersion` imutável com schema JSONB validado.
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório |
-| `name` | string | obrigatório |
-| `category` | enum | `lead_capture`, `pre_consultation`, `clinical`, `consent`, `other` |
-| `active_version_id` | bigint | opcional |
-| `access_classification` | enum | `commercial`, `restricted`, `sensitive_health` |
-| `public_enabled` / `public_token` | boolean/string | publicação opt-in e token opaco único para link geral |
-| `settings` | jsonb | idioma, descrição, `brand_name`, tema fechado (`calm`, `warm`, `contrast`) e URL externa opcional de logo; `brand_logo` é um anexo Active Storage PNG/JPEG/WebP até 2 MB; P1: `clinical_access` e `clinical_retention_days` |
+| Campo                             | Tipo           | Regra                                                                                                                                                                                                                       |
+| --------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `account_id`                      | bigint         | obrigatório                                                                                                                                                                                                                 |
+| `name`                            | string         | obrigatório                                                                                                                                                                                                                 |
+| `category`                        | enum           | `lead_capture`, `pre_consultation`, `clinical`, `consent`, `other`                                                                                                                                                          |
+| `active_version_id`               | bigint         | opcional                                                                                                                                                                                                                    |
+| `access_classification`           | enum           | `commercial`, `restricted`, `sensitive_health`                                                                                                                                                                              |
+| `public_enabled` / `public_token` | boolean/string | publicação opt-in e token opaco único para link geral                                                                                                                                                                       |
+| `settings`                        | jsonb          | idioma, descrição, `brand_name`, tema fechado (`calm`, `warm`, `contrast`) e URL externa opcional de logo; `brand_logo` é um anexo Active Storage PNG/JPEG/WebP até 2 MB; P1: `clinical_access` e `clinical_retention_days` |
 
 `FormTemplateVersion.schema` contém seções, campos, validação, condicionais, mapeamento permitido e texto de consentimento. O schema não armazena HTML arbitrário. Cada campo pode declarar `help_text` simples, renderizado abaixo da pergunta e ligado ao controle por `aria-describedby`; não substitui o rótulo visível. Antes de publicar, o backend exige seções e chaves estáveis, impede chaves duplicadas entre seções e valida tipo, rótulo, opções de campos de seleção e formato de destino comercial. Links públicos comerciais exigem também o mapeamento de `name` e de `email` ou `phone_number` para chaves de perguntas publicadas; a mesma regra impede habilitar o link depois de uma versão privada já existir. Tipos iniciais: texto curto/longo, e-mail, telefone, número, moeda, data/data-hora, seleção simples/múltipla, checkbox, consentimento, aceite por nome digitado e campo oculto. O tipo `attachment` só é permitido em `sensitive_health`: aceita PDF, JPG, PNG, HEIC ou HEIF, no máximo 10 MB por arquivo e cinco arquivos por submissão. O aceite por nome digitado registra a manifestação no formulário, mas não é apresentado como assinatura eletrônica qualificada ou evidência jurídica autônoma. O P0 aceita `crm_mapping.contact`: o destino é `name`, `email`, `phone_number` ou um atributo em `custom_attributes`, e o valor é uma chave de resposta publicada. Em `pt_BR` e `pt_PT`, a submissão normaliza telefones nacionais reconhecíveis para E.164 antes de deduplicar/criar ou atualizar o contato; nos demais idiomas somente E.164 explícito é aceito. O P1 inicial aceita `crm_mapping.kanban_card.custom_field_values`, em que cada chave é um campo personalizado do card e cada valor é uma chave de resposta publicada. Ele exige destino comercial, só aceita campos existentes do board de destino e nunca aceita fórmulas. Na submissão, o card é bloqueado, valores já existentes são preservados e o próprio `KanbanCard` normaliza e valida tipo/opções; mapeamento inválido é registrado como rejeitado sem descartar a resposta. `crm_destination` declara `kanban_board_id`, `kanban_stage_id`, `inbox_id` e política `reuse_open` ou `create_new`; o serviço confirma escopo/estado na conta no momento da submissão. Todas essas configurações são removidas do payload público. Para `sensitive_health`, a publicação exige criptografia configurada, pelo menos um consentimento obrigatório e ausência total de `crm_mapping` e `crm_destination`.
 
 No envio, o servidor valida a mesma condição usada pela interface e só persiste respostas de perguntas visíveis e não técnicas. Campo `hidden`, resposta de uma condicional que não foi apresentada e chave enviada fora do schema nunca entram em `FormSubmission`, no mapeamento de contato ou no destino comercial.
 
 O editor é uma superfície visual de três áreas: estrutura de etapas e perguntas à esquerda, prévia segura e clicável do formulário ao centro, e propriedades essenciais da seleção à direita. A prévia nunca grava respostas e mostra imediatamente título, ajuda, obrigatoriedade, tipos e opções da pergunta selecionada. Clicar em uma etapa ou pergunta seleciona o item equivalente na estrutura; criar pergunta ou inserir bloco mantém a seleção no item novo. Identificadores, mapeamentos CRM, condicionais, publicação e destino ficam recolhidos em `Configurações avançadas`, preservando o fluxo diário de uma secretaria sem ocultar controles de configuração.
+
+Todo `FormTemplate` de classificação `commercial` só pode gerar `FormTemplateVersion` quando `crm_destination` declara board, stage, inbox e política válidos. A interface cria captação e pré-consulta como rascunho, nunca como publicação automática: a checklist torna o destino obrigatório. O link público geral localiza ou cria contato pelos mapeamentos e usa o mesmo destino para criar ou reutilizar a oportunidade. `FormInvitation` comercial ou `sensitive_health` exige `contact_id` e `kanban_card_id`, com contato igual ao do card; a anamnese mantém `max_uses = 1`.
+
+`section.content_blocks` aceita, em ordem, `heading`, `rich_text`, `image` e `divider`; `section.layout` aceita `single` ou `two_columns`. Texto rico é string simples ou documento Tiptap restrito a `doc`, parágrafo, título, listas, texto, quebra, marcas básicas e links HTTP(S). Links só aceitam `href`, alvo `_blank`, relação `noopener noreferrer` e nenhuma classe/atributo arbitrário. Imagens aceitam URL HTTP(S) externa ou URL gerenciada em `/rails/active_storage/blobs/`; no editor o administrador pode enviar PNG, JPEG ou WebP de até 5 MB e a URL é inserida no bloco selecionado. Texto alternativo e legenda permanecem curtos. O servidor rejeita HTML, URLs inseguras, atributos arbitrários e blocos/IDs inválidos. `Abrir prévia` grava um payload sanitizado apenas no `localStorage` do navegador por quinze minutos e abre `/formularios/previsao/:preview_id`; a rota usa o renderer público, não busca dados administrativos e bloqueia submissão.
+
+No detalhe da oportunidade, a aba `Formulários` lista convites e respostas recebidas. Cada resposta comercial possui `Abrir resposta`, que consulta o detalhe autorizado e o apresenta em diálogo de leitura agrupado por seção, sem redirecionar a secretaria para fora da oportunidade. O resumo nunca contém respostas. Para `sensitive_health`, a mesma ação depende da policy clínica e a leitura registrada continua passando por `FormAccessAudit`.
 
 A prévia aceita respostas efêmeras para testar `visible_when`, possui alternância desktop/celular e pode ser limpa sem alterar o schema. A estrutura usa `vuedraggable` já presente no dashboard para reordenar etapas e perguntas; os controles acessíveis de mover acima/abaixo permanecem nas configurações avançadas como alternativa ao arrastar. O inspector visual permite criar por tipo, duplicar e remover pergunta. Nenhum gesto de arrastar é a única forma de concluir uma ação.
 
@@ -196,11 +202,11 @@ O editor disponibiliza blocos comerciais locais e editáveis para inserir dados 
 
 `FormFieldGroup` é uma biblioteca administrativa reutilizável, delimitada por conta, para uma seção comercial do formulário.
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório; todo acesso é escopado à conta atual |
-| `name` | string | obrigatório, até 120 caracteres e único por conta |
-| `section` | jsonb | seção validada com `key`, título/descrição opcionais e perguntas permitidas |
+| Campo        | Tipo   | Regra                                                                       |
+| ------------ | ------ | --------------------------------------------------------------------------- |
+| `account_id` | bigint | obrigatório; todo acesso é escopado à conta atual                           |
+| `name`       | string | obrigatório, até 120 caracteres e único por conta                           |
+| `section`    | jsonb  | seção validada com `key`, título/descrição opcionais e perguntas permitidas |
 
 Somente administrador cria, lista ou remove blocos. O bloco não é uma referência viva dentro de um formulário: ao inseri-lo, o editor cria uma cópia com identificadores novos, evitando alteração retroativa em versões já publicadas.
 
@@ -210,31 +216,31 @@ Quando uma submissão comercial fica vinculada a uma oportunidade, `Forms::Submi
 
 ### FormInvitation
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório |
-| `form_template_version_id` | bigint | obrigatório |
-| `contact_id` / `kanban_card_id` | bigint | contexto opcional/individual |
-| `token_digest` | string | hash de token aleatório; único |
-| `expires_at` | datetime | opcional |
-| `max_uses` / `uses_count` | integer | consumo transacional |
-| `status` | enum | `active`, `expired`, `consumed`, `revoked` |
-| `sent_at` / `completed_at` | datetime | auditoria |
+| Campo                           | Tipo     | Regra                                      |
+| ------------------------------- | -------- | ------------------------------------------ |
+| `account_id`                    | bigint   | obrigatório                                |
+| `form_template_version_id`      | bigint   | obrigatório                                |
+| `contact_id` / `kanban_card_id` | bigint   | contexto opcional/individual               |
+| `token_digest`                  | string   | hash de token aleatório; único             |
+| `expires_at`                    | datetime | opcional; ao vencer, o estado efetivo é `expired` |
+| `max_uses` / `uses_count`       | integer  | consumo transacional                       |
+| `status`                        | enum     | `active`, `expired`, `consumed`, `revoked` |
+| `sent_at` / `completed_at`      | datetime | auditoria                                  |
 
 ### FormSubmission
 
-| Campo | Tipo | Regra |
-| --- | --- | --- |
-| `account_id` | bigint | obrigatório |
-| `form_template_version_id` | bigint | obrigatório |
-| `form_invitation_id` | bigint | opcional |
-| `contact_id` / `kanban_card_id` | bigint | após resolução |
-| `status` | enum | P0 comercial: `submitted`, `discarded` |
-| `answers` | jsonb | respostas comerciais permitidas pelo schema; fica vazio para `sensitive_health` |
-| `sensitive_answers_ciphertext` | text | respostas de `sensitive_health` cifradas; nunca serializadas em listagens ou eventos |
-| `metadata` | jsonb | P0 comercial: metadados minimizados; não recebe contexto de CRM no payload público |
-| `submitted_at` | datetime | obrigatório |
-| `form_invitation_id` | bigint | opcional; identifica submissão individual sem expor token |
+| Campo                           | Tipo     | Regra                                                                                |
+| ------------------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `account_id`                    | bigint   | obrigatório                                                                          |
+| `form_template_version_id`      | bigint   | obrigatório                                                                          |
+| `form_invitation_id`            | bigint   | opcional                                                                             |
+| `contact_id` / `kanban_card_id` | bigint   | após resolução                                                                       |
+| `status`                        | enum     | P0 comercial: `submitted`, `discarded`                                               |
+| `answers`                       | jsonb    | respostas comerciais permitidas pelo schema; fica vazio para `sensitive_health`      |
+| `sensitive_answers_ciphertext`  | text     | respostas de `sensitive_health` cifradas; nunca serializadas em listagens ou eventos |
+| `metadata`                      | jsonb    | P0 comercial: metadados minimizados; não recebe contexto de CRM no payload público   |
+| `submitted_at`                  | datetime | obrigatório                                                                          |
+| `form_invitation_id`            | bigint   | opcional; identifica submissão individual sem expor token                            |
 
 `FormAccessAudit` registra `account_id`, `form_submission_id`, `actor_id`, ação `view`, `attachment_view`, `export` ou `retention_discarded` e horário, sem copiar conteúdo clínico. `FormSubmission` possui anexos clínicos privados por Active Storage apenas para submissões sensíveis; o detalhe autorizado retorna somente `id`, nome, MIME e tamanho, nunca URL. O download passa por rota autenticada e cria a auditoria `attachment_view`. A exportação JSON exige administrador, omite anexos e cria a auditoria `export`. O detalhe autorizado também deriva um snapshot de consentimento a partir da versão imutável e da resposta cifrada: chave, texto aceito, tipo de aceite, manifestação e horário da submissão. Ele não constitui assinatura eletrônica qualificada e desaparece quando a retenção descarta a resposta. Para administradores, o mesmo detalhe retorna a trilha de acessos sanitizada com ação, ator e horário; profissionais autorizados não recebem essa trilha. O P1 clínico entrega armazenamento separado, convite individual de uso único, consentimento e auditoria. `FormTemplate.settings.clinical_access` contém apenas `user_ids` e `team_ids` da mesma conta; administradores sempre têm acesso, e agentes só recebem respostas de anamneses que os incluam diretamente ou por equipe. `clinical_retention_days` é opcional e só vale para modelo `sensitive_health`: vazio significa preservação; prazo positivo agenda uma verificação diária distribuída. Ao vencer, o serviço remove anexos, respostas cifradas e metadados, marca a submissão como `discarded` e grava `retention_discarded`; não apaga contato, oportunidade, versão nem auditoria. O escopo da API filtra também a lista para não expor resumos de outros formulários. Índice não sensível e varredura antimalware dependem da próxima etapa clínica.
 
@@ -244,24 +250,24 @@ Todas exigem autenticação e policy de conta, exceto rotas públicas de formul�
 
 ### Financeiro
 
-| Método | Rota | Uso |
-| --- | --- | --- |
-| `GET` | `/api/v1/accounts/:account_id/finance/provider_connections` | conexões mascaradas disponíveis no mercado |
-| `POST` | `/api/v1/accounts/:account_id/finance/provider_connections` | conectar provedor compatível |
-| `PATCH` | `/api/v1/accounts/:account_id/finance/provider_connections/:id` | trocar chave/configuração |
-| `DELETE` | `/api/v1/accounts/:account_id/finance/provider_connections/:id` | desconectar |
-| `POST` | `/api/v1/accounts/:account_id/finance/provider_connections/:id/verify` | validar a conexão no servidor |
-| `GET` | `/api/v1/accounts/:account_id/finance/payments` | lista/relatórios básicos |
-| `GET` | `/api/v1/accounts/:account_id/finance/payments/summary` | totais por estado e moeda |
-| `POST` | `/api/v1/accounts/:account_id/finance/payments` | criar cobrança |
-| `GET` | `/api/v1/accounts/:account_id/finance/payments/:id` | detalhe e histórico |
-| `cliente` | composer existente | prepara o link no rascunho da conversa vinculada, sem envio automático |
-| `POST` | `/api/v1/accounts/:account_id/finance/payments/:id/cancel` | cancela cobrança pendente/vencida conforme o provedor |
-| `POST` | `/api/v1/accounts/:account_id/finance/payments/:id/mark_received` | confirma recebimento de cobrança manual elegível |
-| `POST` | `/api/v1/accounts/:account_id/finance/payments/:id/refund` | solicita estorno total Asaas elegível; webhook confirma estado final |
-| `GET` | `/api/v1/accounts/:account_id/finance/provider_connections/:id/webhook_deliveries` | lista metadados sanitizados das últimas entregas |
-| `POST` | `/api/v1/accounts/:account_id/finance/provider_connections/:id/webhook_deliveries/:id/retry` | reprocessa entrega com falha, sem devolver o corpo original |
-| `POST` | `/api/v1/accounts/:account_id/fiscal_invoices` | P1 |
+| Método    | Rota                                                                                         | Uso                                                                    |
+| --------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `GET`     | `/api/v1/accounts/:account_id/finance/provider_connections`                                  | conexões mascaradas disponíveis no mercado                             |
+| `POST`    | `/api/v1/accounts/:account_id/finance/provider_connections`                                  | conectar provedor compatível                                           |
+| `PATCH`   | `/api/v1/accounts/:account_id/finance/provider_connections/:id`                              | trocar chave/configuração                                              |
+| `DELETE`  | `/api/v1/accounts/:account_id/finance/provider_connections/:id`                              | desconectar                                                            |
+| `POST`    | `/api/v1/accounts/:account_id/finance/provider_connections/:id/verify`                       | validar a conexão no servidor                                          |
+| `GET`     | `/api/v1/accounts/:account_id/finance/payments`                                              | lista/relatórios básicos                                               |
+| `GET`     | `/api/v1/accounts/:account_id/finance/payments/summary`                                      | totais por estado e moeda                                              |
+| `POST`    | `/api/v1/accounts/:account_id/finance/payments`                                              | criar cobrança                                                         |
+| `GET`     | `/api/v1/accounts/:account_id/finance/payments/:id`                                          | detalhe e histórico                                                    |
+| `cliente` | composer existente                                                                           | prepara o link no rascunho da conversa vinculada, sem envio automático |
+| `POST`    | `/api/v1/accounts/:account_id/finance/payments/:id/cancel`                                   | cancela cobrança pendente/vencida conforme o provedor                  |
+| `POST`    | `/api/v1/accounts/:account_id/finance/payments/:id/mark_received`                            | confirma recebimento de cobrança manual elegível                       |
+| `POST`    | `/api/v1/accounts/:account_id/finance/payments/:id/refund`                                   | solicita estorno total Asaas elegível; webhook confirma estado final   |
+| `GET`     | `/api/v1/accounts/:account_id/finance/provider_connections/:id/webhook_deliveries`           | lista metadados sanitizados das últimas entregas                       |
+| `POST`    | `/api/v1/accounts/:account_id/finance/provider_connections/:id/webhook_deliveries/:id/retry` | reprocessa entrega com falha, sem devolver o corpo original            |
+| `POST`    | `/api/v1/accounts/:account_id/fiscal_invoices`                                               | P1                                                                     |
 
 | `GET/PATCH` | `/api/v1/accounts/:account_id/finance/module` | estado/mercado/provedor padrão; desligamento exige `confirm_disable=true` |
 
@@ -269,30 +275,33 @@ Toda rota financeira chama `Finance::ModuleAccessPolicy` antes da policy especí
 
 ### Formulários administrativos
 
-| Método | Rota | Uso |
-| --- | --- | --- |
-| `GET/POST` | `/api/v1/accounts/:account_id/forms/templates` | lista/cria |
-| `GET/PATCH` | `/api/v1/accounts/:account_id/forms/templates/:id` | edita metadados |
-| `POST/DELETE` | `/api/v1/accounts/:account_id/forms/templates/:id/logo` | envia/remove logo administrada; remover restaura a URL externa ou a inicial da marca |
-| `GET/POST` | `/api/v1/accounts/:account_id/forms/field_groups` | lista/cria blocos reutilizáveis comerciais da conta |
-| `DELETE` | `/api/v1/accounts/:account_id/forms/field_groups/:id` | remove um bloco que não afeta modelos já publicados |
-| `POST` | `/api/v1/accounts/:account_id/forms/templates/:id/publish` | cria versão e publica |
-| `GET` | `/api/v1/accounts/:account_id/forms/templates/:id/versions` | histórico administrativo sanitizado, sem schema |
-| `POST` | `/api/v1/accounts/:account_id/forms/templates/:id/invitations` | convite individual |
-| `GET` | `/api/v1/accounts/:account_id/forms/submissions` | lista resumida por policy |
-| `GET` | `/api/v1/accounts/:account_id/forms/submissions/:id` | resposta autorizada |
-| `GET` | `/api/v1/accounts/:account_id/forms/submissions/:id/export` | exportação JSON auditada, somente administrador, sem anexos |
-| `GET` | `/api/v1/accounts/:account_id/forms/submissions/:id/attachments/:attachment_id` | download clínico autenticado e auditado |
-| `GET` | `/api/v1/accounts/:account_id/forms/kanban_cards/:kanban_card_id` | resumos de convites e respostas da oportunidade, sem token ou respostas |
+| Método        | Rota                                                                            | Uso                                                                                       |
+| ------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `GET/POST`    | `/api/v1/accounts/:account_id/forms/templates`                                  | lista/cria                                                                                |
+| `GET/PATCH`   | `/api/v1/accounts/:account_id/forms/templates/:id`                              | edita metadados                                                                           |
+| `POST/DELETE` | `/api/v1/accounts/:account_id/forms/templates/:id/logo`                         | envia/remove logo administrada; remover restaura a URL externa ou a inicial da marca      |
+| `POST`        | `/api/v1/accounts/:account_id/forms/templates/:id/content_images`               | envia uma imagem de conteúdo válida e retorna sua URL gerenciada para o bloco selecionado |
+| `GET/POST`    | `/api/v1/accounts/:account_id/forms/field_groups`                               | lista/cria blocos reutilizáveis comerciais da conta                                       |
+| `DELETE`      | `/api/v1/accounts/:account_id/forms/field_groups/:id`                           | remove um bloco que não afeta modelos já publicados                                       |
+| `POST`        | `/api/v1/accounts/:account_id/forms/templates/:id/publish`                      | cria versão e publica                                                                     |
+| `GET`         | `/api/v1/accounts/:account_id/forms/templates/:id/versions`                     | histórico administrativo sanitizado, sem schema                                           |
+| `POST`        | `/api/v1/accounts/:account_id/forms/templates/:id/invitations`                  | convite individual                                                                        |
+| `POST`        | `/api/v1/accounts/:account_id/forms/invitations/:id/revoke`                      | revoga convite disponível; exclusivo de administrador                                    |
+| `GET`         | `/api/v1/accounts/:account_id/forms/submissions`                                | lista resumida por policy                                                                 |
+| `GET`         | `/api/v1/accounts/:account_id/forms/submissions/:id`                            | resposta autorizada                                                                       |
+| `GET`         | `/api/v1/accounts/:account_id/forms/submissions/:id/export`                     | exportação JSON auditada, somente administrador, sem anexos                               |
+| `GET`         | `/api/v1/accounts/:account_id/forms/submissions/:id/attachments/:attachment_id` | download clínico autenticado e auditado                                                   |
+| `GET`         | `/api/v1/accounts/:account_id/forms/kanban_cards/:kanban_card_id`               | resumos de convites e respostas da oportunidade, sem token ou respostas                   |
 
 ### Formulários públicos
 
-| Método | Rota | Uso |
-| --- | --- | --- |
-| `GET` | `/formularios/convites/:token` | convite individual publicado |
-| `POST` | `/formularios/convites/:token/respostas` | envio público do convite |
-| `GET` | `/formularios/:public_token` | link público geral de modelo comercial |
-| `POST` | `/formularios/:public_token/respostas` | envio público geral |
+| Método | Rota                                     | Uso                                    |
+| ------ | ---------------------------------------- | -------------------------------------- |
+| `GET`  | `/formularios/convites/:token`           | convite individual publicado           |
+| `PATCH` | `/formularios/convites/:token/rascunho` | salva perguntas permitidas e etapa do convite individual |
+| `POST` | `/formularios/convites/:token/respostas` | envio público do convite               |
+| `GET`  | `/formularios/:public_token`             | link público geral de modelo comercial |
+| `POST` | `/formularios/:public_token/respostas`   | envio público geral                    |
 
 Respostas de erro público não revelam se contato, oportunidade ou convite existe. Links usam token opaco e tokens individuais são armazenados apenas como digest.
 
@@ -332,36 +341,36 @@ O Vue Flow recebe uma projeção segura dos eventos. Campos clínicos nunca entr
 
 ## Serviços e jobs
 
-| Classe | Responsabilidade |
-| --- | --- |
-| `Finance::Asaas::VerifyConnectionService` | testa chave e atualiza estado sem vazar segredo |
-| `Finance::Asaas::UpsertCustomerService` | cria/localiza cliente e persiste referência por contato |
-| `Finance::Asaas::CreatePaymentService` | cria cobrança e Payment local em transação lógica |
-| `Finance::Asaas::ProcessWebhookService` | valida, deduplica e aplica evento |
-| `Finance::WebhookDeliveryRecorder` | preserva entrega autenticada sem expor o corpo ao dashboard |
-| `Finance::Asaas::RetryWebhookDeliveryService` | reprocessa entrega com falha sob lock da entrega |
-| `Finance::PaymentCreatedEventService` | registra e publica a criação local sem depender do webhook |
-| `Finance::MarkOverduePaymentsJob` | marca cobranças manuais abertas como vencidas após a data e publica um único evento |
-| `Finance::Asaas::RefundPaymentService` | solicita estorno total elegível sem antecipar o estado financeiro |
-| `Finance::Asaas::IssueInvoiceService` | P1, emite NF |
-| `Finance::Asaas::ProcessInvoiceWebhookService` | P1, sincroniza NF |
-| `Forms::PublishTemplateService` | valida schema e cria versão imutável |
-| `Forms::CreateInvitationService` | emite token/convite com contexto |
-| `Forms::SubmitPublicFormService` | valida, persiste submissão, consome o convite e aplica somente os mapeamentos declarados de contato e oportunidade |
-| `Forms::MapSubmissionToCrmService` | atualiza somente atributos de contato declarados |
-| `Forms::CreatePublicOpportunityService` | cria ou reaproveita oportunidade somente no destino comercial validado |
-| `Forms::AccessAuditService` | registra leitura/exportação sem gravar conteúdo sensível |
+| Classe                                         | Responsabilidade                                                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `Finance::Asaas::VerifyConnectionService`      | testa chave e atualiza estado sem vazar segredo                                                                    |
+| `Finance::Asaas::UpsertCustomerService`        | cria/localiza cliente e persiste referência por contato                                                            |
+| `Finance::Asaas::CreatePaymentService`         | cria cobrança e Payment local em transação lógica                                                                  |
+| `Finance::Asaas::ProcessWebhookService`        | valida, deduplica e aplica evento                                                                                  |
+| `Finance::WebhookDeliveryRecorder`             | preserva entrega autenticada sem expor o corpo ao dashboard                                                        |
+| `Finance::Asaas::RetryWebhookDeliveryService`  | reprocessa entrega com falha sob lock da entrega                                                                   |
+| `Finance::PaymentCreatedEventService`          | registra e publica a criação local sem depender do webhook                                                         |
+| `Finance::MarkOverduePaymentsJob`              | marca cobranças manuais abertas como vencidas após a data e publica um único evento                                |
+| `Finance::Asaas::RefundPaymentService`         | solicita estorno total elegível sem antecipar o estado financeiro                                                  |
+| `Finance::Asaas::IssueInvoiceService`          | P1, emite NF                                                                                                       |
+| `Finance::Asaas::ProcessInvoiceWebhookService` | P1, sincroniza NF                                                                                                  |
+| `Forms::PublishTemplateService`                | valida schema e cria versão imutável                                                                               |
+| `Forms::CreateInvitationService`               | emite token/convite com contexto                                                                                   |
+| `Forms::SubmitPublicFormService`               | valida, persiste submissão, consome o convite e aplica somente os mapeamentos declarados de contato e oportunidade |
+| `Forms::MapSubmissionToCrmService`             | atualiza somente atributos de contato declarados                                                                   |
+| `Forms::CreatePublicOpportunityService`        | cria ou reaproveita oportunidade somente no destino comercial validado                                             |
+| `Forms::AccessAuditService`                    | registra leitura/exportação sem gravar conteúdo sensível                                                           |
 
 Contrato do adaptador financeiro:
 
-| Método | Retorno mínimo |
-| --- | --- |
-| `verify_connection` | estado, identidade exibível e capacidades |
-| `upsert_customer` | `provider_customer_id` |
-| `create_payment` | ID externo, URL/fatura, status e métodos; timeout é conciliado por `externalReference` antes de falhar |
-| `cancel_payment` / `refund_payment` | P1, estado normalizado |
-| `parse_webhook` | evento normalizado, chave idempotente e assinatura válida |
-| `issue_invoice` | P1, referência fiscal e estado |
+| Método                              | Retorno mínimo                                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `verify_connection`                 | estado, identidade exibível e capacidades                                                              |
+| `upsert_customer`                   | `provider_customer_id`                                                                                 |
+| `create_payment`                    | ID externo, URL/fatura, status e métodos; timeout é conciliado por `externalReference` antes de falhar |
+| `cancel_payment` / `refund_payment` | P1, estado normalizado                                                                                 |
+| `parse_webhook`                     | evento normalizado, chave idempotente e assinatura válida                                              |
+| `issue_invoice`                     | P1, referência fiscal e estado                                                                         |
 
 Asaas, Easypay, ifthenpay e Moloni implementam somente as capacidades que possuem. O controller não contém condicionais por provedor.
 
@@ -424,5 +433,6 @@ Jobs: entrega de mensagem, reprocessamento de webhook com falha, expiração de 
 3. Liberar Financeiro P0 a um cliente piloto, com monitoramento de falhas de webhook.
 4. Liberar Formulários comerciais a um cliente piloto com formulário de captação.
 5. Antes de liberar anamnese, executar as migrations clínicas, configurar `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` no ambiente, validar convite individual e auditoria, e revisar acesso, contrato/LGPD e retenção com a clínica.
+6. Esta etapa acrescenta `20260829100000_create_form_invitation_drafts`; executar `bundle exec rails db:migrate` nos serviços Rails antes de liberar a retomada de formulários por convite.
 
-Não há migration ou deploy associado a este documento. Cada P0 deve trazer migrations, índice, policy, testes e plano de reversão no PR correspondente.
+Cada entrega de dados deve trazer migrations, índice, policy, testes e plano de reversão no PR correspondente.

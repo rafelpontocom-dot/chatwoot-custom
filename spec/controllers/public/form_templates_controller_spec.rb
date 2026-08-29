@@ -2,6 +2,7 @@ require 'rails_helper'
 
 RSpec.describe 'Public form templates API', type: :request do
   let(:account) { create(:account) }
+  let(:card) { create(:kanban_card, account: account) }
   let(:template) do
     FormTemplate.create!(
       account: account,
@@ -161,6 +162,7 @@ RSpec.describe 'Public form templates API', type: :request do
 
   def schema
     {
+      'crm_destination' => crm_destination,
       'crm_mapping' => { 'contact' => contact_mapping },
       'sections' => [
         {
@@ -186,6 +188,7 @@ RSpec.describe 'Public form templates API', type: :request do
 
   def phone_schema
     {
+      'crm_destination' => crm_destination,
       'crm_mapping' => {
         'contact' => { 'name' => 'nome', 'phone_number' => 'telefone' }
       },
@@ -198,6 +201,15 @@ RSpec.describe 'Public form templates API', type: :request do
           ]
         }
       ]
+    }
+  end
+
+  def crm_destination
+    {
+      'kanban_board_id' => card.kanban_board_id,
+      'kanban_stage_id' => card.kanban_stage_id,
+      'inbox_id' => card.inbox_id,
+      'opportunity_policy' => 'reuse_open'
     }
   end
 end

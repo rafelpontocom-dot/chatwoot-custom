@@ -2,6 +2,7 @@ require 'rails_helper'
 
 RSpec.describe FormTemplate do
   let(:account) { create(:account) }
+  let(:card) { create(:kanban_card, account: account) }
 
   it 'publishes an immutable version and makes it the active version' do
     template = described_class.create!(
@@ -35,6 +36,19 @@ RSpec.describe FormTemplate do
 
     expect { template.publish!(schema: { 'title' => 'Captação' }) }
       .to raise_error(ActiveRecord::RecordInvalid, /include at least one section/)
+  end
+
+  it 'requires a CRM destination before publishing a commercial form' do
+    template = described_class.create!(
+      account: account,
+      name: 'Captação',
+      slug: 'captacao-sem-destino',
+      category: 'lead_capture',
+      access_classification: 'commercial'
+    )
+
+    expect { template.publish!(schema: schema.except('crm_destination')) }
+      .to raise_error(ActiveRecord::RecordInvalid, /CRM destination/)
   end
 
   it 'does not publish a public commercial form without contact mapping' do
@@ -90,6 +104,22 @@ RSpec.describe FormTemplate do
 
     expect(template).not_to be_valid
     expect(template.errors[:public_enabled]).to include('cannot be enabled for sensitive health forms')
+  end
+
+  it 'rejects a non-image content upload' do
+    template = described_class.new(
+      account: account,
+      name: 'Pré-consulta com imagem',
+      slug: 'pre-consulta-com-imagem',
+      category: 'pre_consultation',
+      access_classification: 'commercial'
+    )
+    template.content_images.attach(
+      io: StringIO.new('not an image'), filename: 'arquivo.txt', content_type: 'text/plain'
+    )
+
+    expect(template).not_to be_valid
+    expect(template.errors[:content_images]).to include('filetype not supported')
   end
 
   it 'rejects clinical access references outside the account' do
@@ -216,6 +246,12 @@ RSpec.describe FormTemplate do
 
   def schema
     {
+      'crm_destination' => {
+        'kanban_board_id' => card.kanban_board_id,
+        'kanban_stage_id' => card.kanban_stage_id,
+        'inbox_id' => card.inbox_id,
+        'opportunity_policy' => 'reuse_open'
+      },
       'sections' => [
         {
           'key' => 'identificacao',

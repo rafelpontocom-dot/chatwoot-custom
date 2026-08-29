@@ -32,6 +32,7 @@ class FormTemplate < ApplicationRecord
   ACCESS_CLASSIFICATIONS = %w[commercial restricted sensitive_health].freeze
   BRAND_LOGO_CONTENT_TYPES = %w[image/jpeg image/png image/webp].freeze
   BRAND_LOGO_MAX_SIZE = 2.megabytes
+  CONTENT_IMAGE_MAX_SIZE = 5.megabytes
 
   include Rails.application.routes.url_helpers
 
@@ -40,6 +41,7 @@ class FormTemplate < ApplicationRecord
 
   has_many :form_template_versions, dependent: :destroy
   has_one_attached :brand_logo
+  has_many_attached :content_images
 
   validates :name, :slug, presence: true
   validates :slug, uniqueness: { scope: :account_id }
@@ -54,6 +56,7 @@ class FormTemplate < ApplicationRecord
   validate :clinical_retention_is_valid
   validate :public_captcha_is_valid
   validate :brand_logo_is_valid
+  validate :content_images_are_valid
   before_validation :assign_public_token
   before_destroy :clear_active_version, prepend: true
 
@@ -126,6 +129,10 @@ class FormTemplate < ApplicationRecord
     rails_blob_path(brand_logo, only_path: true)
   end
 
+  def content_image_url(image)
+    rails_blob_path(image, only_path: true)
+  end
+
   private
 
   def next_version_number
@@ -192,6 +199,15 @@ class FormTemplate < ApplicationRecord
     return if BRAND_LOGO_CONTENT_TYPES.include?(brand_logo.content_type)
 
     errors.add(:brand_logo, 'filetype not supported')
+  end
+
+  def content_images_are_valid
+    content_images.each do |image|
+      errors.add(:content_images, 'is too big') if image.byte_size > CONTENT_IMAGE_MAX_SIZE
+      next if BRAND_LOGO_CONTENT_TYPES.include?(image.content_type)
+
+      errors.add(:content_images, 'filetype not supported')
+    end
   end
 
   def clinical_access_ids(key)

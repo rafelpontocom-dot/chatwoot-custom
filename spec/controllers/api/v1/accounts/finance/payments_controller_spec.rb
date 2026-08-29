@@ -46,6 +46,34 @@ RSpec.describe 'Finance payments API', type: :request do
     )
   end
 
+  it 'creates a payment link linked to an opportunity' do
+    card = create(:kanban_card, account: account, contact: contact)
+    payment = instance_double(FinancePayment, public_payload: { id: 14, status: 'pending' })
+    service = instance_double(Finance::Asaas::CreatePaymentService, perform: payment)
+    allow(Finance::Asaas::CreatePaymentService).to receive(:new).and_return(service)
+
+    post payments_path,
+         headers: administrator.create_new_auth_token,
+         params: {
+           payment: {
+             contact_id: contact.id,
+             finance_provider_connection_id: connection.id,
+             kanban_card_id: card.id,
+             amount_cents: 15_025,
+             billing_type: 'pix',
+             due_on: '2026-08-31',
+             cpf_cnpj: '12345678909',
+             description: 'Consulta'
+           }
+         },
+         as: :json
+
+    expect(response).to have_http_status(:created)
+    expect(Finance::Asaas::CreatePaymentService).to have_received(:new).with(
+      hash_including(connection: connection, contact: contact, kanban_card: card)
+    )
+  end
+
   it 'lets a standard agent create a payment link without finance configuration access' do
     payment = instance_double(FinancePayment, public_payload: { id: 13, status: 'pending' })
     service = instance_double(Finance::Asaas::CreatePaymentService, perform: payment)

@@ -1,3 +1,4 @@
+# rubocop:disable Layout/LineLength
 # == Schema Information
 #
 # Table name: finance_webhook_deliveries
@@ -22,14 +23,14 @@
 #  index_finance_webhook_deliveries_for_connection_status     (finance_provider_connection_id,processing_status,received_at)
 #  index_finance_webhook_deliveries_on_account_id             (account_id)
 #  index_finance_webhook_deliveries_on_connection_and_digest  (finance_provider_connection_id,payload_digest) UNIQUE
-#  index_finance_webhook_deliveries_on_connection_and_event
-#    (finance_provider_connection_id,provider_event_id) UNIQUE WHERE (provider_event_id IS NOT NULL)
+#  index_finance_webhook_deliveries_on_connection_and_event   (finance_provider_connection_id,provider_event_id) UNIQUE WHERE (provider_event_id IS NOT NULL)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (account_id => accounts.id)
 #  fk_rails_...  (finance_provider_connection_id => finance_provider_connections.id)
 #
+# rubocop:enable Layout/LineLength
 class FinanceWebhookDelivery < ApplicationRecord
   PROCESSING_STATUSES = %w[processed ignored failed].freeze
 

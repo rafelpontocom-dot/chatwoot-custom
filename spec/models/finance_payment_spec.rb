@@ -31,4 +31,17 @@ RSpec.describe FinancePayment do
     expect(payment).not_to be_valid
     expect(payment.errors[:amount_cents]).to be_present
   end
+
+  it 'requires at least R$ 5,00 for an Asaas charge' do
+    payment = described_class.new(
+      account: account,
+      contact: contact,
+      finance_provider_connection: connection,
+      amount_cents: 499,
+      billing_type: 'pix'
+    )
+
+    expect(payment).not_to be_valid
+    expect(payment.errors[:amount_cents]).to include('must be at least 500 cents for Asaas charges')
+  end
 end

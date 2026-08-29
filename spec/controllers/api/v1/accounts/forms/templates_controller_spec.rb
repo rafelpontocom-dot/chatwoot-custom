@@ -4,6 +4,7 @@ RSpec.describe 'Form templates API', type: :request do
   let(:account) { create(:account) }
   let(:administrator) { create(:user, account: account, role: :administrator) }
   let(:agent) { create(:user, account: account, role: :agent) }
+  let(:card) { create(:kanban_card, account: account) }
   let(:templates_path) { "/api/v1/accounts/#{account.id}/forms/templates" }
 
   it 'creates a template and publishes an immutable version' do
@@ -80,6 +81,28 @@ RSpec.describe 'Form templates API', type: :request do
     expect(response.parsed_body.fetch('brand_logo_url')).to start_with('/rails/active_storage/blobs/')
   end
 
+  it 'uploads a content image for a template and returns its public form URL' do
+    template = FormTemplate.create!(
+      account: account,
+      name: 'Pré-consulta com imagem',
+      slug: 'pre-consulta-com-imagem',
+      category: 'pre_consultation',
+      access_classification: 'commercial'
+    )
+
+    post "#{templates_path}/#{template.id}/content_images",
+         headers: administrator.create_new_auth_token,
+         params: {
+           form_template: {
+             content_image: fixture_file_upload(Rails.root.join('spec/assets/avatar.png'), 'image/png')
+           }
+         }
+
+    expect(response).to have_http_status(:success)
+    expect(template.reload.content_images).to be_attached
+    expect(response.parsed_body.fetch('url')).to start_with('/rails/active_storage/blobs/')
+  end
+
   it 'removes an uploaded brand logo without changing the template settings' do
     template = FormTemplate.create!(
       account: account,
@@ -138,10 +161,17 @@ RSpec.describe 'Form templates API', type: :request do
     )
     template.publish!(schema: schema.deep_stringify_keys)
     contact = create(:contact, account: account)
+    card.update!(contact: contact)
 
     post "#{templates_path}/#{template.id}/invitations",
          headers: administrator.create_new_auth_token,
-         params: { invitation: { contact_id: contact.id, expires_at: 48.hours.from_now } },
+         params: {
+           invitation: {
+             contact_id: contact.id,
+             kanban_card_id: card.id,
+             expires_at: 48.hours.from_now
+           }
+         },
          as: :json
 
     expect(response).to have_http_status(:created)
@@ -169,9 +199,10 @@ RSpec.describe 'Form templates API', type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
 
       contact = create(:contact, account: account)
+      card.update!(contact: contact)
       post "#{templates_path}/#{template.id}/invitations",
            headers: administrator.create_new_auth_token,
-           params: { invitation: { contact_id: contact.id, max_uses: 1 } },
+           params: { invitation: { contact_id: contact.id, kanban_card_id: card.id, max_uses: 1 } },
            as: :json
 
       expect(response).to have_http_status(:created)
@@ -183,6 +214,7 @@ RSpec.describe 'Form templates API', type: :request do
 
   def schema
     {
+      crm_destination: crm_destination,
       crm_mapping: {
         contact: { name: 'nome', phone_number: 'telefone' }
       },
@@ -195,6 +227,15 @@ RSpec.describe 'Form templates API', type: :request do
           ]
         }
       ]
+    }
+  end
+
+  def crm_destination
+    {
+      kanban_board_id: card.kanban_board_id,
+      kanban_stage_id: card.kanban_stage_id,
+      inbox_id: card.inbox_id,
+      opportunity_policy: 'reuse_open'
     }
   end
 

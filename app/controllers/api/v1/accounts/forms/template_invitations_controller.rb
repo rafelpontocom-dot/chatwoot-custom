@@ -50,7 +50,7 @@ class Api::V1::Accounts::Forms::TemplateInvitationsController < Api::V1::Account
   def invitation_card
     return if invitation_params[:kanban_card_id].blank?
 
-    Current.account.kanban_cards.find(invitation_params[:kanban_card_id])
+    KanbanCard.find_by!(account_id: Current.account.id, id: invitation_params[:kanban_card_id])
   end
 
   def invitation_params

@@ -14,6 +14,9 @@ const storeMocks = vi.hoisted(() => ({
 const formsInvitationMocks = vi.hoisted(() => ({
   open: vi.fn(),
 }));
+const formsSubmissionMocks = vi.hoisted(() => ({
+  open: vi.fn(),
+}));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -170,6 +173,7 @@ vi.mock('dashboard/api/finance', () => ({
 vi.mock('dashboard/api/forms', () => ({
   default: {
     getCardContext: vi.fn(),
+    revokeInvitation: vi.fn(),
   },
 }));
 
@@ -375,6 +379,12 @@ const mountModal = async ({
             expose({ open: formsInvitationMocks.open });
           },
           template: '<section data-testid="forms-invitation-dialog" />',
+        },
+        FormsSubmissionDetailsDialog: {
+          setup(_, { expose }) {
+            expose({ open: formsSubmissionMocks.open });
+          },
+          template: '<section data-testid="forms-submission-details-dialog" />',
         },
       },
     },
@@ -1629,6 +1639,8 @@ describe('KanbanOpportunityDetailsModal', () => {
             status: 'active',
             uses_count: 0,
             max_uses: 1,
+            created_at: '2026-08-29T12:00:00Z',
+            expires_at: '2026-08-31T12:00:00Z',
           },
         ],
         submissions: [
@@ -1644,6 +1656,70 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(FormsAPI.getCardContext).toHaveBeenCalledWith(501);
     expect(wrapper.text()).toContain('Pré-consulta');
+    expect(wrapper.text()).toContain('FORMS.INVITATION.CREATED_AT');
+    expect(wrapper.text()).toContain('FORMS.INVITATION.EXPIRES_ON');
+  });
+
+  it('revokes an available invitation from the opportunity history', async () => {
+    const wrapper = await mountModal();
+    FormsAPI.getCardContext.mockResolvedValue({
+      data: {
+        invitations: [
+          {
+            id: 11,
+            form_name: 'Pré-consulta',
+            status: 'active',
+            uses_count: 0,
+            max_uses: 1,
+          },
+        ],
+        submissions: [],
+      },
+    });
+    FormsAPI.revokeInvitation.mockResolvedValue({
+      data: { id: 11, status: 'revoked' },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .trigger('click');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-opportunity-revoke-form-invitation-11"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="form-invitation-revoke-confirm"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(FormsAPI.revokeInvitation).toHaveBeenCalledWith(11);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-form-invitation-status-11"]')
+        .text()
+    ).toBe('FORMS.INVITATION.STATUS.REVOKED');
+  });
+
+  it('opens a received form response without leaving the opportunity', async () => {
+    const wrapper = await mountModal();
+    FormsAPI.getCardContext.mockResolvedValue({
+      data: {
+        invitations: [],
+        submissions: [
+          { id: 12, form_name: 'Pré-consulta', status: 'submitted' },
+        ],
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .trigger('click');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-opportunity-open-form-submission-12"]')
+      .trigger('click');
+
+    expect(formsSubmissionMocks.open).toHaveBeenCalledWith(12);
   });
 
   it('keeps stage and commercial ownership editable without a conversation-agent tab', async () => {

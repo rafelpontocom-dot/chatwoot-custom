@@ -64,6 +64,7 @@ class FormTemplateVersion < ApplicationRecord
     validator = Forms::SchemaValidator.new(
       schema,
       require_public_contact_mapping: form_template&.public_enabled? && !form_template.sensitive_health?,
+      require_crm_destination: form_template&.access_classification == 'commercial',
       allow_attachments: form_template&.sensitive_health?
     )
     return if validator.valid?

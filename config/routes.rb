@@ -163,11 +163,15 @@ Rails.application.routes.draw do
           end
           namespace :forms do
             resources :field_groups, only: %i[index create destroy]
+            resources :invitations, only: [] do
+              post :revoke, on: :member
+            end
             resources :templates, only: %i[index show create update] do
               post :publish, on: :member
               post :duplicate, on: :member
               post :logo, on: :member, action: :upload_logo
               delete :logo, on: :member, action: :destroy_logo
+              post :content_images, on: :member, action: :upload_content_image
               get :versions, on: :member
               resources :invitations, controller: 'template_invitations', only: [:create]
             end
@@ -722,7 +726,9 @@ Rails.application.routes.draw do
                                             defaults: { format: :md }
   get 'hc/:slug/articles/:article_slug', to: 'public/api/v1/portals/articles#show', as: :public_portal_article
 
+  get 'formularios/previsao/:preview_id', to: 'public/form_previews#show'
   get 'formularios/convites/:token', to: 'public/forms#show'
+  patch 'formularios/convites/:token/rascunho', to: 'public/forms#save_draft'
   post 'formularios/convites/:token/respostas', to: 'public/forms#create'
   get 'formularios/:public_token', to: 'public/form_templates#show'
   post 'formularios/:public_token/respostas', to: 'public/form_templates#create'

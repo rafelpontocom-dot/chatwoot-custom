@@ -1,3 +1,4 @@
+# rubocop:disable Layout/LineLength
 # == Schema Information
 #
 # Table name: finance_payments
@@ -31,8 +32,7 @@
 #  index_finance_payments_on_account_id_and_external_reference  (account_id,external_reference) UNIQUE
 #  index_finance_payments_on_account_id_and_kanban_card_id      (account_id,kanban_card_id)
 #  index_finance_payments_on_account_id_and_status              (account_id,status)
-#  index_finance_payments_on_connection_and_provider_payment
-#    (finance_provider_connection_id,provider_payment_id) UNIQUE WHERE (provider_payment_id IS NOT NULL)
+#  index_finance_payments_on_connection_and_provider_payment    (finance_provider_connection_id,provider_payment_id) UNIQUE WHERE (provider_payment_id IS NOT NULL)
 #  index_finance_payments_on_contact_id                         (contact_id)
 #  index_finance_payments_on_finance_customer_id                (finance_customer_id)
 #  index_finance_payments_on_finance_provider_connection_id     (finance_provider_connection_id)
@@ -46,6 +46,7 @@
 #  fk_rails_...  (finance_provider_connection_id => finance_provider_connections.id)
 #  fk_rails_...  (kanban_card_id => kanban_cards.id)
 #
+# rubocop:enable Layout/LineLength
 class FinancePayment < ApplicationRecord
   BILLING_TYPES = %w[pix credit_card boleto undefined other].freeze
   KINDS = %w[charge checkout subscription installment].freeze
@@ -67,6 +68,7 @@ class FinancePayment < ApplicationRecord
   validates :external_reference, presence: true, uniqueness: { scope: :account_id }
   validates :kind, inclusion: { in: KINDS }
   validates :status, inclusion: { in: STATUSES }
+  validate :asaas_amount_meets_minimum
   validate :references_belong_to_account
 
   def public_payload
@@ -131,5 +133,12 @@ class FinancePayment < ApplicationRecord
 
       errors.add(reference, 'must belong to the account')
     end
+  end
+
+  def asaas_amount_meets_minimum
+    return unless finance_provider_connection&.provider == 'asaas'
+    return if amount_cents.to_i >= 500
+
+    errors.add(:amount_cents, 'must be at least 500 cents for Asaas charges')
   end
 end

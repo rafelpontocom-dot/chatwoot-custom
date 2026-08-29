@@ -15,6 +15,7 @@ import KanbanOpportunityPipelineMenu from './KanbanOpportunityPipelineMenu.vue';
 import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
 import FormsInvitationDialog from '../forms/FormsInvitationDialog.vue';
+import FormsSubmissionDetailsDialog from '../forms/FormsSubmissionDetailsDialog.vue';
 
 const props = defineProps({
   boardId: {
@@ -112,9 +113,13 @@ const financeError = ref('');
 const paymentDialog = ref(null);
 const paymentDetailsDialog = ref(null);
 const formsInvitationDialog = ref(null);
+const formsSubmissionDialog = ref(null);
 const formsContext = ref({ invitations: [], submissions: [] });
 const isLoadingFormsContext = ref(false);
 const formsContextError = ref('');
+const invitationPendingRevocation = ref(null);
+const isRevokingFormInvitation = ref(false);
+const formInvitationRevocationConfirmButton = ref(null);
 const copiedFinancePaymentId = ref(null);
 const isLoadingTimeline = ref(false);
 const timelineError = ref('');
@@ -807,6 +812,38 @@ const openFormsInvitationDialog = () => {
   formsInvitationDialog.value?.open();
 };
 
+const openFormsSubmission = submission => {
+  formsSubmissionDialog.value?.open(submission.id);
+};
+
+const requestFormInvitationRevocation = invitation => {
+  if (invitation.status !== 'active') return;
+
+  invitationPendingRevocation.value = invitation;
+};
+
+const revokeFormInvitation = async () => {
+  const invitation = invitationPendingRevocation.value;
+  if (!invitation || isRevokingFormInvitation.value) return;
+
+  isRevokingFormInvitation.value = true;
+  formsContextError.value = '';
+  try {
+    const { data } = await FormsAPI.revokeInvitation(invitation.id);
+    formsContext.value = {
+      ...formsContext.value,
+      invitations: formsContext.value.invitations.map(item =>
+        item.id === data.id ? { ...item, ...data } : item
+      ),
+    };
+    invitationPendingRevocation.value = null;
+  } catch {
+    formsContextError.value = t('FORMS.ERROR.REVOKE');
+  } finally {
+    isRevokingFormInvitation.value = false;
+  }
+};
+
 const loadFormsContext = async () => {
   if (!card.value?.id || isLoadingFormsContext.value) return;
 
@@ -830,6 +867,24 @@ const formInvitationStatusLabel = status => {
     expired: t('FORMS.INVITATION.STATUS.EXPIRED'),
     revoked: t('FORMS.INVITATION.STATUS.REVOKED'),
   };
+  return labels[status] || status;
+};
+
+const formatFormInvitationDate = value => {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return date.toLocaleString();
+};
+
+const formSubmissionStatusLabel = status => {
+  const labels = {
+    submitted: t('FORMS.SUBMISSIONS.STATUS.SUBMITTED'),
+    discarded: t('FORMS.SUBMISSIONS.STATUS.DISCARDED'),
+  };
+
   return labels[status] || status;
 };
 
@@ -1236,6 +1291,13 @@ watch(showUnsavedChanges, async visible => {
 
   await nextTick();
   keepEditingButton.value?.focus();
+});
+
+watch(invitationPendingRevocation, async invitation => {
+  if (!invitation) return;
+
+  await nextTick();
+  formInvitationRevocationConfirmButton.value?.focus();
 });
 </script>
 
@@ -2115,10 +2177,65 @@ watch(showUnsavedChanges, async visible => {
                           })
                         }}
                       </p>
+                      <p
+                        v-if="invitation.created_at"
+                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                      >
+                        {{
+                          t('FORMS.INVITATION.CREATED_AT', {
+                            date: formatFormInvitationDate(
+                              invitation.created_at
+                            ),
+                          })
+                        }}
+                      </p>
+                      <p
+                        v-if="invitation.expires_at"
+                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                      >
+                        {{
+                          t('FORMS.INVITATION.EXPIRES_ON', {
+                            date: formatFormInvitationDate(
+                              invitation.expires_at
+                            ),
+                          })
+                        }}
+                      </p>
+                      <p
+                        v-if="invitation.completed_at"
+                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                      >
+                        {{
+                          t('FORMS.INVITATION.COMPLETED_AT', {
+                            date: formatFormInvitationDate(
+                              invitation.completed_at
+                            ),
+                          })
+                        }}
+                      </p>
                     </div>
-                    <span class="shrink-0 text-xs text-n-slate-11">
-                      {{ formInvitationStatusLabel(invitation.status) }}
-                    </span>
+                    <div class="flex shrink-0 items-center gap-1">
+                      <span
+                        :data-testid="`kanban-opportunity-form-invitation-status-${invitation.id}`"
+                        class="text-xs text-n-slate-11"
+                      >
+                        {{ formInvitationStatusLabel(invitation.status) }}
+                      </span>
+                      <button
+                        v-if="
+                          canCreateFormInvitation &&
+                          invitation.status === 'active'
+                        "
+                        type="button"
+                        :data-testid="`kanban-opportunity-revoke-form-invitation-${invitation.id}`"
+                        class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-ruby-8"
+                        :aria-label="t('FORMS.INVITATION.REVOKE')"
+                        :title="t('FORMS.INVITATION.REVOKE')"
+                        @click="requestFormInvitationRevocation(invitation)"
+                      >
+                        <i class="i-lucide-ban size-3.5" />
+                      </button>
+                    </div>
                   </article>
                 </section>
                 <section
@@ -2135,14 +2252,26 @@ watch(showUnsavedChanges, async visible => {
                     :key="submission.id"
                     class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
                   >
-                    <p
-                      class="mb-0 break-words text-sm font-medium text-n-slate-12"
-                    >
-                      {{ submission.form_name }}
-                    </p>
-                    <span class="shrink-0 text-xs text-n-slate-10">
-                      {{ submission.status }}
-                    </span>
+                    <div class="min-w-0">
+                      <p
+                        class="mb-0 break-words text-sm font-medium text-n-slate-12"
+                      >
+                        {{ submission.form_name }}
+                      </p>
+                      <span class="text-xs text-n-slate-10">
+                        {{ formSubmissionStatusLabel(submission.status) }}
+                      </span>
+                    </div>
+                    <NextButton
+                      type="button"
+                      sm
+                      variant="faded"
+                      color="slate"
+                      icon="i-lucide-file-text"
+                      :label="t('FORMS.SUBMISSIONS.OPEN')"
+                      :data-testid="`kanban-opportunity-open-form-submission-${submission.id}`"
+                      @click="openFormsSubmission(submission)"
+                    />
                   </article>
                 </section>
                 <p
@@ -2528,6 +2657,56 @@ watch(showUnsavedChanges, async visible => {
       @created="loadFormsContext"
       @send="sendFormsInvitationLink"
     />
+    <FormsSubmissionDetailsDialog
+      v-if="activeTabKey === 'forms'"
+      ref="formsSubmissionDialog"
+    />
+    <div
+      v-if="invitationPendingRevocation"
+      class="absolute inset-0 z-20 grid place-items-center bg-black/20 p-4"
+      role="presentation"
+    >
+      <section
+        class="grid w-full max-w-sm gap-4 rounded-lg border border-n-weak bg-n-solid-1 p-5 shadow-lg"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="kanban-form-invitation-revoke-title"
+        @keydown.stop="trapModalFocus"
+      >
+        <div>
+          <h3
+            id="kanban-form-invitation-revoke-title"
+            class="mb-1 text-base font-semibold text-n-slate-12"
+          >
+            {{ t('FORMS.INVITATION.REVOKE_TITLE') }}
+          </h3>
+          <p class="mb-0 text-sm text-n-slate-11">
+            {{ t('FORMS.INVITATION.REVOKE_DESCRIPTION') }}
+          </p>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            data-testid="kanban-opportunity-cancel-form-invitation-revocation"
+            class="rounded-md px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+            :disabled="isRevokingFormInvitation"
+            @click="invitationPendingRevocation = null"
+          >
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.CANCEL') }}
+          </button>
+          <button
+            ref="formInvitationRevocationConfirmButton"
+            type="button"
+            data-testid="form-invitation-revoke-confirm"
+            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="isRevokingFormInvitation"
+            @click="revokeFormInvitation"
+          >
+            {{ t('FORMS.INVITATION.REVOKE') }}
+          </button>
+        </div>
+      </section>
+    </div>
 
     <div
       v-if="showUnsavedChanges"

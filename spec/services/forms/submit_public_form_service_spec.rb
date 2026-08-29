@@ -3,6 +3,7 @@ require 'rails_helper'
 RSpec.describe Forms::SubmitPublicFormService do
   let(:account) { create(:account) }
   let(:contact) { create(:contact, account: account, name: 'Pedro Raevo') }
+  let(:card) { create(:kanban_card, account: account, contact: contact) }
   let(:template) do
     FormTemplate.create!(
       account: account,
@@ -17,7 +18,8 @@ RSpec.describe Forms::SubmitPublicFormService do
     Forms::CreateInvitationService.new(
       account: account,
       form_template_version: version,
-      contact: contact
+      contact: contact,
+      kanban_card: card
     ).perform.invitation
   end
   let(:conditional_fields) do
@@ -57,6 +59,24 @@ RSpec.describe Forms::SubmitPublicFormService do
     )
     expect(submission.answers).to include('nome_completo' => 'Pedro Raevo')
     expect(invitation.reload).to be_consumed
+  end
+
+  it 'removes the invitation draft after a successful submission' do
+    draft = FormInvitationDraft.create!(
+      account: account,
+      form_invitation: invitation,
+      answers: { 'nome_completo' => 'Pedro Raevo' }
+    )
+
+    described_class.new(
+      invitation: invitation,
+      answers: {
+        'nome_completo' => 'Pedro Raevo',
+        'aceite_privacidade' => true
+      }
+    ).perform!
+
+    expect { draft.reload }.to raise_error(ActiveRecord::RecordNotFound)
   end
 
   it 'does not consume the invitation when a required answer is missing' do
@@ -112,7 +132,8 @@ RSpec.describe Forms::SubmitPublicFormService do
     conditional_invitation = Forms::CreateInvitationService.new(
       account: account,
       form_template_version: conditional_version,
-      contact: contact
+      contact: contact,
+      kanban_card: card
     ).perform.invitation
 
     submission = described_class.new(
@@ -136,7 +157,8 @@ RSpec.describe Forms::SubmitPublicFormService do
     conditional_invitation = Forms::CreateInvitationService.new(
       account: account,
       form_template_version: conditional_version,
-      contact: contact
+      contact: contact,
+      kanban_card: card
     ).perform.invitation
 
     submission = described_class.new(
@@ -161,7 +183,6 @@ RSpec.describe Forms::SubmitPublicFormService do
   end
 
   it 'announces a completed commercial form for the linked opportunity' do
-    card = create(:kanban_card, account: account, contact: contact)
     linked_invitation = Forms::CreateInvitationService.new(
       account: account,
       form_template_version: version,
@@ -202,7 +223,8 @@ RSpec.describe Forms::SubmitPublicFormService do
       clinical_invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: clinical_version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform.invitation
 
       submission = described_class.new(
@@ -231,7 +253,8 @@ RSpec.describe Forms::SubmitPublicFormService do
       clinical_invitation = Forms::CreateInvitationService.new(
         account: account,
         form_template_version: clinical_version,
-        contact: contact
+        contact: contact,
+        kanban_card: card
       ).perform.invitation
 
       expect do
@@ -251,6 +274,7 @@ RSpec.describe Forms::SubmitPublicFormService do
 
   def schema
     {
+      'crm_destination' => crm_destination,
       'crm_mapping' => { 'contact' => { 'email' => 'email' } },
       'sections' => [
         {
@@ -268,12 +292,22 @@ RSpec.describe Forms::SubmitPublicFormService do
 
   def conditional_schema
     {
+      'crm_destination' => crm_destination,
       'sections' => [
         {
           'key' => 'consulta',
           'fields' => conditional_fields
         }
       ]
+    }
+  end
+
+  def crm_destination
+    {
+      'kanban_board_id' => card.kanban_board_id,
+      'kanban_stage_id' => card.kanban_stage_id,
+      'inbox_id' => card.inbox_id,
+      'opportunity_policy' => 'reuse_open'
     }
   end
 

@@ -50,6 +50,12 @@ RSpec.describe 'Form card context API', type: :request do
 
   def schema
     {
+      'crm_destination' => {
+        'kanban_board_id' => card.kanban_board_id,
+        'kanban_stage_id' => card.kanban_stage_id,
+        'inbox_id' => card.inbox_id,
+        'opportunity_policy' => 'reuse_open'
+      },
       'sections' => [
         { 'key' => 'identificacao', 'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }] }
       ]

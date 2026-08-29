@@ -11,6 +11,7 @@
       "COPY_LINK": "Copy link",
       "COPIED": "Link copied",
       "PREVIEW": "Preview",
+      "OPEN_PREVIEW": "Open preview",
       "ADD_GROUP": "Add question group",
       "SAVE_GROUP": "Save section as group",
       "ADD_SECTION": "Add section",
@@ -61,6 +62,42 @@
       "ADD_QUESTION_DESCRIPTION": "Choose the format a person will see when completing the form.",
       "ADD_SECTION": "Add section",
       "PUBLISHING": "Publishing and destination"
+    },
+    "RICH_TEXT": {
+      "BOLD": "Bold",
+      "ITALIC": "Italic",
+      "STRIKE": "Strikethrough",
+      "BULLET_LIST": "Bulleted list",
+      "ORDERED_LIST": "Numbered list",
+      "LINK": "Add link",
+      "LINK_URL": "Link address",
+      "LINK_URL_PLACEHOLDER": "https://example.com",
+      "APPLY_LINK": "Apply",
+      "INVALID_LINK": "Enter an address that starts with http:// or https://."
+    },
+    "CONTENT_BLOCKS": {
+      "TITLE": "Add content",
+      "DESCRIPTION": "Add guidance and visual elements before this section's questions.",
+      "ADD": "Add content",
+      "SETTINGS": "Content settings",
+      "HEADING": "Heading",
+      "RICH_TEXT": "Formatted text",
+      "IMAGE": "Image and caption",
+      "DIVIDER": "Divider",
+      "DEFAULT_HEADING": "New heading",
+      "DEFAULT_RICH_TEXT": "Write guidance for the person completing this form.",
+      "IMAGE_UPLOAD": "Form image",
+      "IMAGE_UPLOAD_ACTION": "Choose image",
+      "IMAGE_UPLOADING": "Uploading image...",
+      "IMAGE_UPLOAD_HINT": "PNG, JPEG, or WebP up to 5 MB. You can also provide an image URL.",
+      "IMAGE_URL": "Image address",
+      "IMAGE_ALT": "Image description",
+      "IMAGE_CAPTION": "Optional caption",
+      "DIVIDER_DESCRIPTION": "Use a divider to separate content and questions without creating another section.",
+      "REMOVE": "Remove content",
+      "LAYOUT": "Question layout",
+      "LAYOUT_SINGLE": "One column",
+      "LAYOUT_TWO_COLUMNS": "Two columns on desktop"
     },
     "EMPTY": {
       "TEMPLATES_TITLE": "No forms yet",
@@ -191,6 +228,7 @@
       },
       "CONTACT_MAPPING": "Also save on contact",
       "DESTINATION": "Create or reuse opportunity",
+      "DESTINATION_REQUIRED": "Every commercial form must define where its opportunity will be created or updated before publishing.",
       "OPPORTUNITY_MAPPING": "Update opportunity field",
       "NO_OPPORTUNITY_MAPPING": "Do not update opportunity",
       "OPPORTUNITY_MAPPING_HELP": "After choosing the pipeline, compatible fields can receive answers automatically.",
@@ -282,6 +320,10 @@
       "YES": "Yes",
       "NO": "No",
       "HISTORY": "Received responses",
+      "STATUS": {
+        "SUBMITTED": "Submitted",
+        "DISCARDED": "Discarded"
+      },
       "NO_CONTACT": "No linked contact",
       "NO_OPPORTUNITY": "No linked opportunity"
     },
@@ -295,9 +337,15 @@
       "COPY": "Copy link",
       "COPIED": "Link copied",
       "SEND": "Prepare to send in conversation",
+      "REVOKE": "Revoke link",
+      "REVOKE_TITLE": "Revoke the form link?",
+      "REVOKE_DESCRIPTION": "The recipient will no longer be able to open this link. Responses already received will be preserved.",
       "HISTORY": "Sent invitations",
       "HISTORY_EMPTY": "No form has been sent for this opportunity.",
       "USES": "{used} of {total} responses",
+      "CREATED_AT": "Generated on {date}",
+      "EXPIRES_ON": "Expires on {date}",
+      "COMPLETED_AT": "Completed on {date}",
       "STATUS": {
         "ACTIVE": "Available",
         "CONSUMED": "Completed",
@@ -317,6 +365,7 @@
     },
     "ERROR": {
       "LOAD": "Could not load forms.",
+      "REVOKE": "Could not revoke the form link.",
       "SAVE": "Could not save form.",
       "REQUIRED": "Fill in name, identifier, and at least one section.",
       "INVALID_CONFIGURATION": "Review required fields, selection options, and conditions before publishing."

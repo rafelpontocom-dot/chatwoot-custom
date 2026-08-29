@@ -2,6 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Forms::DuplicateTemplateService do
   let(:account) { create(:account) }
+  let(:card) { create(:kanban_card, account: account) }
   let(:source) do
     FormTemplate.create!(
       account: account,
@@ -17,6 +18,12 @@ RSpec.describe Forms::DuplicateTemplateService do
   before do
     source.publish!(
       schema: {
+        'crm_destination' => {
+          'kanban_board_id' => card.kanban_board_id,
+          'kanban_stage_id' => card.kanban_stage_id,
+          'inbox_id' => card.inbox_id,
+          'opportunity_policy' => 'reuse_open'
+        },
         'crm_mapping' => {
           'contact' => { 'name' => 'nome', 'phone_number' => 'telefone' }
         },

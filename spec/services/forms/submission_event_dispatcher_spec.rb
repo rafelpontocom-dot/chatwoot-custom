@@ -15,6 +15,12 @@ RSpec.describe Forms::SubmissionEventDispatcher do
   let(:version) do
     template.publish!(
       schema: {
+        'crm_destination' => {
+          'kanban_board_id' => card.kanban_board_id,
+          'kanban_stage_id' => card.kanban_stage_id,
+          'inbox_id' => card.inbox_id,
+          'opportunity_policy' => 'reuse_open'
+        },
         'sections' => [
           {
             'key' => 'dados',

@@ -22,6 +22,171 @@ RSpec.describe Forms::SchemaValidator do
     expect(validator).to be_valid
   end
 
+  it 'accepts safe content blocks and a responsive two-column question group' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'consulta',
+          'layout' => 'two_columns',
+          'content_blocks' => [
+            { 'id' => 'abertura', 'type' => 'heading', 'content' => 'Sua consulta' },
+            { 'id' => 'orientacao', 'type' => 'rich_text', 'content' => 'Conte-nos como podemos ajudar.' },
+            {
+              'id' => 'imagem',
+              'type' => 'image',
+              'url' => 'https://assets.raevo.io/consulta.jpg',
+              'alt' => 'Consultório'
+            },
+            { 'id' => 'separador', 'type' => 'divider' }
+          ],
+          'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }]
+        }
+      ]
+    )
+
+    expect(validator).to be_valid
+  end
+
+  it 'accepts a managed Active Storage image from the form editor' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'consulta',
+          'content_blocks' => [
+            {
+              'id' => 'imagem',
+              'type' => 'image',
+              'url' => '/rails/active_storage/blobs/redirect/signed-id/consulta.png',
+              'alt' => 'Consultório'
+            }
+          ],
+          'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }]
+        }
+      ]
+    )
+
+    expect(validator).to be_valid
+  end
+
+  it 'accepts a restricted rich-text document without arbitrary markup' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'consulta',
+          'content_blocks' => [
+            {
+              'id' => 'orientacao',
+              'type' => 'rich_text',
+              'content' => {
+                'type' => 'doc',
+                'content' => [
+                  {
+                    'type' => 'paragraph',
+                    'content' => [
+                      {
+                        'type' => 'text',
+                        'text' => 'Organize suas informações.',
+                        'marks' => [{ 'type' => 'bold' }]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }]
+        }
+      ]
+    )
+
+    expect(validator).to be_valid
+  end
+
+  it 'accepts a safe HTTP link in rich text' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'consulta',
+          'content_blocks' => [
+            {
+              'id' => 'orientacao',
+              'type' => 'rich_text',
+              'content' => {
+                'type' => 'doc',
+                'content' => [
+                  {
+                    'type' => 'paragraph',
+                    'content' => [
+                      {
+                        'type' => 'text',
+                        'text' => 'Política de privacidade',
+                        'marks' => [{ 'type' => 'link', 'attrs' => { 'href' => 'https://raevo.io/privacidade' } }]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }]
+        }
+      ]
+    )
+
+    expect(validator).to be_valid
+  end
+
+  it 'rejects an unsafe rich-text link' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'consulta',
+          'content_blocks' => [
+            {
+              'id' => 'orientacao',
+              'type' => 'rich_text',
+              'content' => {
+                'type' => 'doc',
+                'content' => [
+                  {
+                    'type' => 'paragraph',
+                    'content' => [
+                      {
+                        'type' => 'text',
+                        'text' => 'Abrir link',
+                        'marks' => [{ 'type' => 'link', 'attrs' => { 'href' => 'javascript:alert(1)' } }]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }]
+        }
+      ]
+    )
+
+    expect(validator).not_to be_valid
+  end
+
+  it 'rejects unsafe content blocks' do
+    validator = described_class.new(
+      'sections' => [
+        {
+          'key' => 'consulta',
+          'content_blocks' => [
+            { 'id' => 'imagem', 'type' => 'image', 'url' => 'javascript:alert(1)' }
+          ],
+          'fields' => [{ 'key' => 'nome', 'type' => 'text', 'label' => 'Nome' }]
+        }
+      ]
+    )
+
+    expect(validator).not_to be_valid
+    expect(validator.errors).to include('content blocks must use safe supported content')
+  end
+
   it 'accepts a visual acceptance signature' do
     validator = described_class.new(
       'sections' => [

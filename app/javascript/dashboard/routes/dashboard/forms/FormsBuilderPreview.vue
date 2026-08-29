@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import FormRichTextContent from '../../../../public_form/FormRichTextContent.vue';
 
 const props = defineProps({
   editor: { type: Object, required: true },
@@ -66,6 +67,7 @@ const isFieldVisible = field => {
 const visibleFields = computed(
   () => activeSection.value?.fields?.filter(isFieldVisible) || []
 );
+const contentBlocks = computed(() => activeSection.value?.content_blocks || []);
 const resetPreview = () => {
   previewAnswers.value = {};
 };
@@ -197,6 +199,43 @@ const resetPreview = () => {
         >
           {{ activeSection.description || editor.settings?.description }}
         </p>
+
+        <div v-if="contentBlocks.length" class="mt-6 space-y-4">
+          <template v-for="block in contentBlocks" :key="block.id">
+            <h3
+              v-if="block.type === 'heading'"
+              class="text-lg font-semibold text-n-slate-12"
+            >
+              {{ block.content }}
+            </h3>
+            <p
+              v-else-if="
+                block.type === 'rich_text' && typeof block.content === 'string'
+              "
+              class="whitespace-pre-wrap text-sm leading-6 text-n-slate-11"
+            >
+              {{ block.content }}
+            </p>
+            <FormRichTextContent
+              v-else-if="block.type === 'rich_text'"
+              :content="block.content"
+            />
+            <figure v-else-if="block.type === 'image' && block.url">
+              <img
+                :src="block.url"
+                :alt="block.alt || ''"
+                class="max-h-64 w-full rounded object-cover"
+              />
+              <figcaption
+                v-if="block.caption"
+                class="mt-2 text-xs text-n-slate-10"
+              >
+                {{ block.caption }}
+              </figcaption>
+            </figure>
+            <hr v-else-if="block.type === 'divider'" class="border-n-slate-4" />
+          </template>
+        </div>
 
         <div v-if="visibleFields.length" class="mt-7 space-y-4">
           <div

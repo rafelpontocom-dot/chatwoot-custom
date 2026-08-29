@@ -64,11 +64,19 @@ const paymentContact = computed(() => props.contact || selectedContact.value);
 const normalizedAmount = computed(() =>
   Number(amount.value.replace(',', '.').replace(/[^\d.]/g, ''))
 );
+const amountCents = computed(() => Math.round(normalizedAmount.value * 100));
+const isBelowAsaasMinimum = computed(
+  () =>
+    requiresTaxIdentifier.value &&
+    amount.value.trim().length > 0 &&
+    amountCents.value < 500
+);
 const canSave = computed(
   () =>
     !!connectionId.value &&
     !!paymentContact.value &&
-    normalizedAmount.value > 0 &&
+    amountCents.value > 0 &&
+    !isBelowAsaasMinimum.value &&
     !!billingType.value &&
     !!dueOn.value &&
     (!requiresTaxIdentifier.value ||
@@ -172,7 +180,7 @@ const save = async () => {
         contact_id: paymentContact.value.id,
         finance_provider_connection_id: Number(connectionId.value),
         ...(props.kanbanCardId ? { kanban_card_id: props.kanbanCardId } : {}),
-        amount_cents: Math.round(normalizedAmount.value * 100),
+        amount_cents: amountCents.value,
         billing_type: billingType.value,
         due_on: dueOn.value,
         currency: props.market === 'PT' ? 'EUR' : 'BRL',
@@ -256,6 +264,13 @@ defineExpose({ open });
             :placeholder="t('FINANCE.PAYMENTS.AMOUNT_PLACEHOLDER')"
             class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           />
+          <span
+            v-if="isBelowAsaasMinimum"
+            class="text-xs text-n-ruby-11"
+            role="alert"
+          >
+            {{ t('FINANCE.PAYMENTS.ASAAS_MINIMUM_AMOUNT') }}
+          </span>
         </label>
         <label class="grid gap-1.5">
           <span class="text-sm font-medium text-n-slate-12">

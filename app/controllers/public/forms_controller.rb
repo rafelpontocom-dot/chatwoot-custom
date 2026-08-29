@@ -23,6 +23,22 @@ class Public::FormsController < PublicController
     render json: { message: e.record.errors.full_messages.to_sentence, errors: e.record.errors }, status: :unprocessable_entity
   end
 
+  def save_draft
+    payload = @invitation.with_lock do
+      raise_unavailable_invitation unless @invitation.available?
+
+      draft = @invitation.form_invitation_draft || @invitation.build_form_invitation_draft(account: @invitation.account)
+      draft.assign_answers(draft_params[:answers])
+      draft.assign_current_section_index(draft_params[:current_section_index])
+      draft.save!
+      draft.public_payload
+    end
+
+    render json: payload
+  rescue ActiveRecord::RecordInvalid => e
+    render json: { message: e.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
+  end
+
   private
 
   def fetch_invitation
@@ -48,11 +64,20 @@ class Public::FormsController < PublicController
     Forms::PublicPayloadBuilder.new(
       form_template: @invitation.form_template_version.form_template,
       form_template_version: @invitation.form_template_version
-    ).call
+    ).call.merge(draft: @invitation.form_invitation_draft&.public_payload)
+  end
+
+  def draft_params
+    params.require(:draft).permit(:current_section_index, answers: {}).to_h.symbolize_keys
   end
 
   def render_invalid_request
     render json: { message: 'Solicitação de formulário inválida' }, status: :unprocessable_entity
+  end
+
+  def raise_unavailable_invitation
+    @invitation.errors.add(:base, 'invitation is unavailable')
+    raise ActiveRecord::RecordInvalid, @invitation
   end
 
   def enforce_submission_rate_limit

@@ -67,6 +67,7 @@
       "SEARCHING_CONTACT": "Buscando contatos",
       "AMOUNT": "Valor da cobrança",
       "AMOUNT_PLACEHOLDER": "Ex.: 150,00",
+      "ASAAS_MINIMUM_AMOUNT": "O Asaas aceita cobranças a partir de R$ 5,00.",
       "BILLING_TYPE": "Forma de pagamento",
       "DUE_ON": "Vencimento",
       "CPF_CNPJ": "CPF ou CNPJ",

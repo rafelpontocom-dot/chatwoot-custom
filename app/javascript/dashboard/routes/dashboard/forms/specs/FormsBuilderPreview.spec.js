@@ -142,6 +142,41 @@ describe('FormsBuilderPreview', () => {
     );
   });
 
+  it('renders structured rich text in the editor preview', async () => {
+    const richTextEditor = {
+      ...editor,
+      schema: {
+        sections: [
+          {
+            ...editor.schema.sections[0],
+            content_blocks: [
+              {
+                id: 'orientacao',
+                type: 'rich_text',
+                content: {
+                  type: 'doc',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Preencha com calma.' }],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const wrapper = mount(FormsBuilderPreview, {
+      props: { editor: richTextEditor, activeSectionIndex: 0 },
+    });
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('Preencha com calma.');
+  });
+
   it('renders a clinical document question as an upload control in the preview', () => {
     const attachmentEditor = {
       ...editor,

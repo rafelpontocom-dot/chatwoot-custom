@@ -17,6 +17,7 @@ vi.mock('dashboard/api/forms', () => ({
     updateTemplate: vi.fn(),
     uploadTemplateLogo: vi.fn(),
     removeTemplateLogo: vi.fn(),
+    uploadTemplateContentImage: vi.fn(),
     publishTemplate: vi.fn(),
     duplicateTemplate: vi.fn(),
     getSubmission: vi.fn(),
@@ -109,6 +110,60 @@ describe('FormsView', () => {
     expect(wrapper.text()).toContain('Captação de consulta');
   });
 
+  it('opens each private preview with an isolated draft payload', async () => {
+    const template = {
+      id: 9,
+      name: 'Captação de consulta',
+      slug: 'captacao',
+      category: 'lead_capture',
+      public_enabled: false,
+      settings: {},
+      active_version: {
+        version_number: 1,
+        schema: {
+          crm_destination: {
+            kanban_board_id: 1,
+            kanban_stage_id: 2,
+            inbox_id: 3,
+          },
+          sections: [
+            {
+              key: 'principal',
+              title: 'Principal',
+              fields: [{ key: 'nome', label: 'Nome', type: 'text' }],
+            },
+          ],
+        },
+      },
+    };
+    FormsAPI.getTemplates.mockResolvedValue({ data: [template] });
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const wrapper = mountForms({
+      boards: [
+        {
+          id: 1,
+          inboxes: [{ id: 3 }],
+          stages: [{ id: 2 }],
+        },
+      ],
+    });
+    await flushPromises();
+
+    const button = wrapper.get('[data-test="forms-open-private-preview"]');
+    await button.trigger('click');
+    await button.trigger('click');
+
+    const previewUrls = open.mock.calls.map(([url]) => url);
+    expect(new Set(previewUrls).size).toBe(2);
+    expect(window.localStorage.getItem('raevo-form-preview:9')).toBeNull();
+    previewUrls.forEach(url => {
+      const previewId = url.split('/').pop();
+      expect(
+        window.localStorage.getItem(`raevo-form-preview:${previewId}`)
+      ).toBeTruthy();
+    });
+  });
+
   it('uploads a brand logo from the form settings', async () => {
     const template = {
       id: 9,
@@ -188,6 +243,61 @@ describe('FormsView', () => {
 
     expect(FormsAPI.removeTemplateLogo).toHaveBeenCalledWith(10);
     expect(wrapper.find('img[alt="Pré-consulta"]').exists()).toBe(false);
+  });
+
+  it('uploads an image into the selected content block', async () => {
+    const template = {
+      id: 15,
+      name: 'Pré-consulta',
+      slug: 'pre-consulta-imagem',
+      category: 'pre_consultation',
+      public_enabled: false,
+      settings: {},
+      active_version: {
+        version_number: 1,
+        schema: {
+          sections: [
+            {
+              key: 'principal',
+              title: 'Principal',
+              content_blocks: [
+                {
+                  id: 'imagem_abertura',
+                  type: 'image',
+                  url: '',
+                  alt: '',
+                  caption: '',
+                },
+              ],
+              fields: [{ key: 'nome', label: 'Nome', type: 'text' }],
+            },
+          ],
+        },
+      },
+    };
+    FormsAPI.getTemplates.mockResolvedValue({ data: [template] });
+    FormsAPI.uploadTemplateContentImage.mockResolvedValue({
+      data: { url: '/rails/active_storage/blobs/abertura' },
+    });
+    const wrapper = mountForms();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-test="forms-builder-content-imagem_abertura"]')
+      .trigger('click');
+    const file = new File(['imagem'], 'abertura.png', { type: 'image/png' });
+    const input = wrapper.get('[data-test="forms-content-image-upload"]');
+    Object.defineProperty(input.element, 'files', { value: [file] });
+    await input.trigger('change');
+    await flushPromises();
+
+    expect(FormsAPI.uploadTemplateContentImage).toHaveBeenCalledWith(15, file);
+    expect(
+      wrapper.get('[data-test="forms-content-image-url"]').element.value
+    ).toBe('/rails/active_storage/blobs/abertura');
+    expect(
+      wrapper.get('[data-test="forms-content-image-preview"]').attributes('src')
+    ).toBe('/rails/active_storage/blobs/abertura');
   });
 
   it('loads submissions only when the response workspace is selected', async () => {
@@ -504,6 +614,12 @@ describe('FormsView', () => {
       active_version: {
         version_number: 1,
         schema: {
+          crm_destination: {
+            kanban_board_id: 1,
+            kanban_stage_id: 1,
+            inbox_id: 1,
+            opportunity_policy: 'reuse_open',
+          },
           sections: [
             {
               key: 'consulta',
@@ -764,6 +880,12 @@ describe('FormsView', () => {
       active_version: {
         version_number: 1,
         schema: {
+          crm_destination: {
+            kanban_board_id: 1,
+            kanban_stage_id: 1,
+            inbox_id: 1,
+            opportunity_policy: 'reuse_open',
+          },
           sections: [
             {
               key: 'consentimento',
@@ -876,6 +998,12 @@ describe('FormsView', () => {
       active_version: {
         version_number: 1,
         schema: {
+          crm_destination: {
+            kanban_board_id: 1,
+            kanban_stage_id: 1,
+            inbox_id: 1,
+            opportunity_policy: 'reuse_open',
+          },
           sections: [
             {
               key: 'inicial',
@@ -934,6 +1062,12 @@ describe('FormsView', () => {
       active_version: {
         version_number: 1,
         schema: {
+          crm_destination: {
+            kanban_board_id: 1,
+            kanban_stage_id: 1,
+            inbox_id: 1,
+            opportunity_policy: 'reuse_open',
+          },
           sections: [
             {
               key: 'identificacao',
@@ -1133,6 +1267,43 @@ describe('FormsView', () => {
     expect(preview.attributes('rel')).toBe('noopener noreferrer');
   });
 
+  it('adds a rich-text content block to the selected question group', async () => {
+    const template = {
+      id: 22,
+      name: 'Pré-consulta',
+      slug: 'pre-consulta',
+      category: 'pre_consultation',
+      public_enabled: false,
+      settings: {},
+      active_version: {
+        version_number: 1,
+        schema: {
+          sections: [
+            {
+              key: 'principal',
+              title: 'Principal',
+              fields: [{ key: 'nome', label: 'Nome', type: 'text' }],
+            },
+          ],
+        },
+      },
+    };
+    FormsAPI.getTemplates.mockResolvedValue({ data: [template] });
+    const wrapper = mountForms();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-test="forms-builder-add-content-0"]')
+      .trigger('click');
+    await wrapper
+      .get('[data-test="forms-add-content-rich_text"]')
+      .trigger('click');
+
+    expect(wrapper.find('[data-test="forms-rich-text-editor"]').exists()).toBe(
+      true
+    );
+  });
+
   it('does not publish a public form until contact mapping is complete', async () => {
     const template = {
       id: 16,
@@ -1172,7 +1343,7 @@ describe('FormsView', () => {
     );
   });
 
-  it('publishes the selected lead capture starter when creating a form', async () => {
+  it('opens the selected lead capture starter as an unpublished CRM draft', async () => {
     const createdTemplate = {
       id: 14,
       name: 'Pedido de contato',
@@ -1182,13 +1353,8 @@ describe('FormsView', () => {
       settings: {},
       active_version: null,
     };
-    const publishedTemplate = {
-      ...createdTemplate,
-      active_version: { version_number: 1, schema: { sections: [] } },
-    };
     FormsAPI.getTemplates.mockResolvedValue({ data: [] });
     FormsAPI.createTemplate.mockResolvedValue({ data: createdTemplate });
-    FormsAPI.publishTemplate.mockResolvedValue({ data: publishedTemplate });
     const wrapper = mountForms();
     await flushPromises();
 
@@ -1199,19 +1365,9 @@ describe('FormsView', () => {
     await wrapper.find('[data-test="dialog-confirm"]').trigger('click');
     await flushPromises();
 
-    expect(FormsAPI.publishTemplate).toHaveBeenCalledWith(
-      14,
-      expect.objectContaining({
-        crm_mapping: {
-          contact: {
-            name: 'nome',
-            phone_number: 'telefone',
-            email: 'email',
-          },
-        },
-      })
-    );
+    expect(FormsAPI.publishTemplate).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain('Pedido de contato');
+    expect(wrapper.text()).toContain('FORMS.STARTERS.FIELDS.NAME');
   });
 
   it('creates an anamnese as a private sensitive-health template', async () => {
@@ -1225,13 +1381,8 @@ describe('FormsView', () => {
       settings: {},
       active_version: null,
     };
-    const publishedTemplate = {
-      ...createdTemplate,
-      active_version: { version_number: 1, schema: { sections: [] } },
-    };
     FormsAPI.getTemplates.mockResolvedValue({ data: [] });
     FormsAPI.createTemplate.mockResolvedValue({ data: createdTemplate });
-    FormsAPI.publishTemplate.mockResolvedValue({ data: publishedTemplate });
     const wrapper = mountForms();
     await flushPromises();
 
@@ -1248,18 +1399,8 @@ describe('FormsView', () => {
         access_classification: 'sensitive_health',
       }),
     });
-    expect(FormsAPI.publishTemplate).toHaveBeenCalledWith(
-      20,
-      expect.objectContaining({
-        sections: expect.arrayContaining([
-          expect.objectContaining({
-            fields: expect.arrayContaining([
-              expect.objectContaining({ key: 'consentimento_clinico' }),
-            ]),
-          }),
-        ]),
-      })
-    );
+    expect(FormsAPI.publishTemplate).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('FORMS.STARTERS.CLINICAL_INTAKE.CONSENT');
     expect(wrapper.text()).not.toContain('FORMS.EDITOR.DESTINATION');
     expect(wrapper.text()).not.toContain('FORMS.EDITOR.FIELD_MAPPING');
   });
