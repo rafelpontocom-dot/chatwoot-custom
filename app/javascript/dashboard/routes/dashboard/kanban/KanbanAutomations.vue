@@ -316,6 +316,26 @@ const eventOptions = computed(() => [
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_CHARGEBACK'),
   },
   {
+    value: 'forms.invitation.sent',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_SENT'),
+  },
+  {
+    value: 'forms.invitation.opened',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_OPENED'),
+  },
+  {
+    value: 'forms.invitation.expired',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_EXPIRED'),
+  },
+  {
+    value: 'forms.invitation.abandoned',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_ABANDONED'),
+  },
+  {
+    value: 'forms.submission.critical',
+    label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_SUBMISSION_CRITICAL'),
+  },
+  {
     value: 'forms.submission.completed',
     label: t('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_SUBMISSION_COMPLETED'),
   },
@@ -3264,7 +3284,12 @@ onMounted(load);
                       })
                     "
                   >
-                    +{{ hiddenRuleFlowStepCount(rule) }}
+                    {{
+                      t(
+                        'KANBAN.AUTOMATIONS_WORKSPACE.FLOW_PREVIEW_MORE_COMPACT',
+                        { count: hiddenRuleFlowStepCount(rule) }
+                      )
+                    }}
                   </span>
                 </div>
               </button>

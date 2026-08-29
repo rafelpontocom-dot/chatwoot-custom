@@ -95,6 +95,18 @@ const store = useStore();
 const accountLabels = useMapGetter('labels/getLabels');
 const currentAccount = useMapGetter('getCurrentAccount');
 
+const financeStatusLabels = {
+  draft: () => t('FINANCE.PAYMENTS.STATUS.DRAFT'),
+  pending: () => t('FINANCE.PAYMENTS.STATUS.PENDING'),
+  confirmed: () => t('FINANCE.PAYMENTS.STATUS.CONFIRMED'),
+  received: () => t('FINANCE.PAYMENTS.STATUS.RECEIVED'),
+  overdue: () => t('FINANCE.PAYMENTS.STATUS.OVERDUE'),
+  refunded: () => t('FINANCE.PAYMENTS.STATUS.REFUNDED'),
+  chargeback: () => t('FINANCE.PAYMENTS.STATUS.CHARGEBACK'),
+  canceled: () => t('FINANCE.PAYMENTS.STATUS.CANCELED'),
+  failed: () => t('FINANCE.PAYMENTS.STATUS.FAILED'),
+};
+
 const card = ref(null);
 const subject = ref('');
 const description = ref('');
@@ -863,6 +875,7 @@ const loadFormsContext = async () => {
 const formInvitationStatusLabel = status => {
   const labels = {
     active: t('FORMS.INVITATION.STATUS.ACTIVE'),
+    abandoned: t('FORMS.INVITATION.STATUS.ABANDONED'),
     consumed: t('FORMS.INVITATION.STATUS.CONSUMED'),
     expired: t('FORMS.INVITATION.STATUS.EXPIRED'),
     revoked: t('FORMS.INVITATION.STATUS.REVOKED'),
@@ -935,7 +948,10 @@ const formatFinanceDate = value => {
 const financeStatusLabel = status => {
   if (!status) return t('FINANCE.SUMMARY.NO_STATUS');
 
-  return t(`FINANCE.PAYMENTS.STATUS.${status.toUpperCase()}`);
+  return (
+    financeStatusLabels[status.toString().toLowerCase()]?.() ||
+    t('FINANCE.SUMMARY.NO_STATUS')
+  );
 };
 
 const sendFinancePaymentLink = payment => {
@@ -2197,6 +2213,28 @@ watch(invitationPendingRevocation, async invitation => {
                           t('FORMS.INVITATION.EXPIRES_ON', {
                             date: formatFormInvitationDate(
                               invitation.expires_at
+                            ),
+                          })
+                        }}
+                      </p>
+                      <p
+                        v-if="invitation.sent_at"
+                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                      >
+                        {{
+                          t('FORMS.INVITATION.SENT_AT', {
+                            date: formatFormInvitationDate(invitation.sent_at),
+                          })
+                        }}
+                      </p>
+                      <p
+                        v-if="invitation.opened_at"
+                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                      >
+                        {{
+                          t('FORMS.INVITATION.OPENED_AT', {
+                            date: formatFormInvitationDate(
+                              invitation.opened_at
                             ),
                           })
                         }}

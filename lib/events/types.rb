@@ -101,5 +101,10 @@ module Events::Types
   FINANCE_PAYMENT_CANCELED = 'finance.payment.canceled'
   FINANCE_PAYMENT_REFUNDED = 'finance.payment.refunded'
   FINANCE_PAYMENT_CHARGEBACK = 'finance.payment.chargeback'
+  FORMS_INVITATION_SENT = 'forms.invitation.sent'
+  FORMS_INVITATION_OPENED = 'forms.invitation.opened'
+  FORMS_INVITATION_EXPIRED = 'forms.invitation.expired'
+  FORMS_INVITATION_ABANDONED = 'forms.invitation.abandoned'
+  FORMS_SUBMISSION_CRITICAL = 'forms.submission.critical'
   FORMS_SUBMISSION_COMPLETED = 'forms.submission.completed'
 end

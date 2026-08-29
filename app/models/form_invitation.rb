@@ -3,9 +3,11 @@
 # Table name: form_invitations
 #
 #  id                       :bigint           not null, primary key
+#  abandoned_at             :datetime
 #  completed_at             :datetime
 #  expires_at               :datetime
 #  max_uses                 :integer          default(1), not null
+#  opened_at                :datetime
 #  sent_at                  :datetime
 #  status                   :string           default("active"), not null
 #  token_digest             :string           not null
@@ -19,6 +21,7 @@
 #
 # Indexes
 #
+#  index_form_invitations_for_abandonment              (status,abandoned_at,sent_at)
 #  index_form_invitations_for_account_status           (account_id,status,expires_at)
 #  index_form_invitations_on_account_id                (account_id)
 #  index_form_invitations_on_contact_id                (contact_id)
@@ -67,12 +70,13 @@ class FormInvitation < ApplicationRecord
     active? && (expires_at.blank? || expires_at.future?) && uses_count < max_uses
   end
 
-  def expire_if_needed!
-    return unless active? && expires_at.present? && expires_at.past?
+  def expire_if_needed!(now: Time.current)
+    with_lock do
+      next false unless active? && expires_at.present? && expires_at < now
 
-    transaction do
       update!(status: 'expired')
       form_invitation_draft&.destroy!
+      true
     end
   end
 
@@ -92,6 +96,33 @@ class FormInvitation < ApplicationRecord
       self.status = 'consumed' if uses_count >= max_uses
       self.completed_at ||= Time.current if consumed?
       save!
+    end
+  end
+
+  def mark_opened!
+    with_lock do
+      next false if opened_at.present? || !available?
+
+      update!(opened_at: Time.current)
+      true
+    end
+  end
+
+  def mark_sent!
+    with_lock do
+      next false if sent_at.present? || !available?
+
+      update!(sent_at: Time.current)
+      true
+    end
+  end
+
+  def mark_abandoned!(now: Time.current)
+    with_lock do
+      next false unless sent_at.present? && opened_at.blank? && completed_at.blank? && available? && abandoned_at.blank?
+
+      update!(abandoned_at: now)
+      true
     end
   end
 
@@ -120,6 +151,7 @@ class FormInvitation < ApplicationRecord
       max_uses: max_uses,
       uses_count: uses_count,
       sent_at: sent_at,
+      opened_at: opened_at,
       completed_at: completed_at
     }
   end
@@ -127,6 +159,7 @@ class FormInvitation < ApplicationRecord
   private
 
   def display_status
+    return 'abandoned' if active? && abandoned_at.present?
     return 'expired' if active? && expires_at.present? && expires_at.past?
 
     status

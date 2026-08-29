@@ -335,7 +335,12 @@ Eventos P1 de NF: `INVOICE_CREATED`, `INVOICE_UPDATED`, `INVOICE_SYNCHRONIZED`, 
 - `finance.payment.chargeback`
 - `finance.invoice.authorized`
 - `finance.invoice.error`
-- `forms.submission.completed` está disponível para Vue Flow quando a submissão estiver vinculada a uma oportunidade; seu contexto contém somente IDs permitidos, sem respostas. Eventos de convite enviado, início, abandono, resposta crítica e prazo expirado permanecem P1.
+- `forms.submission.completed` está disponível para Vue Flow quando a submissão estiver vinculada a uma oportunidade; seu contexto contém somente IDs permitidos, sem respostas.
+- `forms.invitation.sent` é publicado somente quando uma mensagem pública de saída contém o link individual do convite e pertence à conversa vinculada à oportunidade. Gerar, copiar ou incluir o link numa nota privada não altera o convite. O contexto segue a mesma projeção segura, com a chave `forms-invitation:<id>:sent`.
+- `forms.invitation.opened` está disponível para Vue Flow na primeira abertura de um convite individual comercial. O contexto contém `account_id`, `board_id`, `card_id`, `form_invitation_id`, `form_template_id` e uma chave idempotente; não contém token, resposta, rascunho ou dado clínico. Convites de anamnese nunca publicam esse evento.
+- `forms.invitation.expired` é processado pelo agendador de cinco minutos quando um convite individual comercial vence. A transição usa lock no convite, muda o status uma única vez e publica o mesmo contexto seguro, com a chave `forms-invitation:<id>:expired`. Convites de anamnese expiram normalmente, porém sem publicar evento.
+- `forms.invitation.abandoned` é opt-in por modelo comercial. O administrador escolhe de 1 hora a 30 dias; depois de uma mensagem pública com o link na conversa vinculada, o convite ainda disponível e sem abertura produz o evento uma vez. Anamnese nunca publica esse evento.
+- `forms.submission.critical` é opt-in por modelo comercial. O administrador seleciona uma pergunta e o valor exato que deve ser considerado crítico; em perguntas de seleção, escolhe uma opção publicada. O servidor valida a regra contra a versão publicada, impedindo pergunta removida ou opção inexistente. O evento contém somente IDs da conta, oportunidade, submissão e modelo. Anamnese nunca publica esse evento.
 
 O Vue Flow recebe uma projeção segura dos eventos. Campos clínicos nunca entram no contexto padrão do nó; uma permissão futura e uma allowlist por automação são necessárias para isso.
 
@@ -356,6 +361,10 @@ O Vue Flow recebe uma projeção segura dos eventos. Campos clínicos nunca entr
 | `Finance::Asaas::ProcessInvoiceWebhookService` | P1, sincroniza NF                                                                                                  |
 | `Forms::PublishTemplateService`                | valida schema e cria versão imutável                                                                               |
 | `Forms::CreateInvitationService`               | emite token/convite com contexto                                                                                   |
+| `Forms::InvitationEventDispatcher`             | publica eventos idempotentes e sanitizados de convite comercial vinculado à oportunidade                          |
+| `Forms::MarkInvitationSentService`             | reconhece o link em mensagem pública da conversa vinculada, sem persistir ou expor o token                       |
+| `Forms::ExpireInvitationsService`              | expira convites vencidos em lote e publica apenas a expiração comercial elegível                                  |
+| `Forms::DetectAbandonedInvitationsService`     | encontra convites comerciais enviados e não abertos conforme o prazo opt-in do modelo                             |
 | `Forms::SubmitPublicFormService`               | valida, persiste submissão, consome o convite e aplica somente os mapeamentos declarados de contato e oportunidade |
 | `Forms::MapSubmissionToCrmService`             | atualiza somente atributos de contato declarados                                                                   |
 | `Forms::CreatePublicOpportunityService`        | cria ou reaproveita oportunidade somente no destino comercial validado                                             |
@@ -374,7 +383,7 @@ Contrato do adaptador financeiro:
 
 Asaas, Easypay, ifthenpay e Moloni implementam somente as capacidades que possuem. O controller não contém condicionais por provedor.
 
-Jobs: entrega de mensagem, reprocessamento de webhook com falha, expiração de convite, lembrete de formulário, emissão fiscal e automações pós-commit.
+Jobs: entrega de mensagem, reprocessamento de webhook com falha, expiração e detecção opt-in de convite não aberto, lembrete de formulário, emissão fiscal e automações pós-commit.
 
 ## Policies e segurança
 
@@ -433,6 +442,6 @@ Jobs: entrega de mensagem, reprocessamento de webhook com falha, expiração de 
 3. Liberar Financeiro P0 a um cliente piloto, com monitoramento de falhas de webhook.
 4. Liberar Formulários comerciais a um cliente piloto com formulário de captação.
 5. Antes de liberar anamnese, executar as migrations clínicas, configurar `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` no ambiente, validar convite individual e auditoria, e revisar acesso, contrato/LGPD e retenção com a clínica.
-6. Esta etapa acrescenta `20260829100000_create_form_invitation_drafts`; executar `bundle exec rails db:migrate` nos serviços Rails antes de liberar a retomada de formulários por convite.
+6. Esta etapa acrescenta `20260829100000_create_form_invitation_drafts`, `20260829101000_add_opened_at_to_form_invitations` e `20260829102000_add_abandoned_at_to_form_invitations`; executar `bundle exec rails db:migrate` nos serviços Rails antes de liberar a retomada e o histórico de convite por formulário.
 
 Cada entrega de dados deve trazer migrations, índice, policy, testes e plano de reversão no PR correspondente.

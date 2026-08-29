@@ -242,6 +242,28 @@ RSpec.describe FormTemplate do
     expect(template.public_token).to be_present
   end
 
+  it 'validates critical response rules against the published questions and options' do
+    template = described_class.create!(
+      account: account,
+      name: 'Triagem',
+      slug: 'triagem-critica',
+      category: 'pre_consultation',
+      access_classification: 'commercial'
+    )
+    template.publish!(schema: schema_with_risk_selection)
+
+    template.settings = { 'critical_response' => { 'field_key' => 'nao_existe', 'value' => 'sim' } }
+    expect(template).not_to be_valid
+    expect(template.errors[:settings]).to include('critical response must reference a published question')
+
+    template.settings = { 'critical_response' => { 'field_key' => 'risco', 'value' => 'talvez' } }
+    expect(template).not_to be_valid
+    expect(template.errors[:settings]).to include('critical response value must be a published option')
+
+    template.settings = { 'critical_response' => { 'field_key' => 'risco', 'value' => 'sim' } }
+    expect(template).to be_valid
+  end
+
   private
 
   def schema
@@ -266,5 +288,23 @@ RSpec.describe FormTemplate do
 
   def updated_schema
     schema.deep_merge('sections' => [{ 'key' => 'atualizado', 'fields' => [] }])
+  end
+
+  def schema_with_risk_selection
+    schema.deep_merge(
+      'sections' => [
+        {
+          'key' => 'triagem',
+          'fields' => [
+            {
+              'key' => 'risco',
+              'type' => 'select',
+              'label' => 'Possui alerta?',
+              'options' => %w[sim nao]
+            }
+          ]
+        }
+      ]
+    )
   end
 end

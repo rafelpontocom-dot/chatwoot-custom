@@ -82,6 +82,19 @@ const selectedBoardCustomFields = computed(
 const formFields = computed(
   () => editor.value?.schema.sections.flatMap(section => section.fields) || []
 );
+const criticalResponseFields = computed(() =>
+  formFields.value.filter(field => field.type !== 'hidden')
+);
+const criticalResponseField = computed(() =>
+  criticalResponseFields.value.find(
+    field => field.key === editor.value?.settings?.critical_response?.field_key
+  )
+);
+const criticalResponseOptions = computed(() =>
+  Array.isArray(criticalResponseField.value?.options)
+    ? criticalResponseField.value.options.filter(Boolean)
+    : []
+);
 const normalizedClinicalAccessSearch = computed(() =>
   clinicalAccessSearch.value.trim().toLocaleLowerCase()
 );
@@ -340,6 +353,12 @@ function hydrateEditor(template) {
         template.settings?.clinical_retention_days || null,
       captcha_provider: template.settings?.captcha_provider || '',
       captcha_site_key: template.settings?.captcha_site_key || '',
+      abandonment_delay_hours:
+        template.settings?.abandonment_delay_hours || null,
+      critical_response: {
+        field_key: template.settings?.critical_response?.field_key || '',
+        value: template.settings?.critical_response?.value || '',
+      },
     },
     schema,
     crmDestinationEnabled:
@@ -2399,6 +2418,81 @@ onBeforeUnmount(() => {
                       class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
                     />
                   </label>
+                </div>
+                <label
+                  v-if="!isSensitiveHealth"
+                  class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
+                >
+                  {{ t('FORMS.EDITOR.ABANDONMENT_DELAY_HOURS') }}
+                  <input
+                    v-model.number="editor.settings.abandonment_delay_hours"
+                    type="number"
+                    min="1"
+                    max="720"
+                    class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    :placeholder="t('FORMS.EDITOR.ABANDONMENT_DISABLED')"
+                  />
+                  <span class="text-xs font-normal leading-5 text-n-slate-10">
+                    {{ t('FORMS.EDITOR.ABANDONMENT_HINT') }}
+                  </span>
+                </label>
+                <div
+                  v-if="!isSensitiveHealth"
+                  class="mt-4 grid gap-3 rounded border border-n-slate-4 bg-n-slate-2 p-3 lg:grid-cols-2"
+                >
+                  <label
+                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                  >
+                    {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_FIELD') }}
+                    <select
+                      v-model="editor.settings.critical_response.field_key"
+                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      @change="editor.settings.critical_response.value = ''"
+                    >
+                      <option value="">
+                        {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_DISABLED') }}
+                      </option>
+                      <option
+                        v-for="field in criticalResponseFields"
+                        :key="field.key"
+                        :value="field.key"
+                      >
+                        {{ field.label || field.key }}
+                      </option>
+                    </select>
+                  </label>
+                  <label
+                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                  >
+                    {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_VALUE') }}
+                    <select
+                      v-if="criticalResponseOptions.length"
+                      v-model="editor.settings.critical_response.value"
+                      :disabled="!editor.settings.critical_response.field_key"
+                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                    >
+                      <option value="">
+                        {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_SELECT_VALUE') }}
+                      </option>
+                      <option
+                        v-for="option in criticalResponseOptions"
+                        :key="option"
+                        :value="option"
+                      >
+                        {{ option }}
+                      </option>
+                    </select>
+                    <input
+                      v-else
+                      v-model="editor.settings.critical_response.value"
+                      :disabled="!editor.settings.critical_response.field_key"
+                      type="text"
+                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                    />
+                  </label>
+                  <p class="text-xs leading-5 text-n-slate-10 lg:col-span-2">
+                    {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_HINT') }}
+                  </p>
                 </div>
                 <p
                   v-else

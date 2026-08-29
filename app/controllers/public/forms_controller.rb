@@ -3,6 +3,8 @@ class Public::FormsController < PublicController
   before_action :enforce_submission_rate_limit, only: :create
 
   def show
+    dispatch_opened_event if @invitation.mark_opened!
+
     respond_to do |format|
       format.html { render :show, layout: 'public_form' }
       format.json { render json: form_payload }
@@ -78,6 +80,10 @@ class Public::FormsController < PublicController
   def raise_unavailable_invitation
     @invitation.errors.add(:base, 'invitation is unavailable')
     raise ActiveRecord::RecordInvalid, @invitation
+  end
+
+  def dispatch_opened_event
+    Forms::InvitationEventDispatcher.new(invitation: @invitation).dispatch_opened
   end
 
   def enforce_submission_rate_limit

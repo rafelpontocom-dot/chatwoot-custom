@@ -158,16 +158,35 @@ describe('KanbanAutomations', () => {
     expect(wrapper.find('kanban-workflow-builder-stub').exists()).toBe(true);
   });
 
-  it('offers finance payment events as visual workflow triggers', async () => {
+  it('offers finance payment and commercial form events as visual workflow triggers', async () => {
     const wrapper = await mountWorkspace();
 
     await wrapper
       .find('[data-testid="kanban-automations-new-flow"]')
       .trigger('click');
 
-    expect(
-      wrapper.find('[data-testid="kanban-automations-trigger-event"]').text()
-    ).toContain('KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_RECEIVED');
+    const triggerEvents = wrapper
+      .find('[data-testid="kanban-automations-trigger-event"]')
+      .text();
+
+    expect(triggerEvents).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FINANCE_PAYMENT_RECEIVED'
+    );
+    expect(triggerEvents).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_SENT'
+    );
+    expect(triggerEvents).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_OPENED'
+    );
+    expect(triggerEvents).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_EXPIRED'
+    );
+    expect(triggerEvents).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_INVITATION_ABANDONED'
+    );
+    expect(triggerEvents).toContain(
+      'KANBAN.SETTINGS.AUTOMATIONS.EVENTS.FORM_SUBMISSION_CRITICAL'
+    );
   });
 
   it('shows the business description of an existing automation rule', async () => {
@@ -241,7 +260,7 @@ describe('KanbanAutomations', () => {
     ).toHaveLength(3);
     expect(
       wrapper.find('[data-testid="kanban-automation-rule-more-steps"]').text()
-    ).toContain('+1');
+    ).toContain('KANBAN.AUTOMATIONS_WORKSPACE.FLOW_PREVIEW_MORE_COMPACT');
     expect(
       wrapper
         .find('[data-testid="kanban-automation-rule-more-steps"]')

@@ -35,6 +35,12 @@ class TriggerScheduledItemsJob < ApplicationJob
     # Keep externally controlled manual charges aligned with their due date.
     Finance::MarkOverduePaymentsJob.perform_later
 
+    # Expire individual form links and trigger only eligible commercial automations.
+    Forms::ExpireInvitationsJob.perform_later
+
+    # Detect configured commercial invitations that remain unopened after sending.
+    Forms::DetectAbandonedInvitationsJob.perform_later
+
     # Job to sync whatsapp templates
     Channels::Whatsapp::TemplatesSyncSchedulerJob.perform_later
   end

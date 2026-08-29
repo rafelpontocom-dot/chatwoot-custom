@@ -57,6 +57,11 @@ class KanbanAutomationRule < ApplicationRecord
     Events::Types::FINANCE_PAYMENT_CONFIRMED, Events::Types::FINANCE_PAYMENT_RECEIVED,
     Events::Types::FINANCE_PAYMENT_CANCELED, Events::Types::FINANCE_PAYMENT_REFUNDED,
     Events::Types::FINANCE_PAYMENT_CHARGEBACK,
+    Events::Types::FORMS_INVITATION_SENT,
+    Events::Types::FORMS_INVITATION_OPENED,
+    Events::Types::FORMS_INVITATION_EXPIRED,
+    Events::Types::FORMS_INVITATION_ABANDONED,
+    Events::Types::FORMS_SUBMISSION_CRITICAL,
     Events::Types::FORMS_SUBMISSION_COMPLETED
   ].freeze
   FIELD_OPERATORS = %w[equals not_equals contains exists greater_than greater_or_equal less_than less_or_equal].freeze

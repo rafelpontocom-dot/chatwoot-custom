@@ -10,6 +10,7 @@ class KanbanCardListener < BaseListener
 
   def message_created(event)
     message = event.data[:message]
+    Forms::MarkInvitationSentService.new(message: message).perform! if message&.outgoing? && !message.private?
     return unless message&.incoming?
 
     KanbanCard.where(account_id: message.account_id, conversation_id: message.conversation_id, active: true).find_each do |card|

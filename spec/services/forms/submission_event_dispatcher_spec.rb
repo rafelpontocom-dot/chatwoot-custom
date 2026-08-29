@@ -69,6 +69,26 @@ RSpec.describe Forms::SubmissionEventDispatcher do
     described_class.new(submission: submission).dispatch
   end
 
+  it 'publishes a second safe event when a configured commercial answer is critical' do
+    template.update!(settings: { 'critical_response' => { 'field_key' => 'nome', 'value' => 'Pedro Raevo' } })
+
+    expect(Rails.configuration.dispatcher).to receive(:dispatch).twice do |event_name, _timestamp, data|
+      next unless event_name == Events::Types::FORMS_SUBMISSION_CRITICAL
+
+      expect(data).to include(
+        account_id: account.id,
+        board_id: card.kanban_board_id,
+        card_id: card.id,
+        form_submission_id: submission.id,
+        form_template_id: template.id,
+        event_key: "forms-submission:#{submission.id}:critical"
+      )
+      expect(data).not_to have_key(:answers)
+    end
+
+    described_class.new(submission: submission).dispatch
+  end
+
   it 'does not dispatch a sensitive-health submission to automations' do
     with_modified_env 'ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY' => 'forms-test-encryption-key' do
       clinical_template = FormTemplate.create!(

@@ -166,7 +166,55 @@ RSpec.describe KanbanCardListener do
     end
   end
 
+  describe '#forms_invitation_sent' do
+    it 'enqueues the matching workflow without exposing the invitation link' do
+      card = create(:kanban_card)
+      rule = create(
+        :kanban_automation_rule,
+        account: card.account,
+        kanban_board: card.kanban_board,
+        event_name: Events::Types::FORMS_INVITATION_SENT
+      )
+      event = Events::Base.new(
+        Events::Types::FORMS_INVITATION_SENT,
+        Time.zone.now,
+        account_id: card.account_id,
+        board_id: card.kanban_board_id,
+        card_id: card.id,
+        form_invitation_id: 41,
+        form_template_id: 12,
+        event_key: 'forms-invitation:41:sent'
+      )
+
+      expect do
+        listener.forms_invitation_sent(event)
+      end.to have_enqueued_job(KanbanAutomations::ExecuteRuleJob).with(
+        rule.id,
+        Events::Types::FORMS_INVITATION_SENT,
+        'forms-invitation:41:sent',
+        card.id,
+        {
+          event_data: hash_including(
+            form_invitation_id: 41,
+            form_template_id: 12
+          )
+        }
+      ).on_queue('critical')
+    end
+  end
+
   describe '#message_created' do
+    it 'records a form invitation when its link is sent in an outgoing message' do
+      message = create(:message, message_type: :outgoing)
+      event = Events::Base.new(Events::Types::MESSAGE_CREATED, Time.zone.now, message: message)
+      service = instance_double(Forms::MarkInvitationSentService, perform!: nil)
+      allow(Forms::MarkInvitationSentService).to receive(:new).with(message: message).and_return(service)
+
+      listener.message_created(event)
+
+      expect(service).to have_received(:perform!)
+    end
+
     it 'pauses an active cadence after an incoming customer message' do
       conversation = create(:conversation)
       card = create(:kanban_card, :conversation_origin, conversation: conversation)

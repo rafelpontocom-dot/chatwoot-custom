@@ -39,6 +39,34 @@ RSpec.describe 'Public forms API', type: :request do
     expect(response.parsed_body.to_s).not_to include('crm_mapping')
   end
 
+  it 'records and dispatches only the first commercial invitation opening' do
+    invitation_result
+    dispatched_events = []
+    allow(Rails.configuration.dispatcher).to receive(:dispatch) do |event_name, _timestamp, data|
+      dispatched_events << [event_name, data]
+    end
+
+    get "/formularios/convites/#{invitation_result.token}", as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(invitation_result.invitation.reload.opened_at).to be_present
+    expect(dispatched_events).to include(
+      [
+        Events::Types::FORMS_INVITATION_OPENED,
+        include(
+          account_id: account.id,
+          card_id: card.id,
+          form_invitation_id: invitation_result.invitation.id,
+          event_key: "forms-invitation:#{invitation_result.invitation.id}:opened"
+        )
+      ]
+    )
+
+    get "/formularios/convites/#{invitation_result.token}", as: :json
+
+    expect(dispatched_events.count { |event_name, _data| event_name == Events::Types::FORMS_INVITATION_OPENED }).to eq(1)
+  end
+
   it 'renders the public form shell for a valid invitation' do
     get "/formularios/convites/#{invitation_result.token}"
 
@@ -75,6 +103,36 @@ RSpec.describe 'Public forms API', type: :request do
       expect(response).to have_http_status(:success)
       expect(response.parsed_body.dig('form', 'name')).to eq('Anamnese inicial')
       expect(response.parsed_body.to_s).not_to include(contact.id.to_s)
+    end
+  end
+
+  it 'does not publish an opening event for a sensitive-health invitation' do
+    with_modified_env 'ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY' => 'forms-test-encryption-key' do
+      clinical_template = FormTemplate.create!(
+        account: account,
+        name: 'Anamnese reservada',
+        slug: 'anamnese-reservada',
+        category: 'clinical',
+        access_classification: 'sensitive_health'
+      )
+      clinical_version = clinical_template.publish!(schema: clinical_schema)
+      invitation = Forms::CreateInvitationService.new(
+        account: account,
+        form_template_version: clinical_version,
+        contact: contact,
+        kanban_card: card
+      ).perform
+
+      expect(Rails.configuration.dispatcher).not_to receive(:dispatch).with(
+        Events::Types::FORMS_INVITATION_OPENED,
+        anything,
+        anything
+      )
+
+      get "/formularios/convites/#{invitation.token}", as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(invitation.invitation.reload.opened_at).to be_present
     end
   end
 

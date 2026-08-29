@@ -105,6 +105,7 @@ RSpec.describe FormInvitation do
     expect(result.invitation.admin_payload).to include(
       created_at: result.invitation.created_at,
       expires_at: result.invitation.expires_at,
+      opened_at: result.invitation.opened_at,
       completed_at: result.invitation.completed_at
     )
   end
@@ -174,6 +175,18 @@ RSpec.describe FormInvitation do
       expect(invitation).not_to be_valid
       expect(invitation.errors[:max_uses]).to include('must be one for sensitive health forms')
     end
+  end
+
+  it 'presents an unopened invitation marked by the commercial follow-up as abandoned' do
+    invitation = Forms::CreateInvitationService.new(
+      account: account,
+      form_template_version: version,
+      contact: contact,
+      kanban_card: card
+    ).perform.invitation
+    invitation.update!(abandoned_at: Time.current)
+
+    expect(invitation.admin_payload[:status]).to eq('abandoned')
   end
 
   private

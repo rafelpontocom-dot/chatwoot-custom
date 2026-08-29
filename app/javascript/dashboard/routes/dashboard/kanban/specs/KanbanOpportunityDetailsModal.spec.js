@@ -1641,6 +1641,8 @@ describe('KanbanOpportunityDetailsModal', () => {
             max_uses: 1,
             created_at: '2026-08-29T12:00:00Z',
             expires_at: '2026-08-31T12:00:00Z',
+            sent_at: '2026-08-29T12:01:00Z',
+            opened_at: '2026-08-29T12:03:00Z',
           },
         ],
         submissions: [
@@ -1658,6 +1660,8 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.text()).toContain('Pré-consulta');
     expect(wrapper.text()).toContain('FORMS.INVITATION.CREATED_AT');
     expect(wrapper.text()).toContain('FORMS.INVITATION.EXPIRES_ON');
+    expect(wrapper.text()).toContain('FORMS.INVITATION.SENT_AT');
+    expect(wrapper.text()).toContain('FORMS.INVITATION.OPENED_AT');
   });
 
   it('revokes an available invitation from the opportunity history', async () => {
