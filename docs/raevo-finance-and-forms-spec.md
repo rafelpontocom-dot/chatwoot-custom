@@ -182,7 +182,7 @@ O perfil não autoriza emissão sozinho: o adaptador ainda valida capacidade do 
 
 No envio, o servidor valida a mesma condição usada pela interface e só persiste respostas de perguntas visíveis e não técnicas. Campo `hidden`, resposta de uma condicional que não foi apresentada e chave enviada fora do schema nunca entram em `FormSubmission`, no mapeamento de contato ou no destino comercial.
 
-O editor é uma superfície visual de três áreas: estrutura de etapas e perguntas à esquerda, prévia segura e clicável do formulário ao centro, e propriedades essenciais da seleção à direita. A prévia nunca grava respostas e mostra imediatamente título, ajuda, obrigatoriedade, tipos e opções da pergunta selecionada. Clicar em uma etapa ou pergunta seleciona o item equivalente na estrutura; criar pergunta ou inserir bloco mantém a seleção no item novo. Identificadores, mapeamentos CRM, condicionais, publicação e destino ficam recolhidos em `Configurações avançadas`, preservando o fluxo diário de uma secretaria sem ocultar controles de configuração.
+O editor é uma superfície visual de duas áreas persistentes: estrutura e biblioteca pesquisável à esquerda, página do formulário em largura real ao centro. Clicar em uma etapa, pergunta ou conteúdo abre uma configuração contextual em diálogo, sem comprimir o canvas. A página central nunca grava respostas; `Abrir prévia` abre o renderer público real em uma nova aba privada. Criar pergunta ou inserir bloco mantém a seleção no item novo. Identificadores, mapeamentos CRM, condicionais, publicação e destino ficam recolhidos em `Configurações avançadas`, preservando o fluxo diário de uma secretaria sem ocultar controles de configuração.
 
 Todo `FormTemplate` de classificação `commercial` só pode gerar `FormTemplateVersion` quando `crm_destination` declara board, stage, inbox e política válidos. A interface cria captação e pré-consulta como rascunho, nunca como publicação automática: a checklist torna o destino obrigatório. O link público geral localiza ou cria contato pelos mapeamentos e usa o mesmo destino para criar ou reutilizar a oportunidade. `FormInvitation` comercial ou `sensitive_health` exige `contact_id` e `kanban_card_id`, com contato igual ao do card; a anamnese mantém `max_uses = 1`.
 
@@ -408,6 +408,8 @@ Jobs: entrega de mensagem, reprocessamento de webhook com falha, expiração e d
 - Formulário público não pode escolher livremente `account_id`, `contact_id` ou `kanban_card_id`; esses valores vêm do link/contexto ou da política de resolução.
 - O destino de oportunidade é validado por conta, funil ativo, etapa ativa, caixa permitida e política declarada; falha de destino registra estado sanitizado na submissão sem apagá-la. O mapeamento declarado para campos personalizados só pode atingir definições existentes do mesmo board, não pode escrever fórmula e é aplicado sob bloqueio do card, preservando valores existentes; erro de valor é sanitizado como `rejected` na submissão, sem apagá-la.
 - Formulários classificados como `sensitive_health` não podem ter link público geral, CRM mapping, destino comercial, campos no card compacto, etiquetas, preview de conversa, payload padrão de webhook ou evento de automação. A leitura detalhada só acontece pela API autorizada e cria `FormAccessAudit`.
+- `FormTemplate.settings.presentation` aceita somente `guided` ou `sectioned`. O `Forms::PublicPayloadBuilder` devolve uma apresentação normalizada ao navegador, sem mapeamento CRM, destino ou IDs internos. `guided` lineariza perguntas visíveis em passos; `sectioned` mantém a navegação por seção. O índice do rascunho de convite representa o passo ativo e fica limitado ao total atual de passos.
+- A biblioteca do editor filtra somente metadados de apresentação e cria pergunta ou conteúdo na seção ativa. Ela não expõe chaves, mapeamentos, destino CRM ou dados clínicos. Opções de `select` e `multi_select` são persistidas como lista ordenada, uma opção não vazia por linha no editor. O modal contextual da pergunta concentra rótulo, tipo, apoio, opções, obrigatoriedade e uma área avançada recolhida para condição e mapeamentos compatíveis; o destino CRM do formulário continua global e recolhido.
 
 ## Testes e aceite técnico
 
@@ -432,6 +434,7 @@ Jobs: entrega de mensagem, reprocessamento de webhook com falha, expiração e d
 - teste de versão imutável;
 - matriz de autorização: secretaria, agente, profissional, administrador e conta errada;
 - E2E: abrir formulário público, submeter, criar/vincular contato e oportunidade, conferir apenas campos permitidos no CRM;
+- renderer: prévia privada, convite e link público exercitam a mesma apresentação; `guided` mostra uma pergunta visível por passo e `sectioned` preserva grupos e duas colunas responsivas;
 - acessibilidade: rótulos, erro por campo, foco, leitura por leitor de tela e navegação por teclado.
 - anamnese: ausência de chave de criptografia impede publicação; consentimento é obrigatório; convite sem contato ou com mais de um uso é rejeitado; respostas não aparecem em `answers`, resumo, automação ou CRM; leitura autorizada registra auditoria.
 

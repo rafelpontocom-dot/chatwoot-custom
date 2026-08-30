@@ -90,6 +90,92 @@ describe('PublicFormApp', () => {
     expect(wrapper.find('#form-field-melhor_horario').exists()).toBe(true);
   });
 
+  it('shows one question at a time when the form uses the guided presentation', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...formPayload,
+          form: { ...formPayload.form, presentation: 'guided' },
+          schema: {
+            sections: [
+              {
+                key: 'inicio',
+                title: 'Vamos começar',
+                fields: [
+                  {
+                    key: 'nome',
+                    type: 'text',
+                    label: 'Como podemos chamar você?',
+                  },
+                  {
+                    key: 'telefone',
+                    type: 'phone',
+                    label: 'Qual é seu WhatsApp?',
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      })
+    );
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+
+    expect(wrapper.find('#form-field-nome').exists()).toBe(true);
+    expect(wrapper.find('#form-field-telefone').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Etapa 1 de 2');
+
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.find('#form-field-nome').exists()).toBe(false);
+    expect(wrapper.find('#form-field-telefone').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Etapa 2 de 2');
+  });
+
+  it('advances a guided form with Enter from a short-answer question', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...formPayload,
+          form: { ...formPayload.form, presentation: 'guided' },
+          schema: {
+            sections: [
+              {
+                key: 'inicio',
+                title: 'Vamos começar',
+                fields: [
+                  {
+                    key: 'nome',
+                    type: 'text',
+                    label: 'Como podemos chamar você?',
+                  },
+                  {
+                    key: 'telefone',
+                    type: 'phone',
+                    label: 'Qual é seu WhatsApp?',
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      })
+    );
+
+    const wrapper = mount(PublicFormApp);
+    await flushPromises();
+
+    await wrapper.find('#form-field-nome').trigger('keydown.enter');
+
+    expect(wrapper.find('#form-field-telefone').exists()).toBe(true);
+  });
+
   it('restores an invitation draft without saving it again on initial load', async () => {
     window.history.replaceState({}, '', '/formularios/convites/token-123');
     const fetch = vi.fn().mockResolvedValue({

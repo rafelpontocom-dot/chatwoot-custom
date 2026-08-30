@@ -83,7 +83,7 @@ const resetPreview = () => {
       <span
         class="text-xs font-semibold uppercase tracking-wide text-n-slate-10"
       >
-        {{ t('FORMS.BUILDER.PREVIEW') }}
+        {{ t('FORMS.BUILDER.CANVAS') }}
       </span>
       <div class="flex items-center gap-1 text-xs text-n-slate-10">
         <div

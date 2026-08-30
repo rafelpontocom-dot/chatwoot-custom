@@ -140,14 +140,64 @@ const privacyPolicyUrl = computed(
 );
 const brandInitial = computed(() => brandName.value.trim().charAt(0) || 'R');
 const sections = computed(() => payload.value?.schema?.sections || []);
-const currentSection = computed(
-  () => sections.value[currentSectionIndex.value]
+const conditionMatches = (answer, conditionValue) => {
+  if (
+    typeof answer === 'boolean' &&
+    ['true', 'false'].includes(conditionValue)
+  ) {
+    return answer === (conditionValue === 'true');
+  }
+
+  return answer === conditionValue;
+};
+const isFieldVisible = field => {
+  const condition = field.visible_when;
+  if (!condition) return true;
+
+  return (
+    condition.operator === 'equals' &&
+    conditionMatches(answers.value[condition.field], condition.value)
+  );
+};
+const visibleFields = section => section?.fields?.filter(isFieldVisible) || [];
+const isGuidedPresentation = computed(
+  () => payload.value?.form?.presentation === 'guided'
 );
-const currentContentBlocks = computed(
-  () => currentSection.value?.content_blocks || []
+const guidedSteps = computed(() =>
+  sections.value.flatMap(section =>
+    (section.fields || [])
+      .filter(field => field.type !== 'hidden')
+      .map((field, index) => ({ section, field, firstInSection: index === 0 }))
+  )
+);
+const visibleGuidedSteps = computed(() =>
+  guidedSteps.value.filter(step => isFieldVisible(step.field))
+);
+const currentGuidedStep = computed(
+  () => visibleGuidedSteps.value[currentSectionIndex.value]
+);
+const currentSection = computed(() =>
+  isGuidedPresentation.value
+    ? currentGuidedStep.value?.section
+    : sections.value[currentSectionIndex.value]
+);
+const currentContentBlocks = computed(() =>
+  !isGuidedPresentation.value || currentGuidedStep.value?.firstInSection
+    ? currentSection.value?.content_blocks || []
+    : []
+);
+const currentFields = computed(() => {
+  if (!isGuidedPresentation.value) return visibleFields(currentSection.value);
+
+  return currentGuidedStep.value ? [currentGuidedStep.value.field] : [];
+});
+const totalSteps = computed(() =>
+  isGuidedPresentation.value
+    ? visibleGuidedSteps.value.length
+    : sections.value.length
 );
 const isLastSection = computed(
-  () => currentSectionIndex.value === sections.value.length - 1
+  () => currentSectionIndex.value === totalSteps.value - 1
 );
 const captchaRequired = computed(
   () => payload.value?.form?.captcha_provider === 'turnstile'
@@ -155,8 +205,14 @@ const captchaRequired = computed(
 const progressDescription = computed(() =>
   copy.value.step
     .replace('{current}', currentSectionIndex.value + 1)
-    .replace('{total}', sections.value.length)
+    .replace('{total}', totalSteps.value)
 );
+
+watch(totalSteps, total => {
+  if (currentSectionIndex.value >= total) {
+    currentSectionIndex.value = Math.max(total - 1, 0);
+  }
+});
 onBeforeUnmount(() => {
   window.clearTimeout(draftSaveTimer);
   if (turnstileWidgetId !== null && window.turnstile) {
@@ -299,7 +355,7 @@ onMounted(async () => {
         answers.value = payload.value.draft.answers || {};
         currentSectionIndex.value = Math.min(
           Math.max(Number(payload.value.draft.current_section_index) || 0, 0),
-          Math.max(sections.value.length - 1, 0)
+          Math.max(totalSteps.value - 1, 0)
         );
         lastSavedDraftSignature = draftSignature();
         await nextTick();
@@ -345,31 +401,6 @@ function isRequiredMissing(field) {
   );
 }
 
-function conditionMatches(answer, conditionValue) {
-  if (
-    typeof answer === 'boolean' &&
-    ['true', 'false'].includes(conditionValue)
-  ) {
-    return answer === (conditionValue === 'true');
-  }
-
-  return answer === conditionValue;
-}
-
-function isFieldVisible(field) {
-  const condition = field.visible_when;
-  if (!condition) return true;
-
-  return (
-    condition.operator === 'equals' &&
-    conditionMatches(answers.value[condition.field], condition.value)
-  );
-}
-
-function visibleFields(section) {
-  return section?.fields?.filter(isFieldVisible) || [];
-}
-
 function contentText(block) {
   return typeof block.content === 'string' ? block.content : '';
 }
@@ -387,7 +418,7 @@ function setAttachments(field, event) {
 }
 
 function validateCurrentSection() {
-  const invalid = visibleFields(currentSection.value).find(isRequiredMissing);
+  const invalid = currentFields.value.find(isRequiredMissing);
   if (!invalid) return true;
 
   invalidFieldKey.value = invalid.key;
@@ -396,17 +427,43 @@ function validateCurrentSection() {
   return false;
 }
 
+function focusCurrentField() {
+  const [field] = currentFields.value;
+  if (field) document.getElementById(fieldId(field))?.focus();
+}
+
 function continueForm() {
   if (!validateCurrentSection()) return;
   errorMessage.value = '';
   invalidFieldKey.value = '';
   currentSectionIndex.value += 1;
+  nextTick(focusCurrentField);
 }
 
 function goBack() {
   errorMessage.value = '';
   invalidFieldKey.value = '';
   currentSectionIndex.value -= 1;
+  nextTick(focusCurrentField);
+}
+
+function advanceFromKeyboard(field, event) {
+  if (!isGuidedPresentation.value || isLastSection.value) return;
+  if (
+    ![
+      'text',
+      'email',
+      'phone',
+      'number',
+      'currency',
+      'date',
+      'datetime',
+    ].includes(field.type)
+  )
+    return;
+
+  event.preventDefault();
+  continueForm();
 }
 
 const appendAnswers = formData => {
@@ -592,10 +649,10 @@ async function submitForm() {
             :aria-label="progressDescription"
             aria-valuemin="1"
             :aria-valuenow="currentSectionIndex + 1"
-            :aria-valuemax="sections.length"
+            :aria-valuemax="totalSteps"
           >
             <span
-              v-for="step in sections.length"
+              v-for="step in totalSteps"
               :key="step"
               class="h-1.5 flex-1 rounded-full"
               :class="
@@ -666,10 +723,7 @@ async function submitForm() {
                   : 'grid-cols-1'
               "
             >
-              <div
-                v-for="field in visibleFields(currentSection)"
-                :key="field.key"
-              >
+              <div v-for="field in currentFields" :key="field.key">
                 <label
                   v-if="field.type === 'checkbox' || field.type === 'consent'"
                   class="flex min-h-11 items-start gap-3 rounded border border-n-slate-5 px-3 py-3 text-sm text-n-slate-11 transition focus-within:border-n-teal-9 focus-within:ring-2 focus-within:ring-n-teal-6"
@@ -840,6 +894,7 @@ async function submitForm() {
                     "
                     :step="field.type === 'currency' ? '0.01' : undefined"
                     class="min-h-11 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    @keydown.enter="advanceFromKeyboard(field, $event)"
                   />
                 </template>
                 <p

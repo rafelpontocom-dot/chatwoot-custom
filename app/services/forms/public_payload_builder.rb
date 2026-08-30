@@ -1,5 +1,6 @@
 class Forms::PublicPayloadBuilder
   PUBLIC_THEMES = %w[calm warm contrast].freeze
+  PRESENTATIONS = %w[guided sectioned].freeze
 
   def initialize(form_template:, form_template_version: nil)
     @form_template = form_template
@@ -28,6 +29,7 @@ class Forms::PublicPayloadBuilder
       brand_logo_url: form_template.brand_logo_url || public_brand_logo_url,
       privacy_policy_url: public_privacy_policy_url,
       theme: public_theme,
+      presentation: public_presentation,
       captcha_provider: form_template.public_captcha_provider,
       captcha_site_key: form_template.public_captcha_site_key
     }
@@ -50,6 +52,13 @@ class Forms::PublicPayloadBuilder
   def public_theme
     configured_theme = form_template.settings['theme'].to_s
     PUBLIC_THEMES.include?(configured_theme) ? configured_theme : 'calm'
+  end
+
+  def public_presentation
+    configured_presentation = form_template.settings['presentation'].to_s
+    return configured_presentation if PRESENTATIONS.include?(configured_presentation)
+
+    form_template.access_classification == 'sensitive_health' ? 'sectioned' : 'guided'
   end
 
   def public_brand_logo_url

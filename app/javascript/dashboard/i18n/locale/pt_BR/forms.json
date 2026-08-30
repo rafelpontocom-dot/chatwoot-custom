@@ -23,6 +23,7 @@
     },
     "BUILDER": {
       "PREVIEW": "Prévia ao vivo",
+      "CANVAS": "Página do formulário",
       "DESKTOP": "Área de preenchimento",
       "MOBILE": "Celular",
       "RESET_PREVIEW": "Limpar respostas da prévia",
@@ -39,6 +40,11 @@
         "DESTINATION": "Conclua o destino comercial selecionado"
       },
       "STRUCTURE": "Estrutura do formulário",
+      "LIBRARY": "Biblioteca",
+      "SEARCH_LIBRARY": "Buscar bloco",
+      "QUESTIONS": "Perguntas",
+      "CONTENT": "Conteúdo",
+      "SAVED_BLOCKS": "Blocos salvos",
       "SECTIONS": "Seções",
       "STEP": "Etapa {current} de {total}",
       "UNTITLED_SECTION": "Seção sem título",
@@ -55,7 +61,7 @@
       "DELETE_QUESTION": "Remover pergunta",
       "HELP_TEXT": "Texto de apoio",
       "OPTIONS": "Opções de resposta",
-      "OPTIONS_HINT": "Separe cada opção por vírgula.",
+      "OPTIONS_ONE_PER_LINE": "Digite uma opção por linha.",
       "ADVANCED": "Configurações avançadas",
       "ABANDONMENT_DELAY_HOURS": "Avisar se o formulário não for aberto após (horas)",
       "ABANDONMENT_DISABLED": "Desativado",
@@ -217,6 +223,11 @@
       "CAPTCHA_SITE_KEY": "Chave pública do Turnstile",
       "PUBLIC_DESCRIPTION": "Descrição para quem preenche",
       "LOCALE": "Idioma",
+      "PRESENTATION": "Experiência de resposta",
+      "PRESENTATIONS": {
+        "GUIDED": "Guiada, uma pergunta por vez",
+        "SECTIONED": "Por seções"
+      },
       "BRAND_NAME": "Nome exibido para o cliente",
       "BRAND_NAME_PLACEHOLDER": "Ex.: Clínica Exemplo",
       "BRAND_LOGO_URL": "Endereço da logo",

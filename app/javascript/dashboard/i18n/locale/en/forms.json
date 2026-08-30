@@ -23,6 +23,7 @@
     },
     "BUILDER": {
       "PREVIEW": "Live preview",
+      "CANVAS": "Form page",
       "DESKTOP": "Respondent view",
       "MOBILE": "Mobile",
       "RESET_PREVIEW": "Clear preview answers",
@@ -39,6 +40,11 @@
         "DESTINATION": "Finish the selected commercial destination"
       },
       "STRUCTURE": "Form structure",
+      "LIBRARY": "Library",
+      "SEARCH_LIBRARY": "Search blocks",
+      "QUESTIONS": "Questions",
+      "CONTENT": "Content",
+      "SAVED_BLOCKS": "Saved blocks",
       "SECTIONS": "Sections",
       "STEP": "Step {current} of {total}",
       "UNTITLED_SECTION": "Untitled section",
@@ -55,7 +61,7 @@
       "DELETE_QUESTION": "Remove question",
       "HELP_TEXT": "Helper text",
       "OPTIONS": "Answer options",
-      "OPTIONS_HINT": "Separate each option with a comma.",
+      "OPTIONS_ONE_PER_LINE": "Enter one option per line.",
       "ADVANCED": "Advanced settings",
       "ABANDONMENT_DELAY_HOURS": "Notify when the form remains unopened after (hours)",
       "ABANDONMENT_DISABLED": "Disabled",
@@ -217,6 +223,11 @@
       "CAPTCHA_SITE_KEY": "Turnstile site key",
       "PUBLIC_DESCRIPTION": "Description for the respondent",
       "LOCALE": "Language",
+      "PRESENTATION": "Response experience",
+      "PRESENTATIONS": {
+        "GUIDED": "Guided, one question at a time",
+        "SECTIONED": "By sections"
+      },
       "BRAND_NAME": "Customer-facing name",
       "BRAND_NAME_PLACEHOLDER": "E.g. Example Clinic",
       "BRAND_LOGO_URL": "Logo URL",

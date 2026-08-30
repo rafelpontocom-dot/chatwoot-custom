@@ -8,7 +8,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Draggable from 'vuedraggable';
 import FormsBuilderPreview from './FormsBuilderPreview.vue';
-import FormRichTextEditor from './FormRichTextEditor.vue';
+import FormsBuilderSettingsDialog from './FormsBuilderSettingsDialog.vue';
 import { getFormStarterSchema } from './starterTemplates';
 import { FORM_FIELD_GROUPS, getFormFieldGroup } from './fieldGroups';
 
@@ -26,6 +26,7 @@ const selectedTemplateId = ref(null);
 const activeBuilderSectionIndex = ref(0);
 const selectedBuilderFieldKey = ref('');
 const selectedBuilderContentBlockId = ref('');
+const builderLibraryQuery = ref('');
 const hasUnsavedChanges = ref(false);
 const localDraftRestored = ref(false);
 const localDraftUpdatedAt = ref(null);
@@ -45,6 +46,7 @@ const saveFieldGroupDialog = ref(null);
 const deleteFieldGroupDialog = ref(null);
 const fieldTypeDialog = ref(null);
 const contentBlockDialog = ref(null);
+const builderSettingsDialog = ref(null);
 const duplicateDialog = ref(null);
 const pendingFieldSectionIndex = ref(null);
 const pendingContentSectionIndex = ref(null);
@@ -345,6 +347,11 @@ function hydrateEditor(template) {
       brand_logo_url: template.settings?.brand_logo_url || '',
       privacy_policy_url: template.settings?.privacy_policy_url || '',
       theme: template.settings?.theme || 'calm',
+      presentation:
+        template.settings?.presentation ||
+        (template.access_classification === 'sensitive_health'
+          ? 'sectioned'
+          : 'guided'),
       clinical_access: {
         user_ids: template.settings?.clinical_access?.user_ids || [],
         team_ids: template.settings?.clinical_access?.team_ids || [],
@@ -389,8 +396,8 @@ function selectTemplate(template) {
 function selectBuilderSection(index) {
   activeBuilderSectionIndex.value = index;
   selectedBuilderContentBlockId.value = '';
-  selectedBuilderFieldKey.value =
-    editor.value?.schema.sections[index]?.fields[0]?.key || '';
+  selectedBuilderFieldKey.value = '';
+  builderSettingsDialog.value?.open();
 }
 
 function selectBuilderField(key) {
@@ -402,11 +409,13 @@ function selectBuilderField(key) {
   activeBuilderSectionIndex.value = sectionIndex;
   selectedBuilderFieldKey.value = key;
   selectedBuilderContentBlockId.value = '';
+  builderSettingsDialog.value?.open();
 }
 
 function selectBuilderContentBlock(blockId) {
   selectedBuilderFieldKey.value = '';
   selectedBuilderContentBlockId.value = blockId;
+  builderSettingsDialog.value?.open();
 }
 
 function syncBuilderSelection() {
@@ -454,6 +463,7 @@ function previewPayload() {
         editor.value.brandLogoUrl || editor.value.settings.brand_logo_url,
       privacy_policy_url: editor.value.settings.privacy_policy_url,
       theme: editor.value.settings.theme,
+      presentation: editor.value.settings.presentation,
       captcha_provider: '',
       captcha_site_key: '',
     },
@@ -1112,6 +1122,13 @@ function addField(section, type = 'text') {
   selectedBuilderFieldKey.value = section.fields.at(-1).key;
 }
 
+function addBuilderField(type) {
+  if (!activeBuilderSection.value) return;
+
+  addField(activeBuilderSection.value, type);
+  builderSettingsDialog.value?.open();
+}
+
 function openFieldTypeDialog(section) {
   pendingFieldSectionIndex.value =
     editor.value.schema.sections.indexOf(section);
@@ -1196,6 +1213,22 @@ function addContentBlock(type) {
   activeBuilderSectionIndex.value = pendingContentSectionIndex.value;
   selectBuilderContentBlock(block.id);
   contentBlockDialog.value?.close();
+}
+
+function addBuilderContentBlock(type) {
+  if (!activeBuilderSection.value) return;
+
+  const block = newContentBlock(type);
+  activeBuilderSection.value.content_blocks ||= [];
+  activeBuilderSection.value.content_blocks.push(block);
+  selectBuilderContentBlock(block.id);
+}
+
+function matchesBuilderLibrary(label) {
+  const query = builderLibraryQuery.value.trim().toLocaleLowerCase();
+  if (!query) return true;
+
+  return label.toLocaleLowerCase().includes(query);
 }
 
 function removeSelectedBuilderContentBlock() {
@@ -1392,40 +1425,63 @@ async function deleteCustomFieldGroup() {
   }
 }
 
-function removeSection(index) {
-  if (editor.value.schema.sections.length === 1) return;
-  editor.value.schema.sections.splice(index, 1);
+function updateSelectedBuilderContentBlock({ key, value }) {
+  if (!selectedBuilderContentBlock.value) return;
+
+  selectedBuilderContentBlock.value[key] = value;
+}
+
+function updateSelectedBuilderField({ key, value }) {
+  if (!selectedBuilderField.value) return;
+
+  selectedBuilderField.value[key] = value;
+}
+
+function updateActiveBuilderSection({ key, value }) {
+  if (!activeBuilderSection.value) return;
+
+  activeBuilderSection.value[key] = value;
+}
+
+function onFieldTypeChanged(type) {
+  if (!selectedBuilderField.value) return;
+
+  selectedBuilderField.value.type = type;
+  if (!['select', 'multi_select'].includes(type)) {
+    selectedBuilderField.value.options = [];
+  }
+}
+
+function moveSelectedBuilderSection(direction) {
+  const targetIndex = activeBuilderSectionIndex.value + direction;
+  const sections = editor.value?.schema.sections;
+  if (!sections || targetIndex < 0 || targetIndex >= sections.length) return;
+
+  const [section] = sections.splice(activeBuilderSectionIndex.value, 1);
+  sections.splice(targetIndex, 0, section);
+  activeBuilderSectionIndex.value = targetIndex;
+}
+
+function removeSelectedBuilderSection() {
+  const sections = editor.value?.schema.sections;
+  if (!sections || sections.length === 1) return;
+
+  sections.splice(activeBuilderSectionIndex.value, 1);
   selectBuilderSection(
-    Math.min(index, editor.value.schema.sections.length - 1)
+    Math.min(activeBuilderSectionIndex.value, sections.length - 1)
   );
 }
 
-function removeField(section, index) {
-  section.fields.splice(index, 1);
-  const sectionIndex = editor.value.schema.sections.indexOf(section);
-  activeBuilderSectionIndex.value = sectionIndex;
-  selectedBuilderFieldKey.value =
-    section.fields[index]?.key || section.fields.at(-1)?.key || '';
-}
+function moveSelectedBuilderField(direction) {
+  const fields = activeBuilderSection.value?.fields;
+  if (!fields || !selectedBuilderField.value) return;
 
-function moveItem(items, index, direction) {
-  const targetIndex = index + direction;
-  if (targetIndex < 0 || targetIndex >= items.length) return;
+  const fieldIndex = fields.indexOf(selectedBuilderField.value);
+  const targetIndex = fieldIndex + direction;
+  if (targetIndex < 0 || targetIndex >= fields.length) return;
 
-  const [item] = items.splice(index, 1);
-  items.splice(targetIndex, 0, item);
-}
-
-function moveSection(index, direction) {
-  moveItem(editor.value.schema.sections, index, direction);
-}
-
-function moveField(section, index, direction) {
-  moveItem(section.fields, index, direction);
-}
-
-function onFieldTypeChanged(field) {
-  if (!['select', 'multi_select'].includes(field.type)) field.options = [];
+  const [field] = fields.splice(fieldIndex, 1);
+  fields.splice(targetIndex, 0, field);
 }
 
 function conditionFieldOptions(field) {
@@ -1694,6 +1750,40 @@ onBeforeUnmount(() => {
                   {{ t('FORMS.BUILDER.DISCARD_DRAFT') }}
                 </button>
               </div>
+              <div
+                class="mt-3 inline-flex rounded border border-n-slate-4 bg-n-slate-2 p-1"
+                role="radiogroup"
+                :aria-label="t('FORMS.EDITOR.PRESENTATION')"
+              >
+                <button
+                  type="button"
+                  class="min-h-9 rounded px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                  :class="
+                    editor.settings.presentation === 'guided'
+                      ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
+                      : 'text-n-slate-10 hover:text-n-slate-12'
+                  "
+                  role="radio"
+                  :aria-checked="editor.settings.presentation === 'guided'"
+                  @click="editor.settings.presentation = 'guided'"
+                >
+                  {{ t('FORMS.EDITOR.PRESENTATIONS.GUIDED') }}
+                </button>
+                <button
+                  type="button"
+                  class="min-h-9 rounded px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                  :class="
+                    editor.settings.presentation === 'sectioned'
+                      ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
+                      : 'text-n-slate-10 hover:text-n-slate-12'
+                  "
+                  role="radio"
+                  :aria-checked="editor.settings.presentation === 'sectioned'"
+                  @click="editor.settings.presentation = 'sectioned'"
+                >
+                  {{ t('FORMS.EDITOR.PRESENTATIONS.SECTIONED') }}
+                </button>
+              </div>
             </div>
             <div class="flex shrink-0 items-center gap-2">
               <details class="relative">
@@ -1770,7 +1860,7 @@ onBeforeUnmount(() => {
 
           <section
             data-test="forms-visual-builder"
-            class="grid min-h-[38rem] gap-4 rounded-lg border border-n-slate-4 bg-n-solid-1 p-4 xl:grid-cols-[14rem_minmax(0,1fr)_18rem]"
+            class="grid min-h-[38rem] gap-4 rounded-lg border border-n-slate-4 bg-n-solid-1 p-4 xl:grid-cols-[16rem_minmax(0,1fr)]"
           >
             <aside
               class="min-h-0 overflow-y-auto rounded-md border border-n-slate-4 bg-n-slate-2 p-3"
@@ -1789,6 +1879,113 @@ onBeforeUnmount(() => {
                   <span class="i-lucide-plus size-4" aria-hidden="true" />
                 </button>
               </div>
+
+              <details
+                class="group mt-3 rounded border border-n-slate-4 bg-n-solid-1"
+                open
+              >
+                <summary
+                  class="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 px-2 text-xs font-semibold text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-teal-6 [&::-webkit-details-marker]:hidden"
+                >
+                  <span>{{ t('FORMS.BUILDER.LIBRARY') }}</span>
+                  <span
+                    class="i-lucide-chevron-down size-3.5 text-n-slate-9 transition group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div class="border-t border-n-slate-4 p-2">
+                  <label class="sr-only" for="forms-builder-library-search">
+                    {{ t('FORMS.BUILDER.SEARCH_LIBRARY') }}
+                  </label>
+                  <div class="relative">
+                    <span
+                      class="i-lucide-search pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-n-slate-9"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="forms-builder-library-search"
+                      v-model="builderLibraryQuery"
+                      data-test="forms-builder-library-search"
+                      :placeholder="t('FORMS.BUILDER.SEARCH_LIBRARY')"
+                      class="min-h-9 w-full rounded border border-n-slate-5 bg-n-solid-1 pl-8 pr-2 text-xs text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    />
+                  </div>
+                  <div class="mt-3 grid gap-3">
+                    <section>
+                      <p
+                        class="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-9"
+                      >
+                        {{ t('FORMS.BUILDER.QUESTIONS') }}
+                      </p>
+                      <div class="mt-1 grid gap-0.5">
+                        <button
+                          v-for="type in fieldTypes.filter(item =>
+                            matchesBuilderLibrary(item.label)
+                          )"
+                          :key="type.value"
+                          type="button"
+                          class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                          :data-test="`forms-builder-library-field-${type.value}`"
+                          @click="addBuilderField(type.value)"
+                        >
+                          <span
+                            class="i-lucide-circle-plus size-3.5 text-n-teal-10"
+                            aria-hidden="true"
+                          />
+                          {{ type.label }}
+                        </button>
+                      </div>
+                    </section>
+                    <section>
+                      <p
+                        class="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-9"
+                      >
+                        {{ t('FORMS.BUILDER.CONTENT') }}
+                      </p>
+                      <div class="mt-1 grid gap-0.5">
+                        <button
+                          v-for="block in contentBlockTypes.filter(item =>
+                            matchesBuilderLibrary(item.label)
+                          )"
+                          :key="block.value"
+                          type="button"
+                          class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                          :data-test="`forms-builder-library-content-${block.value}`"
+                          @click="addBuilderContentBlock(block.value)"
+                        >
+                          <span
+                            :class="block.icon"
+                            class="size-3.5 text-n-teal-10"
+                            aria-hidden="true"
+                          />
+                          {{ block.label }}
+                        </button>
+                      </div>
+                    </section>
+                    <section>
+                      <p
+                        class="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-9"
+                      >
+                        {{ t('FORMS.BUILDER.SAVED_BLOCKS') }}
+                      </p>
+                      <button
+                        v-if="
+                          matchesBuilderLibrary(t('FORMS.ACTIONS.ADD_GROUP'))
+                        "
+                        type="button"
+                        class="mt-1 flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                        @click="fieldGroupDialog?.open()"
+                      >
+                        <span
+                          class="i-lucide-layout-template size-3.5 text-n-teal-10"
+                          aria-hidden="true"
+                        />
+                        {{ t('FORMS.ACTIONS.ADD_GROUP') }}
+                      </button>
+                    </section>
+                  </div>
+                </div>
+              </details>
 
               <Draggable
                 v-model="editor.schema.sections"
@@ -1942,261 +2139,48 @@ onBeforeUnmount(() => {
               @select-field="selectBuilderField"
             />
 
-            <aside
-              class="min-h-0 overflow-y-auto rounded-md border border-n-slate-4 bg-n-slate-2 p-4"
-            >
-              <template v-if="selectedBuilderContentBlock">
-                <h3 class="text-sm font-semibold text-n-slate-12">
-                  {{ t('FORMS.CONTENT_BLOCKS.SETTINGS') }}
-                </h3>
-                <div class="mt-4 grid gap-4">
-                  <label
-                    v-if="selectedBuilderContentBlock.type === 'heading'"
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.CONTENT_BLOCKS.HEADING') }}
-                    <input
-                      v-model="selectedBuilderContentBlock.content"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <FormRichTextEditor
-                    v-else-if="selectedBuilderContentBlock.type === 'rich_text'"
-                    v-model="selectedBuilderContentBlock.content"
-                    data-test="forms-rich-text-editor"
-                  />
-                  <template
-                    v-else-if="selectedBuilderContentBlock.type === 'image'"
-                  >
-                    <img
-                      v-if="selectedBuilderContentBlock.url"
-                      data-test="forms-content-image-preview"
-                      :src="selectedBuilderContentBlock.url"
-                      :alt="selectedBuilderContentBlock.alt || ''"
-                      class="max-h-40 w-full rounded border border-n-slate-4 object-cover"
-                    />
-                    <div class="grid gap-1.5 text-sm text-n-slate-11">
-                      <p class="font-medium">
-                        {{ t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD') }}
-                      </p>
-                      <label
-                        class="inline-flex min-h-10 w-fit cursor-pointer items-center rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
-                      >
-                        <input
-                          data-test="forms-content-image-upload"
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          class="sr-only"
-                          :disabled="isUploadingContentImage"
-                          @change="uploadContentImage"
-                        />
-                        {{
-                          isUploadingContentImage
-                            ? t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOADING')
-                            : t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD_ACTION')
-                        }}
-                      </label>
-                      <p class="text-xs leading-5 text-n-slate-10">
-                        {{ t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD_HINT') }}
-                      </p>
-                    </div>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.CONTENT_BLOCKS.IMAGE_URL') }}
-                      <input
-                        v-model="selectedBuilderContentBlock.url"
-                        data-test="forms-content-image-url"
-                        type="url"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.CONTENT_BLOCKS.IMAGE_ALT') }}
-                      <input
-                        v-model="selectedBuilderContentBlock.alt"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.CONTENT_BLOCKS.IMAGE_CAPTION') }}
-                      <input
-                        v-model="selectedBuilderContentBlock.caption"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                  </template>
-                  <p v-else class="text-sm leading-6 text-n-slate-10">
-                    {{ t('FORMS.CONTENT_BLOCKS.DIVIDER_DESCRIPTION') }}
-                  </p>
-                  <button
-                    type="button"
-                    class="inline-flex min-h-9 items-center gap-2 self-start rounded px-2 text-sm font-medium text-n-ruby-11 transition hover:bg-n-ruby-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6"
-                    @click="removeSelectedBuilderContentBlock"
-                  >
-                    <span class="i-lucide-trash-2 size-4" aria-hidden="true" />
-                    {{ t('FORMS.CONTENT_BLOCKS.REMOVE') }}
-                  </button>
-                </div>
-              </template>
-              <template v-else-if="selectedBuilderField">
-                <h3 class="text-sm font-semibold text-n-slate-12">
-                  {{ t('FORMS.BUILDER.QUESTION_SETTINGS') }}
-                </h3>
-                <div class="mt-4 grid gap-4">
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.BUILDER.QUESTION') }}
-                    <input
-                      v-model="selectedBuilderField.label"
-                      data-test="forms-builder-question-label"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.FIELD_TYPE') }}
-                    <select
-                      v-model="selectedBuilderField.type"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      @change="onFieldTypeChanged(selectedBuilderField)"
-                    >
-                      <option
-                        v-for="type in fieldTypes"
-                        :key="type.value"
-                        :value="type.value"
-                      >
-                        {{ type.label }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.BUILDER.HELP_TEXT') }}
-                    <textarea
-                      v-model="selectedBuilderField.helpText"
-                      rows="2"
-                      class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    v-if="
-                      ['select', 'multi_select'].includes(
-                        selectedBuilderField.type
-                      )
-                    "
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.BUILDER.OPTIONS') }}
-                    <input
-                      :value="selectedBuilderField.options.join(', ')"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      @input="
-                        selectedBuilderField.options = $event.target.value
-                          .split(',')
-                          .map(option => option.trim())
-                          .filter(Boolean)
-                      "
-                    />
-                    <span class="text-xs font-normal leading-5 text-n-slate-10">
-                      {{ t('FORMS.BUILDER.OPTIONS_HINT') }}
-                    </span>
-                  </label>
-                  <label
-                    class="flex min-h-10 items-center gap-2 text-sm font-medium text-n-slate-11"
-                  >
-                    <input
-                      v-model="selectedBuilderField.required"
-                      type="checkbox"
-                      class="size-4 accent-n-teal-9"
-                    />
-                    {{ t('FORMS.EDITOR.FIELD_REQUIRED') }}
-                  </label>
-                  <div
-                    class="flex items-center gap-2 border-t border-n-slate-4 pt-4"
-                  >
-                    <button
-                      type="button"
-                      class="inline-flex min-h-9 items-center gap-2 rounded px-2 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-                      :aria-label="t('FORMS.BUILDER.DUPLICATE_QUESTION')"
-                      :title="t('FORMS.BUILDER.DUPLICATE_QUESTION')"
-                      data-test="forms-builder-duplicate-question"
-                      @click="duplicateSelectedBuilderField"
-                    >
-                      <span class="i-lucide-copy size-4" aria-hidden="true" />
-                      {{ t('FORMS.BUILDER.DUPLICATE') }}
-                    </button>
-                    <button
-                      type="button"
-                      class="inline-flex min-h-9 items-center gap-2 rounded px-2 text-sm font-medium text-n-ruby-11 transition hover:bg-n-ruby-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6 disabled:cursor-not-allowed disabled:opacity-50"
-                      :aria-label="t('FORMS.BUILDER.DELETE_QUESTION')"
-                      :title="t('FORMS.BUILDER.DELETE_QUESTION')"
-                      :disabled="activeBuilderSection.fields.length === 1"
-                      data-test="forms-builder-delete-question"
-                      @click="removeSelectedBuilderField"
-                    >
-                      <span
-                        class="i-lucide-trash-2 size-4"
-                        aria-hidden="true"
-                      />
-                      {{ t('FORMS.ACTIONS.REMOVE') }}
-                    </button>
-                  </div>
-                </div>
-              </template>
-              <template v-else-if="activeBuilderSection">
-                <h3 class="text-sm font-semibold text-n-slate-12">
-                  {{ t('FORMS.BUILDER.SETTINGS') }}
-                </h3>
-                <div class="mt-4 grid gap-4">
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.SECTION_TITLE') }}
-                    <input
-                      v-model="activeBuilderSection.title"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.SECTION_DESCRIPTION') }}
-                    <textarea
-                      v-model="activeBuilderSection.description"
-                      rows="3"
-                      class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.CONTENT_BLOCKS.LAYOUT') }}
-                    <select
-                      v-model="activeBuilderSection.layout"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    >
-                      <option value="single">
-                        {{ t('FORMS.CONTENT_BLOCKS.LAYOUT_SINGLE') }}
-                      </option>
-                      <option value="two_columns">
-                        {{ t('FORMS.CONTENT_BLOCKS.LAYOUT_TWO_COLUMNS') }}
-                      </option>
-                    </select>
-                  </label>
-                </div>
-              </template>
-              <p v-else class="text-sm leading-6 text-n-slate-10">
-                {{ t('FORMS.BUILDER.NO_FIELD_SELECTED') }}
-              </p>
-            </aside>
+            <FormsBuilderSettingsDialog
+              ref="builderSettingsDialog"
+              :content-block="selectedBuilderContentBlock"
+              :field="selectedBuilderField"
+              :section="activeBuilderSection"
+              :section-index="activeBuilderSectionIndex"
+              :section-count="editor.schema.sections.length"
+              :field-index="
+                activeBuilderSection?.fields.indexOf(selectedBuilderField) ?? -1
+              "
+              :field-count="activeBuilderSection?.fields.length || 0"
+              :field-types="fieldTypes"
+              :contact-mappings="contactMappings"
+              :condition-fields="
+                selectedBuilderField
+                  ? conditionFieldOptions(selectedBuilderField)
+                  : []
+              "
+              :condition-values="
+                selectedBuilderField
+                  ? conditionValueOptions(selectedBuilderField)
+                  : []
+              "
+              :opportunity-fields="
+                selectedBuilderField
+                  ? opportunityFieldOptions(selectedBuilderField)
+                  : []
+              "
+              :can-map-to-crm="!isSensitiveHealth"
+              :is-uploading-content-image="isUploadingContentImage"
+              @upload-content-image="uploadContentImage"
+              @remove-content-block="removeSelectedBuilderContentBlock"
+              @update-content-block="updateSelectedBuilderContentBlock"
+              @update-field="updateSelectedBuilderField"
+              @update-section="updateActiveBuilderSection"
+              @field-type-changed="onFieldTypeChanged"
+              @move-section="moveSelectedBuilderSection"
+              @remove-section="removeSelectedBuilderSection"
+              @move-field="moveSelectedBuilderField"
+              @duplicate-field="duplicateSelectedBuilderField"
+              @remove-field="removeSelectedBuilderField"
+            />
           </section>
 
           <details
@@ -2755,327 +2739,6 @@ onBeforeUnmount(() => {
                 >
                   {{ t('FORMS.EDITOR.OPPORTUNITY_MAPPING_HELP') }}
                 </p>
-              </section>
-
-              <section class="rounded border border-n-slate-4 bg-n-solid-1 p-5">
-                <div class="flex items-center justify-between gap-3">
-                  <h3 class="text-sm font-semibold text-n-slate-12">
-                    {{ t('FORMS.EDITOR.FIELDS') }}
-                  </h3>
-                  <div class="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="faded"
-                      color="slate"
-                      :label="t('FORMS.ACTIONS.ADD_GROUP')"
-                      icon="i-lucide-library-big"
-                      @click="fieldGroupDialog?.open()"
-                    />
-                    <Button
-                      size="sm"
-                      variant="faded"
-                      color="slate"
-                      :label="t('FORMS.ACTIONS.ADD_SECTION')"
-                      icon="i-lucide-plus"
-                      @click="addSection"
-                    />
-                  </div>
-                </div>
-                <div
-                  v-for="(section, sectionIndex) in editor.schema.sections"
-                  :key="sectionIndex"
-                  class="mt-5 rounded border border-n-slate-4 bg-n-slate-2 p-4"
-                >
-                  <div
-                    class="grid gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto] md:items-end"
-                  >
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.SECTION_TITLE') }}
-                      <input
-                        v-model="section.title"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.SECTION_KEY') }}
-                      <input
-                        v-model="section.key"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <div class="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="faded"
-                        color="slate"
-                        :label="t('FORMS.ACTIONS.MOVE_UP')"
-                        icon="i-lucide-arrow-up"
-                        :disabled="sectionIndex === 0"
-                        :data-test="`forms-move-section-up-${sectionIndex}`"
-                        @click="moveSection(sectionIndex, -1)"
-                      />
-                      <Button
-                        size="sm"
-                        variant="faded"
-                        color="slate"
-                        :label="t('FORMS.ACTIONS.MOVE_DOWN')"
-                        icon="i-lucide-arrow-down"
-                        :disabled="
-                          sectionIndex === editor.schema.sections.length - 1
-                        "
-                        :data-test="`forms-move-section-down-${sectionIndex}`"
-                        @click="moveSection(sectionIndex, 1)"
-                      />
-                      <Button
-                        size="sm"
-                        variant="faded"
-                        color="slate"
-                        :label="t('FORMS.ACTIONS.REMOVE')"
-                        :disabled="editor.schema.sections.length === 1"
-                        @click="removeSection(sectionIndex)"
-                      />
-                    </div>
-                  </div>
-                  <label
-                    class="mt-3 grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.SECTION_DESCRIPTION') }}
-                    <input
-                      v-model="section.description"
-                      :data-test="`forms-section-description-${sectionIndex}`"
-                      :placeholder="
-                        t('FORMS.EDITOR.SECTION_DESCRIPTION_PLACEHOLDER')
-                      "
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <div
-                    v-for="(field, fieldIndex) in section.fields"
-                    :key="fieldIndex"
-                    class="mt-3 grid gap-3 border-t border-n-slate-4 pt-3 lg:grid-cols-[minmax(0,1.3fr)_9rem_10rem_10rem_auto] lg:items-end"
-                  >
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.FIELD_LABEL') }}
-                      <input
-                        v-model="field.label"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11 lg:col-span-2"
-                    >
-                      {{ t('FORMS.EDITOR.FIELD_HELP') }}
-                      <input
-                        v-model="field.helpText"
-                        :placeholder="t('FORMS.EDITOR.FIELD_HELP_PLACEHOLDER')"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.FIELD_KEY') }}
-                      <input
-                        v-model="field.key"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.FIELD_TYPE') }}
-                      <select
-                        v-model="field.type"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                        @change="onFieldTypeChanged(field)"
-                      >
-                        <option
-                          v-for="type in fieldTypes"
-                          :key="type.value"
-                          :value="type.value"
-                        >
-                          {{ type.label }}
-                        </option>
-                      </select>
-                    </label>
-                    <label
-                      v-if="!isSensitiveHealth"
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.FIELD_MAPPING') }}
-                      <select
-                        v-model="field.contactTarget"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      >
-                        <option
-                          v-for="mapping in contactMappings"
-                          :key="mapping.value"
-                          :value="mapping.value"
-                        >
-                          {{ mapping.label }}
-                        </option>
-                      </select>
-                    </label>
-                    <div class="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="faded"
-                        color="slate"
-                        :label="t('FORMS.ACTIONS.MOVE_UP')"
-                        icon="i-lucide-arrow-up"
-                        :disabled="fieldIndex === 0"
-                        :data-test="`forms-move-field-up-${sectionIndex}-${fieldIndex}`"
-                        @click="moveField(section, fieldIndex, -1)"
-                      />
-                      <Button
-                        size="sm"
-                        variant="faded"
-                        color="slate"
-                        :label="t('FORMS.ACTIONS.MOVE_DOWN')"
-                        icon="i-lucide-arrow-down"
-                        :disabled="fieldIndex === section.fields.length - 1"
-                        :data-test="`forms-move-field-down-${sectionIndex}-${fieldIndex}`"
-                        @click="moveField(section, fieldIndex, 1)"
-                      />
-                      <Button
-                        size="sm"
-                        variant="faded"
-                        color="slate"
-                        :label="t('FORMS.ACTIONS.REMOVE')"
-                        :disabled="section.fields.length === 1"
-                        @click="removeField(section, fieldIndex)"
-                      />
-                    </div>
-                    <label
-                      v-if="
-                        !isSensitiveHealth && field.contactTarget === 'custom'
-                      "
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11 lg:col-span-2"
-                    >
-                      {{ t('FORMS.EDITOR.CUSTOM_MAPPING') }}
-                      <input
-                        v-model="field.customAttribute"
-                        :placeholder="
-                          t('FORMS.EDITOR.CUSTOM_MAPPING_PLACEHOLDER')
-                        "
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      v-if="
-                        !isSensitiveHealth &&
-                        (opportunityFieldOptions(field).length ||
-                          field.opportunityTarget)
-                      "
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11 lg:col-span-2"
-                    >
-                      {{ t('FORMS.EDITOR.OPPORTUNITY_MAPPING') }}
-                      <select
-                        v-model="field.opportunityTarget"
-                        :data-test="`forms-opportunity-target-${field.key}`"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      >
-                        <option value="">
-                          {{ t('FORMS.EDITOR.NO_OPPORTUNITY_MAPPING') }}
-                        </option>
-                        <option
-                          v-for="definition in opportunityFieldOptions(field)"
-                          :key="definition.key"
-                          :value="definition.key"
-                        >
-                          {{ definition.label || definition.key }}
-                        </option>
-                      </select>
-                    </label>
-                    <label
-                      v-if="['select', 'multi_select'].includes(field.type)"
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11 lg:col-span-3"
-                    >
-                      {{ t('FORMS.EDITOR.FIELD_TYPE') }}
-                      <input
-                        :value="field.options.join(', ')"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                        @input="
-                          field.options = $event.target.value
-                            .split(',')
-                            .map(option => option.trim())
-                            .filter(Boolean)
-                        "
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11 lg:col-span-2"
-                    >
-                      {{ t('FORMS.EDITOR.CONDITION_FIELD') }}
-                      <select
-                        v-model="field.visibleWhenField"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                        @change="field.visibleWhenValue = ''"
-                      >
-                        <option value="">
-                          {{ t('FORMS.EDITOR.CONDITION_NONE') }}
-                        </option>
-                        <option
-                          v-for="conditionField in conditionFieldOptions(field)"
-                          :key="conditionField.key"
-                          :value="conditionField.key"
-                        >
-                          {{ conditionField.label || conditionField.key }}
-                        </option>
-                      </select>
-                    </label>
-                    <label
-                      v-if="field.visibleWhenField"
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11 lg:col-span-2"
-                    >
-                      {{ t('FORMS.EDITOR.CONDITION_VALUE') }}
-                      <select
-                        v-if="conditionValueOptions(field).length"
-                        v-model="field.visibleWhenValue"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      >
-                        <option value="" disabled />
-                        <option
-                          v-for="option in conditionValueOptions(field)"
-                          :key="option.value ?? option"
-                          :value="option.value ?? option"
-                        >
-                          {{ option.label ?? option }}
-                        </option>
-                      </select>
-                      <input
-                        v-else
-                        v-model="field.visibleWhenValue"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="flex min-h-10 items-center gap-2 text-sm font-medium text-n-slate-11"
-                    >
-                      <input
-                        v-model="field.required"
-                        type="checkbox"
-                        class="size-4 accent-n-teal-9"
-                      />
-                      {{ t('FORMS.EDITOR.FIELD_REQUIRED') }}
-                    </label>
-                  </div>
-                  <Button
-                    class="mt-4"
-                    size="sm"
-                    variant="faded"
-                    color="slate"
-                    :label="t('FORMS.ACTIONS.ADD_FIELD')"
-                    icon="i-lucide-plus"
-                    @click="addField(section)"
-                  />
-                </div>
               </section>
             </div>
           </details>

@@ -1,6 +1,7 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { computed } from 'vue';
 import FormsView from '../FormsView.vue';
+import FormsBuilderSettingsDialog from '../FormsBuilderSettingsDialog.vue';
 import FormsAPI from 'dashboard/api/forms';
 
 const dispatch = vi.fn();
@@ -64,6 +65,7 @@ const mountForms = ({ boards = [], agents = [], teams = [] } = {}) => {
           template:
             '<div><slot /><button data-test="dialog-confirm" @click="$emit(\'confirm\')" /></div>',
         },
+        FormsBuilderSettingsDialog,
         Draggable: {
           props: {
             modelValue: { type: Array, default: () => [] },
@@ -724,6 +726,42 @@ describe('FormsView', () => {
     ).toBe(true);
   });
 
+  it('adds a question directly from the searchable builder library', async () => {
+    const template = {
+      id: 131,
+      name: 'Cadastro',
+      slug: 'cadastro-biblioteca',
+      category: 'lead_capture',
+      public_enabled: false,
+      settings: {},
+      active_version: {
+        version_number: 1,
+        schema: {
+          sections: [
+            {
+              key: 'principal',
+              title: 'Principal',
+              fields: [
+                { key: 'campo_1', label: 'Nome', type: 'text', options: [] },
+              ],
+            },
+          ],
+        },
+      },
+    };
+    FormsAPI.getTemplates.mockResolvedValue({ data: [template] });
+    const wrapper = mountForms();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-test="forms-builder-library-field-date"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-test="forms-builder-field-campo_2"]').exists()
+    ).toBe(true);
+  });
+
   it('keeps an unsaved visual edit in a local draft', async () => {
     const template = {
       id: 13,
@@ -1089,10 +1127,13 @@ describe('FormsView', () => {
     const wrapper = mountForms();
     await flushPromises();
 
+    await wrapper.get('[data-test="forms-builder-section-1"]').trigger('click');
     await wrapper
-      .get('[data-test="forms-section-description-1"]')
+      .get('[data-test="forms-builder-section-description"]')
       .setValue('Escolha o melhor momento para conversar.');
-    await wrapper.get('[data-test="forms-move-section-up-1"]').trigger('click');
+    await wrapper
+      .get('[data-test="forms-builder-move-section-up"]')
+      .trigger('click');
     const save = wrapper
       .findAll('button')
       .find(item => item.text().includes('FORMS.ACTIONS.SAVE'));
@@ -1164,7 +1205,7 @@ describe('FormsView', () => {
     await flushPromises();
 
     await wrapper
-      .get('[data-test="forms-opportunity-target-origem_formulario"]')
+      .get('[data-test="forms-builder-opportunity-target"]')
       .setValue('origem_lead');
     const save = wrapper
       .findAll('button')
