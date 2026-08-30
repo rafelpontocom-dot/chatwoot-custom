@@ -197,7 +197,9 @@
       "SETTINGS": "Configurações",
       "AI_ASSIST": "Assistente IA",
       "APPEARANCE": "Tema",
-      "SNOOZE_NOTIFICATION": "Adiar Notificação"
+      "SNOOZE_NOTIFICATION": "Adiar Notificação",
+      "RAEVO": "Raevo",
+      "RAEVO_BOARDS": "Funis"
     },
     "COMMANDS": {
       "GO_TO_CONVERSATION_DASHBOARD": "Ir para Painel de Conversação",
@@ -239,7 +241,12 @@
       "LIGHT_MODE": "Claro",
       "DARK_MODE": "Escuro",
       "SYSTEM_MODE": "Sistema",
-      "SNOOZE_NOTIFICATION": "Adiar Notificação"
+      "SNOOZE_NOTIFICATION": "Adiar Notificação",
+      "RAEVO_HOME": "Ir para a Home",
+      "RAEVO_PIPELINE": "Ir para o Pipeline",
+      "RAEVO_CALENDAR": "Ir para a Agenda",
+      "RAEVO_FINANCE": "Ir para o Financeiro",
+      "RAEVO_FORMS": "Ir para Formulários"
     }
   },
   "DASHBOARD_APPS": {
@@ -248,5 +255,11 @@
   "COMMON": {
     "OR": "Ou",
     "CLICK_HERE": "clique aqui"
+  },
+  "RAEVO": {
+    "FIELD_ROW": {
+      "EDIT": "Editar {field}",
+      "EMPTY": "—"
+    }
   }
 }

@@ -10,6 +10,7 @@ import { useInboxHotKeys } from 'dashboard/composables/commands/useInboxHotKeys'
 import { useGoToCommandHotKeys } from 'dashboard/composables/commands/useGoToCommandHotKeys';
 import { useBulkActionsHotKeys } from 'dashboard/composables/commands/useBulkActionsHotKeys';
 import { useConversationHotKeys } from 'dashboard/composables/commands/useConversationHotKeys';
+import { useRaevoHotKeys } from 'dashboard/composables/commands/useRaevoHotKeys';
 import wootConstants from 'dashboard/constants/globals';
 import {
   GENERAL_EVENTS,
@@ -40,6 +41,7 @@ const { inboxHotKeys } = useInboxHotKeys();
 const { goToCommandHotKeys } = useGoToCommandHotKeys();
 const { bulkActionsHotKeys } = useBulkActionsHotKeys();
 const { conversationHotKeys } = useConversationHotKeys();
+const { raevoHotKeys } = useRaevoHotKeys();
 
 const SNOOZE_PARENT_IDS = [
   'snooze_conversation',
@@ -65,6 +67,7 @@ const hotKeys = computed(() => {
   const allActions = [
     ...dynamicSnoozeActions.value,
     ...inboxHotKeys.value,
+    ...raevoHotKeys.value,
     ...goToCommandHotKeys.value,
     ...goToAppearanceHotKeys.value,
     ...bulkActionsHotKeys.value,
