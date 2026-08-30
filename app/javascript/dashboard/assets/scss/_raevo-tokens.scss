@@ -1,0 +1,299 @@
+// scss-lint:disable PropertySortOrder
+// Tokens CSS precisam permanecer agrupados semanticamente, não em ordem alfabética.
+// =============================================================================
+// RAEVO — CAMADA DE TOKENS  ·  direção H · Sereno
+// =============================================================================
+// Este arquivo é a fonte da verdade visual do Raevo.
+//
+// COMO FUNCIONA
+// O Chatwoot não escreve cor nos componentes: `_next-colors.scss` define
+// variáveis CSS em :root e `theme/colors.js` mapeia as classes `n-*` para elas.
+// Este arquivo é importado DEPOIS de `next-colors` e redefine as mesmas
+// variáveis. Resultado: o produto inteiro — inclusive as telas do Chatwoot que
+// o Raevo não escreveu — herda a identidade sem que nenhum arquivo upstream
+// seja editado.
+//
+// POR QUE FORA DE @layer
+// `_next-colors.scss` declara tudo dentro de `@layer base`. Este arquivo fica
+// fora de qualquer layer de propósito: CSS sem layer sempre vence CSS em layer,
+// independentemente da ordem. Assim um `git pull` do Chatwoot pode reescrever a
+// paleta inteira dele que a nossa continua valendo.
+//
+// REGRA: não escreva cor literal em componente. Se falta um token, crie aqui.
+// Especificação completa: docs/raevo-design-system.md
+// =============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // Neutros — a escada de cinza sobre a qual tudo é construído
+  // ---------------------------------------------------------------------------
+  --slate-1: 251 252 253;   // #FBFCFD  superfície mais clara
+  --slate-2: 247 248 250;   // #F7F8FA  fundo da aplicação
+  --slate-3: 242 244 247;   // #F2F4F7  chip, faixa alternada
+  --slate-4: 238 240 244;   // #EEF0F4
+  --slate-5: 233 235 239;   // #E9EBEF  contorno padrão
+  --slate-6: 228 231 236;   // #E4E7EC
+  --slate-7: 220 223 229;   // #DCDFE5  contorno forte
+  --slate-8: 199 205 214;   // #C7CDD6  contorno de campo
+  --slate-9: 152 160 174;   // #98A0AE  texto de apoio, placeholder
+  --slate-10: 122 130 143;  // #7A828F  texto secundário (4,6:1 no branco)
+  --slate-11: 75 85 99;     // #4B5563  texto de corpo
+  --slate-12: 17 24 39;     // #111827  tinta
+
+  --gray-1: 251 252 253;
+  --gray-2: 247 248 250;
+  --gray-3: 242 244 247;
+  --gray-4: 238 240 244;
+  --gray-5: 233 235 239;
+  --gray-6: 228 231 236;
+  --gray-7: 220 223 229;
+  --gray-8: 199 205 214;
+  --gray-9: 152 160 174;
+  --gray-10: 122 130 143;
+  --gray-11: 75 85 99;
+  --gray-12: 17 24 39;
+
+  // ---------------------------------------------------------------------------
+  // Azul — a cor de ação. Único acento do sistema.
+  // ---------------------------------------------------------------------------
+  --blue-1: 252 253 255;
+  --blue-2: 248 250 255;
+  --blue-3: 239 244 255;    // #EFF4FF  primária suave (fundo de estado ativo)
+  --blue-4: 220 230 255;    // #DCE6FF
+  --blue-5: 200 217 254;
+  --blue-6: 191 210 254;    // #BFD2FE
+  --blue-7: 155 182 250;
+  --blue-8: 116 152 246;
+  --blue-9: 37 99 235;      // #2563EB  PRIMÁRIA
+  --blue-10: 29 87 216;
+  --blue-11: 29 79 215;     // #1D4FD7  texto azul
+  --blue-12: 23 48 107;     // #17306B
+
+  --iris-3: 239 244 255;
+  --iris-9: 37 99 235;
+  --iris-11: 29 79 215;
+  --violet-3: 244 238 253;
+  --violet-9: 162 28 175;   // #A21CAF  etapa 4
+  --violet-11: 134 25 143;
+
+  // ---------------------------------------------------------------------------
+  // Estados de negócio. Nunca use para decoração.
+  // ---------------------------------------------------------------------------
+  --teal-1: 250 254 252;
+  --teal-2: 244 251 248;
+  --teal-3: 230 246 238;    // #E6F6EE  fundo de sucesso
+  --teal-4: 209 238 225;
+  --teal-5: 183 227 208;
+  --teal-6: 150 212 187;
+  --teal-7: 106 192 163;
+  --teal-8: 45 168 137;
+  --teal-9: 15 157 143;     // #0F9D8F  sucesso / etapa 2
+  --teal-10: 13 138 118;
+  --teal-11: 11 107 75;     // #0B6B4B  texto de sucesso
+  --teal-12: 6 60 43;
+
+  --amber-1: 255 253 249;
+  --amber-2: 255 250 240;
+  --amber-3: 254 244 226;   // #FEF4E2  fundo de atenção
+  --amber-4: 253 233 199;
+  --amber-5: 251 219 168;
+  --amber-6: 247 201 137;
+  --amber-7: 238 178 104;
+  --amber-8: 223 146 55;
+  --amber-9: 180 83 9;      // #B45309  atenção / etapa 3
+  --amber-10: 160 74 8;
+  --amber-11: 147 97 10;    // #93610A  texto de atenção
+  --amber-12: 66 41 5;
+
+  --ruby-1: 255 252 252;
+  --ruby-2: 255 248 248;
+  --ruby-3: 254 236 236;    // #FEECEC  fundo de erro
+  --ruby-4: 253 221 221;
+  --ruby-5: 250 205 205;
+  --ruby-6: 243 201 201;    // #F3C9C9
+  --ruby-7: 235 170 170;
+  --ruby-8: 227 133 133;
+  --ruby-9: 220 38 38;      // #DC2626  erro
+  --ruby-10: 197 34 34;
+  --ruby-11: 180 35 24;     // #B42318  texto de erro
+  --ruby-12: 96 20 16;
+
+  // ---------------------------------------------------------------------------
+  // Semânticos — o que os componentes realmente consomem
+  // ---------------------------------------------------------------------------
+  --brand-color: 37 99 235;
+
+  --background-color: 247 248 250;   // fundo da aplicação
+  --surface-1: 255 255 255;
+  --surface-2: 255 255 255;
+  --surface-active: 239 244 255;     // linha/item selecionado
+  --solid-1: 255 255 255;
+  --solid-2: 255 255 255;
+  --solid-3: 255 255 255;
+  --solid-active: 239 244 255;
+  --card-color: 255 255 255;
+
+  --border-weak: 233 235 239;        // #E9EBEF  contorno padrão de card
+  --border-strong: 220 223 229;      // #DCDFE5  contorno de controle
+  --border-container: 233 235 239;
+  --border-blue-strong: 37 99 235;
+  --border-blue: 37, 99, 235, 0.45;
+
+  --text-blue: 23 48 107;
+  --text-purple: 88 28 135;
+  --text-amber: 66 41 5;
+
+  --solid-blue: 239 244 255;
+  --solid-blue-2: 248 250 255;
+  --solid-amber: 254 244 226;
+  --solid-amber-button: 253 233 199;
+  --solid-red: 254 236 236;
+  --solid-iris: 239 244 255;
+  --solid-purple: 244 238 253;
+
+  --label-background: 242 244 247;
+  --label-border: 17, 24, 39, 0.06;
+  --button-color: 255 255 255;
+  --button-hover-color: 255, 255, 255, 0.16;
+
+  --background-input-box: 17, 24, 39, 0.02;
+  --alpha-1: 233, 235, 239, 0.5;
+  --alpha-2: 242, 244, 247, 0.85;
+  --alpha-3: 255, 255, 255, 0.96;
+  --black-alpha-1: 17, 24, 39, 0.10;
+  --black-alpha-2: 17, 24, 39, 0.04;
+  --white-alpha: 255, 255, 255, 0.8;
+  --overlay: 17, 24, 39, 0.32;
+  --overlay-avatar: 255, 255, 255, 0.67;
+
+  // ---------------------------------------------------------------------------
+  // Tokens próprios do Raevo — não existem no Chatwoot
+  // ---------------------------------------------------------------------------
+  // A pilha de fontes vive aqui e em lugar nenhum mais. Tailwind lê daqui.
+  --raevo-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, system-ui,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --raevo-radius-card: 13px;
+  --raevo-radius-item: 11px;
+  --raevo-radius-control: 9999px;   // controles são pílulas
+  --raevo-shadow-rest: none;         // em repouso o ar separa, não a sombra
+  --raevo-shadow-hover: 0 2px 8px rgb(17 24 39 / 6%);
+  --raevo-shadow-float: 0 12px 34px rgb(17 24 39 / 10%);
+
+  // Cores de etapa do funil — validadas para daltonismo.
+  // Pior par ΔE 9,7 (deuteranopia) · ΔE 22,6 (visão normal). Não trocar sem
+  // rodar scripts/validate_palette.js — ver docs/raevo-design-system.md.
+  --raevo-stage-1: 37 99 235;    // #2563EB
+  --raevo-stage-2: 15 157 143;   // #0F9D8F
+  --raevo-stage-3: 180 83 9;     // #B45309
+  --raevo-stage-4: 162 28 175;   // #A21CAF
+  --raevo-stage-5: 152 160 174;  // #98A0AE  etapa terminal, sem matiz
+}
+
+// =============================================================================
+// MODO ESCURO — projetado, não invertido.
+// =============================================================================
+.dark {
+  --slate-1: 20 23 28;
+  --slate-2: 24 28 34;
+  --slate-3: 30 35 43;
+  --slate-4: 35 40 49;
+  --slate-5: 38 43 51;
+  --slate-6: 45 51 61;
+  --slate-7: 51 58 68;
+  --slate-8: 72 80 92;
+  --slate-9: 108 116 130;
+  --slate-10: 133 141 154;
+  --slate-11: 160 167 180;
+  --slate-12: 232 234 238;
+
+  --gray-1: 20 23 28;
+  --gray-2: 24 28 34;
+  --gray-3: 30 35 43;
+  --gray-4: 35 40 49;
+  --gray-5: 38 43 51;
+  --gray-6: 45 51 61;
+  --gray-7: 51 58 68;
+  --gray-8: 72 80 92;
+  --gray-9: 108 116 130;
+  --gray-10: 133 141 154;
+  --gray-11: 160 167 180;
+  --gray-12: 232 234 238;
+
+  --blue-3: 27 39 64;
+  --blue-4: 32 49 84;
+  --blue-6: 45 68 116;
+  --blue-9: 91 141 239;
+  --blue-10: 110 156 243;
+  --blue-11: 147 182 247;
+  --blue-12: 219 232 255;
+
+  --teal-3: 15 45 40;
+  --teal-9: 32 178 158;
+  --teal-11: 106 216 194;
+
+  --amber-3: 56 38 12;
+  --amber-9: 214 141 47;
+  --amber-11: 240 186 106;
+
+  --ruby-3: 61 26 26;
+  --ruby-6: 96 44 44;
+  --ruby-9: 239 83 80;
+  --ruby-11: 248 145 142;
+
+  --violet-9: 192 88 205;
+  --violet-11: 216 148 226;
+
+  --brand-color: 91 141 239;
+
+  --background-color: 15 17 21;
+  --surface-1: 22 26 32;
+  --surface-2: 26 31 38;
+  --surface-active: 27 39 64;
+  --solid-1: 22 26 32;
+  --solid-2: 26 31 38;
+  --solid-3: 30 35 43;
+  --solid-active: 27 39 64;
+  --card-color: 26 31 38;
+
+  --border-weak: 38 43 51;
+  --border-strong: 51 58 68;
+  --border-container: 38 43 51;
+  --border-blue-strong: 91 141 239;
+  --border-blue: 91, 141, 239, 0.45;
+
+  --text-blue: 219 232 255;
+  --text-purple: 236 209 242;
+  --text-amber: 250 226 186;
+
+  --solid-blue: 27 39 64;
+  --solid-blue-2: 22 30 46;
+  --solid-amber: 56 38 12;
+  --solid-amber-button: 82 56 18;
+  --solid-red: 61 26 26;
+  --solid-iris: 27 39 64;
+  --solid-purple: 48 26 56;
+
+  --label-background: 30 35 43;
+  --label-border: 255, 255, 255, 0.08;
+  --button-color: 232 234 238;
+  --button-hover-color: 255, 255, 255, 0.10;
+
+  --background-input-box: 255, 255, 255, 0.04;
+  --alpha-1: 38, 43, 51, 0.6;
+  --alpha-2: 30, 35, 43, 0.9;
+  --alpha-3: 22, 26, 32, 0.96;
+  --black-alpha-1: 0, 0, 0, 0.4;
+  --black-alpha-2: 0, 0, 0, 0.24;
+  --white-alpha: 255, 255, 255, 0.08;
+  --overlay: 0, 0, 0, 0.6;
+
+  --raevo-shadow-hover: 0 2px 10px rgb(0 0 0 / 40%);
+  --raevo-shadow-float: 0 14px 38px rgb(0 0 0 / 52%);
+
+  --raevo-stage-1: 91 141 239;
+  --raevo-stage-2: 32 178 158;
+  --raevo-stage-3: 214 141 47;
+  --raevo-stage-4: 192 88 205;
+  --raevo-stage-5: 133 141 154;
+}

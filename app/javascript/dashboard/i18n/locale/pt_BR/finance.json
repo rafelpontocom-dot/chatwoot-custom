@@ -35,7 +35,8 @@
       "SUMMARY": {
         "OPEN": "Em aberto",
         "RECEIVED": "Recebido",
-        "OVERDUE": "Vencido"
+        "OVERDUE": "Vencido",
+        "EMPTY_VALUE": "—"
       },
       "FILTERS": {
         "SEARCH": "Buscar por contato, telefone, e-mail ou descrição",

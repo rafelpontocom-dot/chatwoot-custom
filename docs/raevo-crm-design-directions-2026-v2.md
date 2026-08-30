@@ -1,8 +1,11 @@
 # Direcoes de Design Raevo CRM — v2
 
 Data: 29 de agosto de 2026
-Escopo: Kanban, Agenda e Financeiro
-Mockups navegaveis: `output/raevo-design-2026-v2/index.html` (15 telas, deep link por hash — ex.: `#papel/agenda`)
+Escopo: Kanban, Agenda e Financeiro nas sete direcoes; produto inteiro na direcao escolhida
+Mockups navegaveis: `output/raevo-design-2026-v2/index.html`
+— 8 direcoes x 3 telas no laboratorio (deep link por hash, ex.: `#zap/financeiro`)
+— 16 telas em D no tour completo
+— 3 telas upstream com o comparativo antes/depois de tokens
 Substitui: [raevo-crm-design-directions-2026.md](./raevo-crm-design-directions-2026.md) e [raevo-crm-experience-proposals.md](./raevo-crm-experience-proposals.md)
 
 ## Por que uma v2
@@ -56,7 +59,7 @@ Fontes: [saasui.design](https://www.saasui.design/blog/7-saas-ui-design-trends-2
 [CRM Linear+Attio](https://salessheets.ai/blog/mobile-crm-linear-attio-design/),
 [W3C WCAG 2.2](https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/).
 
-## As cinco direcoes
+## As cinco direcoes originais
 
 ### A — Grafite · escuro, plano, de precisao
 
@@ -125,6 +128,117 @@ Fontes: [saasui.design](https://www.saasui.design/blog/7-saas-ui-design-trends-2
 - Financeiro: trilho de vencimentos — a inadimplencia aparece como acumulo a esquerda.
 - **Risco:** quebra de convencao e ruim para operacao em lote. Mitigacao — Lista como alternativa
   de primeira classe nas tres telas.
+
+## Direcao H — Sereno · reconstrucao da referencia aprovada
+
+Origem: `Raevo IA.pdf`, contact sheet de um CRM que o cliente aprovou. Reconstrui a linguagem a
+partir das telas de CRM, Card do Lead e Dashboard.
+
+**Tese:** cards brancos com muito ar. A hierarquia vem de espaco e de rotulos minusculos, nao de
+peso grafico.
+
+Elementos identificados na referencia e reproduzidos:
+
+- **Tira de trilha** no topo (`Inicio › CRM`) com pilulas de estado a direita.
+- **Cabecalho da pagina dentro de um card branco**: eyebrow em caixa alta 9px com tracking largo,
+  titulo 19px peso 800, **selo azul claro** ao lado, subtitulo cinza.
+- **Linha de filtros**: busca larga em pilula + selects em pilula com icone e chevron.
+- **Sub-abas de texto** com sublinhado, e dica alinhada a direita.
+- **Barra de cor de 5px arredondada no topo de cada etapa**, com ponto colorido + icone + nome +
+  contagem logo abaixo.
+- **Avatar quadrado com gradiente** (azul → verde) nos cards e no drawer.
+- Controles todos em **pilula**; raio 13px nos cards, 11px nos leads.
+- Sombra **nenhuma em repouso** — so no hover. O ar faz a separacao.
+- Drawer do lead: abas sublinhadas, grupos com rotulo minusculo em caixa alta, campos como linha
+  rotulo/valor, rodape com Salvar em pilula.
+
+Tokens: fundo `#F7F8FA`, card `#FFFFFF`, contorno `#E9EBEF`, tinta `#111827`, primaria `#2563EB`,
+primaria suave `#EFF4FF`. Tipografia Plus Jakarta Sans.
+
+### A paleta de etapas da referencia reprova em daltonismo
+
+```
+#3B82F6  #F5B93B  #A855F7  #22C55E  #9CA3AF   (como esta na referencia)
+[FAIL] luminosidade   #F5B93B em L 0,82
+[FAIL] croma          #9CA3AF le como cinza
+[FAIL] separacao CVD  #A855F7 ↔ #3B82F6 ΔE 0,9 (deuteranopia)
+[WARN] contraste      #F5B93B 1,72:1 · #22C55E 2,22:1
+→ FAILED
+```
+
+Azul ao lado de roxo e a armadilha recorrente — foi o mesmo motivo que reprovou a primeira
+tentativa da direcao D. A direcao H mantem toda a linguagem visual da referencia e reaproveita o
+conjunto ja validado de D: `#2563EB #0F9D8F #B45309 #A21CAF`. A leveza da referencia vem do
+arejamento do layout, nao do tom das cores — trocar os hexadecimais nao muda a sensacao.
+
+### Risco
+
+E o visual mais proximo do padrao de mercado atual (Tailwind/shadcn). Isso e vantagem comercial —
+parece profissional e atual, sem estranhamento — e desvantagem de marca: e o que mais se parece com
+qualquer outro produto. Nao tem assinatura propria como B, D ou E tem.
+
+## Direcoes F e G — emprestar em vez de construir
+
+As duas partem de uma tese **oposta** as cinco primeiras: em vez de construir identidade, tomam
+emprestada uma que ja existe na cabeca do usuario. Ganho real e mensuravel — menos treinamento,
+menos suporte, menos resistencia na adocao. Preco real tambem — o Raevo deixa de ter cara propria e
+passa a parecer extensao de outro produto. Isso e decisao de negocio, nao de design.
+
+### F — Zap · claro, vocabulario do WhatsApp
+
+**Tese:** treinamento perto de zero. A secretaria ja sabe ler lista de conversa, badge verde e tique
+azul — o CRM so pega emprestado esse vocabulario.
+
+- Papel de parede `#EFEAE2` com textura discreta, paineis brancos, barra `#F0F2F5`.
+- Verde `#1DAB61` para acao, `#25D366` no badge, bolha enviada `#D9FDD3`, tique lido `#53BDEB`.
+- **Fonte do sistema** (Segoe UI / Helvetica Neue), como no original. A escolha e nao ter fonte propria.
+- Sombra `0 1px 0.5px rgba(11,20,26,.13)` — a assinatura do WhatsApp. Sem bordas; o divisor comeca
+  depois do avatar.
+- Kanban: cada etapa e uma **lista de conversa**. Avatar circular de 40px, nome, previa da proxima
+  acao, hora a direita, badge verde com contador.
+- Agenda: lista cronologica em bolhas; consulta confirmada usa o verde da bolha enviada; a linha do
+  agora e uma barra verde com pilula de horario.
+- Financeiro: **os tiques viram estado de cobranca** — um tique cinza = enviada, dois tiques cinza =
+  o paciente viu, dois tiques azuis = paga, triangulo vermelho = vencida. Com legenda na base.
+- **Risco:** o verde carrega significado demais (marca, acao e sucesso ao mesmo tempo); densidade
+  menor por linha; e o produto passa a parecer de outra empresa.
+
+### G — Agenda · claro, Google Calendar e Material 3
+
+**Tese:** a agenda que o cliente ja abre todo dia. Pilulas, elevacao tonal, chips de evento, mini-mes
+no rail e a linha vermelha do agora — so que o dado e a clinica dele.
+
+- Superficie `#FFFFFF`, container `#F0F4F9`, contorno `#E1E3E1`, primaria `#0B57D0`, selecao `#C2E7FF`.
+- Roboto, com Google Sans nos titulos. Botoes em pilula, cards com raio 16px, eventos com raio 4px.
+- Sombra do Google: `0 1px 2px rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15)`.
+- Agenda: a grade do Google Calendar. Evento solido quando confirmado, **tonal quando aguardando** —
+  a mesma convencao de "tentativo" que o Google usa. Colunas sao profissionais, nao dias; o circulo
+  do cabecalho carrega o nome, nao um numero de data que nao significaria nada aqui.
+- Kanban: colunas em container arredondado, cards Material com chip de tempo e acao em pilula.
+- Financeiro: KPIs em container tonal e tabela Material com chips de situacao.
+- **Risco:** Material 3 e reconhecivel demais e o produto pode parecer template. E a paleta oficial
+  de eventos do Google reprova em daltonismo (abaixo).
+
+### A paleta do Google Calendar reprova em daltonismo
+
+Cores oficiais (Peacock, Basil, Banana, Tangerine, Grape) no validador:
+
+```
+#039BE5  #0B8043  #F6BF26  #F4511E  #8E24AA
+[FAIL] faixa de luminosidade    Banana #F6BF26 em L 0,832
+[FAIL] separacao CVD            Tangerine ↔ Basil ΔE 3,4 (protanopia)
+[WARN] contraste vs superficie  Banana 1,65:1 · Peacock 3,0:1
+→ FAILED
+```
+
+**"Familiar" nao e sinonimo de "acessivel".** A direcao G mantem toda a linguagem visual do Google e
+troca so os tons de evento por um conjunto verificado:
+
+```
+#1A73E8  #0B8043  #E37400  #8E24AA
+→ ALL CHECKS PASS  (pior par ΔE 7,0 em protanopia — legal porque todo chip
+   de evento carrega rotulo de texto; ΔE 21,8 em visao normal)
+```
 
 ## Cor verificada, nao escolhida no olho
 
@@ -273,6 +387,9 @@ arquivo de tokens.
 | Direcao | Rotina de clinica | Volume comercial | Demonstracao | Acessibilidade | Custo |
 | --- | --- | --- | --- | --- | --- |
 | A Grafite | media | **otima** | media | **otima** | **baixo** |
+| H Sereno | **otima** | media | **otima** | **otima** | **baixo** |
+| F Zap | **otima** | media | **otima** | media | **baixo** |
+| G Agenda | **otima** | media | **otima** | **otima** | medio |
 | B Papel | **otima** | fraca | **otima** | **otima** | medio |
 | C Vidro | media | media | **otima** | atencao | alto |
 | D Bloco | **otima** | media | media | **otima** | medio |

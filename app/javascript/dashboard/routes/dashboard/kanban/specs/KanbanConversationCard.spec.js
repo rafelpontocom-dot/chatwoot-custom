@@ -161,12 +161,26 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.classes()).not.toContain('no-drag');
   });
 
+  // Raevo · Sereno: card sem sombra em repouso — o ar separa, não a sombra.
+  // A elevação só aparece no hover. Ver docs/raevo-design-system.md §3.
   it('uses a dense surface for scanning a commercial pipeline', () => {
     const wrapper = mountCard();
 
     expect(wrapper.classes()).toContain('rounded-lg');
-    expect(wrapper.classes()).toContain('p-2.5');
-    expect(wrapper.classes()).toContain('shadow-none');
+    expect(wrapper.classes()).toContain('p-3');
+    expect(wrapper.classes()).toContain('border-n-weak');
+    expect(wrapper.classes()).toContain('bg-n-solid-1');
+  });
+
+  it('lifts on hover instead of carrying a resting shadow', () => {
+    const wrapper = mountCard();
+    const classes = wrapper.classes();
+
+    expect(
+      classes.some(c => c.startsWith('shadow') && c !== 'hover:shadow')
+    ).toBe(false);
+    expect(classes).toContain('hover:shadow');
+    expect(classes).toContain('hover:-translate-y-px');
   });
 
   it('keeps the next action, value and conversation action in a stable card footer', () => {

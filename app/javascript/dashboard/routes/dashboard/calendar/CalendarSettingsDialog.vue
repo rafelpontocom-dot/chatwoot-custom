@@ -8,6 +8,7 @@ import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import { RAEVO_DEFAULT_PROCEDURE_COLOR } from 'dashboard/constants/raevoPalette';
 
 const emit = defineEmits(['updated']);
 
@@ -56,7 +57,7 @@ const procedureForm = ref({
   bufferBeforeMinutes: '0',
   bufferAfterMinutes: '0',
   locationType: 'in_person',
-  color: '#00B8C6',
+  color: RAEVO_DEFAULT_PROCEDURE_COLOR,
   recurrenceAllowed: false,
   maxSessions: '10',
   resourceIds: [],
@@ -216,7 +217,7 @@ const resetForms = () => {
     bufferBeforeMinutes: '0',
     bufferAfterMinutes: '0',
     locationType: 'in_person',
-    color: '#00B8C6',
+    color: RAEVO_DEFAULT_PROCEDURE_COLOR,
     recurrenceAllowed: false,
     maxSessions: '',
     resourceIds: [],
@@ -396,7 +397,7 @@ const editProcedure = procedure => {
     bufferBeforeMinutes: String(procedure.buffer_before_minutes || 0),
     bufferAfterMinutes: String(procedure.buffer_after_minutes || 0),
     locationType: procedure.location_type || 'in_person',
-    color: procedure.color || '#00B8C6',
+    color: procedure.color || RAEVO_DEFAULT_PROCEDURE_COLOR,
     recurrenceAllowed: procedure.recurrence_allowed,
     maxSessions: procedure.max_sessions ? String(procedure.max_sessions) : '10',
     resourceIds: procedure.resource_ids || [],

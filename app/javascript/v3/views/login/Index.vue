@@ -289,13 +289,13 @@ export default {
 
 <template>
   <main
-    class="flex min-h-screen w-full items-center bg-[#1F1F1F] px-4 py-8 font-inter sm:px-6 lg:px-8"
+    class="flex min-h-screen w-full items-center bg-n-background px-4 py-8 font-inter sm:px-6 lg:px-8"
   >
     <div
-      class="mx-auto grid w-full max-w-6xl overflow-hidden border border-[#C7A97A]/60 bg-[#1F1F1F] shadow-[0_24px_56px_rgba(0,0,0,0.32)] lg:grid-cols-[minmax(0,1fr)_26.25rem]"
+      class="mx-auto grid w-full max-w-6xl overflow-hidden rounded-2xl border border-n-weak bg-n-solid-1 shadow-lg lg:grid-cols-[minmax(0,1fr)_26.25rem]"
     >
       <section
-        class="flex min-h-[34rem] flex-col items-center justify-center border-b border-white/20 px-8 py-12 text-center lg:border-b-0 lg:border-r lg:border-[#C7A97A]/50 lg:px-16"
+        class="flex min-h-[34rem] flex-col items-center justify-center border-b border-n-weak bg-n-blue-3 px-8 py-12 text-center lg:border-b-0 lg:border-r lg:px-16"
       >
         <img
           :src="raevoLoginLogo"
@@ -303,25 +303,23 @@ export default {
           class="mb-12 h-auto w-full max-w-[320px]"
         />
         <h1
-          class="max-w-md font-interDisplay text-3xl font-semibold leading-tight text-[#E9E4DA] sm:text-4xl"
+          class="max-w-md font-interDisplay text-3xl font-semibold leading-tight tracking-tight text-n-slate-12 sm:text-4xl"
         >
           {{ $t('LOGIN.RAEVO.VISION') }}
-          <span class="block text-[#C7A97A]">{{
+          <span class="block text-n-brand">{{
             $t('LOGIN.RAEVO.SYSTEMS')
           }}</span>
         </h1>
-        <div class="my-7 h-px w-20 bg-[#C7A97A]" aria-hidden="true" />
-        <p class="max-w-sm text-sm leading-6 text-[#DCCFBE]">
+        <div class="my-7 h-px w-20 bg-n-brand" aria-hidden="true" />
+        <p class="max-w-sm text-sm leading-6 text-n-slate-11">
           {{ $t('LOGIN.RAEVO.SUBTITLE') }}
         </p>
       </section>
 
       <section class="flex items-center bg-white px-6 py-10 sm:px-10">
-        <div
-          class="w-full [&_label]:!text-[#1F1F1F] [&_input]:!bg-white [&_input]:!text-[#1F1F1F] [&_input]:!outline-[#B8AB98] [&_input:focus]:!outline-[#00B8C6] [&_input:focus]:!ring-[#00B8C6]"
-        >
+        <div class="w-full">
           <p
-            class="mb-8 text-center font-interDisplay text-xl font-semibold text-[#1F1F1F]"
+            class="mb-8 text-center font-interDisplay text-xl font-semibold tracking-tight text-n-slate-12"
           >
             {{ $t('LOGIN.RAEVO.ACCESS') }}
           </p>
@@ -332,7 +330,7 @@ export default {
             {{ $t('COMMON.OR') }}
             <router-link
               to="auth/signup"
-              class="lowercase font-medium text-[#1F1F1F] underline decoration-[#C7A97A] decoration-2 underline-offset-4 hover:text-[#00B8C6]"
+              class="lowercase font-medium text-n-slate-12 underline decoration-n-brand decoration-2 underline-offset-4 hover:text-n-brand"
             >
               {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
             </router-link>
@@ -363,13 +361,13 @@ export default {
                 <div v-if="showSamlLogin" class="text-center">
                   <router-link
                     to="/app/login/sso"
-                    class="inline-flex w-full items-center justify-center rounded-md bg-[#E9E4DA] px-4 py-3 shadow-sm ring-1 ring-inset ring-[#B8AB98] hover:bg-[#DCCFBE] focus:outline-offset-0"
+                    class="inline-flex w-full items-center justify-center rounded-full bg-n-solid-1 px-4 py-3 ring-1 ring-inset ring-n-strong hover:bg-n-slate-3 focus:outline-offset-0"
                   >
                     <Icon
                       icon="i-lucide-lock-keyhole"
                       class="size-5 text-n-slate-11"
                     />
-                    <span class="ml-2 text-base font-medium text-[#1F1F1F]">
+                    <span class="ml-2 text-base font-medium text-n-slate-12">
                       {{ $t('LOGIN.SAML.LABEL') }}
                     </span>
                   </router-link>
@@ -408,7 +406,7 @@ export default {
                   <p v-if="!globalConfig.disableUserProfileUpdate">
                     <router-link
                       to="auth/reset/password"
-                      class="text-sm font-medium text-[#1F1F1F] underline decoration-[#C7A97A] decoration-2 underline-offset-4 hover:text-[#00B8C6]"
+                      class="text-sm font-medium text-n-slate-12 underline decoration-n-brand decoration-2 underline-offset-4 hover:text-n-brand"
                       tabindex="4"
                     >
                       {{ $t('LOGIN.FORGOT_PASSWORD') }}
@@ -419,7 +417,7 @@ export default {
                   lg
                   type="submit"
                   data-testid="submit_button"
-                  class="w-full !bg-[#00B8C6] !text-[#1F1F1F] hover:!bg-[#14C5D1] focus-visible:!outline-[#1F1F1F]"
+                  class="w-full !rounded-full !bg-n-brand !text-white hover:!bg-n-blue-10"
                   :tabindex="3"
                   :label="$t('LOGIN.SUBMIT')"
                   :disabled="loginApi.showLoading"

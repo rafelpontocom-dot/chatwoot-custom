@@ -494,8 +494,11 @@ const loadMoreStageCards = async stage => {
 
 const getStageColorOption = getKanbanStageColorOption;
 
-const getStageHeaderClass = stage =>
-  getStageColorOption(stage.color).headerClass;
+// Sereno: a etapa se identifica por barra fina + ponto, não por cabeçalho
+// chapado de cor. Ver docs/raevo-design-system.md §5.
+const getStageBarClass = stage => getStageColorOption(stage.color).barClass;
+const getStageDotClass = stage => getStageColorOption(stage.color).dotClass;
+const getStageInkClass = stage => getStageColorOption(stage.color).inkClass;
 
 const getStageColorLabel = colorOption => {
   const labels = {
@@ -1657,12 +1660,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="flex h-full min-h-0 w-full bg-n-surface-1 text-n-slate-12">
+  <main class="flex h-full min-h-0 w-full bg-n-background text-n-slate-12">
     <section class="flex min-w-0 flex-1 flex-col">
       <header
         data-testid="kanban-workspace-header"
-        class="relative grid gap-3 border-b border-n-weak px-4 py-3 lg:px-6"
+        class="relative m-3 grid gap-3.5 rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:mx-6"
       >
+        <span
+          class="block text-[9px] font-bold uppercase tracking-[0.16em] text-n-slate-10"
+        >
+          {{ t('KANBAN.EYEBROW') }}
+        </span>
         <div
           data-testid="kanban-workspace-primary-row"
           class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 lg:grid-cols-[minmax(12rem,auto)_minmax(16rem,1fr)_auto] lg:gap-3"
@@ -1673,7 +1681,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   data-testid="kanban-board-switcher"
-                  class="inline-flex max-w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xl font-medium text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="-mx-1 inline-flex max-w-full items-center gap-2 rounded-lg px-1 py-1 text-left text-lg font-extrabold tracking-tight text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!hasBoards"
                   @click="
                     isBoardDropdownOpen =
@@ -2493,9 +2501,13 @@ onUnmounted(() => {
               :data-stage-id="stage.id"
               class="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
             >
+              <div
+                class="h-1.5 w-full flex-shrink-0"
+                :class="getStageBarClass(stage)"
+                aria-hidden="true"
+              />
               <header
-                class="stage-drag-handle cursor-grab flex min-h-14 items-center justify-between gap-2 px-3 py-2 text-white"
-                :class="getStageHeaderClass(stage)"
+                class="stage-drag-handle flex min-h-14 cursor-grab items-center justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-2 text-n-slate-12"
               >
                 <form
                   v-if="editingStageId === stage.id"
@@ -2507,13 +2519,13 @@ onUnmounted(() => {
                       :ref="element => setStageNameInput(stage.id, element)"
                       v-model="stageNames[stage.id]"
                       type="text"
-                      class="min-w-0 flex-1 rounded-md border border-white/30 bg-white/90 px-2 py-1.5 text-sm text-n-slate-12 outline-none focus:border-white"
+                      class="min-w-0 flex-1 rounded-full border border-n-strong bg-n-solid-1 px-3 py-1.5 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                       :placeholder="t('KANBAN.ACTIONS.STAGE_NAME_PLACEHOLDER')"
                       @keydown.escape.prevent="cancelEditingStage"
                     />
                     <button
                       type="submit"
-                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="
                         !String(stageNames[stage.id] || '').trim() ||
                         !!activeActionKey
@@ -2525,7 +2537,7 @@ onUnmounted(() => {
                     </button>
                     <button
                       type="button"
-                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70"
+                      class="flex size-8 flex-shrink-0 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand"
                       :aria-label="t('KANBAN.ACTIONS.CANCEL')"
                       :title="t('KANBAN.ACTIONS.CANCEL')"
                       @click="cancelEditingStage"
@@ -2541,12 +2553,12 @@ onUnmounted(() => {
                       v-for="colorOption in stageColorOptions"
                       :key="colorOption.value"
                       type="button"
-                      class="size-5 rounded-full border border-white/40 ring-offset-2"
+                      class="size-5 rounded-full border border-n-weak ring-offset-2 ring-offset-n-solid-1"
                       :class="[
                         colorOption.swatchClass,
                         stageColors[stage.id] === colorOption.value
-                          ? 'ring-2 ring-white'
-                          : 'hover:ring-2 hover:ring-white/70',
+                          ? 'ring-2 ring-n-brand'
+                          : 'hover:ring-2 hover:ring-n-slate-8',
                       ]"
                       :aria-label="getSelectStageColorLabel(colorOption)"
                       @click="stageColors[stage.id] = colorOption.value"
@@ -2554,14 +2566,22 @@ onUnmounted(() => {
                   </div>
                 </form>
                 <template v-else>
-                  <div class="flex min-w-0 flex-1 items-start gap-2">
+                  <div class="flex min-w-0 flex-1 items-center gap-2">
+                    <span
+                      class="size-2 shrink-0 rounded-full"
+                      :class="getStageDotClass(stage)"
+                      aria-hidden="true"
+                    />
                     <i
-                      class="mt-0.5 size-4 shrink-0"
-                      :class="[getKanbanStageIconOption(stage.icon).iconClass]"
+                      class="size-4 shrink-0"
+                      :class="[
+                        getKanbanStageIconOption(stage.icon).iconClass,
+                        getStageInkClass(stage),
+                      ]"
                       aria-hidden="true"
                     />
                     <h3
-                      class="min-w-0 break-words text-sm font-medium leading-5"
+                      class="min-w-0 break-words text-sm font-bold leading-5 tracking-tight"
                     >
                       <span :title="stage.description || stage.name">{{
                         stage.name
@@ -2570,7 +2590,7 @@ onUnmounted(() => {
                     <button
                       v-if="stage.description"
                       type="button"
-                      class="flex size-6 shrink-0 items-center justify-center rounded text-white/80 outline-none hover:bg-white/15 hover:text-white focus:ring-2 focus:ring-white/70"
+                      class="flex size-6 shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand"
                       :aria-label="stage.description"
                       :title="stage.description"
                     >
@@ -2580,14 +2600,14 @@ onUnmounted(() => {
                       />
                     </button>
                     <span
-                      class="flex-shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium"
+                      class="ms-auto flex-shrink-0 text-xs font-semibold tabular-nums text-n-slate-10"
                     >
                       {{ stageCardCount(stage) }}
                     </span>
                     <span
                       v-if="stageOverCapacity(stage)"
                       data-testid="kanban-stage-capacity-alert"
-                      class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium"
+                      class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-ruby-3 px-2 py-0.5 text-[10px] font-medium text-n-ruby-11"
                       :title="t('KANBAN.STAGE.CAPACITY_ALERT')"
                     >
                       <i class="i-lucide-triangle-alert size-3" />
@@ -2597,7 +2617,7 @@ onUnmounted(() => {
                   <div class="flex flex-shrink-0 gap-1">
                     <button
                       type="button"
-                      class="flex size-8 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-8 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
                       :aria-label="t('KANBAN.ACTIONS.EDIT_STAGE')"
                       @click="startEditingStage(stage)"
@@ -2606,7 +2626,7 @@ onUnmounted(() => {
                     </button>
                     <button
                       type="button"
-                      class="flex size-8 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white outline-none hover:bg-white/20 focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-8 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
                       :aria-label="t('KANBAN.ACTIONS.REMOVE_STAGE')"
                       @click="openRemoveStageConfirmation(stage)"
@@ -2618,7 +2638,7 @@ onUnmounted(() => {
               </header>
 
               <div
-                class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-n-solid-1 p-3"
+                class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-n-background p-2.5"
               >
                 <button
                   type="button"

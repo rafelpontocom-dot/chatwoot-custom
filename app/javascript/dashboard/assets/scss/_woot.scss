@@ -9,6 +9,12 @@
 // Next Colors
 @import 'next-colors';
 
+// Raevo — identidade visual. Importado DEPOIS de next-colors de propósito:
+// redefine os mesmos tokens e vence na cascata. Ver docs/raevo-design-system.md.
+@import 'raevo-fonts';
+@import 'raevo-tokens';
+@import 'raevo-components';
+
 // Base styles for elements
 @import 'base';
 

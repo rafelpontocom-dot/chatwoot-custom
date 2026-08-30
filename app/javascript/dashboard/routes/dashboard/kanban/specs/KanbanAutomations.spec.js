@@ -102,6 +102,10 @@ const mountWorkspace = async ({
     global: {
       plugins: [store],
       stubs: {
+        RaevoPageHeader: {
+          template:
+            '<header><slot name="actions" /><slot name="filters" /><slot name="tabs" /><slot /></header>',
+        },
         RouterLink: true,
         Popover: {
           template: '<div><slot /><slot name="content" /></div>',

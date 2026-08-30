@@ -24,6 +24,7 @@ import {
   KANBAN_STAGE_ICON_OPTIONS,
   getKanbanStageIconOption,
 } from 'dashboard/helper/kanbanStageIcons';
+import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -2803,16 +2804,12 @@ onMounted(async () => {
     class="flex h-full min-h-0 w-full bg-n-background text-n-slate-12"
   >
     <div class="flex w-full flex-col gap-4 overflow-y-auto p-4 lg:p-6">
-      <header class="flex items-center justify-between gap-4">
-        <div class="min-w-0">
-          <h1 class="text-xl font-semibold text-n-slate-12">
-            {{ t('KANBAN.SETTINGS.TITLE') }}
-          </h1>
-          <p class="mt-1 max-w-2xl text-sm text-n-slate-11">
-            {{ t('KANBAN.SETTINGS.DESCRIPTION') }}
-          </p>
-        </div>
-        <div class="flex flex-wrap items-center justify-end gap-2">
+      <RaevoPageHeader
+        :eyebrow="t('KANBAN.EYEBROW')"
+        :title="t('KANBAN.SETTINGS.TITLE')"
+        :subtitle="t('KANBAN.SETTINGS.DESCRIPTION')"
+      >
+        <template #actions>
           <Button
             v-if="isAdmin"
             type="button"
@@ -2836,8 +2833,8 @@ onMounted(async () => {
               })
             "
           />
-        </div>
-      </header>
+        </template>
+      </RaevoPageHeader>
 
       <div
         v-if="isLoading"

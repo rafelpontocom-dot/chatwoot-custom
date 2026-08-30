@@ -226,7 +226,8 @@ export const colors = {
     },
 
     black: '#000000',
-    brand: '#2781F6',
+    // Raevo: vem de --brand-color, definido em _raevo-tokens.scss.
+    brand: 'rgb(var(--brand-color) / <alpha-value>)',
     portal: 'var(--dynamic-portal-color)',
     'portal-soft': 'var(--dynamic-portal-color-soft)',
     'portal-faint': 'var(--dynamic-portal-color-faint)',

@@ -101,22 +101,22 @@ const nextActionStatusConfig = computed(() => {
     missing: {
       label: t('KANBAN.CARD.NEXT_ACTION.MISSING'),
       icon: 'i-lucide-calendar-x',
-      class: 'border-n-amber-5 bg-n-amber-2 text-n-amber-11',
+      class: 'bg-n-amber-3 text-n-amber-11',
     },
     overdue: {
       label: t('KANBAN.CARD.NEXT_ACTION.OVERDUE'),
       icon: 'i-lucide-clock-alert',
-      class: 'border-n-ruby-5 bg-n-ruby-2 text-n-ruby-11',
+      class: 'bg-n-ruby-3 text-n-ruby-11',
     },
     due_today: {
       label: t('KANBAN.CARD.NEXT_ACTION.DUE_TODAY'),
       icon: 'i-lucide-calendar-clock',
-      class: 'border-n-blue-5 bg-n-blue-2 text-n-blue-11',
+      class: 'bg-n-blue-3 text-n-blue-11',
     },
     future: {
       label: t('KANBAN.CARD.NEXT_ACTION.FUTURE'),
       icon: 'i-lucide-calendar',
-      class: 'border-n-teal-5 bg-n-teal-2 text-n-teal-11',
+      class: 'bg-n-teal-3 text-n-teal-11',
     },
     closed: {
       label: t('KANBAN.CARD.NEXT_ACTION.CLOSED'),
@@ -149,7 +149,8 @@ const openConversation = event => {
 
 <template>
   <article
-    class="card-drag-handle group relative cursor-grab rounded-lg border border-n-weak bg-n-surface-1 p-2.5 shadow-none transition-[border-color,box-shadow] hover:border-n-brand/40 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-n-brand/40"
+    class="card-drag-handle group relative cursor-grab rounded-lg border border-n-weak bg-n-solid-1 p-3 transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-n-slate-8 hover:shadow focus:outline-none focus:ring-2 focus:ring-n-brand"
+    :class="selected ? 'ring-2 ring-n-brand border-transparent' : ''"
     :data-card-id="card.id"
     :data-conversation-id="card.conversationId"
     role="button"
@@ -203,7 +204,7 @@ const openConversation = event => {
         />
         <p
           v-if="subject"
-          class="truncate text-sm font-medium leading-4 text-n-slate-12"
+          class="truncate text-[10.5px] leading-4 text-n-slate-10"
           :title="subject"
         >
           {{ subject }}
@@ -214,26 +215,21 @@ const openConversation = event => {
         <button
           type="button"
           data-testid="kanban-card-contact-avatar"
-          class="no-drag relative flex flex-shrink-0 rounded-full focus:outline-none focus:ring-1 focus:ring-n-brand"
+          class="no-drag relative flex flex-shrink-0 overflow-visible rounded-lg focus:outline-none focus:ring-2 focus:ring-n-brand"
           :title="contactName"
           @click.stop="openConversation"
         >
-          <Avatar
-            :name="contactName"
-            :src="contactThumbnail"
-            :size="24"
-            rounded-full
-          />
+          <Avatar :name="contactName" :src="contactThumbnail" :size="30" />
           <span
             v-if="inbox"
-            class="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-n-surface-1 bg-n-surface-1"
+            class="absolute -bottom-1 -right-1 flex size-4.5 items-center justify-center rounded-full border border-n-solid-1 bg-n-solid-1"
           >
             <ChannelIcon :inbox="inbox" class="size-3.5 text-n-slate-11" />
           </span>
         </button>
 
         <h4
-          class="min-w-0 flex-1 truncate text-xs font-medium leading-4 text-n-slate-12"
+          class="min-w-0 flex-1 truncate text-[12.5px] font-bold leading-4 tracking-tight text-n-slate-12"
         >
           {{ contactName }}
         </h4>
@@ -250,12 +246,12 @@ const openConversation = event => {
       <div
         v-if="nextActionStatusConfig || amountLabel || hasConversation"
         data-testid="kanban-card-workflow-summary"
-        class="mt-2 flex min-w-0 items-center justify-between gap-2"
+        class="mt-2.5 flex min-w-0 items-center justify-between gap-2 border-t border-n-weak pt-2.5"
       >
         <div
           v-if="nextActionStatusConfig"
           data-testid="kanban-card-next-action"
-          class="inline-flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs leading-4"
+          class="inline-flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium leading-4"
           :class="nextActionStatusConfig.class"
         >
           <i
@@ -274,7 +270,7 @@ const openConversation = event => {
           <strong
             v-if="amountLabel"
             data-testid="kanban-card-amount"
-            class="whitespace-nowrap text-xs font-semibold text-n-slate-12"
+            class="whitespace-nowrap text-[12.5px] font-extrabold tabular-nums tracking-tight text-n-slate-12"
           >
             {{ amountLabel }}
           </strong>

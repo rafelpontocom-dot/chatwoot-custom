@@ -10,6 +10,8 @@ import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/cons
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import FinancePaymentDialog from './FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from './FinancePaymentDetailsDialog.vue';
+import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
+import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -522,37 +524,23 @@ onMounted(loadFinance);
     data-testid="finance-workspace"
   >
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <header
-        class="flex flex-col gap-2 border-b border-n-weak pb-5 sm:flex-row sm:items-end sm:justify-between"
+      <RaevoPageHeader
+        :eyebrow="t('FINANCE.EYEBROW')"
+        :title="t('FINANCE.TITLE')"
+        :subtitle="t('FINANCE.SUBTITLE')"
       >
-        <div>
-          <p class="text-sm font-medium text-n-brand">
-            {{ t('FINANCE.EYEBROW') }}
-          </p>
-          <h1 class="mt-1 text-2xl font-semibold text-n-slate-12">
-            {{ t('FINANCE.TITLE') }}
-          </h1>
-          <p class="mt-1 text-sm text-n-slate-11">
-            {{ t('FINANCE.SUBTITLE') }}
-          </p>
-        </div>
-        <span
-          v-if="financeModule"
-          class="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-medium"
-          :class="
-            isEnabled
-              ? 'bg-n-teal-3 text-n-teal-11'
-              : 'bg-n-slate-3 text-n-slate-11'
-          "
-        >
-          <span class="size-1.5 rounded-full bg-current" aria-hidden="true" />
-          {{
-            isEnabled
-              ? t('FINANCE.STATUS.ENABLED')
-              : t('FINANCE.STATUS.DISABLED')
-          }}
-        </span>
-      </header>
+        <template #actions>
+          <RaevoStamp
+            v-if="financeModule"
+            :variant="isEnabled ? 'success' : 'neutral'"
+            :label="
+              isEnabled
+                ? t('FINANCE.STATUS.ENABLED')
+                : t('FINANCE.STATUS.DISABLED')
+            "
+          />
+        </template>
+      </RaevoPageHeader>
 
       <div
         v-if="isLoading"
@@ -712,7 +700,9 @@ onMounted(loadFinance);
                     {{ formatAmount(total) }}
                   </span>
                 </template>
-                <template v-else>--</template>
+                <template v-else>
+                  {{ t('FINANCE.PAYMENTS.SUMMARY.EMPTY_VALUE') }}
+                </template>
               </p>
             </div>
             <div class="bg-n-solid-1 px-5 py-3">
@@ -729,7 +719,9 @@ onMounted(loadFinance);
                     {{ formatAmount(total) }}
                   </span>
                 </template>
-                <template v-else>--</template>
+                <template v-else>
+                  {{ t('FINANCE.PAYMENTS.SUMMARY.EMPTY_VALUE') }}
+                </template>
               </p>
             </div>
             <div class="bg-n-solid-1 px-5 py-3">
@@ -746,7 +738,9 @@ onMounted(loadFinance);
                     {{ formatAmount(total) }}
                   </span>
                 </template>
-                <template v-else>--</template>
+                <template v-else>
+                  {{ t('FINANCE.PAYMENTS.SUMMARY.EMPTY_VALUE') }}
+                </template>
               </p>
             </div>
           </div>

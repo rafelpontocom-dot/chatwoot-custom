@@ -201,6 +201,10 @@ const mountSettings = async ({
     global: {
       plugins: [store],
       stubs: {
+        RaevoPageHeader: {
+          template:
+            '<header><slot name="actions" /><slot name="filters" /><slot name="tabs" /><slot /></header>',
+        },
         Button: {
           props: ['label', 'isLoading'],
           emits: ['click'],

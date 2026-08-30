@@ -3,6 +3,85 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 (Note: `CLAUDE.md` is a symlink to `AGENTS.md` — edit this file to update both.)
 
+# Raevo Design System — LEIA ANTES DE MEXER EM QUALQUER UI
+
+Este fork é o **Raevo**. Toda interface — tela nova, componente novo, ajuste em tela
+existente — segue a direção **H · Sereno**, aprovada em 29/08/2026.
+
+**Especificação completa e obrigatória: [`docs/raevo-design-system.md`](docs/raevo-design-system.md).**
+Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável.
+
+## As cinco regras
+
+1. **Nunca escreva cor, raio, sombra ou fonte literal.** Nada de `bg-[#2563EB]`,
+   `style="color:#111"`, `border-radius: 8px`. Use as classes `n-*` do Tailwind e os
+   tokens `--raevo-*`. Se falta um token, crie em
+   `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` — nunca no componente.
+
+2. **Nunca edite `_next-colors.scss`, e não mude cor em `theme/colors.js`.** São arquivos
+   upstream; editá-los gera conflito em todo `git pull` do Chatwoot. A identidade vive em
+   `_raevo-tokens.scss`, que é importado depois e vence na cascata.
+
+3. **`shadow-sm` é `none` de propósito.** Em repouso o espaço separa, não a sombra. Sombra
+   só para o que realmente flutua: modal, menu, drawer (`shadow-lg`).
+
+4. **Botão e campo de uma linha são pílula** (`rounded-full`, já é o padrão global).
+   Card e painel usam `rounded-xl` (13px). Textarea usa `rounded-lg`.
+
+5. **Estado nunca se comunica só por cor.** Sempre cor + ícone + texto. É requisito de
+   acessibilidade (WCAG 2.2), não preferência estética.
+
+## Paleta de etapas do funil — travada
+
+`#2563EB` `#0F9D8F` `#B45309` `#A21CAF` (+ `#98A0AE` para etapa terminal).
+
+Validada para daltonismo: pior par ΔE 9,7 em deuteranopia. **Não troque sem revalidar:**
+
+```bash
+node scripts/validate_palette.js "#2563EB,#0F9D8F,#B45309,#A21CAF" --mode light --pairs all
+```
+
+Já reprovaram e estão proibidas: **azul + roxo claro** (ΔE 0,4) e a **paleta do Google
+Calendar** (ΔE 3,4).
+
+## Armadilha conhecida em testes
+
+`shallowMount` stuba componentes filhos — inclusive `RaevoPageHeader`. O conteúdo dos slots
+(`#actions`, `#filters`, `#tabs`) **desaparece** e testes que procuram botões do cabeçalho falham
+com "Cannot call trigger on an empty DOMWrapper". Adicione o stub que renderiza slots:
+
+```js
+stubs: {
+  RaevoPageHeader: {
+    template:
+      '<header><slot name="actions" /><slot name="filters" /><slot name="tabs" /><slot /></header>',
+  },
+}
+```
+
+Exemplos prontos: `KanbanAutomations.spec.js`, `KanbanBoardSettings.spec.js`.
+
+## Antes de abrir PR
+
+```bash
+pnpm raevo:design    # falha se algum componente do Raevo escrever cor literal
+pnpm raevo:palette   # revalida a paleta de etapas
+```
+
+## Onde a identidade mora
+
+| Arquivo | Papel |
+| --- | --- |
+| `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` | fonte da verdade: cor, sombra, raio semântico |
+| `app/javascript/dashboard/assets/scss/_raevo-components.scss` | o que token não alcança |
+| `tailwind.config.js` | raio, borda, sombra e fonte do produto inteiro |
+| `app/javascript/dashboard/components-next/raevo/` | primitivos: `RaevoPageHeader`, `RaevoStamp` — use, não recrie |
+| `app/javascript/dashboard/constants/raevoPalette.js` | cores que viram DADO (etapa, procedimento) |
+| `docs/raevo-design-system.md` | especificação, padrões de tela, checklist de PR |
+| `output/raevo-design-2026-v2/index.html` | mockups aprovados (direção "H · Sereno") |
+
+---
+
 # Chatwoot Development Guidelines
 
 ## Architecture Overview

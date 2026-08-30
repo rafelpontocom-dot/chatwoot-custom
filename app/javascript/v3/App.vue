@@ -57,10 +57,16 @@ export default {
 
 @import '../dashboard/assets/scss/next-colors';
 
+// Raevo — mesma cascata do dashboard: os tokens entram DEPOIS de next-colors.
+// Sem isto a tela de login renderiza com a paleta padrao do Chatwoot.
+// Ver docs/raevo-design-system.md.
+@import '../dashboard/assets/scss/raevo-fonts';
+@import '../dashboard/assets/scss/raevo-tokens';
+@import '../dashboard/assets/scss/raevo-components';
+
 html,
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-family: var(--raevo-font-sans);
   @apply h-full w-full;
 
   input,

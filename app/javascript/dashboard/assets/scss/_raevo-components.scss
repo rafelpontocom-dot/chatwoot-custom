@@ -1,0 +1,145 @@
+// scss-lint:disable QualifyingElement PropertySortOrder PropertySpelling
+// Esta camada aplica uma fundação global: os seletores de controles e as
+// propriedades modernas de scrollbar são intencionais e isolados neste arquivo.
+// =============================================================================
+// RAEVO — CAMADA DE COMPONENTES  ·  direção H · Sereno
+// =============================================================================
+// O que token não alcança. Regras cirúrgicas por seletor, num arquivo que o
+// upstream nunca toca. Mantenha curto: se der para resolver em token, resolva
+// em `_raevo-tokens.scss`.
+// Especificação: docs/raevo-design-system.md
+// =============================================================================
+
+// --- Tipografia ---------------------------------------------------------------
+// A fonte é auto-hospedada em `_raevo-fonts.scss` e a pilha vive no token
+// `--raevo-font-sans`. Se a fonte falhar, cai em Inter, que o Chatwoot já traz.
+html,
+body {
+  font-family: var(--raevo-font-sans) !important;
+}
+
+// As utilidades de tipografia do Chatwoot fixam `font-inter`. Redirecionamos a
+// família sem tocar em tamanho, peso ou entrelinha — que continuam upstream.
+.text-body-main,
+.text-body-para,
+.text-heading-1,
+.text-heading-2,
+.text-heading-3,
+.text-label,
+.text-label-small,
+.text-button,
+.text-button-small {
+  font-family: var(--raevo-font-sans);
+}
+
+// Todo número que se alinha em coluna usa figuras tabulares.
+table td,
+table th,
+[class*='tabular'] {
+  font-variant-numeric: tabular-nums;
+}
+
+// --- Controles em pílula -------------------------------------------------------
+// A assinatura mais visível do Sereno. Restrita a botões e campos: cards,
+// modais e menus mantêm o raio de card.
+button:not([class*='rounded-none']):not([class*='rounded-full']):not(.raevo-square),
+.button,
+a[role='button'] {
+  border-radius: var(--raevo-radius-control);
+}
+
+// Alvo de toque mínimo de 24px — WCAG 2.2 (2.5.8).
+button,
+[role='button'],
+a[role='button'] {
+  min-height: 24px;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='search'],
+input[type='tel'],
+input[type='url'],
+input[type='password'],
+input[type='number'],
+select {
+  border-radius: var(--raevo-radius-control);
+}
+
+// Textarea e editor continuam retangulares: pílula em campo de várias linhas
+// fica errado.
+textarea,
+.ProseMirror,
+[contenteditable='true'] {
+  border-radius: var(--raevo-radius-item);
+}
+
+// --- Foco ----------------------------------------------------------------------
+// Foco sempre visível e sempre na cor de ação (WCAG 2.2 · 2.4.11).
+:focus-visible {
+  outline: 2px solid rgb(var(--blue-9));
+  outline-offset: 2px;
+}
+
+// --- Superfícies ---------------------------------------------------------------
+// Em repouso o ar separa, não a sombra. Sombra só quando o elemento realmente
+// flutua sobre outro (menu, modal, drawer).
+.shadow-sm,
+.shadow {
+  box-shadow: var(--raevo-shadow-rest);
+}
+
+[role='dialog'],
+[role='menu'],
+[role='listbox'],
+.dropdown-pane {
+  box-shadow: var(--raevo-shadow-float);
+  border-radius: var(--raevo-radius-card);
+}
+
+// --- Seleção e barra de rolagem -------------------------------------------------
+::selection {
+  background: rgb(var(--blue-4));
+  color: rgb(var(--slate-12));
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--slate-7)) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--slate-7));
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--slate-8));
+  background-clip: content-box;
+}
+
+// --- Central de Ajuda -----------------------------------------------------------
+// Conteúdo editorial, não operação: herda paleta e tipografia, e nada mais.
+.portal,
+.help-center {
+  --raevo-radius-control: 8px;
+}
+
+// --- Movimento -------------------------------------------------------------------
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

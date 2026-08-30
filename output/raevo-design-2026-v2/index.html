@@ -1,7 +1,7 @@
 <title>Cinco Linguagens Raevo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=IBM+Plex+Sans:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;500;600;800&family=Roboto+Flex:opsz,wdth,wght@8..144,75..125,300..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=IBM+Plex+Sans:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;500;600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Flex:opsz,wdth,wght@8..144,75..125,300..800&display=swap">
 
 <style>
 /* =========================================================================
@@ -742,8 +742,9 @@ table.deck .num{font-variant-numeric:tabular-nums;text-align:right;white-space:n
 /* ---- correções transversais ----------------------------------------
    Consultas curtas não cabem em duas linhas: some a linha secundária em
    vez de deixá-la cortada pela metade. Vale nas três agendas com grade. */
-.ga__ev.is-tight .ga__evs,.va__ev.is-tight .va__evs,.ba__ev.is-tight .ba__evs{display:none}
-.ga__ev.is-tight,.va__ev.is-tight,.ba__ev.is-tight{justify-content:center;padding-top:2px;padding-bottom:2px}
+.ga__ev.is-tight .ga__evs,.va__ev.is-tight .va__evs,.ba__ev.is-tight .ba__evs,
+.ga2__ev.is-tight .ga2__evs{display:none}
+.ga__ev.is-tight,.va__ev.is-tight,.ba__ev.is-tight,.ga2__ev.is-tight{justify-content:center;padding-top:2px;padding-bottom:2px}
 /* Listas mais longas que a tela terminam em esmaecimento, para o corte
    ler como "continua abaixo" e não como bug de layout. */
 .fade-b{
@@ -901,6 +902,388 @@ table.deck .num{font-variant-numeric:tabular-nums;text-align:right;white-space:n
   --cv-compshadow:inset 0 1px 0 rgba(255,255,255,.12);
 }
 /* =========================================================================
+   DIREÇÃO H — SERENO
+   Baseada no CRM de referência que o cliente aprovou. Cards brancos muito
+   arejados, barra colorida no topo de cada etapa, controles em pílula,
+   rótulos minúsculos em caixa alta e painéis de fundo suave.
+   ========================================================================= */
+[data-d="sereno"]{
+  --bg:#F7F8FA;--s1:#FFFFFF;--s2:#F2F4F7;--s3:#E9EBEF;
+  --line:#E9EBEF;--line-2:#DCDFE5;
+  --ink:#111827;--ink-2:#4B5563;--ink-3:#98A0AE;
+  --acc:#2563EB;--acc-solid:#2563EB;--acc-soft:#EFF4FF;
+  --e1:#2563EB;--e2:#0F9D8F;--e3:#B45309;--e4:#A21CAF;--e5:#98A0AE;
+  --ok:#12805C;--warn:#B45309;--bad:#DC2626;--info:#2563EB;
+  --f-display:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+  --f-body:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+  --nav-w:56px;--nav-bg:#FFFFFF;--nav-edge:1px solid var(--line);--nav-pad:12px 8px;--nav-gap:3px;
+  --nav-item-pad:0;--nav-item-x:0;--nav-sz:0;--nav-fw:500;--nav-ls:0;--nav-tt:none;
+  --nav-on-bg:var(--acc-soft);--nav-on-ink:var(--acc);--nav-on-w:600;--nav-on-shadow:none;
+  --brand-mb:12px;--brand-w:800;--brand-sz:0;--brand-ls:0;--brand-ink:var(--ink);
+  --top-pad:0 18px;--top-h:46px;--top-edge:1px solid var(--line);--top-bg:#FFFFFF;
+  --h-sz:12px;--h-w:500;--h-ls:0;
+  --body-pad:16px 18px 18px;--body-gap:14px;
+  --r-sm:9px;--r-md:13px;
+  --ctl-h:36px;--ctl-bg:#FFFFFF;--ctl-edge:1px solid var(--line-2);
+  --btn-x:15px;--btn-w:600;--btn-ls:0;--btn-tt:none;
+  --pri:var(--acc-solid);--pri-ink:#FFFFFF;--pri-edge:var(--acc-solid);--pri-shadow:0 1px 2px rgba(37,99,235,.24);
+  --sec:#FFFFFF;--sec-edge:var(--line-2);--sec-shadow:none;
+  --seg-on:var(--acc-soft);--seg-on-ink:var(--acc);
+  --danger-bg:#FFFFFF;--danger-ink:#DC2626;--danger-edge:#F3C9C9;
+  --avat-r:8px;--avat-bg:linear-gradient(135deg,#5B8DEF,#22C08A);--avat-ink:#FFFFFF;--avat-edge:0;
+  --up-card:#FFF;--up-edge:1px solid var(--line);--up-shadow:none;--up-r:13px;
+  --up-sep:1px solid var(--line);--up-rowsep:1px solid var(--line);--up-rowh:52px;--up-thh:40px;
+  --up-thbg:#FBFCFD;--up-think:#98A0AE;--up-thsz:9.5px;--up-thw:700;--up-thls:.11em;--up-whow:600;
+  --up-hw:700;--up-hls:-.01em;--up-htt:none;--up-kvw:700;
+  --up-chipsz:10.5px;--up-chipw:600;--up-chipls:0;--up-chiptt:none;--up-chipr:9999px;
+  --up-chipbg:#F2F4F7;--up-chipink:#4B5563;--up-chipedge:1px solid var(--line);
+  --up-onbg:#E6F6EE;--up-onink:#0B6B4B;--up-onedge:transparent;--up-offbg:#F2F4F7;--up-offink:#98A0AE;
+  --cv-edge:1px solid var(--line);--cv-listpad:14px;--cv-threadpad:16px;--cv-itemgap:4px;
+  --cv-itempad:10px 11px;--cv-itembg:transparent;--cv-itemedge:1px solid transparent;
+  --cv-itemon:var(--acc-soft);--cv-itemonshadow:none;--cv-whow:700;
+  --cv-tagbg:#F2F4F7;--cv-tagink:#4B5563;--cv-tagedge:1px solid var(--line);
+  --cv-unread:var(--acc);--cv-unreadink:#FFF;--cv-hw:700;--cv-bubr:13px;
+  --cv-bub-in:#F2F4F7;--cv-bub-inedge:0;
+  --cv-bub-out:var(--acc-soft);--cv-bub-outedge:1px solid #DCE6FF;--cv-bub-outink:#17306B;
+  --cv-bub-note:#FFF8E8;--cv-bub-noteedge:1px solid #F3E0B5;
+  --cv-compedge:1px solid var(--line-2);--cv-compbg:#FFF;--cv-compshadow:none;
+  --dw-gap:14px;--dw-backbg:#F2F4F7;--dw-ghost:#FFF;--dw-ghostedge:1px solid var(--line);
+  --dw-bg:#FFF;--dw-edge:1px solid var(--line);--dw-shadow:0 12px 34px rgba(17,24,39,.10);--dw-sep:1px solid var(--line);
+  --dw-namew:800;--dw-tabgap:4px;--dw-tabedge:2px solid transparent;--dw-tabon:var(--acc);
+  --dw-tabonink:var(--acc);--dw-tabonbg:transparent;--dw-fh:40px;--dw-fsep:1px solid var(--line);--dw-flw:500;
+  --dw-pilledge:1px solid #DCE6FF;--dw-pillbg:var(--acc-soft);--dw-pillink:var(--acc);--dw-footbg:#FBFCFD;
+  --au-bg:#FFF;--au-edge:1px solid var(--line);--au-shadow:none;--au-icedge:0;
+  --au-stepedge:1px solid var(--line);--au-stepbg:#F7F8FA;
+  --au-on:#12805C;--au-onedge:0;--au-knob:#FFF;--au-off:#DCDFE5;--au-knoboff:#FFF;
+  --cf-niedge:1px solid transparent;--cf-nion:var(--acc-soft);--cf-nionink:var(--acc);--cf-nionedge:transparent;
+  --cf-bhbg:#FBFCFD;--cf-fieldedge:1px solid var(--line);--cf-fieldbg:#FFF;
+}
+[data-d="sereno"] .navitem{justify-content:center;height:38px;border-radius:9px}
+[data-d="sereno"] .navitem span{display:none}
+[data-d="sereno"] .scr__brand{justify-content:center}
+[data-d="sereno"] .scr__wordmark,[data-d="sereno"] .nav-sep{display:none}
+[data-d="sereno"] .btn{border-radius:9999px}
+[data-d="sereno"] .f-field{border-radius:9999px}
+[data-d="sereno"] .seg{border-radius:9999px;overflow:hidden}
+[data-d="sereno"] .avat{background:var(--avat-bg)}
+
+/* a tira de trilha, no topo de tudo */
+.sbar{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);width:100%}
+.sbar b{color:var(--ink-2);font-weight:600}
+.sbar__r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.spill{
+  display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;border-radius:9999px;
+  border:1px solid var(--line-2);background:#FFF;font-size:11px;font-weight:600;color:var(--ink-2);
+}
+.spill[data-t="ai"]{background:var(--acc-soft);border-color:#DCE6FF;color:var(--acc)}
+
+/* o bloco de cabeçalho da página, dentro de um card branco */
+.shead{background:#FFF;border:1px solid var(--line);border-radius:13px;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.shead__t{display:flex;align-items:flex-start;gap:14px}
+.seyebrow{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:5px}
+.shead__h{font-family:var(--f-display);font-size:19px;font-weight:800;letter-spacing:-.025em;color:var(--ink);display:flex;align-items:center;gap:9px;line-height:1.2}
+.sbadge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:9999px;background:var(--acc-soft);color:var(--acc)}
+.shead__s{font-size:12px;color:var(--ink-3);margin-top:4px}
+.shead__a{margin-left:auto;display:flex;gap:8px;flex:none}
+.shead__f{display:flex;gap:9px;align-items:center}
+.sfilters{margin-left:auto;display:flex;gap:8px}
+.sselect{
+  height:36px;border:1px solid var(--line-2);border-radius:9999px;background:#FFF;display:inline-flex;
+  align-items:center;gap:7px;padding:0 12px;font-size:12px;color:var(--ink-2);white-space:nowrap;
+}
+.stabs{display:flex;gap:16px;align-items:center;padding:0 2px}
+.stab{font-size:12px;font-weight:600;color:var(--ink-3);padding-bottom:7px;border-bottom:2px solid transparent}
+.stab[data-on="1"]{color:var(--ink);border-bottom-color:var(--ink)}
+.shint{margin-left:auto;font-size:11px;color:var(--ink-3)}
+
+/* Kanban Sereno — barra de cor no topo de cada etapa */
+.sk{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;flex:1;min-height:0}
+.sk__col{display:flex;flex-direction:column;min-width:0;gap:9px}
+.sk__bar{height:5px;border-radius:9999px;background:var(--tone);flex:none}
+.sk__h{display:flex;align-items:center;gap:8px;padding:0 3px}
+.sk__dot{width:7px;height:7px;border-radius:50%;background:var(--tone);flex:none}
+.sk__ic{color:var(--tone);display:flex}
+.sk__n{font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.sk__c{margin-left:auto;font-size:11px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.sk__body{flex:1;min-height:0;background:#FFF;border:1px solid var(--line);border-radius:13px;padding:9px;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+.sk__sum{font-size:10.5px;color:var(--ink-3);padding:1px 3px 0;font-variant-numeric:tabular-nums}
+.sk__card{border:1px solid var(--line);border-radius:11px;padding:11px;display:flex;flex-direction:column;gap:9px;background:#FFF}
+.sk__card:hover{border-color:#CBD5E1;box-shadow:0 2px 8px rgba(17,24,39,.06)}
+.sk__r1{display:flex;align-items:center;gap:9px;min-width:0}
+.sk__av{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;color:#FFF;background:linear-gradient(135deg,var(--tone),color-mix(in srgb,var(--tone) 45%,#22C08A))}
+.sk__who{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.sk__proc{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.sk__r2{display:flex;align-items:center;gap:7px;padding-top:9px;border-top:1px solid var(--line)}
+.sk__chip{
+  display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:3px 9px;border-radius:9999px;
+  background:#F2F4F7;color:var(--ink-2);white-space:nowrap;
+}
+.sk__chip[data-st="atrasado"]{background:#FEECEC;color:#B42318}
+.sk__chip[data-st="atencao"]{background:#FEF4E2;color:#93610A}
+.sk__val{margin-left:auto;font-size:12.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.sk__empty{flex:1;display:grid;place-items:center;text-align:center;font-size:11px;color:var(--ink-3);padding:20px 10px;line-height:1.5}
+.sk__add{
+  display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:11px;
+  border:1px dashed var(--line-2);font-size:11px;font-weight:600;color:var(--ink-3);cursor:pointer;
+}
+.sk__add:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
+
+/* Agenda Sereno */
+.sa{flex:1;min-height:0;display:grid;grid-template-columns:56px 1fr;gap:10px;background:#FFF;border:1px solid var(--line);border-radius:13px;padding:12px;overflow:hidden}
+.sa__hours{display:flex;flex-direction:column;padding-top:44px}
+.sa__hr{height:54px;flex:none;font-size:10px;color:var(--ink-3);text-align:right;padding-right:8px;font-variant-numeric:tabular-nums;transform:translateY(-5px)}
+.sa__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-width:0}
+.sa__lane{display:flex;flex-direction:column;min-width:0}
+.sa__lh{height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:9999px;background:#F7F8FA;margin-bottom:8px}
+.sa__prof{font-size:11.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa__esp{font-size:10px;color:var(--ink-3);margin-left:auto;white-space:nowrap}
+.sa__slots{position:relative;height:540px;border-radius:11px;background:#FBFCFD;border:1px solid var(--line)}
+.sa__ln{position:absolute;left:0;right:0;height:1px;background:var(--line)}
+.sa__ev{position:absolute;left:6px;right:6px;border-radius:9px;padding:6px 9px;overflow:hidden;
+        background:color-mix(in srgb,var(--tone) 12%,#FFF);border:1px solid color-mix(in srgb,var(--tone) 30%,#FFF);border-left:3px solid var(--tone)}
+.sa__evp{font-size:11px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa__evs{font-size:9.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa__now{position:absolute;left:-6px;right:-6px;height:2px;background:#DC2626;z-index:5;border-radius:1px}
+.sa__now::before{content:"";position:absolute;left:-3px;top:-3px;width:8px;height:8px;border-radius:50%;background:#DC2626}
+
+/* Financeiro Sereno */
+.sf__k{background:#FFF;border:1px solid var(--line);border-radius:13px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.sf__kl{font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.sf__kv{font-size:25px;font-weight:800;letter-spacing:-.035em;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.05}
+.sf__kv[data-t="ok"]{color:var(--ok)}
+.sf__kv[data-t="bad"]{color:var(--bad)}
+.sf__kd{font-size:10.5px;color:var(--ink-3)}
+.sf__st{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:9999px}
+.sf__st[data-st="pago"]{background:#E6F6EE;color:#0B6B4B}
+.sf__st[data-st="aberto"]{background:#F2F4F7;color:#4B5563}
+.sf__st[data-st="vencido"]{background:#FEECEC;color:#B42318}
+
+/* =========================================================================
+   DIREÇÃO F — ZAP
+   A linguagem do WhatsApp. Não é imitação: é reaproveitar um vocabulário
+   que a secretária já domina — bolha, tique, badge verde, avatar redondo.
+   ========================================================================= */
+[data-d="zap"]{
+  --bg:#EFEAE2;--s1:#FFFFFF;--s2:#F0F2F5;--s3:#E9EDEF;
+  --line:#E9EDEF;--line-2:#D1D7DB;
+  --ink:#111B21;--ink-2:#54656F;--ink-3:#8696A0;
+  --acc:#1DAB61;--acc-solid:#1DAB61;
+  --zap-badge:#25D366;--zap-out:#D9FDD3;--zap-tick:#53BDEB;--zap-teal:#008069;
+  --ok:#1DAB61;--warn:#C4820E;--bad:#E5484D;--info:#53BDEB;
+  --f-display:-apple-system,"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --f-body:-apple-system,"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --nav-w:76px;--nav-bg:#F0F2F5;--nav-edge:1px solid var(--line);--nav-pad:14px 8px;--nav-gap:2px;
+  --nav-item-pad:0;--nav-item-x:0;--nav-sz:8.5px;--nav-fw:400;--nav-ls:0;--nav-tt:none;
+  --nav-on-bg:#E9EDEF;--nav-on-ink:var(--zap-teal);--nav-on-w:600;--nav-on-shadow:none;
+  --brand-mb:14px;--brand-w:600;--brand-sz:13px;--brand-ls:0;--brand-ink:var(--ink);
+  --top-pad:0 16px;--top-h:59px;--top-edge:1px solid var(--line);--top-bg:#F0F2F5;
+  --h-sz:16px;--h-w:500;--h-ls:0;
+  --body-pad:0;--body-gap:0;
+  --r-sm:8px;--r-md:8px;
+  --ctl-h:33px;--ctl-bg:#FFFFFF;--ctl-edge:1px solid transparent;
+  --btn-x:14px;--btn-w:500;--btn-ls:0;--btn-tt:none;
+  --pri:var(--acc-solid);--pri-ink:#FFFFFF;--pri-edge:var(--acc-solid);--pri-shadow:none;
+  --sec:#FFFFFF;--sec-edge:transparent;--sec-shadow:0 1px 0.5px rgba(11,20,26,.13);
+  --seg-on:#FFFFFF;--seg-on-ink:var(--zap-teal);
+  --danger-bg:#FFFFFF;--danger-ink:#E5484D;--danger-edge:transparent;
+  --avat-r:50%;--avat-bg:#D1D7DB;--avat-ink:#FFFFFF;--avat-edge:0;
+  --up-card:#FFF;--up-edge:1px solid transparent;--up-shadow:0 1px 0.5px rgba(11,20,26,.13);--up-r:8px;
+  --up-sep:1px solid var(--line);--up-rowsep:1px solid var(--line);--up-rowh:56px;--up-thh:38px;
+  --up-thbg:#F0F2F5;--up-think:#54656F;--up-thsz:11px;--up-thw:500;--up-thls:0;--up-whow:500;
+  --up-hw:500;--up-hls:0;--up-htt:none;--up-kvw:500;
+  --up-chipsz:11px;--up-chipw:500;--up-chipls:0;--up-chiptt:none;--up-chipr:9999px;
+  --up-chipbg:#F0F2F5;--up-chipink:#54656F;--up-chipedge:1px solid transparent;
+  --up-onbg:#D9FDD3;--up-onink:#0B6E3B;--up-onedge:transparent;--up-offbg:#F0F2F5;--up-offink:#8696A0;
+}
+[data-d="zap"] .navitem{flex-direction:column;gap:3px;justify-content:center;height:50px;text-align:center;border-radius:8px}
+[data-d="zap"] .scr__brand{justify-content:center}
+[data-d="zap"] .scr__wordmark{display:none}
+[data-d="zap"] .nav-sep{display:none}
+[data-d="zap"] .btn--pri{border-radius:9999px}
+[data-d="zap"] .f-field{background:#FFF;border-radius:9999px;height:33px}
+[data-d="zap"] .seg{border-radius:9999px;background:#FFF;border:0;box-shadow:0 1px 0.5px rgba(11,20,26,.13)}
+[data-d="zap"] .seg span[data-on="1"]{background:#D9FDD3;color:#0B6E3B;border-radius:9999px}
+
+/* Kanban Zap — cada etapa é uma lista de conversa */
+.zk{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);flex:1;min-height:0}
+.zk__col{background:#FFF;display:flex;flex-direction:column;min-width:0}
+.zk__head{padding:11px 14px;background:#F0F2F5;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.zk__name{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zk__count{margin-left:auto;background:var(--zap-badge);color:#FFF;font-size:10.5px;font-weight:600;min-width:19px;height:19px;padding:0 6px;border-radius:10px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.zk__sum{padding:7px 14px;font-size:11px;color:var(--ink-3);border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.zk__list{display:flex;flex-direction:column;overflow:hidden}
+.zk__row{display:flex;gap:11px;padding:9px 14px 9px 12px;align-items:flex-start;position:relative}
+.zk__row:hover{background:#F5F6F6}
+.zk__row::after{content:"";position:absolute;left:63px;right:0;bottom:0;height:1px;background:var(--line)}
+.zk__row:last-child::after{display:none}
+.zk__av{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;font-weight:500;color:#FFF;background:var(--tone)}
+.zk__b{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.zk__t1{display:flex;align-items:baseline;gap:8px;min-width:0}
+.zk__who{font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.zk__when{font-size:11px;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.zk__when[data-st="atrasado"]{color:var(--bad)}
+.zk__t2{display:flex;align-items:center;gap:6px;min-width:0}
+.zk__prev{font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;display:flex;align-items:center;gap:4px}
+.zk__pill{background:var(--zap-badge);color:#FFF;font-size:10.5px;font-weight:600;min-width:19px;height:19px;padding:0 6px;border-radius:10px;display:grid;place-items:center;flex:none;font-variant-numeric:tabular-nums}
+.zk__pill[data-st="atrasado"]{background:var(--bad)}
+.zk__val{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Agenda Zap */
+.za{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;
+    background-image:radial-gradient(rgba(17,27,33,.045) 1px,transparent 1px);background-size:22px 22px}
+.za__day{padding:11px 18px 4px;display:flex;justify-content:center}
+.za__daychip{background:#FFF;box-shadow:0 1px 0.5px rgba(11,20,26,.13);border-radius:9999px;padding:5px 13px;font-size:11.5px;color:var(--ink-2)}
+.za__list{flex:1;min-height:0;overflow:hidden;padding:8px 18px 18px;display:flex;flex-direction:column;gap:7px}
+.za__ev{background:#FFF;border-radius:8px;box-shadow:0 1px 0.5px rgba(11,20,26,.13);padding:8px 11px;display:flex;gap:11px;align-items:center;max-width:78%;position:relative}
+.za__ev[data-st="confirmado"]{background:var(--zap-out)}
+.za__ev[data-st="faltou"]{opacity:.62}
+.za__hora{font-size:12.5px;font-weight:600;color:var(--zap-teal);font-variant-numeric:tabular-nums;width:42px;flex:none}
+.za__b{min-width:0;flex:1}
+.za__pac{font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.za__det{font-size:11.5px;color:var(--ink-2);margin-top:1px}
+.za__meta{display:flex;align-items:center;gap:4px;align-self:flex-end;font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+.za__now{display:flex;align-items:center;gap:9px;padding:2px 0}
+.za__nowl{flex:1;height:2px;background:var(--zap-badge);border-radius:1px}
+.za__nowt{font-size:10.5px;font-weight:600;color:var(--zap-badge);background:#FFF;border-radius:9999px;padding:2px 9px;box-shadow:0 1px 0.5px rgba(11,20,26,.13)}
+
+/* Financeiro Zap — o tique de leitura como estado de cobrança */
+.zf{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.zf__strip{display:flex;gap:9px;padding:12px 16px;background:#F0F2F5;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.zf__k{background:#FFF;border-radius:8px;box-shadow:0 1px 0.5px rgba(11,20,26,.13);padding:9px 13px;display:flex;flex-direction:column;gap:2px;min-width:132px}
+.zf__kl{font-size:10.5px;color:var(--ink-3)}
+.zf__kv{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.zf__kv[data-t="ok"]{color:var(--acc)}
+.zf__kv[data-t="bad"]{color:var(--bad)}
+.zf__rows{flex:1;min-height:0;overflow:hidden;background:#FFF}
+.zf__r{display:flex;gap:11px;padding:10px 16px 10px 14px;align-items:center;position:relative}
+.zf__r::after{content:"";position:absolute;left:63px;right:0;bottom:0;height:1px;background:var(--line)}
+.zf__b{min-width:0;flex:1}
+.zf__who{font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zf__sub{font-size:11.5px;color:var(--ink-2);margin-top:2px;display:flex;align-items:center;gap:5px}
+.zf__right{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.zf__amt{font-size:13.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.zf__amt[data-st="vencido"]{color:var(--bad)}
+.zf__tick{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+.zf__tick[data-st="pago"]{color:var(--zap-tick)}
+.zf__tick[data-st="vencido"]{color:var(--bad)}
+.zf__legend{padding:10px 16px;background:#F0F2F5;border-top:1px solid var(--line);display:flex;gap:18px;flex-wrap:wrap;font-size:10.5px;color:var(--ink-2)}
+.zf__lg{display:inline-flex;align-items:center;gap:5px}
+
+/* =========================================================================
+   DIREÇÃO G — AGENDA
+   Google Calendar e Material 3. Pílulas, elevação tonal, chips de evento.
+   ========================================================================= */
+[data-d="agenda"]{
+  --bg:#FFFFFF;--s1:#FFFFFF;--s2:#F0F4F9;--s3:#E9EEF6;
+  --line:#E1E3E1;--line-2:#C4C7C5;
+  --ink:#1F1F1F;--ink-2:#444746;--ink-3:#5F6368;
+  --acc:#0B57D0;--acc-solid:#0B57D0;
+  --g1:#1A73E8;--g2:#0B8043;--g3:#E37400;--g4:#8E24AA;--g5:#5F6368;
+  --ok:#0B8043;--warn:#E37400;--bad:#C5221F;--info:#1A73E8;
+  --f-display:"Google Sans",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-body:Roboto,"Helvetica Neue",Arial,sans-serif;
+  --nav-w:228px;--nav-bg:#FFFFFF;--nav-edge:0;--nav-pad:14px 10px;--nav-gap:1px;
+  --nav-item-pad:0 14px;--nav-item-x:14px;--nav-sz:13px;--nav-fw:500;--nav-ls:0;--nav-tt:none;
+  --nav-on-bg:#C2E7FF;--nav-on-ink:#001D35;--nav-on-w:500;--nav-on-shadow:none;
+  --brand-mb:16px;--brand-w:400;--brand-sz:20px;--brand-ls:0;--brand-ink:var(--ink-2);
+  --top-pad:0 20px;--top-h:64px;--top-edge:1px solid var(--line);--top-bg:#FFFFFF;
+  --h-sz:20px;--h-w:400;--h-ls:0;
+  --body-pad:14px 18px 18px;--body-gap:14px;
+  --r-sm:8px;--r-md:16px;
+  --ctl-h:36px;--ctl-bg:#FFFFFF;--ctl-edge:1px solid var(--line-2);
+  --btn-x:18px;--btn-w:500;--btn-ls:.01em;--btn-tt:none;
+  --pri:var(--acc-solid);--pri-ink:#FFFFFF;--pri-edge:var(--acc-solid);--pri-shadow:none;
+  --sec:#FFFFFF;--sec-edge:var(--line-2);--sec-shadow:none;
+  --seg-on:#C2E7FF;--seg-on-ink:#001D35;
+  --danger-bg:#FFFFFF;--danger-ink:#C5221F;--danger-edge:var(--line-2);
+  --avat-r:50%;--avat-bg:#E9EEF6;--avat-ink:#444746;--avat-edge:0;
+  --up-card:#FFF;--up-edge:1px solid var(--line);--up-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);
+  --up-r:16px;--up-sep:1px solid var(--line);--up-rowsep:1px solid var(--line);--up-rowh:48px;--up-thh:44px;
+  --up-thbg:#F0F4F9;--up-think:#444746;--up-thsz:12px;--up-thw:500;--up-thls:0;--up-whow:500;
+  --up-hw:400;--up-hls:0;--up-htt:none;--up-kvw:400;
+  --up-chipsz:11.5px;--up-chipw:500;--up-chipls:0;--up-chiptt:none;--up-chipr:8px;
+  --up-chipbg:#F0F4F9;--up-chipink:#444746;--up-chipedge:1px solid var(--line);
+  --up-onbg:#C4EED0;--up-onink:#0A3A1E;--up-onedge:transparent;--up-offbg:#F0F4F9;--up-offink:#5F6368;
+}
+[data-d="agenda"] .navitem{border-radius:0 9999px 9999px 0;height:36px;margin-right:6px}
+[data-d="agenda"] .btn{border-radius:9999px}
+[data-d="agenda"] .btn--sec{border-color:var(--line-2)}
+[data-d="agenda"] .f-field{border-radius:9999px;background:#F0F4F9;border-color:transparent}
+[data-d="agenda"] .seg{border-radius:9999px;border-color:var(--line-2);overflow:hidden}
+[data-d="agenda"] .seg span[data-on="1"]{background:#C2E7FF;color:#001D35}
+[data-d="agenda"] .nav-sep{padding-left:16px}
+
+/* botão Criar, com a sombra do Google */
+.gcreate{
+  display:inline-flex;align-items:center;gap:10px;height:47px;padding:0 22px 0 18px;border-radius:9999px;
+  background:#FFF;border:1px solid transparent;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);
+  font-family:var(--f-body);font-size:14px;font-weight:500;color:#3C4043;cursor:pointer;margin-bottom:10px;
+}
+/* mini-mês do rail */
+.gmini{padding:6px 8px 12px}
+.gmini__h{display:flex;align-items:center;gap:6px;padding:0 4px 7px;font-size:12.5px;color:var(--ink-2)}
+.gmini__g{display:grid;grid-template-columns:repeat(7,1fr);gap:1px}
+.gmini__c{height:22px;display:grid;place-items:center;font-size:10px;color:var(--ink-2);border-radius:50%;font-variant-numeric:tabular-nums}
+.gmini__c[data-w="1"]{color:var(--ink-3);font-size:9px}
+.gmini__c[data-o="1"]{color:#BDC1C6}
+.gmini__c[data-on="1"]{background:var(--g1);color:#FFF;font-weight:500}
+
+/* Agenda G — a grade do Google Calendar */
+.ga2{flex:1;min-height:0;display:grid;grid-template-columns:52px 1fr;overflow:hidden}
+.ga2__hours{display:flex;flex-direction:column;padding-top:54px}
+.ga2__hr{height:52px;flex:none;font-size:10px;color:var(--ink-3);text-align:right;padding-right:9px;transform:translateY(-6px)}
+.ga2__grid{display:grid;grid-template-columns:repeat(3,1fr);min-width:0;border-left:1px solid var(--line)}
+.ga2__lane{border-right:1px solid var(--line);min-width:0;position:relative}
+.ga2__lh{height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-bottom:1px solid var(--line)}
+.ga2__lhd{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.ga2__lhn{font-size:12.5px;font-weight:500;color:var(--ink-2);height:26px;padding:0 12px;border-radius:9999px;display:grid;place-items:center}
+.ga2__lane[data-today="1"] .ga2__lhn,.ga2__lhn{background:color-mix(in srgb,var(--tone) 14%,#FFF);color:var(--tone)}
+.ga2__slots{position:relative;height:520px}
+.ga2__ln{position:absolute;left:0;right:0;height:1px;background:var(--line)}
+.ga2__ev{
+  position:absolute;left:3px;right:5px;border-radius:4px;padding:3px 7px;overflow:hidden;
+  background:var(--tone);color:#FFF;border-left:0;
+}
+.ga2__ev[data-v="tonal"]{background:color-mix(in srgb,var(--tone) 16%,#FFF);color:var(--tone);border:1px solid color-mix(in srgb,var(--tone) 34%,#FFF)}
+.ga2__evt{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.ga2__evs{font-size:10px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ga2__now{position:absolute;left:0;right:0;height:2px;background:#EA4335;z-index:5}
+.ga2__now::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#EA4335}
+
+/* Kanban G */
+.gk2{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;flex:1;min-height:0}
+.gk2__col{background:var(--s2);border-radius:16px;padding:12px 10px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.gk2__h{display:flex;align-items:center;gap:8px;padding:0 4px}
+.gk2__dot{width:10px;height:10px;border-radius:50%;background:var(--tone);flex:none}
+.gk2__n{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gk2__c{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.gk2__s{padding:0 4px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.gk2__list{display:flex;flex-direction:column;gap:9px;overflow:hidden}
+.gk2__card{background:#FFF;border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15)}
+.gk2__who{font-size:13px;font-weight:500;color:var(--ink);letter-spacing:.01em}
+.gk2__proc{font-size:11.5px;color:var(--ink-3)}
+.gk2__row{display:flex;align-items:center;gap:7px}
+.gk2__val{font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.gk2__chip{
+  display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:8px;
+  background:var(--s2);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap;
+}
+.gk2__chip[data-st="atrasado"]{background:#FCE8E6;color:#C5221F;border-color:#F5C6C3}
+.gk2__chip[data-st="atencao"]{background:#FEF7E0;color:#9A6600;border-color:#FBE3A2}
+.gk2__act{
+  height:34px;border-radius:9999px;border:1px solid var(--line-2);background:#FFF;display:flex;align-items:center;
+  justify-content:center;gap:7px;font-family:var(--f-body);font-size:12px;font-weight:500;color:var(--acc);cursor:pointer;
+}
+
+/* Financeiro G */
+.gf2__k{background:var(--s2);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:3px}
+.gf2__kl{font-size:11.5px;color:var(--ink-3)}
+.gf2__kv{font-size:26px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.1}
+.gf2__kv[data-t="bad"]{color:var(--bad)}
+.gf2__kv[data-t="ok"]{color:var(--ok)}
+.gf2__kd{font-size:11px;color:var(--ink-3)}
+
+/* =========================================================================
    SUPERFÍCIES UPSTREAM — Contatos, Relatórios, Campanhas.
    Marcação deliberadamente genérica: é o DOM do Chatwoot que existe hoje.
    Nada aqui muda entre as duas versões — só o conjunto de tokens muda.
@@ -1029,6 +1412,11 @@ table.deck .num{font-variant-numeric:tabular-nums;text-align:right;white-space:n
 .cs .is-hover .bk__card{box-shadow:4px 4px 0 #111;transform:translate(-1px,-1px)}
 .cs .is-sel .bk__card{outline:3px solid #2563EB;outline-offset:2px}
 .cs .is-drag .bk__card{transform:rotate(-1.6deg);box-shadow:6px 6px 0 rgba(17,17,17,.35)}
+/* os mesmos estados, na materialidade do H */
+.cs .sk__card{background:#FFF}
+.cs .is-hover .sk__card{border-color:#CBD5E1;box-shadow:0 4px 14px rgba(17,24,39,.10);transform:translateY(-1px)}
+.cs .is-sel .sk__card{outline:2px solid var(--acc);outline-offset:2px;border-color:transparent}
+.cs .is-drag .sk__card{transform:rotate(-1.6deg);box-shadow:0 14px 28px rgba(17,24,39,.18)}
 .cs__anat{display:grid;grid-template-columns:250px 1fr;gap:18px;align-items:start;padding-top:4px;border-top:var(--up-rowsep)}
 .cs__leg{display:flex;flex-direction:column;gap:0}
 .cs__l{display:grid;grid-template-columns:20px 1fr;gap:9px;padding:6px 0;border-bottom:var(--up-rowsep);font-size:11px;color:var(--ink-2);align-items:baseline}
@@ -1047,7 +1435,37 @@ table.deck .num{font-variant-numeric:tabular-nums;text-align:right;white-space:n
 .hj__ht{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
 .hj__hc{margin-left:auto;font-size:10px;font-weight:800;background:rgba(255,255,255,.22);border-radius:3px;padding:1px 6px;font-variant-numeric:tabular-nums}
 .hj__b{padding:9px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
-.hj__i{border:var(--cv-itemedge);border-radius:var(--r-sm);padding:8px 9px;display:flex;flex-direction:column;gap:5px;background:#FFF;box-shadow:2px 2px 0 #111}
+.hj__i{border:var(--hj-edge);border-radius:var(--r-sm);padding:8px 9px;display:flex;flex-direction:column;gap:5px;background:var(--up-card);box-shadow:var(--hj-shadow)}
+/* selo de estado neutro de direcao — usado em Hoje e onde mais precisar */
+.stamp{
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+  font-size:var(--stamp-sz);font-weight:var(--stamp-w);letter-spacing:var(--stamp-ls);
+  text-transform:var(--stamp-tt);border:var(--stamp-edge);border-radius:var(--stamp-r);
+  padding:var(--stamp-pad);background:var(--stamp-bg);color:var(--stamp-ink);
+}
+.stamp[data-st="atrasado"]{background:var(--stamp-bad-bg);color:var(--stamp-bad-ink);border-color:var(--stamp-bad-edge)}
+.stamp[data-st="atencao"]{background:var(--stamp-warn-bg);color:var(--stamp-warn-ink);border-color:var(--stamp-warn-edge)}
+[data-d="bloco"]{
+  --hj-edge:1.5px solid #111;--hj-shadow:2px 2px 0 #111;
+  --stamp-sz:9px;--stamp-w:800;--stamp-ls:.07em;--stamp-tt:uppercase;--stamp-edge:1.5px solid #111;
+  --stamp-r:3px;--stamp-pad:2px 6px;--stamp-bg:#FFF;--stamp-ink:#111;
+  --stamp-bad-bg:#DC2626;--stamp-bad-ink:#FFF;--stamp-bad-edge:#111;
+  --stamp-warn-bg:#FFD84D;--stamp-warn-ink:#111;--stamp-warn-edge:#111;
+}
+[data-d="sereno"]{
+  --hj-edge:1px solid var(--line);--hj-shadow:none;
+  --stamp-sz:10px;--stamp-w:600;--stamp-ls:0;--stamp-tt:none;--stamp-edge:1px solid transparent;
+  --stamp-r:9999px;--stamp-pad:3px 9px;--stamp-bg:#F2F4F7;--stamp-ink:#4B5563;
+  --stamp-bad-bg:#FEECEC;--stamp-bad-ink:#B42318;--stamp-bad-edge:transparent;
+  --stamp-warn-bg:#FEF4E2;--stamp-warn-ink:#93610A;--stamp-warn-edge:transparent;
+}
+[data-d="vidro"]{
+  --hj-edge:1px solid rgba(255,255,255,.12);--hj-shadow:none;
+  --stamp-sz:9.5px;--stamp-w:700;--stamp-ls:0;--stamp-tt:none;--stamp-edge:1px solid rgba(255,255,255,.12);
+  --stamp-r:9999px;--stamp-pad:3px 8px;--stamp-bg:rgba(255,255,255,.09);--stamp-ink:#AEBACC;
+  --stamp-bad-bg:rgba(251,113,133,.18);--stamp-bad-ink:#FDB3BE;--stamp-bad-edge:rgba(251,113,133,.32);
+  --stamp-warn-bg:rgba(251,191,36,.16);--stamp-warn-ink:#FBD97A;--stamp-warn-edge:rgba(251,191,36,.30);
+}
 .hj__w{font-size:12px;font-weight:700;color:var(--ink)}
 .hj__d{font-size:10.5px;color:var(--ink-3)}
 .hj__f{display:flex;align-items:center;gap:6px}
@@ -1126,7 +1544,7 @@ footer code{font-family:var(--f-code);font-size:12px;color:var(--c-ink-2)}
 <div class="wrap">
   <header class="deck-head">
     <p class="eyebrow">Raevo CRM · Revisão de linguagem visual · Agosto 2026</p>
-    <h1>Cinco linguagens, <em>não</em> cinco layouts</h1>
+    <h1>Oito linguagens, <em>não</em> oito layouts</h1>
     <p class="lede">
       As propostas anteriores mudaram onde as coisas ficam. Nenhuma mudou de que material as coisas
       são feitas — e é por isso que todas continuaram parecendo o Chatwoot. Aqui estão cinco sistemas
@@ -1134,8 +1552,8 @@ footer code{font-family:var(--f-code);font-size:12px;color:var(--c-ink-2)}
       telas que você citou: Kanban, Agenda e Financeiro.
     </p>
     <p class="meta">
-      <span><b>15</b> telas renderizadas</span>
-      <span><b>5</b> sistemas de tokens</span>
+      <span><b>16</b> telas em D e em H</span>
+      <span><b>8</b> sistemas de tokens</span>
       <span><b>3</b> módulos · Kanban · Agenda · Financeiro</span>
       <span><b>0</b> arquivos da aplicação alterados</span>
     </p>
@@ -1225,11 +1643,14 @@ footer code{font-family:var(--f-code);font-size:12px;color:var(--c-ink-2)}
   </section>
 
   <section class="lab" id="lab">
-    <h2>As cinco direções</h2>
+    <h2>As oito direções</h2>
     <p class="sec-note">
       Troque a direção e a tela. Tudo abaixo é HTML e CSS de verdade, em 1240px — o mesmo esqueleto
-      de DOM nas cinco, só com conjuntos de tokens diferentes. É a prova de que são sistemas, e não
-      cinco desenhos soltos.
+      de DOM nas oito, só com conjuntos de tokens diferentes. É a prova de que são sistemas, e não
+      oito desenhos soltos. <b style="color:var(--c-ink)">H reconstrói o CRM de referência que você
+      aprovou.</b> <b style="color:var(--c-ink)">F e G partem de uma tese oposta às primeiras cinco:</b> em vez de construir uma linguagem nova, emprestam uma que a secretária já
+      usa todo dia — WhatsApp e Google Calendar. O ganho é treinamento perto de zero; o preço é
+      abrir mão de identidade própria.
     </p>
   </section>
 </div>
@@ -1555,6 +1976,30 @@ footer code{font-family:var(--f-code);font-size:12px;color:var(--c-ink-2)}
             <td><span class="score mid">médio</span> — sombra e borda novas</td>
           </tr>
           <tr>
+            <td>H · Sereno</td>
+            <td><span class="score hi">ótima</span> — arejada, fácil de varrer</td>
+            <td><span class="score mid">média</span> — o ar custa densidade</td>
+            <td><span class="score hi">ótima</span> — é o padrão que o mercado espera</td>
+            <td><span class="score hi">ótima</span> — contraste e alvo resolvidos</td>
+            <td><span class="score hi">baixo</span> — só troca de tokens</td>
+          </tr>
+          <tr>
+            <td>F · Zap</td>
+            <td><span class="score hi">ótima</span> — zero treinamento</td>
+            <td><span class="score mid">média</span> — pouca informação por linha</td>
+            <td><span class="score hi">ótima</span> — reconhecimento imediato</td>
+            <td><span class="score mid">média</span> — verde carrega significado demais</td>
+            <td><span class="score hi">baixo</span> — só troca de tokens</td>
+          </tr>
+          <tr>
+            <td>G · Agenda</td>
+            <td><span class="score hi">ótima</span> — a agenda é a tela-mãe</td>
+            <td><span class="score mid">média</span></td>
+            <td><span class="score hi">ótima</span> — parece produto Google</td>
+            <td><span class="score hi">ótima</span> — Material já resolve foco e alvo</td>
+            <td><span class="score mid">médio</span> — pílulas e elevação novas</td>
+          </tr>
+          <tr>
             <td>E · Trilho</td>
             <td><span class="score hi">ótima</span> — a agenda é nativa da metáfora</td>
             <td><span class="score mid">média</span> — precisa da Lista ao lado</td>
@@ -1678,7 +2123,10 @@ var ICO_STYLE={
  vidro:  {set:'f',sw:0,  sz:17},
  bloco:  {set:'f',sw:0,  sz:18},
  trilho: {set:'s',sw:1.6,sz:16},
- chatwoot:{set:'s',sw:1.5,sz:16}
+ chatwoot:{set:'s',sw:1.5,sz:16},
+ zap:    {set:'s',sw:1.9,sz:18},
+ agenda: {set:'s',sw:1.7,sz:20},
+ sereno: {set:'s',sw:1.7,sz:17}
 };
 function ico(dir,name,size){
   var st=ICO_STYLE[dir], s=size||st.sz;
@@ -1824,7 +2272,10 @@ var MARKS={
  vidro:'<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4FF3E2"/><stop offset="1" stop-color="#1080C8"/></linearGradient></defs><rect x="1" y="1" width="18" height="18" rx="6" fill="url(#vg)"/><path d="M6.4 13.6V6.4h4a2.3 2.3 0 0 1 0 4.6H8l3.4 2.6" fill="none" stroke="#05242B" stroke-width="1.7" stroke-linejoin="round"/></svg>',
  bloco:'<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="1.5" y="1.5" width="17" height="17" rx="2" fill="#FCFBF7" stroke="#111" stroke-width="1.6"/><path d="M6.4 14V6h4.1a2.3 2.3 0 0 1 0 4.6H7.9L11.6 14" fill="none" stroke="#111" stroke-width="2"/></svg>',
  trilho:'<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 11h18" stroke="#C9D0D9" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="11" r="3" fill="#3E6BE0"/><circle cx="16" cy="11" r="2.2" fill="#E0763A"/></svg>',
- chatwoot:'<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="18" height="18" rx="5" fill="#2781F6"/><path d="M6.4 13.6V6.4h4a2.3 2.3 0 0 1 0 4.6H7.9l3.5 2.6" fill="none" stroke="#FFF" stroke-width="1.6" stroke-linejoin="round"/></svg>'
+ chatwoot:'<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="18" height="18" rx="5" fill="#2781F6"/><path d="M6.4 13.6V6.4h4a2.3 2.3 0 0 1 0 4.6H7.9l3.5 2.6" fill="none" stroke="#FFF" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+ zap:'<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#1DAB61"/><path d="M6.6 15.2V7.4h4.3a2.4 2.4 0 0 1 0 4.8H8.2l3.6 2.8" fill="none" stroke="#FFF" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+ agenda:'<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="3.5" width="19" height="17" rx="2.5" fill="#FFF" stroke="#DADCE0"/><rect x="2.5" y="3.5" width="19" height="4.5" rx="2.5" fill="#1A73E8"/><path d="M8 13.4h3.1a1.6 1.6 0 0 1 0 3.2H8.4" fill="none" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round"/><path d="M8 11.4h3.4" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round"/><path d="M14.4 11.2v5.4M13 12.6l1.4-1.4 1.4 1.4" fill="none" stroke="#0B8043" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+sereno:'<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5B8DEF"/><stop offset="1" stop-color="#22C08A"/></linearGradient></defs><rect x="1" y="1" width="20" height="20" rx="7" fill="url(#sg)"/><path d="M7 15V7h4.2a2.4 2.4 0 0 1 0 4.8H8.4L12 15" fill="none" stroke="#FFF" stroke-width="1.8" stroke-linejoin="round"/></svg>'
 };
 function nav(dir,scr){
   var short=(dir==='trilho');
@@ -1835,15 +2286,27 @@ function nav(dir,scr){
   }).join('');
   return '<nav class="scr__nav">'+
     '<div class="scr__brand"><span class="scr__mark">'+MARKS[dir]+'</span>'+
-    '<span class="scr__wordmark">Raevo</span></div>'+items+
+    '<span class="scr__wordmark">Raevo</span></div>'+
+    (dir==='agenda'?'<button class="gcreate">'+ico('agenda','plus',20)+'Criar</button>':'')+
+    items+
+    (dir==='agenda'?gmini():'')+
   '</nav>';
 }
+/* Em H, o cabecalho da pagina nao mora na barra do topo — mora num card
+   dentro do corpo, com trilha acima. topbar() guarda as pecas e shell()
+   as monta. Argumentos sao avaliados antes da chamada, entao a ordem e
+   garantida. */
+var _head=null;
 function shell(dir,scr,top,body){
+  var pre='';
+  if(dir==='sereno'&&_head){pre=shead('',_head.t,'',_head.s,_head.a,'','');}
+  _head=null;
   return '<div class="scr" data-d="'+dir+'">'+nav(dir,scr)+
     '<div class="scr__main"><div class="scr__top">'+top+'</div>'+
-    '<div class="scr__body">'+body+'</div></div></div>';
+    '<div class="scr__body">'+pre+body+'</div></div></div>';
 }
 function topbar(dir,title,sub,tools){
+  if(dir==='sereno'){_head={t:title,s:sub,a:tools};return sbar();}
   return '<div><h1 class="top-h">'+title+'</h1>'+(sub?'<p class="top-sub">'+sub+'</p>':'')+'</div>'+
          '<div class="top-tools">'+tools+'</div>';
 }
@@ -2396,7 +2859,7 @@ function contatoPanel(dir){
       ico(dir,'money',13)+'<span style="font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">Financeiro</span></div>'+
       '<div style="display:flex;align-items:center;gap:7px">'+
         '<span class="num" style="font-size:14px;font-weight:800;letter-spacing:-.03em">R$ 480</span>'+
-        '<span class="bk__stamp" data-st="atencao" style="margin-left:auto">Vence hoje</span></div></div>'+
+        '<span class="stamp" data-st="atencao" style="margin-left:auto">Vence hoje</span></div></div>'+
     '<div style="margin-top:auto;display:flex;flex-direction:column;gap:7px">'+
       btnS(dir,'Ver perfil completo','user')+btnP(dir,'Agendar consulta','cal')+'</div>'+
   '</div>';
@@ -2573,9 +3036,10 @@ function contatosScreen(dir){
       btnS(dir,'','chevR')+'<span style="margin-left:auto">Mostrando 7 de 1.284</span></div></div></div>');
 }
 function relatoriosScreen(dir){
-  var cor=dir==='bloco'?'#2563EB':'#2781F6';
-  var ink=dir==='bloco'?'#6B6862':'#80838D';
-  var grid=dir==='bloco'?'#E5E2D8':'#E0E1E6';
+  var CH={bloco:['#2563EB','#6B6862','#E5E2D8'],
+          sereno:['#2563EB','#98A0AE','#E9EBEF'],
+          chatwoot:['#2781F6','#80838D','#E0E1E6']};
+  var c3=CH[dir]||CH.chatwoot, cor=c3[0], ink=c3[1], grid=c3[2];
   var tops=[['Dra. Anna Alice','142 conversas','4 min'],['Dra. Telma Rocha','98 conversas','6 min'],
             ['Dr. Ícaro Menezes','74 conversas','5 min'],['Elis · IA','311 conversas','12 s']];
   return shell(dir,'relatorios',
@@ -2691,50 +3155,91 @@ function cardBase(o){
              '<span class="bk__stamp" style="margin-left:auto;border-style:dashed;color:#6B6862">sem dono</span>')+'</div>'+
     '<button class="bk__do">'+ico('bloco','arrowR',13)+'<span>'+esc(o.acao)+'</span></button></div>';
 }
-function cardSheet(){
+/* o mesmo card, na linguagem de cada direcao */
+function cardSereno(o){
+  return '<div class="sk__card" style="--tone:#2563EB"><div class="sk__r1">'+
+    (o.ini?'<span class="sk__av" style="--tone:#2563EB">'+o.ini+'</span>':
+           '<span class="sk__av" style="--tone:#98A0AE;background:#F2F4F7;color:#98A0AE;border:1px dashed #C7CDD6">'+ico('sereno','user',13)+'</span>')+
+    '<div style="min-width:0"><div class="sk__who">'+esc(o.who)+'</div>'+
+    '<div class="sk__proc">'+esc(o.proc)+'</div></div></div>'+
+    '<div class="sk__r2"><span class="sk__chip" data-st="'+o.st+'">'+
+      (o.st==='atrasado'?ico('sereno','alert',11):ico('sereno','clock',11))+esc(o.stamp)+'</span>'+
+    '<span class="sk__val num">'+brl(o.val)+'</span></div>'+
+'</div>';
+}
+/* A folha do card e especifica de cada linguagem: os estados e a anatomia
+   descrevem o material daquela direcao, nao um texto generico. */
+var ANAT={
+ bloco:{
+  estados:[
+   ['Repouso','O padrão. Borda 1,5px, sombra sólida 2px, quatro informações e uma ação.','',null],
+   ['Ponteiro em cima','A sombra cresce para 4px e o card sobe 1px. Nenhuma cor muda.','is-hover',null],
+   ['Selecionado','Contorno azul de 3px, fora da borda. Sobrevive à seleção múltipla.','is-sel',null],
+   ['Sendo arrastado','Inclina 1,6° e a sombra vira difusa — o único momento em que ela não é sólida.','is-drag',null]
+  ],
+  tops:[17,40,66,93,93,128], direita:4,
+  legenda:[
+   ['1','Nome do paciente — 12,5px peso 700. Nunca truncado no meio de uma palavra.'],
+   ['2','Procedimento — 10,5px, cinza. Some primeiro quando o card fica compacto.'],
+   ['3','Valor — 15px peso 800, números tabulares. Alinha entre cards da mesma coluna.'],
+   ['4','Selo de tempo — cor + ícone + texto. Nunca cor sozinha (WCAG 2.2).'],
+   ['5','Responsável — 22px, quadrado de 4px. Ausência vira selo tracejado.'],
+   ['6','Próxima ação — botão real, alvo de 28px, caixa alta. É a única ação do card.']
+  ]},
+ sereno:{
+  estados:[
+   ['Repouso','Sem sombra. O card se separa do fundo pelo ar em volta e por uma borda de 1px.','',null],
+   ['Ponteiro em cima','A borda escurece e entra uma sombra suave. O card sobe 1px.','is-hover',null],
+   ['Selecionado','Contorno azul de 2px substituindo a borda — não somando a ela.','is-sel',null],
+   ['Sendo arrastado','Inclina 1,6° e ganha sombra larga. É o único momento com elevação forte.','is-drag',null]
+  ],
+  tops:[24,42,76,76], direita:4,
+  legenda:[
+   ['1','Nome — 12,5px peso 700, ao lado do avatar quadrado com gradiente.'],
+   ['2','Procedimento e canal — 10,5px cinza, uma linha só, com reticências.'],
+   ['3','Selo de tempo — pílula suave; vermelho e âmbar entram só como estado.'],
+   ['4','Valor — 12,5px peso 800, tabular, ancorado à direita do rodapé.']
+  ]}
+};
+function cardSheet(dir){
+  dir=dir||'bloco';
+  var monta=dir==='sereno'?cardSereno:cardBase;
+  var A=ANAT[dir]||ANAT.bloco;
   var base={who:'Marina Alves',proc:'Avaliação facial',val:480,ini:'MA',st:'ok',stamp:'No prazo',acao:'Responder primeira mensagem'};
+  var VAR=[
+   ['Atrasado','Estado que precisa ser visto do outro lado da sala.',
+    {st:'atrasado',stamp:'Parado 5d',acao:'Sem retorno há 5 dias',who:'Bruno Tavares',proc:'Botox full face',val:2400,ini:'BT'}],
+   ['Consulta hoje','Urgência sem alarme — hoje não é atraso.',
+    {st:'atencao',stamp:'Hoje',acao:'Confirmar presença',who:'Patrícia Nogueira',proc:'Microagulhamento',val:1250,ini:'PN'}],
+   ['Sem responsável','O lugar do avatar muda de forma. A ausência é visível, não silenciosa.',
+    {ini:null,who:'Sérgio Bittar',proc:'Avaliação capilar',val:460,acao:'Definir responsável'}],
+   ['Valor alto','Nada muda de forma. O número é grande porque é grande — sem badge de “VIP”.',
+    {who:'Fernanda Küster',proc:'Laser CO2 — pacote 4 sessões',val:8400,ini:'FK',acao:'Aguardando aprovação'}]
+  ];
   function cel(cap,nota,cls,ov){
     var o=Object.assign({},base,ov||{});
     return '<div class="cs__cell"><span class="cs__cap">'+cap+'</span>'+
-      '<div class="'+(cls||'')+'">'+cardBase(o)+'</div>'+
+      '<div class="'+(cls||'')+'">'+monta(o)+'</div>'+
       '<span class="cs__note">'+nota+'</span></div>';
   }
-  return shell('bloco','kanban',
-    topbar('bloco','Card do lead','Anatomia e estados · a unidade que mais se repete no produto',
-      btnS('bloco','Ver no quadro','board')+btnP('bloco','Nova')),
-    '<div class="cs"><div class="cs__grid">'+
-      cel('Repouso','O padrão. Borda 1,5px, sombra sólida 2px, quatro informações e uma ação.','')+
-      cel('Ponteiro em cima','A sombra cresce para 4px e o card sobe 1px. Nenhuma cor muda.','is-hover')+
-      cel('Selecionado','Contorno azul de 3px, fora da borda. Sobrevive à seleção múltipla.','is-sel')+
-      cel('Sendo arrastado','Inclina 1,6° e a sombra vira difusa — o único momento em que ela não é sólida.','is-drag')+
-    '</div><div class="cs__grid">'+
-      cel('Atrasado','Selo vermelho chapado. É o estado que precisa ser visto do outro lado da sala.','',
-        {st:'atrasado',stamp:'Parado 5d',acao:'Sem retorno há 5 dias',who:'Bruno Tavares',proc:'Botox full face',val:2400,ini:'BT'})+
-      cel('Consulta hoje','Selo amarelo. Urgência sem alarme — hoje não é atraso.','',
-        {st:'atencao',stamp:'Hoje',acao:'Confirmar presença',who:'Patrícia Nogueira',proc:'Microagulhamento',val:1250,ini:'PN'})+
-      cel('Sem responsável','O lugar do avatar vira um selo tracejado. A ausência é visível, não silenciosa.','',
-        {ini:null,who:'Sérgio Bittar',proc:'Avaliação capilar',val:460,acao:'Definir responsável'})+
-      cel('Valor alto','Nada muda de forma. O número é grande porque é grande — sem badge de “VIP”.','',
-        {who:'Fernanda Küster',proc:'Laser CO2 — pacote 4 sessões',val:8400,ini:'FK',acao:'Aguardando aprovação'})+
-    '</div>'+
+  var linha1=A.estados.map(function(e){return cel(e[0],e[1],e[2],e[3]);}).join('');
+  var linha2=VAR.map(function(v){return cel(v[0],v[1],'',v[2]);}).join('');
+  var marks=A.tops.map(function(t,i){
+    var dir_=(i===A.direita-1);
+    return '<span class="cs__mk" style="top:'+(t-8)+'px'+(dir_?';left:auto;right:-9px':'')+'">'+(i+1)+'</span>';
+  }).join('');
+  return shell(dir,'kanban',
+    topbar(dir,'Card do lead','Anatomia e estados · a unidade que mais se repete no produto',
+      btnS(dir,'Ver no quadro','board')+btnP(dir,'Nova')),
+    '<div class="cs"><div class="cs__grid">'+linha1+'</div>'+
+    '<div class="cs__grid">'+linha2+'</div>'+
     '<div class="cs__anat"><div>'+
       '<span class="cs__cap">Anatomia</span>'+
-      '<div class="cs__anatwrap" style="margin-top:8px">'+
-        [17,40,66,93,93,128].map(function(t,i){
-          return '<span class="cs__mk"'+(i===4?' style="top:'+(t-8)+'px;left:auto;right:-9px"':
-                 ' style="top:'+(t-8)+'px"')+'>'+(i+1)+'</span>';
-        }).join('')+cardBase(base)+'</div></div>'+
+      '<div class="cs__anatwrap" data-d2="'+dir+'" style="margin-top:8px">'+marks+monta(base)+'</div></div>'+
       '<div class="cs__leg">'+
-      [['1','Nome do paciente — 12,5px peso 700. Nunca truncado no meio de uma palavra.'],
-       ['2','Procedimento — 10,5px, cinza. Some primeiro quando o card fica compacto.'],
-       ['3','Valor — 15px peso 800, números tabulares. Alinha entre cards da mesma coluna.'],
-       ['4','Selo de tempo — cor + ícone + texto. Nunca cor sozinha (WCAG 2.2).'],
-       ['5','Responsável — 22px, quadrado de 4px. Ausência vira selo tracejado.'],
-       ['6','Próxima ação — botão real, alvo de 28px, caixa alta. É a única ação do card.']]
-      .map(function(l){return '<div class="cs__l"><span class="cs__ln">'+l[0]+'</span><span>'+esc(l[1])+'</span></div>';}).join('')+
+      A.legenda.map(function(l){return '<div class="cs__l"><span class="cs__ln">'+l[0]+'</span><span>'+esc(l[1])+'</span></div>';}).join('')+
       '</div></div></div>');
 }
-
 function hojeScreen(dir){
   var col=function(tone,tit,n,itens){
     return '<div class="hj__col"><div class="hj__h" style="--tone:'+tone+'">'+
@@ -2744,7 +3249,7 @@ function hojeScreen(dir){
   var it=function(w,d,acao,st){
     return '<div class="hj__i"><div class="hj__w">'+esc(w)+'</div>'+
       '<div class="hj__d">'+esc(d)+'</div>'+
-      '<div class="hj__f"><span class="bk__stamp" data-st="'+(st||'ok')+'">'+
+      '<div class="hj__f"><span class="stamp" data-st="'+(st||'ok')+'">'+
         (st==='atrasado'?ico(dir,'alert',11):ico(dir,'clock',11))+esc(acao)+'</span></div></div>';
   };
   return shell(dir,'hoje',
@@ -2868,6 +3373,304 @@ function ajustesScreen(dir){
     '</div></div>');
 }
 
+/* ===================== H · SERENO ====================================
+   A linguagem do CRM de referência. Tons de etapa reaproveitados da
+   direção D — os da referência reprovam em daltonismo.
+   ==================================================================== */
+var STONE=['#2563EB','#0F9D8F','#B45309','#A21CAF','#98A0AE'];
+var SICON=['zap','msg','file','cal','check'];
+function sbar(){
+  return '<span class="sbar">Início <span style="opacity:.5">›</span> <b>CRM</b>'+
+    '<span class="sbar__r"><span class="spill" data-t="ai">'+ico('sereno','zap',12)+'Elis ativa</span>'+
+    '<span class="spill">'+ico('sereno','user',12)+'Ana</span>'+
+    '<span style="color:var(--ink-3);display:flex">'+ico('sereno','clock',15)+'</span></span></span>';
+}
+function shead(eyebrow,titulo,badge,sub,acoes,filtros,tabs){
+  return '<div class="shead"><div class="shead__t"><div>'+
+    (eyebrow?'<span class="seyebrow">'+esc(eyebrow)+'</span>':'')+
+    '<div class="shead__h">'+esc(titulo)+(badge?'<span class="sbadge">'+esc(badge)+'</span>':'')+'</div>'+
+    '<div class="shead__s">'+esc(sub)+'</div></div>'+
+    '<div class="shead__a">'+acoes+'</div></div>'+
+    (filtros?'<div class="shead__f">'+filtros+'</div>':'')+
+    (tabs?'<div class="stabs">'+tabs+'</div>':'')+
+  '</div>';
+}
+function ssel(lb,icone){
+  return '<span class="sselect">'+(icone?ico('sereno',icone,13):'')+esc(lb)+
+    '<span style="margin-left:4px;color:var(--ink-3);display:flex">'+ico('sereno','chevR',12)+'</span></span>';
+}
+R.sereno={};
+R.sereno.kanban=function(){
+  var cols=ETAPAS.map(function(et,i){
+    var lista=CARDS[et.id];
+    var cards=lista.map(function(c){
+      return '<div class="sk__card"><div class="sk__r1">'+
+        '<span class="sk__av" style="--tone:'+STONE[i]+'">'+c.ini+'</span>'+
+        '<div style="min-width:0"><div class="sk__who">'+esc(c.who)+'</div>'+
+        '<div class="sk__proc">'+esc(c.proc)+' · '+esc(c.canal)+'</div></div></div>'+
+        '<div class="sk__r2"><span class="sk__chip" data-st="'+c.st+'">'+
+          (c.st==='atrasado'?ico('sereno','alert',11):ico('sereno','clock',11))+
+          (c.dias===0?'Hoje':c.dias+'d parado')+'</span>'+
+        '<span class="sk__val num">'+brl(c.val)+'</span></div></div>';
+    }).join('');
+    return '<div class="sk__col" style="--tone:'+STONE[i]+'">'+
+      '<div class="sk__bar"></div>'+
+      '<div class="sk__h"><span class="sk__dot"></span>'+
+      '<span class="sk__ic">'+ico('sereno',SICON[i],13)+'</span>'+
+      '<span class="sk__n">'+esc(et.nome)+'</span>'+
+      '<span class="sk__c num">'+lista.length+'</span></div>'+
+      '<div class="sk__body"><div class="sk__sum num">'+brl(et.sum)+' no estágio</div>'+
+      (lista.length?cards+'<div class="sk__add">'+ico('sereno','plus',12)+'Novo lead aqui</div>'
+                   :'<div class="sk__empty">Arraste um lead para cá<br>ou crie um novo</div>')+
+      '</div></div>';
+  }).join('');
+  return shell('sereno','kanban',sbar(),
+    shead('Comercial','CRM · Pipeline','15 leads',
+      'Acompanhe as oportunidades e a próxima ação de cada uma',
+      btnS('sereno','Importar','file')+btnS('sereno','Pipeline','sliders')+btnP('sereno','Novo lead'),
+      '<span class="f-field grow">'+ico('sereno','search',13)+'Buscar lead, telefone ou e-mail…</span>'+
+      '<span class="sfilters">'+ssel('Pipeline comercial','board')+ssel('WhatsApp','msg')+ssel('Todos os responsáveis','user')+'</span>',
+      '<span class="stab" data-on="1">Quadro</span><span class="stab">Lista</span>'+
+      '<span class="shint">Arraste os cards para mudar de etapa</span>')+
+    '<div class="sk">'+cols+'</div>');
+};
+R.sereno.agenda=function(){
+  var hrs=HORAS.map(function(h){return '<div class="sa__hr num">'+(h<10?'0':'')+h+':00</div>';}).join('');
+  var STPROF=['#2563EB','#0F9D8F','#A21CAF'];
+  var lanes=PROFS.map(function(p,i){
+    var lines='';for(var k=0;k<10;k++)lines+='<div class="sa__ln" style="top:'+(k*54)+'px"></div>';
+    var evs=profEvs(i).map(function(e){
+      var tone=e.st==='faltou'?'#DC2626':e.st==='aguardando'?'#B45309':STPROF[i];
+      return '<div class="sa__ev'+tight(e,54)+'" style="--tone:'+tone+';'+evBox(e,8,54)+'">'+
+        '<div class="sa__evp">'+esc(e.pac)+'</div>'+
+        '<div class="sa__evs num">'+e.i+' · '+esc(e.proc)+'</div></div>';
+    }).join('');
+    var now=i===0?'<div class="sa__now" style="top:'+((13*60+40-480)/60*54)+'px"></div>':'';
+    return '<div class="sa__lane"><div class="sa__lh"><span class="avat">'+p.ini+'</span>'+
+      '<span class="sa__prof">'+esc(p.c)+'</span><span class="sa__esp">'+esc(p.e)+'</span></div>'+
+      '<div class="sa__slots">'+lines+evs+now+'</div></div>';
+  }).join('');
+  return shell('sereno','agenda',sbar(),
+    shead('Clínica','Agendamentos','12 hoje',
+      'Quinta-feira, 28 de agosto · 78% de ocupação · 2 a confirmar',
+      btnS('sereno','','chevL')+btnS('sereno','Hoje')+btnS('sereno','','chevR')+btnP('sereno','Novo agendamento'),
+      '<span class="f-field grow">'+ico('sereno','search',13)+'Buscar paciente ou procedimento…</span>'+
+      '<span class="sfilters">'+ssel('Todos os profissionais','user')+ssel('Todos os procedimentos','file')+'</span>',
+      '<span class="stab" data-on="1">Dia</span><span class="stab">Semana</span><span class="stab">Mês</span>'+
+      '<span class="shint">Clique em um horário livre para encaixar</span>')+
+    '<div class="sa"><div class="sa__hours">'+hrs+'</div><div class="sa__grid">'+lanes+'</div></div>');
+};
+R.sereno.financeiro=function(){
+  var rows=COBR.map(function(c){
+    return '<tr><td class="who"><span class="up__nm"><span class="avat">'+
+      esc(c.pac.split(' ').map(function(x){return x[0];}).slice(0,2).join(''))+'</span>'+esc(c.pac)+'</span></td>'+
+      '<td>'+esc(c.proc)+'</td><td class="num">'+c.venc+'</td><td>'+esc(c.met)+'</td>'+
+      '<td><span class="sf__st" data-st="'+c.st+'">'+
+        (c.st==='pago'?ico('sereno','check',11):c.st==='vencido'?ico('sereno','alert',11):ico('sereno','clock',11))+
+        (c.st==='pago'?'Pago':c.st==='vencido'?'Vencido':'Em aberto')+'</span></td>'+
+      '<td class="r num">'+brlc(c.val)+'</td></tr>';
+  }).join('');
+  return shell('sereno','financeiro',sbar(),
+    shead('Financeiro','Dashboard Financeiro','agosto',
+      'Recebimentos, cobranças em aberto e inadimplência do mês',
+      btnS('sereno','Exportar','file')+btnP('sereno','Nova cobrança'),
+      '<span class="f-field grow">'+ico('sereno','search',13)+'Buscar paciente…</span>'+
+      '<span class="sfilters">'+ssel('Agosto de 2026','cal')+ssel('Todos os métodos','money')+'</span>','')+
+    '<div class="up__kpis">'+
+      '<div class="sf__k"><span class="sf__kl">Recebido no mês</span><span class="sf__kv num" data-t="ok">'+brl(KPI.recebido)+'</span><span class="sf__kd">+18% sobre julho</span></div>'+
+      '<div class="sf__k"><span class="sf__kl">A receber</span><span class="sf__kv num">'+brl(KPI.areceber)+'</span><span class="sf__kd">7 cobranças abertas</span></div>'+
+      '<div class="sf__k"><span class="sf__kl">Vencido</span><span class="sf__kv num" data-t="bad">'+brl(KPI.vencido)+'</span><span class="sf__kd">2 pacientes</span></div>'+
+      '<div class="sf__k"><span class="sf__kl">Ticket médio</span><span class="sf__kv num">'+brl(KPI.ticket)+'</span><span class="sf__kd">10 lançamentos</span></div>'+
+    '</div>'+
+    '<div class="up__card" style="flex:1;min-height:0"><div class="up__ch">'+
+      '<span class="up__cht">Cobranças</span><span class="up__chs">ordenadas por vencimento</span></div>'+
+      '<table class="up__tbl"><thead><tr><th>Paciente</th><th>Procedimento</th><th>Vencimento</th>'+
+      '<th>Método</th><th>Situação</th><th class="r">Valor</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>');
+};
+
+/* ===================== F · ZAP =======================================
+   Vocabulário do WhatsApp aplicado a CRM.
+   ==================================================================== */
+STROKE.tick="M1.5 12.5 5.8 16.8 13 8.2M9 12.5l4.3 4.3L20.5 8.2";
+SOLID.tick="M1.1 12.2 2.5 10.8l3.4 3.4 6.4-7.6 1.6 1.3-7.9 9.4L1.1 12.2Zm7.5 0L10 10.8l3.4 3.4 6.4-7.6 1.6 1.3-7.9 9.4-4.9-5.1Z";
+STROKE.tick1="M4 12.6 8.8 17.4 19.4 5.6";
+SOLID.tick1="M8.8 17.4 3.4 12l1.5-1.5 3.9 3.9L18.9 4.7l1.5 1.3-11.6 11.4Z";
+var ZTONE=['#00A884','#7F66FF','#F0A73B','#1DAB61','#54656F'];
+R.zap={};
+R.zap.kanban=function(){
+  var cols=ETAPAS.map(function(et,i){
+    var rows=CARDS[et.id].map(function(c){
+      return '<div class="zk__row"><span class="zk__av" style="--tone:'+ZTONE[i]+'">'+c.ini+'</span>'+
+        '<div class="zk__b"><div class="zk__t1"><span class="zk__who">'+esc(c.who)+'</span>'+
+        '<span class="zk__when" data-st="'+c.st+'">'+(c.dias===0?'hoje':c.dias+'d')+'</span></div>'+
+        '<div class="zk__t2"><span class="zk__prev">'+
+          (c.st==='atrasado'?'':ico('zap','tick1',13))+esc(c.acao)+'</span>'+
+          (c.st==='ok'?'<span class="zk__val num">'+brl(c.val)+'</span>':
+           '<span class="zk__pill" data-st="'+c.st+'">'+(c.st==='atrasado'?'!':'1')+'</span>')+
+        '</div></div></div>';
+    }).join('');
+    return '<div class="zk__col"><div class="zk__head">'+
+      '<span class="zk__name">'+esc(et.nome)+'</span>'+
+      '<span class="zk__count num">'+CARDS[et.id].length+'</span></div>'+
+      '<div class="zk__sum num">'+brl(et.sum)+'</div>'+
+      '<div class="zk__list">'+rows+'</div></div>';
+  }).join('');
+  return shell('zap','kanban',
+    topbar('zap','Funil','15 abertas · R$ 95.880',
+      search('zap','Pesquisar')+
+      '<span class="seg"><span data-on="1">Quadro</span><span>Lista</span></span>'+
+      btnS('zap','','filter')+btnP('zap','Nova')),
+    '<div class="zk">'+cols+'</div>');
+};
+R.zap.agenda=function(){
+  var evs=CONSULTAS.slice().sort(function(a,b){return mins(a.i)-mins(b.i);});
+  var out='',posto=false;
+  evs.forEach(function(e){
+    if(!posto&&mins(e.i)>820){
+      out+='<div class="za__now"><span class="za__nowt">agora · 13:40</span><span class="za__nowl"></span></div>';
+      posto=true;
+    }
+    var p=PROFS[e.p];
+    out+='<div class="za__ev" data-st="'+e.st+'">'+
+      '<span class="za__hora num">'+e.i+'</span>'+
+      '<div class="za__b"><div class="za__pac">'+esc(e.pac)+'</div>'+
+      '<div class="za__det">'+esc(e.proc)+' · '+esc(p.c)+'</div></div>'+
+      '<span class="za__meta">'+
+        (e.st==='confirmado'?ico('zap','tick',13)+'confirmado':
+         e.st==='faltou'?ico('zap','alert',12)+'faltou':ico('zap','tick1',13)+'aguardando')+
+      '</span></div>';
+  });
+  return shell('zap','agenda',
+    topbar('zap','Agenda','12 consultas · 2 a confirmar',
+      '<span class="seg"><span data-on="1">Dia</span><span>Semana</span></span>'+
+      btnS('zap','','chevL')+btnS('zap','Hoje')+btnS('zap','','chevR')+btnP('zap','Agendar')),
+    '<div class="za"><div class="za__day"><span class="za__daychip">Quinta-feira, 28 de agosto</span></div>'+
+    '<div class="za__list fade-b">'+out+'</div></div>');
+};
+R.zap.financeiro=function(){
+  var ord=COBR.slice().sort(function(a,b){return a.dias-b.dias;});
+  var rows=ord.map(function(c,ci){
+    var tick=c.st==='pago'?ico('zap','tick',13)+'pago':
+             c.st==='vencido'?ico('zap','alert',12)+'vencida há '+Math.abs(c.dias)+'d':
+             ico('zap','tick',13)+'cobrança vista';
+    return '<div class="zf__r"><span class="zk__av" style="--tone:'+ZTONE[ci%5]+'">'+
+      esc(c.pac.split(' ').map(function(x){return x[0];}).slice(0,2).join(''))+'</span>'+
+      '<div class="zf__b"><div class="zf__who">'+esc(c.pac)+'</div>'+
+      '<div class="zf__sub">'+esc(c.proc)+' · '+esc(c.met)+'</div></div>'+
+      '<div class="zf__right"><span class="zf__amt num" data-st="'+c.st+'">'+brlc(c.val)+'</span>'+
+      '<span class="zf__tick" data-st="'+c.st+'">'+tick+'</span></div></div>';
+  }).join('');
+  return shell('zap','financeiro',
+    topbar('zap','Financeiro','Agosto · 10 cobranças',
+      search('zap','Pesquisar')+btnS('zap','','filter')+btnP('zap','Cobrar')),
+    '<div class="zf"><div class="zf__strip">'+
+      '<div class="zf__k"><span class="zf__kl">Recebido</span><span class="zf__kv num" data-t="ok">'+brl(KPI.recebido)+'</span></div>'+
+      '<div class="zf__k"><span class="zf__kl">A receber</span><span class="zf__kv num">'+brl(KPI.areceber)+'</span></div>'+
+      '<div class="zf__k"><span class="zf__kl">Vencido</span><span class="zf__kv num" data-t="bad">'+brl(KPI.vencido)+'</span></div>'+
+      '<div class="zf__k"><span class="zf__kl">Ticket médio</span><span class="zf__kv num">'+brl(KPI.ticket)+'</span></div>'+
+    '</div><div class="zf__rows fade-b">'+rows+'</div>'+
+    '<div class="zf__legend">'+
+      '<span class="zf__lg"><span style="color:var(--ink-3)">'+ico('zap','tick1',13)+'</span>cobrança enviada</span>'+
+      '<span class="zf__lg"><span style="color:var(--ink-3)">'+ico('zap','tick',13)+'</span>o paciente viu</span>'+
+      '<span class="zf__lg"><span style="color:var(--zap-tick)">'+ico('zap','tick',13)+'</span>pago</span>'+
+      '<span class="zf__lg"><span style="color:var(--bad)">'+ico('zap','alert',12)+'</span>vencida</span>'+
+    '</div></div>');
+};
+
+/* ===================== G · AGENDA ====================================
+   Google Calendar e Material 3.
+   ==================================================================== */
+var GTONE=['#1A73E8','#0B8043','#E37400','#8E24AA','#5F6368'];
+function gmini(){
+  var dias=['D','S','T','Q','Q','S','S'].map(function(d){
+    return '<span class="gmini__c" data-w="1">'+d+'</span>';}).join('');
+  var cells='';
+  for(var i=-5;i<=31;i++){
+    if(i<1)cells+='<span class="gmini__c" data-o="1">'+(27+i)+'</span>';
+    else cells+='<span class="gmini__c"'+(i===28?' data-on="1"':'')+'>'+i+'</span>';
+  }
+  return '<div class="gmini"><div class="gmini__h">Agosto de 2026'+
+    '<span style="margin-left:auto;display:flex;gap:2px">'+ico('agenda','chevL',15)+ico('agenda','chevR',15)+'</span></div>'+
+    '<div class="gmini__g">'+dias+cells+'</div></div>';
+}
+R.agenda={};
+R.agenda.agenda=function(){
+  var hrs=HORAS.map(function(h){return '<div class="ga2__hr num">'+(h<10?'0':'')+h+':00</div>';}).join('');
+  var lanes=PROFS.map(function(p,i){
+    var lines='';for(var k=0;k<10;k++)lines+='<div class="ga2__ln" style="top:'+(k*52)+'px"></div>';
+    var evs=profEvs(i).map(function(e){
+      var tone=GTONE[i];
+      var tonal=(e.st==='aguardando');
+      return '<div class="ga2__ev'+tight(e,52)+'" data-v="'+(tonal?'tonal':'solid')+'" style="--tone:'+tone+';'+evBox(e,8,52)+'">'+
+        '<div class="ga2__evt">'+esc(e.pac)+'</div>'+
+        '<div class="ga2__evs num">'+e.i+' · '+esc(e.proc)+'</div></div>';
+    }).join('');
+    var now=i===0?'<div class="ga2__now" style="top:'+((13*60+40-480)/60*52)+'px"></div>':'';
+    /* colunas são profissionais, não dias — o círculo carrega as iniciais,
+       não um número de data que não significa nada aqui */
+    return '<div class="ga2__lane" data-today="'+(i===0?1:0)+'">'+
+      '<div class="ga2__lh"><span class="ga2__lhd">'+esc(p.e)+'</span>'+
+      '<span class="ga2__lhn" style="--tone:'+GTONE[i]+'">'+esc(p.c.split(' ')[0])+'</span></div>'+
+      '<div class="ga2__slots">'+lines+evs+now+'</div></div>';
+  }).join('');
+  return shell('agenda','agenda',
+    topbar('agenda','Quinta, 28 de agosto','12 consultas · 78% de ocupação',
+      btnS('agenda','Hoje')+btnS('agenda','','chevL')+btnS('agenda','','chevR')+
+      '<span class="seg"><span>Dia</span><span data-on="1">Semana</span><span>Mês</span></span>'+
+      search('agenda','Pesquisar')),
+    '<div class="ga2"><div class="ga2__hours">'+hrs+'</div>'+
+    '<div class="ga2__grid">'+lanes+'</div></div>');
+};
+R.agenda.kanban=function(){
+  var cols=ETAPAS.map(function(et,i){
+    var cards=CARDS[et.id].map(function(c){
+      return '<div class="gk2__card"><div class="gk2__who">'+esc(c.who)+'</div>'+
+        '<div class="gk2__proc">'+esc(c.proc)+'</div>'+
+        '<div class="gk2__row"><span class="gk2__val num">'+brl(c.val)+'</span>'+
+        '<span class="avat" style="margin-left:auto">'+c.ini+'</span></div>'+
+        '<div class="gk2__row"><span class="gk2__chip" data-st="'+c.st+'">'+
+          (c.st==='atrasado'?ico('agenda','alert',12):ico('agenda','clock',12))+
+          (c.dias===0?'Hoje':c.dias+' dias')+'</span></div>'+
+        '<button class="gk2__act">'+ico('agenda','arrowR',13)+esc(c.acao)+'</button></div>';
+    }).join('');
+    return '<div class="gk2__col"><div class="gk2__h">'+
+      '<span class="gk2__dot" style="--tone:'+GTONE[i]+'"></span>'+
+      '<span class="gk2__n">'+esc(et.nome)+'</span>'+
+      '<span class="gk2__c num">'+CARDS[et.id].length+'</span></div>'+
+      '<div class="gk2__s num">'+brl(et.sum)+'</div>'+
+      '<div class="gk2__list">'+cards+'</div></div>';
+  }).join('');
+  return shell('agenda','kanban',
+    topbar('agenda','Funil comercial','15 oportunidades · R$ 95.880',
+      search('agenda','Pesquisar')+
+      '<span class="seg"><span data-on="1">Quadro</span><span>Lista</span></span>'+
+      btnS('agenda','Filtros','filter')+btnP('agenda','Criar')),
+    '<div class="gk2">'+cols+'</div>');
+};
+R.agenda.financeiro=function(){
+  var rows=COBR.map(function(c){
+    return '<tr><td class="who">'+esc(c.pac)+'</td><td>'+esc(c.proc)+'</td>'+
+      '<td class="num">'+c.venc+'</td><td>'+esc(c.met)+'</td>'+
+      '<td><span class="up__chip" data-t="'+(c.st==='pago'?'on':c.st==='vencido'?'bad':'')+'">'+
+        (c.st==='pago'?ico('agenda','check',12)+'Pago':
+         c.st==='vencido'?ico('agenda','alert',12)+'Vencido':ico('agenda','clock',12)+'Em aberto')+'</span></td>'+
+      '<td class="r num">'+brlc(c.val)+'</td></tr>';
+  }).join('');
+  return shell('agenda','financeiro',
+    topbar('agenda','Financeiro','Agosto de 2026',
+      search('agenda','Pesquisar')+btnS('agenda','Filtros','filter')+btnP('agenda','Criar')),
+    '<div class="up"><div class="up__kpis">'+
+      '<div class="gf2__k"><span class="gf2__kl">Recebido no mês</span><span class="gf2__kv num" data-t="ok">'+brl(KPI.recebido)+'</span><span class="gf2__kd">+18% sobre julho</span></div>'+
+      '<div class="gf2__k"><span class="gf2__kl">A receber</span><span class="gf2__kv num">'+brl(KPI.areceber)+'</span><span class="gf2__kd">7 cobranças</span></div>'+
+      '<div class="gf2__k"><span class="gf2__kl">Vencido</span><span class="gf2__kv num" data-t="bad">'+brl(KPI.vencido)+'</span><span class="gf2__kd">2 pacientes</span></div>'+
+      '<div class="gf2__k"><span class="gf2__kl">Ticket médio</span><span class="gf2__kv num">'+brl(KPI.ticket)+'</span><span class="gf2__kd">10 lançamentos</span></div>'+
+    '</div>'+
+    '<div class="up__card" style="flex:1;min-height:0"><table class="up__tbl"><thead><tr>'+
+    '<th>Paciente</th><th>Procedimento</th><th>Vencimento</th><th>Método</th><th>Situação</th>'+
+    '<th class="r">Valor</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>');
+};
+
 /* ===================== FICHA TÉCNICA ================================== */
 var DIRS=[
  {id:'grafite',l:'A',nome:'Grafite',dot:'#5B67E8',badge:'escuro · plano · precisão',
@@ -2886,6 +3689,18 @@ var DIRS=[
   tese:'Legibilidade a três metros, para quem trabalha sob pressão. Borda preta, sombra sólida deslocada e uma paleta fechada em que a mesma cor significa a mesma coisa nas três telas.',
   sw:[['Papel','#FCFBF7'],['Tinta','#111111'],['Etapa 1','#2563EB'],['Etapa 2','#0F9D8F'],['Etapa 3','#B45309'],['Etapa 4','#A21CAF']],
   geo:[['Raio','4 px'],['Borda','1,5 px preta, sempre'],['Sombra','sólida deslocada 2 px 2 px 0'],['Linha da tabela','44 px'],['Ícone','sólido · 18 px'],['Rótulo','caixa alta com tracking 0,1em']]},
+ {id:'sereno',l:'H',nome:'Sereno',dot:'#2563EB',badge:'claro · arejado · a referência que você aprovou',
+  tese:'Reconstruída a partir do CRM que você mandou. Cards brancos com muito ar, barra colorida no topo de cada etapa, controles em pílula, rótulos minúsculos em caixa alta e o cabeçalho da página dentro de um card com selo. Os tons de etapa vieram da direção D — os da referência reprovam em daltonismo.',
+  sw:[['Fundo','#F7F8FA'],['Card','#FFFFFF'],['Contorno','#E9EBEF'],['Tinta','#111827'],['Primária','#2563EB'],['Primária suave','#EFF4FF']],
+  geo:[['Raio','13 px nos cards, 11 px nos leads, pílula nos controles'],['Borda','1 px muito clara; sombra só no hover'],['Sombra','nenhuma em repouso — o ar faz a separação'],['Linha da tabela','52 px, bem respirada'],['Ícone','traço 1,7 px · 17 px'],['Rótulo','9 px caixa alta, tracking 0,13em']]},
+ {id:'zap',l:'F',nome:'Zap',dot:'#1DAB61',badge:'claro · vocabulário do WhatsApp',
+  tese:'Zero treinamento. A secretária já sabe ler uma lista de conversa, um badge verde e um tique azul — o CRM só empresta esse vocabulário. No Financeiro, o tique de leitura vira estado de cobrança.',
+  sw:[['Papel de parede','#EFEAE2'],['Painel','#FFFFFF'],['Barra','#F0F2F5'],['Tinta','#111B21'],['Verde','#1DAB61'],['Tique lido','#53BDEB']],
+  geo:[['Raio','8 px nas bolhas, círculo nos avatares'],['Borda','nenhuma — só divisor que começa depois do avatar'],['Sombra','0 1px 0.5px — a assinatura do WhatsApp'],['Linha da lista','56 px, avatar de 40 px'],['Ícone','traço 1,9 px · 18 px'],['Tipo','fonte do sistema, como no original']]},
+ {id:'agenda',l:'G',nome:'Agenda',dot:'#1A73E8',badge:'claro · Google Calendar e Material 3',
+  tese:'A agenda que o cliente já usa todo dia. Pílulas, elevação tonal, chips de evento coloridos, mini-mês no rail e a linha vermelha do agora — só que o dado é a clínica dele.',
+  sw:[['Superfície','#FFFFFF'],['Container','#F0F4F9'],['Contorno','#E1E3E1'],['Tinta','#1F1F1F'],['Primária','#0B57D0'],['Seleção','#C2E7FF']],
+  geo:[['Raio','16 px nos cards, pílula nos botões, 4 px nos eventos'],['Borda','1 px suave; a hierarquia vem da elevação'],['Sombra','0 1px 2px + 0 1px 3px — a do Google'],['Linha da tabela','48 px'],['Ícone','traço 1,7 px · 20 px'],['Tipo','Roboto, com Google Sans nos títulos']]},
  {id:'trilho',l:'E',nome:'Trilho',dot:'#E0763A',badge:'claro · cronológico · sem containers',
   tese:'A tela não é feita de caixas, é feita de tempo. Cor não diz categoria: diz quando. O que está parado se afasta, o que venceu se acumula à esquerda.',
   sw:[['Fundo','#F6F7F9'],['Trilho','#EEF0F4'],['Futuro','#8FB0F2'],['Próximo','#3E6BE0'],['Atrasado','#E0763A'],['Crítico','#C0392B']],
@@ -2993,40 +3808,40 @@ var P2SCR=[
  {g:'Atendimento'},
  {id:'conversas', lb:'Conversas', fn:function(d){return conversasScreen(d);},
   nota:'Três colunas, como o Chatwoot já é. A regra do peso em ação: chrome com borda preta e sombra sólida, balões chapados e leves. O painel da direita responde “quem é essa pessoa” sem sair da conversa.'},
- {id:'contato', lb:'Perfil do contato', fn:contatoScreen, so:'bloco',
+ {id:'contato', lb:'Perfil do contato', fn:contatoScreen,
   nota:'Tudo que aconteceu com uma pessoa em uma linha do tempo só — mensagem, oportunidade, consulta, pagamento e automação na mesma escala.'},
- {id:'contatos', lb:'Contatos', fn:function(d){return contatosScreen(d);}, so:'bloco',
+ {id:'contatos', lb:'Contatos', fn:function(d){return contatosScreen(d);},
   nota:'Tela do Chatwoot, marcação intocada. Só os tokens mudaram: cabeçalho invertido, etiquetas com borda, linha de 42px.'},
- {id:'caixa', lb:'Caixa de entrada', fn:caixaScreen, so:'bloco',
+ {id:'caixa', lb:'Caixa de entrada', fn:caixaScreen,
   nota:'Canais conectados. Situação é selo com ícone e texto — nunca cor sozinha, porque “desconectado” não pode depender de enxergar vermelho.'},
- {id:'relatorios', lb:'Relatórios', fn:function(d){return relatoriosScreen(d);}, so:'bloco',
+ {id:'relatorios', lb:'Relatórios', fn:function(d){return relatoriosScreen(d);},
   nota:'Barras finas, grade recessiva, rótulo direto só no pico. O gráfico usa o azul da etapa 1 — cor de dado, não de decoração.'},
- {id:'campanhas', lb:'Campanhas', fn:function(d){return campanhasScreen(d);}, so:'bloco',
+ {id:'campanhas', lb:'Campanhas', fn:function(d){return campanhasScreen(d);},
   nota:'Lista de campanhas com público, envio, abertura e resposta na mesma linha.'},
  {g:'Clínica'},
- {id:'kanban', lb:'Kanban', fn:function(){return R.bloco.kanban();}, so:'bloco',
+ {id:'kanban', lb:'Kanban', fn:function(d){return R[d].kanban();},
   nota:'O quadro que você aprovou. Faixa de cor por etapa, selo de tempo e a próxima ação como botão de verdade dentro do card.'},
- {id:'card', lb:'Card do lead', fn:cardSheet, so:'bloco',
+ {id:'card', lb:'Card do lead', fn:cardSheet, so:['bloco','sereno'],
   nota:'A unidade que mais se repete no produto, em todos os estados: repouso, ponteiro, selecionado, arrastando, atrasado, hoje, sem responsável e valor alto — mais a anatomia numerada.'},
  {id:'drawer', lb:'Drawer da oportunidade', fn:function(d){return drawerScreen(d);},
   nota:'As abas que abrem à direita do card. Campo é linha editável com rótulo à esquerda, não caixa empilhada: catorze campos cabem sem virar formulário de cartório.'},
- {id:'hoje', lb:'Hoje', fn:hojeScreen, so:'bloco',
+ {id:'hoje', lb:'Hoje', fn:hojeScreen,
   nota:'A visão transversal: o que atrasou, o que acontece hoje e o que vence. Três filas, uma decisão por item.'},
- {id:'agenda', lb:'Agenda', fn:function(){return R.bloco.agenda();}, so:'bloco',
+ {id:'agenda', lb:'Agenda', fn:function(d){return R[d].agenda();},
   nota:'Blocos chapados com borda preta. Conflito de horário vira faixa tracejada vermelha rotulada — impossível não ver.'},
- {id:'financeiro', lb:'Financeiro', fn:function(){return R.bloco.financeiro();}, so:'bloco',
+ {id:'financeiro', lb:'Financeiro', fn:function(d){return R[d].financeiro();},
   nota:'Selo de situação legível a três metros: PAGO verde, VENCIDO vermelho, A VENCER amarelo. Sempre com ícone junto.'},
- {id:'formularios', lb:'Formulários', fn:formulariosScreen, so:'bloco',
+ {id:'formularios', lb:'Formulários', fn:formulariosScreen,
   nota:'Catálogo à esquerda, pré-visualização do que o paciente vê à direita. O formulário público herda a mesma linguagem.'},
  {g:'Sistema'},
  {id:'config', lb:'Config. do funil', fn:function(d){return configScreen(d);},
   nota:'6.574 linhas de formulário. Duas colunas com arrastar-e-soltar, etapas como faixa ordenável, cada campo mostrando o próprio tipo.'},
  {id:'automacoes', lb:'Automações', fn:function(d){return autoScreen(d);},
   nota:'Fluxo é uma linha legível da esquerda para a direita — gatilho, espera, condição, ação. O que está ligado se lê de longe, sem abrir nada.'},
- {id:'ajustes', lb:'Configurações', fn:ajustesScreen, so:'bloco',
+ {id:'ajustes', lb:'Configurações', fn:ajustesScreen,
   nota:'Tela do Chatwoot herdando os tokens. Perfil de acesso e situação do convite como selos.'}
 ];
-var P2DIR=[{id:'bloco',l:'D',nome:'Bloco',dot:'#2563EB'},{id:'vidro',l:'C',nome:'Vidro',dot:'#19C7B7'}];
+var P2DIR=[{id:'bloco',l:'D',nome:'Bloco',dot:'#2563EB'},{id:'sereno',l:'H',nome:'Sereno',dot:'#2F6FE4'},{id:'vidro',l:'C',nome:'Vidro',dot:'#19C7B7'}];
 var p2={dir:'bloco',scr:'conversas'};
 var eP2D=document.getElementById('p2Dir'),eP2S=document.getElementById('p2Scr'),
     eP2Stage=document.getElementById('p2Stage'),eP2Inner=document.getElementById('p2Inner'),
@@ -3039,7 +3854,7 @@ eP2D.innerHTML=P2DIR.map(function(d){
 function paintP2Tabs(){
   eP2S.innerHTML=P2SCR.map(function(s){
     if(s.g)return '<span class="tab-group">'+s.g+'</span>';
-    var indisp=(s.so&&s.so!==p2.dir);
+    var indisp=(s.so&&s.so.indexOf(p2.dir)<0);
     return '<button class="tab" role="tab" type="button" data-p2s="'+s.id+'"'+
       (indisp?' disabled title="Desenhada só em D — escolha D para ver"':'')+
       ' aria-selected="false">'+s.lb+'</button>';
@@ -3055,7 +3870,7 @@ function fitP2(){
 function renderP2(){
   var d=P2DIR.filter(function(x){return x.id===p2.dir;})[0];
   var s=p2find(p2.scr);
-  if(s.so&&s.so!==p2.dir){p2.scr='conversas';s=p2find('conversas');}
+  if(s.so&&s.so.indexOf(p2.dir)<0){p2.scr='conversas';s=p2find('conversas');}
   paintP2Tabs();
   Array.prototype.forEach.call(eP2D.children,function(b){
     b.setAttribute('aria-selected',b.dataset.p2d===p2.dir?'true':'false');});

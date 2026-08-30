@@ -102,6 +102,19 @@ const gridClass = computed(() =>
     ? 'grid-cols-[4rem_minmax(16rem,1fr)]'
     : 'grid-cols-[4rem_repeat(7,minmax(10rem,1fr))]'
 );
+// Raevo · Sereno — o estado da consulta se lê pela cor da régua à esquerda,
+// não só pelo preenchimento. Ver docs/raevo-design-system.md §2.
+const APPOINTMENT_TONES = {
+  scheduled: 'border-s-n-slate-9 bg-n-slate-3 hover:bg-n-slate-4',
+  confirmed: 'border-s-n-teal-9 bg-n-teal-3 hover:bg-n-teal-4',
+  checked_in: 'border-s-n-blue-9 bg-n-blue-3 hover:bg-n-blue-4',
+  completed: 'border-s-n-teal-9 bg-n-teal-3 hover:bg-n-teal-4',
+  no_show: 'border-s-n-ruby-9 bg-n-ruby-3 hover:bg-n-ruby-4',
+  canceled: 'border-s-n-slate-8 bg-n-slate-3 opacity-60 hover:opacity-80',
+};
+const appointmentToneClass = appointment =>
+  APPOINTMENT_TONES[appointment?.status] || APPOINTMENT_TONES.scheduled;
+
 const calendarStatuses = computed(() => [
   { value: 'scheduled', label: t('CALENDAR.DETAIL.STATUS.SCHEDULED') },
   { value: 'confirmed', label: t('CALENDAR.DETAIL.STATUS.CONFIRMED') },
@@ -503,7 +516,8 @@ onMounted(() => {
               type="button"
               data-testid="calendar-appointment"
               draggable="true"
-              class="mb-1 w-full rounded-md border border-n-brand/30 bg-n-brand/10 px-2 py-1 text-left outline-none hover:bg-n-brand/20 focus-visible:ring-2 focus-visible:ring-n-brand"
+              class="mb-1 w-full rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
+              :class="appointmentToneClass(appointment)"
               :aria-label="
                 t('CALENDAR.APPOINTMENT_LABEL', {
                   time: formatTime(appointment.starts_at),
@@ -571,7 +585,8 @@ onMounted(() => {
             v-for="appointment in appointmentsForDay(day)"
             :key="appointment.id"
             type="button"
-            class="mb-1 block w-full truncate rounded bg-n-brand/10 px-1.5 py-1 text-left text-xs text-n-slate-12 outline-none hover:bg-n-brand/20 focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="mb-1 block w-full truncate rounded border-s-[3px] px-1.5 py-1 text-left text-xs text-n-slate-12 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
+            :class="appointmentToneClass(appointment)"
             @click="openAppointment(appointment)"
           >
             {{ formatTime(appointment.starts_at) }}

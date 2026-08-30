@@ -26,6 +26,7 @@ import {
   getKanbanWorkflowNodeDefinition,
   getKanbanWorkflowNodeLabel,
 } from './components/kanbanWorkflowNodeDefinitions';
+import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -2207,16 +2208,18 @@ onMounted(load);
 <template>
   <main
     data-testid="kanban-automations-workspace"
-    class="flex h-full min-h-0 w-full flex-col bg-n-surface-1 text-n-slate-12"
+    class="flex h-full min-h-0 w-full flex-col bg-n-background text-n-slate-12"
   >
-    <header
+    <RaevoPageHeader
       v-if="!showEditor"
-      class="flex flex-wrap items-center justify-between gap-3 border-b border-n-weak px-4 py-3 lg:px-6"
+      :eyebrow="t('KANBAN.EYEBROW')"
+      :title="t('KANBAN.AUTOMATIONS_WORKSPACE.TITLE')"
+      class="m-3 lg:mx-6"
     >
-      <div class="min-w-0">
+      <template #actions>
         <button
           type="button"
-          class="mb-1 inline-flex items-center gap-1 text-xs font-medium text-n-slate-11 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+          class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-n-slate-11 hover:bg-n-slate-3 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
           @click="
             router.push({
               name: 'kanban_board_show',
@@ -2227,20 +2230,17 @@ onMounted(load);
           <i class="i-lucide-arrow-left size-3" />
           {{ t('KANBAN.AUTOMATIONS_WORKSPACE.BACK') }}
         </button>
-        <h1 class="m-0 text-lg font-semibold text-n-slate-12">
-          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TITLE') }}
-        </h1>
-      </div>
-      <Button
-        type="button"
-        data-testid="kanban-automations-new-flow"
-        icon="i-lucide-plus"
-        :label="t('KANBAN.AUTOMATIONS_WORKSPACE.NEW_FLOW')"
-        color="blue"
-        size="sm"
-        @click="openNewFlow"
-      />
-    </header>
+        <Button
+          type="button"
+          data-testid="kanban-automations-new-flow"
+          icon="i-lucide-plus"
+          :label="t('KANBAN.AUTOMATIONS_WORKSPACE.NEW_FLOW')"
+          color="blue"
+          size="sm"
+          @click="openNewFlow"
+        />
+      </template>
+    </RaevoPageHeader>
 
     <div
       v-if="showBirthdayEditor"
