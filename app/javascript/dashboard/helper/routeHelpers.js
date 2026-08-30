@@ -22,8 +22,10 @@ export const defaultRedirectPage = (to, permissions) => {
 
   const permissionRoutes = [
     {
+      // Raevo: a tela inicial é a Home de pendências (`raevo_home`), não a caixa
+      // de conversas. Quem entra precisa ver o que está parado antes da fila.
       permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
-      path: 'dashboard',
+      path: 'home',
     },
     { permissions: [CONTACT_PERMISSIONS], path: 'contacts' },
     { permissions: [REPORTS_PERMISSIONS], path: 'reports/overview' },

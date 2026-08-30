@@ -2,7 +2,10 @@
   "FORMS": {
     "TITLE": "Forms",
     "SUBTITLE": "Create lead capture and pre-consultation journeys connected to CRM.",
-    "TABS": { "TEMPLATES": "Templates", "SUBMISSIONS": "Responses" },
+    "TABS": {
+      "TEMPLATES": "Templates",
+      "SUBMISSIONS": "Responses"
+    },
     "ACTIONS": {
       "NEW": "New form",
       "SAVE": "Save and publish",
@@ -19,7 +22,8 @@
       "MOVE_UP": "Move up",
       "MOVE_DOWN": "Move down",
       "REMOVE": "Remove",
-      "CLOSE": "Close"
+      "CLOSE": "Close",
+      "MORE": "More actions"
     },
     "BUILDER": {
       "PREVIEW": "Live preview",
@@ -130,7 +134,9 @@
       "CREATE": "Create form"
     },
     "STARTERS": {
-      "BLANK": { "TITLE": "Blank form" },
+      "BLANK": {
+        "TITLE": "Blank form"
+      },
       "LEAD_CAPTURE": {
         "TITLE": "Lead capture",
         "SECTION": "Your details",
@@ -225,8 +231,10 @@
       "LOCALE": "Language",
       "PRESENTATION": "Response experience",
       "PRESENTATIONS": {
-        "GUIDED": "Guided, one question at a time",
-        "SECTIONED": "By sections"
+        "GUIDED": "Guided",
+        "SECTIONED": "By sections",
+        "GUIDED_HINT": "One question at a time, like a Typeform.",
+        "SECTIONED_HINT": "Several questions per step, with a final review."
       },
       "BRAND_NAME": "Customer-facing name",
       "BRAND_NAME_PLACEHOLDER": "E.g. Example Clinic",
@@ -297,7 +305,9 @@
         "ATTACHMENT": "Clinical document"
       }
     },
-    "STATUS": { "DRAFT": "Draft" },
+    "STATUS": {
+      "DRAFT": "Draft"
+    },
     "VERSIONS": {
       "TITLE": "Version history",
       "DESCRIPTION": "Every publish preserves the version that received responses.",
@@ -391,6 +401,34 @@
       "SAVE": "Could not save form.",
       "REQUIRED": "Fill in name, identifier, and at least one section.",
       "INVALID_CONFIGURATION": "Review required fields, selection options, and conditions before publishing."
+    },
+    "CANVAS": {
+      "SECTION_OF": "Step {current} of {total}",
+      "SECTION_PLACEHOLDER": "Step name",
+      "QUESTION_OF": "Question {current} of {total}",
+      "QUESTION_PLACEHOLDER": "Write the question…",
+      "QUESTION_NUMBER": "Question {number}",
+      "HELP_PLACEHOLDER": "Helper text (optional)",
+      "ANSWER_TYPE": "Answer type",
+      "ANSWER_HINT": "the answer appears here",
+      "SIGNATURE_HINT": "Signature area",
+      "ATTACHMENT_HINT": "Attachment area",
+      "ENTER_HINT": "Enter moves on · Shift+Enter for a new line",
+      "ADD_QUESTION": "+ question",
+      "ADVANCED": "Advanced settings",
+      "EMPTY": "Add a step to get started.",
+      "PREV_SECTION": "Previous step",
+      "NEXT_SECTION": "Next step",
+      "ADD_SECTION": "+ step",
+      "REQUIRED": "Required",
+      "REMOVE_QUESTION": "Remove question",
+      "OPTION_PLACEHOLDER": "Option text",
+      "OPTION_NUMBER": "Option {number}",
+      "ADD_OPTION": "+ option",
+      "REMOVE_OPTION": "Remove option",
+      "MOVE_UP": "Move earlier",
+      "MOVE_DOWN": "Move later",
+      "DUPLICATE_QUESTION": "Duplicate question"
     }
   }
 }

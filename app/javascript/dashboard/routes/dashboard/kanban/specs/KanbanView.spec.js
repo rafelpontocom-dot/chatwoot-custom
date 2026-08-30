@@ -2167,9 +2167,33 @@ describe('KanbanView header navigation', () => {
         .find('[data-testid="kanban-saved-filter-select"]')
         .isVisible()
     ).toBe(false);
+    // Visualizacao e central de atividades sairam da faixa e foram para o menu.
     expect(secondaryRow.find('[data-testid="kanban-view-list"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.find('[data-testid="kanban-view-list"]').exists()).toBe(
+      false
+    );
+
+    await wrapper
+      .find('[data-testid="kanban-board-actions-menu"]')
+      .trigger('click');
+    await nextTick();
+
+    const actionsMenu = wrapper.find(
+      '[data-testid="kanban-board-actions-menu-panel"]'
+    );
+    expect(actionsMenu.find('[data-testid="kanban-view-list"]').exists()).toBe(
       true
     );
+    expect(
+      actionsMenu.find('[data-testid="kanban-open-activity-center"]').exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-board-actions-menu"]')
+      .trigger('click');
+    await nextTick();
     expect(secondaryRow.classes()).not.toContain('lg:hidden');
 
     await wrapper.find('[data-testid="kanban-search-input"]').trigger('click');
@@ -2194,6 +2218,10 @@ describe('KanbanView header navigation', () => {
   it('keeps bulk selection scoped to the visible list cards', async () => {
     const wrapper = await mountView();
 
+    await wrapper
+      .find('[data-testid="kanban-board-actions-menu"]')
+      .trigger('click');
+    await nextTick();
     await wrapper.find('[data-testid="kanban-view-list"]').trigger('click');
 
     const listView = wrapper.findComponent({ name: 'KanbanListView' });

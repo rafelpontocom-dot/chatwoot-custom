@@ -7,6 +7,7 @@ import ContactAPI from 'dashboard/api/contacts';
 import FinanceAPI from 'dashboard/api/finance';
 import FormsAPI from 'dashboard/api/forms';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -1612,67 +1613,62 @@ watch(invitationPendingRevocation, async invitation => {
                     @click="completeNextAction"
                   />
                 </div>
-                <div class="grid">
-                  <div
-                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2"
-                  >
-                    <span class="text-xs text-n-slate-11">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE') }}
-                    </span>
-                    <select
-                      v-model="nextActionType"
-                      data-testid="kanban-opportunity-next-action-type"
-                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="
-                        t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE')
-                      "
+                <div class="grid gap-3">
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <RaevoField
+                      :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE')"
+                      variant="select"
                     >
-                      <option
-                        v-for="option in nextActionTypeOptions"
-                        :key="option.value || 'none'"
-                        :value="option.value"
-                      >
-                        {{ option.label }}
-                      </option>
-                    </select>
+                      <template #default="{ controlClass, fieldId }">
+                        <select
+                          :id="fieldId"
+                          v-model="nextActionType"
+                          data-testid="kanban-opportunity-next-action-type"
+                          :class="controlClass"
+                        >
+                          <option
+                            v-for="option in nextActionTypeOptions"
+                            :key="option.value || 'none'"
+                            :value="option.value"
+                          >
+                            {{ option.label }}
+                          </option>
+                        </select>
+                      </template>
+                    </RaevoField>
+                    <RaevoField
+                      :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')"
+                    >
+                      <template #default="{ controlClass, fieldId }">
+                        <input
+                          :id="fieldId"
+                          v-model="nextActionAt"
+                          type="datetime-local"
+                          data-testid="kanban-opportunity-next-action-at"
+                          :class="controlClass"
+                        />
+                      </template>
+                    </RaevoField>
                   </div>
-                  <div
-                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2"
+                  <RaevoField
+                    :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE')"
+                    variant="textarea"
                   >
-                    <span class="text-xs text-n-slate-11">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT') }}
-                    </span>
-                    <NextInput
-                      v-model="nextActionAt"
-                      type="datetime-local"
-                      data-testid="kanban-opportunity-next-action-at"
-                      class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
-                      :aria-label="
-                        t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')
-                      "
-                    />
-                  </div>
-                  <label
-                    class="grid grid-cols-[9rem_1fr] items-start gap-3 py-2"
-                  >
-                    <span class="pt-1 text-xs text-n-slate-11">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE') }}
-                    </span>
-                    <textarea
-                      v-model="nextActionNote"
-                      rows="2"
-                      data-testid="kanban-opportunity-next-action-note"
-                      class="min-h-12 max-w-full w-full min-w-0 resize-y border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :placeholder="
-                        t(
-                          'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER'
-                        )
-                      "
-                      :aria-label="
-                        t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE')
-                      "
-                    />
-                  </label>
+                    <template #default="{ controlClass, fieldId }">
+                      <textarea
+                        :id="fieldId"
+                        v-model="nextActionNote"
+                        rows="2"
+                        data-testid="kanban-opportunity-next-action-note"
+                        :class="controlClass"
+                        :placeholder="
+                          t(
+                            'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER'
+                          )
+                        "
+                      />
+                    </template>
+                  </RaevoField>
                 </div>
                 <div
                   v-if="card.nextActionHistory?.length"
@@ -1700,103 +1696,92 @@ watch(invitationPendingRevocation, async invitation => {
                 data-testid="kanban-opportunity-commercial-group"
                 class="grid"
               >
-                <section
-                  class="grid gap-2 border-b border-n-weak py-3 first:pt-0"
-                >
-                  <div class="flex items-center justify-between gap-3">
-                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER') }}
-                    </h3>
-                  </div>
-                  <label class="grid">
-                    <select
-                      v-model="ownerId"
-                      data-testid="kanban-opportunity-owner"
-                      class="h-9 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.OWNER')"
-                    >
-                      <option value="">
-                        {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER') }}
-                      </option>
-                      <option
-                        v-for="option in ownerOptions"
-                        :key="option.value"
-                        :value="String(option.value)"
+                <!--
+                  Bloco achatado: cada campo era uma <section> com título de
+                  pergunta e borda própria, o que gastava a altura do painel e
+                  transformava o separador em textura. Agora é rótulo acima do
+                  campo, na mesma borda esquerda, com um separador só por grupo.
+                -->
+                <div class="grid gap-3 py-3 first:pt-0">
+                  <RaevoField
+                    :label="t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER')"
+                    variant="select"
+                  >
+                    <template #default="{ controlClass, fieldId }">
+                      <select
+                        :id="fieldId"
+                        v-model="ownerId"
+                        data-testid="kanban-opportunity-owner"
+                        :class="controlClass"
                       >
-                        {{ option.label }}
-                      </option>
-                    </select>
-                  </label>
-                </section>
-                <section class="grid gap-2 border-b border-n-weak py-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT') }}
-                    </h3>
-                  </div>
-                  <label class="grid">
-                    <textarea
-                      v-model="description"
-                      rows="3"
-                      data-testid="kanban-opportunity-description"
-                      class="min-h-16 max-w-full w-full min-w-0 resize-y border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :placeholder="
-                        t('KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER')
-                      "
-                      :aria-label="
-                        t('KANBAN.OPPORTUNITY_DETAILS.FIELD_DESCRIPTION')
-                      "
-                    />
-                  </label>
-                </section>
-                <section class="grid gap-2 py-3 last:pb-0">
-                  <div class="flex items-center justify-between gap-3">
-                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.SCENARIO') }}
-                    </h3>
-                  </div>
-                  <div class="grid">
-                    <div
-                      class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2"
-                    >
-                      <span class="text-xs text-n-slate-11">
-                        {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT') }}
-                      </span>
-                      <NextInput
-                        v-model="amountValue"
-                        data-testid="kanban-opportunity-amount"
-                        class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        <option value="">
+                          {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER_NONE') }}
+                        </option>
+                        <option
+                          v-for="option in ownerOptions"
+                          :key="option.value"
+                          :value="String(option.value)"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </template>
+                  </RaevoField>
+
+                  <RaevoField
+                    :label="t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT')"
+                    variant="textarea"
+                  >
+                    <template #default="{ controlClass, fieldId }">
+                      <textarea
+                        :id="fieldId"
+                        v-model="description"
+                        rows="3"
+                        data-testid="kanban-opportunity-description"
+                        :class="controlClass"
                         :placeholder="
-                          t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')
-                        "
-                        :aria-label="
-                          t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')
+                          t(
+                            'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER'
+                          )
                         "
                       />
-                    </div>
-                    <div
-                      class="grid grid-cols-[9rem_1fr] items-center gap-3 py-2"
+                    </template>
+                  </RaevoField>
+
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <RaevoField
+                      :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
+                      :hint="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT_HINT')"
                     >
-                      <span class="text-xs text-n-slate-11">
-                        {{
-                          t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
-                        }}
-                      </span>
-                      <NextInput
-                        v-model="expectedCloseDate"
-                        data-testid="kanban-opportunity-expected-close-date"
-                        class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
-                        type="date"
-                        :aria-label="
-                          t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
-                        "
-                      />
-                    </div>
+                      <template #default="{ controlClass, fieldId }">
+                        <input
+                          :id="fieldId"
+                          v-model="amountValue"
+                          data-testid="kanban-opportunity-amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          :class="controlClass"
+                        />
+                      </template>
+                    </RaevoField>
+                    <RaevoField
+                      :label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
+                      "
+                    >
+                      <template #default="{ controlClass, fieldId }">
+                        <input
+                          :id="fieldId"
+                          v-model="expectedCloseDate"
+                          data-testid="kanban-opportunity-expected-close-date"
+                          type="date"
+                          :class="controlClass"
+                        />
+                      </template>
+                    </RaevoField>
                   </div>
-                </section>
+                </div>
               </section>
 
               <section

@@ -60,11 +60,15 @@ const describedBy = computed(() => {
 </script>
 
 <template>
-  <div class="grid gap-2">
+  <div class="grid gap-1.5">
+    <!--
+      Rótulo mais leve que o título de seção: sem essa diferença os dois pesam
+      igual e a hierarquia do painel desaparece.
+    -->
     <label
       v-if="label"
       :for="fieldId"
-      class="text-sm font-medium text-n-slate-12"
+      class="text-[13px] font-medium leading-4 text-n-slate-11"
     >
       {{ label }}
       <span

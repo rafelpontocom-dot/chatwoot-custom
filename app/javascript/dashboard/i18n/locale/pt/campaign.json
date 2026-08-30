@@ -1,8 +1,8 @@
 {
   "CAMPAIGN": {
     "LIVE_CHAT": {
-      "HEADER_TITLE": "Live chat campaigns",
-      "NEW_CAMPAIGN": "Create campaign",
+      "HEADER_TITLE": "Campanhas de chat ao vivo",
+      "NEW_CAMPAIGN": "Criar campanha",
       "CARD": {
         "STATUS": {
           "ENABLED": "Ativado",
@@ -10,17 +10,17 @@
         },
         "CAMPAIGN_DETAILS": {
           "SENT_BY": "Enviado por",
-          "BOT": "Bot",
+          "BOT": "Robôs",
           "FROM": "de",
           "URL": "URL:"
         }
       },
       "EMPTY_STATE": {
-        "TITLE": "No live chat campaigns are available",
-        "SUBTITLE": "Connect with your customers using proactive messages.  Click 'Create campaign' to get started."
+        "TITLE": "Não há campanhas de chat ao vivo disponíveis",
+        "SUBTITLE": "Conecte-se com seus clientes usando mensagens proativas. Clique em 'Criar campanha' para começar."
       },
       "CREATE": {
-        "TITLE": "Create a live chat campaign",
+        "TITLE": "Criar uma campanha de chat ao vivo",
         "CANCEL_BUTTON_TEXT": "Cancelar",
         "CREATE_BUTTON_TEXT": "Criar",
         "FORM": {
@@ -41,11 +41,11 @@
           },
           "SENT_BY": {
             "LABEL": "Enviado por",
-            "PLACEHOLDER": "Please select sender",
+            "PLACEHOLDER": "Por favor, selecione o remetente",
             "ERROR": "O remetente é obrigatório"
           },
           "END_POINT": {
-            "LABEL": "URL",
+            "LABEL": "URL:",
             "PLACEHOLDER": "Por favor, insira o URL",
             "ERROR": "Por favor, insira um URL válido"
           },
@@ -55,7 +55,7 @@
             "ERROR": "O tempo na página é obrigatório"
           },
           "OTHER_PREFERENCES": {
-            "TITLE": "Other preferences",
+            "TITLE": "Outras preferências",
             "ENABLED": "Ativar a campanha",
             "TRIGGER_ONLY_BUSINESS_HOURS": "Ativar apenas durante o horário de trabalho"
           },
@@ -64,41 +64,41 @@
             "CANCEL": "Cancelar"
           },
           "API": {
-            "SUCCESS_MESSAGE": "Live chat campaign created successfully",
+            "SUCCESS_MESSAGE": "Campanha do chat ao vivo criada com sucesso",
             "ERROR_MESSAGE": "Ocorreu um erro. Por favor, tente novamente."
           }
         }
       },
       "EDIT": {
-        "TITLE": "Edit live chat campaign",
+        "TITLE": "Editar campanha de chat ao vivo",
         "FORM": {
           "API": {
-            "SUCCESS_MESSAGE": "Live chat campaign updated successfully",
+            "SUCCESS_MESSAGE": "Campanha do chat ao vivo atualizada com sucesso",
             "ERROR_MESSAGE": "Ocorreu um erro. Por favor, tente novamente."
           }
         }
       }
     },
     "SMS": {
-      "HEADER_TITLE": "SMS campaigns",
-      "NEW_CAMPAIGN": "Create campaign",
+      "HEADER_TITLE": "Campanhas SMS",
+      "NEW_CAMPAIGN": "Criar campanha",
       "EMPTY_STATE": {
-        "TITLE": "No SMS campaigns are available",
-        "SUBTITLE": "Launch an SMS campaign to reach your customers directly. Send offers or make announcements with ease. Click 'Create campaign' to get started."
+        "TITLE": "Não há campanhas SMS disponíveis",
+        "SUBTITLE": "Lance uma campanha de SMS para chegar diretamente aos seus clientes. Envie ofertas ou faça anúncios com facilidade. Clique em 'Criar campanha' para começar."
       },
       "CARD": {
         "STATUS": {
-          "PROCESSING": "Processing",
+          "PROCESSING": "Processando",
           "COMPLETED": "Concluída",
-          "SCHEDULED": "Scheduled"
+          "SCHEDULED": "Agendada"
         },
         "CAMPAIGN_DETAILS": {
-          "SENT_FROM": "Sent from",
-          "ON": "on"
+          "SENT_FROM": "Enviado de",
+          "ON": "ativado"
         }
       },
       "CREATE": {
-        "TITLE": "Create SMS campaign",
+        "TITLE": "Criar uma campanha de SMS",
         "CANCEL_BUTTON_TEXT": "Cancelar",
         "CREATE_BUTTON_TEXT": "Criar",
         "FORM": {
@@ -132,32 +132,32 @@
             "CANCEL": "Cancelar"
           },
           "API": {
-            "SUCCESS_MESSAGE": "SMS campaign created successfully",
+            "SUCCESS_MESSAGE": "Campanha SMS criada com sucesso",
             "ERROR_MESSAGE": "Ocorreu um erro. Por favor, tente novamente."
           }
         }
       }
     },
     "WHATSAPP": {
-      "HEADER_TITLE": "WhatsApp campaigns",
-      "NEW_CAMPAIGN": "Create campaign",
+      "HEADER_TITLE": "Campanhas do WhatsApp",
+      "NEW_CAMPAIGN": "Criar campanha",
       "EMPTY_STATE": {
-        "TITLE": "No WhatsApp campaigns are available",
-        "SUBTITLE": "Launch a WhatsApp campaign to reach your customers directly. Send offers or make announcements with ease. Click 'Create campaign' to get started."
+        "TITLE": "Nenhuma campanha do WhatsApp está disponível",
+        "SUBTITLE": "Inicie uma campanha do WhatsApp para atingir seus clientes diretamente. Envie ofertas ou faça anúncios facilmente. Clique em \"Criar campanha\" para começar."
       },
       "CARD": {
         "STATUS": {
-          "PROCESSING": "Processing",
+          "PROCESSING": "Processando",
           "COMPLETED": "Concluída",
-          "SCHEDULED": "Scheduled"
+          "SCHEDULED": "Agendada"
         },
         "CAMPAIGN_DETAILS": {
-          "SENT_FROM": "Sent from",
-          "ON": "on"
+          "SENT_FROM": "Enviado de",
+          "ON": "ativado"
         }
       },
       "CREATE": {
-        "TITLE": "Create WhatsApp campaign",
+        "TITLE": "Criar campanha do WhatsApp",
         "CANCEL_BUTTON_TEXT": "Cancelar",
         "CREATE_BUTTON_TEXT": "Criar",
         "FORM": {
@@ -172,15 +172,15 @@
             "ERROR": "Caixa de entrada obrigatória"
           },
           "TEMPLATE": {
-            "LABEL": "WhatsApp Template",
-            "PLACEHOLDER": "Select a template",
-            "INFO": "Select a template to use for this campaign.",
-            "ERROR": "Template is required",
+            "LABEL": "Modelo do WhatsApp",
+            "PLACEHOLDER": "Selecione um modelo",
+            "INFO": "Selecione um modelo para usar para esta campanha.",
+            "ERROR": "Modelo é obrigatório",
             "PREVIEW_TITLE": "Processo {templateName}",
             "LANGUAGE": "Idioma",
             "CATEGORY": "Categoria",
             "VARIABLES_LABEL": "Variáveis",
-            "VARIABLE_PLACEHOLDER": "Enter value for {variable}"
+            "VARIABLE_PLACEHOLDER": "Digite um valor para {variable}"
           },
           "AUDIENCE": {
             "LABEL": "Público-alvo",
@@ -197,7 +197,7 @@
             "CANCEL": "Cancelar"
           },
           "API": {
-            "SUCCESS_MESSAGE": "WhatsApp campaign created successfully",
+            "SUCCESS_MESSAGE": "Campanha do WhatsApp criada com sucesso",
             "ERROR_MESSAGE": "Ocorreu um erro. Por favor, tente novamente."
           }
         }
@@ -205,12 +205,28 @@
     },
     "CONFIRM_DELETE": {
       "TITLE": "Tem a certeza que pretende excluir?",
-      "DESCRIPTION": "The delete action is permanent and cannot be reversed.",
+      "DESCRIPTION": "A ação de exclusão é permanente e não pode ser revertida.",
       "CONFIRM": "Excluir",
       "API": {
         "SUCCESS_MESSAGE": "Campanha excluída com sucesso",
         "ERROR_MESSAGE": "Ocorreu um erro. Por favor, tente novamente."
       }
+    },
+    "TABLE": {
+      "NAME": "Campanha",
+      "CHANNEL": "Canal",
+      "STATUS": "Situação",
+      "SENDER": "Remetente",
+      "SCHEDULED": "Agendada para",
+      "ACTIONS": "Ações",
+      "EDIT": "Editar campanha",
+      "DELETE": "Eliminar campanha"
+    },
+    "STATUS": {
+      "ACTIVE": "Ativa",
+      "PROCESSING": "Enviando",
+      "COMPLETED": "Concluída",
+      "DISABLED": "Desativada"
     }
   }
 }

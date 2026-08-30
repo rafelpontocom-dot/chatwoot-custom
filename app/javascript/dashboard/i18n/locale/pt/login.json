@@ -1,6 +1,12 @@
 {
   "LOGIN": {
     "TITLE": "Entrar no Chatwoot",
+    "RAEVO": {
+      "VISION": "Visão para evoluir.",
+      "SYSTEMS": "Sistemas para crescer.",
+      "SUBTITLE": "Sistemas inteligente para empresas em transformação.",
+      "ACCESS": "Acesse sua conta"
+    },
     "EMAIL": {
       "LABEL": "E-mail",
       "PLACEHOLDER": "Empresa{'@'}suaempresa.com.br",
@@ -24,17 +30,17 @@
     "CREATE_NEW_ACCOUNT": "Criar nova conta",
     "SUBMIT": "Iniciar sessão",
     "SAML": {
-      "LABEL": "Login via SSO",
-      "TITLE": "Initiate Single Sign-on (SSO)",
-      "SUBTITLE": "Enter your work email to access your organization",
-      "BACK_TO_LOGIN": "Login via Password",
+      "LABEL": "Entrar com SSO",
+      "TITLE": "Iniciar Single Sign-on (SSO)",
+      "SUBTITLE": "Digite seu e-mail de trabalho para acessar sua organização",
+      "BACK_TO_LOGIN": "Login com senha",
       "WORK_EMAIL": {
-        "LABEL": "Work Email",
-        "PLACEHOLDER": "Enter your work email"
+        "LABEL": "E-mail de trabalho",
+        "PLACEHOLDER": "Digite seu e-mail de trabalho"
       },
-      "SUBMIT": "Continue with SSO",
+      "SUBMIT": "Continuar com SSO",
       "API": {
-        "ERROR_MESSAGE": "SSO authentication failed. Please check your credentials and try again."
+        "ERROR_MESSAGE": "A autenticação SSO falhou. Verifique suas credenciais e tente novamente."
       }
     }
   }

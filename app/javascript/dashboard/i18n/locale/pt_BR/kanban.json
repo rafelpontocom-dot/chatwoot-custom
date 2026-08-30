@@ -243,9 +243,6 @@
       "ASSIGN": "Atribuir responsável",
       "MARK_WON": "Marcar como ganha",
       "MARK_LOST": "Marcar como perdida",
-      "CONFIRM_WON": "Marcar esta oportunidade como ganha?",
-      "CONFIRM_LOST": "Marcar esta oportunidade como perdida?",
-      "CONFIRM_CLOSE_STATUS": "Confirmar",
       "LOST_REASON": "Motivo da perda",
       "ARCHIVE": "Arquivar selecionadas",
       "CLEAR": "Limpar seleção",
@@ -264,7 +261,10 @@
       "CONFIRM_IMPACT": "Aplicar alteração",
       "RESTORE": "Restaurar selecionadas",
       "RESTORE_TITLE": "Restaurar oportunidades",
-      "RESTORE_MESSAGE": "Restaurar as {count} oportunidades selecionadas?"
+      "RESTORE_MESSAGE": "Restaurar as {count} oportunidades selecionadas?",
+      "CONFIRM_WON": "Marcar esta oportunidade como ganha?",
+      "CONFIRM_LOST": "Marcar esta oportunidade como perdida?",
+      "CONFIRM_CLOSE_STATUS": "Confirmar"
     },
     "ASSISTED_MOVE": {
       "TITLE": "Complete a oportunidade",
@@ -314,7 +314,7 @@
       "BLANK": "Funil em branco"
     },
     "FILTERS": {
-      "SEARCH_PLACEHOLDER": "Buscar oportunidade, contato, telefone ou e-mail",
+      "SEARCH_PLACEHOLDER": "Buscar",
       "SEARCH_LABEL": "Buscar oportunidades",
       "APPLY_SEARCH": "Buscar",
       "CLEAR_SEARCH": "Limpar busca",
@@ -341,7 +341,7 @@
       "AGENTS": "Agentes",
       "OPEN_FILTERS": "Filtros",
       "NEXT_ACTION_LABEL": "Próxima ação",
-      "STATUS_LABEL": "Status",
+      "STATUS_LABEL": "Situação",
       "ALL_ACTIONS": "Todas as ações",
       "MISSING_NEXT_ACTION": "Sem ação",
       "OVERDUE": "Atrasados",
@@ -476,8 +476,8 @@
       "ORANGE": "laranja",
       "RUBY": "rubi",
       "ROSE": "rosa",
-      "IRIS": "íris",
-      "VIOLET": "violeta"
+      "VIOLET": "violeta",
+      "IRIS": "íris"
     },
     "SETTINGS": {
       "TITLE": "Configurações do funil",
@@ -521,7 +521,7 @@
           "CONTACT": "Contato",
           "SCHEDULE": "Agendamento",
           "PROPOSAL": "Proposta",
-          "FOLLOW_UP": "Follow-up",
+          "FOLLOW_UP": "Retorno",
           "NEGOTIATE": "Negociação",
           "PAYMENT": "Pagamento",
           "WON": "Ganha",
@@ -1344,8 +1344,8 @@
       "NO_CONTACT": "Sem contato vinculado",
       "ASSIGNEE_HELP": "O agente é definido na conversa vinculada.",
       "QUESTIONS": {
-        "NEXT_ACTION": "O que precisa acontecer agora?",
-        "OWNER": "Quem está conduzindo esta oportunidade?",
+        "NEXT_ACTION": "Próxima ação",
+        "OWNER": "Responsável",
         "AGREEMENT": "O que foi combinado?",
         "SCENARIO": "Qual é o cenário comercial?"
       },
@@ -1358,7 +1358,7 @@
       "NEXT_ACTION_TYPE": "Tipo de ação",
       "NEXT_ACTION_AT": "Data da ação",
       "NEXT_ACTION_NOTE": "Observação da ação",
-      "NEXT_ACTION_NOTE_PLACEHOLDER": "O que precisa acontecer agora?",
+      "NEXT_ACTION_NOTE_PLACEHOLDER": "Ex.: ligar depois das 14h para confirmar o orçamento",
       "COMPLETE_NEXT_ACTION": "Concluir próxima ação",
       "NEXT_ACTION_HISTORY": "Ações concluídas",
       "ACTION_TYPES": {
@@ -1374,6 +1374,9 @@
       "CLOSE_STATUS": "Fechamento",
       "MARK_WON": "Marcar como ganho",
       "MARK_LOST": "Marcar como perdido",
+      "CONFIRM_WON": "Marcar esta oportunidade como ganha?",
+      "CONFIRM_LOST": "Marcar esta oportunidade como perdida?",
+      "CONFIRM_CLOSE_STATUS": "Confirmar",
       "LOST_REASON": "Motivo da perda",
       "LOST_REASON_PLACEHOLDER": "Selecionar motivo",
       "LOST_REASON_REQUIRED": "Informe o motivo da perda.",
@@ -1411,11 +1414,13 @@
         "START": "Iniciar cadência",
         "CANCEL": "Pausar cadência",
         "NONE": "Nenhuma cadência ativa foi configurada neste quadro.",
-        "STATUS": "Status: {status}",
+        "STATUS": "Situação: {status}",
         "NEXT_STEP": "Próximo passo: {date}",
         "LOAD_ERROR": "Não foi possível carregar as cadências de follow-up.",
         "SAVE_ERROR": "Não foi possível atualizar a cadência de follow-up."
-      }
+      },
+      "OWNER_NONE": "Sem responsável",
+      "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança."
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",

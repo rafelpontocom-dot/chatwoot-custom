@@ -352,6 +352,13 @@ const reportRoutes = computed(() => newReportRoutes());
 const menuItems = computed(() => {
   return [
     {
+      name: 'Home',
+      label: t('SIDEBAR.HOME'),
+      icon: 'i-lucide-house',
+      to: accountScopedRoute('raevo_home'),
+      activeOn: ['raevo_home'],
+    },
+    {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',
@@ -459,13 +466,6 @@ const menuItems = computed(() => {
           })),
         },
       ],
-    },
-    {
-      name: 'Home',
-      label: t('SIDEBAR.HOME'),
-      icon: 'i-lucide-house',
-      to: accountScopedRoute('raevo_home'),
-      activeOn: ['raevo_home'],
     },
     {
       name: 'Pipeline',

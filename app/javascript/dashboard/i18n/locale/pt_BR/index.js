@@ -37,6 +37,7 @@ import onboarding from './onboarding.json';
 import report from './report.json';
 import resetPassword from './resetPassword.json';
 import search from './search.json';
+import sessionLimit from './sessionLimit.json';
 import setNewPassword from './setNewPassword.json';
 import settings from './settings.json';
 import signup from './signup.json';
@@ -87,6 +88,7 @@ export default {
   ...report,
   ...resetPassword,
   ...search,
+  ...sessionLimit,
   ...setNewPassword,
   ...settings,
   ...signup,

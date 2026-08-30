@@ -121,6 +121,26 @@
       "CLEAR_FILTER": "Limpar filtros",
       "EMPTY_LIST": "Nenhum resultado encontrado"
     },
+    "DRILLDOWN": {
+      "TITLE": "Detalhes de {metric}",
+      "RESULT_COUNT_CONVERSATION": "{count} conversa | {count} conversas",
+      "RESULT_COUNT_MESSAGE": "{count} mensagem | {count} mensagens",
+      "EMPTY": "Nenhum registro para esta barra.",
+      "ERROR": "Não foi possível carregar os registros. Tente de novo.",
+      "ADMIN_ONLY": "Só administradores podem abrir os registros do relatório.",
+      "LOAD_MORE": "Carregar mais",
+      "CLOSE": "Fechar detalhes",
+      "PREVIOUS_BUCKET": "Barra anterior",
+      "NEXT_BUCKET": "Barra seguinte",
+      "UNKNOWN_CONTACT": "Contato desconhecido",
+      "UNKNOWN_INBOX": "Caixa de entrada desconhecida",
+      "UNASSIGNED_AGENT": "Sem responsável",
+      "NO_MESSAGE_CONTENT": "Mensagem sem conteúdo",
+      "MESSAGE_CREATED_AT": "Mensagem criada às {time}",
+      "EVENT_OCCURRED_AT": "Evento ocorreu às {time}",
+      "INCOMING_MESSAGE": "Mensagem recebida",
+      "OUTGOING_MESSAGE": "Mensagem enviada"
+    },
     "PAGINATION": {
       "RESULTS": "Exibindo {start} — {end} de {total} resultados",
       "PER_PAGE_TEMPLATE": "{size} / página"
@@ -555,7 +575,7 @@
         "AGENT": "Agente",
         "OPEN": "Abertas",
         "UNATTENDED": "Não atendidas",
-        "STATUS": "Status"
+        "STATUS": "Situação"
       }
     },
     "TEAM_CONVERSATIONS": {
@@ -567,7 +587,7 @@
         "TEAM": "Time",
         "OPEN": "Abrir",
         "UNATTENDED": "Não atendidas",
-        "STATUS": "Status"
+        "STATUS": "Situação"
       }
     },
     "AGENT_STATUS": {

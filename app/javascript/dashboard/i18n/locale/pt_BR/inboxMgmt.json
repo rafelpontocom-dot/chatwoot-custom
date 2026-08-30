@@ -65,7 +65,8 @@
         "CONNECT_YOUR_TIKTOK_PROFILE": "Conecte seu perfil do TikTok",
         "HELP": "Para adicionar seu perfil do TikTok como um canal, é necessário autenticar seu perfil clicando em 'Continuar com TikTok'. ",
         "ERROR_MESSAGE": "Ocorreu um erro ao conectar com o TikTok, por favor, tente novamente",
-        "ERROR_AUTH": "Ocorreu um erro ao conectar com o TikTok, por favor, tente novamente"
+        "ERROR_AUTH": "Ocorreu um erro ao conectar com o TikTok, por favor, tente novamente",
+        "NORTH_AMERICA_WARNING": "As conexões do TikTok para contas norte-americanas estão temporariamente indisponíveis enquanto aguardamos uma atualização da equipe do TikTok."
       },
       "TWITTER": {
         "HELP": "Para adicionar seu perfil do Twitter como um canal, você precisa autenticar seu perfil do Twitter clicando em 'Entrar com o Twitter' ",
@@ -488,7 +489,7 @@
             "DESCRIPTION": "Configure o canal do Telegram usando o token do bot"
           },
           "LINE": {
-            "TITLE": "Line",
+            "TITLE": "Linha",
             "DESCRIPTION": "Integre seu canal do LINE"
           },
           "INSTAGRAM": {
@@ -653,6 +654,10 @@
       },
       "CREDENTIALS": {
         "DESCRIPTION": "Chamada de voz requer credenciais de chave da API Twilio. Elas são usadas para gerar tokens para conexões de voz do agente."
+      },
+      "INBOUND": {
+        "LABEL": "Permitir chamadas recebidas",
+        "DESCRIPTION": "Permite que os clientes liguem para este número. Quando desligado, as chamadas recebidas são recusadas automaticamente — os agentes não são avisados e nenhuma conversa é criada. Os agentes continuam podendo fazer chamadas."
       }
     },
     "WHATSAPP_CALLING": {
@@ -830,6 +835,18 @@
       "WHATSAPP_CALLING_ENABLED": {
         "LABEL": "Ativar chamadas de voz",
         "DESCRIPTION": "Permita que os atendentes iniciem e recebam chamadas de voz do WhatsApp nesta caixa de entrada. Disponível apenas para canais do WhatsApp Cloud com cadastro incorporado e permissão de chamadas concedida pela Meta."
+      },
+      "WHATSAPP_AGENT_SIGNATURE": {
+        "TITLE": "Mostrar o nome do agente nas mensagens",
+        "SUBTITLE": "Coloca o nome do agente antes das respostas enviadas, para o cliente saber com quem está falando. Vale só para mensagens de agentes, não de bots nem de modelos."
+      },
+      "WHATSAPP_MARK_AS_READ": {
+        "TITLE": "Marcar mensagens como lidas",
+        "SUBTITLE": "Envia confirmação de leitura (tiques azuis) ao cliente quando um agente abre a conversa."
+      },
+      "WHATSAPP_ASSIGNMENT_GREETING": {
+        "TITLE": "Enviar mensagem quando agente assumir",
+        "SUBTITLE": "Envia uma mensagem automática ao cliente quando um agente humano assumir a conversa."
       },
       "UPDATE_PRE_CHAT_FORM_SETTINGS": "Atualizar configurações do Formulário Pre Chat"
     },
@@ -1192,7 +1209,7 @@
       "SMS": "SMS",
       "EMAIL": "E-mail",
       "TELEGRAM": "Telegram",
-      "LINE": "Line",
+      "LINE": "Linha",
       "API": "Canal da API",
       "INSTAGRAM": "Instagram",
       "TIKTOK": "TikTok",

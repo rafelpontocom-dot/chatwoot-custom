@@ -6,7 +6,7 @@
     "LIST": {
       "404": "Não há conversas ativas neste grupo."
     },
-    "FAILED_TO_SEND": "Failed to send",
+    "FAILED_TO_SEND": "Falha ao enviar",
     "TAB_HEADING": "Conversas",
     "MENTION_HEADING": "Menções",
     "UNATTENDED_HEADING": "Por responder",
@@ -78,7 +78,10 @@
         "TEXT": "Resposta pendente: Mais curta primeiro"
       },
       "priority_desc_created_at_asc": {
-        "TEXT": "Priority: Highest first, Created: Oldest first"
+        "TEXT": "Prioridade: Maior primeiro, Criação: Mais antiga primeiro"
+      },
+      "unread": {
+        "TEXT": "Não lidas: maior primeiro"
       }
     },
     "ATTACHMENTS": {
@@ -98,16 +101,16 @@
         "CONTENT": "Local:"
       },
       "ig_reel": {
-        "CONTENT": "Instagram Reel"
+        "CONTENT": "Reels do Instagram"
       },
       "fallback": {
         "CONTENT": "partilhou um URL"
       },
       "contact": {
-        "CONTENT": "Shared contact"
+        "CONTENT": "Contacto compartilhado"
       },
       "embed": {
-        "CONTENT": "Embedded content"
+        "CONTENT": "Conteúdo incorporado"
       }
     },
     "CHAT_SORT_BY_FILTER": {
@@ -140,7 +143,7 @@
     "HIDE_QUOTED_TEXT": "Ocultar texto citado",
     "SHOW_QUOTED_TEXT": "Mostrar texto citado",
     "MESSAGE_READ": "Lida",
-    "SENDING": "Sending",
+    "SENDING": "Enviando",
     "UNREAD_COUNT_OVERFLOW": "9+"
   }
 }

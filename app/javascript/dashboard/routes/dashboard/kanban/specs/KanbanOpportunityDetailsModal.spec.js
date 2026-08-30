@@ -101,9 +101,11 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_TITLE': 'Title is required.',
         'KANBAN.OPPORTUNITY_DETAILS.CLOSE': 'Close opportunity details',
         'KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL': 'Commercial',
-        'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER':
-          'Who is running this opportunity?',
+        'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER': 'Owner',
+        'KANBAN.OPPORTUNITY_DETAILS.OWNER_NONE': 'No owner',
         'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT': 'What was agreed?',
+        'KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT_HINT':
+          'Forecast value of the sale, not the issued charge.',
         'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.SCENARIO':
           'What is the commercial outlook?',
         'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.NEXT_ACTION':
@@ -692,8 +694,14 @@ describe('KanbanOpportunityDetailsModal', () => {
   it('uses compact in-field instructions for commercial and planning fields', async () => {
     const wrapper = await mountModal();
 
-    expect(amountInput(wrapper).attributes('placeholder')).toBe('Value');
-    expect(expectedCloseDateInput(wrapper).attributes('aria-label')).toBe(
+    // O nome do campo vive no rotulo acima dele, nunca repetido como
+    // placeholder: era o "Valor / Valor" que a auditoria apontou.
+    expect(amountInput(wrapper).attributes('placeholder')).toBeUndefined();
+    const amountId = amountInput(wrapper).attributes('id');
+    expect(wrapper.find(`label[for="${amountId}"]`).text()).toContain('Value');
+
+    const closeId = expectedCloseDateInput(wrapper).attributes('id');
+    expect(wrapper.find(`label[for="${closeId}"]`).text()).toContain(
       'Expected close date'
     );
     expect(startsAtInput(wrapper).attributes('aria-label')).toBe('Start date');
@@ -886,8 +894,9 @@ describe('KanbanOpportunityDetailsModal', () => {
       .find('[data-testid="kanban-opportunity-edit-subject"]')
       .trigger('click');
     expect(subjectInput(wrapper).classes()).toContain('w-full');
+    // A casca do textarea agora vem do RaevoField, unica para todo o produto.
     expect(descriptionInput(wrapper).classes()).toEqual(
-      expect.arrayContaining(['max-w-full', 'w-full', 'min-h-16'])
+      expect.arrayContaining(['w-full', 'min-h-20', 'rounded-lg'])
     );
     expect(descriptionInput(wrapper).attributes('rows')).toBe('3');
     expect(amountInput(wrapper).element.value).toBe('125.50');
@@ -901,9 +910,19 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(group.exists()).toBe(true);
     expect(group.classes()).not.toContain('rounded-lg');
-    expect(group.text()).toContain('Who is running this opportunity?');
+    expect(group.text()).toContain('Owner');
     expect(group.text()).toContain('What was agreed?');
-    expect(group.text()).toContain('What is the commercial outlook?');
+    // Valor e Previsao ficam no Geral, lado a lado, sem titulo de secao proprio:
+    // eles sao previsao comercial, nao a cobranca emitida (essa vive no Financeiro).
+    expect(group.text()).toContain('Value');
+    expect(group.text()).toContain('Expected close date');
+    expect(group.text()).not.toContain('What is the commercial outlook?');
+    // O rotulo nao pode se repetir como placeholder do proprio campo.
+    expect(
+      group
+        .find('[data-testid="kanban-opportunity-amount"]')
+        .attributes('placeholder')
+    ).toBeUndefined();
   });
 
   it('puts the next action before commercial context in the summary', async () => {
@@ -912,7 +931,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(details).toContain('What needs to happen now?');
     expect(details.indexOf('What needs to happen now?')).toBeLessThan(
-      details.indexOf('Who is running this opportunity?')
+      details.indexOf('Owner')
     );
   });
 

@@ -3,11 +3,11 @@
     "HEADER": "Automatização",
     "DESCRIPTION": "A automação pode substituir e racionalizar os processos existentes que requerem esforço manual, como a adição de etiquetas e a atribuição de conversas ao agente mais adequado. Isto permite que a equipa se foque em tarefas maiores, reduzindo o tempo gasto em tarefas rotineiras.",
     "LEARN_MORE": "Saber mais sobre automação",
-    "COUNT": "{n} automation | {n} automations",
-    "HEADER_BTN_TXT": "Create Automation",
+    "COUNT": "{n} automação | {n} automações",
+    "HEADER_BTN_TXT": "Criar Automação",
     "LOADING": "A procurar regras de automação",
-    "SEARCH_PLACEHOLDER": "Search automation rules...",
-    "NO_RESULTS": "No automation rules found matching your search",
+    "SEARCH_PLACEHOLDER": "Pesquisar regras de automação...",
+    "NO_RESULTS": "Nenhuma regra de automação encontrada correspondente à sua busca",
     "ADD": {
       "TITLE": "Adicionar regra de automação",
       "SUBMIT": "Criar",
@@ -43,13 +43,13 @@
       }
     },
     "LIST": {
+      "404": "Nenhuma regra de automação encontrada",
       "TABLE_HEADER": {
         "NAME": "Nome:",
         "ACTIVE": "Ativa",
         "CREATED_ON": "Criado em",
         "ACTIONS": "Ações"
-      },
-      "404": "Nenhuma regra de automação encontrada"
+      }
     },
     "DELETE": {
       "TITLE": "Apagar regra de automação",
@@ -76,7 +76,7 @@
       }
     },
     "CLONE": {
-      "TOOLTIP": "Clone",
+      "TOOLTIP": "Duplicar",
       "API": {
         "SUCCESS_MESSAGE": "Automação clonada com sucesso",
         "ERROR_MESSAGE": "Não foi possível clonar a regra de automação, por favor, tente novamente mais tarde"
@@ -130,18 +130,18 @@
       "ATLEAST_ONE_ACTION_REQUIRED": "Pelo menos uma ação é obrigatória"
     },
     "NONE_OPTION": "Nenhuma",
-    "LAST_RESPONDING_AGENT": "Last Responding Agent",
+    "LAST_RESPONDING_AGENT": "Último Agente que Respondeu",
     "EVENTS": {
       "CONVERSATION_CREATED": "Conversa criada",
       "CONVERSATION_UPDATED": "Conversa atualizada",
       "MESSAGE_CREATED": "Mensagem criada",
-      "CONVERSATION_RESOLVED": "Conversation Resolved",
+      "CONVERSATION_RESOLVED": "Conversa Resolvida",
       "CONVERSATION_OPENED": "Conversa aberta"
     },
     "ACTIONS": {
       "ASSIGN_AGENT": "Atribuir ao agente",
       "ASSIGN_TEAM": "Atribuir equipa",
-      "REMOVE_ASSIGNED_AGENT": "Remove Assigned Agent",
+      "REMOVE_ASSIGNED_AGENT": "Remover agente atribuído",
       "REMOVE_ASSIGNED_TEAM": "Remover equipa atribuída",
       "ADD_LABEL": "Adicionar etiqueta",
       "REMOVE_LABEL": "Remover um rótulo",
@@ -157,11 +157,11 @@
       "CHANGE_PRIORITY": "Alterar prioridade",
       "ADD_SLA": "Adicionar SLA",
       "OPEN_CONVERSATION": "Abrir conversa",
-      "PENDING_CONVERSATION": "Mark conversation as pending"
+      "PENDING_CONVERSATION": "Marcar conversa como pendente"
     },
     "MESSAGE_TYPES": {
-      "INCOMING": "Incoming Message",
-      "OUTGOING": "Outgoing Message"
+      "INCOMING": "Mensagem Recebida",
+      "OUTGOING": "Mensagem de Saída"
     },
     "PRIORITY_TYPES": {
       "NONE": "Nenhuma",

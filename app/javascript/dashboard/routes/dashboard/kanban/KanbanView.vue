@@ -19,7 +19,6 @@ import {
   KANBAN_STAGE_COLOR_OPTIONS,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
-import { getKanbanStageIconOption } from 'dashboard/helper/kanbanStageIcons';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
@@ -499,7 +498,6 @@ const getStageColorOption = getKanbanStageColorOption;
 // Sereno: a etapa se identifica por barra fina + ponto, não por cabeçalho
 // chapado de cor. Ver docs/raevo-design-system.md §5.
 const getStageBarClass = stage => getStageColorOption(stage.color).barClass;
-const getStageInkClass = stage => getStageColorOption(stage.color).inkClass;
 
 const getStageColorLabel = colorOption => {
   const labels = {
@@ -1667,32 +1665,29 @@ onUnmounted(() => {
     <section class="flex min-w-0 flex-1 flex-col">
       <header
         data-testid="kanban-workspace-header"
-        class="relative m-3 grid gap-3.5 rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:mx-6"
+        class="relative m-3 grid gap-3 rounded-xl border border-n-weak bg-n-solid-1 px-4 py-3 lg:mx-6"
       >
-        <span
-          class="block text-[9px] font-bold uppercase tracking-[0.16em] text-n-slate-10"
-        >
-          {{ t('KANBAN.EYEBROW') }}
-        </span>
         <div
           data-testid="kanban-workspace-primary-row"
-          class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 lg:grid-cols-[minmax(12rem,auto)_minmax(16rem,1fr)_auto] lg:gap-3"
+          class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:gap-3"
         >
           <div class="min-w-0 flex-1">
             <OnClickOutside @trigger="isBoardDropdownOpen = false">
-              <div class="relative inline-flex max-w-full flex-col">
+              <div class="relative flex max-w-[26rem] flex-col">
                 <button
                   type="button"
                   data-testid="kanban-board-switcher"
-                  class="-mx-1 inline-flex max-w-full items-center gap-2 rounded-lg px-1 py-1 text-left text-lg font-extrabold tracking-tight text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
+                  class="-mx-1 flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-1 text-left text-base font-bold tracking-tight text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!hasBoards"
                   @click="
                     isBoardDropdownOpen =
                       hasMultipleBoards && !isBoardDropdownOpen
                   "
                 >
-                  <span class="truncate">{{ currentBoardName }}</span>
-                  <i class="i-lucide-chevron-down size-5 text-n-slate-11" />
+                  <span class="truncate" :title="currentBoardName">{{
+                    currentBoardName
+                  }}</span>
+                  <i class="i-lucide-chevron-down size-4 text-n-slate-11" />
                 </button>
                 <div
                   v-if="isBoardDropdownOpen"
@@ -1726,7 +1721,7 @@ onUnmounted(() => {
               class="col-span-full order-3 min-w-0 self-center md:order-2 lg:col-span-1"
             >
               <label
-                class="block min-w-0"
+                class="ms-auto block w-full min-w-0 lg:w-64"
                 @click="openFilters"
                 @focusin="openFilters"
               >
@@ -1734,7 +1729,7 @@ onUnmounted(() => {
                   {{ t('KANBAN.FILTERS.SEARCH_LABEL') }}
                 </span>
                 <div
-                  class="relative z-10 flex h-9 min-w-0 w-full items-center overflow-hidden rounded-md border border-n-weak bg-n-surface-1 px-2 shadow-sm"
+                  class="relative z-10 flex h-10 min-w-0 w-full items-center overflow-hidden rounded-full border border-n-strong bg-n-surface-1 px-3"
                 >
                   <i
                     class="i-lucide-search size-4 flex-shrink-0 text-n-slate-10"
@@ -1743,8 +1738,9 @@ onUnmounted(() => {
                     v-model="searchInput"
                     type="search"
                     data-testid="kanban-search-input"
-                    class="h-full min-w-0 flex-1 border-0 bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/30"
+                    class="reset-base h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2 text-xs text-n-slate-12 outline-none focus:ring-0"
                     :placeholder="t('KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
+                    :title="t('KANBAN.FILTERS.SEARCH_LABEL')"
                     :aria-expanded="showFiltersPanel"
                     aria-controls="kanban-filter-panel"
                     aria-haspopup="dialog"
@@ -1814,6 +1810,54 @@ onUnmounted(() => {
                     data-testid="kanban-board-actions-menu-panel"
                     class="absolute right-0 z-30 mt-2 grid min-w-52 gap-1 rounded-lg border border-n-weak bg-n-solid-1 p-1.5 shadow-lg"
                   >
+                    <div
+                      class="flex items-center gap-1 rounded-md p-1"
+                      role="group"
+                      :aria-label="t('KANBAN.VIEW.LABEL')"
+                    >
+                      <button
+                        type="button"
+                        data-testid="kanban-view-kanban"
+                        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                        :class="
+                          viewMode === 'kanban'
+                            ? 'bg-n-alpha-2 text-n-brand'
+                            : 'text-n-slate-11 hover:text-n-slate-12'
+                        "
+                        :aria-pressed="viewMode === 'kanban'"
+                        @click="viewMode = 'kanban'"
+                      >
+                        <i class="i-lucide-columns-3 size-4" />
+                        {{ t('KANBAN.VIEW.KANBAN') }}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="kanban-view-list"
+                        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                        :class="
+                          viewMode === 'list'
+                            ? 'bg-n-alpha-2 text-n-brand'
+                            : 'text-n-slate-11 hover:text-n-slate-12'
+                        "
+                        :aria-pressed="viewMode === 'list'"
+                        @click="viewMode = 'list'"
+                      >
+                        <i class="i-lucide-list size-4" />
+                        {{ t('KANBAN.VIEW.LIST') }}
+                      </button>
+                    </div>
+                    <div class="my-0.5 border-t border-n-weak" />
+                    <button
+                      type="button"
+                      data-testid="kanban-open-activity-center"
+                      class="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                      @click="openActivityCenter"
+                    >
+                      <i
+                        class="i-lucide-calendar-check-2 size-4 text-n-slate-10"
+                      />
+                      {{ t('KANBAN.ACTIVITY.OPEN') }}
+                    </button>
                     <button
                       type="button"
                       data-testid="kanban-open-archived-cards"
@@ -1881,57 +1925,14 @@ onUnmounted(() => {
         </div>
 
         <template v-if="selectedBoard">
+          <!--
+            A segunda faixa do cabeçalho saiu: visualização e central de
+            atividades vivem no menu "...". O painel de filtros continua aqui.
+          -->
           <div
             data-testid="kanban-workspace-secondary-row"
-            class="flex min-w-0 items-center justify-end border-t border-n-weak pt-3"
+            class="flex min-w-0 items-center justify-end"
           >
-            <div class="flex min-h-10 items-center gap-1">
-              <div
-                class="flex items-center rounded-md border border-n-weak bg-n-surface-1 p-0.5"
-                :aria-label="t('KANBAN.VIEW.LABEL')"
-              >
-                <button
-                  type="button"
-                  data-testid="kanban-view-kanban"
-                  class="flex size-8 items-center justify-center rounded-md outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
-                  :class="
-                    viewMode === 'kanban'
-                      ? 'bg-n-alpha-2 text-n-brand'
-                      : 'text-n-slate-11 hover:text-n-slate-12'
-                  "
-                  :aria-label="t('KANBAN.VIEW.KANBAN')"
-                  :aria-pressed="viewMode === 'kanban'"
-                  @click="viewMode = 'kanban'"
-                >
-                  <i class="i-lucide-columns-3 size-4" />
-                </button>
-                <button
-                  type="button"
-                  data-testid="kanban-view-list"
-                  class="flex size-8 items-center justify-center rounded-md outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
-                  :class="
-                    viewMode === 'list'
-                      ? 'bg-n-alpha-2 text-n-brand'
-                      : 'text-n-slate-11 hover:text-n-slate-12'
-                  "
-                  :aria-label="t('KANBAN.VIEW.LIST')"
-                  :aria-pressed="viewMode === 'list'"
-                  @click="viewMode = 'list'"
-                >
-                  <i class="i-lucide-list size-4" />
-                </button>
-              </div>
-              <button
-                type="button"
-                data-testid="kanban-open-activity-center"
-                class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                :aria-label="t('KANBAN.ACTIVITY.OPEN')"
-                :title="t('KANBAN.ACTIVITY.OPEN')"
-                @click="openActivityCenter"
-              >
-                <i class="i-lucide-calendar-check-2 size-4" />
-              </button>
-            </div>
             <div
               v-show="showFiltersPanel"
               id="kanban-filter-panel"
@@ -2511,7 +2512,7 @@ onUnmounted(() => {
                 aria-hidden="true"
               />
               <header
-                class="stage-drag-handle group/stage flex min-h-10 cursor-grab items-center justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-1.5 text-n-slate-12"
+                class="stage-drag-handle group/stage relative flex min-h-10 cursor-grab items-start justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-2 text-n-slate-12"
               >
                 <form
                   v-if="editingStageId === stage.id"
@@ -2570,21 +2571,17 @@ onUnmounted(() => {
                   </div>
                 </form>
                 <template v-else>
-                  <div class="flex min-w-0 flex-1 items-center gap-2">
-                    <i
-                      class="size-3.5 shrink-0"
-                      :class="[
-                        getKanbanStageIconOption(stage.icon).iconClass,
-                        getStageInkClass(stage),
-                      ]"
-                      aria-hidden="true"
-                    />
+                  <div class="flex min-w-0 flex-1 items-start gap-2">
                     <h3
-                      class="min-w-0 truncate text-[12.5px] font-bold leading-5 tracking-tight text-n-slate-12"
+                      class="min-w-0 flex-1 break-words text-[12.5px] font-bold leading-5 tracking-tight text-n-slate-12"
                     >
-                      <span :title="stage.description || stage.name">{{
-                        stage.name
-                      }}</span>
+                      <!--
+                        Nome da etapa nunca corta: quebra em duas linhas e a
+                        coluna cresce. Etapas vão de 6 a 15 e os nomes são longos.
+                      -->
+                      <span :title="stage.description || stage.name">
+                        {{ stage.name }}
+                      </span>
                     </h3>
                     <button
                       v-if="stage.description"
@@ -2599,7 +2596,7 @@ onUnmounted(() => {
                       />
                     </button>
                     <span
-                      class="ms-auto flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-[10px] font-bold tabular-nums text-n-slate-11"
+                      class="mt-0.5 flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-[11px] font-bold tabular-nums text-n-slate-11"
                     >
                       {{ stageCardCount(stage) }}
                     </span>
@@ -2613,7 +2610,13 @@ onUnmounted(() => {
                       {{ `${stageCardCount(stage)}/${stage.wipLimit}` }}
                     </span>
                   </div>
-                  <div class="flex flex-shrink-0 gap-1">
+                  <!--
+                    Controles de hover sobrepostos, nunca reservando largura: era
+                    isso que empurrava a contagem para o meio do cabeçalho.
+                  -->
+                  <div
+                    class="absolute end-2 top-1.5 flex flex-shrink-0 gap-1 rounded-full bg-n-solid-1 opacity-0 shadow-sm transition-opacity focus-within:opacity-100 group-hover/stage:opacity-100"
+                  >
                     <button
                       type="button"
                       class="flex size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"

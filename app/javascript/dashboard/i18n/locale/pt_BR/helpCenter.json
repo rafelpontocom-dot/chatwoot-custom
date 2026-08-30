@@ -331,14 +331,14 @@
       }
     },
     "TABLE": {
-      "LOADING_MESSAGE": "Carregando artigos...",
       "404": "Nenhum artigo corresponde à sua pesquisa 🔍",
+      "LOADING_MESSAGE": "Carregando artigos...",
       "NO_ARTICLES": "Não há artigos disponíveis",
       "HEADERS": {
         "TITLE": "Título",
         "CATEGORY": "Categoria",
         "READ_COUNT": "Visualizações",
-        "STATUS": "Status",
+        "STATUS": "Situação",
         "LAST_EDITED": "Última edição"
       },
       "COLUMNS": {
@@ -552,6 +552,7 @@
         "LOCALE": {
           "ALL": "Todos os Idioma"
         },
+        "SEARCH_PLACEHOLDER": "Buscar artigos...",
         "NEW_ARTICLE": "Novo artigo"
       },
       "EMPTY_STATE": {
@@ -579,6 +580,10 @@
         "CATEGORY": {
           "TITLE": "Não há artigos nesta categoria",
           "SUBTITLE": "Os artigos nesta categoria aparecerão aqui"
+        },
+        "SEARCH": {
+          "TITLE": "Nenhum artigo encontrado",
+          "SUBTITLE": "Não encontramos artigos para a sua busca. Tente outro termo."
         }
       },
       "BULK_TRANSLATE": {
@@ -624,6 +629,7 @@
       "CATEGORY_HEADER": {
         "NEW_CATEGORY": "Nova categoria",
         "EDIT_CATEGORY": "Alterar categoria",
+        "SEARCH_PLACEHOLDER": "Buscar categorias...",
         "CATEGORIES_COUNT": "categoria {n} | {n} categorias",
         "BREADCRUMB": {
           "CATEGORY_LOCALE": "Categorias ({localeCode})",
@@ -633,6 +639,10 @@
       "CATEGORY_EMPTY_STATE": {
         "TITLE": "Nenhuma categoria encontrada",
         "SUBTITLE": "Categorias aparecerão aqui. Você pode adicionar uma categoria clicando no botão 'Nova Categoria'."
+      },
+      "SEARCH_EMPTY_STATE": {
+        "TITLE": "Nenhuma categoria encontrada",
+        "SUBTITLE": "Não encontramos categorias para a sua busca. Tente outro termo."
       },
       "CATEGORY_CARD": {
         "ARTICLES_COUNT": "artigo {count} | {count} artigos"
@@ -691,6 +701,11 @@
     "LOCALES_PAGE": {
       "LOCALES_COUNT": "Localizações não disponíveis | {n} local | {n} localidades",
       "NEW_LOCALE_BUTTON_TEXT": "Nova localização",
+      "SEARCH_PLACEHOLDER": "Buscar idiomas...",
+      "SEARCH_EMPTY_STATE": {
+        "TITLE": "Nenhum idioma encontrado",
+        "SUBTITLE": "Não encontramos idiomas para a sua busca. Tente outro termo."
+      },
       "LOCALE_CARD": {
         "ARTICLES_COUNT": "artigo {count} | {count} artigos",
         "CATEGORIES_COUNT": "categoria {count} | {count} categorias",
@@ -700,7 +715,25 @@
           "MAKE_DEFAULT": "Tornar padrão",
           "MOVE_TO_DRAFT": "Mover para rascunho",
           "PUBLISH_LOCALE": "Publicar localidade",
+          "CUSTOMIZE_CONTENT": "Traduzir conteúdo",
           "DELETE": "Excluir"
+        }
+      },
+      "CONTENT_DIALOG": {
+        "TITLE": "Traduzir conteúdo",
+        "DESCRIPTION": "Defina valores próprios deste idioma. O que ficar em branco usa o idioma padrão.",
+        "NAME": {
+          "LABEL": "Nome"
+        },
+        "PAGE_TITLE": {
+          "LABEL": "Título da página"
+        },
+        "HEADER_TEXT": {
+          "LABEL": "Texto do cabeçalho"
+        },
+        "API": {
+          "SUCCESS_MESSAGE": "Conteúdo do idioma atualizado com sucesso",
+          "ERROR_MESSAGE": "Não foi possível atualizar o conteúdo do idioma. Tente de novo."
         }
       },
       "ADD_LOCALE_DIALOG": {
@@ -710,7 +743,7 @@
           "PLACEHOLDER": "Selecionar local..."
         },
         "STATUS": {
-          "LABEL": "Status",
+          "LABEL": "Situação",
           "OPTIONS": {
             "LIVE": "Publicado",
             "DRAFT": "Rascunho"
@@ -737,7 +770,7 @@
       "EDIT_ARTICLE": {
         "MORE_PROPERTIES": "Mais propriedades",
         "UNCATEGORIZED": "Não categorizado",
-        "EDITOR_PLACEHOLDER": "Write your content here. Type '/' for formatting options."
+        "EDITOR_PLACEHOLDER": "Escreva o seu conteúdo aqui. Digite '/' para ver as opções de formatação."
       },
       "ARTICLE_PROPERTIES": {
         "ARTICLE_PROPERTIES": "Propriedades do artigo",

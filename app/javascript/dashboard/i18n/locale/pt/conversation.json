@@ -1,8 +1,8 @@
 {
   "CONVERSATION": {
+    "404": "Desculpe, não encontrámos a conversa. Por favor, tente novamente",
     "SELECT_A_CONVERSATION": "Por favor, selecione uma conversa no painel da esquerda",
     "CSAT_REPLY_MESSAGE": "Por favor, avalie a conversa",
-    "404": "Desculpe, não encontrámos a conversa. Por favor, tente novamente",
     "SWITCH_VIEW_LAYOUT": "Alternar o layout",
     "DASHBOARD_APP_TAB_MESSAGES": "Mensagens",
     "UNVERIFIED_SESSION": "A identidade deste utilizador não foi verificada",
@@ -12,8 +12,8 @@
     "NO_INBOX_2": " para começar",
     "NO_INBOX_AGENT": "Não faz parte de nenhuma caixa de entrada. Por favor, contacte o administrador",
     "SEARCH_MESSAGES": "Procurar mensagens em conversas",
-    "VIEW_ORIGINAL": "View original",
-    "VIEW_TRANSLATED": "View translated",
+    "VIEW_ORIGINAL": "Ver original",
+    "VIEW_TRANSLATED": "Ver traduzido",
     "EMPTY_STATE": {
       "CMD_BAR": "para abrir o menu de comandos",
       "KEYBOARD_SHORTCUTS": "para ver atalhos de teclado"
@@ -36,11 +36,11 @@
     "API_HOURS_WINDOW": "Só pode responder a esta conversa dentro de {hours} horas",
     "NOT_ASSIGNED_TO_YOU": "Esta conversa não está atribuída a si. Gostaria de atribuir esta conversa a si mesmo?",
     "ASSIGN_TO_ME": "Atribuir a mim",
-    "BOT_HANDOFF_MESSAGE": "You are responding to a conversation which is currently handled by an assistant or a bot.",
-    "BOT_HANDOFF_ACTION": "Mark open and assign to you",
-    "BOT_HANDOFF_REOPEN_ACTION": "Mark conversation open",
-    "BOT_HANDOFF_SUCCESS": "Conversation has been handed over to you",
-    "BOT_HANDOFF_ERROR": "Failed to take over the conversation. Please try again.",
+    "BOT_HANDOFF_MESSAGE": "Você está respondendo a uma conversa que é atualmente tratada por um assistente ou um robô.",
+    "BOT_HANDOFF_ACTION": "Marcar como aberta e atribuir a você",
+    "BOT_HANDOFF_REOPEN_ACTION": "Marcar conversa como aberta",
+    "BOT_HANDOFF_SUCCESS": "Uma conversa foi atribuída a você",
+    "BOT_HANDOFF_ERROR": "Falha ao resolver conversas. Por favor, tente novamente.",
     "TWILIO_WHATSAPP_CAN_REPLY": "Só pode responder utilizando uma mensagem modelo, porque",
     "TWILIO_WHATSAPP_24_HOURS_WINDOW": "Mensagens bloqueadas durante 24 horas",
     "OLD_INSTAGRAM_INBOX_REPLY_BANNER": "Esta conta do Instagram foi migrada para a nova caixa de entrada do canal Instagram. Todas as novas mensagens aparecerão lá. Já não poderá enviar mensagens a partir desta conversa.",
@@ -48,12 +48,12 @@
     "REMOVE_SELECTION": "Remover seleção",
     "DOWNLOAD": "Descarregar",
     "UNKNOWN_FILE_TYPE": "Ficheiro desconhecido",
-    "SAVE_CONTACT": "Save Contact",
-    "NO_CONTENT": "No content to display",
+    "SAVE_CONTACT": "Guardar contacto",
+    "NO_CONTENT": "Nenhum conteúdo a ser exibido",
     "SHARED_ATTACHMENT": {
-      "CONTACT": "{sender} has shared a contact",
-      "LOCATION": "{sender} has shared a location",
-      "FILE": "{sender} has shared a file",
+      "CONTACT": "{sender} compartilhou um contacto",
+      "LOCATION": "{sender} compartilhou uma localização",
+      "FILE": "{sender} compartilhou um ficheiro",
       "MEETING": "{sender} iniciou uma reunião"
     },
     "UPLOADING_ATTACHMENTS": "A carregar anexos...",
@@ -61,41 +61,41 @@
     "UNSUPPORTED_MESSAGE": "This message is unsupported. You can view this message on the Facebook / Instagram app.",
     "UNSUPPORTED_MESSAGE_FACEBOOK": "Esta mensagem não é suportada. Pode ver esta mensagem na app Facebook Messenger.",
     "UNSUPPORTED_MESSAGE_INSTAGRAM": "Esta mensagem não é suportada. Pode ver esta mensagem na app do Instagram.",
-    "UNSUPPORTED_MESSAGE_TIKTOK": "This message is unsupported. You can view this message on the TikTok app.",
-    "UNSUPPORTED_MESSAGE_WHATSAPP": "This message is unsupported. You can view this message on the WhatsApp app.",
+    "UNSUPPORTED_MESSAGE_TIKTOK": "Esta mensagem não é compatível. Você pode visualizá-la no aplicação do TikTok.",
+    "UNSUPPORTED_MESSAGE_WHATSAPP": "Esta mensagem não é suportada. Você pode visualizar esta mensagem no aplicação do WhatsApp.",
     "SUCCESS_DELETE_MESSAGE": "Mensagem apagada com sucesso",
     "FAIL_DELETE_MESSSAGE": "Não foi possível apagar a mensagem! Por favor, tente novamente",
     "NO_RESPONSE": "Sem resposta",
-    "RESPONSE": "Response",
+    "RESPONSE": "Resposta",
     "RATING_TITLE": "Avaliar",
     "FEEDBACK_TITLE": "Comentários",
     "REPLY_MESSAGE_NOT_FOUND": "Mensagem indisponível",
     "CARD": {
       "SHOW_LABELS": "Mostrar etiquetas",
       "HIDE_LABELS": "Ocultar etiquetas",
-      "LABELS_COUNT": "{count} labels"
+      "LABELS_COUNT": "{count} etiquetas"
     },
     "VOICE_CALL": {
-      "INCOMING_CALL": "Incoming call",
-      "OUTGOING_CALL": "Outgoing call",
-      "CALL_IN_PROGRESS": "Call in progress",
-      "NO_ANSWER": "No answer",
-      "NO_ANSWER_OUTBOUND_LABEL": "No answer",
-      "NO_ANSWER_OUTBOUND_SUBTEXT": "Contact didn't pick up",
-      "MISSED_CALL": "Missed call",
-      "MISSED_CALL_INBOUND_SUBTEXT": "No agent picked up",
-      "MISSED_CALL_DECLINED_BY": "Declined by {agentName}",
-      "CALL_ENDED": "Call ended",
-      "HANDLED_BY": "Handled by {agentName}",
-      "NOT_ANSWERED_YET": "Not answered yet",
-      "CALLING": "Calling…",
-      "THEY_ANSWERED": "They answered",
-      "YOU_ANSWERED": "You answered",
-      "AGENT_ANSWERED": "{agentName} answered",
-      "JOIN_CALL": "Join call",
-      "CALL_BACK": "Call back",
-      "TRANSCRIPT_SHOW_MORE": "Show more",
-      "TRANSCRIPT_SHOW_LESS": "Show less"
+      "INCOMING_CALL": "Chamada recebida",
+      "OUTGOING_CALL": "Chamada realizada",
+      "CALL_IN_PROGRESS": "Chamada em andamento",
+      "NO_ANSWER": "Sem resposta",
+      "NO_ANSWER_OUTBOUND_LABEL": "Sem resposta",
+      "NO_ANSWER_OUTBOUND_SUBTEXT": "O contacto não atendeu",
+      "MISSED_CALL": "Chamada perdida",
+      "MISSED_CALL_INBOUND_SUBTEXT": "Nenhum atendente atendeu",
+      "MISSED_CALL_DECLINED_BY": "Recusado por {agentName}",
+      "CALL_ENDED": "Chamada encerrada",
+      "HANDLED_BY": "Atendido por {agentName}",
+      "NOT_ANSWERED_YET": "Ainda não respondido",
+      "CALLING": "Chamando…",
+      "THEY_ANSWERED": "Eles responderam",
+      "YOU_ANSWERED": "Você respondeu",
+      "AGENT_ANSWERED": "{agentName} respondeu",
+      "JOIN_CALL": "Entrar na chamada",
+      "CALL_BACK": "Retornar chamada",
+      "TRANSCRIPT_SHOW_MORE": "Ver mais",
+      "TRANSCRIPT_SHOW_LESS": "Mostrar menos"
     },
     "HEADER": {
       "RESOLVE_ACTION": "Resolver",
@@ -105,23 +105,23 @@
       "OPEN": "Mais",
       "CLOSE": "Fechar",
       "DETAILS": "Detalhes",
-      "COPY_ID_SUCCESS": "Conversation ID copied to clipboard",
+      "COPY_ID_SUCCESS": "ID da conversa copiado para área de transferência",
       "SNOOZED_UNTIL": "Suspender até",
       "SNOOZED_UNTIL_TOMORROW": "Adiada até amanhã",
       "SNOOZED_UNTIL_NEXT_WEEK": "Adiada até a próxima semana",
       "SNOOZED_UNTIL_NEXT_REPLY": "Adiada até à próxima resposta",
-      "WHATSAPP_CALL": "Start WhatsApp call",
-      "WHATSAPP_CALL_FAILED": "Could not start the WhatsApp call.",
-      "VOICE_CALL": "Start call",
-      "VOICE_CALL_FAILED": "Could not start the call.",
-      "WHATSAPP_CALL_PERMISSION_REQUESTED": "Sent a call permission request to the contact. Try again once they accept.",
-      "WHATSAPP_CALL_PERMISSION_PENDING": "Call permission request already sent recently. Try again once the contact accepts.",
+      "WHATSAPP_CALL": "Iniciar chamada no WhatsApp",
+      "WHATSAPP_CALL_FAILED": "Não foi possível iniciar a chamada no WhatsApp.",
+      "VOICE_CALL": "Iniciar chamada",
+      "VOICE_CALL_FAILED": "Não foi possível iniciar a chamada.",
+      "WHATSAPP_CALL_PERMISSION_REQUESTED": "Solicitação de permissão de chamada enviada ao contacto. Tente novamente após a aceitação.",
+      "WHATSAPP_CALL_PERMISSION_PENDING": "Uma solicitação de permissão de chamada já foi enviada recentemente. Tente novamente após o contacto aceitar.",
       "SLA_STATUS": {
         "FRT": "FRT {status}",
         "NRT": "NRT {status}",
         "RT": "RT {status}",
-        "MISSED": "missed",
-        "DUE": "due"
+        "MISSED": "perdidas",
+        "DUE": "venceu"
       }
     },
     "RESOLVE_DROPDOWN": {
@@ -182,21 +182,21 @@
       "AGENTS_LOADING": "A carregar agentes...",
       "ASSIGN_TEAM": "Atribuir equipa",
       "DELETE": "Apagar conversa",
-      "OPEN_IN_NEW_TAB": "Open in new tab",
-      "COPY_LINK": "Copy conversation link",
-      "COPY_LINK_SUCCESS": "Conversation link copied to clipboard",
+      "OPEN_IN_NEW_TAB": "Abrir em nova aba",
+      "COPY_LINK": "Copiar link da conversa",
+      "COPY_LINK_SUCCESS": "Link da conversa copiado",
       "API": {
         "AGENT_ASSIGNMENT": {
           "SUCCESFUL": "Conversa com ID {conversationId} atribuída a \"{agentName}\"",
           "FAILED": "Não foi possível atribuir agente. Por favor, tente novamente."
         },
         "LABEL_ASSIGNMENT": {
-          "SUCCESFUL": "Assigned label #{labelName} to conversation id {conversationId}",
+          "SUCCESFUL": "Etiqueta #{labelName} atribuída para a conversa {conversationId}",
           "FAILED": "Não foi possível atribuir etiqueta. Por favor, tente novamente."
         },
         "LABEL_REMOVAL": {
-          "SUCCESFUL": "Removed label #{labelName} from conversation id {conversationId}",
-          "FAILED": "Couldn't remove label. Please try again."
+          "SUCCESFUL": "Etiqueta #{labelName} removida da conversa com id {conversationId}",
+          "FAILED": "Não foi possível remover a etiqueta. Por favor, tente novamente."
         },
         "TEAM_ASSIGNMENT": {
           "SUCCESFUL": "Equipa \"{team}\" atribuída  a conversa de ID {conversationId}",
@@ -210,9 +210,9 @@
       "DISABLE_SIGN_TOOLTIP": "Desativar assinatura",
       "MSG_INPUT": "Shift + Enter para nova linha. Comece com '/' para selecionar uma resposta pronta.",
       "PRIVATE_MSG_INPUT": "Shift + Enter para nova linha. Esta mensagem apenas será visível para agentes",
-      "MESSAGING_RESTRICTED": "You cannot reply to this conversation",
-      "MESSAGING_RESTRICTED_WHATSAPP": "You can only reply using a template message due to 24-hour message window restriction",
-      "MESSAGING_RESTRICTED_API": "You can only reply using a template message due to message window restriction",
+      "MESSAGING_RESTRICTED": "Você não pode responder esta conversa",
+      "MESSAGING_RESTRICTED_WHATSAPP": "Você só pode responder usando uma mensagem de modelo devido à restrição da janela de 24 horas",
+      "MESSAGING_RESTRICTED_API": "Você só pode responder usando uma mensagem de template devido à restrição da janela de mensagens",
       "MESSAGE_SIGNATURE_NOT_CONFIGURED": "A assinatura da mensagem não está configurada. Por favor, configure-a nas configurações do perfil.",
       "COPILOT_MSG_INPUT": "Dê comandos adicionais ao copiloto ou pergunte qualquer outra coisa... Pressione enter para enviar o acompanhamento",
       "CLICK_HERE": "Clique aqui para atualizar",
@@ -231,8 +231,9 @@
       "TIP_AUDIORECORDER_ICON": "Gravar áudio",
       "TIP_AUDIORECORDER_PERMISSION": "Permitir acesso ao áudio",
       "TIP_AUDIORECORDER_ERROR": "Não foi possível abrir o áudio",
-      "AUDIO_CONVERSION_FAILED": "Audio conversion failed. Please try again.",
+      "AUDIO_CONVERSION_FAILED": "Não foi possível converter o áudio. Tente de novo.",
       "DRAG_DROP": "Arrastar e soltar aqui para anexar",
+      "IMAGE_UPLOAD_SUCCESS": "Imagem enviada com sucesso",
       "START_AUDIO_RECORDING": "Iniciar gravação de áudio",
       "STOP_AUDIO_RECORDING": "Parar gravação de áudio",
       "COPILOT_THINKING": "Copiloto está pensando",
@@ -259,11 +260,11 @@
         }
       },
       "QUOTED_REPLY": {
-        "ENABLE_TOOLTIP": "Include quoted email thread",
-        "DISABLE_TOOLTIP": "Don't include quoted email thread",
-        "REMOVE_PREVIEW": "Remove quoted email thread",
-        "COLLAPSE": "Collapse preview",
-        "EXPAND": "Expand preview"
+        "ENABLE_TOOLTIP": "Incluir o encadeamento de e-mails citado",
+        "DISABLE_TOOLTIP": "Não incluir o encadeamento de e-mails citado",
+        "REMOVE_PREVIEW": "Remover o encadeamento de e-mails citado",
+        "COLLAPSE": "Recolher a prévia",
+        "EXPAND": "Expandir a prévia"
       }
     },
     "VISIBLE_TO_AGENTS": "Nota Privada: Apenas visível para si e para a sua equipa",
@@ -277,12 +278,12 @@
     "SUCCESS_DELETE_CONVERSATION": "Conversa apagada",
     "FAIL_DELETE_CONVERSATION": "Não foi possível apagar a conversa! Tente novamente",
     "FILE_SIZE_LIMIT": "O ficheiro excede o tamanho limite para anexos de {MAXIMUM_SUPPORTED_FILE_UPLOAD_SIZE} MB",
-    "FILE_TYPE_NOT_SUPPORTED": "This {fileName} file type is not supported in this conversation",
+    "FILE_TYPE_NOT_SUPPORTED": "O tipo de ficheiro {fileName} não é suportado nesta conversa",
     "MESSAGE_ERROR": "Não foi possível enviar esta mensagem, por favor, tente novamente mais tarde",
     "SENT_BY": "Enviado por:",
-    "BOT": "Bot",
-    "NATIVE_APP": "Native app",
-    "NATIVE_APP_ADVISORY": "This message was sent from the native app. Reply from Chatwoot to maintain the message window.",
+    "BOT": "Robôs",
+    "NATIVE_APP": "Aplicação nativo",
+    "NATIVE_APP_ADVISORY": "Esta mensagem foi enviada a partir do aplicação nativo. Responda pelo Chatwoot para manter a janela de mensagens ativa.",
     "SEND_FAILED": "Não foi possível enviar a mensagem! Tente novamente",
     "TRY_AGAIN": "Tentar novamente",
     "ASSIGNMENT": {
@@ -303,26 +304,45 @@
         "MESSAGE": "Esta ação é irreversível",
         "DELETE": "Excluir",
         "CANCEL": "Cancelar"
+      },
+      "REPORT_MESSAGE": {
+        "LABEL": "Reportar mensagem",
+        "TITLE": "Reportar mensagem do Captain",
+        "DESCRIPTION": "Encontrou algum problema nesta resposta da IA? Conte o que saiu errado e a nossa equipe vai revisar para melhorar a precisão do Captain.",
+        "PROBLEM_TYPE": "Tipo de problema",
+        "PROBLEM_TYPE_PLACEHOLDER": "Escolha o tipo de problema",
+        "DESCRIPTION_LABEL": "Descrição",
+        "DESCRIPTION_PLACEHOLDER": "Descreva o problema em detalhe",
+        "SUBMIT": "Relatório",
+        "SUCCESS": "Obrigado por avisar. A nossa equipe vai analisar.",
+        "ERROR": "Não foi possível reportar esta mensagem. Tente de novo.",
+        "REASONS": {
+          "incorrect_information": "Informação incorreta",
+          "inappropriate_response": "Resposta inadequada",
+          "incomplete_response": "Resposta incompleta",
+          "outdated_information": "Informação desatualizada",
+          "other": "Outro"
+        }
       }
     },
     "SIDEBAR": {
       "CONTACT": "Contacto",
-      "COPILOT": "Copilot"
+      "COPILOT": "Copiloto"
     },
     "VOICE_WIDGET": {
-      "INCOMING_CALL": "Incoming call",
-      "OUTGOING_CALL": "Outgoing call",
-      "CALL_IN_PROGRESS": "Call in progress",
-      "NOT_ANSWERED_YET": "Not answered yet",
-      "HANDLED_IN_ANOTHER_TAB": "Being handled in another tab",
-      "REJECT_CALL": "Reject",
+      "INCOMING_CALL": "Chamada recebida",
+      "OUTGOING_CALL": "Chamada realizada",
+      "CALL_IN_PROGRESS": "Chamada em andamento",
+      "NOT_ANSWERED_YET": "Ainda não respondido",
+      "HANDLED_IN_ANOTHER_TAB": "Sendo atendida em outra aba",
+      "REJECT_CALL": "Recusar",
       "DISMISS_CALL": "Descartar",
-      "JOIN_CALL": "Join call",
-      "END_CALL": "End call",
-      "MUTE": "Mute mic",
-      "UNMUTE": "Unmute mic",
-      "VIEW_CHAT_HISTORY": "View chat history",
-      "GO_TO_CONVERSATION": "Go to conversation thread"
+      "JOIN_CALL": "Entrar na chamada",
+      "END_CALL": "Encerrar chamada",
+      "MUTE": "Silenciar microfone",
+      "UNMUTE": "Desilenciar microfone",
+      "VIEW_CHAT_HISTORY": "Ver histórico da conversa",
+      "GO_TO_CONVERSATION": "Ir para a conversa"
     }
   },
   "EMAIL_TRANSCRIPT": {
@@ -332,7 +352,7 @@
     "CANCEL": "Cancelar",
     "SEND_EMAIL_SUCCESS": "A transcrição da conversa foi enviada com sucesso",
     "SEND_EMAIL_ERROR": "Ocorreu um erro, por favor, tente novamente",
-    "SEND_EMAIL_PAYMENT_REQUIRED": "Email transcript is not available on your current plan. Please upgrade to use this feature.",
+    "SEND_EMAIL_PAYMENT_REQUIRED": "A transcrição de e-mail não está disponível no seu plano atual. Por favor, atualize para usar este recurso.",
     "FORM": {
       "SEND_TO_CONTACT": "Enviar a transcrição ao cliente",
       "SEND_TO_AGENT": "Enviar a transcrição para o agente atribuído",
@@ -387,38 +407,69 @@
       "CONTACT_ATTRIBUTES": "Atributos do contacto",
       "PREVIOUS_CONVERSATION": "Conversas anteriores",
       "MACROS": "Macros",
+      "KANBAN": "Oportunidades",
       "LINEAR_ISSUES": "Casos Linear Associados",
-      "SHOPIFY_ORDERS": "Shopify Orders",
-      "SHARED_FILES": "Attachments"
+      "SHOPIFY_ORDERS": "Pedidos do Shopify",
+      "SHARED_FILES": "Anexos"
+    },
+    "KANBAN": {
+      "LOADING": "Carregando oportunidades",
+      "EMPTY": "Nenhuma oportunidade vinculada a esta conversa",
+      "ERROR": "Não foi possível carregar as oportunidades",
+      "ADD": "Adicionar ao Kanban",
+      "CREATE_TITLE": "Criar oportunidade",
+      "BOARD": "Funil",
+      "SUBJECT": "Assunto",
+      "STAGE": "Etapa da oportunidade",
+      "DUE_DATE": "Data de vencimento",
+      "LABELS": "Etiquetas",
+      "NOT_SET": "Não definido",
+      "NO_LABELS": "Sem etiquetas",
+      "SELECT_BOARD": "Selecionar funil",
+      "SELECT_STAGE": "Selecionar etapa",
+      "EMPTY_BOARDS": "Nenhum funil ativo disponível",
+      "EMPTY_STAGES": "Nenhuma etapa ativa disponível",
+      "CREATE_ERROR": "Não foi possível criar a oportunidade",
+      "CREATED": "Oportunidade criada",
+      "CANCEL": "Cancelar",
+      "CREATE": "Criar",
+      "SAVE": "Guardar",
+      "SAVING": "Salvando...",
+      "UPDATE_ERROR": "Não foi possível atualizar a oportunidade",
+      "UPDATED": "Oportunidade atualizada",
+      "OPEN_IN_BOARD": "Abrir oportunidade no funil",
+      "GENERAL_FIELDS": "Outros campos",
+      "MARKETING_FIELDS": "Marketing"
     },
     "SHARED_FILES": {
-      "EMPTY": "No attachments yet",
-      "DOWNLOAD": "Download file",
-      "DOWNLOAD_ERROR": "Could not download the file. Please try again.",
-      "MEDIA_HEADING": "Media",
-      "FILES_HEADING": "Files",
+      "EMPTY": "Nenhum anexo ainda",
+      "DOWNLOAD": "Transferir ficheiro",
+      "DOWNLOAD_ERROR": "Não foi possível transferir o ficheiro. Por favor, tente novamente.",
+      "MEDIA_HEADING": "Mídia",
+      "FILES_HEADING": "Ficheiros",
       "VIEW_ALL": "Visualizar todos",
-      "SHOW_LESS": "Show less",
+      "SHOW_LESS": "Mostrar menos",
       "MORE_COUNT": "+{count}",
-      "UNTITLED_FILE": "Untitled file"
+      "UNTITLED_FILE": "Ficheiro sem nome",
+      "JUMP_TO_MESSAGE": "Ir para a mensagem"
     },
     "SHOPIFY": {
-      "ORDER_ID": "Order #{id}",
-      "ERROR": "Error loading orders",
-      "NO_SHOPIFY_ORDERS": "No orders found",
+      "ORDER_ID": "Pedido #{id}",
+      "ERROR": "Erro ao carregar pedidos",
+      "NO_SHOPIFY_ORDERS": "Nenhum pedido encontrado",
       "FINANCIAL_STATUS": {
         "PENDING": "Pendente",
-        "AUTHORIZED": "Authorized",
-        "PARTIALLY_PAID": "Partially Paid",
-        "PAID": "Paid",
-        "PARTIALLY_REFUNDED": "Partially Refunded",
-        "REFUNDED": "Refunded",
-        "VOIDED": "Voided"
+        "AUTHORIZED": "Autorizado",
+        "PARTIALLY_PAID": "Parcialmente pago",
+        "PAID": "Pago",
+        "PARTIALLY_REFUNDED": "Parcialmente Reembolsado",
+        "REFUNDED": "Reembolsado",
+        "VOIDED": "Anulado"
       },
       "FULFILLMENT_STATUS": {
-        "FULFILLED": "Fulfilled",
-        "PARTIALLY_FULFILLED": "Partially Fulfilled",
-        "UNFULFILLED": "Unfulfilled"
+        "FULFILLED": "Concluído",
+        "PARTIALLY_FULFILLED": "Parcialmente Concluído",
+        "UNFULFILLED": "Não concluído"
       }
     }
   },
@@ -447,10 +498,10 @@
   "EMAIL_HEADER": {
     "FROM": "De",
     "TO": "Para",
-    "BCC": "Bcc",
+    "BCC": "CCO",
     "CC": "Cc",
     "SUBJECT": "Assunto",
-    "EXPAND": "Expand email"
+    "EXPAND": "Expandir e-mail"
   },
   "CONVERSATION_PARTICIPANTS": {
     "SIDEBAR_MENU_TITLE": "A participar",
@@ -477,14 +528,14 @@
     "NO_TRANSLATIONS_AVAILABLE": "Nenhuma tradução está disponível para este conteúdo"
   },
   "TYPING": {
-    "ONE": "{user} is typing",
-    "TWO": "{user} and {secondUser} are typing",
-    "MULTIPLE": "{user} and {count} others are typing"
+    "ONE": "{user} está digitando",
+    "TWO": "{user} e {secondUser} estão digitando",
+    "MULTIPLE": "{user} e {count} outros estão digitando"
   },
   "COPILOT": {
-    "TRY_THESE_PROMPTS": "Try these prompts"
+    "TRY_THESE_PROMPTS": "Experimente estes comandos"
   },
   "GALLERY_VIEW": {
-    "ERROR_DOWNLOADING": "Unable to download attachment. Please try again"
+    "ERROR_DOWNLOADING": "Não foi possível transferir o anexo. Por favor, tente novamente"
   }
 }

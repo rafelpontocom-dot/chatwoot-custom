@@ -19,6 +19,8 @@
       "OR": "OU"
     },
     "INPUT_PLACEHOLDER": "Inserir valor",
+    "CONTACT_SEARCH_PLACEHOLDER": "Buscar contatos",
+    "CONTACT_FALLBACK": "Contato #{id}",
     "OPERATOR_LABELS": {
       "equal_to": "Igual a",
       "not_equal_to": "Diferente",
@@ -45,10 +47,11 @@
       "FALSE": "Falso"
     },
     "ATTRIBUTES": {
-      "STATUS": "Status",
+      "STATUS": "Situação",
       "ASSIGNEE_NAME": "Agente atribuído",
       "INBOX_NAME": "Caixa de Entrada",
       "TEAM_NAME": "Nome do Time",
+      "CONTACT": "Contato",
       "CONVERSATION_IDENTIFIER": "Identificador da conversa",
       "CAMPAIGN_NAME": "Nome da campanha",
       "LABELS": "Etiquetas",
@@ -60,7 +63,7 @@
       "CUSTOM_ATTRIBUTE_TEXT": "Texto",
       "CUSTOM_ATTRIBUTE_NUMBER": "Número",
       "CUSTOM_ATTRIBUTE_LINK": "Link",
-      "CUSTOM_ATTRIBUTE_CHECKBOX": "Checkbox",
+      "CUSTOM_ATTRIBUTE_CHECKBOX": "Caixa de seleção",
       "CREATED_AT": "Criado em",
       "LAST_ACTIVITY": "Última atividade"
     },

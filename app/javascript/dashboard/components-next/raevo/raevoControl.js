@@ -9,8 +9,12 @@
  * campo de uma linha é pílula; textarea usa `rounded-lg`. Altura única de 40 px.
  */
 
+// `reset-base` é a saída oficial do Chatwoot (`_base.scss`) para escapar do
+// `field-base`, que pinta TODO input com fundo cinza, raio próprio e 16px de
+// margem inferior. Sem ela, a geometria abaixo é silenciosamente sobrescrita —
+// era a causa da "caixa dentro de caixa" e do espaçamento irregular dos campos.
 const BASE =
-  'w-full border border-n-strong bg-n-surface-1 text-sm text-n-slate-12 ' +
+  'reset-base w-full border border-n-strong bg-n-surface-1 text-sm text-n-slate-12 ' +
   'outline-none transition-colors placeholder:text-n-slate-9 ' +
   'focus:border-n-brand focus:ring-2 focus:ring-n-brand/20 ' +
   'disabled:cursor-not-allowed disabled:opacity-60';
@@ -19,7 +23,9 @@ const BASE =
 export const RAEVO_CONTROL_CLASS = `h-10 rounded-full px-4 ${BASE}`;
 
 /** select — mesma casca; o chevron é desenhado pelo RaevoField */
-export const RAEVO_SELECT_CLASS = `h-10 appearance-none rounded-full px-4 pr-10 ${BASE}`;
+// `bg-none` apaga a seta que uma regra global desenha como background-image no
+// select. Sem isso o campo mostra dois chevrons: o global e o do RaevoField.
+export const RAEVO_SELECT_CLASS = `h-10 appearance-none rounded-full bg-none px-4 pr-10 ${BASE}`;
 
 /** textarea — não é pílula: várias linhas pedem canto de painel */
-export const RAEVO_TEXTAREA_CLASS = `min-h-24 resize-y rounded-lg px-3 py-2.5 ${BASE}`;
+export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-3 py-2.5 ${BASE}`;

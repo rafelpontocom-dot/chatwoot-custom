@@ -7,7 +7,8 @@ import FormsAPI from 'dashboard/api/forms';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Draggable from 'vuedraggable';
-import FormsBuilderPreview from './FormsBuilderPreview.vue';
+import { OnClickOutside } from '@vueuse/components';
+import FormsCanvasEditor from './FormsCanvasEditor.vue';
 import FormsBuilderSettingsDialog from './FormsBuilderSettingsDialog.vue';
 import { getFormStarterSchema } from './starterTemplates';
 import { FORM_FIELD_GROUPS, getFormFieldGroup } from './fieldGroups';
@@ -25,6 +26,8 @@ const activeTab = ref('templates');
 const selectedTemplateId = ref(null);
 const activeBuilderSectionIndex = ref(0);
 const selectedBuilderFieldKey = ref('');
+const showBuilderLibrary = ref(false);
+const showFormActionsMenu = ref(false);
 const selectedBuilderContentBlockId = ref('');
 const builderLibraryQuery = ref('');
 const hasUnsavedChanges = ref(false);
@@ -1129,6 +1132,13 @@ function addBuilderField(type) {
   builderSettingsDialog.value?.open();
 }
 
+// Do canvas, adicionar pergunta não abre diálogo: a pessoa continua escrevendo.
+function addBuilderFieldInline(type = 'text') {
+  if (!activeBuilderSection.value) return;
+
+  addField(activeBuilderSection.value, type);
+}
+
 function openFieldTypeDialog(section) {
   pendingFieldSectionIndex.value =
     editor.value.schema.sections.indexOf(section);
@@ -1757,7 +1767,7 @@ onBeforeUnmount(() => {
               >
                 <button
                   type="button"
-                  class="min-h-9 rounded px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                  class="min-h-9 whitespace-nowrap rounded-full px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
                   :class="
                     editor.settings.presentation === 'guided'
                       ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
@@ -1765,13 +1775,14 @@ onBeforeUnmount(() => {
                   "
                   role="radio"
                   :aria-checked="editor.settings.presentation === 'guided'"
+                  :title="t('FORMS.EDITOR.PRESENTATIONS.GUIDED_HINT')"
                   @click="editor.settings.presentation = 'guided'"
                 >
                   {{ t('FORMS.EDITOR.PRESENTATIONS.GUIDED') }}
                 </button>
                 <button
                   type="button"
-                  class="min-h-9 rounded px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                  class="min-h-9 whitespace-nowrap rounded-full px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
                   :class="
                     editor.settings.presentation === 'sectioned'
                       ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
@@ -1779,6 +1790,7 @@ onBeforeUnmount(() => {
                   "
                   role="radio"
                   :aria-checked="editor.settings.presentation === 'sectioned'"
+                  :title="t('FORMS.EDITOR.PRESENTATIONS.SECTIONED_HINT')"
                   @click="editor.settings.presentation = 'sectioned'"
                 >
                   {{ t('FORMS.EDITOR.PRESENTATIONS.SECTIONED') }}
@@ -1846,10 +1858,51 @@ onBeforeUnmount(() => {
               <Button
                 variant="faded"
                 color="slate"
-                :label="t('FORMS.ACTIONS.OPEN_PREVIEW')"
-                data-test="forms-open-private-preview"
-                @click="openPrivatePreview"
+                :label="t('FORMS.BUILDER.LIBRARY')"
+                data-test="forms-toggle-library"
+                :aria-pressed="showBuilderLibrary"
+                @click="showBuilderLibrary = !showBuilderLibrary"
               />
+              <!--
+                Duplicar, Histórico e Abrir prévia saíram da linha: com seis
+                botões de mesmo peso, nenhum era a ação principal. A prévia
+                perdeu urgência porque o canvas já mostra o resultado real.
+              -->
+              <OnClickOutside @trigger="showFormActionsMenu = false">
+                <div class="relative">
+                  <button
+                    type="button"
+                    data-test="forms-actions-menu"
+                    class="flex size-10 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+                    :aria-label="t('FORMS.ACTIONS.MORE')"
+                    :aria-expanded="showFormActionsMenu"
+                    @click="showFormActionsMenu = !showFormActionsMenu"
+                  >
+                    <i class="i-lucide-ellipsis size-4" aria-hidden="true" />
+                  </button>
+                  <div
+                    v-if="showFormActionsMenu"
+                    data-test="forms-actions-menu-panel"
+                    class="absolute end-0 z-30 mt-2 grid min-w-52 gap-1 rounded-lg border border-n-weak bg-n-solid-1 p-1.5 shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      data-test="forms-open-private-preview"
+                      class="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
+                      @click="
+                        showFormActionsMenu = false;
+                        openPrivatePreview();
+                      "
+                    >
+                      <i
+                        class="i-lucide-eye size-4 text-n-slate-10"
+                        aria-hidden="true"
+                      />
+                      {{ t('FORMS.ACTIONS.OPEN_PREVIEW') }}
+                    </button>
+                  </div>
+                </div>
+              </OnClickOutside>
               <Button
                 :label="t('FORMS.ACTIONS.SAVE')"
                 :is-loading="isSaving"
@@ -1858,12 +1911,23 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
+          <!--
+            O canvas é o protagonista. A biblioteca continua disponível, mas
+            recolhida: como coluna fixa de 16rem ela roubava largura do
+            formulário e virava a porta de entrada, obrigando a escolher o tipo
+            antes de escrever a pergunta.
+          -->
           <section
             data-test="forms-visual-builder"
-            class="grid min-h-[38rem] gap-4 rounded-lg border border-n-slate-4 bg-n-solid-1 p-4 xl:grid-cols-[16rem_minmax(0,1fr)]"
+            class="relative min-h-[38rem]"
           >
+            <!--
+              Painel flutuante: como coluna, a biblioteca encolhia o canvas toda
+              vez que era aberta e a pessoa perdia a referência do que escrevia.
+            -->
             <aside
-              class="min-h-0 overflow-y-auto rounded-md border border-n-slate-4 bg-n-slate-2 p-3"
+              v-show="showBuilderLibrary"
+              class="absolute end-0 top-0 z-20 max-h-[34rem] w-64 overflow-y-auto rounded-xl border border-n-weak bg-n-solid-1 p-3 shadow-lg"
             >
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-sm font-semibold text-n-slate-12">
@@ -2131,12 +2195,19 @@ onBeforeUnmount(() => {
               </button>
             </aside>
 
-            <FormsBuilderPreview
+            <FormsCanvasEditor
               :editor="editor"
               :active-section-index="activeBuilderSectionIndex"
               :selected-field-key="selectedBuilderFieldKey"
+              :field-types="fieldTypes"
               @select-section="selectBuilderSection"
               @select-field="selectBuilderField"
+              @add-section="addSection"
+              @add-field="addBuilderFieldInline"
+              @remove-field="removeSelectedBuilderField"
+              @duplicate-field="duplicateSelectedBuilderField"
+              @move-field="moveSelectedBuilderField($event.to - $event.from)"
+              @open-settings="builderSettingsDialog?.open()"
             />
 
             <FormsBuilderSettingsDialog

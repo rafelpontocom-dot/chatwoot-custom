@@ -174,7 +174,7 @@
           "TITLE": "Alterar tom",
           "OPTIONS": {
             "PROFESSIONAL": "Profissional",
-            "CASUAL": "Casual",
+            "CASUAL": "Informal",
             "STRAIGHTFORWARD": "Direto",
             "CONFIDENT": "Confiante",
             "FRIENDLY": "Amigável"
@@ -336,7 +336,7 @@
             "SEARCH": "Pesquisar etiqueta"
           },
           "STATUS": {
-            "LABEL": "Status",
+            "LABEL": "Situação",
             "PLACEHOLDER": "Selecione Status",
             "SEARCH": "Pesquisar status"
           },
@@ -354,7 +354,7 @@
         "LOADING_TEAM_ENTITIES_ERROR": "Houve um erro ao buscar as entidades do time, por favor, tente novamente"
       },
       "ISSUE": {
-        "STATUS": "Status",
+        "STATUS": "Situação",
         "PRIORITY": "Prioridade",
         "ASSIGNEE": "Responsável",
         "LABELS": "Etiquetas",
@@ -494,10 +494,6 @@
           "PLACEHOLDER": "Digite o nome do assistente",
           "ERROR": "O nome é obrigatório"
         },
-        "TEMPERATURE": {
-          "LABEL": "Temperatura da resposta",
-          "DESCRIPTION": "Ajuste o quão criativo ou restritivo as respostas do assistente devem ser. Valores mais baixos produzem respostas mais focadas e deterministas, enquanto valores mais altos permitem resultados mais criativos e variados."
-        },
         "DESCRIPTION": {
           "LABEL": "Descrição",
           "PLACEHOLDER": "Digite a descrição do assistente",
@@ -530,6 +526,10 @@
           "ALLOW_MEMORIES": "Capture os principais detalhes como memórias de interações do cliente.",
           "ALLOW_CITATIONS": "Incluir fonte de citações nas respostas",
           "ALLOW_CONTACT_ATTRIBUTES": "Permitir acesso às informações do contato"
+        },
+        "TEMPERATURE": {
+          "LABEL": "Temperatura da resposta",
+          "DESCRIPTION": "Ajuste o quão criativo ou restritivo as respostas do assistente devem ser. Valores mais baixos produzem respostas mais focadas e deterministas, enquanto valores mais altos permitem resultados mais criativos e variados."
         }
       },
       "EDIT": {
@@ -984,7 +984,7 @@
       }
     },
     "RESPONSES": {
-      "HEADER": "FAQs",
+      "HEADER": "Perguntas frequentes",
       "PENDING_FAQS": "FAQs pendentes",
       "ADD_NEW": "Criar nova FAQ",
       "DOCUMENTABLE": {
@@ -1016,11 +1016,11 @@
       },
       "FILTER": {
         "ASSISTANT": "Assistente: {selected}",
-        "STATUS": "Status: {selected}",
+        "STATUS": "Situação: {selected}",
         "ALL_ASSISTANTS": "Todos"
       },
       "STATUS": {
-        "TITLE": "Status",
+        "TITLE": "Situação",
         "PENDING": "Pendentes",
         "APPROVED": "Aceito",
         "ALL": "Todos"

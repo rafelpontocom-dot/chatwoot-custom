@@ -57,6 +57,9 @@ const mountForms = ({ boards = [], agents = [], teams = [] } = {}) => {
           template:
             '<button type="button" :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>',
         },
+        // shallowMount engoliria o slot do OnClickOutside e o menu "..."
+        // desapareceria do teste sem que nada quebrasse em produção.
+        OnClickOutside: { template: '<div><slot /></div>' },
         Dialog: {
           emits: ['confirm'],
           setup(_, { expose }) {
@@ -151,6 +154,8 @@ describe('FormsView', () => {
     });
     await flushPromises();
 
+    // A prévia saiu da barra de ações e vive no menu "..."
+    await wrapper.get('[data-test="forms-actions-menu"]').trigger('click');
     const button = wrapper.get('[data-test="forms-open-private-preview"]');
     await button.trigger('click');
     await button.trigger('click');

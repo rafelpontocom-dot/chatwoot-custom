@@ -7,8 +7,8 @@
     "HEADER_BTN_TXT": "Adicionar nova macro",
     "HEADER_BTN_TXT_SAVE": "Guardar macro",
     "LOADING": "A procurar macros",
-    "SEARCH_PLACEHOLDER": "Search macros...",
-    "NO_RESULTS": "No macros found matching your search",
+    "SEARCH_PLACEHOLDER": "Pesquisar macros...",
+    "NO_RESULTS": "Nenhum macro encontrado correspondente à sua busca",
     "ERROR": "Ocorreu um erro! Por favor, tente novamente",
     "ORDER_INFO": "As macros serão executadas pela ordem em que adicionar as suas ações. Pode reorganizá-las arrastando-as pelo identificador ao lado de cada nó.",
     "ADD": {
@@ -28,14 +28,14 @@
       }
     },
     "LIST": {
+      "404": "Nenhuma macro encontrada",
       "TABLE_HEADER": {
         "NAME": "Nome:",
         "CREATED BY": "Criada por",
         "LAST_UPDATED_BY": "Ultima atualização por",
         "VISIBILITY": "Visibilidade",
         "ACTIONS": "Ações"
-      },
-      "404": "Nenhuma macro encontrada"
+      }
     },
     "DELETE": {
       "TOOLTIP": "Apagar macro",
@@ -50,7 +50,7 @@
       }
     },
     "VIEW": {
-      "TOOLTIP": "View macro"
+      "TOOLTIP": "Ver macro"
     },
     "EDIT": {
       "TOOLTIP": "Editar macro",
@@ -70,8 +70,8 @@
         "GLOBAL": {
           "LABEL": "Pública",
           "DESCRIPTION": "Esta macro está disponível publicamente para todos os agentes nesta conta.",
-          "CREATE_DISABLED_DESCRIPTION": "Only administrators can create public macros.",
-          "EDIT_DISABLED_DESCRIPTION": "Only administrators can edit public macros."
+          "CREATE_DISABLED_DESCRIPTION": "Somente administradores podem criar macros públicos.",
+          "EDIT_DISABLED_DESCRIPTION": "Somente administradores podem editar macros públicos."
         },
         "PERSONAL": {
           "LABEL": "Privada",
@@ -98,7 +98,7 @@
       "ASSIGN_AGENT": "Atribuir um agente",
       "ADD_LABEL": "Adicionar um rótulo",
       "REMOVE_LABEL": "Remover um rótulo",
-      "REMOVE_ASSIGNED_AGENT": "Remove Assigned Agent",
+      "REMOVE_ASSIGNED_AGENT": "Remover agente atribuído",
       "REMOVE_ASSIGNED_TEAM": "Remover equipa atribuída",
       "SEND_EMAIL_TRANSCRIPT": "Enviar uma transcrição por e-mail",
       "MUTE_CONVERSATION": "Silenciar Conversa",

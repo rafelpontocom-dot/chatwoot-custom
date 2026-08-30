@@ -39,7 +39,7 @@
     "VIEW_FILTER": "Visualizar",
     "SORT_TOOLTIP_LABEL": "Ordenar conversas",
     "CHAT_SORT": {
-      "STATUS": "Status",
+      "STATUS": "Situação",
       "ORDER_BY": "Ordenar por"
     },
     "CHAT_TIME_STAMP": {
@@ -79,6 +79,9 @@
       },
       "priority_desc_created_at_asc": {
         "TEXT": "Prioridade: Maior primeiro, Criação: Mais antiga primeiro"
+      },
+      "unread": {
+        "TEXT": "Não lidas: maior primeiro"
       }
     },
     "ATTACHMENTS": {

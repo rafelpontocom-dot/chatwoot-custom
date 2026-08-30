@@ -311,7 +311,7 @@
       "BLANK": "Blank funnel"
     },
     "FILTERS": {
-      "SEARCH_PLACEHOLDER": "Search opportunity, contact, phone or email",
+      "SEARCH_PLACEHOLDER": "Search",
       "SEARCH_LABEL": "Search opportunities",
       "APPLY_SEARCH": "Search",
       "CLEAR_SEARCH": "Clear search",
@@ -1341,8 +1341,8 @@
       "NO_CONTACT": "No contact linked",
       "ASSIGNEE_HELP": "The agent is assigned from the linked conversation.",
       "QUESTIONS": {
-        "NEXT_ACTION": "What needs to happen now?",
-        "OWNER": "Who is running this opportunity?",
+        "NEXT_ACTION": "Next action",
+        "OWNER": "Owner",
         "AGREEMENT": "What was agreed?",
         "SCENARIO": "What is the commercial outlook?"
       },
@@ -1355,7 +1355,7 @@
       "NEXT_ACTION_TYPE": "Action type",
       "NEXT_ACTION_AT": "Action date",
       "NEXT_ACTION_NOTE": "Action note",
-      "NEXT_ACTION_NOTE_PLACEHOLDER": "What should happen next?",
+      "NEXT_ACTION_NOTE_PLACEHOLDER": "e.g. call after 2pm to confirm the quote",
       "COMPLETE_NEXT_ACTION": "Complete next action",
       "NEXT_ACTION_HISTORY": "Completed actions",
       "ACTION_TYPES": {
@@ -1415,7 +1415,9 @@
         "NEXT_STEP": "Next step: {date}",
         "LOAD_ERROR": "Could not load follow-up cadences.",
         "SAVE_ERROR": "Could not update the follow-up cadence."
-      }
+      },
+      "OWNER_NONE": "No owner",
+      "FIELD_AMOUNT_HINT": "Sale forecast, not the charge."
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",

@@ -105,3 +105,7 @@ CLAUDE.local.md
 local/
 Procfile.worktree
 .playwright-mcp/
+
+# Raevo — mockups, auditorias e material de referência, fora do build
+output/
+Typeform web */

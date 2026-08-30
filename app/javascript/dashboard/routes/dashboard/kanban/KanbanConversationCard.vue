@@ -87,6 +87,39 @@ const amountLabel = computed(() => {
     currency: amountCurrency.value,
   }).format(Number(amountCents.value) / 100);
 });
+// Tempo na etapa: o card dizia quem é, nunca há quanto tempo está parado. Numa
+// clínica o dinheiro se perde por silêncio, não por recusa. O backend já enviava
+// `stage_entered_at` e `stale_in_stage` — faltava mostrar.
+const stageEnteredAt = computed(
+  () => props.card.stageEnteredAt || props.card.stage_entered_at || ''
+);
+const isStaleInStage = computed(
+  () => props.card.staleInStage ?? props.card.stale_in_stage ?? false
+);
+const daysInStage = computed(() => {
+  if (!stageEnteredAt.value) return null;
+
+  const entered = new Date(stageEnteredAt.value);
+  if (Number.isNaN(entered.getTime())) return null;
+
+  const days = Math.floor((Date.now() - entered.getTime()) / 86400000);
+  return days < 0 ? 0 : days;
+});
+const stageTimeLabel = computed(() => {
+  const days = daysInStage.value;
+  if (days === null) return '';
+  if (days === 0) return t('KANBAN.CARD.STAGE_TIME.TODAY');
+  return t('KANBAN.CARD.STAGE_TIME.DAYS', days, { count: days });
+});
+// Estado nunca só por cor (regra 5 do design system): a cor muda junto do ícone,
+// e o número de dias continua legível em qualquer um dos três estados.
+const stageTimeTone = computed(() => {
+  if (!isStaleInStage.value) {
+    return { class: 'text-n-slate-10', icon: 'i-lucide-clock' };
+  }
+  return { class: 'text-n-amber-11', icon: 'i-lucide-clock-alert' };
+});
+
 const nextActionStatus = computed(
   () => props.card.nextActionStatus || props.card.next_action_status || ''
 );
@@ -244,7 +277,12 @@ const openConversation = event => {
       </div>
 
       <div
-        v-if="nextActionStatusConfig || amountLabel || hasConversation"
+        v-if="
+          nextActionStatusConfig ||
+          amountLabel ||
+          hasConversation ||
+          stageTimeLabel
+        "
         data-testid="kanban-card-workflow-summary"
         class="mt-2 flex min-w-0 items-center justify-between gap-2"
       >
@@ -267,6 +305,17 @@ const openConversation = event => {
         </div>
 
         <div class="ml-auto flex shrink-0 items-center gap-1.5">
+          <span
+            v-if="stageTimeLabel"
+            data-testid="kanban-card-stage-time"
+            class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-semibold tabular-nums"
+            :class="stageTimeTone.class"
+            :title="t('KANBAN.CARD.STAGE_TIME.TITLE')"
+          >
+            <i class="size-3 flex-shrink-0" :class="stageTimeTone.icon" />
+            {{ stageTimeLabel }}
+          </span>
+
           <strong
             v-if="amountLabel"
             data-testid="kanban-card-amount"

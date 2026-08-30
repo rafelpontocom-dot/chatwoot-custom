@@ -2,7 +2,10 @@
   "FORMS": {
     "TITLE": "Formulários",
     "SUBTITLE": "Crie jornadas de captação e pré-consulta conectadas ao CRM.",
-    "TABS": { "TEMPLATES": "Modelos", "SUBMISSIONS": "Respostas" },
+    "TABS": {
+      "TEMPLATES": "Modelos",
+      "SUBMISSIONS": "Respostas"
+    },
     "ACTIONS": {
       "NEW": "Novo formulário",
       "SAVE": "Salvar e publicar",
@@ -19,7 +22,8 @@
       "MOVE_UP": "Mover para cima",
       "MOVE_DOWN": "Mover para baixo",
       "REMOVE": "Remover",
-      "CLOSE": "Fechar"
+      "CLOSE": "Fechar",
+      "MORE": "Mais ações"
     },
     "BUILDER": {
       "PREVIEW": "Prévia ao vivo",
@@ -130,7 +134,9 @@
       "CREATE": "Criar formulário"
     },
     "STARTERS": {
-      "BLANK": { "TITLE": "Em branco" },
+      "BLANK": {
+        "TITLE": "Em branco"
+      },
       "LEAD_CAPTURE": {
         "TITLE": "Captação de lead",
         "SECTION": "Seus dados",
@@ -225,8 +231,10 @@
       "LOCALE": "Idioma",
       "PRESENTATION": "Experiência de resposta",
       "PRESENTATIONS": {
-        "GUIDED": "Guiada, uma pergunta por vez",
-        "SECTIONED": "Por seções"
+        "GUIDED": "Guiada",
+        "SECTIONED": "Por seções",
+        "GUIDED_HINT": "Uma pergunta por vez, como um Typeform.",
+        "SECTIONED_HINT": "Várias perguntas por etapa, com revisão no fim."
       },
       "BRAND_NAME": "Nome exibido para o cliente",
       "BRAND_NAME_PLACEHOLDER": "Ex.: Clínica Exemplo",
@@ -297,7 +305,9 @@
         "ATTACHMENT": "Documento clínico"
       }
     },
-    "STATUS": { "DRAFT": "Rascunho" },
+    "STATUS": {
+      "DRAFT": "Rascunho"
+    },
     "VERSIONS": {
       "TITLE": "Histórico de versões",
       "DESCRIPTION": "Cada publicação preserva a versão que recebeu respostas.",
@@ -391,6 +401,34 @@
       "SAVE": "Não foi possível salvar o formulário.",
       "REQUIRED": "Preencha nome, identificador e pelo menos uma seção.",
       "INVALID_CONFIGURATION": "Revise os campos obrigatórios, as opções de seleção e as condições antes de publicar."
+    },
+    "CANVAS": {
+      "SECTION_OF": "Etapa {current} de {total}",
+      "SECTION_PLACEHOLDER": "Nome da etapa",
+      "QUESTION_OF": "Pergunta {current} de {total}",
+      "QUESTION_PLACEHOLDER": "Escreva a pergunta…",
+      "QUESTION_NUMBER": "Pergunta {number}",
+      "HELP_PLACEHOLDER": "Texto de apoio (opcional)",
+      "ANSWER_TYPE": "Tipo de resposta",
+      "ANSWER_HINT": "a resposta aparece aqui",
+      "SIGNATURE_HINT": "Área de assinatura",
+      "ATTACHMENT_HINT": "Área de anexo",
+      "ENTER_HINT": "Enter avança · Shift+Enter quebra linha",
+      "ADD_QUESTION": "+ pergunta",
+      "ADVANCED": "Configurações avançadas",
+      "EMPTY": "Adicione uma etapa para começar.",
+      "PREV_SECTION": "Etapa anterior",
+      "NEXT_SECTION": "Próxima etapa",
+      "ADD_SECTION": "+ etapa",
+      "REQUIRED": "Obrigatória",
+      "REMOVE_QUESTION": "Remover pergunta",
+      "OPTION_PLACEHOLDER": "Texto da opção",
+      "OPTION_NUMBER": "Opção {number}",
+      "ADD_OPTION": "+ opção",
+      "REMOVE_OPTION": "Remover opção",
+      "MOVE_UP": "Mover para antes",
+      "MOVE_DOWN": "Mover para depois",
+      "DUPLICATE_QUESTION": "Duplicar pergunta"
     }
   }
 }

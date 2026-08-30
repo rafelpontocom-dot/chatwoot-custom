@@ -44,7 +44,7 @@
       },
       "FILTERS": {
         "SEARCH": "Buscar por contato, telefone, e-mail ou descrição",
-        "STATUS": "Status",
+        "STATUS": "Situação",
         "OWNER": "Responsável",
         "ALL_STATUSES": "Todos os status",
         "ALL_OWNERS": "Todos os responsáveis",

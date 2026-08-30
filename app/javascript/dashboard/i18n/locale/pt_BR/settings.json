@@ -86,6 +86,17 @@
         "NOTE": "Gerencie recursos adicionais de segurança para sua conta.",
         "MFA_BUTTON": "Gerenciar autenticação de dois fatores "
       },
+      "SESSIONS_SECTION": {
+        "TITLE": "Sessões ativas",
+        "NOTE": "Estes são os dispositivos com sessão aberta na sua conta.",
+        "CURRENT": "Sessão atual",
+        "REVOKE": "Revogar",
+        "REVOKE_SUCCESS": "Sessão revogada com sucesso",
+        "REVOKE_ERROR": "Não foi possível revogar a sessão. Tente de novo.",
+        "FETCH_ERROR": "Não foi possível carregar as sessões. Tente de novo.",
+        "LAST_ACTIVE": "Última atividade",
+        "UNKNOWN_DEVICE": "Dispositivo desconhecido"
+      },
       "ACCESS_TOKEN": {
         "TITLE": "Token de acesso",
         "NOTE": "Esse token pode ser usado se você estiver criando uma integração baseada em API",
@@ -319,13 +330,13 @@
     "CAPTAIN": "Capitão",
     "CAPTAIN_ASSISTANTS": "Assistentes",
     "CAPTAIN_DOCUMENTS": "Documentos",
-    "CAPTAIN_RESPONSES": "FAQs",
+    "CAPTAIN_RESPONSES": "Perguntas frequentes",
     "CAPTAIN_TOOLS": "Ferramentas",
     "CAPTAIN_SCENARIOS": "Cenários",
     "CAPTAIN_PLAYGROUND": "Playground",
     "CAPTAIN_INBOXES": "Caixas de Entrada",
     "CAPTAIN_SETTINGS": "Configurações",
-    "HOME": "Home",
+    "HOME": "Início",
     "AGENTS": "Agentes",
     "AGENT_BOTS": "Robôs",
     "AUDIT_LOGS": "Auditoria",
@@ -384,6 +395,21 @@
       "INFO_TEXT": "Deixe o sistema marcar você automaticamente quando você não estiver usando o app ou o painel de controle.",
       "INFO_SHORT": "Marcar off-line automaticamente quando não estiver usando o aplicativo."
     },
+    "SORT_TOOLTIP": "Ordenar",
+    "SORT_BY": "Ordenar por",
+    "SORT_GROUPS": {
+      "CREATED": "Ordenar por data de criação",
+      "ALPHABETICAL": "Ordenar em ordem alfabética",
+      "UNREAD_COUNT": "Ordenar por não lidas"
+    },
+    "SORT_OPTIONS": {
+      "CREATED_DESC": "Mais recentes primeiro",
+      "CREATED_ASC": "Mais antigas primeiro",
+      "ALPHABETICAL_ASC": "Crescente (A - Z)",
+      "ALPHABETICAL_DESC": "Decrescente (Z - A)",
+      "UNREAD_COUNT_DESC": "Maior primeiro",
+      "UNREAD_COUNT_ASC": "Menor primeiro"
+    },
     "DOCS": "Ler documentos",
     "SECURITY": "Segurança",
     "CAPTAIN_AI": "Capitão",
@@ -419,7 +445,9 @@
       "DESCRIPTION": "Ative ou desative recursos com tecnologia de IA.",
       "AUDIO_TRANSCRIPTION": {
         "TITLE": "Transcrição de Áudio",
-        "DESCRIPTION": "Converte automaticamente mensagens de voz e gravações de chamadas em transcrições de texto pesquisáveis."
+        "DESCRIPTION": "Converte automaticamente mensagens de voz e gravações de chamadas em transcrições de texto pesquisáveis.",
+        "MODEL_TITLE": "Modelo de transcrição de áudio",
+        "MODEL_DESCRIPTION": "Escolha o modelo de IA para transcrever mensagens de áudio em texto"
       },
       "HELP_CENTER_SEARCH": {
         "TITLE": "Indexação de Pesquisa da Central de Ajuda",
@@ -746,7 +774,7 @@
           "PLACEHOLDER": "Insira a descrição"
         },
         "STATUS": {
-          "LABEL": "Status:",
+          "LABEL": "Situação:",
           "PLACEHOLDER": "Selecionar status",
           "ACTIVE": "Política ativa",
           "INACTIVE": "Política inativa"
@@ -780,6 +808,10 @@
           "DESCRIPTION": "Defina o número máximo de conversas que podem ser atribuídas por agente dentro de um período, para evitar sobrecarregar qualquer agente. Este campo obrigatório tem como padrão 100 conversas por hora.",
           "INPUT_MAX": "Máximo de atribuições",
           "DURATION": "Conversas por agente a cada"
+        },
+        "EXCLUDE_OLDER_THAN": {
+          "LABEL": "Ignorar conversas paradas",
+          "DESCRIPTION": "Ignora conversas sem responsável mais antigas que isto. O padrão é 7 dias; deixe em branco para desativar."
         },
         "INBOXES": {
           "LABEL": "Caixas de entrada adicionadas",
