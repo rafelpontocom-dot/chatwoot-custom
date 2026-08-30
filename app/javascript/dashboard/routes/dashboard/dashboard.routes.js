@@ -13,6 +13,7 @@ import { routes as kanbanRoutes } from './kanban/routes';
 import { routes as calendarRoutes } from './calendar/routes';
 import { routes as financeRoutes } from './finance/routes';
 import { routes as formsRoutes } from './forms/routes';
+import { routes as homeRoutes } from './home/routes';
 import AppContainer from './Dashboard.vue';
 import Suspended from './suspended/Index.vue';
 import NoAccounts from './noAccounts/Index.vue';
@@ -25,6 +26,7 @@ export default {
       path: frontendURL('accounts/:accountId'),
       component: AppContainer,
       children: [
+        ...homeRoutes,
         ...captainRoutes,
         ...kanbanRoutes,
         ...calendarRoutes,

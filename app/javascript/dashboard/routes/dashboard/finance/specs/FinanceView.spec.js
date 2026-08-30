@@ -61,12 +61,27 @@ const FinancePaymentDetailsDialogStub = {
   template: '<div />',
 };
 
+// Raevo · Sereno — o Financeiro abre no painel operacional. Módulo, segurança
+// e conexões vivem atrás da engrenagem. Testes de configuração precisam abri-la.
+const openSettings = async wrapper => {
+  await wrapper
+    .find('[data-testid="finance-toggle-settings"]')
+    .trigger('click');
+  await flushPromises();
+};
+
 const mountFinance = () =>
   shallowMount(FinanceView, {
     global: {
       stubs: {
         Button: true,
         FinancePaymentDetailsDialog: FinancePaymentDetailsDialogStub,
+        // shallowMount stuba o cabeçalho e engoliria a engrenagem que vive no
+        // slot #actions. Ver AGENTS.md, "Armadilha conhecida em testes".
+        RaevoPageHeader: {
+          template:
+            '<header><slot name="actions" /><slot name="filters" /><slot name="tabs" /><slot /></header>',
+        },
       },
     },
   });
@@ -89,6 +104,7 @@ describe('FinanceView', () => {
     });
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     expect(wrapper.find('[data-testid="finance-module-toggle"]').exists()).toBe(
       true
@@ -104,6 +120,7 @@ describe('FinanceView', () => {
     });
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     expect(wrapper.find('[data-testid="finance-asaas-api-key"]').exists()).toBe(
       true
@@ -141,6 +158,7 @@ describe('FinanceView', () => {
     });
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
     const toggle = wrapper.get('[data-testid="finance-module-toggle"]');
 
     await toggle.trigger('click');
@@ -170,6 +188,7 @@ describe('FinanceView', () => {
     });
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     const enableManual = wrapper.get('[data-testid="finance-manual-enable"]');
     await enableManual.trigger('click');
@@ -194,6 +213,7 @@ describe('FinanceView', () => {
     });
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     expect(wrapper.find('[data-testid="finance-asaas-verify"]').exists()).toBe(
       true
@@ -209,6 +229,7 @@ describe('FinanceView', () => {
     });
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     expect(
       wrapper.get('[data-testid="finance-asaas-webhook-attention"]').text()
@@ -238,6 +259,7 @@ describe('FinanceView', () => {
     });
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     await wrapper
       .get('[data-testid="finance-webhook-delivery-retry-11"]')
@@ -257,6 +279,7 @@ describe('FinanceView', () => {
     FinanceAPI.deleteProviderConnection.mockResolvedValue({});
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     const disconnect = wrapper.find('[data-testid="finance-asaas-disconnect"]');
     expect(disconnect.exists()).toBe(true);
@@ -280,6 +303,7 @@ describe('FinanceView', () => {
     FinanceAPI.deleteProviderConnection.mockRejectedValue({});
     const wrapper = mountFinance();
     await flushPromises();
+    await openSettings(wrapper);
 
     const disconnect = wrapper.get('[data-testid="finance-asaas-disconnect"]');
     await disconnect.trigger('click');

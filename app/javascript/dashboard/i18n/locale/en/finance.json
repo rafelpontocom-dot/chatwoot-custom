@@ -3,8 +3,15 @@
     "EYEBROW": "Commercial operations",
     "TITLE": "Finance",
     "SUBTITLE": "Control charges and financial connections for this account.",
-    "STATUS": { "ENABLED": "Finance enabled", "DISABLED": "Finance disabled" },
-    "MARKETS": { "BR": "Brazil", "PT": "Portugal", "OTHER": "Other market" },
+    "STATUS": {
+      "ENABLED": "Finance enabled",
+      "DISABLED": "Finance disabled"
+    },
+    "MARKETS": {
+      "BR": "Brazil",
+      "PT": "Portugal",
+      "OTHER": "Other market"
+    },
     "MODULE": {
       "TITLE": "Finance module",
       "DESCRIPTION": "Enable it only for accounts that will manage charges in RAEVO CRM.",
@@ -183,6 +190,8 @@
       "DISCONNECT": "We could not disconnect the provider account.",
       "VERIFY": "We could not verify the provider connection.",
       "PAYMENTS": "We could not load charges."
-    }
+    },
+    "OPEN_SETTINGS": "Finance settings",
+    "BACK_TO_PANEL": "Back to panel"
   }
 }

@@ -1,5 +1,7 @@
 import { frontendURL } from '../../../helper/URLHelper';
-import ContactsIndex from './pages/ContactsIndex.vue';
+// Raevo · Sereno — a listagem de contatos usa a tela do Raevo (tabela), não a
+// do Chatwoot (cartões). Ver RaevoContactsIndex.vue e docs/raevo-design-system.md.
+import ContactsIndex from './pages/RaevoContactsIndex.vue';
 import ContactManageView from './pages/ContactManageView.vue';
 import { FEATURE_FLAGS } from '../../../featureFlags';
 

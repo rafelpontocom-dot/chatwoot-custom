@@ -290,7 +290,6 @@
       "ID": "(ID: {identifier})"
     }
   },
-
   "CONTACTS_LAYOUT": {
     "HEADER": {
       "TITLE": "Contacts",
@@ -479,7 +478,8 @@
       "DELETE_CONTACT": {
         "MESSAGE": "This action is permanent and irreversible.",
         "BUTTON": "Delete now"
-      }
+      },
+      "SELECT": "Select contact"
     },
     "DETAILS": {
       "CREATED_AT": "Created {date}",
@@ -591,7 +591,16 @@
       "LIST_EMPTY_STATE_TITLE": "No contacts available in this view 📋",
       "ACTIVE_EMPTY_STATE_TITLE": "No contacts are active at the moment 🌙"
     },
-    "LOAD_MORE": "Load more"
+    "LOAD_MORE": "Load more",
+    "TABLE": {
+      "NAME": "Name",
+      "EMAIL": "Email",
+      "PHONE": "Phone",
+      "COMPANY": "Company",
+      "LABELS": "Labels",
+      "LAST_ACTIVITY": "Last activity",
+      "MORE_LABELS": "+{count}"
+    }
   },
   "CONTACTS_BULK_ACTIONS": {
     "ASSIGN_LABELS": "Assign Labels",
@@ -617,7 +626,6 @@
       "CONFIRM_SINGLE": "Delete contact"
     }
   },
-
   "COMPOSE_NEW_CONVERSATION": {
     "CONTACT_SEARCH": {
       "ERROR_MESSAGE": "We couldn’t complete the search. Please try again."

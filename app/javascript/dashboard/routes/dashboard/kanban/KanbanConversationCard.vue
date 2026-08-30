@@ -193,29 +193,13 @@ const openConversation = event => {
     </button>
 
     <div class="min-w-0 pl-6 pr-16 text-left">
-      <div
-        v-if="subject || hasSupportedPriority"
-        class="flex min-w-0 items-center gap-1.5"
-      >
-        <CardPriorityIcon
-          v-if="hasSupportedPriority"
-          :priority="priority"
-          class="flex-shrink-0 !size-3.5"
-        />
-        <p
-          v-if="subject"
-          class="truncate text-[10.5px] leading-4 text-n-slate-10"
-          :title="subject"
-        >
-          {{ subject }}
-        </p>
-      </div>
-
-      <div class="mt-1 flex items-center gap-1.5">
+      <!-- Sereno: a pessoa é a manchete; o assunto da oportunidade é apoio.
+           No mockup aprovado o nome vem primeiro, ao lado do avatar quadrado. -->
+      <div class="flex min-w-0 items-center gap-2.5">
         <button
           type="button"
           data-testid="kanban-card-contact-avatar"
-          class="no-drag relative flex flex-shrink-0 overflow-visible rounded-lg focus:outline-none focus:ring-2 focus:ring-n-brand"
+          class="no-drag relative flex flex-shrink-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-n-brand"
           :title="contactName"
           @click.stop="openConversation"
         >
@@ -228,11 +212,27 @@ const openConversation = event => {
           </span>
         </button>
 
-        <h4
-          class="min-w-0 flex-1 truncate text-[12.5px] font-bold leading-4 tracking-tight text-n-slate-12"
-        >
-          {{ contactName }}
-        </h4>
+        <div class="min-w-0 flex-1">
+          <div class="flex min-w-0 items-center gap-1.5">
+            <CardPriorityIcon
+              v-if="hasSupportedPriority"
+              :priority="priority"
+              class="flex-shrink-0 !size-3.5"
+            />
+            <h4
+              class="min-w-0 flex-1 truncate text-[12.5px] font-bold leading-4 tracking-tight text-n-slate-12"
+            >
+              {{ contactName }}
+            </h4>
+          </div>
+          <p
+            v-if="subject"
+            class="mt-0.5 truncate text-[10.5px] leading-4 text-n-slate-10"
+            :title="subject"
+          >
+            {{ subject }}
+          </p>
+        </div>
 
         <Avatar
           v-if="assigneeName"

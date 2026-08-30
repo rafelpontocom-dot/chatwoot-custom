@@ -19,6 +19,10 @@ const router = useRouter();
 const store = useStore();
 const agents = useMapGetter('agents/getAgents');
 const currentAccount = useMapGetter('getCurrentAccount');
+// Raevo · Sereno — o Financeiro é uma fila de cobranças, não um painel de
+// configuração. Módulo, segurança e conexões saem da tela operacional e vivem
+// atrás da engrenagem. Ver docs/raevo-design-system.md §5.
+const activeView = ref('panel');
 const financeModule = ref(null);
 const connections = ref([]);
 const payments = ref([]);
@@ -520,7 +524,7 @@ onMounted(loadFinance);
 
 <template>
   <main
-    class="h-full overflow-y-auto bg-n-background px-4 py-5 sm:px-6 lg:px-8"
+    class="flex h-full w-full min-w-0 flex-1 flex-col overflow-y-auto bg-n-background px-4 py-5 sm:px-6 lg:px-8"
     data-testid="finance-workspace"
   >
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -539,6 +543,34 @@ onMounted(loadFinance);
                 : t('FINANCE.STATUS.DISABLED')
             "
           />
+          <button
+            v-if="canConfigure"
+            type="button"
+            data-testid="finance-toggle-settings"
+            class="flex size-9 items-center justify-center rounded-full border border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+            :class="activeView === 'settings' ? 'bg-n-blue-3 text-n-brand' : ''"
+            :aria-pressed="activeView === 'settings'"
+            :aria-label="
+              activeView === 'settings'
+                ? t('FINANCE.BACK_TO_PANEL')
+                : t('FINANCE.OPEN_SETTINGS')
+            "
+            :title="
+              activeView === 'settings'
+                ? t('FINANCE.BACK_TO_PANEL')
+                : t('FINANCE.OPEN_SETTINGS')
+            "
+            @click="
+              activeView = activeView === 'settings' ? 'panel' : 'settings'
+            "
+          >
+            <i
+              class="size-4"
+              :class="
+                activeView === 'settings' ? 'i-lucide-x' : 'i-lucide-settings'
+              "
+            />
+          </button>
         </template>
       </RaevoPageHeader>
 
@@ -560,7 +592,7 @@ onMounted(loadFinance);
         </p>
 
         <section
-          v-if="canConfigure"
+          v-if="activeView === 'settings' && canConfigure"
           class="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]"
         >
           <article
@@ -655,7 +687,7 @@ onMounted(loadFinance);
         </section>
 
         <section
-          v-if="isEnabled"
+          v-if="activeView === 'panel' && isEnabled"
           class="rounded-lg border border-n-weak bg-n-solid-1 shadow-sm"
         >
           <div
@@ -976,7 +1008,7 @@ onMounted(loadFinance);
         />
 
         <section
-          v-if="isEnabled && canConfigure"
+          v-if="activeView === 'settings' && isEnabled && canConfigure"
           class="rounded-lg border border-n-weak bg-n-solid-1 p-5 shadow-sm"
         >
           <div class="flex items-start justify-between gap-4">

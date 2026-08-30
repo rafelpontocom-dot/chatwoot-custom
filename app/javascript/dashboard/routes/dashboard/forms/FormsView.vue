@@ -1537,7 +1537,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="flex h-full min-h-0 flex-col bg-n-solid-2">
+  <main class="flex h-full w-full min-w-0 flex-1 min-h-0 flex-col bg-n-solid-2">
     <header
       class="flex shrink-0 items-center justify-between gap-4 border-b border-n-slate-4 bg-n-solid-1 px-6 py-4"
     >

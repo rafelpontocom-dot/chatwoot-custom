@@ -279,26 +279,28 @@ onMounted(() => {
     class="flex h-full min-h-0 w-full flex-col bg-n-background px-4 py-4 lg:px-6"
   >
     <header
-      class="mb-4 grid gap-2 border-b border-n-weak pb-4 2xl:grid 2xl:grid-cols-[minmax(10rem,1fr)_auto_minmax(14rem,18rem)_auto_auto] 2xl:items-center"
+      class="mb-4 grid gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-4 2xl:grid 2xl:grid-cols-[minmax(10rem,1fr)_auto_minmax(14rem,18rem)_auto_auto] 2xl:items-center"
     >
+      <span
+        class="block text-[9px] font-bold uppercase tracking-[0.16em] text-n-slate-10 2xl:col-span-full"
+      >
+        {{ t('CALENDAR.EYEBROW') }}
+      </span>
       <div
         class="flex flex-wrap items-center justify-between gap-3 2xl:contents"
       >
         <div
           class="flex min-w-0 items-center gap-2 2xl:col-start-1 2xl:row-start-1"
         >
-          <div
-            class="flex size-9 flex-none items-center justify-center rounded-md bg-n-brand/10 text-n-brand"
-          >
-            <i class="i-lucide-calendar-days size-5" aria-hidden="true" />
-          </div>
           <div class="min-w-0">
-            <h1 class="mb-0 truncate text-lg font-semibold text-n-slate-12">
+            <h1
+              class="mb-0 truncate text-lg font-extrabold tracking-tight text-n-slate-12"
+            >
               {{ t('CALENDAR.TITLE') }}
             </h1>
             <p
               data-testid="calendar-date-label"
-              class="mb-0 text-sm text-n-slate-11"
+              class="mb-0 text-xs text-n-slate-10"
             >
               {{ dateLabel }}
             </p>
@@ -312,7 +314,7 @@ onMounted(() => {
           <button
             type="button"
             data-testid="calendar-open-settings"
-            class="flex size-9 items-center justify-center rounded-md border border-n-weak text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="flex size-9 items-center justify-center rounded-full border border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
             :aria-label="t('CALENDAR.SETTINGS.OPEN')"
             :title="t('CALENDAR.SETTINGS.OPEN')"
             @click="openSettings"
@@ -322,7 +324,7 @@ onMounted(() => {
           <button
             type="button"
             data-testid="calendar-new-appointment"
-            class="inline-flex items-center gap-2 rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand/90 focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-2"
+            class="inline-flex items-center gap-2 rounded-full bg-n-brand px-4 py-2 text-sm font-semibold text-white outline-none hover:bg-n-blue-10 focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-2"
             @click="openBooking"
           >
             <i class="i-lucide-plus size-4" aria-hidden="true" />

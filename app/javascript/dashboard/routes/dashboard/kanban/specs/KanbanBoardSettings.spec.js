@@ -509,7 +509,7 @@ describe('KanbanBoardSettings', () => {
     expect(KanbanBoardsAPI.createStage).toHaveBeenCalledWith(10, {
       stage: {
         name: 'Follow up',
-        color: 'slate',
+        color: 'amber', // Sereno: seletor abre na cor automática
         icon: 'circle-dot',
         description: '',
         position: 3,

@@ -305,15 +305,17 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.emitted('openDetails')[0][0]).toEqual(card);
   });
 
-  it('renders subject above contact name with title when subject is present', () => {
+  // Raevo · Sereno — a pessoa é a manchete do card, o assunto é apoio.
+  // Invertido em 29/08/2026 para bater com o mockup aprovado.
+  it('renders contact name above subject when subject is present', () => {
     const wrapper = mountCard();
     const text = wrapper.text();
     const subject = wrapper.find('p[title="Enterprise expansion"]');
 
     expect(subject.exists()).toBe(true);
     expect(text).toContain('Enterprise expansion');
-    expect(text.indexOf('Enterprise expansion')).toBeLessThan(
-      text.indexOf('Jane Doe')
+    expect(text.indexOf('Jane Doe')).toBeLessThan(
+      text.indexOf('Enterprise expansion')
     );
   });
 

@@ -478,7 +478,8 @@
       "DELETE_CONTACT": {
         "MESSAGE": "Esta ação é permanente e irreversível.",
         "BUTTON": "Excluir agora"
-      }
+      },
+      "SELECT": "Selecionar contato"
     },
     "DETAILS": {
       "CREATED_AT": "Criado {date}",
@@ -590,7 +591,16 @@
       "LIST_EMPTY_STATE_TITLE": "Não há contatos disponíveis nesta visualização 📋",
       "ACTIVE_EMPTY_STATE_TITLE": "Nenhum contato está ativo no momento 🌙"
     },
-    "LOAD_MORE": "Carregar mais"
+    "LOAD_MORE": "Carregar mais",
+    "TABLE": {
+      "NAME": "Nome",
+      "EMAIL": "E-mail",
+      "PHONE": "Telefone",
+      "COMPANY": "Empresa",
+      "LABELS": "Etiquetas",
+      "LAST_ACTIVITY": "Última atividade",
+      "MORE_LABELS": "+{count}"
+    }
   },
   "CONTACTS_BULK_ACTIONS": {
     "ASSIGN_LABELS": "Atribuir rótulo",

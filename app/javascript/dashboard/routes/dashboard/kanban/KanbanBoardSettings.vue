@@ -16,6 +16,7 @@ import Modal from 'dashboard/components/Modal.vue';
 import KanbanWorkflowBuilder from './components/KanbanWorkflowBuilder.vue';
 import {
   DEFAULT_KANBAN_STAGE_COLOR,
+  nextKanbanStageColor,
   KANBAN_STAGE_COLOR_OPTIONS,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
@@ -2584,12 +2585,15 @@ const selectStage = stage => {
 
 const openCreateStageForm = () => {
   showCreateStageForm.value = true;
+  // Abre já na cor da sequência (azul, teal, âmbar, violeta) pela posição.
+  newStageColor.value = nextKanbanStageColor(stages.value.length);
 };
 
 const closeCreateStageForm = () => {
   showCreateStageForm.value = false;
   newStageName.value = '';
-  newStageColor.value = DEFAULT_KANBAN_STAGE_COLOR;
+  // O seletor abre já na cor da sequência, não em cinza — a pessoa muda se quiser.
+  newStageColor.value = nextKanbanStageColor(stages.value.length);
   newStageIcon.value = DEFAULT_KANBAN_STAGE_ICON;
   newStageDescription.value = '';
 };

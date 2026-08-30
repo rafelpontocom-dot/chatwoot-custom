@@ -14,6 +14,7 @@ import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiS
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
 import {
   DEFAULT_KANBAN_STAGE_COLOR,
+  nextKanbanStageColor,
   KANBAN_STAGE_COLOR_OPTIONS,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
@@ -1010,7 +1011,9 @@ const createStage = async () => {
     const response = await KanbanBoardsAPI.createStage(selectedBoard.value.id, {
       stage: {
         name,
-        color: newStageColor.value,
+        // Criação rápida não tem seletor: a cor sai da sequência (azul, teal,
+        // âmbar, violeta) pela posição. A pessoa troca depois se quiser.
+        color: nextKanbanStageColor(stages.value.length),
         position: stages.value.length,
       },
     });
@@ -2644,14 +2647,14 @@ onUnmounted(() => {
                   type="button"
                   data-testid="kanban-add-item-button"
                   :data-stage-id="stage.id"
-                  class="no-drag flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-n-weak bg-n-alpha-1 px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="no-drag flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-n-strong bg-transparent px-3 py-2 text-xs font-semibold text-n-slate-10 outline-none hover:border-n-brand hover:bg-n-blue-3 hover:text-n-brand focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!!activeActionKey"
                   :aria-expanded="activeAddItemStageId === stage.id"
                   :aria-controls="`kanban-add-item-panel-${stage.id}`"
                   :title="t('KANBAN.ACTIONS.ADD_ITEM')"
                   @click="toggleAddItemPicker(stage)"
                 >
-                  <i class="i-lucide-plus size-4" />
+                  <i class="i-lucide-plus size-3.5" />
                   {{ t('KANBAN.ACTIONS.ADD_ITEM') }}
                 </button>
 
@@ -2666,7 +2669,7 @@ onUnmounted(() => {
                 <Draggable
                   :list="stage.cards"
                   item-key="id"
-                  class="flex min-h-48 flex-1 flex-col gap-2 rounded-md"
+                  class="order-first flex min-h-48 flex-1 flex-col gap-2 rounded-md"
                   :group="{ name: 'kanban-cards' }"
                   handle=".card-drag-handle"
                   :filter="cardDragFilter"

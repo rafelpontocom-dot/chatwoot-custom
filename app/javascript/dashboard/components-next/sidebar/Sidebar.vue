@@ -214,6 +214,7 @@ const conversationCustomViews = useMapGetter(
 const getSidebarSectionSort = useMapGetter(
   'sidebarSortPreferences/getSectionSort'
 );
+const kanbanBoards = useMapGetter('kanbanBoards/kanbanBoards');
 
 onMounted(() => {
   store.dispatch('labels/get');
@@ -232,6 +233,14 @@ watch([accountId, hasConversationUnreadCounts], fetchConversationUnreadCounts, {
 watch([accountId, currentUserId], fetchSidebarSortPreferences, {
   immediate: true,
 });
+
+watch(
+  accountId,
+  currentAccountId => {
+    if (currentAccountId) store.dispatch('kanbanBoards/fetchBoards');
+  },
+  { immediate: true }
+);
 
 const getSortOptionsForSection = section =>
   getSidebarSortOptions(section, {
@@ -287,6 +296,26 @@ const sortedLabels = computed(() =>
   })
 );
 
+const pipelineChildren = computed(() =>
+  kanbanBoards.value.map(board => {
+    const firstStage = (board.stagesSummary || board.stages_summary || [])[0];
+
+    return {
+      name: `Pipeline ${board.id}`,
+      label: board.name,
+      badgeCount: Number(
+        firstStage?.cardsCount || firstStage?.cards_count || 0
+      ),
+      to: accountScopedRoute('kanban_board_show', { boardId: board.id }),
+      activeOn: [
+        'kanban_board_show',
+        'kanban_board_settings',
+        'kanban_board_automations',
+      ],
+    };
+  })
+);
+
 const closeMobileSidebar = () => {
   if (!props.isMobileSidebarOpen) return;
   emit('closeMobileSidebar');
@@ -322,45 +351,6 @@ const reportRoutes = computed(() => newReportRoutes());
 
 const menuItems = computed(() => {
   return [
-    {
-      name: 'Inbox',
-      label: t('SIDEBAR.INBOX'),
-      icon: 'i-lucide-inbox',
-      to: accountScopedRoute('inbox_view'),
-      activeOn: ['inbox_view', 'inbox_view_conversation'],
-      getterKeys: {
-        count: 'notifications/getUnreadCount',
-      },
-    },
-    {
-      name: 'Kanban',
-      label: t('SIDEBAR.KANBAN'),
-      icon: 'i-lucide-columns-3',
-      to: accountScopedRoute('kanban_boards'),
-      activeOn: ['kanban_boards', 'kanban_board_show', 'kanban_board_settings'],
-    },
-    {
-      name: 'Calendar',
-      label: t('SIDEBAR.CALENDAR'),
-      icon: 'i-lucide-calendar-days',
-      to: accountScopedRoute('calendar_index'),
-      activeOn: ['calendar_index'],
-    },
-    {
-      name: 'Finance',
-      label: t('SIDEBAR.FINANCE'),
-      icon: 'i-lucide-wallet-cards',
-      to: accountScopedRoute('finance_index'),
-      activeOn: ['finance_index'],
-    },
-    {
-      name: 'Forms',
-      label: t('SIDEBAR.FORMS'),
-      icon: 'i-lucide-clipboard-list',
-      to: accountScopedRoute('forms_index'),
-      activeOn: ['forms_index'],
-      permissions: ['administrator'],
-    },
     {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
@@ -469,6 +459,42 @@ const menuItems = computed(() => {
           })),
         },
       ],
+    },
+    {
+      name: 'Home',
+      label: t('SIDEBAR.HOME'),
+      icon: 'i-lucide-house',
+      to: accountScopedRoute('raevo_home'),
+      activeOn: ['raevo_home'],
+    },
+    {
+      name: 'Pipeline',
+      label: t('SIDEBAR.PIPELINE'),
+      icon: 'i-lucide-columns-3',
+      children: pipelineChildren.value,
+      navigateOnExpand: false,
+    },
+    {
+      name: 'Calendar',
+      label: t('SIDEBAR.CALENDAR'),
+      icon: 'i-lucide-calendar-days',
+      to: accountScopedRoute('calendar_index'),
+      activeOn: ['calendar_index'],
+    },
+    {
+      name: 'Finance',
+      label: t('SIDEBAR.FINANCE'),
+      icon: 'i-lucide-wallet-cards',
+      to: accountScopedRoute('finance_index'),
+      activeOn: ['finance_index'],
+    },
+    {
+      name: 'Forms',
+      label: t('SIDEBAR.FORMS'),
+      icon: 'i-lucide-clipboard-list',
+      to: accountScopedRoute('forms_index'),
+      activeOn: ['forms_index'],
+      permissions: ['administrator'],
     },
     {
       name: 'Captain',

@@ -68,5 +68,19 @@ export const getKanbanStageColorOption = color =>
     option => option.value === DEFAULT_KANBAN_STAGE_COLOR
   );
 
+/**
+ * Sequência de cores para etapas novas, na ordem da paleta validada:
+ * azul → teal → âmbar → violeta. Repete a partir daí.
+ *
+ * Etapa nova nasce colorida em vez de cinza — a pessoa troca depois se quiser.
+ * Decisão de 29/08/2026. Ver docs/raevo-design-system.md §2.
+ */
+export const AUTO_STAGE_COLOR_SEQUENCE = ['blue', 'teal', 'amber', 'violet'];
+
+export const nextKanbanStageColor = (position = 0) =>
+  AUTO_STAGE_COLOR_SEQUENCE[
+    Math.abs(Number(position) || 0) % AUTO_STAGE_COLOR_SEQUENCE.length
+  ];
+
 export const getKanbanStageColorClass = color =>
   getKanbanStageColorOption(color).headerClass;

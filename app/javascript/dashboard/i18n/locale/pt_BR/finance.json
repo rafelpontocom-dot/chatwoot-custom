@@ -7,7 +7,11 @@
       "ENABLED": "Financeiro ativo",
       "DISABLED": "Financeiro desativado"
     },
-    "MARKETS": { "BR": "Brasil", "PT": "Portugal", "OTHER": "Outro mercado" },
+    "MARKETS": {
+      "BR": "Brasil",
+      "PT": "Portugal",
+      "OTHER": "Outro mercado"
+    },
     "MODULE": {
       "TITLE": "Módulo Financeiro",
       "DESCRIPTION": "Habilite apenas nas contas que vão gerir cobranças dentro do RAEVO CRM.",
@@ -186,6 +190,8 @@
       "DISCONNECT": "Não foi possível desconectar a conta do provedor.",
       "VERIFY": "Não foi possível validar a conexão do provedor.",
       "PAYMENTS": "Não foi possível carregar as cobranças."
-    }
+    },
+    "OPEN_SETTINGS": "Configurações do financeiro",
+    "BACK_TO_PANEL": "Voltar ao painel"
   }
 }

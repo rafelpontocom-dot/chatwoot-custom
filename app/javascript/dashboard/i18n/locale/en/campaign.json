@@ -211,6 +211,22 @@
         "SUCCESS_MESSAGE": "Campaign deleted successfully",
         "ERROR_MESSAGE": "There was an error. Please try again."
       }
+    },
+    "TABLE": {
+      "NAME": "Campaign",
+      "CHANNEL": "Channel",
+      "STATUS": "Status",
+      "SENDER": "Sender",
+      "SCHEDULED": "Scheduled for",
+      "ACTIONS": "Actions",
+      "EDIT": "Edit campaign",
+      "DELETE": "Delete campaign"
+    },
+    "STATUS": {
+      "ACTIVE": "Active",
+      "PROCESSING": "Sending",
+      "COMPLETED": "Completed",
+      "DISABLED": "Disabled"
     }
   }
 }

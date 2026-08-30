@@ -117,6 +117,7 @@ Rails.application.routes.draw do
           resources :assignable_agents, only: [:index]
           resource :audit_logs, only: [:show]
           resource :birthday_automation, only: [:show, :update], controller: 'birthday_automation'
+          resource :raevo_home, only: [:show], controller: 'raevo_home'
           resources :callbacks, only: [] do
             collection do
               post :register_facebook_page

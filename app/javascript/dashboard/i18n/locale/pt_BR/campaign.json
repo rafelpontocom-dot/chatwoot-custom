@@ -211,6 +211,22 @@
         "SUCCESS_MESSAGE": "Campanha excluída com sucesso",
         "ERROR_MESSAGE": "Houve um erro. Por favor, tente novamente."
       }
+    },
+    "TABLE": {
+      "NAME": "Campanha",
+      "CHANNEL": "Canal",
+      "STATUS": "Situação",
+      "SENDER": "Remetente",
+      "SCHEDULED": "Agendada para",
+      "ACTIONS": "Ações",
+      "EDIT": "Editar campanha",
+      "DELETE": "Excluir campanha"
+    },
+    "STATUS": {
+      "ACTIVE": "Ativa",
+      "PROCESSING": "Enviando",
+      "COMPLETED": "Concluída",
+      "DISABLED": "Desativada"
     }
   }
 }

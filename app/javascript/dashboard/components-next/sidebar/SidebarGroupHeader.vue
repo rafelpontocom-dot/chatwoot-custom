@@ -25,9 +25,10 @@ const count = computed(() =>
 
 <template>
   <component
-    :is="to ? 'router-link' : 'div'"
+    :is="to ? 'router-link' : 'button'"
+    :type="to ? undefined : 'button'"
     class="flex items-center gap-2 px-1.5 py-1 rounded-lg h-8 min-w-0"
-    role="button"
+    :aria-expanded="expandable ? isExpanded : undefined"
     draggable="false"
     :to="to"
     :title="label"
@@ -37,6 +38,8 @@ const count = computed(() =>
       'text-n-slate-11 hover:bg-n-alpha-2': !isActive && !hasActiveChild,
     }"
     @click.stop="emit('toggle')"
+    @keydown.enter.stop.prevent="emit('toggle')"
+    @keydown.space.stop.prevent="emit('toggle')"
   >
     <div v-if="icon" class="relative flex items-center gap-2">
       <Icon v-if="icon" :icon="icon" class="size-4" />
@@ -66,9 +69,9 @@ const count = computed(() =>
     </div>
     <span
       v-if="expandable"
-      v-show="isExpanded"
-      class="i-lucide-chevron-up size-3"
-      @click.stop="emit('toggle')"
+      class="size-3"
+      :class="isExpanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+      aria-hidden="true"
     />
   </component>
 </template>

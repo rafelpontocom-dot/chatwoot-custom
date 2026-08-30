@@ -1,4 +1,19 @@
 {
+  "HOME": {
+    "EYEBROW": "Operação",
+    "TITLE": "O que precisa de atenção",
+    "SUBTITLE": "Conversas abertas e próximas ações vencidas em um só lugar.",
+    "REFRESH": "Atualizar",
+    "LOAD_ERROR": "Não foi possível carregar sua fila de trabalho.",
+    "TRY_AGAIN": "Tentar novamente",
+    "OPEN_CONVERSATIONS": "Conversas abertas",
+    "OVERDUE_ACTIONS": "Ações vencidas",
+    "EMPTY_CONVERSATIONS": "Nenhuma conversa aberta neste momento.",
+    "EMPTY_ACTIONS": "Nenhuma ação vencida. Tudo em dia por aqui.",
+    "UNKNOWN_CONTACT": "Contato sem nome",
+    "NO_INBOX": "Sem caixa de entrada",
+    "PIPELINE_STAGE": "{pipeline} - {stage}"
+  },
   "KANBAN": {
     "EYEBROW": "Comercial",
     "AUTOMATIONS_WORKSPACE": {

@@ -1,4 +1,19 @@
 {
+  "HOME": {
+    "EYEBROW": "Operations",
+    "TITLE": "What needs attention",
+    "SUBTITLE": "Open conversations and overdue next actions in one place.",
+    "REFRESH": "Refresh",
+    "LOAD_ERROR": "We could not load your work queue.",
+    "TRY_AGAIN": "Try again",
+    "OPEN_CONVERSATIONS": "Open conversations",
+    "OVERDUE_ACTIONS": "Overdue actions",
+    "EMPTY_CONVERSATIONS": "There are no open conversations right now.",
+    "EMPTY_ACTIONS": "There are no overdue actions. Everything is up to date.",
+    "UNKNOWN_CONTACT": "Unnamed contact",
+    "NO_INBOX": "No inbox",
+    "PIPELINE_STAGE": "{pipeline} - {stage}"
+  },
   "KANBAN": {
     "EYEBROW": "Sales",
     "AUTOMATIONS_WORKSPACE": {

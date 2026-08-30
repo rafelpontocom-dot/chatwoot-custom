@@ -2384,7 +2384,7 @@ describe('KanbanView header navigation', () => {
     expect(KanbanBoardsAPI.createStage).toHaveBeenCalledWith(10, {
       stage: {
         name: 'Nova etapa',
-        color: 'slate',
+        color: 'amber', // Sereno: cor automática pela posição (índice 2)
         position: 2,
       },
     });
@@ -2442,7 +2442,7 @@ describe('KanbanView header navigation', () => {
     expect(KanbanBoardsAPI.createStage).toHaveBeenCalledWith(10, {
       stage: {
         name: 'Nova etapa (1)',
-        color: 'slate',
+        color: 'amber', // Sereno: cor automática pela posição (índice 2)
         position: 2,
       },
     });
@@ -2487,7 +2487,7 @@ describe('KanbanView header navigation', () => {
     expect(KanbanBoardsAPI.createStage).toHaveBeenCalledWith(10, {
       stage: {
         name: 'Nova etapa (2)',
-        color: 'slate',
+        color: 'amber', // Sereno: cor automática pela posição (índice 2)
         position: 2,
       },
     });
@@ -2533,7 +2533,7 @@ describe('KanbanView header navigation', () => {
     expect(KanbanBoardsAPI.createStage).toHaveBeenCalledWith(10, {
       stage: {
         name: 'New stage (1)',
-        color: 'slate',
+        color: 'amber', // Sereno: cor automática pela posição (índice 2)
         position: 2,
       },
     });

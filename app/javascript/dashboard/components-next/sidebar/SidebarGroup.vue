@@ -18,6 +18,7 @@ const props = defineProps({
   activeOn: { type: Array, default: () => [] },
   children: { type: Array, default: undefined },
   getterKeys: { type: Object, default: () => ({}) },
+  navigateOnExpand: { type: Boolean, default: true },
 });
 
 const {
@@ -206,6 +207,7 @@ const handleCollapsedClick = () => {
 
 const toggleTrigger = () => {
   if (
+    props.navigateOnExpand &&
     hasAccessibleChildren.value &&
     !isExpanded.value &&
     !hasActiveChild.value
