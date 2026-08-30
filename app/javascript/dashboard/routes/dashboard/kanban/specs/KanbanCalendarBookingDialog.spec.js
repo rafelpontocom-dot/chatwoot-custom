@@ -35,6 +35,13 @@ const mountDialog = () =>
           props: ['label'],
           template: '<button v-bind="$attrs">{{ label }}</button>',
         },
+        // shallowMount engoliria o slot do RaevoField e sumiria com todos os
+        // campos. O stub precisa renderizar o slot com o mesmo contrato.
+        RaevoField: {
+          props: ['label', 'variant'],
+          template:
+            '<div><slot :control-class="\'\'" :field-id="\'f\'" :described-by="undefined" /></div>',
+        },
       },
     },
   });

@@ -31,6 +31,22 @@ Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável
 5. **Estado nunca se comunica só por cor.** Sempre cor + ícone + texto. É requisito de
    acessibilidade (WCAG 2.2), não preferência estética.
 
+6. **Campo de formulário é sempre `RaevoField`.** Nunca escreva `<label>` + `<input>` com
+   classe própria: foi assim que o produto acumulou 3 tratamentos de campo dentro do mesmo
+   diálogo. Rótulo acima, campo abaixo, mesma borda esquerda. A aparência vem de
+   `components-next/raevo/raevoControl.js` — se ela não serve, mude lá, não no template.
+
+   ```vue
+   <RaevoField :label="t('X.PROCEDIMENTO')" variant="select">
+     <template #default="{ controlClass, fieldId }">
+       <select :id="fieldId" v-model="x" :class="controlClass">…</select>
+     </template>
+   </RaevoField>
+   ```
+
+   Em `shallowMount`, `RaevoField` precisa de stub que renderize o slot com
+   `control-class`/`field-id` — senão todos os campos somem do teste.
+
 ## Paleta de etapas do funil — travada
 
 `#2563EB` `#0F9D8F` `#B45309` `#A21CAF` (+ `#98A0AE` para etapa terminal).

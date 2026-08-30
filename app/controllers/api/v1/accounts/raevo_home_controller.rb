@@ -20,23 +20,46 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
     authorize KanbanBoard.new(account: Current.account), :index?
   end
 
+  LAST_MESSAGE_LIMIT = 140
+
   def open_conversations
     result = ConversationFinder.new(Current.user, status: 'open', sort_by: 'unread', page: 1).perform
-    conversations = result[:conversations].first(MAX_ITEMS)
+    # Quem espera há mais tempo aparece primeiro: a Home existe para mostrar o
+    # que está parado, não a ordem em que o banco devolveu.
+    conversations = result[:conversations]
+                    .sort_by { |conversation| conversation.last_activity_at || Time.zone.at(0) }
+                    .first(MAX_ITEMS)
 
     {
       count: result[:count][:all_count],
-      items: conversations.map do |conversation|
-        {
-          id: conversation.id,
-          display_id: conversation.display_id,
-          contact_name: conversation.contact&.name,
-          inbox_name: conversation.inbox&.name,
-          last_activity_at: conversation.last_activity_at&.iso8601,
-          priority: conversation.priority
-        }
-      end
+      items: conversations.map { |conversation| open_conversation_payload(conversation) }
     }
+  end
+
+  def open_conversation_payload(conversation)
+    {
+      id: conversation.id,
+      display_id: conversation.display_id,
+      contact_name: conversation.contact&.name,
+      inbox_name: conversation.inbox&.name,
+      last_message: last_message_preview(conversation),
+      unread_count: conversation.unread_incoming_messages.count,
+      last_activity_at: conversation.last_activity_at&.iso8601,
+      priority: conversation.priority
+    }
+  end
+
+  # O subtítulo da linha precisa dizer o que a pessoa falou. Sem isso a Home
+  # repete o nome da caixa de entrada em todas as linhas e não informa nada.
+  def last_message_preview(conversation)
+    message = conversation.messages
+                          .where(message_type: [:incoming, :outgoing])
+                          .where.not(content: [nil, ''])
+                          .order(created_at: :desc)
+                          .first
+    return nil if message.blank?
+
+    message.content.to_s.squish.truncate(LAST_MESSAGE_LIMIT)
   end
 
   def overdue_actions

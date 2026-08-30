@@ -133,7 +133,9 @@
         "CHARGEBACK": "Contestada",
         "CANCELED": "Cancelada",
         "FAILED": "Falhou"
-      }
+      },
+      "NEEDS_CONNECTION": "As cobranças nascem das oportunidades e precisam de uma conexão de pagamento ativa. Conecte um provedor para começar a cobrar.",
+      "GO_TO_CONNECTIONS": "Abrir conexões"
     },
     "CONNECTIONS": {
       "EYEBROW": "Conexões",

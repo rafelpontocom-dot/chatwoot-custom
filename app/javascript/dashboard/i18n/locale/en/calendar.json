@@ -68,7 +68,8 @@
         "DAYS": "Every X days"
       },
       "CONFIRM_BOOKING": "Confirm booking",
-      "SAVE_ERROR": "Could not create the appointment."
+      "SAVE_ERROR": "Could not create the appointment.",
+      "BOOK_DESCRIPTION_BLANK": "Choose the patient, procedure, professional, and time."
     },
     "SETTINGS": {
       "OPEN": "Configure calendar",
@@ -272,6 +273,7 @@
         "COMPLETED": "Appointment completed",
         "NO_SHOW": "No-show recorded"
       }
-    }
+    },
+    "BOOK_SLOT_LABEL": "Book {day} at {time}"
   }
 }

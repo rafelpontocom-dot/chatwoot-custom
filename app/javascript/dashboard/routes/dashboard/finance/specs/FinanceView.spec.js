@@ -447,6 +447,19 @@ describe('FinanceView', () => {
     FinanceAPI.getModule.mockResolvedValue({
       data: { enabled: true, market: 'BR', lock_version: 0 },
     });
+    // Os filtros só aparecem quando há algo para filtrar — sem isso a tela
+    // estaria no estado vazio de primeira execução.
+    FinanceAPI.getPayments.mockResolvedValue({
+      data: [
+        {
+          id: 12,
+          status: 'pending',
+          amount_cents: 15025,
+          currency: 'BRL',
+          contact: { name: 'Pedro Raevo' },
+        },
+      ],
+    });
     const wrapper = mountFinance();
     await flushPromises();
     FinanceAPI.getPayments.mockClear();
@@ -471,6 +484,19 @@ describe('FinanceView', () => {
   it('includes the selected commercial owner in payment filters', async () => {
     FinanceAPI.getModule.mockResolvedValue({
       data: { enabled: true, market: 'BR', lock_version: 0 },
+    });
+    // Os filtros só aparecem quando há algo para filtrar — sem isso a tela
+    // estaria no estado vazio de primeira execução.
+    FinanceAPI.getPayments.mockResolvedValue({
+      data: [
+        {
+          id: 12,
+          status: 'pending',
+          amount_cents: 15025,
+          currency: 'BRL',
+          contact: { name: 'Pedro Raevo' },
+        },
+      ],
     });
     const wrapper = mountFinance();
     await flushPromises();

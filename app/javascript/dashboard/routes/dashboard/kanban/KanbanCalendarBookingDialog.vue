@@ -8,6 +8,7 @@ import CalendarAPI from 'dashboard/api/calendar';
 import ContactAPI from 'dashboard/api/contacts';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 
 const props = defineProps({
   cardId: { type: [Number, String], default: null },
@@ -47,6 +48,13 @@ const bookingContactId = computed(
 );
 const bookingContactName = computed(
   () => props.contactName || selectedContact.value?.name || ''
+);
+const bookingDescription = computed(() =>
+  bookingContactName.value
+    ? t('CALENDAR.OPPORTUNITY.BOOK_DESCRIPTION', {
+        contact: bookingContactName.value,
+      })
+    : t('CALENDAR.OPPORTUNITY.BOOK_DESCRIPTION_BLANK')
 );
 
 const selectedProcedure = computed(() =>
@@ -250,10 +258,16 @@ const debouncedLoadAvailabilitySlots = debounce(
   false
 );
 
+const toLocalDateTimeValue = value => {
+  const localDate = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(localDate.getTime())) return '';
+
+  const pad = part => String(part).padStart(2, '0');
+  return `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
+};
+
 const selectAvailabilitySlot = slot => {
-  const localDate = new Date(slot);
-  const pad = value => String(value).padStart(2, '0');
-  startsAt.value = `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
+  startsAt.value = toLocalDateTimeValue(slot);
 };
 
 const slotLabel = slot =>
@@ -297,8 +311,11 @@ const loadOptions = async () => {
   }
 };
 
-const open = async () => {
+const open = async ({ startsAt: initialStartsAt } = {}) => {
   resetForm();
+  if (initialStartsAt) {
+    startsAt.value = toLocalDateTimeValue(initialStartsAt);
+  }
   dialog.value?.open();
   await loadOptions();
 };
@@ -376,11 +393,7 @@ defineExpose({ open });
     width="md"
     overflow-y-auto
     :title="t('CALENDAR.OPPORTUNITY.BOOK_TITLE')"
-    :description="
-      t('CALENDAR.OPPORTUNITY.BOOK_DESCRIPTION', {
-        contact: bookingContactName,
-      })
-    "
+    :description="bookingDescription"
     :show-confirm-button="false"
     @close="resetForm"
   >
@@ -398,143 +411,164 @@ defineExpose({ open });
       </p>
 
       <template v-else>
-        <label v-if="selectContact" class="grid gap-1.5">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ t('CALENDAR.OPPORTUNITY.CONTACT') }}
-          </span>
-          <input
-            v-model="contactSearchQuery"
-            data-testid="calendar-appointment-contact-search"
-            type="search"
-            :placeholder="t('CALENDAR.OPPORTUNITY.SEARCH_CONTACT')"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            @input="onContactInput"
-          />
-          <span v-if="isSearchingContacts" class="text-xs text-n-slate-11">
-            {{ t('CALENDAR.OPPORTUNITY.SEARCHING_CONTACT') }}
-          </span>
-          <div v-else-if="contactResults.length" class="grid gap-1">
+        <div v-if="selectContact" class="grid gap-2">
+          <RaevoField
+            :label="t('CALENDAR.OPPORTUNITY.CONTACT')"
+            :hint="
+              isSearchingContacts
+                ? t('CALENDAR.OPPORTUNITY.SEARCHING_CONTACT')
+                : ''
+            "
+          >
+            <template #default="{ controlClass, fieldId, describedBy }">
+              <input
+                :id="fieldId"
+                v-model="contactSearchQuery"
+                data-testid="calendar-appointment-contact-search"
+                type="search"
+                :aria-describedby="describedBy"
+                :placeholder="t('CALENDAR.OPPORTUNITY.SEARCH_CONTACT')"
+                :class="controlClass"
+                @input="onContactInput"
+              />
+            </template>
+          </RaevoField>
+          <div
+            v-if="!isSearchingContacts && contactResults.length"
+            class="grid gap-1"
+          >
             <button
               v-for="contact in contactResults"
               :key="contact.id"
               type="button"
-              class="rounded-md px-2 py-1.5 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+              class="rounded-lg px-2 py-1.5 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
               @click="selectSearchContact(contact)"
             >
               {{ contact.name || contact.email || contact.phoneNumber }}
             </button>
           </div>
-        </label>
+        </div>
 
-        <label class="grid gap-1.5">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ t('CALENDAR.OPPORTUNITY.PROCEDURE') }}
-          </span>
-          <select
-            v-model="procedureId"
-            data-testid="kanban-calendar-procedure"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-          >
-            <option value="">
-              {{ t('CALENDAR.OPPORTUNITY.SELECT_PROCEDURE') }}
-            </option>
-            <option
-              v-for="procedure in procedures"
-              :key="procedure.id"
-              :value="String(procedure.id)"
+        <RaevoField
+          :label="t('CALENDAR.OPPORTUNITY.PROCEDURE')"
+          variant="select"
+        >
+          <template #default="{ controlClass, fieldId }">
+            <select
+              :id="fieldId"
+              v-model="procedureId"
+              data-testid="kanban-calendar-procedure"
+              :class="controlClass"
             >
-              {{ procedure.name }}
-            </option>
-          </select>
-        </label>
+              <option value="">
+                {{ t('CALENDAR.OPPORTUNITY.SELECT_PROCEDURE') }}
+              </option>
+              <option
+                v-for="procedure in procedures"
+                :key="procedure.id"
+                :value="String(procedure.id)"
+              >
+                {{ procedure.name }}
+              </option>
+            </select>
+          </template>
+        </RaevoField>
 
         <div
           v-if="selectedProcedure?.recurrence_allowed"
           class="grid gap-3 rounded-md border border-n-weak bg-n-surface-2 p-3 sm:grid-cols-[8rem_minmax(0,1fr)]"
         >
-          <label class="grid gap-1.5">
-            <span class="text-sm font-medium text-n-slate-12">
-              {{ t('CALENDAR.OPPORTUNITY.SESSIONS') }}
-            </span>
-            <input
-              v-model="occurrenceCount"
-              data-testid="kanban-calendar-occurrence-count"
-              type="number"
-              min="1"
-              :max="selectedProcedure.max_sessions || 100"
-              :disabled="!selectedProcedure.recurrence_allowed"
-              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none disabled:cursor-not-allowed disabled:opacity-60 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            />
-          </label>
-          <label v-if="recurrenceEnabled" class="grid gap-1.5">
-            <span class="text-sm font-medium text-n-slate-12">
-              {{ t('CALENDAR.OPPORTUNITY.RECURRENCE') }}
-            </span>
-            <select
-              v-model="intervalKind"
-              data-testid="kanban-calendar-interval-kind"
-              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            >
-              <option
-                v-for="interval in recurrenceIntervals"
-                :key="interval"
-                :value="interval"
-              >
-                {{ recurrenceIntervalLabel(interval) }}
-              </option>
-            </select>
-          </label>
-          <label
-            v-if="recurrenceEnabled && intervalKind === 'days'"
-            class="grid gap-1.5 sm:col-span-2"
+          <RaevoField :label="t('CALENDAR.OPPORTUNITY.SESSIONS')">
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="occurrenceCount"
+                data-testid="kanban-calendar-occurrence-count"
+                type="number"
+                min="1"
+                :max="selectedProcedure.max_sessions || 100"
+                :disabled="!selectedProcedure.recurrence_allowed"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField
+            v-if="recurrenceEnabled"
+            :label="t('CALENDAR.OPPORTUNITY.RECURRENCE')"
+            variant="select"
           >
-            <span class="text-sm font-medium text-n-slate-12">
-              {{ t('CALENDAR.OPPORTUNITY.INTERVAL_DAYS') }}
-            </span>
-            <input
-              v-model="intervalDays"
-              data-testid="kanban-calendar-interval-days"
-              type="number"
-              min="1"
-              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            />
-          </label>
+            <template #default="{ controlClass, fieldId }">
+              <select
+                :id="fieldId"
+                v-model="intervalKind"
+                data-testid="kanban-calendar-interval-kind"
+                :class="controlClass"
+              >
+                <option
+                  v-for="interval in recurrenceIntervals"
+                  :key="interval"
+                  :value="interval"
+                >
+                  {{ recurrenceIntervalLabel(interval) }}
+                </option>
+              </select>
+            </template>
+          </RaevoField>
+          <RaevoField
+            v-if="recurrenceEnabled && intervalKind === 'days'"
+            class="sm:col-span-2"
+            :label="t('CALENDAR.OPPORTUNITY.INTERVAL_DAYS')"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="intervalDays"
+                data-testid="kanban-calendar-interval-days"
+                type="number"
+                min="1"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
         </div>
 
-        <label class="grid gap-1.5">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ t('CALENDAR.OPPORTUNITY.RESOURCE') }}
-          </span>
-          <select
-            v-model="resourceId"
-            data-testid="kanban-calendar-resource"
-            :disabled="!procedureId"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none disabled:cursor-not-allowed disabled:opacity-60 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-          >
-            <option value="">
-              {{ t('CALENDAR.OPPORTUNITY.SELECT_RESOURCE') }}
-            </option>
-            <option
-              v-for="resource in availableResources"
-              :key="resource.id"
-              :value="String(resource.id)"
+        <RaevoField
+          :label="t('CALENDAR.OPPORTUNITY.RESOURCE')"
+          variant="select"
+        >
+          <template #default="{ controlClass, fieldId }">
+            <select
+              :id="fieldId"
+              v-model="resourceId"
+              data-testid="kanban-calendar-resource"
+              :disabled="!procedureId"
+              :class="controlClass"
             >
-              {{ resource.name }}
-            </option>
-          </select>
-        </label>
+              <option value="">
+                {{ t('CALENDAR.OPPORTUNITY.SELECT_RESOURCE') }}
+              </option>
+              <option
+                v-for="resource in availableResources"
+                :key="resource.id"
+                :value="String(resource.id)"
+              >
+                {{ resource.name }}
+              </option>
+            </select>
+          </template>
+        </RaevoField>
 
-        <label class="grid gap-1.5">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ t('CALENDAR.OPPORTUNITY.STARTS_AT') }}
-          </span>
-          <input
-            v-model="startsAt"
-            data-testid="kanban-calendar-starts-at"
-            type="datetime-local"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-          />
-        </label>
+        <RaevoField :label="t('CALENDAR.OPPORTUNITY.STARTS_AT')">
+          <template #default="{ controlClass, fieldId }">
+            <input
+              :id="fieldId"
+              v-model="startsAt"
+              data-testid="kanban-calendar-starts-at"
+              type="datetime-local"
+              :class="controlClass"
+            />
+          </template>
+        </RaevoField>
         <div
           v-if="recurrencePreview.length"
           class="grid gap-1 rounded-md border border-n-weak bg-n-surface-2 p-2.5"

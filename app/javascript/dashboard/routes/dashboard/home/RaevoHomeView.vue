@@ -60,16 +60,63 @@ const openOpportunity = action => {
   });
 };
 
+const intlLocale = computed(() =>
+  locale.value === 'pt_BR' ? 'pt-BR' : locale.value
+);
+
 const formatDateTime = value => {
   if (!value) return '';
 
-  return new Intl.DateTimeFormat(
-    locale.value === 'pt_BR' ? 'pt-BR' : locale.value,
-    {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }
-  ).format(new Date(value));
+  return new Intl.DateTimeFormat(intlLocale.value, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
+};
+
+// A secretaria precisa saber ha quanto tempo alguem espera, nao a data de hoje
+// repetida em todas as linhas. A data absoluta continua no title da linha.
+const RELATIVE_STEPS = [
+  ['minute', 60],
+  ['hour', 60],
+  ['day', 24],
+];
+
+const formatRelative = value => {
+  if (!value) return '';
+
+  const elapsedMs = Date.now() - new Date(value).getTime();
+  if (Number.isNaN(elapsedMs)) return '';
+
+  const formatter = new Intl.RelativeTimeFormat(intlLocale.value, {
+    numeric: 'auto',
+  });
+
+  let amount = Math.round(elapsedMs / 1000);
+  let unit = 'second';
+
+  RELATIVE_STEPS.every(([nextUnit, factor]) => {
+    if (Math.abs(amount) < factor) return false;
+    amount = Math.round(amount / factor);
+    unit = nextUnit;
+    return true;
+  });
+
+  return formatter.format(-amount, unit);
+};
+
+const hiddenConversationsCount = computed(() =>
+  Math.max(
+    Number(data.value.open_conversations_count || 0) -
+      openConversations.value.length,
+    0
+  )
+);
+
+const goToAllConversations = () => {
+  router.push({
+    name: 'home',
+    params: { accountId: route.params.accountId },
+  });
 };
 
 onMounted(loadHome);
@@ -118,7 +165,7 @@ onMounted(loadHome);
       </button>
     </section>
 
-    <div v-else class="grid gap-4 xl:grid-cols-2">
+    <div v-else class="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <section
         class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
       >
@@ -158,13 +205,32 @@ onMounted(loadHome);
               >
                 {{ conversation.contact_name || t('HOME.UNKNOWN_CONTACT') }}
               </span>
-              <span class="mt-0.5 block break-words text-xs text-n-slate-10">{{
-                conversation.inbox_name || t('HOME.NO_INBOX')
-              }}</span>
+              <span
+                class="mt-0.5 block truncate text-xs text-n-slate-10"
+                :title="conversation.last_message || ''"
+              >
+                {{
+                  conversation.last_message ||
+                  conversation.inbox_name ||
+                  t('HOME.NO_INBOX')
+                }}
+              </span>
             </span>
-            <span class="shrink-0 text-xs text-n-slate-10">{{
-              formatDateTime(conversation.last_activity_at)
-            }}</span>
+            <span
+              class="shrink-0 text-xs text-n-slate-10"
+              :title="formatDateTime(conversation.last_activity_at)"
+            >
+              {{ formatRelative(conversation.last_activity_at) }}
+            </span>
+          </button>
+          <button
+            v-if="hiddenConversationsCount"
+            type="button"
+            data-testid="home-see-all-conversations"
+            class="flex w-full items-center justify-center px-4 py-3 text-sm font-medium text-n-brand hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+            @click="goToAllConversations"
+          >
+            {{ t('HOME.SEE_ALL', { count: hiddenConversationsCount }) }}
           </button>
         </div>
         <p v-else class="px-4 py-10 text-center text-sm text-n-slate-10">
@@ -221,9 +287,12 @@ onMounted(loadHome);
                 }}
               </span>
             </span>
-            <span class="shrink-0 text-xs font-medium text-n-ruby-11">{{
-              formatDateTime(action.next_action_at)
-            }}</span>
+            <span
+              class="shrink-0 text-xs font-medium text-n-ruby-11"
+              :title="formatDateTime(action.next_action_at)"
+            >
+              {{ formatRelative(action.next_action_at) }}
+            </span>
           </button>
         </div>
         <p v-else class="px-4 py-10 text-center text-sm text-n-slate-10">

@@ -249,4 +249,20 @@ describe('CalendarView', () => {
       wrapper.find('[data-testid="calendar-appointment-resource"]').text()
     ).toBe('Dra. Ana');
   });
+  it('opens the booking dialog prefilled when an empty slot is clicked', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const open = vi.fn();
+    wrapper.vm.bookingDialog = { open };
+
+    const slots = wrapper.findAll('[data-testid="calendar-slot"]');
+    expect(slots.length).toBeGreaterThan(0);
+
+    await slots[0].trigger('click');
+
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open.mock.calls[0][0].startsAt).toBeInstanceOf(Date);
+    expect(open.mock.calls[0][0].startsAt.getMinutes()).toBe(0);
+  });
 });

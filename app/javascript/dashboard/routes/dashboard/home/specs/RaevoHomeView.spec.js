@@ -90,4 +90,74 @@ describe('RaevoHomeView', () => {
       query: { cardId: 18 },
     });
   });
+  it('shows the last message instead of repeating the inbox name', async () => {
+    RaevoHomeAPI.get.mockResolvedValue({
+      data: {
+        open_conversations_count: 1,
+        open_conversations: [
+          {
+            id: 11,
+            display_id: 1001,
+            contact_name: 'Pedro Raevo',
+            inbox_name: 'Dra. Telma',
+            last_message: 'Bom dia, consigo remarcar para sexta?',
+            last_activity_at: new Date(
+              Date.now() - 41 * 60 * 1000
+            ).toISOString(),
+          },
+        ],
+        overdue_actions: [],
+      },
+    });
+
+    const wrapper = mountHome();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Bom dia, consigo remarcar para sexta?');
+    expect(wrapper.text()).not.toContain('Dra. Telma');
+  });
+
+  it('shows how long someone has been waiting, not the absolute date', async () => {
+    RaevoHomeAPI.get.mockResolvedValue({
+      data: {
+        open_conversations_count: 1,
+        open_conversations: [
+          {
+            id: 11,
+            display_id: 1001,
+            contact_name: 'Pedro Raevo',
+            last_activity_at: new Date(
+              Date.now() - 41 * 60 * 1000
+            ).toISOString(),
+          },
+        ],
+        overdue_actions: [],
+      },
+    });
+
+    const wrapper = mountHome();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('41');
+    expect(wrapper.text()).not.toMatch(/\d{2}\/\d{2}\/\d{4}/);
+  });
+
+  it('offers a way out when the list is capped below the real count', async () => {
+    RaevoHomeAPI.get.mockResolvedValue({
+      data: {
+        open_conversations_count: 9,
+        open_conversations: [
+          { id: 11, display_id: 1001, contact_name: 'Pedro Raevo' },
+        ],
+        overdue_actions: [],
+      },
+    });
+
+    const wrapper = mountHome();
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="home-see-all-conversations"]').exists()
+    ).toBe(true);
+  });
 });

@@ -68,7 +68,8 @@
         "DAYS": "A cada X dias"
       },
       "CONFIRM_BOOKING": "Confirmar agendamento",
-      "SAVE_ERROR": "Não foi possível criar o agendamento."
+      "SAVE_ERROR": "Não foi possível criar o agendamento.",
+      "BOOK_DESCRIPTION_BLANK": "Escolha o paciente, o procedimento, o profissional e o horário."
     },
     "SETTINGS": {
       "OPEN": "Configurar agenda",
@@ -272,6 +273,7 @@
         "COMPLETED": "Atendimento concluído",
         "NO_SHOW": "Falta registrada"
       }
-    }
+    },
+    "BOOK_SLOT_LABEL": "Agendar {day} às {time}"
   }
 }

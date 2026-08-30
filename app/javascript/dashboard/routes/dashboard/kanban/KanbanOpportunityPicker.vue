@@ -6,6 +6,7 @@ import { debounce } from '@chatwoot/utils';
 import { useStore } from 'dashboard/composables/store';
 import ContactAPI from 'dashboard/api/contacts';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 
 const props = defineProps({
   kanbanBoardId: {
@@ -343,24 +344,24 @@ onUnmounted(() => {
   >
     <div class="flex items-start justify-between gap-2">
       <div class="min-w-0 flex-1">
-        <label :for="`kanban-contact-search-${kanbanStageId}`" class="sr-only">
-          {{ t('KANBAN.ADD_ITEM.SEARCH_LABEL') }}
-        </label>
-        <div>
-          <input
-            :id="`kanban-contact-search-${kanbanStageId}`"
-            v-model="contactSearchQuery"
-            type="search"
-            data-testid="kanban-contact-search-input"
-            class="no-drag min-h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            :placeholder="t('KANBAN.ADD_ITEM.PLACEHOLDER')"
-            @input="onContactSearchInput"
-          />
-        </div>
+        <RaevoField :label="t('KANBAN.ADD_ITEM.SEARCH_LABEL')">
+          <template #default="{ controlClass, fieldId }">
+            <input
+              :id="fieldId"
+              v-model="contactSearchQuery"
+              type="search"
+              data-testid="kanban-contact-search-input"
+              class="no-drag"
+              :class="controlClass"
+              :placeholder="t('KANBAN.ADD_ITEM.PLACEHOLDER')"
+              @input="onContactSearchInput"
+            />
+          </template>
+        </RaevoField>
       </div>
       <button
         type="button"
-        class="mt-1 flex size-8 flex-shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+        class="mt-7 flex size-8 flex-shrink-0 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
         :aria-label="t('KANBAN.ADD_ITEM.CLOSE')"
         @click="handleClose"
       >
@@ -368,27 +369,33 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <div class="mt-3">
+    <div class="mt-4">
+      <!--
+        Contato escolhido é uma decisão tomada, não um campo a preencher: perde a
+        moldura de input para não parecer mais uma caixa vazia empilhada.
+      -->
       <div
         v-if="selectedContact"
         data-testid="kanban-selected-contact"
-        class="rounded-md border border-n-weak bg-n-surface-1 p-3"
+        class="flex items-center justify-between gap-3 rounded-lg bg-n-alpha-2 px-3 py-2"
       >
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="mb-0 truncate text-sm font-medium text-n-slate-12">
-              {{ selectedContact.name }}
-            </p>
-          </div>
-          <button
-            type="button"
-            class="flex size-7 flex-shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-            :aria-label="t('KANBAN.ADD_ITEM.CLEAR_CONTACT')"
-            @click="clearSelectedContact"
-          >
-            <i class="i-lucide-x size-4" />
-          </button>
+        <div class="flex min-w-0 items-center gap-2">
+          <i
+            aria-hidden="true"
+            class="i-lucide-check size-4 flex-shrink-0 text-n-teal-11"
+          />
+          <p class="mb-0 truncate text-sm font-medium text-n-slate-12">
+            {{ selectedContact.name }}
+          </p>
         </div>
+        <button
+          type="button"
+          class="flex size-7 flex-shrink-0 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          :aria-label="t('KANBAN.ADD_ITEM.CLEAR_CONTACT')"
+          @click="clearSelectedContact"
+        >
+          <i class="i-lucide-x size-4" />
+        </button>
       </div>
 
       <div v-if="selectedContact" class="mt-3">
@@ -417,12 +424,21 @@ onUnmounted(() => {
           {{ t('KANBAN.ADD_ITEM.NO_INBOXES') }}
         </p>
 
-        <div v-else data-testid="kanban-inboxes" class="grid gap-1">
+        <div
+          v-else
+          data-testid="kanban-inboxes"
+          role="group"
+          :aria-label="t('KANBAN.ADD_ITEM.INBOX_LABEL')"
+          class="grid gap-1"
+        >
+          <p class="mb-1 text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.ADD_ITEM.INBOX_LABEL') }}
+          </p>
           <button
             v-for="inbox in contactableInboxes"
             :key="inbox.id"
             type="button"
-            class="no-drag flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+            class="no-drag flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             :class="{
               'bg-n-alpha-2 ring-1 ring-n-brand':
                 selectedInbox?.id === inbox.id,
@@ -455,35 +471,31 @@ onUnmounted(() => {
         <form
           v-if="selectedInbox"
           data-testid="kanban-manual-card-form"
-          class="mt-3 grid gap-2"
+          class="mt-4 grid gap-3"
           @submit.prevent="createManualOpportunity"
         >
-          <label
-            :for="`kanban-subject-${kanbanStageId}`"
-            class="text-sm font-medium text-n-slate-12"
+          <RaevoField
+            :label="t('KANBAN.ADD_ITEM.SUBJECT')"
+            :error="subjectError"
+            error-testid="kanban-manual-card-subject-error"
           >
-            {{ t('KANBAN.ADD_ITEM.SUBJECT') }}
-          </label>
-          <input
-            :id="`kanban-subject-${kanbanStageId}`"
-            v-model="subject"
-            type="text"
-            data-testid="kanban-manual-card-subject"
-            class="no-drag min-h-10 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-            :aria-invalid="!!subjectError"
-            @input="
-              subjectError = '';
-              possibleDuplicate = null;
-            "
-          />
-          <p
-            v-if="subjectError"
-            data-testid="kanban-manual-card-subject-error"
-            class="mb-0 text-sm text-n-ruby-11"
-            role="alert"
-          >
-            {{ subjectError }}
-          </p>
+            <template #default="{ controlClass, fieldId, describedBy }">
+              <input
+                :id="fieldId"
+                v-model="subject"
+                type="text"
+                data-testid="kanban-manual-card-subject"
+                class="no-drag"
+                :class="controlClass"
+                :aria-invalid="!!subjectError"
+                :aria-describedby="describedBy"
+                @input="
+                  subjectError = '';
+                  possibleDuplicate = null;
+                "
+              />
+            </template>
+          </RaevoField>
           <p
             v-if="creationError"
             data-testid="kanban-manual-card-error"

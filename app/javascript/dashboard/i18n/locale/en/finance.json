@@ -133,7 +133,9 @@
         "CHARGEBACK": "Chargeback",
         "CANCELED": "Canceled",
         "FAILED": "Failed"
-      }
+      },
+      "NEEDS_CONNECTION": "Charges start from opportunities and need an active payment connection. Connect a provider to start charging.",
+      "GO_TO_CONNECTIONS": "Open connections"
     },
     "CONNECTIONS": {
       "EYEBROW": "Connections",

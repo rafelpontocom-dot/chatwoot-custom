@@ -1291,7 +1291,9 @@ describe('KanbanView drag and drop', () => {
       draggable => draggable.props('list').length === 0
     );
 
-    expect(emptyStageDraggable.classes()).toContain('min-h-48');
+    // Sereno · 30/08/2026 — alvo de soltura continua generoso na coluna vazia
+    // (min-h-40); com cards a lista encolhe para o "adicionar" seguir os cards.
+    expect(emptyStageDraggable.classes()).toContain('min-h-40');
     expect(emptyStageDraggable.text()).toContain('KANBAN.EMPTY_CARDS');
     expect(
       emptyStageDraggable.find('[data-testid="kanban-add-item-panel"]').exists()

@@ -82,5 +82,12 @@ export const nextKanbanStageColor = (position = 0) =>
     Math.abs(Number(position) || 0) % AUTO_STAGE_COLOR_SEQUENCE.length
   ];
 
+/**
+ * A etapa neutra (slate) não desenha barra. Uma faixa cinza no topo da coluna é
+ * ruído: cor tem que significar alguma coisa. Sem cor definida, sem barra.
+ */
+export const isNeutralStageColor = color =>
+  !color || color === DEFAULT_KANBAN_STAGE_COLOR;
+
 export const getKanbanStageColorClass = color =>
   getKanbanStageColorOption(color).headerClass;

@@ -167,7 +167,9 @@ describe('KanbanConversationCard', () => {
     const wrapper = mountCard();
 
     expect(wrapper.classes()).toContain('rounded-lg');
-    expect(wrapper.classes()).toContain('p-3');
+    // Sereno · 30/08/2026 — densidade reduzida ~30%: o card passou de 98px para
+    // caber mais etapas na tela sem espremer o conteúdo.
+    expect(wrapper.classes()).toContain('p-2.5');
     expect(wrapper.classes()).toContain('border-n-weak');
     expect(wrapper.classes()).toContain('bg-n-solid-1');
   });

@@ -1525,7 +1525,7 @@ watch(invitationPendingRevocation, async invitation => {
       >
         <nav
           ref="tabList"
-          class="sticky top-0 z-10 flex min-w-0 gap-1 overflow-x-auto border-b border-n-weak bg-n-solid-1"
+          class="sticky top-0 z-10 flex min-w-0 flex-wrap gap-x-1 border-b border-n-weak bg-n-solid-1"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL')"
           role="tablist"
         >
@@ -1535,7 +1535,7 @@ watch(invitationPendingRevocation, async invitation => {
             :key="tab.key"
             type="button"
             :data-testid="`kanban-opportunity-tab-${tab.key}`"
-            class="whitespace-nowrap border-b-2 px-3 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
+            class="whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
             role="tab"
             :aria-selected="activeTabKey === tab.key"
             aria-controls="kanban-opportunity-tab-panel"
@@ -1564,7 +1564,7 @@ watch(invitationPendingRevocation, async invitation => {
             :id="`kanban-opportunity-tab-${timelineTab.key}`"
             type="button"
             :data-testid="`kanban-opportunity-tab-${timelineTab.key}`"
-            class="whitespace-nowrap border-b-2 px-3 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
+            class="whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
             role="tab"
             :aria-selected="activeTabKey === timelineTab.key"
             aria-controls="kanban-opportunity-tab-panel"
@@ -2638,7 +2638,7 @@ watch(invitationPendingRevocation, async invitation => {
         </p>
 
         <div
-          class="sticky bottom-0 flex items-center justify-end gap-3 border-t border-n-weak bg-n-background pt-4"
+          class="sticky bottom-0 z-20 -mx-1 flex items-center justify-end gap-3 border-t border-n-weak bg-n-background px-1 pb-4 pt-4"
         >
           <NextButton
             type="button"

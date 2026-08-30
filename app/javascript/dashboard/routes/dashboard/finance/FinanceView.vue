@@ -760,7 +760,14 @@ onMounted(loadFinance);
               <p class="mb-1 text-xs font-medium text-n-slate-10">
                 {{ t('FINANCE.PAYMENTS.SUMMARY.OVERDUE') }}
               </p>
-              <p class="mb-0 text-sm font-semibold text-n-ruby-11">
+              <p
+                class="mb-0 text-sm font-semibold"
+                :class="
+                  paymentSummary.overdue?.length
+                    ? 'text-n-ruby-11'
+                    : 'text-n-slate-11'
+                "
+              >
                 <template v-if="paymentSummary.overdue?.length">
                   <span
                     v-for="total in paymentSummary.overdue"
@@ -778,6 +785,7 @@ onMounted(loadFinance);
           </div>
 
           <form
+            v-if="payments.length > 0 || hasPaymentFilters || isLoadingPayments"
             data-testid="finance-payment-filters"
             class="grid gap-2 border-b border-n-weak px-5 py-3 lg:grid-cols-[minmax(12rem,1fr)_10rem_11rem_auto_auto] lg:items-center"
             @submit.prevent="loadPayments"
@@ -874,16 +882,44 @@ onMounted(loadFinance);
           >
             {{ paymentsError }}
           </p>
-          <p
+          <!--
+            Estado vazio no centro do corpo, não como um parágrafo no topo dele.
+            Quando não há conexão de pagamento o botão de criar some por regra —
+            então a tela precisa dizer por quê, em vez de deixar a ausência falar.
+          -->
+          <div
             v-else-if="payments.length === 0"
-            class="px-5 py-8 text-sm text-n-slate-11"
+            data-testid="finance-payments-empty"
+            class="flex min-h-64 flex-col items-center justify-center gap-2 px-5 py-12 text-center"
           >
-            {{
-              hasPaymentFilters
-                ? t('FINANCE.PAYMENTS.FILTERS.EMPTY')
-                : t('FINANCE.PAYMENTS.EMPTY')
-            }}
-          </p>
+            <i
+              aria-hidden="true"
+              class="i-lucide-receipt size-6 text-n-slate-10"
+            />
+            <p class="mb-0 text-sm font-medium text-n-slate-12">
+              {{
+                hasPaymentFilters
+                  ? t('FINANCE.PAYMENTS.FILTERS.EMPTY')
+                  : t('FINANCE.PAYMENTS.EMPTY')
+              }}
+            </p>
+            <p
+              v-if="
+                !hasPaymentFilters && !canCreatePayment && canCreatePayments
+              "
+              data-testid="finance-no-connection-hint"
+              class="mb-0 max-w-md text-sm text-n-slate-11"
+            >
+              {{ t('FINANCE.PAYMENTS.NEEDS_CONNECTION') }}
+            </p>
+            <Button
+              v-if="!hasPaymentFilters && !canCreatePayment && canConfigure"
+              variant="link"
+              :label="t('FINANCE.PAYMENTS.GO_TO_CONNECTIONS')"
+              data-testid="finance-empty-go-to-connections"
+              @click="activeView = 'settings'"
+            />
+          </div>
 
           <div
             v-else

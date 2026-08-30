@@ -15,6 +15,7 @@ import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
 import {
   DEFAULT_KANBAN_STAGE_COLOR,
   nextKanbanStageColor,
+  isNeutralStageColor,
   KANBAN_STAGE_COLOR_OPTIONS,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
@@ -498,7 +499,6 @@ const getStageColorOption = getKanbanStageColorOption;
 // Sereno: a etapa se identifica por barra fina + ponto, não por cabeçalho
 // chapado de cor. Ver docs/raevo-design-system.md §5.
 const getStageBarClass = stage => getStageColorOption(stage.color).barClass;
-const getStageDotClass = stage => getStageColorOption(stage.color).dotClass;
 const getStageInkClass = stage => getStageColorOption(stage.color).inkClass;
 
 const getStageColorLabel = colorOption => {
@@ -2492,7 +2492,7 @@ onUnmounted(() => {
         <Draggable
           v-model="stageListModel"
           item-key="id"
-          class="flex min-h-0 gap-4"
+          class="flex min-h-0 gap-3"
           handle=".stage-drag-handle"
           ghost-class="opacity-60"
           chosen-class="opacity-90"
@@ -2502,15 +2502,16 @@ onUnmounted(() => {
           <template #item="{ element: stage }">
             <section
               :data-stage-id="stage.id"
-              class="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
+              class="flex w-60 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
             >
               <div
-                class="h-1.5 w-full flex-shrink-0"
+                v-if="!isNeutralStageColor(stage.color)"
+                class="h-1 w-full flex-shrink-0"
                 :class="getStageBarClass(stage)"
                 aria-hidden="true"
               />
               <header
-                class="stage-drag-handle flex min-h-14 cursor-grab items-center justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-2 text-n-slate-12"
+                class="stage-drag-handle group/stage flex min-h-10 cursor-grab items-center justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-1.5 text-n-slate-12"
               >
                 <form
                   v-if="editingStageId === stage.id"
@@ -2570,13 +2571,8 @@ onUnmounted(() => {
                 </form>
                 <template v-else>
                   <div class="flex min-w-0 flex-1 items-center gap-2">
-                    <span
-                      class="size-2 shrink-0 rounded-full"
-                      :class="getStageDotClass(stage)"
-                      aria-hidden="true"
-                    />
                     <i
-                      class="size-4 shrink-0"
+                      class="size-3.5 shrink-0"
                       :class="[
                         getKanbanStageIconOption(stage.icon).iconClass,
                         getStageInkClass(stage),
@@ -2584,7 +2580,7 @@ onUnmounted(() => {
                       aria-hidden="true"
                     />
                     <h3
-                      class="min-w-0 break-words text-sm font-bold leading-5 tracking-tight"
+                      class="min-w-0 truncate text-[12.5px] font-bold leading-5 tracking-tight text-n-slate-12"
                     >
                       <span :title="stage.description || stage.name">{{
                         stage.name
@@ -2603,7 +2599,7 @@ onUnmounted(() => {
                       />
                     </button>
                     <span
-                      class="ms-auto flex-shrink-0 text-xs font-semibold tabular-nums text-n-slate-10"
+                      class="ms-auto flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-[10px] font-bold tabular-nums text-n-slate-11"
                     >
                       {{ stageCardCount(stage) }}
                     </span>
@@ -2620,7 +2616,7 @@ onUnmounted(() => {
                   <div class="flex flex-shrink-0 gap-1">
                     <button
                       type="button"
-                      class="flex size-8 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
                       :aria-label="t('KANBAN.ACTIONS.EDIT_STAGE')"
                       @click="startEditingStage(stage)"
@@ -2629,7 +2625,7 @@ onUnmounted(() => {
                     </button>
                     <button
                       type="button"
-                      class="flex size-8 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
+                      class="flex size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
                       :aria-label="t('KANBAN.ACTIONS.REMOVE_STAGE')"
                       @click="openRemoveStageConfirmation(stage)"
@@ -2641,7 +2637,7 @@ onUnmounted(() => {
               </header>
 
               <div
-                class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-n-background p-2.5"
+                class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-n-background p-2"
               >
                 <button
                   type="button"
@@ -2669,7 +2665,12 @@ onUnmounted(() => {
                 <Draggable
                   :list="stage.cards"
                   item-key="id"
-                  class="order-first flex min-h-48 flex-1 flex-col gap-2 rounded-md"
+                  class="order-first flex flex-col gap-2 rounded-md"
+                  :class="
+                    // Coluna vazia precisa de alvo generoso para soltar o card;
+                    // com cards, encolhe para o 'adicionar' não boiar no rodapé.
+                    stage.cards && stage.cards.length ? 'min-h-16' : 'min-h-40'
+                  "
                   :group="{ name: 'kanban-cards' }"
                   handle=".card-drag-handle"
                   :filter="cardDragFilter"
@@ -3042,10 +3043,15 @@ onUnmounted(() => {
       size="modal-small"
       :on-close="() => (showQuickCreate = false)"
     >
+      <!--
+        min-h reserva a altura final desde o primeiro passo. Sem ela o diálogo
+        cresce a cada escolha e, como o modal é centralizado verticalmente,
+        todo o conteúdo sobe — o usuário nunca escreve duas vezes no mesmo lugar.
+      -->
       <div
         v-if="showQuickCreate && selectedBoard && firstStageId"
         data-testid="kanban-quick-create-modal"
-        class="p-4"
+        class="flex min-h-[30rem] flex-col p-4"
       >
         <div class="mb-3 flex items-start justify-between gap-3">
           <div>

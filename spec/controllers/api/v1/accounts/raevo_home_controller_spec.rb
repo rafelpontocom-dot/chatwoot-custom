@@ -33,6 +33,37 @@ RSpec.describe 'Raevo home API', type: :request do
       )
     end
 
+    it 'carries the last message so the row says what the person wrote' do
+      conversation = create(:conversation, account: account, status: :open)
+      create(:message, account: account, conversation: conversation,
+                       message_type: :incoming, content: 'Bom dia, consigo remarcar?')
+
+      get "/api/v1/accounts/#{account.id}/raevo_home",
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      row = response.parsed_body['open_conversations'].find do |item|
+        item['display_id'] == conversation.display_id
+      end
+
+      expect(row['last_message']).to eq('Bom dia, consigo remarcar?')
+    end
+
+    it 'puts whoever has been waiting longest first' do
+      recent = create(:conversation, account: account, status: :open)
+      stale = create(:conversation, account: account, status: :open)
+      recent.update!(last_activity_at: 5.minutes.ago)
+      stale.update!(last_activity_at: 6.hours.ago)
+
+      get "/api/v1/accounts/#{account.id}/raevo_home",
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      ids = response.parsed_body['open_conversations'].map { |item| item['display_id'] }
+
+      expect(ids.index(stale.display_id)).to be < ids.index(recent.display_id)
+    end
+
     it 'does not expose a card from a board unavailable to the current agent' do
       agent = create(:user, account: account, role: :agent)
       restricted_board = create(

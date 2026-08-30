@@ -183,6 +183,26 @@ falta em ruby, cancelada em cinza com opacidade. Nunca só preenchimento.
 Barra de cor de 5px arredondada no topo · cabeçalho com ponto + ícone + nome + contagem ·
 corpo em card branco · rodapé com afordance tracejado "Novo lead aqui".
 
+### Armadilhas que já custaram retrabalho
+
+**`size-4.5` não existe.** A escala do Tailwind vai de `size-4` para `size-5`; valores `.5`
+existem só até `3.5`. Uma classe inválida não avisa: o elemento fica **sem dimensão**. Rode
+`pnpm raevo:design` e confira no navegador — o compilador não pega isso.
+
+**Não reserve espaço para controle que só aparece no hover.** O card do lead tinha
+`pl-6 pr-16` para caber caixa de seleção e botões de hover; o conteúdo virava um bloco estreito
+no meio de um card largo. Controle de hover **flutua por cima** com fundo sólido; o conteúdo usa
+a largura inteira.
+
+**Cinza não é cor de etapa.** Barra cinza no topo da coluna lê como barra de rolagem. Etapa sem
+cor definida (`slate`) não desenha barra — ver `isNeutralStageColor`.
+
+**Um marcador por rótulo.** O cabeçalho da etapa tinha ponto colorido *e* ícone antes do nome.
+Dois marcadores para a mesma informação; ficou só o ícone, a 14px.
+
+**Régua interna vira prateleira vazia.** No Sereno o ar separa, não a linha. Uma `border-t` no
+rodapé do card criava uma faixa vazia quando não havia valor à direita.
+
 ### Primitivos prontos — use, não recrie
 
 | Componente | Quando |

@@ -231,6 +231,11 @@ const goToToday = () => {
 };
 
 const openBooking = () => bookingDialog.value?.open();
+const startBookingAtSlot = (day, hour) => {
+  const startsAt = new Date(day);
+  startsAt.setHours(hour, 0, 0, 0);
+  bookingDialog.value?.open({ startsAt });
+};
 const openSettings = () => settingsDialog.value?.open();
 const openAppointment = appointment =>
   appointmentDetailsDialog.value?.open(appointment.id);
@@ -508,17 +513,31 @@ onMounted(() => {
           <div
             v-for="day in calendarDays"
             :key="`${hour}-${day.toISOString()}`"
-            class="min-h-20 border-b border-r border-n-weak bg-n-solid-1 p-1 last:border-r-0"
+            class="relative min-h-20 border-b border-r border-n-weak bg-n-solid-1 p-1 last:border-r-0"
             @dragover.prevent
             @drop="assistedReschedule(day, hour)"
           >
+            <button
+              type="button"
+              data-testid="calendar-slot"
+              class="absolute inset-0 z-0 flex items-center justify-center text-lg font-medium text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-2 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-label="
+                t('CALENDAR.BOOK_SLOT_LABEL', {
+                  time: `${hour}:00`,
+                  day: formatDay(day),
+                })
+              "
+              @click="startBookingAtSlot(day, hour)"
+            >
+              <i class="i-lucide-plus size-4" aria-hidden="true" />
+            </button>
             <button
               v-for="appointment in appointmentsForSlot(day, hour)"
               :key="appointment.id"
               type="button"
               data-testid="calendar-appointment"
               draggable="true"
-              class="mb-1 w-full rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
+              class="relative z-10 mb-1 w-full rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
               :class="appointmentToneClass(appointment)"
               :aria-label="
                 t('CALENDAR.APPOINTMENT_LABEL', {

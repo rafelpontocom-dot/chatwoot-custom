@@ -149,7 +149,7 @@ const openConversation = event => {
 
 <template>
   <article
-    class="card-drag-handle group relative cursor-grab rounded-lg border border-n-weak bg-n-solid-1 p-3 transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-n-slate-8 hover:shadow focus:outline-none focus:ring-2 focus:ring-n-brand"
+    class="card-drag-handle group relative cursor-grab rounded-lg border border-n-weak bg-n-solid-1 p-2.5 transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-n-slate-8 hover:shadow focus:outline-none focus:ring-2 focus:ring-n-brand"
     :class="selected ? 'ring-2 ring-n-brand border-transparent' : ''"
     :data-card-id="card.id"
     :data-conversation-id="card.conversationId"
@@ -163,7 +163,7 @@ const openConversation = event => {
     <input
       type="checkbox"
       data-testid="kanban-card-select"
-      class="no-drag absolute left-2 top-2 size-4 rounded border-n-weak text-n-brand opacity-0 focus:opacity-100 focus:ring-n-brand group-hover:opacity-100"
+      class="no-drag absolute left-3 top-3.5 z-10 size-4 rounded border-n-strong bg-n-solid-1 text-n-brand opacity-0 focus:opacity-100 focus:ring-2 focus:ring-n-brand group-hover:opacity-100"
       :class="selected ? 'opacity-100' : ''"
       :checked="selected"
       :aria-label="t('KANBAN.CARD.SELECT')"
@@ -173,29 +173,29 @@ const openConversation = event => {
     <button
       type="button"
       data-testid="kanban-card-open-details"
-      class="no-drag pointer-events-auto absolute right-10 top-1.5 flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 opacity-0 shadow-sm transition-opacity hover:bg-n-alpha-2 hover:text-n-slate-12 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-n-brand group-hover:opacity-100"
+      class="no-drag pointer-events-auto absolute right-9 top-2 flex size-7 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 opacity-0 shadow transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-n-brand group-hover:opacity-100"
       :aria-label="t('KANBAN.ACTIONS.OPEN_CARD_DETAILS')"
       :title="t('KANBAN.ACTIONS.OPEN_CARD_DETAILS')"
       @click.stop="openDetails"
     >
-      <i class="i-lucide-square-pen size-4" />
+      <i class="i-lucide-square-pen size-3.5" />
     </button>
     <button
       type="button"
       data-testid="kanban-card-remove"
-      class="no-drag pointer-events-auto absolute top-1.5 ltr:right-1.5 rtl:left-1.5 flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-ruby-11 opacity-0 shadow-sm transition-opacity hover:bg-n-ruby-2 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-n-ruby-8 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+      class="no-drag pointer-events-auto absolute top-2 ltr:right-2 rtl:left-2 flex size-7 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-ruby-11 opacity-0 shadow transition-opacity hover:bg-n-ruby-3 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-n-ruby-9 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
       :aria-label="t('KANBAN.ACTIONS.REMOVE_CARD')"
       :title="t('KANBAN.ACTIONS.REMOVE_CARD')"
       :disabled="!!activeActionKey"
       @click.stop="emit('removeCard', card)"
     >
-      <i class="i-lucide-trash size-5" />
+      <i class="i-lucide-trash-2 size-3.5" />
     </button>
 
-    <div class="min-w-0 pl-6 pr-16 text-left">
+    <div class="min-w-0 text-left">
       <!-- Sereno: a pessoa é a manchete; o assunto da oportunidade é apoio.
            No mockup aprovado o nome vem primeiro, ao lado do avatar quadrado. -->
-      <div class="flex min-w-0 items-center gap-2.5">
+      <div class="flex min-w-0 items-center gap-2">
         <button
           type="button"
           data-testid="kanban-card-contact-avatar"
@@ -203,12 +203,12 @@ const openConversation = event => {
           :title="contactName"
           @click.stop="openConversation"
         >
-          <Avatar :name="contactName" :src="contactThumbnail" :size="30" />
+          <Avatar :name="contactName" :src="contactThumbnail" :size="24" />
           <span
             v-if="inbox"
-            class="absolute -bottom-1 -right-1 flex size-4.5 items-center justify-center rounded-full border border-n-solid-1 bg-n-solid-1"
+            class="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-n-solid-1 ring-2 ring-n-solid-1"
           >
-            <ChannelIcon :inbox="inbox" class="size-3.5 text-n-slate-11" />
+            <ChannelIcon :inbox="inbox" class="size-2.5 text-n-slate-10" />
           </span>
         </button>
 
@@ -220,14 +220,14 @@ const openConversation = event => {
               class="flex-shrink-0 !size-3.5"
             />
             <h4
-              class="min-w-0 flex-1 truncate text-[12.5px] font-bold leading-4 tracking-tight text-n-slate-12"
+              class="min-w-0 flex-1 truncate text-[12px] font-bold leading-[15px] tracking-tight text-n-slate-12"
             >
               {{ contactName }}
             </h4>
           </div>
           <p
             v-if="subject"
-            class="mt-0.5 truncate text-[10.5px] leading-4 text-n-slate-10"
+            class="truncate text-[10px] leading-[14px] text-n-slate-10"
             :title="subject"
           >
             {{ subject }}
@@ -246,12 +246,12 @@ const openConversation = event => {
       <div
         v-if="nextActionStatusConfig || amountLabel || hasConversation"
         data-testid="kanban-card-workflow-summary"
-        class="mt-2.5 flex min-w-0 items-center justify-between gap-2 border-t border-n-weak pt-2.5"
+        class="mt-2 flex min-w-0 items-center justify-between gap-2"
       >
         <div
           v-if="nextActionStatusConfig"
           data-testid="kanban-card-next-action"
-          class="inline-flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium leading-4"
+          class="inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-semibold leading-4"
           :class="nextActionStatusConfig.class"
         >
           <i
@@ -270,7 +270,7 @@ const openConversation = event => {
           <strong
             v-if="amountLabel"
             data-testid="kanban-card-amount"
-            class="whitespace-nowrap text-[12.5px] font-extrabold tabular-nums tracking-tight text-n-slate-12"
+            class="whitespace-nowrap text-[12px] font-extrabold tabular-nums tracking-tight text-n-slate-12"
           >
             {{ amountLabel }}
           </strong>

@@ -12,7 +12,8 @@
     "EMPTY_ACTIONS": "Nenhuma ação vencida. Tudo em dia por aqui.",
     "UNKNOWN_CONTACT": "Contato sem nome",
     "NO_INBOX": "Sem caixa de entrada",
-    "PIPELINE_STAGE": "{pipeline} - {stage}"
+    "PIPELINE_STAGE": "{pipeline} - {stage}",
+    "SEE_ALL": "Ver todas ({count} a mais)"
   },
   "KANBAN": {
     "EYEBROW": "Comercial",
@@ -1466,7 +1467,8 @@
       "CLEAR_CONTACT": "Limpar contato selecionado",
       "CLOSE": "Fechar seletor de item",
       "CONTACT_FALLBACK": "Contato #{id}",
-      "INBOX_FALLBACK": "Caixa de entrada #{id}"
+      "INBOX_FALLBACK": "Caixa de entrada #{id}",
+      "INBOX_LABEL": "Caixa de entrada"
     },
     "CARD": {
       "SELECT": "Selecionar oportunidade",

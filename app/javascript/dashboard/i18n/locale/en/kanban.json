@@ -12,7 +12,8 @@
     "EMPTY_ACTIONS": "There are no overdue actions. Everything is up to date.",
     "UNKNOWN_CONTACT": "Unnamed contact",
     "NO_INBOX": "No inbox",
-    "PIPELINE_STAGE": "{pipeline} - {stage}"
+    "PIPELINE_STAGE": "{pipeline} - {stage}",
+    "SEE_ALL": "See all ({count} more)"
   },
   "KANBAN": {
     "EYEBROW": "Sales",
@@ -1466,7 +1467,8 @@
       "CLEAR_CONTACT": "Clear selected contact",
       "CLOSE": "Close add item picker",
       "CONTACT_FALLBACK": "Contact #{id}",
-      "INBOX_FALLBACK": "Inbox #{id}"
+      "INBOX_FALLBACK": "Inbox #{id}",
+      "INBOX_LABEL": "Inbox"
     },
     "CARD": {
       "SELECT": "Select opportunity",
