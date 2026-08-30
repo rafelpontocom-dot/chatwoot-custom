@@ -235,7 +235,9 @@
       "STAGE_SEPARATOR": "na etapa"
     },
     "STAGE": {
-      "CAPACITY_ALERT": "Esta etapa está acima do limite de alerta de cards."
+      "CAPACITY_ALERT": "Esta etapa está acima do limite de alerta de cards.",
+      "STALE_COUNT": "{count} parado | {count} parados",
+      "STALE_TITLE": "Cards acima do limiar de estagnação desta etapa"
     },
     "BULK": {
       "SELECTED": "{count} selecionadas",
@@ -1501,7 +1503,12 @@
         "FUTURE": "Próxima ação",
         "CLOSED": "Fechado"
       },
-      "STALE_IN_STAGE": "Parada na etapa"
+      "STALE_IN_STAGE": "Parada na etapa",
+      "STAGE_TIME": {
+        "TODAY": "hoje",
+        "DAYS": "{count} dia | {count} dias",
+        "TITLE": "Tempo nesta etapa"
+      }
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversa",

@@ -153,9 +153,17 @@ class KanbanBoard < ApplicationRecord
     Array(compact_card_field_keys).filter_map { |key| definitions_by_key[key] }
   end
 
+  # Sem limiar configurado o sinal de estagnação nunca acendia, e configurar
+  # etapa por etapa antes de ver valor é pedir demais. O padrão faz o funil
+  # avisar desde o primeiro dia; o limiar por etapa continua mandando quando
+  # existe, porque cada etapa tem o seu ritmo.
+  DEFAULT_STALE_DAYS = 7
+
   def stale_days_for_stage(stage_id)
     days = stale_stage_thresholds.to_h[stage_id.to_s].to_i
-    days if days.positive?
+    return days if days.positive?
+
+    DEFAULT_STALE_DAYS
   end
 
   def sales_summary

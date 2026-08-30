@@ -3,7 +3,8 @@ import KanbanConversationCard from '../KanbanConversationCard.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
-    t: (key, values = {}) => {
+    t: (key, arg = {}, extra = {}) => {
+      const values = typeof arg === 'number' ? { count: arg, ...extra } : arg;
       const translations = {
         'KANBAN.CARD.CONVERSATION_ID': `#${values.id}`,
         'KANBAN.CARD.INBOX': `Inbox: ${values.inbox}`,
@@ -21,6 +22,9 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.ACTIONS.REMOVE_CARD': 'Remove',
         'KANBAN.ACTIONS.OPEN_CARD_DETAILS': 'Open opportunity details',
         'KANBAN.CARD.MOVE_TO_STAGE': 'Move to stage',
+        'KANBAN.CARD.STAGE_TIME.TODAY': 'today',
+        'KANBAN.CARD.STAGE_TIME.DAYS': `${values.count} days`,
+        'KANBAN.CARD.STAGE_TIME.TITLE': 'Time in this stage',
       };
 
       return translations[key] || key;
@@ -495,5 +499,55 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.find('textarea').exists()).toBe(false);
     expect(wrapper.text()).not.toContain('Show notes');
     expect(wrapper.text()).not.toContain('Hide notes');
+  });
+  it('shows how long the card has been sitting in the stage', () => {
+    const oito = new Date(Date.now() - 8 * 86400000).toISOString();
+    const wrapper = mountCard({
+      card: buildCard({ stage_entered_at: oito }),
+    });
+
+    const selo = wrapper.find('[data-testid="kanban-card-stage-time"]');
+    expect(selo.exists()).toBe(true);
+    expect(selo.text()).toContain('8 days');
+  });
+
+  it('says "today" instead of "0 days" on the day it arrived', () => {
+    const wrapper = mountCard({
+      card: buildCard({ stage_entered_at: new Date().toISOString() }),
+    });
+
+    expect(wrapper.find('[data-testid="kanban-card-stage-time"]').text()).toBe(
+      'today'
+    );
+  });
+
+  it('marks a stalled card with an icon, not colour alone', () => {
+    // Regra 5 do design system: estado nunca se comunica só por cor.
+    const parado = mountCard({
+      card: buildCard({
+        stale_in_stage: true,
+        stage_entered_at: new Date(Date.now() - 20 * 86400000).toISOString(),
+      }),
+    }).find('[data-testid="kanban-card-stage-time"]');
+
+    expect(parado.classes().join(' ')).toContain('text-n-amber-11');
+    expect(parado.find('i').classes()).toContain('i-lucide-clock-alert');
+
+    const emDia = mountCard({
+      card: buildCard({ stale_in_stage: false }),
+    }).find('[data-testid="kanban-card-stage-time"]');
+
+    expect(emDia.classes().join(' ')).toContain('text-n-slate-10');
+    expect(emDia.find('i').classes()).toContain('i-lucide-clock');
+  });
+
+  it('stays quiet when the backend did not send the stage entry time', () => {
+    const wrapper = mountCard({
+      card: buildCard({ stage_entered_at: null }),
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-card-stage-time"]').exists()
+    ).toBe(false);
   });
 });

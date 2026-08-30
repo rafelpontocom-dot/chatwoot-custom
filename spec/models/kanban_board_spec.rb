@@ -162,6 +162,21 @@ RSpec.describe KanbanBoard do
       expect(board.stale_stage_thresholds).to eq(stage.id.to_s => 3)
     end
 
+    it 'falls back to a default so the stalled signal works before anyone configures it' do
+      stage = create(:kanban_stage)
+
+      expect(stage.kanban_board.stale_days_for_stage(stage.id))
+        .to eq(described_class::DEFAULT_STALE_DAYS)
+    end
+
+    it 'lets the per-stage threshold win over the default' do
+      stage = create(:kanban_stage)
+      board = stage.kanban_board
+      board.update!(stale_stage_thresholds: { stage.id.to_s => 21 })
+
+      expect(board.stale_days_for_stage(stage.id)).to eq(21)
+    end
+
     it 'supports the custom field types required by commercial boards' do
       board = create(:kanban_board)
       board.custom_field_definitions = %w[textarea currency multiselect url].map do |field_type|

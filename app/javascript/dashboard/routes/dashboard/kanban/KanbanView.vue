@@ -210,6 +210,11 @@ const formatCurrencyFromCents = amountCents =>
 const stageCardCount = stage => stage.cardsCount ?? stage.cards?.length ?? 0;
 const stageOverCapacity = stage =>
   Number(stage.wipLimit) > 0 && stageCardCount(stage) > Number(stage.wipLimit);
+// Quantos cards passaram do limiar de estagnação da etapa. Conta só o que está
+// carregado — por isso nunca aparece como total, sempre ao lado da contagem.
+const stageStaleCount = stage =>
+  (stage.cards || []).filter(card => card.staleInStage ?? card.stale_in_stage)
+    .length;
 const selectedCardsCount = computed(() => selectedCardIds.value.length);
 const pendingBulkImpactTarget = computed(() => {
   const pending = pendingBulkOperation.value;
@@ -2573,7 +2578,7 @@ onUnmounted(() => {
                 <template v-else>
                   <div class="flex min-w-0 flex-1 items-start gap-2">
                     <h3
-                      class="min-w-0 flex-1 break-words text-[12.5px] font-bold leading-5 tracking-tight text-n-slate-12"
+                      class="min-w-0 flex-1 break-words text-xs font-bold leading-5 tracking-tight text-n-slate-12"
                     >
                       <!--
                         Nome da etapa nunca corta: quebra em duas linhas e a
@@ -2596,14 +2601,30 @@ onUnmounted(() => {
                       />
                     </button>
                     <span
-                      class="mt-0.5 flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-[11px] font-bold tabular-nums text-n-slate-11"
+                      class="mt-0.5 flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-micro font-bold tabular-nums text-n-slate-11"
                     >
                       {{ stageCardCount(stage) }}
                     </span>
                     <span
+                      v-if="stageStaleCount(stage)"
+                      data-testid="kanban-stage-stale-count"
+                      class="mt-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-amber-3 px-2 py-0.5 text-micro font-semibold tabular-nums text-n-amber-11"
+                      :title="t('KANBAN.STAGE.STALE_TITLE')"
+                    >
+                      <i
+                        class="i-lucide-clock-alert size-3"
+                        aria-hidden="true"
+                      />
+                      {{
+                        t('KANBAN.STAGE.STALE_COUNT', stageStaleCount(stage), {
+                          count: stageStaleCount(stage),
+                        })
+                      }}
+                    </span>
+                    <span
                       v-if="stageOverCapacity(stage)"
                       data-testid="kanban-stage-capacity-alert"
-                      class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-ruby-3 px-2 py-0.5 text-[10px] font-medium text-n-ruby-11"
+                      class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-ruby-3 px-2 py-0.5 text-micro font-medium text-n-ruby-11"
                       :title="t('KANBAN.STAGE.CAPACITY_ALERT')"
                     >
                       <i class="i-lucide-triangle-alert size-3" />

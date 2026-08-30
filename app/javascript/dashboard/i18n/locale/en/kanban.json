@@ -235,7 +235,9 @@
       "STAGE_SEPARATOR": "in"
     },
     "STAGE": {
-      "CAPACITY_ALERT": "This stage is above its card alert limit."
+      "CAPACITY_ALERT": "This stage is above its card alert limit.",
+      "STALE_COUNT": "{count} stalled | {count} stalled",
+      "STALE_TITLE": "Cards past this stage’s staleness threshold"
     },
     "BULK": {
       "SELECTED": "{count} selected",
@@ -1498,7 +1500,12 @@
         "FUTURE": "Next action",
         "CLOSED": "Closed"
       },
-      "STALE_IN_STAGE": "Stale in stage"
+      "STALE_IN_STAGE": "Stale in stage",
+      "STAGE_TIME": {
+        "TODAY": "today",
+        "DAYS": "{count} day | {count} days",
+        "TITLE": "Time in this stage"
+      }
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversation",

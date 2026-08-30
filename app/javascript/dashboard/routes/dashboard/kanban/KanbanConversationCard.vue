@@ -253,14 +253,14 @@ const openConversation = event => {
               class="flex-shrink-0 !size-3.5"
             />
             <h4
-              class="min-w-0 flex-1 truncate text-[12px] font-bold leading-[15px] tracking-tight text-n-slate-12"
+              class="min-w-0 flex-1 truncate text-xs font-bold leading-[15px] tracking-tight text-n-slate-12"
             >
               {{ contactName }}
             </h4>
           </div>
           <p
             v-if="subject"
-            class="truncate text-[10px] leading-[14px] text-n-slate-10"
+            class="truncate text-micro leading-[14px] text-n-slate-10"
             :title="subject"
           >
             {{ subject }}
@@ -289,7 +289,7 @@ const openConversation = event => {
         <div
           v-if="nextActionStatusConfig"
           data-testid="kanban-card-next-action"
-          class="inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-semibold leading-4"
+          class="inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-micro font-semibold leading-4"
           :class="nextActionStatusConfig.class"
         >
           <i
@@ -308,7 +308,7 @@ const openConversation = event => {
           <span
             v-if="stageTimeLabel"
             data-testid="kanban-card-stage-time"
-            class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-semibold tabular-nums"
+            class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-micro font-semibold tabular-nums"
             :class="stageTimeTone.class"
             :title="t('KANBAN.CARD.STAGE_TIME.TITLE')"
           >
@@ -319,7 +319,7 @@ const openConversation = event => {
           <strong
             v-if="amountLabel"
             data-testid="kanban-card-amount"
-            class="whitespace-nowrap text-[12px] font-extrabold tabular-nums tracking-tight text-n-slate-12"
+            class="whitespace-nowrap text-xs font-extrabold tabular-nums tracking-tight text-n-slate-12"
           >
             {{ amountLabel }}
           </strong>
