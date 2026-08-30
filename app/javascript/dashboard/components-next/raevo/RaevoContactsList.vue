@@ -98,7 +98,7 @@ const onRowKey = (event, contact) => {
             v-for="column in columns"
             :key="column.key"
             scope="col"
-            class="whitespace-nowrap border-b border-n-weak bg-n-slate-1 px-3 py-2.5 text-start text-[9px] font-bold uppercase tracking-[0.11em] text-n-slate-10"
+            class="whitespace-nowrap border-b border-n-weak bg-n-slate-1 px-3 py-2.5 text-start text-micro font-bold uppercase tracking-[0.11em] text-n-slate-10"
             :class="column.key === 'LAST_ACTIVITY' ? 'text-end' : ''"
           >
             {{ column.label }}
@@ -133,7 +133,7 @@ const onRowKey = (event, contact) => {
                 :size="28"
               />
               <span
-                class="truncate text-[12.5px] font-semibold text-n-slate-12"
+                class="truncate text-xs font-semibold text-n-slate-12"
                 :title="contact.name"
               >
                 {{ contact.name }}
@@ -154,13 +154,13 @@ const onRowKey = (event, contact) => {
               <span
                 v-for="label in (contact.labels || []).slice(0, 3)"
                 :key="label"
-                class="rounded-full border border-n-weak bg-n-slate-3 px-2 py-0.5 text-[10px] font-medium text-n-slate-11"
+                class="rounded-full border border-n-weak bg-n-slate-3 px-2 py-0.5 text-micro font-medium text-n-slate-11"
               >
                 {{ label }}
               </span>
               <span
                 v-if="(contact.labels || []).length > 3"
-                class="text-[10px] text-n-slate-10"
+                class="text-micro text-n-slate-10"
               >
                 {{
                   t('CONTACTS_LAYOUT.TABLE.MORE_LABELS', {

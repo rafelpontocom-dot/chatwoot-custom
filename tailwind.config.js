@@ -233,6 +233,10 @@ const tailwindConfig = {
     fontSize: {
       ...defaultTheme.fontSize,
       xxs: '0.625rem',
+      // Raevo — a auditoria contou 27 degraus de tipografia em uso. `micro` é o
+      // único degrau abaixo de 12px e existe só para selo, contador e cabeçalho
+      // de tabela em caixa alta; nunca para texto corrido.
+      micro: ['11px', '15px'],
     },
     colors: {
       transparent: 'transparent',

@@ -26,7 +26,7 @@ defineProps({
       <div class="min-w-0">
         <span
           v-if="eyebrow"
-          class="mb-1.5 block text-[9px] font-bold uppercase tracking-[0.16em] text-n-slate-10"
+          class="mb-1.5 block text-micro font-bold uppercase tracking-[0.16em] text-n-slate-10"
         >
           {{ eyebrow }}
         </span>
@@ -36,7 +36,7 @@ defineProps({
           {{ title }}
           <span
             v-if="badge"
-            class="rounded-full bg-n-blue-3 px-2.5 py-0.5 text-[10px] font-bold text-n-blue-11"
+            class="rounded-full bg-n-blue-3 px-2.5 py-0.5 text-micro font-bold text-n-blue-11"
           >
             {{ badge }}
           </span>

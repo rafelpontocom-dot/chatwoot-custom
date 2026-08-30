@@ -81,7 +81,7 @@ const statusLabel = campaign => {
             v-for="column in columns"
             :key="column.key"
             scope="col"
-            class="whitespace-nowrap border-b border-n-weak bg-n-slate-1 px-3 py-2.5 text-start text-[9px] font-bold uppercase tracking-[0.11em] text-n-slate-10"
+            class="whitespace-nowrap border-b border-n-weak bg-n-slate-1 px-3 py-2.5 text-start text-micro font-bold uppercase tracking-[0.11em] text-n-slate-10"
             :class="column.key === 'ACTIONS' ? 'text-end' : ''"
           >
             <span v-if="column.key === 'ACTIONS'" class="sr-only">
@@ -100,14 +100,14 @@ const statusLabel = campaign => {
         >
           <td class="h-[52px] max-w-[22rem] px-3">
             <p
-              class="truncate text-[12.5px] font-semibold text-n-slate-12"
+              class="truncate text-xs font-semibold text-n-slate-12"
               :title="campaign.title"
             >
               {{ campaign.title }}
             </p>
             <p
               v-if="campaign.message"
-              class="truncate text-[10.5px] text-n-slate-10"
+              class="truncate text-micro text-n-slate-10"
               :title="campaign.message"
             >
               {{ campaign.message }}

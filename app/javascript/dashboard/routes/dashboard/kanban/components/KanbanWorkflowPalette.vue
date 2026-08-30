@@ -111,7 +111,7 @@ const setGroupOpen = (key, event) => {
         @toggle="setGroupOpen(group.key, $event)"
       >
         <summary
-          class="flex h-6 cursor-pointer list-none items-center gap-2 px-1.5 text-[10px] font-medium uppercase tracking-wide text-n-slate-10 marker:content-none hover:text-n-slate-12"
+          class="flex h-6 cursor-pointer list-none items-center gap-2 px-1.5 text-micro font-medium uppercase tracking-wide text-n-slate-10 marker:content-none hover:text-n-slate-12"
         >
           <i
             data-testid="kanban-workflow-palette-group-icon"

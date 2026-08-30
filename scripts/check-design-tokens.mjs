@@ -41,6 +41,10 @@ const REGRAS = [
   { nome: 'classe arbitrária de cor', re: /\b(bg|text|border|ring|fill|stroke|from|via|to)-\[(#|rgb|rgba|hsl|hsla)[^\]]*\]/g,
     ignorar: () => false },
   { nome: 'raio literal', re: /border-radius\s*:\s*\d/g, ignorar: l => /var\(--/.test(l) },
+  // A auditoria de 30/08 contou 27 degraus de tipografia em uso, porque cada
+  // tela inventava o seu com text-[Npx]. A escala tem seis degraus nomeados.
+  { nome: 'tamanho de texto fora da escala', re: /\btext-\[[0-9.]+(px|rem|em)\]/g,
+    ignorar: () => false },
 ];
 
 let achados = 0;
@@ -63,8 +67,8 @@ for (const arq of arquivos) {
 
 console.log('');
 if (achados) {
-  console.log(`✗ ${achados} ocorrência(s) de valor literal em ${arquivos.length} arquivos.`);
+  console.log(`✗ ${achados} ocorrência(s) de valor fora do sistema em ${arquivos.length} arquivos.`);
   console.log('  Use os tokens n-* / --raevo-*. Ver docs/raevo-design-system.md §7.');
   process.exit(1);
 }
-console.log(`✓ ${arquivos.length} arquivos sem cor literal. Design system respeitado.`);
+console.log(`✓ ${arquivos.length} arquivos sem cor literal nem tamanho fora da escala.`);

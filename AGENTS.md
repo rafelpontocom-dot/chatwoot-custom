@@ -11,7 +11,7 @@ existente — segue a direção **H · Sereno**, aprovada em 29/08/2026.
 **Especificação completa e obrigatória: [`docs/raevo-design-system.md`](docs/raevo-design-system.md).**
 Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável.
 
-## As cinco regras
+## As sete regras
 
 1. **Nunca escreva cor, raio, sombra ou fonte literal.** Nada de `bg-[#2563EB]`,
    `style="color:#111"`, `border-radius: 8px`. Use as classes `n-*` do Tailwind e os
@@ -31,7 +31,12 @@ Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável
 5. **Estado nunca se comunica só por cor.** Sempre cor + ícone + texto. É requisito de
    acessibilidade (WCAG 2.2), não preferência estética.
 
-6. **Campo de formulário é sempre `RaevoField`.** Nunca escreva `<label>` + `<input>` com
+6. **Tipografia só na escala.** Seis degraus: `text-micro` (11px, piso, só caixa alta e
+   número curto) · `text-xs` (12) · `text-sm` (14) · `text-base` (16) · `text-xl` (20) ·
+   `text-3xl` (30). **Nunca `text-[Npx]`** — a auditoria achou 27 degraus distintos em uso
+   porque cada tela inventou o seu. Ver `docs/raevo-design-system.md` §4.
+
+7. **Campo de formulário é sempre `RaevoField`.** Nunca escreva `<label>` + `<input>` com
    classe própria: foi assim que o produto acumulou 3 tratamentos de campo dentro do mesmo
    diálogo. Rótulo acima, campo abaixo, mesma borda esquerda. A aparência vem de
    `components-next/raevo/raevoControl.js` — se ela não serve, mude lá, não no template.

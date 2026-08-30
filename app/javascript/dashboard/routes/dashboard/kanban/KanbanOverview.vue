@@ -380,7 +380,7 @@ onMounted(async () => {
               />
               <span class="truncate">{{ stage.name }}</span>
               <span
-                class="inline-flex min-w-5 justify-center rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-[11px] font-semibold text-n-slate-12"
+                class="inline-flex min-w-5 justify-center rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-semibold text-n-slate-12"
               >
                 {{ stage.cards_count ?? stage.cardsCount ?? 0 }}
               </span>

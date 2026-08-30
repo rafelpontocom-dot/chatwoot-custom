@@ -3268,7 +3268,7 @@ onMounted(load);
                     v-for="step in ruleFlowPreview(rule)"
                     :key="step.id"
                     data-testid="kanban-automation-rule-step"
-                    class="inline-flex max-w-40 items-center gap-1 rounded bg-n-surface-2 px-1.5 py-0.5 text-[11px] text-n-slate-10"
+                    class="inline-flex max-w-40 items-center gap-1 rounded bg-n-surface-2 px-1.5 py-0.5 text-micro text-n-slate-10"
                     :title="step.label"
                   >
                     <i v-if="step.icon" class="size-3" :class="[step.icon]" />
@@ -3277,7 +3277,7 @@ onMounted(load);
                   <span
                     v-if="hiddenRuleFlowStepCount(rule)"
                     data-testid="kanban-automation-rule-more-steps"
-                    class="text-[11px] text-n-slate-10"
+                    class="text-micro text-n-slate-10"
                     :aria-label="
                       t('KANBAN.AUTOMATIONS_WORKSPACE.FLOW_PREVIEW_MORE', {
                         count: hiddenRuleFlowStepCount(rule),

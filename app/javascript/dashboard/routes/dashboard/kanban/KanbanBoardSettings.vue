@@ -3881,7 +3881,7 @@ onMounted(async () => {
                           />
                           {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUPS') }}
                           <span
-                            class="rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-[11px] font-normal text-n-slate-10"
+                            class="rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-normal text-n-slate-10"
                           >
                             {{
                               customFieldGroupsForSection(activeFieldSectionKey)
@@ -4004,7 +4004,7 @@ onMounted(async () => {
                               >
                                 {{ group.label }}
                               </span>
-                              <span class="text-[11px] text-n-slate-10">
+                              <span class="text-micro text-n-slate-10">
                                 {{
                                   customFieldsForLayoutGroup(
                                     section.key,
@@ -4058,7 +4058,7 @@ onMounted(async () => {
                                       group.key
                                     ).length
                                   "
-                                  class="m-0 py-2 text-center text-[11px] text-n-slate-10"
+                                  class="m-0 py-2 text-center text-micro text-n-slate-10"
                                 >
                                   {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
                                 </p>
@@ -4107,7 +4107,7 @@ onMounted(async () => {
                                 ).filter(definition => !definition.layoutGroup)
                                   .length
                               "
-                              class="m-0 py-2 text-center text-[11px] text-n-slate-10"
+                              class="m-0 py-2 text-center text-micro text-n-slate-10"
                             >
                               {{ t('KANBAN.SETTINGS.SALES.EMPTY_TAB') }}
                             </p>
@@ -4488,7 +4488,7 @@ onMounted(async () => {
                             }}
                           </span>
                           <span
-                            class="text-[11px] font-normal text-n-slate-10 lg:text-right"
+                            class="text-micro font-normal text-n-slate-10 lg:text-right"
                           >
                             {{
                               t(

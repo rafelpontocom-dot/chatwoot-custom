@@ -288,7 +288,7 @@ watch(
                 class="flex items-center gap-2 rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2"
               >
                 <span
-                  class="flex-shrink-0 rounded border border-n-weak px-1.5 font-mono text-[11px] text-n-slate-10"
+                  class="flex-shrink-0 rounded border border-n-weak px-1.5 font-mono text-micro text-n-slate-10"
                 >
                   {{ String.fromCharCode(65 + index) }}
                 </span>

@@ -79,7 +79,7 @@ watch(
       @click="toggleMenu"
     >
       <span class="min-w-0 flex-1">
-        <span class="block truncate text-[11px] text-n-slate-11">{{
+        <span class="block truncate text-micro text-n-slate-11">{{
           boardName
         }}</span>
         <span class="flex items-start gap-1.5">
@@ -94,7 +94,7 @@ watch(
           >
             {{ currentStage?.name || t('KANBAN.OPPORTUNITY_DETAILS.STAGE') }}
           </strong>
-          <span class="shrink-0 text-[11px] text-n-slate-11">{{
+          <span class="shrink-0 text-micro text-n-slate-11">{{
             daysInStageLabel
           }}</span>
         </span>

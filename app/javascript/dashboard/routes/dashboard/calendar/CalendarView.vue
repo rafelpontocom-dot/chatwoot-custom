@@ -5,6 +5,10 @@ import { useRoute } from 'vue-router';
 import { debounce } from '@chatwoot/utils';
 import calendarAPI from 'dashboard/api/calendar';
 import KanbanCalendarBookingDialog from '../kanban/KanbanCalendarBookingDialog.vue';
+import {
+  RAEVO_CONTROL_CLASS,
+  RAEVO_SELECT_CLASS,
+} from 'dashboard/components-next/raevo/raevoControl';
 import CalendarAppointmentDetailsDialog from './CalendarAppointmentDetailsDialog.vue';
 import CalendarSettingsDialog from './CalendarSettingsDialog.vue';
 
@@ -287,7 +291,7 @@ onMounted(() => {
       class="mb-4 grid gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-4 2xl:grid 2xl:grid-cols-[minmax(10rem,1fr)_auto_minmax(14rem,18rem)_auto_auto] 2xl:items-center"
     >
       <span
-        class="block text-[9px] font-bold uppercase tracking-[0.16em] text-n-slate-10 2xl:col-span-full"
+        class="block text-micro font-bold uppercase tracking-[0.16em] text-n-slate-10 2xl:col-span-full"
       >
         {{ t('CALENDAR.EYEBROW') }}
       </span>
@@ -351,7 +355,8 @@ onMounted(() => {
           <select
             id="calendar-resource-filter"
             v-model="selectedResourceId"
-            class="h-9 max-w-48 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="max-w-48"
+            :class="RAEVO_SELECT_CLASS"
           >
             <option value="" disabled>
               {{ t('CALENDAR.RESOURCE_FILTER') }}
@@ -371,7 +376,8 @@ onMounted(() => {
           <select
             id="calendar-status-filter"
             v-model="selectedStatus"
-            class="h-9 max-w-40 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="max-w-40"
+            :class="RAEVO_SELECT_CLASS"
           >
             <option value="" disabled>{{ t('CALENDAR.STATUS_FILTER') }}</option>
             <option value="all">{{ t('CALENDAR.ALL_STATUSES') }}</option>
@@ -396,7 +402,7 @@ onMounted(() => {
             v-model="searchQuery"
             type="search"
             :placeholder="t('CALENDAR.SEARCH_PLACEHOLDER')"
-            class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus-visible:ring-2 focus-visible:ring-n-brand"
+            :class="RAEVO_CONTROL_CLASS"
           />
         </div>
         <div

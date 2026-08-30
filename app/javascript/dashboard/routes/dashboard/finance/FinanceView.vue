@@ -4,6 +4,10 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import FinanceAPI from 'dashboard/api/finance';
 import Button from 'dashboard/components-next/button/Button.vue';
+import {
+  RAEVO_CONTROL_CLASS,
+  RAEVO_SELECT_CLASS,
+} from 'dashboard/components-next/raevo/raevoControl';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
@@ -622,7 +626,7 @@ onMounted(loadFinance);
                 <select
                   id="finance-market"
                   v-model="financeModule.market"
-                  class="h-10 rounded-md border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                   :disabled="isSavingModule"
                   data-testid="finance-market"
                   @change="saveMarket"
@@ -799,7 +803,8 @@ onMounted(loadFinance);
               data-testid="finance-payment-search"
               type="search"
               :placeholder="t('FINANCE.PAYMENTS.FILTERS.SEARCH')"
-              class="h-9 min-w-0 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+              class="min-w-0"
+              :class="RAEVO_CONTROL_CLASS"
             />
             <label class="sr-only" for="finance-payment-status">
               {{ t('FINANCE.PAYMENTS.FILTERS.STATUS') }}
@@ -808,7 +813,7 @@ onMounted(loadFinance);
               id="finance-payment-status"
               v-model="paymentStatus"
               data-testid="finance-payment-status-filter"
-              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+              :class="RAEVO_SELECT_CLASS"
             >
               <option value="">
                 {{ t('FINANCE.PAYMENTS.FILTERS.ALL_STATUSES') }}
@@ -836,7 +841,7 @@ onMounted(loadFinance);
               id="finance-payment-owner"
               v-model="paymentOwnerId"
               data-testid="finance-payment-owner-filter"
-              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+              :class="RAEVO_SELECT_CLASS"
             >
               <option value="">
                 {{ t('FINANCE.PAYMENTS.FILTERS.ALL_OWNERS') }}
@@ -853,7 +858,7 @@ onMounted(loadFinance);
               v-model="paymentDueFrom"
               data-testid="finance-payment-due-from"
               type="date"
-              class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+              :class="RAEVO_CONTROL_CLASS"
             />
             <Button
               type="submit"
@@ -1155,7 +1160,7 @@ onMounted(loadFinance);
                 <input
                   id="finance-asaas-name"
                   v-model="asaasDisplayName"
-                  class="h-10 rounded-md border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                   :placeholder="t('FINANCE.CONNECTIONS.NAME_PLACEHOLDER')"
                 />
               </label>
@@ -1167,7 +1172,7 @@ onMounted(loadFinance);
                 <select
                   id="finance-asaas-environment"
                   v-model="asaasEnvironment"
-                  class="h-10 rounded-md border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                 >
                   <option value="sandbox">
                     {{ t('FINANCE.CONNECTIONS.SANDBOX') }}
@@ -1185,7 +1190,7 @@ onMounted(loadFinance);
                 <input
                   id="finance-asaas-api-key"
                   v-model="asaasApiKey"
-                  class="h-10 rounded-md border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                   type="password"
                   autocomplete="off"
                   :placeholder="t('FINANCE.CONNECTIONS.API_KEY_PLACEHOLDER')"
@@ -1200,7 +1205,7 @@ onMounted(loadFinance);
                 <input
                   id="finance-asaas-webhook-token"
                   v-model="asaasWebhookToken"
-                  class="h-10 rounded-md border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                   type="password"
                   autocomplete="off"
                   :placeholder="

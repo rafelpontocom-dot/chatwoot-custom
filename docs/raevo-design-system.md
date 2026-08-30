@@ -114,14 +114,22 @@ pesos 200–800 num arquivo de 27 KB (`_raevo-fonts.scss`, pacote
 A pilha vive no token **`--raevo-font-sans`** e em lugar nenhum mais: `tailwind.config.js` lê
 dele, o CSS lê dele. Trocar de fonte é mexer em uma linha.
 
-| Papel | Tamanho / peso | Observação |
-| --- | --- | --- |
-| Título de página | 19px / 800, tracking −0,025em | dentro do card de cabeçalho |
-| Título de seção | 14px / 700 | |
-| Corpo | 12,5px / 400–500 | |
-| Rótulo de campo | 11px / 500, `text-n-slate-10` | |
-| Rótulo minúsculo | 9px / 700, tracking 0,13em, CAIXA ALTA | eyebrow, cabeçalho de tabela |
-| Valor monetário | 12,5–25px / 800, tabular | sempre `font-variant-numeric: tabular-nums` |
+A auditoria de conformidade de 30/08/2026 contou **27 degraus distintos** em uso — cada tela
+inventava o seu tamanho e o seu peso. A escala abaixo tem **cinco degraus e um piso**, e é a única
+permitida. Nada de `text-[Npx]`: se o tamanho não está aqui, ou se usa a classe nomeada, ou a
+escala muda aqui primeiro.
+
+| Papel | Classe | Valor | Uso |
+| --- | --- | --- | --- |
+| Micro | `text-micro` | 11px | selo, contador, cabeçalho de tabela, eyebrow — **o piso** |
+| Apoio | `text-xs` | 12px | metadado secundário, rótulo de campo, texto de ajuda |
+| Corpo | `text-sm` | 14px | padrão de leitura, valor de campo |
+| Título de item | `text-base` | 16px | nome de card, título de seção |
+| Título de tela | `text-xl` | 20px | cabeçalho de página |
+| Destaque | `text-3xl` | 30px | número grande, pergunta do formulário guiado |
+
+**Nada abaixo de 11px, nunca.** `text-micro` existe só para caixa alta e números curtos; texto
+corrido em 11px não passa numa jornada de oito horas.
 
 Todo número que se alinha em coluna usa figuras tabulares. Já é global para `table`.
 

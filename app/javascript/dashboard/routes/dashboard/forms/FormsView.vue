@@ -1977,7 +1977,7 @@ onBeforeUnmount(() => {
                   <div class="mt-3 grid gap-3">
                     <section>
                       <p
-                        class="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-9"
+                        class="px-1 text-micro font-semibold uppercase tracking-wide text-n-slate-9"
                       >
                         {{ t('FORMS.BUILDER.QUESTIONS') }}
                       </p>
@@ -2002,7 +2002,7 @@ onBeforeUnmount(() => {
                     </section>
                     <section>
                       <p
-                        class="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-9"
+                        class="px-1 text-micro font-semibold uppercase tracking-wide text-n-slate-9"
                       >
                         {{ t('FORMS.BUILDER.CONTENT') }}
                       </p>
@@ -2028,7 +2028,7 @@ onBeforeUnmount(() => {
                     </section>
                     <section>
                       <p
-                        class="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-9"
+                        class="px-1 text-micro font-semibold uppercase tracking-wide text-n-slate-9"
                       >
                         {{ t('FORMS.BUILDER.SAVED_BLOCKS') }}
                       </p>
