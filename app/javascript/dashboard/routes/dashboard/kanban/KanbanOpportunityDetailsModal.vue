@@ -7,7 +7,7 @@ import ContactAPI from 'dashboard/api/contacts';
 import FinanceAPI from 'dashboard/api/finance';
 import FormsAPI from 'dashboard/api/forms';
 import NextButton from 'dashboard/components-next/button/Button.vue';
-import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
+import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -342,6 +342,41 @@ const nextActionTypeOptions = computed(() => [
     label: option,
   })),
 ]);
+
+// Valores de exibição da linha em repouso: o utilizador lê o rótulo da opção,
+// nunca o id guardado. Data em formato local, valor com moeda.
+const rotuloDaOpcao = (opcoes, valor) =>
+  opcoes.find(opcao => String(opcao.value) === String(valor))?.label || '';
+
+const ownerDisplay = computed(() =>
+  rotuloDaOpcao(props.ownerOptions || [], ownerId.value)
+);
+const nextActionTypeDisplay = computed(() =>
+  rotuloDaOpcao(nextActionTypeOptions.value, nextActionType.value)
+);
+const dataLocal = valor => {
+  if (!valor) return '';
+  const d = new Date(valor);
+  if (Number.isNaN(d.getTime())) return valor;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    ...(String(valor).includes('T') ? { timeStyle: 'short' } : {}),
+  }).format(d);
+};
+const nextActionAtDisplay = computed(() => dataLocal(nextActionAt.value));
+const expectedCloseDateDisplay = computed(() =>
+  dataLocal(expectedCloseDate.value)
+);
+const amountDisplay = computed(() => {
+  const bruto = String(amountValue.value ?? '').trim();
+  if (!bruto) return '';
+  const n = Number(bruto);
+  if (Number.isNaN(n)) return bruto;
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: amountCurrency.value || 'BRL',
+  }).format(n);
+});
 const selectableLostReasonOptions = computed(() => {
   const options = [...props.lostReasonOptions];
 
@@ -1613,13 +1648,15 @@ watch(invitationPendingRevocation, async invitation => {
                     @click="completeNextAction"
                   />
                 </div>
-                <div class="grid gap-3">
-                  <div class="grid gap-3 sm:grid-cols-2">
-                    <RaevoField
+                <div class="grid">
+                  <div class="grid">
+                    <RaevoFieldRow
+                      row-testid="kanban-row-next-action-type"
                       :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE')"
+                      :value="nextActionTypeDisplay"
                       variant="select"
                     >
-                      <template #default="{ controlClass, fieldId }">
+                      <template #control="{ controlClass, fieldId }">
                         <select
                           :id="fieldId"
                           v-model="nextActionType"
@@ -1635,11 +1672,13 @@ watch(invitationPendingRevocation, async invitation => {
                           </option>
                         </select>
                       </template>
-                    </RaevoField>
-                    <RaevoField
+                    </RaevoFieldRow>
+                    <RaevoFieldRow
+                      row-testid="kanban-row-next-action-at"
                       :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')"
+                      :value="nextActionAtDisplay"
                     >
-                      <template #default="{ controlClass, fieldId }">
+                      <template #control="{ controlClass, fieldId }">
                         <input
                           :id="fieldId"
                           v-model="nextActionAt"
@@ -1648,13 +1687,15 @@ watch(invitationPendingRevocation, async invitation => {
                           :class="controlClass"
                         />
                       </template>
-                    </RaevoField>
+                    </RaevoFieldRow>
                   </div>
-                  <RaevoField
+                  <RaevoFieldRow
+                    row-testid="kanban-row-next-action-note"
                     :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE')"
+                    :value="nextActionNote"
                     variant="textarea"
                   >
-                    <template #default="{ controlClass, fieldId }">
+                    <template #control="{ controlClass, fieldId }">
                       <textarea
                         :id="fieldId"
                         v-model="nextActionNote"
@@ -1668,7 +1709,7 @@ watch(invitationPendingRevocation, async invitation => {
                         "
                       />
                     </template>
-                  </RaevoField>
+                  </RaevoFieldRow>
                 </div>
                 <div
                   v-if="card.nextActionHistory?.length"
@@ -1702,12 +1743,14 @@ watch(invitationPendingRevocation, async invitation => {
                   transformava o separador em textura. Agora é rótulo acima do
                   campo, na mesma borda esquerda, com um separador só por grupo.
                 -->
-                <div class="grid gap-3 py-3 first:pt-0">
-                  <RaevoField
+                <div class="grid py-2 first:pt-0">
+                  <RaevoFieldRow
+                    row-testid="kanban-row-owner"
                     :label="t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER')"
+                    :value="ownerDisplay"
                     variant="select"
                   >
-                    <template #default="{ controlClass, fieldId }">
+                    <template #control="{ controlClass, fieldId }">
                       <select
                         :id="fieldId"
                         v-model="ownerId"
@@ -1726,13 +1769,15 @@ watch(invitationPendingRevocation, async invitation => {
                         </option>
                       </select>
                     </template>
-                  </RaevoField>
+                  </RaevoFieldRow>
 
-                  <RaevoField
+                  <RaevoFieldRow
+                    row-testid="kanban-row-description"
                     :label="t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT')"
+                    :value="description"
                     variant="textarea"
                   >
-                    <template #default="{ controlClass, fieldId }">
+                    <template #control="{ controlClass, fieldId }">
                       <textarea
                         :id="fieldId"
                         v-model="description"
@@ -1746,14 +1791,16 @@ watch(invitationPendingRevocation, async invitation => {
                         "
                       />
                     </template>
-                  </RaevoField>
+                  </RaevoFieldRow>
 
-                  <div class="grid gap-3 sm:grid-cols-2">
-                    <RaevoField
+                  <div class="grid">
+                    <RaevoFieldRow
+                      row-testid="kanban-row-amount"
                       :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
+                      :value="amountDisplay"
                       :hint="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT_HINT')"
                     >
-                      <template #default="{ controlClass, fieldId }">
+                      <template #control="{ controlClass, fieldId }">
                         <input
                           :id="fieldId"
                           v-model="amountValue"
@@ -1764,13 +1811,15 @@ watch(invitationPendingRevocation, async invitation => {
                           :class="controlClass"
                         />
                       </template>
-                    </RaevoField>
-                    <RaevoField
+                    </RaevoFieldRow>
+                    <RaevoFieldRow
+                      row-testid="kanban-row-expected-close-date"
                       :label="
                         t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
                       "
+                      :value="expectedCloseDateDisplay"
                     >
-                      <template #default="{ controlClass, fieldId }">
+                      <template #control="{ controlClass, fieldId }">
                         <input
                           :id="fieldId"
                           v-model="expectedCloseDate"
@@ -1779,7 +1828,7 @@ watch(invitationPendingRevocation, async invitation => {
                           :class="controlClass"
                         />
                       </template>
-                    </RaevoField>
+                    </RaevoFieldRow>
                   </div>
                 </div>
               </section>

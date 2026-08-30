@@ -397,6 +397,19 @@ const mountModal = async ({
   return wrapper;
 };
 
+// Os campos do bloco comercial agora leem como linha de 32px e só viram campo
+// ao serem abertos. Como cada linha guarda o seu próprio estado, abrir todas de
+// uma vez devolve ao teste exatamente o DOM que ele esperava antes.
+const abrirLinhas = async wrapper => {
+  await Promise.all(
+    wrapper
+      .findAll('[data-testid^="kanban-row-"]')
+      .map(linha => linha.trigger('click'))
+  );
+  await wrapper.vm.$nextTick();
+  return wrapper;
+};
+
 const subjectInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-header-subject"]');
 const descriptionInput = wrapper =>
@@ -693,6 +706,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('uses compact in-field instructions for commercial and planning fields', async () => {
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     // O nome do campo vive no rotulo acima dele, nunca repetido como
     // placeholder: era o "Valor / Valor" que a auditoria apontou.
@@ -810,6 +824,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       data: buildCard({ expectedCloseDate: '2026-09-01' }),
     });
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     expect(expectedCloseDateInput(wrapper).element.value).toBe('2026-08-15');
     await expectedCloseDateInput(wrapper).setValue('2026-09-01');
@@ -888,6 +903,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('renders title, compact description, and amount controls', async () => {
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     expect(wrapper.find('h2').text()).toContain('Enterprise expansion');
     await wrapper
@@ -909,6 +925,8 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
 
     expect(group.exists()).toBe(true);
+    // Em repouso os rótulos já são legíveis: a linha mostra rótulo e valor.
+    await abrirLinhas(wrapper);
     expect(group.classes()).not.toContain('rounded-lg');
     expect(group.text()).toContain('Owner');
     expect(group.text()).toContain('What was agreed?');
@@ -993,6 +1011,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('loads description', async () => {
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     expect(descriptionInput(wrapper).element.value).toBe(
       'Follow up with procurement next week.'
@@ -1147,6 +1166,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('loads next action fields', async () => {
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     expect(nextActionTypeInput(wrapper).element.value).toBe('Enviar proposta');
     expect(nextActionAtInput(wrapper).element.value).toBe('2026-07-20T15:00');
@@ -1157,6 +1177,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('loads owner field', async () => {
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     expect(ownerInput(wrapper).element.value).toBe('7');
     expect(ownerInput(wrapper).text()).toContain('Ana Paula');
@@ -1167,6 +1188,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       data: buildCard({ description: 'Updated card note' }),
     });
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     await descriptionInput(wrapper).setValue('Updated card note');
     await wrapper.find('form').trigger('submit');
@@ -1187,6 +1209,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       data: buildCard({ description: null }),
     });
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     await descriptionInput(wrapper).setValue('');
     await wrapper.find('form').trigger('submit');
@@ -1204,6 +1227,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       response: { data: { message: 'Save failed' } },
     });
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     await subjectInput(wrapper).setValue('Preserved subject');
     await descriptionInput(wrapper).setValue('Preserved description');
@@ -1251,6 +1275,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       }),
     });
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     await amountInput(wrapper).setValue('199.90');
     await customFieldInput(wrapper, 'consulta_realizada').setValue('Não');
@@ -1282,6 +1307,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       }),
     });
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     await ownerInput(wrapper).setValue('8');
     await nextActionTypeInput(wrapper).setValue('Enviar link de pagamento');
@@ -1751,6 +1777,12 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper.find('[data-testid="kanban-opportunity-header-stage"]').exists()
     ).toBe(true);
+    // O responsável continua editável — agora a partir da linha, não de um
+    // campo sempre aberto.
+    expect(wrapper.find('[data-testid="kanban-row-owner"]').exists()).toBe(
+      true
+    );
+    await abrirLinhas(wrapper);
     expect(
       wrapper.find('[data-testid="kanban-opportunity-owner"]').exists()
     ).toBe(true);
@@ -1811,6 +1843,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('labels save preserves scalar form state', async () => {
     const wrapper = await mountModal();
+    await abrirLinhas(wrapper);
 
     await subjectInput(wrapper).setValue('Modified subject');
     await descriptionInput(wrapper).setValue('Modified description');

@@ -68,7 +68,7 @@ const describedBy = computed(() => {
     <label
       v-if="label"
       :for="fieldId"
-      class="text-[13px] font-medium leading-4 text-n-slate-11"
+      class="text-xs font-medium leading-4 text-n-slate-11"
     >
       {{ label }}
       <span
