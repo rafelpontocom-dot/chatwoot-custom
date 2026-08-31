@@ -224,7 +224,9 @@
       "REMOVE_RESOURCE": "Apagar",
       "ARCHIVED": "arquivada",
       "REMOVE_RESOURCE_CONFIRM": "Apagar a agenda \"{name}\"? Se já houver consultas marcadas, ela será arquivada em vez de apagada.",
-      "BACK_TO_CALENDAR": "Voltar para a agenda"
+      "BACK_TO_CALENDAR": "Voltar para a agenda",
+      "REMOVE_PROCEDURE": "Apagar",
+      "REMOVE_PROCEDURE_CONFIRM": "Apagar o procedimento \"{name}\"? Se já houver consultas marcadas, ele será arquivado em vez de apagado."
     },
     "DETAIL": {
       "TITLE": "Detalhes do agendamento",

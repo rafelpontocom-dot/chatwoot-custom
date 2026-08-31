@@ -603,4 +603,32 @@ describe('CalendarSettingsDialog', () => {
       }),
     });
   });
+
+  it('apaga um procedimento quando é seguro, e arquiva quando não é', async () => {
+    const procedimento = {
+      id: 4,
+      name: 'Toxina',
+      duration_minutes: 50,
+      active: true,
+    };
+    CalendarAPI.getProcedures.mockResolvedValue({ data: [procedimento] });
+    CalendarAPI.getResources.mockResolvedValue({ data: [] });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+
+    CalendarAPI.archiveProcedure.mockResolvedValue({
+      data: { id: 4, outcome: 'deleted' },
+    });
+    await wrapper
+      .find('[data-testid="calendar-remove-procedure"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.archiveProcedure).toHaveBeenCalledWith(4);
+    // Apagado sai da lista; arquivado ficaria, com `active: false`.
+    expect(wrapper.vm.procedures).toEqual([]);
+  });
 });

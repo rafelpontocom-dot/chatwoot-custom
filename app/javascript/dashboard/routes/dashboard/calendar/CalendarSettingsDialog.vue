@@ -708,6 +708,38 @@ const toggleResource = async resource => {
   }
 };
 
+// Mesmo critério da agenda: apaga quando é seguro, arquiva quando há consulta
+// marcada. O backend já respondia; faltava o botão.
+const removeProcedure = async procedure => {
+  if (isSaving.value) return;
+
+  const confirmacao = window.confirm(
+    t('CALENDAR.SETTINGS.REMOVE_PROCEDURE_CONFIRM', { name: procedure.name })
+  );
+  if (!confirmacao) return;
+
+  isSaving.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.archiveProcedure(procedure.id);
+    if (response.data?.outcome === 'deleted') {
+      procedures.value = procedures.value.filter(
+        item => item.id !== procedure.id
+      );
+    } else {
+      procedures.value = procedures.value.map(item =>
+        item.id === response.data.id ? response.data : item
+      );
+    }
+    if (editingProcedureId.value === procedure.id) resetProcedureForm();
+    emit('updated');
+  } catch (removeError) {
+    error.value = getErrorMessage(removeError);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
 // Apagar de verdade quando dá, arquivar quando há consulta marcada — e dizer
 // qual dos dois aconteceu, porque a diferença importa para quem administra.
 const removeResource = async resource => {
@@ -1273,6 +1305,16 @@ defineExpose({ open });
                 data-testid="calendar-edit-procedure"
                 :label="t('CALENDAR.SETTINGS.EDIT_PROCEDURE')"
                 @click="editProcedure(procedure)"
+              />
+              <NextButton
+                type="button"
+                xs
+                outline
+                ruby
+                data-testid="calendar-remove-procedure"
+                :label="t('CALENDAR.SETTINGS.REMOVE_PROCEDURE')"
+                :disabled="isSaving"
+                @click="removeProcedure(procedure)"
               />
             </article>
           </div>

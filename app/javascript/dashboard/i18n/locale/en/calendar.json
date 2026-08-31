@@ -224,7 +224,9 @@
       "REMOVE_RESOURCE": "Delete",
       "ARCHIVED": "archived",
       "REMOVE_RESOURCE_CONFIRM": "Delete the agenda \"{name}\"? If it already has appointments it will be archived instead.",
-      "BACK_TO_CALENDAR": "Back to calendar"
+      "BACK_TO_CALENDAR": "Back to calendar",
+      "REMOVE_PROCEDURE": "Delete",
+      "REMOVE_PROCEDURE_CONFIRM": "Delete the procedure \"{name}\"? If appointments already exist, it will be archived instead of deleted."
     },
     "DETAIL": {
       "TITLE": "Appointment details",
