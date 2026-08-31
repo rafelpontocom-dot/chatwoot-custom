@@ -195,7 +195,10 @@
         "DATE_OVERRIDE_RULE": "Horário especial em {date}: {start} - {end}",
         "FULL_DAY_BLOCK_RULE": "Indisponível o dia todo em {date}",
         "BLOCK_RULE": "Indisponível em {date}: {start} - {end}",
-        "REMOVE": "Remover horário"
+        "REMOVE": "Remover horário",
+        "CLOSED": "Indisponível",
+        "ADD_INTERVAL": "Adicionar outro período",
+        "NO_EXCEPTIONS": "Nenhuma exceção de data."
       },
       "WEEKDAYS": {
         "SUNDAY": "Domingo",

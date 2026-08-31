@@ -8,6 +8,7 @@ import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import CalendarWorkingHours from './CalendarWorkingHours.vue';
 import {
   RAEVO_CONTROL_CLASS,
   RAEVO_SELECT_STANDALONE_CLASS,
@@ -81,11 +82,6 @@ const procedureForm = ref({
   publicSlug: '',
 });
 const resourceForm = ref({ name: '', resourceType: 'generic', userId: '' });
-const availabilityForm = ref({
-  weekday: '1',
-  startsAtLocal: '09:00',
-  endsAtLocal: '18:00',
-});
 const exceptionForm = ref({
   kind: 'block',
   date: '',
@@ -208,6 +204,15 @@ const orderedAvailabilityRules = computed(() =>
     );
   })
 );
+
+/**
+ * A lista abaixo da grade passa a mostrar só as exceções de data. As janelas
+ * semanais já estão à vista nos sete dias — repeti-las era o que fazia da
+ * definição de horários uma lista a crescer sem fim.
+ */
+const exceptionRules = computed(() =>
+  orderedAvailabilityRules.value.filter(rule => rule.kind !== 'weekly_window')
+);
 const weekdayLabel = weekday =>
   [
     t('CALENDAR.SETTINGS.WEEKDAYS.SUNDAY'),
@@ -243,11 +248,6 @@ const resetForms = () => {
   resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
   availabilityResourceId.value = null;
   availabilityRules.value = [];
-  availabilityForm.value = {
-    weekday: '1',
-    startsAtLocal: '09:00',
-    endsAtLocal: '18:00',
-  };
   exceptionForm.value = {
     kind: 'block',
     date: '',
@@ -761,7 +761,12 @@ const openAvailability = async resource => {
   await loadAvailabilityRules(resource.id);
 };
 
-const addWeeklyAvailability = async () => {
+/** A grade dos sete dias pede a criação; quem valida o intervalo é o servidor. */
+const createWeeklyAvailability = async ({
+  weekday,
+  startsAtLocal,
+  endsAtLocal,
+}) => {
   if (!availabilityResourceId.value || isSaving.value) return;
 
   isSaving.value = true;
@@ -772,14 +777,36 @@ const addWeeklyAvailability = async () => {
       {
         availability_rule: {
           kind: 'weekly_window',
-          weekday: Number(availabilityForm.value.weekday),
-          starts_at_local: availabilityForm.value.startsAtLocal,
-          ends_at_local: availabilityForm.value.endsAtLocal,
+          weekday: Number(weekday),
+          starts_at_local: startsAtLocal,
+          ends_at_local: endsAtLocal,
           active: true,
         },
       }
     );
     availabilityRules.value = [...availabilityRules.value, response.data];
+  } catch (saveError) {
+    error.value = getErrorMessage(saveError);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+/** Editar a hora no sítio, sem apagar e voltar a criar a regra. */
+const updateWeeklyAvailability = async ({ rule, changes }) => {
+  if (!availabilityResourceId.value || isSaving.value) return;
+
+  isSaving.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.updateAvailabilityRule(
+      availabilityResourceId.value,
+      rule.id,
+      { availability_rule: changes }
+    );
+    availabilityRules.value = availabilityRules.value.map(item =>
+      item.id === rule.id ? response.data : item
+    );
   } catch (saveError) {
     error.value = getErrorMessage(saveError);
   } finally {
@@ -960,11 +987,23 @@ defineExpose({ open });
       <p v-if="isLoading" class="mb-0 text-sm text-n-slate-11">
         {{ t('CALENDAR.SETTINGS.LOADING') }}
       </p>
-      <p v-else-if="error" class="mb-0 text-sm text-n-ruby-11" role="alert">
+
+      <!--
+        O erro é um aviso por cima do painel, não um substituto dele. Enquanto
+        isto era um modal, trocar o conteúdo pela mensagem custava um fechar e
+        abrir; numa página, uma gravação recusada apagava tudo o que estava em
+        cima da mesa e obrigava a recarregar.
+      -->
+      <p
+        v-if="error && !isLoading"
+        class="mb-0 rounded-lg bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
+        role="alert"
+        data-testid="calendar-settings-error"
+      >
         {{ error }}
       </p>
 
-      <template v-else-if="activeTab === 'procedures'">
+      <template v-if="!isLoading && activeTab === 'procedures'">
         <section
           id="calendar-settings-procedures-panel"
           role="tabpanel"
@@ -1511,54 +1550,13 @@ defineExpose({ open });
             <p class="mb-0 text-xs text-n-slate-11">
               {{ t('CALENDAR.SETTINGS.AVAILABILITY.HELP') }}
             </p>
-            <form
-              class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_7rem_auto] sm:items-end"
-              @submit.prevent="addWeeklyAvailability"
-            >
-              <label class="grid gap-1">
-                <span class="text-xs font-medium text-n-slate-12">{{
-                  t('CALENDAR.SETTINGS.AVAILABILITY.WEEKDAY')
-                }}</span>
-                <select
-                  v-model="availabilityForm.weekday"
-                  :class="RAEVO_SELECT_STANDALONE_CLASS"
-                >
-                  <option
-                    v-for="weekday in 7"
-                    :key="weekday - 1"
-                    :value="String(weekday - 1)"
-                  >
-                    {{ weekdayLabel(weekday - 1) }}
-                  </option>
-                </select>
-              </label>
-              <label class="grid gap-1">
-                <span class="text-xs font-medium text-n-slate-12">{{
-                  t('CALENDAR.SETTINGS.AVAILABILITY.START')
-                }}</span>
-                <input
-                  v-model="availabilityForm.startsAtLocal"
-                  type="time"
-                  :class="RAEVO_CONTROL_CLASS"
-                />
-              </label>
-              <label class="grid gap-1">
-                <span class="text-xs font-medium text-n-slate-12">{{
-                  t('CALENDAR.SETTINGS.AVAILABILITY.END')
-                }}</span>
-                <input
-                  v-model="availabilityForm.endsAtLocal"
-                  type="time"
-                  :class="RAEVO_CONTROL_CLASS"
-                />
-              </label>
-              <NextButton
-                type="submit"
-                size="sm"
-                :label="t('CALENDAR.SETTINGS.AVAILABILITY.ADD')"
-                :disabled="isSaving"
-              />
-            </form>
+            <CalendarWorkingHours
+              :rules="availabilityRules"
+              :is-saving="isSaving"
+              @create="createWeeklyAvailability"
+              @update="updateWeeklyAvailability"
+              @remove="removeAvailabilityRule"
+            />
             <form
               class="grid gap-2 rounded-md border border-dashed border-n-weak p-2.5 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_7rem_auto] sm:items-end"
               @submit.prevent="addDateException"
@@ -1626,13 +1624,13 @@ defineExpose({ open });
             </p>
             <div v-else class="grid gap-1.5">
               <p
-                v-if="!orderedAvailabilityRules.length"
+                v-if="!exceptionRules.length"
                 class="mb-0 text-sm text-n-slate-11"
               >
-                {{ t('CALENDAR.SETTINGS.AVAILABILITY.EMPTY') }}
+                {{ t('CALENDAR.SETTINGS.AVAILABILITY.NO_EXCEPTIONS') }}
               </p>
               <div
-                v-for="rule in orderedAvailabilityRules"
+                v-for="rule in exceptionRules"
                 :key="rule.id"
                 class="flex items-center justify-between gap-2 rounded-md bg-n-surface-1 px-2.5 py-2 text-sm text-n-slate-12"
               >
