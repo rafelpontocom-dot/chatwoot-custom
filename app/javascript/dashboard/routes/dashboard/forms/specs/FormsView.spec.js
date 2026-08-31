@@ -93,6 +93,32 @@ describe('FormsView', () => {
     FormsAPI.getFieldGroups.mockResolvedValue({ data: [] });
   });
 
+  const templateBase = () => ({
+    id: 9,
+    name: 'Captação de consulta',
+    slug: 'captacao',
+    category: 'lead_capture',
+    public_enabled: false,
+    settings: {},
+    active_version: {
+      version_number: 1,
+      schema: {
+        crm_destination: {
+          kanban_board_id: 1,
+          kanban_stage_id: 2,
+          inbox_id: 3,
+        },
+        sections: [
+          {
+            key: 'principal',
+            title: 'Principal',
+            fields: [{ key: 'nome', label: 'Nome', type: 'text' }],
+          },
+        ],
+      },
+    },
+  });
+
   it('loads the template catalogue into the administrator workspace', async () => {
     FormsAPI.getTemplates.mockResolvedValue({
       data: [
@@ -169,6 +195,38 @@ describe('FormsView', () => {
         window.localStorage.getItem(`raevo-form-preview:${previewId}`)
       ).toBeTruthy();
     });
+  });
+
+  it('keeps structure, form and properties as three persistent columns', async () => {
+    // Antes a estrutura era um painel absoluto por cima do canvas e as
+    // propriedades eram um modal: as duas tapavam o formulário a ser escrito.
+    FormsAPI.getTemplates.mockResolvedValue({ data: [templateBase()] });
+    const wrapper = mountForms({
+      boards: [{ id: 1, inboxes: [{ id: 3 }], stages: [{ id: 2 }] }],
+    });
+    await flushPromises();
+
+    const builder = wrapper.get('[data-test="forms-visual-builder"]');
+    expect(builder.find('aside').exists()).toBe(true);
+    expect(builder.find('[data-test="forms-builder-settings"]').exists()).toBe(
+      true
+    );
+    // A biblioteca deixou de ter interruptor: é coluna, não sobreposição.
+    expect(wrapper.find('[data-test="forms-toggle-library"]').exists()).toBe(
+      false
+    );
+  });
+
+  it('takes the template list out of the way while editing', async () => {
+    FormsAPI.getTemplates.mockResolvedValue({ data: [templateBase()] });
+    const wrapper = mountForms({
+      boards: [{ id: 1, inboxes: [{ id: 3 }], stages: [{ id: 2 }] }],
+    });
+    await flushPromises();
+
+    // Recolher a zero deixava uma lasca: a lista sai mesmo do fluxo.
+    expect(wrapper.vm.isEditing).toBe(true);
+    expect(wrapper.findAll('main > div > aside')).toHaveLength(0);
   });
 
   it('uploads a brand logo from the form settings', async () => {

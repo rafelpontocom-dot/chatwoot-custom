@@ -4,7 +4,11 @@ import { useI18n } from 'vue-i18n';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import FormRichTextEditor from './FormRichTextEditor.vue';
 
+// A mesma definição serve às duas superfícies. Em `inline` ela é a terceira
+// coluna do editor, sempre presente: deixa de haver um modal a tapar o
+// formulário que a pessoa está a escrever.
 const props = defineProps({
+  inline: { type: Boolean, default: false },
   contentBlock: { type: Object, default: null },
   field: { type: Object, default: null },
   section: { type: Object, default: null },
@@ -46,7 +50,10 @@ const dialogTitle = computed(() => {
 const canRemoveField = computed(() => (props.section?.fields?.length || 0) > 1);
 const canRemoveSection = computed(() => props.sectionCount > 1);
 
-const open = () => dialog.value?.open();
+const open = () => {
+  if (props.inline) return;
+  dialog.value?.open();
+};
 const close = () => dialog.value?.close();
 const updateOptions = event => {
   emit('updateField', {
@@ -70,16 +77,38 @@ defineExpose({ open, close });
 </script>
 
 <template>
-  <Dialog
+  <component
+    :is="inline ? 'div' : Dialog"
     ref="dialog"
-    width="lg"
-    :title="dialogTitle"
-    :show-confirm-button="false"
-    overflow-y-auto
+    v-bind="
+      inline
+        ? {}
+        : {
+            width: 'lg',
+            title: dialogTitle,
+            showConfirmButton: false,
+            overflowYAuto: true,
+          }
+    "
+    :class="
+      inline
+        ? 'flex min-h-0 flex-col rounded-xl border border-n-weak bg-n-solid-1'
+        : ''
+    "
+    data-test="forms-builder-settings"
   >
-    <div class="max-h-[70vh] overflow-y-auto pr-1">
+    <h2
+      v-if="inline"
+      class="border-b border-n-weak px-4 py-3 text-sm font-semibold text-n-slate-12"
+    >
+      {{ dialogTitle }}
+    </h2>
+    <div
+      class="overflow-y-auto pr-1"
+      :class="inline ? 'flex-1 px-4 py-3' : 'max-h-[70vh]'"
+    >
       <template v-if="contentBlock">
-        <h3 class="text-sm font-semibold text-n-slate-12">
+        <h3 v-if="!inline" class="text-sm font-semibold text-n-slate-12">
           {{ t('FORMS.CONTENT_BLOCKS.SETTINGS') }}
         </h3>
         <div class="mt-4 grid gap-4">
@@ -175,7 +204,7 @@ defineExpose({ open, close });
       </template>
 
       <template v-else-if="field">
-        <h3 class="text-sm font-semibold text-n-slate-12">
+        <h3 v-if="!inline" class="text-sm font-semibold text-n-slate-12">
           {{ t('FORMS.BUILDER.QUESTION_SETTINGS') }}
         </h3>
         <div class="mt-4 grid gap-4">
@@ -411,7 +440,7 @@ defineExpose({ open, close });
       </template>
 
       <template v-else-if="section">
-        <h3 class="text-sm font-semibold text-n-slate-12">
+        <h3 v-if="!inline" class="text-sm font-semibold text-n-slate-12">
           {{ t('FORMS.BUILDER.SETTINGS') }}
         </h3>
         <div class="mt-4 grid gap-4">
@@ -487,5 +516,5 @@ defineExpose({ open, close });
         {{ t('FORMS.BUILDER.NO_FIELD_SELECTED') }}
       </p>
     </div>
-  </Dialog>
+  </component>
 </template>

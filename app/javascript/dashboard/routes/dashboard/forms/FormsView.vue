@@ -26,7 +26,6 @@ const activeTab = ref('templates');
 const selectedTemplateId = ref(null);
 const activeBuilderSectionIndex = ref(0);
 const selectedBuilderFieldKey = ref('');
-const showBuilderLibrary = ref(false);
 const showFormActionsMenu = ref(false);
 const selectedBuilderContentBlockId = ref('');
 const builderLibraryQuery = ref('');
@@ -68,6 +67,9 @@ const duplicateForm = ref({ name: '', slug: '' });
 const fieldGroupForm = ref({ name: '' });
 const fieldGroupPendingDeletion = ref(null);
 const clinicalAccessSearch = ref('');
+
+/** Editar é um modo, não uma secção: a lista sai da frente enquanto dura. */
+const isEditing = computed(() => Boolean(editor.value));
 
 const selectedTemplate = computed(() =>
   templates.value.find(template => template.id === selectedTemplateId.value)
@@ -1572,11 +1574,22 @@ onBeforeUnmount(() => {
       {{ error }}
     </div>
 
+    <!--
+      Enquanto se edita, a lista de modelos recolhe: as três colunas do
+      construtor dividiam o que sobrava e o formulário — a coluna que importa —
+      ficava com menos de um terço da largura.
+    -->
     <div
-      class="grid min-h-0 flex-1 grid-cols-[15rem_minmax(0,1fr)] overflow-hidden"
+      class="grid min-h-0 flex-1 overflow-hidden"
+      :class="isEditing ? 'grid-cols-1' : 'grid-cols-[15rem_minmax(0,1fr)]'"
     >
+      <!--
+        Recolher a zero deixava uma lasca visível: uma pista de grelha não
+        impede o item de transbordar. Editar remove mesmo a lista.
+      -->
       <aside
-        class="flex min-h-0 flex-col border-r border-n-slate-4 bg-n-solid-1 p-3"
+        v-if="!isEditing"
+        class="flex min-h-0 min-w-0 flex-col border-r border-n-slate-4 bg-n-solid-1 p-3"
       >
         <nav class="grid gap-1" :aria-label="t('FORMS.TITLE')">
           <button
@@ -1855,14 +1868,6 @@ onBeforeUnmount(() => {
                 :label="t('FORMS.ACTIONS.VERSIONS')"
                 @click="openVersions"
               />
-              <Button
-                variant="faded"
-                color="slate"
-                :label="t('FORMS.BUILDER.LIBRARY')"
-                data-test="forms-toggle-library"
-                :aria-pressed="showBuilderLibrary"
-                @click="showBuilderLibrary = !showBuilderLibrary"
-              />
               <!--
                 Duplicar, Histórico e Abrir prévia saíram da linha: com seis
                 botões de mesmo peso, nenhum era a ação principal. A prévia
@@ -1917,17 +1922,18 @@ onBeforeUnmount(() => {
             formulário e virava a porta de entrada, obrigando a escolher o tipo
             antes de escrever a pergunta.
           -->
+          <!--
+            Três colunas persistentes: estrutura, formulário e propriedades.
+            Antes a estrutura era um painel absoluto por cima do canvas e as
+            propriedades eram um modal — nenhuma das duas era coluna, e as duas
+            tapavam justamente o formulário que a pessoa estava a escrever.
+          -->
           <section
             data-test="forms-visual-builder"
-            class="relative min-h-[38rem]"
+            class="grid min-h-[38rem] items-start gap-3 lg:grid-cols-[15rem_minmax(0,1fr)_21rem]"
           >
-            <!--
-              Painel flutuante: como coluna, a biblioteca encolhia o canvas toda
-              vez que era aberta e a pessoa perdia a referência do que escrevia.
-            -->
             <aside
-              v-show="showBuilderLibrary"
-              class="absolute end-0 top-0 z-20 max-h-[34rem] w-64 overflow-y-auto rounded-xl border border-n-weak bg-n-solid-1 p-3 shadow-lg"
+              class="max-h-[38rem] overflow-y-auto rounded-xl border border-n-weak bg-n-solid-1 p-3"
             >
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-sm font-semibold text-n-slate-12">
@@ -2212,6 +2218,8 @@ onBeforeUnmount(() => {
 
             <FormsBuilderSettingsDialog
               ref="builderSettingsDialog"
+              inline
+              class="max-h-[38rem]"
               :content-block="selectedBuilderContentBlock"
               :field="selectedBuilderField"
               :section="activeBuilderSection"
