@@ -175,6 +175,7 @@ vi.mock('dashboard/api/finance', () => ({
 vi.mock('dashboard/api/forms', () => ({
   default: {
     getCardContext: vi.fn(),
+    resolvePendingAction: vi.fn(),
     revokeInvitation: vi.fn(),
   },
 }));
@@ -1769,6 +1770,88 @@ describe('KanbanOpportunityDetailsModal', () => {
       .trigger('click');
 
     expect(formsSubmissionMocks.open).toHaveBeenCalledWith(12);
+  });
+
+  it('offers to confirm or dismiss what the form proposed but did not apply', async () => {
+    const wrapper = await mountModal();
+    FormsAPI.getCardContext.mockResolvedValue({
+      data: {
+        invitations: [],
+        submissions: [
+          {
+            id: 12,
+            form_name: 'Pré-consulta',
+            status: 'submitted',
+            pending_actions: [{ index: 0, kind: 'move_stage' }],
+          },
+        ],
+      },
+    });
+    FormsAPI.resolvePendingAction.mockResolvedValue({
+      data: { pending_actions: [] },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="kanban-pending-action-12-0"]').exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-pending-confirm-12-0"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(FormsAPI.resolvePendingAction).toHaveBeenCalledWith(
+      12,
+      0,
+      'confirm'
+    );
+    // Confirmar pode ter movido a etapa: quem abriu o card tem de reler.
+    expect(wrapper.emitted('updated')).toBeTruthy();
+    expect(
+      wrapper.find('[data-testid="kanban-pending-action-12-0"]').exists()
+    ).toBe(false);
+  });
+
+  it('drops a proposed action without applying it when it is dismissed', async () => {
+    const wrapper = await mountModal();
+    FormsAPI.getCardContext.mockResolvedValue({
+      data: {
+        invitations: [],
+        submissions: [
+          {
+            id: 12,
+            form_name: 'Pré-consulta',
+            status: 'submitted',
+            pending_actions: [{ index: 0, kind: 'apply_label' }],
+          },
+        ],
+      },
+    });
+    FormsAPI.resolvePendingAction.mockResolvedValue({
+      data: { pending_actions: [] },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .trigger('click');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-pending-dismiss-12-0"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(FormsAPI.resolvePendingAction).toHaveBeenCalledWith(
+      12,
+      0,
+      'dismiss'
+    );
+    // Descartar não mexe no card, por isso não pede releitura.
+    expect(wrapper.emitted('updated')).toBeFalsy();
   });
 
   it('keeps stage and commercial ownership editable without a conversation-agent tab', async () => {

@@ -93,6 +93,13 @@ class FormsAPI extends ApiClient {
     );
   }
 
+  resolvePendingAction(submissionId, index, decision) {
+    return axios.post(
+      `${this.url}/submissions/${submissionId}/resolve_pending_action`,
+      { index, decision }
+    );
+  }
+
   getCardContext(kanbanCardId) {
     return axios.get(`${this.url}/kanban_cards/${kanbanCardId}`);
   }

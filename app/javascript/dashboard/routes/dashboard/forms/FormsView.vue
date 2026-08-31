@@ -11,6 +11,7 @@ import { OnClickOutside } from '@vueuse/components';
 import { dynamicTime } from 'shared/helpers/timeHelper';
 import { useRequestSidebarFocus } from 'dashboard/composables/useSidebarFocus';
 import FormsCanvasEditor from './FormsCanvasEditor.vue';
+import FormsSubmissionActions from './FormsSubmissionActions.vue';
 import FormsBuilderSettingsDialog from './FormsBuilderSettingsDialog.vue';
 import { getFormStarterSchema } from './starterTemplates';
 import { FORM_FIELD_GROUPS, getFormFieldGroup } from './fieldGroups';
@@ -90,6 +91,11 @@ const allBuilderFields = computed(() =>
 const updateSchemaLogics = logics => {
   if (!editor.value) return;
   editor.value.schema.logics = logics;
+};
+
+const updateSubmissionActions = actions => {
+  if (!editor.value) return;
+  editor.value.schema.submission_actions = actions;
 };
 
 const updateSchemaVariables = variables => {
@@ -2720,6 +2726,14 @@ onBeforeUnmount(() => {
                   >
                     {{ t('FORMS.EDITOR.SENSITIVE_HEALTH_NOTICE') }}
                   </p>
+                  <div class="mt-5 border-t border-n-slate-4 pt-5">
+                    <FormsSubmissionActions
+                      :actions="editor.schema.submission_actions || []"
+                      :stages="stageOptions"
+                      :is-sensitive-health="isSensitiveHealth"
+                      @update="updateSubmissionActions"
+                    />
+                  </div>
                 </div>
                 <div v-show="settingsSection === 'clinical'">
                   <section

@@ -860,6 +860,43 @@ const openFormsInvitationDialog = () => {
   formsInvitationDialog.value?.open();
 };
 
+/**
+ * Resolve o que o formulário propôs mas não aplicou.
+ *
+ * Uma ação em modo «deixar para confirmar» ficou à espera de quem conhece o
+ * caso. Confirmar aplica-a; descartar tira-a da frente. Nos dois casos ela sai
+ * da lista, porque proposta que fica para sempre deixa de ser lida.
+ */
+const resolvingAction = ref(null);
+const pendingActionError = ref('');
+
+const resolvePendingAction = async (submission, action, decision) => {
+  if (resolvingAction.value) return;
+
+  resolvingAction.value = `${submission.id}-${action.index}`;
+  pendingActionError.value = '';
+  try {
+    const { data } = await FormsAPI.resolvePendingAction(
+      submission.id,
+      action.index,
+      decision
+    );
+    submission.pending_actions = (data.pending_actions || []).map(
+      (pendente, index) => ({ index, kind: pendente.kind })
+    );
+    // Confirmar pode ter movido a etapa: o card tem de ser relido.
+    // Confirmar pode ter movido a etapa: quem abriu o card tem de reler.
+    if (decision === 'confirm') emit('updated');
+  } catch (error) {
+    pendingActionError.value = getErrorMessage(
+      error,
+      t('FORMS.SUBMISSION_ACTIONS.RESOLVE_ERROR')
+    );
+  } finally {
+    resolvingAction.value = null;
+  }
+};
+
 const openFormsSubmission = submission => {
   formsSubmissionDialog.value?.open(submission.id);
 };
@@ -2333,6 +2370,47 @@ watch(invitationPendingRevocation, async invitation => {
                       <span class="text-xs text-n-slate-10">
                         {{ formSubmissionStatusLabel(submission.status) }}
                       </span>
+                      <div
+                        v-for="action in submission.pending_actions || []"
+                        :key="action.index"
+                        class="mt-2 flex flex-wrap items-center gap-2 rounded border border-n-amber-6 bg-n-amber-2 px-2 py-1.5"
+                        :data-testid="`kanban-pending-action-${submission.id}-${action.index}`"
+                      >
+                        <span class="text-xs font-medium text-n-amber-11">
+                          {{
+                            t(`FORMS.SUBMISSION_ACTIONS.KIND.${action.kind}`)
+                          }}
+                        </span>
+                        <button
+                          type="button"
+                          class="rounded px-2 py-0.5 text-xs font-semibold text-n-teal-11 transition hover:bg-n-teal-3"
+                          :disabled="resolvingAction !== null"
+                          :data-testid="`kanban-pending-confirm-${submission.id}-${action.index}`"
+                          @click="
+                            resolvePendingAction(submission, action, 'confirm')
+                          "
+                        >
+                          {{ t('FORMS.SUBMISSION_ACTIONS.PENDING_CONFIRM') }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded px-2 py-0.5 text-xs font-semibold text-n-slate-11 transition hover:bg-n-slate-3"
+                          :disabled="resolvingAction !== null"
+                          :data-testid="`kanban-pending-dismiss-${submission.id}-${action.index}`"
+                          @click="
+                            resolvePendingAction(submission, action, 'dismiss')
+                          "
+                        >
+                          {{ t('FORMS.SUBMISSION_ACTIONS.PENDING_DISMISS') }}
+                        </button>
+                      </div>
+                      <p
+                        v-if="pendingActionError"
+                        class="mb-0 mt-2 text-xs text-n-ruby-11"
+                        role="alert"
+                      >
+                        {{ pendingActionError }}
+                      </p>
                     </div>
                     <NextButton
                       type="button"

@@ -94,8 +94,17 @@ class FormSubmission < ApplicationRecord
       form_name: form_template_version.form_template.name,
       form_template_id: form_template_version.form_template_id,
       contact: contact && { id: contact.id, name: contact.name },
-      opportunity: kanban_card && { id: kanban_card.id, subject: kanban_card.subject }
+      opportunity: kanban_card && { id: kanban_card.id, subject: kanban_card.subject },
+      # O que o formulário propôs e ninguém decidiu ainda. Leva só o tipo: o
+      # card mostra a pergunta, não os detalhes da configuração.
+      pending_actions: pending_action_summaries
     }
+  end
+
+  def pending_action_summaries
+    metadata.to_h['pending_actions'].to_a.each_with_index.map do |action, index|
+      { index: index, kind: action['kind'] }
+    end
   end
 
   def admin_payload

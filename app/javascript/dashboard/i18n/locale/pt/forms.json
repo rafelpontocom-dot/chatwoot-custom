@@ -303,7 +303,15 @@
         "CONSENT": "Consentimento",
         "SIGNATURE": "Aceite assinado",
         "ATTACHMENT": "Documento clínico"
-      }
+      },
+      "ABANDONMENT_DELAY_HOURS": "Avisar quando o convite não for aberto",
+      "ABANDONMENT_DISABLED": "Não avisar",
+      "ABANDONMENT_HINT": "Contado a partir do envio do convite, de 1 hora a 30 dias. Ocorre uma única vez.",
+      "CRITICAL_RESPONSE_FIELD": "Resposta crítica",
+      "CRITICAL_RESPONSE_DISABLED": "Sem resposta crítica",
+      "CRITICAL_RESPONSE_VALUE": "Valor que liga o alerta",
+      "CRITICAL_RESPONSE_SELECT_VALUE": "Escolha uma opção publicada",
+      "CRITICAL_RESPONSE_HINT": "Inicia uma automação quando esta resposta exata chega. Ela leva apenas identificadores, nunca a resposta."
     },
     "STATUS": {
       "DRAFT": "Rascunho",
@@ -491,6 +499,33 @@
       "AUTOMATION": "Automação",
       "CLINICAL": "Acesso clínico",
       "DESTINATION": "Destino no CRM"
+    },
+    "SUBMISSION_ACTIONS": {
+      "TITLE": "Quando uma resposta chega",
+      "HELP": "Aplicado na hora, ou deixado para alguém confirmar.",
+      "ADD": "Adicionar ação",
+      "REMOVE": "Remover ação",
+      "NONE": "Nada acontece automaticamente.",
+      "KIND": {
+        "move_stage": "Mover a oportunidade",
+        "apply_label": "Aplicar uma etiqueta",
+        "notify": "Avisar a equipe",
+        "webhook": "Chamar um webhook"
+      },
+      "MODE": {
+        "automatic": "aplicar na hora",
+        "review": "deixar para confirmar"
+      },
+      "STAGE": "Etapa",
+      "LABEL": "Etiqueta",
+      "URL": "Endereço HTTPS",
+      "CLINICAL": "Um formulário clínico nunca age sozinho. A anamnese não move oportunidade, não aplica etiqueta e não chama nada.",
+      "PENDING": "Aguardando confirmação",
+      "PENDING_CONFIRM": "Confirmar",
+      "PENDING_DISMISS": "Descartar",
+      "PENDING_HELP": "Este formulário pediu confirmação antes de agir.",
+      "RESOLVE_ERROR": "Não foi possível resolver esta ação.",
+      "URL_PLACEHOLDER": "https://exemplo.com/hook"
     }
   }
 }

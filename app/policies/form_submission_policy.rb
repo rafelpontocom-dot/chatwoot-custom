@@ -29,6 +29,12 @@ class FormSubmissionPolicy < ApplicationPolicy
     record.account_id == account.id && administrator?
   end
 
+  # Resolver o que ficou proposto é trabalho de quem atende, não só de quem
+  # administra — mas nunca num formulário clínico, que não propõe nada.
+  def resolve_pending_action?
+    record.account_id == account.id && !record.sensitive_health_form?
+  end
+
   private
 
   def administrator?

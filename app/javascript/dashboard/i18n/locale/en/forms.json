@@ -303,7 +303,15 @@
         "CONSENT": "Consent",
         "SIGNATURE": "Typed acceptance",
         "ATTACHMENT": "Clinical document"
-      }
+      },
+      "ABANDONMENT_DELAY_HOURS": "Warn when the invitation goes unopened",
+      "ABANDONMENT_DISABLED": "Do not warn",
+      "ABANDONMENT_HINT": "Counted from the moment the invitation is sent, between 1 hour and 30 days. It fires once.",
+      "CRITICAL_RESPONSE_FIELD": "Critical answer",
+      "CRITICAL_RESPONSE_DISABLED": "No critical answer",
+      "CRITICAL_RESPONSE_VALUE": "Value that raises the flag",
+      "CRITICAL_RESPONSE_SELECT_VALUE": "Choose a published option",
+      "CRITICAL_RESPONSE_HINT": "Starts an automation when this exact answer arrives. It carries identifiers only, never the answer."
     },
     "STATUS": {
       "DRAFT": "Draft",
@@ -491,6 +499,33 @@
       "AUTOMATION": "Automation",
       "CLINICAL": "Clinical access",
       "DESTINATION": "CRM destination"
+    },
+    "SUBMISSION_ACTIONS": {
+      "TITLE": "When a response arrives",
+      "HELP": "Applied on arrival, or left for someone to confirm.",
+      "ADD": "Add action",
+      "REMOVE": "Remove action",
+      "NONE": "Nothing happens automatically.",
+      "KIND": {
+        "move_stage": "Move the opportunity",
+        "apply_label": "Apply a label",
+        "notify": "Notify the team",
+        "webhook": "Call a webhook"
+      },
+      "MODE": {
+        "automatic": "apply on arrival",
+        "review": "leave for confirmation"
+      },
+      "STAGE": "Stage",
+      "LABEL": "Label",
+      "URL": "HTTPS address",
+      "CLINICAL": "A clinical form never acts on its own. Anamnesis does not move an opportunity, apply a label or call anything.",
+      "PENDING": "Waiting for confirmation",
+      "PENDING_CONFIRM": "Confirm",
+      "PENDING_DISMISS": "Dismiss",
+      "PENDING_HELP": "This form asked for confirmation before acting.",
+      "RESOLVE_ERROR": "Could not resolve this action.",
+      "URL_PLACEHOLDER": "https://example.com/hook"
     }
   }
 }

@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Forms::SubmissionsController < Api::V1::Accounts::BaseController
-  before_action :fetch_submission, only: %i[show export download_attachment]
+  before_action :fetch_submission, only: %i[show export download_attachment resolve_pending_action]
 
   def index
     authorize FormSubmission.new(account: Current.account), :index?
@@ -26,6 +26,19 @@ class Api::V1::Accounts::Forms::SubmissionsController < Api::V1::Accounts::BaseC
               filename: attachment.filename.to_s,
               type: attachment.content_type,
               disposition: 'attachment'
+  end
+
+  # A secretaria decide sobre o que ficou proposto pelo formulário.
+  def resolve_pending_action
+    authorize @form_submission, :resolve_pending_action?
+    submission = Forms::ResolvePendingActionService.new(
+      submission: @form_submission,
+      index: params[:index],
+      decision: params[:decision]
+    ).perform!
+    render json: { pending_actions: submission.metadata['pending_actions'] }
+  rescue Forms::ResolvePendingActionService::UnknownAction
+    render json: { message: I18n.t('errors.messages.invalid') }, status: :unprocessable_entity
   end
 
   def export

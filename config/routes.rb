@@ -177,6 +177,7 @@ Rails.application.routes.draw do
               resources :invitations, controller: 'template_invitations', only: [:create]
             end
             resources :submissions, only: %i[index show] do
+              post :resolve_pending_action, on: :member
               get :export, on: :member
               get 'attachments/:attachment_id', on: :member, action: :download_attachment
             end

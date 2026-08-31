@@ -20,6 +20,22 @@ class Forms::ApplySubmissionActionsService
     registar_pendentes(pendentes)
   end
 
+  # Executa uma ação isolada. Público porque a secretaria, ao confirmar o que
+  # ficou proposto, corre exatamente o mesmo caminho — só que mais tarde.
+  def executar(action)
+    case action['kind'].to_s
+    when Forms::SubmissionActions::MOVE_STAGE then mover_etapa(action)
+    when Forms::SubmissionActions::APPLY_LABEL then aplicar_etiqueta(action)
+    when Forms::SubmissionActions::NOTIFY then notificar
+    when Forms::SubmissionActions::WEBHOOK then disparar_webhook(action)
+    end
+  rescue StandardError => e
+    # Uma ação que falha não pode levar a resposta do paciente com ela: a
+    # resposta já está guardada, e é ela que não se pode perder.
+    Rails.logger.error("[forms] submission action failed: #{e.class}")
+    registar_falha(action)
+  end
+
   private
 
   attr_reader :submission
@@ -42,20 +58,6 @@ class Forms::ApplySubmissionActionsService
 
     executar(action)
     nil
-  end
-
-  def executar(action)
-    case action['kind'].to_s
-    when Forms::SubmissionActions::MOVE_STAGE then mover_etapa(action)
-    when Forms::SubmissionActions::APPLY_LABEL then aplicar_etiqueta(action)
-    when Forms::SubmissionActions::NOTIFY then notificar
-    when Forms::SubmissionActions::WEBHOOK then disparar_webhook(action)
-    end
-  rescue StandardError => e
-    # Uma ação que falha não pode levar a resposta do paciente com ela: a
-    # resposta já está guardada, e é ela que não se pode perder.
-    Rails.logger.error("[forms] submission action failed: #{e.class}")
-    registar_falha(action)
   end
 
   def mover_etapa(action)
