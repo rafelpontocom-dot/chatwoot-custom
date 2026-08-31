@@ -5,7 +5,7 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
     public_title public_description public_slug
   ].freeze
 
-  before_action :fetch_procedure, only: [:show, :update]
+  before_action :fetch_procedure, only: [:show, :update, :destroy]
 
   def index
     authorize KanbanCalendarProcedure, :index?
@@ -31,6 +31,22 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
     @procedure.update!(procedure_params)
     render json: procedure_payload(@procedure)
   rescue ActiveRecord::RecordInvalid => e
+    render_invalid_record(e.record)
+  end
+
+  # Mesmo critério das agendas: apaga quando é seguro, arquiva quando há
+  # consulta marcada, e devolve qual dos dois aconteceu.
+  def destroy
+    authorize @procedure, :configure?
+
+    if @procedure.kanban_calendar_appointments.exists?
+      @procedure.update!(active: false)
+      render json: procedure_payload(@procedure).merge(outcome: 'archived')
+    else
+      @procedure.destroy!
+      render json: { id: @procedure.id, outcome: 'deleted' }
+    end
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed => e
     render_invalid_record(e.record)
   end
 

@@ -217,7 +217,10 @@
         "VIDEO": "Vídeo",
         "PHONE": "Telefone",
         "OTHER": "Outro"
-      }
+      },
+      "REMOVE_RESOURCE": "Apagar",
+      "ARCHIVED": "arquivada",
+      "REMOVE_RESOURCE_CONFIRM": "Apagar a agenda \"{name}\"? Se já houver consultas marcadas, ela será arquivada em vez de apagada."
     },
     "DETAIL": {
       "TITLE": "Detalhes do agendamento",

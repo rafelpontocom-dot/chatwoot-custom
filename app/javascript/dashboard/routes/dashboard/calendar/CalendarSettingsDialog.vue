@@ -682,6 +682,39 @@ const toggleResource = async resource => {
   }
 };
 
+// Apagar de verdade quando dá, arquivar quando há consulta marcada — e dizer
+// qual dos dois aconteceu, porque a diferença importa para quem administra.
+const removeResource = async resource => {
+  if (isSaving.value) return;
+
+  const confirmacao = window.confirm(
+    t('CALENDAR.SETTINGS.REMOVE_RESOURCE_CONFIRM', { name: resource.name })
+  );
+  if (!confirmacao) return;
+
+  isSaving.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.archiveResource(resource.id);
+    if (response.data?.outcome === 'deleted') {
+      resources.value = resources.value.filter(item => item.id !== resource.id);
+    } else {
+      resources.value = resources.value.map(item =>
+        item.id === response.data.id ? response.data : item
+      );
+    }
+    if (availabilityResourceId.value === resource.id) {
+      availabilityResourceId.value = null;
+      availabilityRules.value = [];
+    }
+    emit('updated');
+  } catch (removeError) {
+    error.value = getErrorMessage(removeError);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
 const loadAvailabilityRules = async resourceId => {
   if (!resourceId) return;
 
@@ -1353,9 +1386,22 @@ defineExpose({ open });
               class="flex items-center justify-between gap-3 rounded-md border border-n-weak px-3 py-2"
             >
               <div class="grid gap-0.5">
-                <span class="text-sm font-medium text-n-slate-12">{{
-                  resource.name
-                }}</span>
+                <span
+                  class="flex items-center gap-2 text-sm font-medium text-n-slate-12"
+                >
+                  {{ resource.name }}
+                  <!--
+                    Agenda inativa era idêntica a uma ativa na lista, o que fazia
+                    parecer que desativar não tinha funcionado.
+                  -->
+                  <span
+                    v-if="!resource.active"
+                    data-testid="calendar-resource-archived"
+                    class="rounded-full bg-n-amber-3 px-2 py-0.5 text-micro font-semibold text-n-amber-11"
+                  >
+                    {{ t('CALENDAR.SETTINGS.ARCHIVED') }}
+                  </span>
+                </span>
                 <span class="text-xs text-n-slate-11">
                   {{ resourceTypeLabel(resource.resource_type) }}
                 </span>
@@ -1383,6 +1429,16 @@ defineExpose({ open });
                 :label="resourceToggleLabel(resource)"
                 :disabled="isSaving"
                 @click="toggleResource(resource)"
+              />
+              <NextButton
+                type="button"
+                xs
+                outline
+                ruby
+                data-testid="calendar-remove-resource"
+                :label="t('CALENDAR.SETTINGS.REMOVE_RESOURCE')"
+                :disabled="isSaving"
+                @click="removeResource(resource)"
               />
             </article>
           </div>

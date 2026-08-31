@@ -217,7 +217,10 @@
         "VIDEO": "Video",
         "PHONE": "Phone",
         "OTHER": "Other"
-      }
+      },
+      "REMOVE_RESOURCE": "Delete",
+      "ARCHIVED": "archived",
+      "REMOVE_RESOURCE_CONFIRM": "Delete the agenda \"{name}\"? If it already has appointments it will be archived instead."
     },
     "DETAIL": {
       "TITLE": "Appointment details",

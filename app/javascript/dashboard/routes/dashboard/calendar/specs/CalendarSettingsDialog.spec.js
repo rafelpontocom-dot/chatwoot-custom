@@ -29,6 +29,8 @@ vi.mock('dashboard/api/calendar', () => ({
     updateProcedure: vi.fn(),
     createResource: vi.fn(),
     updateResource: vi.fn(),
+    archiveResource: vi.fn(),
+    archiveProcedure: vi.fn(),
   },
 }));
 
@@ -447,6 +449,111 @@ describe('CalendarSettingsDialog', () => {
     expect(CalendarAPI.updateResource).toHaveBeenCalledWith(4, {
       resource: { active: false },
     });
+  });
+
+  it('removes an agenda outright when the API says it was deleted', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 4,
+          name: 'Sala 1',
+          resource_type: 'room',
+          timezone: 'America/Sao_Paulo',
+          active: true,
+        },
+      ],
+    });
+    CalendarAPI.archiveResource.mockResolvedValue({
+      data: { id: 4, outcome: 'deleted' },
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-remove-resource"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.archiveResource).toHaveBeenCalledWith(4);
+    expect(
+      wrapper.find('[data-testid="calendar-remove-resource"]').exists()
+    ).toBe(false);
+  });
+
+  it('keeps the agenda in the list, marked, when it could only be archived', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 4,
+          name: 'Sala 1',
+          resource_type: 'room',
+          timezone: 'America/Sao_Paulo',
+          active: true,
+        },
+      ],
+    });
+    CalendarAPI.archiveResource.mockResolvedValue({
+      data: {
+        id: 4,
+        name: 'Sala 1',
+        resource_type: 'room',
+        active: false,
+        outcome: 'archived',
+      },
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-remove-resource"]')
+      .trigger('click');
+    await flushPromises();
+
+    // Arquivada continua visível, mas marcada — antes ficava idêntica a uma ativa.
+    expect(
+      wrapper.find('[data-testid="calendar-resource-archived"]').exists()
+    ).toBe(true);
+  });
+
+  it('does nothing when the confirmation is dismissed', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 4,
+          name: 'Sala 1',
+          resource_type: 'room',
+          timezone: 'America/Sao_Paulo',
+          active: true,
+        },
+      ],
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="calendar-remove-resource"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.archiveResource).not.toHaveBeenCalled();
   });
 
   it('edits an existing resource without creating another one', async () => {

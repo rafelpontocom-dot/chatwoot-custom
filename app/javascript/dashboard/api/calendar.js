@@ -50,12 +50,21 @@ class CalendarAPI extends ApiClient {
     return axios.patch(`${this.url}/procedures/${id}`, payload);
   }
 
+  // Arquiva: consulta já marcada é histórico clínico e não pode desaparecer.
+  archiveProcedure(id) {
+    return axios.delete(`${this.url}/procedures/${id}`);
+  }
+
   createResource(payload) {
     return axios.post(`${this.url}/resources`, payload);
   }
 
   updateResource(id, payload) {
     return axios.patch(`${this.url}/resources/${id}`, payload);
+  }
+
+  archiveResource(id) {
+    return axios.delete(`${this.url}/resources/${id}`);
   }
 
   getGoogleCalendarConnection(resourceId) {

@@ -128,10 +128,10 @@ Rails.application.routes.draw do
           end
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           namespace :calendar do
-            resources :procedures, only: [:index, :show, :create, :update]
+            resources :procedures, only: [:index, :show, :create, :update, :destroy]
             resource :booking_page, controller: 'booking_page', only: [:show, :update]
             resources :booking_links, controller: 'booking_links', only: [:index, :create]
-            resources :resources, only: [:index, :show, :create, :update] do
+            resources :resources, only: [:index, :show, :create, :update, :destroy] do
               resource :google_calendar_connection,
                        controller: 'google_calendar_connections',
                        only: [:show, :destroy] do
