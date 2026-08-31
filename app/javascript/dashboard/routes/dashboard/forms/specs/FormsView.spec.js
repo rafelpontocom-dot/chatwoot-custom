@@ -41,6 +41,13 @@ vi.mock('dashboard/composables/store', () => ({
 }));
 vi.mock('shared/helpers/clipboard', () => ({ copyTextToClipboard: vi.fn() }));
 
+/** A marca vive agora na aba Design do painel, não nas configurações. */
+const abrirDesign = async wrapper => {
+  await wrapper.get('[data-test="forms-settings-tab-design"]').trigger('click');
+  await flushPromises();
+  return wrapper;
+};
+
 const mountForms = ({ boards = [], agents = [], teams = [] } = {}) => {
   mockBoards = boards;
   mockAgents = agents;
@@ -69,6 +76,15 @@ const mountForms = ({ boards = [], agents = [], teams = [] } = {}) => {
             '<div><slot /><button data-test="dialog-confirm" @click="$emit(\'confirm\')" /></div>',
         },
         FormsBuilderSettingsDialog,
+        // O painel de design tem spec próprio. Aqui só interessa que o
+        // FormsView reaja aos eventos dele.
+        FormsDesignPanel: {
+          emits: ['update', 'uploadBrandLogo', 'removeBrandLogo'],
+          template: `<div>
+            <input type="file" data-test="design-logo-input" @change="$emit('uploadBrandLogo', $event)" />
+            <button data-test="design-logo-remove" @click="$emit('removeBrandLogo')" />
+          </div>`,
+        },
         Draggable: {
           props: {
             modelValue: { type: Array, default: () => [] },
@@ -339,16 +355,20 @@ describe('FormsView', () => {
     const wrapper = mountForms();
     await flushPromises();
 
+    await abrirDesign(wrapper);
+
     const file = new File(['logo'], 'logo.png', { type: 'image/png' });
-    const input = wrapper.get('input[type="file"]');
+    const input = wrapper.get('[data-test="design-logo-input"]');
     Object.defineProperty(input.element, 'files', { value: [file] });
     await input.trigger('change');
     await flushPromises();
 
     expect(FormsAPI.uploadTemplateLogo).toHaveBeenCalledWith(9, file);
-    expect(
-      wrapper.get('img[alt="Captação de consulta"]').attributes('src')
-    ).toBe('/rails/active_storage/blobs/logo');
+    // A pré-visualização vive no painel de design, que tem spec próprio; aqui
+    // o que importa é o editor ficar com a URL que o servidor devolveu.
+    expect(wrapper.vm.editor.brandLogoUrl).toBe(
+      '/rails/active_storage/blobs/logo'
+    );
   });
 
   it('removes the uploaded form logo without changing the editor settings', async () => {
@@ -380,11 +400,9 @@ describe('FormsView', () => {
     const wrapper = mountForms();
     await flushPromises();
 
-    const remove = wrapper
-      .findAll('button')
-      .find(item =>
-        item.text().includes('FORMS.EDITOR.BRAND_LOGO_REMOVE_ACTION')
-      );
+    await abrirDesign(wrapper);
+
+    const remove = wrapper.get('[data-test="design-logo-remove"]');
     await remove.trigger('click');
     await flushPromises();
 

@@ -93,6 +93,11 @@ const updateSchemaLogics = logics => {
   editor.value.schema.logics = logics;
 };
 
+const updateEditorSettings = patch => {
+  if (!editor.value) return;
+  Object.assign(editor.value.settings, patch);
+};
+
 const updateSubmissionActions = actions => {
   if (!editor.value) return;
   editor.value.schema.submission_actions = actions;
@@ -2384,6 +2389,10 @@ onBeforeUnmount(() => {
               :variables="editor.schema.variables || []"
               :endings="editor.schema.endings || []"
               :hidden-fields="editor.schema.hidden_fields || []"
+              :settings="editor.settings"
+              :form-name="editor.name"
+              :brand-logo-url="editor.brandLogoUrl || ''"
+              :is-uploading-brand-logo="isUploadingBrandLogo"
               :can-map-to-crm="!isSensitiveHealth"
               :is-uploading-content-image="isUploadingContentImage"
               @upload-content-image="uploadContentImage"
@@ -2399,6 +2408,9 @@ onBeforeUnmount(() => {
               @remove-field="removeSelectedBuilderField"
               @update-logics="updateSchemaLogics"
               @update-variables="updateSchemaVariables"
+              @update-settings="updateEditorSettings"
+              @upload-brand-logo="uploadBrandLogo"
+              @remove-brand-logo="removeBrandLogo"
             />
           </section>
 
@@ -2488,89 +2500,6 @@ onBeforeUnmount(() => {
                         </option>
                         <option value="pt_PT">
                           {{ t('FORMS.LOCALES.PT_PT') }}
-                        </option>
-                      </select>
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.BRAND_NAME') }}
-                      <input
-                        v-model="editor.settings.brand_name"
-                        :placeholder="t('FORMS.EDITOR.BRAND_NAME_PLACEHOLDER')"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.BRAND_LOGO_URL') }}
-                      <input
-                        v-model="editor.settings.brand_logo_url"
-                        type="url"
-                        :placeholder="
-                          t('FORMS.EDITOR.BRAND_LOGO_URL_PLACEHOLDER')
-                        "
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      />
-                    </label>
-                    <div class="grid gap-2 text-sm text-n-slate-11">
-                      <p class="font-medium">
-                        {{ t('FORMS.EDITOR.BRAND_LOGO_UPLOAD') }}
-                      </p>
-                      <div class="flex items-center gap-3">
-                        <img
-                          v-if="editor.brandLogoUrl"
-                          :src="editor.brandLogoUrl"
-                          :alt="editor.settings.brand_name || editor.name"
-                          class="size-10 rounded border border-n-slate-4 bg-n-solid-1 object-contain p-1"
-                        />
-                        <label
-                          class="inline-flex min-h-10 cursor-pointer items-center rounded border border-n-slate-5 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
-                        >
-                          <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp"
-                            class="sr-only"
-                            :disabled="isUploadingBrandLogo"
-                            @change="uploadBrandLogo"
-                          />
-                          {{
-                            isUploadingBrandLogo
-                              ? t('FORMS.EDITOR.BRAND_LOGO_UPLOADING')
-                              : t('FORMS.EDITOR.BRAND_LOGO_UPLOAD_ACTION')
-                          }}
-                        </label>
-                        <button
-                          v-if="editor.brandLogoUrl"
-                          type="button"
-                          class="inline-flex min-h-10 items-center rounded px-3 text-sm font-medium text-n-ruby-11 transition hover:bg-n-ruby-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6 disabled:cursor-not-allowed disabled:opacity-50"
-                          :disabled="isUploadingBrandLogo"
-                          @click="removeBrandLogo"
-                        >
-                          {{ t('FORMS.EDITOR.BRAND_LOGO_REMOVE_ACTION') }}
-                        </button>
-                      </div>
-                      <p class="text-xs leading-5 text-n-slate-10">
-                        {{ t('FORMS.EDITOR.BRAND_LOGO_UPLOAD_HINT') }}
-                      </p>
-                    </div>
-                    <label
-                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                    >
-                      {{ t('FORMS.EDITOR.THEME') }}
-                      <select
-                        v-model="editor.settings.theme"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      >
-                        <option value="calm">
-                          {{ t('FORMS.EDITOR.THEMES.CALM') }}
-                        </option>
-                        <option value="warm">
-                          {{ t('FORMS.EDITOR.THEMES.WARM') }}
-                        </option>
-                        <option value="contrast">
-                          {{ t('FORMS.EDITOR.THEMES.CONTRAST') }}
                         </option>
                       </select>
                     </label>

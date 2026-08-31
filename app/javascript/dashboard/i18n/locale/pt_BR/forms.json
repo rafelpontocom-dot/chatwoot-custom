@@ -446,7 +446,8 @@
     "LOGIC": {
       "TABS": {
         "QUESTION": "Pergunta",
-        "LOGIC": "Lógica"
+        "LOGIC": "Lógica",
+        "DESIGN": "Design"
       },
       "HIDDEN_FIELDS": "Campos ocultos",
       "HIDDEN_FIELDS_HELP": "Preenchidos pelo convite, nunca mostrados ao paciente.",

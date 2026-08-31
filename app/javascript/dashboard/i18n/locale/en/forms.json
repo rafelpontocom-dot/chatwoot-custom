@@ -446,7 +446,8 @@
     "LOGIC": {
       "TABS": {
         "QUESTION": "Question",
-        "LOGIC": "Logic"
+        "LOGIC": "Logic",
+        "DESIGN": "Design"
       },
       "HIDDEN_FIELDS": "Hidden fields",
       "HIDDEN_FIELDS_HELP": "Filled by the invitation, never shown to the patient.",

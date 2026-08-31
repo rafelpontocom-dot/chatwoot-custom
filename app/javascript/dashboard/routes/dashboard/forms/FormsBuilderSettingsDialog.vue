@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import FormRichTextEditor from './FormRichTextEditor.vue';
+import FormsDesignPanel from './FormsDesignPanel.vue';
 import FormsLogicPanel from './FormsLogicPanel.vue';
 
 // A mesma definição serve às duas superfícies. Em `inline` ela é a terceira
@@ -29,6 +30,10 @@ const props = defineProps({
   variables: { type: Array, default: () => [] },
   endings: { type: Array, default: () => [] },
   hiddenFields: { type: Array, default: () => [] },
+  settings: { type: Object, default: () => ({}) },
+  formName: { type: String, default: '' },
+  brandLogoUrl: { type: String, default: '' },
+  isUploadingBrandLogo: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -45,6 +50,9 @@ const emit = defineEmits([
   'removeField',
   'updateLogics',
   'updateVariables',
+  'updateSettings',
+  'uploadBrandLogo',
+  'removeBrandLogo',
 ]);
 
 const { t } = useI18n();
@@ -62,6 +70,9 @@ const hasLogicTab = computed(() => props.inline && Boolean(props.field));
 const showLogic = computed(
   () => hasLogicTab.value && activeTab.value === 'logic'
 );
+// O design é do formulário inteiro, por isso a aba existe mesmo sem pergunta
+// selecionada — ao contrário da lógica, que é sempre de uma pergunta.
+const showDesign = computed(() => props.inline && activeTab.value === 'design');
 
 watch(
   () => props.field?.key,
@@ -121,11 +132,14 @@ defineExpose({ open, close });
     data-test="forms-builder-settings"
   >
     <div v-if="inline" class="border-b border-n-weak">
-      <div v-if="hasLogicTab" class="flex gap-1 px-3" role="tablist">
+      <div v-if="inline" class="flex gap-1 px-3" role="tablist">
         <button
           v-for="tab in [
             { id: 'question', label: t('FORMS.LOGIC.TABS.QUESTION') },
-            { id: 'logic', label: t('FORMS.LOGIC.TABS.LOGIC') },
+            { id: 'design', label: t('FORMS.LOGIC.TABS.DESIGN') },
+            ...(hasLogicTab
+              ? [{ id: 'logic', label: t('FORMS.LOGIC.TABS.LOGIC') }]
+              : []),
           ]"
           :key="tab.id"
           type="button"
@@ -151,8 +165,18 @@ defineExpose({ open, close });
       class="overflow-y-auto pr-1"
       :class="inline ? 'flex-1 px-4 py-3' : 'max-h-[70vh]'"
     >
+      <FormsDesignPanel
+        v-if="showDesign"
+        :settings="settings"
+        :form-name="formName"
+        :brand-logo-url="brandLogoUrl"
+        :is-uploading-brand-logo="isUploadingBrandLogo"
+        @update="emit('updateSettings', $event)"
+        @upload-brand-logo="emit('uploadBrandLogo', $event)"
+        @remove-brand-logo="emit('removeBrandLogo')"
+      />
       <FormsLogicPanel
-        v-if="showLogic"
+        v-else-if="showLogic"
         :field="field"
         :fields="fields"
         :logics="logics"
