@@ -39,6 +39,7 @@ const lastEditorSnapshot = ref('');
 const editor = ref(null);
 const isLoading = ref(true);
 const isSaving = ref(false);
+const createError = ref('');
 const isLoadingSubmissions = ref(false);
 const isExportingSubmission = ref(false);
 const error = ref('');
@@ -511,6 +512,21 @@ function selectTemplate(template) {
   error.value = '';
 }
 
+/**
+ * Sai do editor e devolve a lista.
+ *
+ * Sem isto não havia volta: ao entrar em Formulários o primeiro modelo abre
+ * sozinho, e como o modo de edição recolhe a lista, quem tinha cinco
+ * formulários só conseguia editar o primeiro.
+ */
+function closeEditor() {
+  editor.value = null;
+  selectedTemplateId.value = null;
+  selectedBuilderFieldKey.value = '';
+  selectedBuilderContentBlockId.value = '';
+  error.value = '';
+}
+
 function selectBuilderSection(index) {
   activeBuilderSectionIndex.value = index;
   selectedBuilderContentBlockId.value = '';
@@ -833,6 +849,21 @@ const publishingChecklist = computed(() => {
     },
   ].filter(item => item.visible !== false);
 });
+
+/**
+ * O que ainda falta, por palavras.
+ *
+ * A mensagem de publicação era uma frase só — «reveja os campos obrigatórios,
+ * as opções de seleção e as condições» — para oito causas diferentes. As
+ * razões reais existiam, mas escondidas atrás do contador «Publicação 1/3»,
+ * que ninguém tem motivo para abrir depois de um erro.
+ */
+const missingToPublish = computed(() =>
+  publishingChecklist.value
+    .filter(item => !item.complete)
+    .map(item => item.label)
+);
+
 const completedPublishingChecks = computed(
   () => publishingChecklist.value.filter(item => item.complete).length
 );
@@ -1019,7 +1050,13 @@ function starterAccessClassification() {
 }
 
 async function createTemplate() {
-  if (!newTemplate.value.name.trim() || !newTemplate.value.slug.trim()) return;
+  // Voltava sem dizer nada: quem deixasse o identificador vazio carregava em
+  // «Criar formulário» e não acontecia rigorosamente nada.
+  if (!newTemplate.value.name.trim() || !newTemplate.value.slug.trim()) {
+    createError.value = t('FORMS.ERROR.CREATE_NEEDS_NAME_AND_SLUG');
+    return;
+  }
+  createError.value = '';
 
   isSaving.value = true;
   error.value = '';
@@ -1093,7 +1130,9 @@ async function duplicateTemplate() {
 
 async function saveAndPublish() {
   if (!editorIsValid()) {
-    error.value = t('FORMS.ERROR.INVALID_CONFIGURATION');
+    error.value = missingToPublish.value.length
+      ? `${t('FORMS.ERROR.MISSING_TO_PUBLISH')} ${missingToPublish.value.join(' · ')}`
+      : t('FORMS.ERROR.INVALID_CONFIGURATION');
     return;
   }
 
@@ -1859,93 +1898,105 @@ onBeforeUnmount(() => {
           :class="isEditing ? 'w-full' : 'mx-auto max-w-5xl'"
         >
           <div class="flex items-start justify-between gap-4">
-            <div>
-              <h2 class="text-xl font-semibold text-n-slate-12">
-                {{ editor.name }}
-              </h2>
-              <div
-                class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-n-slate-10"
-                data-test="forms-status-line"
+            <div class="flex min-w-0 items-start gap-2">
+              <button
+                type="button"
+                class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                :aria-label="t('FORMS.ACTIONS.BACK_TO_LIST')"
+                :title="t('FORMS.ACTIONS.BACK_TO_LIST')"
+                data-test="forms-back-to-list"
+                @click="closeEditor"
               >
-                <span
-                  class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold"
-                  :class="
-                    isPublished
-                      ? 'bg-n-teal-3 text-n-teal-11'
-                      : 'bg-n-amber-3 text-n-amber-11'
-                  "
+                <span class="i-lucide-arrow-left size-4" aria-hidden="true" />
+              </button>
+              <div class="min-w-0">
+                <h2 class="text-xl font-semibold text-n-slate-12">
+                  {{ editor.name }}
+                </h2>
+                <div
+                  class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-n-slate-10"
+                  data-test="forms-status-line"
                 >
                   <span
-                    class="size-1.5 rounded-full bg-current"
+                    class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="
+                      isPublished
+                        ? 'bg-n-teal-3 text-n-teal-11'
+                        : 'bg-n-amber-3 text-n-amber-11'
+                    "
+                  >
+                    <span
+                      class="size-1.5 rounded-full bg-current"
+                      aria-hidden="true"
+                    />
+                    {{
+                      isPublished
+                        ? t('FORMS.STATUS.PUBLISHED')
+                        : t('FORMS.STATUS.DRAFT')
+                    }}
+                  </span>
+                  <span>{{ statusLine }}</span>
+                </div>
+                <div
+                  v-if="hasUnsavedChanges || localDraftRestored"
+                  class="mt-2 flex items-center gap-2 text-xs text-n-amber-11"
+                  data-test="forms-local-draft-status"
+                >
+                  <span
+                    class="i-lucide-cloud-check size-3.5"
                     aria-hidden="true"
                   />
-                  {{
-                    isPublished
-                      ? t('FORMS.STATUS.PUBLISHED')
-                      : t('FORMS.STATUS.DRAFT')
-                  }}
-                </span>
-                <span>{{ statusLine }}</span>
-              </div>
-              <div
-                v-if="hasUnsavedChanges || localDraftRestored"
-                class="mt-2 flex items-center gap-2 text-xs text-n-amber-11"
-                data-test="forms-local-draft-status"
-              >
-                <span
-                  class="i-lucide-cloud-check size-3.5"
-                  aria-hidden="true"
-                />
-                <span>
-                  {{
-                    localDraftRestored
-                      ? t('FORMS.BUILDER.DRAFT_RESTORED')
-                      : t('FORMS.BUILDER.DRAFT_SAVED')
-                  }}
-                </span>
-                <button
-                  type="button"
-                  class="rounded px-1 font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-                  @click="discardLocalDraft"
+                  <span>
+                    {{
+                      localDraftRestored
+                        ? t('FORMS.BUILDER.DRAFT_RESTORED')
+                        : t('FORMS.BUILDER.DRAFT_SAVED')
+                    }}
+                  </span>
+                  <button
+                    type="button"
+                    class="rounded px-1 font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                    @click="discardLocalDraft"
+                  >
+                    {{ t('FORMS.BUILDER.DISCARD_DRAFT') }}
+                  </button>
+                </div>
+                <div
+                  class="mt-3 inline-flex rounded border border-n-slate-4 bg-n-slate-2 p-1"
+                  role="radiogroup"
+                  :aria-label="t('FORMS.EDITOR.PRESENTATION')"
                 >
-                  {{ t('FORMS.BUILDER.DISCARD_DRAFT') }}
-                </button>
-              </div>
-              <div
-                class="mt-3 inline-flex rounded border border-n-slate-4 bg-n-slate-2 p-1"
-                role="radiogroup"
-                :aria-label="t('FORMS.EDITOR.PRESENTATION')"
-              >
-                <button
-                  type="button"
-                  class="min-h-9 whitespace-nowrap rounded-full px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-                  :class="
-                    editor.settings.presentation === 'guided'
-                      ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
-                      : 'text-n-slate-10 hover:text-n-slate-12'
-                  "
-                  role="radio"
-                  :aria-checked="editor.settings.presentation === 'guided'"
-                  :title="t('FORMS.EDITOR.PRESENTATIONS.GUIDED_HINT')"
-                  @click="editor.settings.presentation = 'guided'"
-                >
-                  {{ t('FORMS.EDITOR.PRESENTATIONS.GUIDED') }}
-                </button>
-                <button
-                  type="button"
-                  class="min-h-9 whitespace-nowrap rounded-full px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-                  :class="
-                    editor.settings.presentation === 'sectioned'
-                      ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
-                      : 'text-n-slate-10 hover:text-n-slate-12'
-                  "
-                  role="radio"
-                  :aria-checked="editor.settings.presentation === 'sectioned'"
-                  :title="t('FORMS.EDITOR.PRESENTATIONS.SECTIONED_HINT')"
-                  @click="editor.settings.presentation = 'sectioned'"
-                >
-                  {{ t('FORMS.EDITOR.PRESENTATIONS.SECTIONED') }}
-                </button>
+                  <button
+                    type="button"
+                    class="min-h-9 whitespace-nowrap rounded-full px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+                    :class="
+                      editor.settings.presentation === 'guided'
+                        ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
+                        : 'text-n-slate-10 hover:text-n-slate-12'
+                    "
+                    role="radio"
+                    :aria-checked="editor.settings.presentation === 'guided'"
+                    :title="t('FORMS.EDITOR.PRESENTATIONS.GUIDED_HINT')"
+                    @click="editor.settings.presentation = 'guided'"
+                  >
+                    {{ t('FORMS.EDITOR.PRESENTATIONS.GUIDED') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="min-h-9 whitespace-nowrap rounded-full px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+                    :class="
+                      editor.settings.presentation === 'sectioned'
+                        ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
+                        : 'text-n-slate-10 hover:text-n-slate-12'
+                    "
+                    role="radio"
+                    :aria-checked="editor.settings.presentation === 'sectioned'"
+                    :title="t('FORMS.EDITOR.PRESENTATIONS.SECTIONED_HINT')"
+                    @click="editor.settings.presentation = 'sectioned'"
+                  >
+                    {{ t('FORMS.EDITOR.PRESENTATIONS.SECTIONED') }}
+                  </button>
+                </div>
               </div>
             </div>
             <div class="flex shrink-0 items-center gap-2">
@@ -2961,6 +3012,14 @@ onBeforeUnmount(() => {
     :is-loading="isSaving"
     @confirm="createTemplate"
   >
+    <p
+      v-if="createError"
+      class="mb-0 rounded border border-n-ruby-6 bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
+      role="alert"
+      data-test="forms-create-error"
+    >
+      {{ createError }}
+    </p>
     <label class="grid gap-1.5 text-sm font-medium text-n-slate-11">
       {{ t('FORMS.NEW_DIALOG.NAME') }}
       <input

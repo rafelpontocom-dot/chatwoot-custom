@@ -23,7 +23,8 @@
       "MOVE_DOWN": "Move down",
       "REMOVE": "Remove",
       "CLOSE": "Close",
-      "MORE": "More actions"
+      "MORE": "More actions",
+      "BACK_TO_LIST": "Back to forms"
     },
     "BUILDER": {
       "PREVIEW": "Live preview",
@@ -413,7 +414,9 @@
       "REVOKE": "Could not revoke the form link.",
       "SAVE": "Could not save form.",
       "REQUIRED": "Fill in name, identifier, and at least one section.",
-      "INVALID_CONFIGURATION": "Review required fields, selection options, and conditions before publishing."
+      "INVALID_CONFIGURATION": "Review required fields, selection options, and conditions before publishing.",
+      "MISSING_TO_PUBLISH": "Before publishing, finish:",
+      "CREATE_NEEDS_NAME_AND_SLUG": "Give the form a name and a link identifier."
     },
     "CANVAS": {
       "SECTION_OF": "Step {current} of {total}",

@@ -295,6 +295,39 @@ describe('FormsView', () => {
     expect(secoes).not.toContain('destination');
   });
 
+  it('offers a way back to the form list', async () => {
+    // O editor abre sozinho ao entrar e o modo de edição recolhe a lista: sem
+    // isto, quem tinha cinco formulários só conseguia editar o primeiro.
+    FormsAPI.getTemplates.mockResolvedValue({ data: [templateBase()] });
+    const wrapper = mountForms({
+      boards: [{ id: 1, inboxes: [{ id: 3 }], stages: [{ id: 2 }] }],
+    });
+    await flushPromises();
+
+    expect(wrapper.vm.isEditing).toBe(true);
+
+    await wrapper.get('[data-test="forms-back-to-list"]').trigger('click');
+
+    expect(wrapper.vm.isEditing).toBe(false);
+    expect(wrapper.findAll('main > div > aside')).toHaveLength(1);
+  });
+
+  it('says which form could not be created instead of doing nothing', async () => {
+    FormsAPI.getTemplates.mockResolvedValue({ data: [] });
+    const wrapper = mountForms();
+    await flushPromises();
+
+    wrapper.vm.newTemplate.name = 'Inquérito';
+    wrapper.vm.newTemplate.slug = '';
+    await wrapper.vm.createTemplate();
+    await flushPromises();
+
+    expect(FormsAPI.createTemplate).not.toHaveBeenCalled();
+    expect(wrapper.vm.createError).toBe(
+      'FORMS.ERROR.CREATE_NEEDS_NAME_AND_SLUG'
+    );
+  });
+
   it('keeps structure, form and properties as three persistent columns', async () => {
     // Antes a estrutura era um painel absoluto por cima do canvas e as
     // propriedades eram um modal: as duas tapavam o formulário a ser escrito.
@@ -1185,7 +1218,9 @@ describe('FormsView', () => {
     await save.trigger('click');
 
     expect(FormsAPI.publishTemplate).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain('FORMS.ERROR.INVALID_CONFIGURATION');
+    // A mensagem passou a nomear o que falta, em vez de mandar rever tudo.
+    expect(wrapper.text()).toContain('FORMS.ERROR.MISSING_TO_PUBLISH');
+    expect(wrapper.text()).toContain('FORMS.BUILDER.CHECKLIST.QUESTIONS');
   });
 
   it('adds a reusable contact group with unique field keys', async () => {

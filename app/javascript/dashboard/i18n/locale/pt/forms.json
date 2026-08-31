@@ -23,7 +23,8 @@
       "MOVE_DOWN": "Mover para baixo",
       "REMOVE": "Remover",
       "CLOSE": "Fechar",
-      "MORE": "Mais ações"
+      "MORE": "Mais ações",
+      "BACK_TO_LIST": "Voltar aos formulários"
     },
     "BUILDER": {
       "PREVIEW": "Prévia ao vivo",
@@ -413,7 +414,9 @@
       "REVOKE": "Não foi possível revogar o link do formulário.",
       "SAVE": "Não foi possível guardar o formulário.",
       "REQUIRED": "Preencha nome, identificador e pelo menos uma secção.",
-      "INVALID_CONFIGURATION": "Revise os campos obrigatórios, as opções de seleção e as condições antes de publicar."
+      "INVALID_CONFIGURATION": "Revise os campos obrigatórios, as opções de seleção e as condições antes de publicar.",
+      "MISSING_TO_PUBLISH": "Antes de publicar, conclua:",
+      "CREATE_NEEDS_NAME_AND_SLUG": "Dê ao formulário um nome e um identificador de link."
     },
     "CANVAS": {
       "SECTION_OF": "Etapa {current} de {total}",
