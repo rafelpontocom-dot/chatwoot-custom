@@ -152,6 +152,33 @@ const statusLine = computed(() => statusParts.value.join(' · '));
 const isSensitiveHealth = computed(
   () => editor.value?.accessClassification === 'sensitive_health'
 );
+
+/**
+ * As configurações em navegação lateral, uma secção de cada vez.
+ *
+ * O acordeão mostrava as cinco de uma vez e obrigava a rolar por marca,
+ * publicação, automação e acesso clínico para chegar ao destino do CRM.
+ */
+const settingsSection = ref('identity');
+
+const settingsSections = computed(() =>
+  [
+    'identity',
+    'publishing',
+    'automation',
+    // Só existe em formulário clínico; noutro, a secção nem se oferece.
+    ...(isSensitiveHealth.value ? ['clinical'] : []),
+    ...(isSensitiveHealth.value ? [] : ['destination']),
+  ].map(id => ({ id, label: t(`FORMS.SETTINGS_NAV.${id.toUpperCase()}`) }))
+);
+
+// Trocar de formulário pode tirar do ar a secção aberta.
+watch(settingsSections, sections => {
+  if (!sections.some(item => item.id === settingsSection.value)) {
+    settingsSection.value = sections[0].id;
+  }
+});
+
 const selectedBoard = computed(() =>
   boards.value.find(
     board => String(board.id) === String(editor.value?.crmDestination?.boardId)
@@ -2369,565 +2396,600 @@ onBeforeUnmount(() => {
             />
           </section>
 
-          <details
-            class="group rounded border border-n-slate-4 bg-n-solid-1"
+          <!--
+            As configurações deixam de ser um acordeão onde tudo aparecia de
+            uma vez. Navegação à esquerda, uma secção de cada vez à direita —
+            quem procura o destino do CRM não passa pela marca nem pelo acesso
+            clínico para lá chegar.
+          -->
+          <div
+            class="grid gap-4 rounded border border-n-slate-4 bg-n-solid-1 p-4 md:grid-cols-[13rem_minmax(0,1fr)]"
             data-test="forms-advanced-settings"
           >
-            <summary
-              class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 text-sm font-semibold text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-teal-6 [&::-webkit-details-marker]:hidden"
+            <nav
+              class="grid content-start gap-1"
+              :aria-label="t('FORMS.BUILDER.ADVANCED')"
             >
-              <span>{{ t('FORMS.BUILDER.ADVANCED') }}</span>
-              <span
-                class="i-lucide-chevron-down size-4 text-n-slate-10 transition group-open:rotate-180"
-                aria-hidden="true"
-              />
-            </summary>
-            <div class="space-y-5 border-t border-n-slate-4 p-5">
+              <button
+                v-for="item in settingsSections"
+                :key="item.id"
+                type="button"
+                class="flex min-h-9 items-center rounded px-3 text-start text-sm font-medium transition"
+                :class="
+                  settingsSection === item.id
+                    ? 'bg-n-teal-3 text-n-teal-11'
+                    : 'text-n-slate-11 hover:bg-n-slate-3'
+                "
+                :aria-current="settingsSection === item.id ? 'page' : undefined"
+                :data-test="`forms-settings-nav-${item.id}`"
+                @click="settingsSection = item.id"
+              >
+                {{ item.label }}
+              </button>
+            </nav>
+            <div class="min-w-0 space-y-5">
               <section class="rounded border border-n-slate-4 bg-n-solid-1 p-5">
-                <h3 class="text-sm font-semibold text-n-slate-12">
-                  {{ t('FORMS.EDITOR.DETAILS') }}
-                </h3>
-                <div class="mt-4 grid gap-4 md:grid-cols-2">
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.NEW_DIALOG.NAME') }}
-                    <input
-                      v-model="editor.name"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.NEW_DIALOG.SLUG') }}
-                    <input
-                      v-model="editor.slug"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.NEW_DIALOG.CATEGORY') }}
-                    <select
-                      v-model="editor.category"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                <div v-show="settingsSection === 'identity'">
+                  <h3 class="text-sm font-semibold text-n-slate-12">
+                    {{ t('FORMS.EDITOR.DETAILS') }}
+                  </h3>
+                  <div class="mt-4 grid gap-4 md:grid-cols-2">
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
                     >
-                      <option
-                        v-for="category in categories"
-                        :key="category.value"
-                        :value="category.value"
-                      >
-                        {{ category.label }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.LOCALE') }}
-                    <select
-                      v-model="editor.settings.locale"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    >
-                      <option value="pt_BR">
-                        {{ t('FORMS.LOCALES.PT_BR') }}
-                      </option>
-                      <option value="pt_PT">
-                        {{ t('FORMS.LOCALES.PT_PT') }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.BRAND_NAME') }}
-                    <input
-                      v-model="editor.settings.brand_name"
-                      :placeholder="t('FORMS.EDITOR.BRAND_NAME_PLACEHOLDER')"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.BRAND_LOGO_URL') }}
-                    <input
-                      v-model="editor.settings.brand_logo_url"
-                      type="url"
-                      :placeholder="
-                        t('FORMS.EDITOR.BRAND_LOGO_URL_PLACEHOLDER')
-                      "
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </label>
-                  <div class="grid gap-2 text-sm text-n-slate-11">
-                    <p class="font-medium">
-                      {{ t('FORMS.EDITOR.BRAND_LOGO_UPLOAD') }}
-                    </p>
-                    <div class="flex items-center gap-3">
-                      <img
-                        v-if="editor.brandLogoUrl"
-                        :src="editor.brandLogoUrl"
-                        :alt="editor.settings.brand_name || editor.name"
-                        class="size-10 rounded border border-n-slate-4 bg-n-solid-1 object-contain p-1"
+                      {{ t('FORMS.NEW_DIALOG.NAME') }}
+                      <input
+                        v-model="editor.name"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                       />
-                      <label
-                        class="inline-flex min-h-10 cursor-pointer items-center rounded border border-n-slate-5 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.NEW_DIALOG.SLUG') }}
+                      <input
+                        v-model="editor.slug"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.NEW_DIALOG.CATEGORY') }}
+                      <select
+                        v-model="editor.category"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                       >
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          class="sr-only"
-                          :disabled="isUploadingBrandLogo"
-                          @change="uploadBrandLogo"
+                        <option
+                          v-for="category in categories"
+                          :key="category.value"
+                          :value="category.value"
+                        >
+                          {{ category.label }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.LOCALE') }}
+                      <select
+                        v-model="editor.settings.locale"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      >
+                        <option value="pt_BR">
+                          {{ t('FORMS.LOCALES.PT_BR') }}
+                        </option>
+                        <option value="pt_PT">
+                          {{ t('FORMS.LOCALES.PT_PT') }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.BRAND_NAME') }}
+                      <input
+                        v-model="editor.settings.brand_name"
+                        :placeholder="t('FORMS.EDITOR.BRAND_NAME_PLACEHOLDER')"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.BRAND_LOGO_URL') }}
+                      <input
+                        v-model="editor.settings.brand_logo_url"
+                        type="url"
+                        :placeholder="
+                          t('FORMS.EDITOR.BRAND_LOGO_URL_PLACEHOLDER')
+                        "
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                    <div class="grid gap-2 text-sm text-n-slate-11">
+                      <p class="font-medium">
+                        {{ t('FORMS.EDITOR.BRAND_LOGO_UPLOAD') }}
+                      </p>
+                      <div class="flex items-center gap-3">
+                        <img
+                          v-if="editor.brandLogoUrl"
+                          :src="editor.brandLogoUrl"
+                          :alt="editor.settings.brand_name || editor.name"
+                          class="size-10 rounded border border-n-slate-4 bg-n-solid-1 object-contain p-1"
                         />
-                        {{
-                          isUploadingBrandLogo
-                            ? t('FORMS.EDITOR.BRAND_LOGO_UPLOADING')
-                            : t('FORMS.EDITOR.BRAND_LOGO_UPLOAD_ACTION')
-                        }}
-                      </label>
-                      <button
-                        v-if="editor.brandLogoUrl"
-                        type="button"
-                        class="inline-flex min-h-10 items-center rounded px-3 text-sm font-medium text-n-ruby-11 transition hover:bg-n-ruby-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6 disabled:cursor-not-allowed disabled:opacity-50"
-                        :disabled="isUploadingBrandLogo"
-                        @click="removeBrandLogo"
-                      >
-                        {{ t('FORMS.EDITOR.BRAND_LOGO_REMOVE_ACTION') }}
-                      </button>
-                    </div>
-                    <p class="text-xs leading-5 text-n-slate-10">
-                      {{ t('FORMS.EDITOR.BRAND_LOGO_UPLOAD_HINT') }}
-                    </p>
-                  </div>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.THEME') }}
-                    <select
-                      v-model="editor.settings.theme"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    >
-                      <option value="calm">
-                        {{ t('FORMS.EDITOR.THEMES.CALM') }}
-                      </option>
-                      <option value="warm">
-                        {{ t('FORMS.EDITOR.THEMES.WARM') }}
-                      </option>
-                      <option value="contrast">
-                        {{ t('FORMS.EDITOR.THEMES.CONTRAST') }}
-                      </option>
-                    </select>
-                  </label>
-                </div>
-                <label
-                  class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
-                >
-                  {{ t('FORMS.EDITOR.PUBLIC_DESCRIPTION') }}
-                  <textarea
-                    v-model="editor.settings.description"
-                    rows="2"
-                    class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                  />
-                </label>
-                <label
-                  class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
-                >
-                  {{ t('FORMS.EDITOR.PRIVACY_POLICY_URL') }}
-                  <input
-                    v-model="editor.settings.privacy_policy_url"
-                    type="url"
-                    :placeholder="
-                      t('FORMS.EDITOR.PRIVACY_POLICY_URL_PLACEHOLDER')
-                    "
-                    class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                  />
-                </label>
-                <label
-                  v-if="!isSensitiveHealth"
-                  class="mt-4 flex min-h-10 items-center gap-3 text-sm font-medium text-n-slate-11"
-                >
-                  <input
-                    v-model="editor.publicEnabled"
-                    type="checkbox"
-                    class="size-4 accent-n-teal-9"
-                  />
-                  {{ t('FORMS.EDITOR.PUBLIC_ENABLED') }}
-                </label>
-                <div
-                  v-if="editor.publicEnabled && !isSensitiveHealth"
-                  class="mt-4 grid gap-3 rounded border border-n-slate-4 bg-n-slate-2 p-3 lg:grid-cols-2"
-                >
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.CAPTCHA_PROVIDER') }}
-                    <select
-                      v-model="editor.settings.captcha_provider"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    >
-                      <option value="">
-                        {{ t('FORMS.EDITOR.CAPTCHA_DISABLED') }}
-                      </option>
-                      <option value="turnstile">
-                        {{ t('FORMS.EDITOR.CAPTCHA_TURNSTILE') }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.CAPTCHA_SITE_KEY') }}
-                    <input
-                      v-model="editor.settings.captcha_site_key"
-                      :disabled="!editor.settings.captcha_provider"
-                      type="text"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
-                    />
-                  </label>
-                </div>
-                <label
-                  v-if="!isSensitiveHealth"
-                  class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
-                >
-                  {{ t('FORMS.EDITOR.ABANDONMENT_DELAY_HOURS') }}
-                  <input
-                    v-model.number="editor.settings.abandonment_delay_hours"
-                    type="number"
-                    min="1"
-                    max="720"
-                    class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    :placeholder="t('FORMS.EDITOR.ABANDONMENT_DISABLED')"
-                  />
-                  <span class="text-xs font-normal leading-5 text-n-slate-10">
-                    {{ t('FORMS.EDITOR.ABANDONMENT_HINT') }}
-                  </span>
-                </label>
-                <div
-                  v-if="!isSensitiveHealth"
-                  class="mt-4 grid gap-3 rounded border border-n-slate-4 bg-n-slate-2 p-3 lg:grid-cols-2"
-                >
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_FIELD') }}
-                    <select
-                      v-model="editor.settings.critical_response.field_key"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      @change="editor.settings.critical_response.value = ''"
-                    >
-                      <option value="">
-                        {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_DISABLED') }}
-                      </option>
-                      <option
-                        v-for="field in criticalResponseFields"
-                        :key="field.key"
-                        :value="field.key"
-                      >
-                        {{ field.label || field.key }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_VALUE') }}
-                    <select
-                      v-if="criticalResponseOptions.length"
-                      v-model="editor.settings.critical_response.value"
-                      :disabled="!editor.settings.critical_response.field_key"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
-                    >
-                      <option value="">
-                        {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_SELECT_VALUE') }}
-                      </option>
-                      <option
-                        v-for="option in criticalResponseOptions"
-                        :key="option"
-                        :value="option"
-                      >
-                        {{ option }}
-                      </option>
-                    </select>
-                    <input
-                      v-else
-                      v-model="editor.settings.critical_response.value"
-                      :disabled="!editor.settings.critical_response.field_key"
-                      type="text"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
-                    />
-                  </label>
-                  <p class="text-xs leading-5 text-n-slate-10 lg:col-span-2">
-                    {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_HINT') }}
-                  </p>
-                </div>
-                <p
-                  v-else
-                  class="mt-4 rounded border border-n-amber-6 bg-n-amber-2 px-3 py-2 text-sm text-n-amber-11"
-                >
-                  {{ t('FORMS.EDITOR.SENSITIVE_HEALTH_NOTICE') }}
-                </p>
-                <section
-                  v-if="isSensitiveHealth"
-                  data-test="forms-clinical-access"
-                  class="mt-4 rounded border border-n-slate-4 bg-n-slate-2 p-4"
-                >
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <h4 class="text-sm font-semibold text-n-slate-12">
-                        {{ t('FORMS.EDITOR.CLINICAL_ACCESS') }}
-                      </h4>
-                      <p class="mt-1 text-sm leading-6 text-n-slate-10">
-                        {{ t('FORMS.EDITOR.CLINICAL_ACCESS_DESCRIPTION') }}
+                        <label
+                          class="inline-flex min-h-10 cursor-pointer items-center rounded border border-n-slate-5 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+                        >
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            class="sr-only"
+                            :disabled="isUploadingBrandLogo"
+                            @change="uploadBrandLogo"
+                          />
+                          {{
+                            isUploadingBrandLogo
+                              ? t('FORMS.EDITOR.BRAND_LOGO_UPLOADING')
+                              : t('FORMS.EDITOR.BRAND_LOGO_UPLOAD_ACTION')
+                          }}
+                        </label>
+                        <button
+                          v-if="editor.brandLogoUrl"
+                          type="button"
+                          class="inline-flex min-h-10 items-center rounded px-3 text-sm font-medium text-n-ruby-11 transition hover:bg-n-ruby-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6 disabled:cursor-not-allowed disabled:opacity-50"
+                          :disabled="isUploadingBrandLogo"
+                          @click="removeBrandLogo"
+                        >
+                          {{ t('FORMS.EDITOR.BRAND_LOGO_REMOVE_ACTION') }}
+                        </button>
+                      </div>
+                      <p class="text-xs leading-5 text-n-slate-10">
+                        {{ t('FORMS.EDITOR.BRAND_LOGO_UPLOAD_HINT') }}
                       </p>
                     </div>
-                    <span
-                      class="shrink-0 rounded-full bg-n-teal-3 px-2.5 py-1 text-xs font-semibold text-n-teal-11"
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
                     >
-                      {{
-                        t('FORMS.EDITOR.CLINICAL_ACCESS_SELECTED', {
-                          count: clinicalAccessSelectionCount,
-                        })
-                      }}
-                    </span>
-                  </div>
-                  <div class="mt-3">
-                    <label class="sr-only" for="forms-clinical-access-search">
-                      {{ t('FORMS.EDITOR.CLINICAL_ACCESS_SEARCH') }}
+                      {{ t('FORMS.EDITOR.THEME') }}
+                      <select
+                        v-model="editor.settings.theme"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      >
+                        <option value="calm">
+                          {{ t('FORMS.EDITOR.THEMES.CALM') }}
+                        </option>
+                        <option value="warm">
+                          {{ t('FORMS.EDITOR.THEMES.WARM') }}
+                        </option>
+                        <option value="contrast">
+                          {{ t('FORMS.EDITOR.THEMES.CONTRAST') }}
+                        </option>
+                      </select>
                     </label>
-                    <input
-                      id="forms-clinical-access-search"
-                      v-model="clinicalAccessSearch"
-                      data-test="forms-clinical-access-search"
-                      type="search"
-                      :placeholder="t('FORMS.EDITOR.CLINICAL_ACCESS_SEARCH')"
-                      class="min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
                   </div>
-                  <div class="mt-4 grid gap-4 lg:grid-cols-2">
-                    <fieldset
-                      class="rounded border border-n-slate-4 bg-n-solid-1 p-3"
-                    >
-                      <legend class="px-1 text-sm font-medium text-n-slate-11">
-                        {{ t('FORMS.EDITOR.CLINICAL_ACCESS_USERS') }}
-                      </legend>
-                      <div
-                        class="mt-2 grid max-h-52 gap-1 overflow-y-auto pr-1"
-                      >
-                        <label
-                          v-for="agent in clinicalAccessAgents"
-                          :key="agent.id"
-                          class="flex min-h-9 items-center gap-2 rounded px-2 text-sm text-n-slate-11 transition hover:bg-n-solid-1"
-                        >
-                          <input
-                            v-model="editor.settings.clinical_access.user_ids"
-                            :data-test="`forms-clinical-access-user-${agent.id}`"
-                            :value="agent.id"
-                            type="checkbox"
-                            class="size-4 accent-n-teal-9"
-                          />
-                          <span class="min-w-0 break-words">{{
-                            agent.name
-                          }}</span>
-                        </label>
-                        <p
-                          v-if="!clinicalAccessAgents.length"
-                          class="text-sm text-n-slate-10"
-                        >
-                          {{ t('FORMS.EDITOR.CLINICAL_ACCESS_EMPTY_USERS') }}
-                        </p>
-                      </div>
-                    </fieldset>
-                    <fieldset
-                      class="rounded border border-n-slate-4 bg-n-solid-1 p-3"
-                    >
-                      <legend class="px-1 text-sm font-medium text-n-slate-11">
-                        {{ t('FORMS.EDITOR.CLINICAL_ACCESS_TEAMS') }}
-                      </legend>
-                      <div
-                        class="mt-2 grid max-h-52 gap-1 overflow-y-auto pr-1"
-                      >
-                        <label
-                          v-for="team in clinicalAccessTeams"
-                          :key="team.id"
-                          class="flex min-h-9 items-center gap-2 rounded px-2 text-sm text-n-slate-11 transition hover:bg-n-solid-1"
-                        >
-                          <input
-                            v-model="editor.settings.clinical_access.team_ids"
-                            :data-test="`forms-clinical-access-team-${team.id}`"
-                            :value="team.id"
-                            type="checkbox"
-                            class="size-4 accent-n-teal-9"
-                          />
-                          <span class="min-w-0 break-words">{{
-                            team.name
-                          }}</span>
-                        </label>
-                        <p
-                          v-if="!clinicalAccessTeams.length"
-                          class="text-sm text-n-slate-10"
-                        >
-                          {{ t('FORMS.EDITOR.CLINICAL_ACCESS_EMPTY_TEAMS') }}
-                        </p>
-                      </div>
-                    </fieldset>
-                  </div>
-                  <label class="mt-4 block" for="forms-clinical-retention-days">
-                    <span class="block text-sm font-medium text-n-slate-12">
-                      {{ t('FORMS.EDITOR.CLINICAL_RETENTION_DAYS') }}
-                    </span>
-                    <span class="mt-1 block text-sm text-n-slate-10">
-                      {{ t('FORMS.EDITOR.CLINICAL_RETENTION_HINT') }}
-                    </span>
-                    <input
-                      id="forms-clinical-retention-days"
-                      v-model.number="editor.settings.clinical_retention_days"
-                      data-test="forms-clinical-retention-days"
-                      type="number"
-                      min="1"
-                      inputmode="numeric"
-                      :placeholder="
-                        t('FORMS.EDITOR.CLINICAL_RETENTION_PLACEHOLDER')
-                      "
-                      class="mt-2 min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                </div>
+                <div v-show="settingsSection === 'publishing'">
+                  <label
+                    class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
+                  >
+                    {{ t('FORMS.EDITOR.PUBLIC_DESCRIPTION') }}
+                    <textarea
+                      v-model="editor.settings.description"
+                      rows="2"
+                      class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                     />
                   </label>
-                </section>
-                <div
-                  v-if="publicUrl"
-                  class="mt-3 flex items-center gap-2 rounded bg-n-slate-2 p-2"
-                >
-                  <input
-                    :value="publicUrl"
-                    readonly
-                    class="min-w-0 flex-1 bg-transparent px-2 text-sm text-n-slate-11 outline-none"
-                  />
-                  <Button
-                    size="sm"
-                    variant="faded"
-                    color="slate"
-                    :label="
-                      copied
-                        ? t('FORMS.ACTIONS.COPIED')
-                        : t('FORMS.ACTIONS.COPY_LINK')
-                    "
-                    @click="copyPublicLink"
-                  />
-                  <a
-                    :href="publicUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-test="forms-public-preview"
-                    class="inline-flex min-h-8 shrink-0 items-center rounded px-2 text-sm font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                  <label
+                    class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
                   >
-                    {{ t('FORMS.ACTIONS.PREVIEW') }}
-                  </a>
+                    {{ t('FORMS.EDITOR.PRIVACY_POLICY_URL') }}
+                    <input
+                      v-model="editor.settings.privacy_policy_url"
+                      type="url"
+                      :placeholder="
+                        t('FORMS.EDITOR.PRIVACY_POLICY_URL_PLACEHOLDER')
+                      "
+                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    />
+                  </label>
+                  <label
+                    v-if="!isSensitiveHealth"
+                    class="mt-4 flex min-h-10 items-center gap-3 text-sm font-medium text-n-slate-11"
+                  >
+                    <input
+                      v-model="editor.publicEnabled"
+                      type="checkbox"
+                      class="size-4 accent-n-teal-9"
+                    />
+                    {{ t('FORMS.EDITOR.PUBLIC_ENABLED') }}
+                  </label>
+                  <div
+                    v-if="editor.publicEnabled && !isSensitiveHealth"
+                    class="mt-4 grid gap-3 rounded border border-n-slate-4 bg-n-slate-2 p-3 lg:grid-cols-2"
+                  >
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.CAPTCHA_PROVIDER') }}
+                      <select
+                        v-model="editor.settings.captcha_provider"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      >
+                        <option value="">
+                          {{ t('FORMS.EDITOR.CAPTCHA_DISABLED') }}
+                        </option>
+                        <option value="turnstile">
+                          {{ t('FORMS.EDITOR.CAPTCHA_TURNSTILE') }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.CAPTCHA_SITE_KEY') }}
+                      <input
+                        v-model="editor.settings.captcha_site_key"
+                        :disabled="!editor.settings.captcha_provider"
+                        type="text"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                      />
+                    </label>
+                  </div>
+                </div>
+                <div v-show="settingsSection === 'automation'">
+                  <label
+                    v-if="!isSensitiveHealth"
+                    class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
+                  >
+                    {{ t('FORMS.EDITOR.ABANDONMENT_DELAY_HOURS') }}
+                    <input
+                      v-model.number="editor.settings.abandonment_delay_hours"
+                      type="number"
+                      min="1"
+                      max="720"
+                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      :placeholder="t('FORMS.EDITOR.ABANDONMENT_DISABLED')"
+                    />
+                    <span class="text-xs font-normal leading-5 text-n-slate-10">
+                      {{ t('FORMS.EDITOR.ABANDONMENT_HINT') }}
+                    </span>
+                  </label>
+                  <div
+                    v-if="!isSensitiveHealth"
+                    class="mt-4 grid gap-3 rounded border border-n-slate-4 bg-n-slate-2 p-3 lg:grid-cols-2"
+                  >
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_FIELD') }}
+                      <select
+                        v-model="editor.settings.critical_response.field_key"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        @change="editor.settings.critical_response.value = ''"
+                      >
+                        <option value="">
+                          {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_DISABLED') }}
+                        </option>
+                        <option
+                          v-for="field in criticalResponseFields"
+                          :key="field.key"
+                          :value="field.key"
+                        >
+                          {{ field.label || field.key }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_VALUE') }}
+                      <select
+                        v-if="criticalResponseOptions.length"
+                        v-model="editor.settings.critical_response.value"
+                        :disabled="!editor.settings.critical_response.field_key"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                      >
+                        <option value="">
+                          {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_SELECT_VALUE') }}
+                        </option>
+                        <option
+                          v-for="option in criticalResponseOptions"
+                          :key="option"
+                          :value="option"
+                        >
+                          {{ option }}
+                        </option>
+                      </select>
+                      <input
+                        v-else
+                        v-model="editor.settings.critical_response.value"
+                        :disabled="!editor.settings.critical_response.field_key"
+                        type="text"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                      />
+                    </label>
+                    <p class="text-xs leading-5 text-n-slate-10 lg:col-span-2">
+                      {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_HINT') }}
+                    </p>
+                  </div>
+                  <p
+                    v-else
+                    class="mt-4 rounded border border-n-amber-6 bg-n-amber-2 px-3 py-2 text-sm text-n-amber-11"
+                  >
+                    {{ t('FORMS.EDITOR.SENSITIVE_HEALTH_NOTICE') }}
+                  </p>
+                </div>
+                <div v-show="settingsSection === 'clinical'">
+                  <section
+                    v-if="isSensitiveHealth"
+                    data-test="forms-clinical-access"
+                    class="mt-4 rounded border border-n-slate-4 bg-n-slate-2 p-4"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 class="text-sm font-semibold text-n-slate-12">
+                          {{ t('FORMS.EDITOR.CLINICAL_ACCESS') }}
+                        </h4>
+                        <p class="mt-1 text-sm leading-6 text-n-slate-10">
+                          {{ t('FORMS.EDITOR.CLINICAL_ACCESS_DESCRIPTION') }}
+                        </p>
+                      </div>
+                      <span
+                        class="shrink-0 rounded-full bg-n-teal-3 px-2.5 py-1 text-xs font-semibold text-n-teal-11"
+                      >
+                        {{
+                          t('FORMS.EDITOR.CLINICAL_ACCESS_SELECTED', {
+                            count: clinicalAccessSelectionCount,
+                          })
+                        }}
+                      </span>
+                    </div>
+                    <div class="mt-3">
+                      <label class="sr-only" for="forms-clinical-access-search">
+                        {{ t('FORMS.EDITOR.CLINICAL_ACCESS_SEARCH') }}
+                      </label>
+                      <input
+                        id="forms-clinical-access-search"
+                        v-model="clinicalAccessSearch"
+                        data-test="forms-clinical-access-search"
+                        type="search"
+                        :placeholder="t('FORMS.EDITOR.CLINICAL_ACCESS_SEARCH')"
+                        class="min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </div>
+                    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+                      <fieldset
+                        class="rounded border border-n-slate-4 bg-n-solid-1 p-3"
+                      >
+                        <legend
+                          class="px-1 text-sm font-medium text-n-slate-11"
+                        >
+                          {{ t('FORMS.EDITOR.CLINICAL_ACCESS_USERS') }}
+                        </legend>
+                        <div
+                          class="mt-2 grid max-h-52 gap-1 overflow-y-auto pr-1"
+                        >
+                          <label
+                            v-for="agent in clinicalAccessAgents"
+                            :key="agent.id"
+                            class="flex min-h-9 items-center gap-2 rounded px-2 text-sm text-n-slate-11 transition hover:bg-n-solid-1"
+                          >
+                            <input
+                              v-model="editor.settings.clinical_access.user_ids"
+                              :data-test="`forms-clinical-access-user-${agent.id}`"
+                              :value="agent.id"
+                              type="checkbox"
+                              class="size-4 accent-n-teal-9"
+                            />
+                            <span class="min-w-0 break-words">{{
+                              agent.name
+                            }}</span>
+                          </label>
+                          <p
+                            v-if="!clinicalAccessAgents.length"
+                            class="text-sm text-n-slate-10"
+                          >
+                            {{ t('FORMS.EDITOR.CLINICAL_ACCESS_EMPTY_USERS') }}
+                          </p>
+                        </div>
+                      </fieldset>
+                      <fieldset
+                        class="rounded border border-n-slate-4 bg-n-solid-1 p-3"
+                      >
+                        <legend
+                          class="px-1 text-sm font-medium text-n-slate-11"
+                        >
+                          {{ t('FORMS.EDITOR.CLINICAL_ACCESS_TEAMS') }}
+                        </legend>
+                        <div
+                          class="mt-2 grid max-h-52 gap-1 overflow-y-auto pr-1"
+                        >
+                          <label
+                            v-for="team in clinicalAccessTeams"
+                            :key="team.id"
+                            class="flex min-h-9 items-center gap-2 rounded px-2 text-sm text-n-slate-11 transition hover:bg-n-solid-1"
+                          >
+                            <input
+                              v-model="editor.settings.clinical_access.team_ids"
+                              :data-test="`forms-clinical-access-team-${team.id}`"
+                              :value="team.id"
+                              type="checkbox"
+                              class="size-4 accent-n-teal-9"
+                            />
+                            <span class="min-w-0 break-words">{{
+                              team.name
+                            }}</span>
+                          </label>
+                          <p
+                            v-if="!clinicalAccessTeams.length"
+                            class="text-sm text-n-slate-10"
+                          >
+                            {{ t('FORMS.EDITOR.CLINICAL_ACCESS_EMPTY_TEAMS') }}
+                          </p>
+                        </div>
+                      </fieldset>
+                    </div>
+                    <label
+                      class="mt-4 block"
+                      for="forms-clinical-retention-days"
+                    >
+                      <span class="block text-sm font-medium text-n-slate-12">
+                        {{ t('FORMS.EDITOR.CLINICAL_RETENTION_DAYS') }}
+                      </span>
+                      <span class="mt-1 block text-sm text-n-slate-10">
+                        {{ t('FORMS.EDITOR.CLINICAL_RETENTION_HINT') }}
+                      </span>
+                      <input
+                        id="forms-clinical-retention-days"
+                        v-model.number="editor.settings.clinical_retention_days"
+                        data-test="forms-clinical-retention-days"
+                        type="number"
+                        min="1"
+                        inputmode="numeric"
+                        :placeholder="
+                          t('FORMS.EDITOR.CLINICAL_RETENTION_PLACEHOLDER')
+                        "
+                        class="mt-2 min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                  </section>
+                  <div
+                    v-if="publicUrl"
+                    class="mt-3 flex items-center gap-2 rounded bg-n-slate-2 p-2"
+                  >
+                    <input
+                      :value="publicUrl"
+                      readonly
+                      class="min-w-0 flex-1 bg-transparent px-2 text-sm text-n-slate-11 outline-none"
+                    />
+                    <Button
+                      size="sm"
+                      variant="faded"
+                      color="slate"
+                      :label="
+                        copied
+                          ? t('FORMS.ACTIONS.COPIED')
+                          : t('FORMS.ACTIONS.COPY_LINK')
+                      "
+                      @click="copyPublicLink"
+                    />
+                    <a
+                      :href="publicUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-test="forms-public-preview"
+                      class="inline-flex min-h-8 shrink-0 items-center rounded px-2 text-sm font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                    >
+                      {{ t('FORMS.ACTIONS.PREVIEW') }}
+                    </a>
+                  </div>
                 </div>
               </section>
 
-              <section
-                v-if="!isSensitiveHealth"
-                class="rounded border border-n-slate-4 bg-n-solid-1 p-5"
-              >
-                <div class="flex items-start gap-3">
-                  <span
-                    class="i-lucide-route mt-0.5 size-4 shrink-0 text-n-teal-10"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <h3 class="text-sm font-semibold text-n-slate-12">
-                      {{ t('FORMS.EDITOR.DESTINATION') }}
-                    </h3>
-                    <p class="mt-1 text-sm leading-6 text-n-slate-10">
-                      {{ t('FORMS.EDITOR.DESTINATION_REQUIRED') }}
-                    </p>
-                  </div>
-                </div>
-                <div class="mt-4 grid gap-4 md:grid-cols-2">
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.BOARD') }}
-                    <select
-                      v-model="editor.crmDestination.boardId"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                      @change="editor.crmDestination.stageId = ''"
-                    >
-                      <option value="" disabled />
-                      <option
-                        v-for="board in boards"
-                        :key="board.id"
-                        :value="board.id"
-                      >
-                        {{ board.name }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.STAGE') }}
-                    <select
-                      v-model="editor.crmDestination.stageId"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    >
-                      <option value="" disabled />
-                      <option
-                        v-for="stage in stageOptions"
-                        :key="stage.id"
-                        :value="stage.id"
-                      >
-                        {{ stage.name }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.INBOX') }}
-                    <select
-                      v-model="editor.crmDestination.inboxId"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    >
-                      <option value="" disabled />
-                      <option
-                        v-for="inbox in inboxes"
-                        :key="inbox.id"
-                        :value="inbox.id"
-                      >
-                        {{ inbox.name }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    class="grid gap-1.5 text-sm font-medium text-n-slate-11"
-                  >
-                    {{ t('FORMS.EDITOR.POLICY') }}
-                    <select
-                      v-model="editor.crmDestination.policy"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    >
-                      <option value="reuse_open">
-                        {{ t('FORMS.EDITOR.POLICY_REUSE') }}
-                      </option>
-                      <option value="create_new">
-                        {{ t('FORMS.EDITOR.POLICY_CREATE') }}
-                      </option>
-                    </select>
-                  </label>
-                </div>
-                <p
-                  v-if="selectedBoardCustomFields.length"
-                  class="mt-3 text-sm leading-6 text-n-slate-10"
+              <div v-show="settingsSection === 'destination'">
+                <section
+                  v-if="!isSensitiveHealth"
+                  class="rounded border border-n-slate-4 bg-n-solid-1 p-5"
                 >
-                  {{ t('FORMS.EDITOR.OPPORTUNITY_MAPPING_HELP') }}
-                </p>
-              </section>
+                  <div class="flex items-start gap-3">
+                    <span
+                      class="i-lucide-route mt-0.5 size-4 shrink-0 text-n-teal-10"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <h3 class="text-sm font-semibold text-n-slate-12">
+                        {{ t('FORMS.EDITOR.DESTINATION') }}
+                      </h3>
+                      <p class="mt-1 text-sm leading-6 text-n-slate-10">
+                        {{ t('FORMS.EDITOR.DESTINATION_REQUIRED') }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="mt-4 grid gap-4 md:grid-cols-2">
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.BOARD') }}
+                      <select
+                        v-model="editor.crmDestination.boardId"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        @change="editor.crmDestination.stageId = ''"
+                      >
+                        <option value="" disabled />
+                        <option
+                          v-for="board in boards"
+                          :key="board.id"
+                          :value="board.id"
+                        >
+                          {{ board.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.STAGE') }}
+                      <select
+                        v-model="editor.crmDestination.stageId"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      >
+                        <option value="" disabled />
+                        <option
+                          v-for="stage in stageOptions"
+                          :key="stage.id"
+                          :value="stage.id"
+                        >
+                          {{ stage.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.INBOX') }}
+                      <select
+                        v-model="editor.crmDestination.inboxId"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      >
+                        <option value="" disabled />
+                        <option
+                          v-for="inbox in inboxes"
+                          :key="inbox.id"
+                          :value="inbox.id"
+                        >
+                          {{ inbox.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      class="grid gap-1.5 text-sm font-medium text-n-slate-11"
+                    >
+                      {{ t('FORMS.EDITOR.POLICY') }}
+                      <select
+                        v-model="editor.crmDestination.policy"
+                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      >
+                        <option value="reuse_open">
+                          {{ t('FORMS.EDITOR.POLICY_REUSE') }}
+                        </option>
+                        <option value="create_new">
+                          {{ t('FORMS.EDITOR.POLICY_CREATE') }}
+                        </option>
+                      </select>
+                    </label>
+                  </div>
+                  <p
+                    v-if="selectedBoardCustomFields.length"
+                    class="mt-3 text-sm leading-6 text-n-slate-10"
+                  >
+                    {{ t('FORMS.EDITOR.OPPORTUNITY_MAPPING_HELP') }}
+                  </p>
+                </section>
+              </div>
             </div>
-          </details>
+          </div>
         </div>
       </section>
 

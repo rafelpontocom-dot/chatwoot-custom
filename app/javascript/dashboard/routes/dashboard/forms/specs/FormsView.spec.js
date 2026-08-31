@@ -239,6 +239,46 @@ describe('FormsView', () => {
     expect(linha).not.toContain('FORMS.STATUS.VERSION');
   });
 
+  it('navigates the settings instead of stacking them in an accordion', async () => {
+    FormsAPI.getTemplates.mockResolvedValue({ data: [templateBase()] });
+    const wrapper = mountForms({
+      boards: [{ id: 1, inboxes: [{ id: 3 }], stages: [{ id: 2 }] }],
+    });
+    await flushPromises();
+
+    ['identity', 'publishing', 'automation', 'destination'].forEach(secao => {
+      expect(
+        wrapper.find(`[data-test="forms-settings-nav-${secao}"]`).exists()
+      ).toBe(true);
+    });
+    expect(wrapper.vm.settingsSection).toBe('identity');
+
+    await wrapper
+      .get('[data-test="forms-settings-nav-destination"]')
+      .trigger('click');
+
+    expect(wrapper.vm.settingsSection).toBe('destination');
+  });
+
+  it('offers clinical access only to a clinical form, and no CRM destination there', async () => {
+    // Anamnese não mapeia para CRM; oferecer o destino seria prometer algo que
+    // o servidor recusa publicar.
+    const clinico = {
+      ...templateBase(),
+      category: 'clinical',
+      access_classification: 'sensitive_health',
+    };
+    FormsAPI.getTemplates.mockResolvedValue({ data: [clinico] });
+    const wrapper = mountForms({
+      boards: [{ id: 1, inboxes: [{ id: 3 }], stages: [{ id: 2 }] }],
+    });
+    await flushPromises();
+
+    const secoes = wrapper.vm.settingsSections.map(item => item.id);
+    expect(secoes).toContain('clinical');
+    expect(secoes).not.toContain('destination');
+  });
+
   it('keeps structure, form and properties as three persistent columns', async () => {
     // Antes a estrutura era um painel absoluto por cima do canvas e as
     // propriedades eram um modal: as duas tapavam o formulário a ser escrito.

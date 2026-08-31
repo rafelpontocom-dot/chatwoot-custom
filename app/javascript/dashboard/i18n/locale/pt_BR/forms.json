@@ -484,6 +484,13 @@
         "division": "dividir",
         "assignment": "definir como"
       }
+    },
+    "SETTINGS_NAV": {
+      "IDENTITY": "Identidade e marca",
+      "PUBLISHING": "Publicação",
+      "AUTOMATION": "Automação",
+      "CLINICAL": "Acesso clínico",
+      "DESTINATION": "Destino no CRM"
     }
   }
 }

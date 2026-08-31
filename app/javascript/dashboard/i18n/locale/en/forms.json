@@ -484,6 +484,13 @@
         "division": "divide",
         "assignment": "set to"
       }
+    },
+    "SETTINGS_NAV": {
+      "IDENTITY": "Identity and brand",
+      "PUBLISHING": "Publishing",
+      "AUTOMATION": "Automation",
+      "CLINICAL": "Clinical access",
+      "DESTINATION": "CRM destination"
     }
   }
 }
