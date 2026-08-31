@@ -42,7 +42,10 @@ table th,
 // --- Controles em pílula -------------------------------------------------------
 // A assinatura mais visível do Sereno. Restrita a botões e campos: cards,
 // modais e menus mantêm o raio de card.
-button:not([class*='rounded-none']):not([class*='rounded-full']):not(.raevo-square),
+//
+// `.raevo-card` é a saída para o que é botão só por ser clicável — o chip de um
+// agendamento, por exemplo. Um card alto com raio de pílula desenha uma elipse.
+button:not([class*='rounded-none']):not([class*='rounded-full']):not(.raevo-card),
 .button,
 a[role='button'] {
   border-radius: var(--raevo-radius-control);

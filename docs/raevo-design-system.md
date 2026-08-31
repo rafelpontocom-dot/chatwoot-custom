@@ -96,6 +96,7 @@ Duas combinações já reprovaram e estão proibidas:
 | `rounded-lg` | 11px | card de lead, item de coluna |
 | `rounded-xl` | 13px | card de página, painel, modal |
 | `rounded-full` | pílula | **todo botão e todo campo de uma linha** |
+| `.raevo-card` | mantém o raio declarado | o que é botão só por ser clicável — o chip de um agendamento. Um card alto com raio de pílula desenha uma elipse. |
 | `border` | 1px | contorno padrão |
 
 **Sombra:** em repouso, nenhuma. O ar separa.

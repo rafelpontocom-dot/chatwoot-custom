@@ -113,8 +113,24 @@ const hourSlots = computed(() => {
   const appointmentHours = appointments.value.map(appointment =>
     new Date(appointment.starts_at).getHours()
   );
-  const firstHour = Math.min(8, ...appointmentHours);
-  const lastHour = Math.max(17, ...appointmentHours);
+  // O fim conta, não só o início: uma consulta das 17h que dura duas horas
+  // transbordava para fora da grade e a segunda metade não se via.
+  //
+  // Sem data de fim, a hora sai `NaN` e contamina o `Math.max` — a grade
+  // ficava sem uma única linha e a agenda aparecia vazia. Descartar é a
+  // resposta certa: a consulta continua a desenhar-se pela hora de início.
+  const endHours = appointments.value
+    .map(appointment => {
+      const endsAt = new Date(appointment.ends_at);
+      return endsAt.getMinutes() ? endsAt.getHours() : endsAt.getHours() - 1;
+    })
+    .filter(Number.isFinite);
+  const firstHour = Math.min(8, ...appointmentHours.filter(Number.isFinite));
+  const lastHour = Math.max(
+    17,
+    ...appointmentHours.filter(Number.isFinite),
+    ...endHours
+  );
 
   return Array.from(
     { length: lastHour - firstHour + 1 },
@@ -282,16 +298,123 @@ const loadResources = async () => {
   }
 };
 
-const appointmentsForSlot = (day, hour) =>
-  appointments.value.filter(appointment => {
-    const startsAt = new Date(appointment.starts_at);
-    return (
-      startsAt.getFullYear() === day.getFullYear() &&
-      startsAt.getMonth() === day.getMonth() &&
-      startsAt.getDate() === day.getDate() &&
-      startsAt.getHours() === hour
+/** Meia hora é o que o balão de criação rápida assume quando não há melhor. */
+const FALLBACK_DURATION = 30;
+
+/**
+ * Nunca menos de um quarto de hora, para o chip não desaparecer — e diz
+ * também se a duração é sabida. Sem data de fim desenha-se meia hora, mas
+ * isso é um palpite: não serve para decidir esconder texto, senão a falta de
+ * um dado apagava o profissional e a situação do cartão.
+ */
+const durationOf = (appointment, startsAt) => {
+  const minutos = (new Date(appointment.ends_at) - startsAt) / 60000;
+  const conhecida = Number.isFinite(minutos) && minutos > 0;
+  return {
+    minutos: conhecida ? Math.max(15, minutos) : FALLBACK_DURATION,
+    conhecida,
+  };
+};
+
+/** Minutos desde a meia-noite — a unidade em que a grade mede tudo. */
+const minutesOfDay = date => date.getHours() * 60 + date.getMinutes();
+
+/**
+ * Quantas colunas são precisas para o dia, e em qual delas cada consulta cai.
+ *
+ * Duas consultas que se sobrepõem não podem ocupar o mesmo espaço, senão uma
+ * esconde a outra e a agenda mente. O algoritmo é o mesmo do Google: agrupa em
+ * blocos de consultas que se tocam, e dentro do bloco dá a cada uma a primeira
+ * coluna livre. Todas as consultas do mesmo bloco partilham a largura, para as
+ * arestas ficarem alinhadas.
+ */
+const layoutForDay = day => {
+  const doDia = appointments.value
+    .filter(appointment => isSameDay(new Date(appointment.starts_at), day))
+    .map(appointment => ({
+      appointment,
+      inicio: minutesOfDay(new Date(appointment.starts_at)),
+      fim:
+        minutesOfDay(new Date(appointment.starts_at)) +
+        durationOf(appointment, new Date(appointment.starts_at)).minutos,
+    }))
+    .sort((first, second) => first.inicio - second.inicio);
+
+  const posicoes = new Map();
+  let bloco = [];
+  let fimDoBloco = -1;
+
+  const fecharBloco = () => {
+    if (!bloco.length) return;
+    const colunas = Math.max(...bloco.map(item => item.coluna)) + 1;
+    bloco.forEach(item =>
+      posicoes.set(item.appointment.id, { coluna: item.coluna, colunas })
     );
+    bloco = [];
+    fimDoBloco = -1;
+  };
+
+  doDia.forEach(item => {
+    // Uma consulta que começa depois de tudo o que veio antes ter acabado
+    // abre um bloco novo: não disputa espaço com ninguém.
+    if (item.inicio >= fimDoBloco) fecharBloco();
+
+    const ocupadas = new Set(
+      bloco.filter(outra => outra.fim > item.inicio).map(outra => outra.coluna)
+    );
+    let coluna = 0;
+    while (ocupadas.has(coluna)) coluna += 1;
+
+    bloco.push({ ...item, coluna });
+    fimDoBloco = Math.max(fimDoBloco, item.fim);
   });
+  fecharBloco();
+
+  return posicoes;
+};
+
+// Altura mínima para uma consulta curta continuar legível: abaixo disto o
+// nome do paciente deixa de caber e o alvo fica difícil de acertar.
+const MIN_APPOINTMENT_HEIGHT = '1.75rem';
+
+/**
+ * As consultas que começam nesta hora, já com a geometria calculada. A altura
+ * é proporcional à duração — era o que faltava para a agenda se ler de relance:
+ * antes, uma consulta de 50 minutos e uma de duas horas ocupavam o mesmo.
+ */
+const appointmentsForSlot = (day, hour) => {
+  const posicoes = layoutForDay(day);
+
+  return appointments.value
+    .filter(appointment => {
+      const startsAt = new Date(appointment.starts_at);
+      return isSameDay(startsAt, day) && startsAt.getHours() === hour;
+    })
+    .map(appointment => {
+      const startsAt = new Date(appointment.starts_at);
+      const { minutos: duracao, conhecida } = durationOf(appointment, startsAt);
+      const { coluna = 0, colunas = 1 } = posicoes.get(appointment.id) || {};
+      const largura = 100 / colunas;
+
+      return {
+        appointment,
+        // Abaixo de três quartos de hora não cabem três linhas: mostra-se só a
+        // primeira, como o Google faz nos eventos curtos. Cortar texto a meio
+        // com `overflow-hidden` seria pior do que não o pôr.
+        compacto: conhecida && duracao < 45,
+        // Percentagens da própria célula: a célula é uma hora, por isso 150%
+        // de altura é hora e meia, seja qual for o zoom do navegador.
+        estilo: {
+          top: `${(startsAt.getMinutes() / 60) * 100}%`,
+          height: `${(duracao / 60) * 100}%`,
+          minHeight: MIN_APPOINTMENT_HEIGHT,
+          left: `${coluna * largura}%`,
+          width: `${largura}%`,
+          ...appointmentAccent(appointment),
+        },
+      };
+    });
+};
 const appointmentsForDay = day =>
   appointments.value.filter(appointment => {
     const startsAt = new Date(appointment.starts_at);
@@ -694,7 +817,7 @@ onMounted(() => {
             <div
               v-for="day in calendarDays"
               :key="`${hour}-${day.toISOString()}`"
-              class="relative min-h-20 border-b border-r border-n-weak bg-n-solid-1 p-1 last:border-r-0"
+              class="relative h-20 border-b border-r border-n-weak bg-n-solid-1 last:border-r-0"
               @dragover.prevent
               @drop="assistedReschedule(day, hour)"
             >
@@ -713,14 +836,17 @@ onMounted(() => {
                 <i class="i-lucide-plus size-4" aria-hidden="true" />
               </button>
               <button
-                v-for="appointment in appointmentsForSlot(day, hour)"
+                v-for="{ appointment, estilo, compacto } in appointmentsForSlot(
+                  day,
+                  hour
+                )"
                 :key="appointment.id"
                 type="button"
                 data-testid="calendar-appointment"
                 draggable="true"
-                class="relative z-10 mb-1 w-full rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
+                class="raevo-card absolute z-10 flex flex-col overflow-hidden rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
                 :class="appointmentToneClass(appointment)"
-                :style="appointmentAccent(appointment)"
+                :style="estilo"
                 :aria-label="
                   t('CALENDAR.APPOINTMENT_LABEL', {
                     time: formatTime(appointment.starts_at),
@@ -742,7 +868,10 @@ onMounted(() => {
                     })
                   }}
                 </span>
-                <span class="block truncate text-xs text-n-slate-11">
+                <span
+                  v-if="!compacto"
+                  class="block truncate text-xs text-n-slate-11"
+                >
                   {{ appointment.procedure.name }}
                 </span>
                 <!--
@@ -750,7 +879,10 @@ onMounted(() => {
                   de uma coluna de semana, pô-los em linhas separadas fazia
                   quatro linhas e cortava o procedimento a meio da palavra.
                 -->
-                <span class="block truncate text-micro text-n-slate-11">
+                <span
+                  v-if="!compacto"
+                  class="block truncate text-micro text-n-slate-11"
+                >
                   <span
                     v-if="appointment.resources?.length"
                     data-testid="calendar-appointment-resource"

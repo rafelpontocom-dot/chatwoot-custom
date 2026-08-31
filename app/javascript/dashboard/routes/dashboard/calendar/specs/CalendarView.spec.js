@@ -412,4 +412,146 @@ describe('CalendarView', () => {
     expect(rotulo).toBeTruthy();
     expect(rotulo).not.toMatch(/\d/);
   });
+
+  const consulta = (id, inicio, fim, extra = {}) => ({
+    id,
+    starts_at: inicio,
+    ends_at: fim,
+    status: 'scheduled',
+    contact: { id: 1, name: 'Maria Silva' },
+    procedure: { id: 2, name: 'Toxina' },
+    resources: [],
+    ...extra,
+  });
+
+  it('dá a cada consulta altura proporcional à duração', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        consulta(1, '2026-08-31T09:00:00.000Z', '2026-08-31T09:50:00.000Z'),
+        consulta(2, '2026-08-31T13:00:00.000Z', '2026-08-31T15:30:00.000Z'),
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const dia = new Date('2026-08-31T09:00:00.000Z');
+    const curta = wrapper.vm.appointmentsForSlot(dia, dia.getHours())[0];
+    const longa = wrapper.vm.appointmentsForSlot(
+      dia,
+      new Date('2026-08-31T13:00:00.000Z').getHours()
+    )[0];
+
+    // A célula é uma hora, por isso a altura é a duração em percentagem dela.
+    expect(curta.estilo.height).toBe(`${(50 / 60) * 100}%`);
+    expect(longa.estilo.height).toBe(`${(150 / 60) * 100}%`);
+  });
+
+  it('desloca a consulta que não começa à hora certa', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        consulta(1, '2026-08-31T09:30:00.000Z', '2026-08-31T10:00:00.000Z'),
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const dia = new Date('2026-08-31T09:30:00.000Z');
+    const [entrada] = wrapper.vm.appointmentsForSlot(dia, dia.getHours());
+
+    expect(entrada.estilo.top).toBe('50%');
+  });
+
+  it('põe lado a lado as consultas que se sobrepõem', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        consulta(1, '2026-08-31T10:00:00.000Z', '2026-08-31T11:30:00.000Z'),
+        consulta(2, '2026-08-31T10:30:00.000Z', '2026-08-31T11:30:00.000Z'),
+        consulta(3, '2026-08-31T10:45:00.000Z', '2026-08-31T11:00:00.000Z'),
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const dia = new Date('2026-08-31T10:00:00.000Z');
+    const entradas = wrapper.vm.appointmentsForSlot(dia, dia.getHours());
+
+    // Três a disputar o mesmo espaço: um terço da largura cada, sem se taparem.
+    const larguras = entradas.map(item => item.estilo.width);
+    expect(larguras).toEqual([`${100 / 3}%`, `${100 / 3}%`, `${100 / 3}%`]);
+    expect(entradas.map(item => item.estilo.left)).toEqual([
+      '0%',
+      `${100 / 3}%`,
+      `${(100 / 3) * 2}%`,
+    ]);
+  });
+
+  it('devolve a largura toda a quem não disputa espaço com ninguém', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        consulta(1, '2026-08-31T09:00:00.000Z', '2026-08-31T10:00:00.000Z'),
+        // Começa exatamente quando a anterior acaba: não há sobreposição.
+        consulta(2, '2026-08-31T10:00:00.000Z', '2026-08-31T11:00:00.000Z'),
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const dia = new Date('2026-08-31T09:00:00.000Z');
+    const [primeira] = wrapper.vm.appointmentsForSlot(dia, dia.getHours());
+
+    expect(primeira.estilo.width).toBe('100%');
+    expect(primeira.estilo.left).toBe('0%');
+  });
+
+  it('mostra só a primeira linha numa consulta curta', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        consulta(1, '2026-08-31T09:00:00.000Z', '2026-08-31T09:20:00.000Z'),
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const dia = new Date('2026-08-31T09:00:00.000Z');
+    expect(
+      wrapper.vm.appointmentsForSlot(dia, dia.getHours())[0].compacto
+    ).toBe(true);
+  });
+
+  it('não encolhe o cartão por não saber a duração', async () => {
+    // Sem data de fim desenha-se meia hora, mas isso é palpite: esconder o
+    // profissional e a situação por falta de um dado seria perder informação.
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [consulta(1, '2026-08-31T09:00:00.000Z', undefined)],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const dia = new Date('2026-08-31T09:00:00.000Z');
+    expect(
+      wrapper.vm.appointmentsForSlot(dia, dia.getHours())[0].compacto
+    ).toBe(false);
+  });
+
+  it('estica a grade até ao fim da última consulta, não ao seu início', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        consulta(1, '2026-08-31T17:00:00.000Z', '2026-08-31T19:00:00.000Z'),
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const ultima = wrapper.vm.hourSlots[wrapper.vm.hourSlots.length - 1];
+    expect(ultima).toBeGreaterThanOrEqual(
+      new Date('2026-08-31T19:00:00.000Z').getHours() - 1
+    );
+  });
 });
