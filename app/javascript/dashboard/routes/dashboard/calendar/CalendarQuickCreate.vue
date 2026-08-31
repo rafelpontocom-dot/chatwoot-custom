@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
+import { onClickOutside } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { debounce } from '@chatwoot/utils';
 import camelcaseKeys from 'camelcase-keys';
@@ -37,6 +38,12 @@ const resourceId = ref('');
 const isSaving = ref(false);
 const error = ref('');
 const buscaInput = ref(null);
+const balao = ref(null);
+
+// Mesma regra do balão do agendamento: clicar fora fecha.
+onClickOutside(balao, () => {
+  if (props.startsAt) emit('close');
+});
 
 const selectedProcedure = computed(() =>
   props.procedures.find(item => String(item.id) === procedureId.value)
@@ -163,6 +170,7 @@ const estilo = computed(() => {
 <template>
   <div
     v-if="startsAt"
+    ref="balao"
     data-testid="calendar-quick-create"
     class="fixed z-50 w-80 rounded-xl border border-n-weak bg-n-solid-1 p-4 shadow-lg"
     :style="estilo"

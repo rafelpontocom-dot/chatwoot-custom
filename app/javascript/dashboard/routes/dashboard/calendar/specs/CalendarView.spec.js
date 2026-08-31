@@ -390,4 +390,26 @@ describe('CalendarView', () => {
       false
     );
   });
+
+  it('mostra "todas as situações" escolhido, em vez de uma pílula vazia', async () => {
+    // A opção vale "all"; começar em "" deixava o select sem nada selecionado
+    // e o filtro parecia partido.
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(wrapper.vm.selectedStatus).toBe('all');
+  });
+
+  it('nomeia os dias da semana no cabeçalho do mês, em vez de datas', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    wrapper.vm.view = 'month';
+    await flushPromises();
+
+    // Deriva-se da própria coluna, por isso nunca desalinha do que está por baixo.
+    const rotulo = wrapper.vm.monthWeekdayLabel(0);
+    expect(rotulo).toBeTruthy();
+    expect(rotulo).not.toMatch(/\d/);
+  });
 });

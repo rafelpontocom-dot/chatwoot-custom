@@ -16,6 +16,12 @@ import CalendarEventPopover from './CalendarEventPopover.vue';
 import CalendarQuickCreate from './CalendarQuickCreate.vue';
 
 const { t, locale } = useI18n();
+
+// `pt_BR` é o nome do catálogo, não uma etiqueta BCP-47: passá-lo ao `Intl`
+// atira "Incorrect locale information provided".
+const intlLocale = computed(() =>
+  locale.value === 'pt_BR' ? 'pt-BR' : locale.value
+);
 const route = useRoute() || { query: {} };
 const router = useRouter();
 const currentAccountId = useMapGetter('getCurrentAccountId');
@@ -23,7 +29,7 @@ const selectedDate = ref(new Date());
 const view = ref('week');
 const appointments = ref([]);
 const resources = ref([]);
-const selectedStatus = ref('');
+const selectedStatus = ref('all');
 const searchQuery = ref('');
 const isLoading = ref(false);
 const loadError = ref(false);
@@ -44,7 +50,7 @@ const quickAnchor = ref(null);
 
 const dateFormatter = computed(
   () =>
-    new Intl.DateTimeFormat(locale.value === 'pt_BR' ? 'pt-BR' : locale.value, {
+    new Intl.DateTimeFormat(intlLocale.value, {
       ...(view.value === 'month'
         ? {}
         : {
@@ -158,6 +164,19 @@ const emptyDescription = computed(() =>
     : t('CALENDAR.EMPTY_DESCRIPTION')
 );
 
+/**
+ * O cabeçalho do mês imprimia a data da primeira semana — "27 Mon", "28 Tue" —
+ * em vez do nome do dia. Deriva-se da própria coluna, para nunca desalinhar
+ * seja qual for o dia em que a semana começa.
+ */
+const monthWeekdayLabel = index => {
+  const dia = monthDays.value[index];
+  if (!dia) return '';
+  return new Intl.DateTimeFormat(intlLocale.value, { weekday: 'short' }).format(
+    dia
+  );
+};
+
 const isoDate = date => date.toISOString();
 
 // Direção A · padrão Google. A lateral traz o mini-calendário e as agendas em
@@ -212,7 +231,7 @@ const pickMiniDay = day => {
 };
 
 const miniMonthLabel = computed(() =>
-  new Intl.DateTimeFormat(locale.value === 'pt_BR' ? 'pt-BR' : locale.value, {
+  new Intl.DateTimeFormat(intlLocale.value, {
     month: 'long',
     year: 'numeric',
   }).format(selectedDate.value)
@@ -284,13 +303,13 @@ const appointmentsForDay = day =>
   });
 
 const formatDay = day =>
-  new Intl.DateTimeFormat(locale.value === 'pt_BR' ? 'pt-BR' : locale.value, {
+  new Intl.DateTimeFormat(intlLocale.value, {
     weekday: 'short',
     day: 'numeric',
   }).format(day);
 
 const formatTime = value =>
-  new Intl.DateTimeFormat(locale.value === 'pt_BR' ? 'pt-BR' : locale.value, {
+  new Intl.DateTimeFormat(intlLocale.value, {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
@@ -760,7 +779,7 @@ onMounted(() => {
             :key="weekday"
             class="border-b border-r border-n-weak bg-n-solid-1 px-2 py-2 text-xs font-medium text-n-slate-11 last:border-r-0"
           >
-            {{ formatDay(monthDays[weekday - 1]) }}
+            {{ monthWeekdayLabel(weekday - 1) }}
           </div>
           <div
             v-for="day in monthDays"

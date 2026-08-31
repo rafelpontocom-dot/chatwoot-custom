@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { onClickOutside, onKeyStroke } from '@vueuse/core';
 
 /**
  * Raevo — balão do agendamento, no formato do Google Calendar.
@@ -31,6 +32,20 @@ const emit = defineEmits([
   'cancel',
 ]);
 const { t } = useI18n();
+
+const balao = ref(null);
+
+// Um balão que só fecha no ✕ prende quem o abriu por engano. O Google fecha-o
+// ao clicar fora e no Escape; sem isto, a grade por baixo ficava inerte.
+onClickOutside(balao, () => {
+  if (props.appointment) emit('close');
+});
+
+onKeyStroke('Escape', event => {
+  if (!props.appointment) return;
+  event.stopPropagation();
+  emit('close');
+});
 
 const estilo = computed(() => {
   if (!props.anchor) return {};
@@ -112,12 +127,12 @@ const primaryAction = computed(() => {
 <template>
   <div
     v-if="appointment"
+    ref="balao"
     data-testid="calendar-event-popover"
     class="fixed z-50 w-80 rounded-xl border border-n-weak bg-n-solid-1 shadow-lg"
     :style="estilo"
     role="dialog"
     :aria-label="t('CALENDAR.DETAIL.TITLE')"
-    @keydown.escape.stop="emit('close')"
   >
     <div class="flex items-center justify-end gap-0.5 px-2 pt-2">
       <button

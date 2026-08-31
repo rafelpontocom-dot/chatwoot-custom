@@ -119,4 +119,23 @@ describe('CalendarEventPopover', () => {
     expect(wrapper.emitted('close')).toHaveLength(1);
     expect(wrapper.emitted('openDetails')).toHaveLength(1);
   });
+
+  it('fecha no Escape, e não só no ✕', async () => {
+    const wrapper = monta();
+
+    // O ouvinte vive na janela, que é onde o vueuse o instala por omissão.
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+
+  it('ignora o Escape quando não há nada aberto', async () => {
+    const wrapper = monta({ appointment: null });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('close')).toBeUndefined();
+  });
 });
