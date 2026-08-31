@@ -8,6 +8,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Draggable from 'vuedraggable';
 import { OnClickOutside } from '@vueuse/components';
+import { useRequestSidebarFocus } from 'dashboard/composables/useSidebarFocus';
 import FormsCanvasEditor from './FormsCanvasEditor.vue';
 import FormsBuilderSettingsDialog from './FormsBuilderSettingsDialog.vue';
 import { getFormStarterSchema } from './starterTemplates';
@@ -70,6 +71,11 @@ const clinicalAccessSearch = ref('');
 
 /** Editar é um modo, não uma secção: a lista sai da frente enquanto dura. */
 const isEditing = computed(() => Boolean(editor.value));
+
+// A navegação do CRM recolhe a ícones enquanto se edita: devolve 144px ao
+// formulário sem tirar o acesso de um clique a Conversas ou Pipeline.
+const { setSidebarFocus } = useRequestSidebarFocus();
+watch(isEditing, setSidebarFocus);
 
 /** Todas as perguntas do formulário, em ordem: é o universo da lógica. */
 const allBuilderFields = computed(() =>
@@ -1755,7 +1761,15 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="editor" class="min-h-0 overflow-y-auto p-6">
-        <div class="mx-auto max-w-5xl space-y-6 pb-10">
+        <!--
+          A largura de leitura serve ao cabeçalho e às configurações; ao
+          construtor de três colunas ela custava 360px, que é mais do que a
+          coluna do formulário inteira.
+        -->
+        <div
+          class="space-y-6 pb-10"
+          :class="isEditing ? 'w-full' : 'mx-auto max-w-5xl'"
+        >
           <div class="flex items-start justify-between gap-4">
             <div>
               <h2 class="text-xl font-semibold text-n-slate-12">

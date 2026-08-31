@@ -21,6 +21,7 @@ import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
+import { useSidebarFocus } from 'dashboard/composables/useSidebarFocus';
 import {
   SIDEBAR_SORT_SECTIONS,
   getSidebarSortOptions,
@@ -108,6 +109,8 @@ const toggleShortcutModalFn = show => {
 
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
 
+const { isSidebarFocused } = useSidebarFocus();
+
 const expandedItem = ref(null);
 
 const setExpandedItem = name => {
@@ -122,11 +125,17 @@ const {
   snapToCollapsed,
   snapToExpanded,
   COLLAPSED_THRESHOLD,
+  MIN_WIDTH,
 } = useSidebarResize();
 
 // On mobile, sidebar is always expanded (flyout mode)
 const isEffectivelyCollapsed = computed(
-  () => !isMobile.value && isCollapsed.value
+  () => !isMobile.value && (isCollapsed.value || isSidebarFocused.value)
+);
+
+// O modo de foco não grava a largura: é estado de momento, não preferência.
+const effectiveWidth = computed(() =>
+  isSidebarFocused.value ? MIN_WIDTH : sidebarWidth.value
 );
 
 // Resize handle logic
@@ -930,7 +939,7 @@ const menuItems = computed(() => {
           !isResizing,
       },
     ]"
-    :style="isMobile ? undefined : { width: `${sidebarWidth}px` }"
+    :style="isMobile ? undefined : { width: `${effectiveWidth}px` }"
   >
     <section
       class="grid"
