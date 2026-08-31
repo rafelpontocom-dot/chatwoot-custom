@@ -27,6 +27,8 @@ vi.mock('dashboard/api/calendar', () => ({
 }));
 
 const abrirDialogo = vi.fn();
+const abrirDetalhes = vi.fn();
+const abrirRemarcacao = vi.fn();
 
 const mountCalendar = () =>
   shallowMount(CalendarView, {
@@ -38,7 +40,21 @@ const mountCalendar = () =>
           },
           template: '<div />',
         },
-        CalendarAppointmentDetailsDialog: true,
+        CalendarAppointmentDetailsDialog: {
+          setup(_, { expose }) {
+            expose({ open: abrirDetalhes, openForReschedule: abrirRemarcacao });
+          },
+          template: '<div />',
+        },
+        // O balão do evento tem spec próprio; aqui verifica-se só a ligação.
+        CalendarEventPopover: {
+          props: ['appointment'],
+          emits: ['openDetails', 'cancel', 'reschedule', 'close'],
+          template: `<div v-if="appointment" data-testid="calendar-event-popover">
+            <button data-testid="popover-detalhes" @click="$emit('openDetails')" />
+            <button data-testid="popover-remarcar" @click="$emit('reschedule')" />
+          </div>`,
+        },
         CalendarSettingsDialog: true,
         // O balão tem spec próprio; aqui só se verifica a ligação com a grade.
         CalendarQuickCreate: {
@@ -295,9 +311,11 @@ describe('CalendarView', () => {
     const wrapper = mountCalendar();
     await flushPromises();
 
+    // O profissional passou a partilhar linha com o procedimento, por isso o
+    // separador vem junto; o que o teste garante é que continua visível.
     expect(
       wrapper.find('[data-testid="calendar-appointment-resource"]').text()
-    ).toBe('Dra. Ana');
+    ).toContain('Dra. Ana');
   });
   it('opens the quick-create popover when an empty slot is clicked', async () => {
     // Direção A: o clique abre um balão ancorado, como no Google. O diálogo
@@ -316,6 +334,43 @@ describe('CalendarView', () => {
     );
     expect(wrapper.vm.quickSlot).toBeInstanceOf(Date);
     expect(wrapper.vm.quickSlot.getMinutes()).toBe(0);
+  });
+
+  it('opens the anchored popover, not the dialog, when an appointment is clicked', async () => {
+    // A queixa era o diálogo de 543 linhas a abrir por cima da agenda. Agora o
+    // clique responde no sítio, e o diálogo fica atrás do ⋮.
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        {
+          id: 9,
+          starts_at: '2026-08-31T09:00:00.000Z',
+          ends_at: '2026-08-31T09:50:00.000Z',
+          status: 'scheduled',
+          contact: { id: 3, name: 'Maria Silva' },
+          procedure: { id: 4, name: 'Toxina' },
+          resources: [],
+        },
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+    abrirDetalhes.mockClear();
+
+    await wrapper.find('[data-testid="calendar-appointment"]').trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-event-popover"]').exists()
+    ).toBe(true);
+    expect(abrirDetalhes).not.toHaveBeenCalled();
+
+    await wrapper.find('[data-testid="popover-detalhes"]').trigger('click');
+    expect(abrirDetalhes).toHaveBeenCalledWith(9);
+    // O balão sai de cena ao passar a vez ao diálogo.
+    expect(
+      wrapper.find('[data-testid="calendar-event-popover"]').exists()
+    ).toBe(false);
   });
 
   it('hands the slot to the full dialog from "more options"', async () => {

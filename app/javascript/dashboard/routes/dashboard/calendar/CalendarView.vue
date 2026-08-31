@@ -9,9 +9,10 @@ import { frontendURL } from 'dashboard/helper/URLHelper';
 import KanbanCalendarBookingDialog from '../kanban/KanbanCalendarBookingDialog.vue';
 import {
   RAEVO_CONTROL_CLASS,
-  RAEVO_SELECT_CLASS,
+  RAEVO_SELECT_STANDALONE_CLASS,
 } from 'dashboard/components-next/raevo/raevoControl';
 import CalendarAppointmentDetailsDialog from './CalendarAppointmentDetailsDialog.vue';
+import CalendarEventPopover from './CalendarEventPopover.vue';
 import CalendarQuickCreate from './CalendarQuickCreate.vue';
 
 const { t, locale } = useI18n();
@@ -32,6 +33,12 @@ const draggedAppointment = ref(null);
 // Direção A · o clique num horário vazio abre um balão ancorado, como no
 // Google, e não o diálogo inteiro. O diálogo fica atrás de "Mais opções".
 const procedures = ref([]);
+// Direção A · clicar num agendamento abre um balão ancorado nele, como no
+// Google. O diálogo de 543 linhas fica atrás do ⋮, e das duas ações que
+// precisam de mais informação: cancelar e remarcar.
+const openedAppointment = ref(null);
+const eventAnchor = ref(null);
+const isChangingStatus = ref(false);
 const quickSlot = ref(null);
 const quickAnchor = ref(null);
 
@@ -125,6 +132,17 @@ const APPOINTMENT_TONES = {
 };
 const appointmentToneClass = appointment =>
   APPOINTMENT_TONES[appointment?.status] || APPOINTMENT_TONES.scheduled;
+
+/**
+ * A barra lateral leva a cor do procedimento — dado que a configuração já
+ * pedia e que não aparecia em lado nenhum. Cancelado perde a cor: um
+ * agendamento morto não deve competir por atenção com os vivos.
+ */
+const appointmentAccent = appointment => {
+  const cor = appointment?.procedure?.color;
+  if (!cor || appointment.status === 'canceled') return {};
+  return { borderInlineStartColor: cor };
+};
 
 const calendarStatuses = computed(() => [
   { value: 'scheduled', label: t('CALENDAR.DETAIL.STATUS.SCHEDULED') },
@@ -339,8 +357,60 @@ const openSettings = () =>
       `accounts/${currentAccountId.value}/calendar/settings/procedures`
     )
   );
-const openAppointment = appointment =>
-  appointmentDetailsDialog.value?.open(appointment.id);
+const openAppointment = (appointment, event) => {
+  const alvo = event?.currentTarget?.getBoundingClientRect?.();
+  eventAnchor.value = alvo
+    ? {
+        top: Math.min(alvo.top, window.innerHeight - 320),
+        left: Math.min(alvo.right + 8, window.innerWidth - 336),
+      }
+    : { top: 120, left: 120 };
+  openedAppointment.value = appointment;
+};
+
+const closeEventPopover = () => {
+  openedAppointment.value = null;
+};
+
+/** Abre o diálogo com o agendamento que o balão estava a mostrar. */
+const openAppointmentDetails = () => {
+  const id = openedAppointment.value?.id;
+  closeEventPopover();
+  appointmentDetailsDialog.value?.open(id);
+};
+
+const rescheduleFromPopover = () => {
+  const agendamento = openedAppointment.value;
+  closeEventPopover();
+  appointmentDetailsDialog.value?.openForReschedule(
+    agendamento.id,
+    new Date(agendamento.starts_at)
+  );
+};
+
+/**
+ * Só as ações que não pedem mais nada ao utilizador acontecem no balão. Quem
+ * decide continua a ser o servidor: o balão manda a ação e recarrega o que
+ * voltar, sem presumir o novo estado.
+ */
+const changeAppointmentStatus = async action => {
+  const agendamento = openedAppointment.value;
+  if (!agendamento || isChangingStatus.value) return;
+
+  isChangingStatus.value = true;
+  try {
+    await calendarAPI.updateAppointment(agendamento.id, {
+      appointment: { action, lock_version: agendamento.lock_version },
+    });
+    closeEventPopover();
+    await loadAppointments();
+  } catch (statusError) {
+    // O diálogo mostra o motivo da recusa; o balão não tem onde o dizer.
+    openAppointmentDetails();
+  } finally {
+    isChangingStatus.value = false;
+  }
+};
 const openRequestedAppointment = async appointmentId => {
   const id = Number(appointmentId);
   if (!id) return;
@@ -465,7 +535,7 @@ onMounted(() => {
           id="calendar-view-select"
           v-model="view"
           data-testid="calendar-toolbar-view"
-          :class="RAEVO_SELECT_CLASS"
+          :class="RAEVO_SELECT_STANDALONE_CLASS"
         >
           <option value="day">{{ t('CALENDAR.DAY') }}</option>
           <option value="week">{{ t('CALENDAR.WEEK') }}</option>
@@ -560,7 +630,7 @@ onMounted(() => {
             id="calendar-status-filter"
             v-model="selectedStatus"
             class="w-full"
-            :class="RAEVO_SELECT_CLASS"
+            :class="RAEVO_SELECT_STANDALONE_CLASS"
           >
             <option value="all">{{ t('CALENDAR.ALL_STATUSES') }}</option>
             <option
@@ -631,6 +701,7 @@ onMounted(() => {
                 draggable="true"
                 class="relative z-10 mb-1 w-full rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
                 :class="appointmentToneClass(appointment)"
+                :style="appointmentAccent(appointment)"
                 :aria-label="
                   t('CALENDAR.APPOINTMENT_LABEL', {
                     time: formatTime(appointment.starts_at),
@@ -638,7 +709,7 @@ onMounted(() => {
                     procedure: appointment.procedure.name,
                   })
                 "
-                @click="openAppointment(appointment)"
+                @click="openAppointment(appointment, $event)"
                 @dragstart="beginRescheduleDrag(appointment)"
                 @dragend="draggedAppointment = null"
               >
@@ -655,22 +726,29 @@ onMounted(() => {
                 <span class="block truncate text-xs text-n-slate-11">
                   {{ appointment.procedure.name }}
                 </span>
-                <span
-                  v-if="appointment.resources?.length"
-                  data-testid="calendar-appointment-resource"
-                  class="block truncate text-xs text-n-slate-11"
-                >
-                  {{
-                    appointment.resources
-                      .map(resource => resource.name)
-                      .join(', ')
-                  }}
-                </span>
-                <span
-                  data-testid="calendar-appointment-status"
-                  class="block truncate text-xs font-medium text-n-slate-12"
-                >
-                  {{ statusLabel(appointment.status) }}
+                <!--
+                  Profissional e situação partilham a terceira linha: na largura
+                  de uma coluna de semana, pô-los em linhas separadas fazia
+                  quatro linhas e cortava o procedimento a meio da palavra.
+                -->
+                <span class="block truncate text-micro text-n-slate-11">
+                  <span
+                    v-if="appointment.resources?.length"
+                    data-testid="calendar-appointment-resource"
+                  >
+                    {{
+                      appointment.resources
+                        .map(resource => resource.name)
+                        .join(', ')
+                    }}
+                    ·
+                  </span>
+                  <span
+                    data-testid="calendar-appointment-status"
+                    class="font-medium"
+                  >
+                    {{ statusLabel(appointment.status) }}
+                  </span>
                 </span>
               </button>
             </div>
@@ -700,7 +778,7 @@ onMounted(() => {
               type="button"
               class="mb-1 block w-full truncate rounded border-s-[3px] px-1.5 py-1 text-left text-xs text-n-slate-12 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
               :class="appointmentToneClass(appointment)"
-              @click="openAppointment(appointment)"
+              @click="openAppointment(appointment, $event)"
             >
               {{ formatTime(appointment.starts_at) }}
               {{ appointment.contact.name }}
@@ -768,6 +846,16 @@ onMounted(() => {
       @close="closeQuickCreate"
       @created="loadAppointments"
       @open-full-dialog="openFullDialogFromQuick"
+    />
+    <CalendarEventPopover
+      :appointment="openedAppointment"
+      :anchor="eventAnchor"
+      :is-saving="isChangingStatus"
+      @close="closeEventPopover"
+      @action="changeAppointmentStatus"
+      @cancel="openAppointmentDetails"
+      @reschedule="rescheduleFromPopover"
+      @open-details="openAppointmentDetails"
     />
     <CalendarAppointmentDetailsDialog
       ref="appointmentDetailsDialog"
