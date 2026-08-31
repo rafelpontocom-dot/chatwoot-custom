@@ -277,6 +277,20 @@
         "NO_SHOW": "Falta registrada"
       }
     },
-    "BOOK_SLOT_LABEL": "Agendar {day} às {time}"
+    "BOOK_SLOT_LABEL": "Agendar {day} às {time}",
+    "MY_CALENDARS": "Minhas agendas",
+    "NO_RESOURCES_YET": "Nenhuma agenda cadastrada.",
+    "VIEW": "Visualização",
+    "QUICK": {
+      "TITLE": "Nova consulta",
+      "CONTACT": "Buscar paciente",
+      "PROCEDURE": "Procedimento",
+      "RESOURCE": "Profissional",
+      "SEARCHING": "Buscando...",
+      "SAVE": "Guardar",
+      "MORE_OPTIONS": "Mais opções",
+      "NO_RESOURCE": "Nenhum profissional disponível para este procedimento.",
+      "ERROR": "Não foi possível marcar. Tente de novo."
+    }
   }
 }

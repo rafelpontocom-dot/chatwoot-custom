@@ -18,16 +18,33 @@ vi.mock('dashboard/api/calendar', () => ({
   default: {
     getAppointments: vi.fn(),
     getResources: vi.fn(),
+    getProcedures: vi.fn(),
+    createAppointment: vi.fn(),
   },
 }));
+
+const abrirDialogo = vi.fn();
 
 const mountCalendar = () =>
   shallowMount(CalendarView, {
     global: {
       stubs: {
-        KanbanCalendarBookingDialog: true,
+        KanbanCalendarBookingDialog: {
+          setup(_, { expose }) {
+            expose({ open: abrirDialogo });
+          },
+          template: '<div />',
+        },
         CalendarAppointmentDetailsDialog: true,
         CalendarSettingsDialog: true,
+        // O balão tem spec próprio; aqui só se verifica a ligação com a grade.
+        CalendarQuickCreate: {
+          props: ['startsAt'],
+          emits: ['openFullDialog', 'close'],
+          template: `<div v-if="startsAt" data-testid="calendar-quick-create">
+            <button data-testid="calendar-quick-more" @click="$emit('openFullDialog')" />
+          </div>`,
+        },
       },
     },
   });
@@ -52,9 +69,8 @@ describe('CalendarView', () => {
     await flushPromises();
 
     await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.MONTH')
-      .trigger('click');
+      .find('[data-testid="calendar-toolbar-view"]')
+      .setValue('month');
 
     expect(wrapper.findAll('[data-testid="calendar-month-day"]').length).toBe(
       42
@@ -66,31 +82,27 @@ describe('CalendarView', () => {
     await flushPromises();
 
     await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.MONTH')
-      .trigger('click');
+      .find('[data-testid="calendar-toolbar-view"]')
+      .setValue('month');
 
     expect(
       wrapper.find('[data-testid="calendar-date-label"]').text()
     ).not.toMatch(/^\d/);
   });
 
-  it('exposes the active calendar view to assistive technology', async () => {
+  it('exposes the active calendar view through a labelled select', async () => {
+    // Direção A: a vista é um select, como no Google — não um grupo de botões.
     const wrapper = mountCalendar();
     await flushPromises();
 
-    const weekButton = wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.WEEK');
-    expect(weekButton.attributes('aria-pressed')).toBe('true');
+    const seletor = wrapper.find('[data-testid="calendar-toolbar-view"]');
+    expect(seletor.element.value).toBe('week');
+    expect(wrapper.find('label[for="calendar-view-select"]').exists()).toBe(
+      true
+    );
 
-    const monthButton = wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.MONTH');
-    await monthButton.trigger('click');
-
-    expect(monthButton.attributes('aria-pressed')).toBe('true');
-    expect(weekButton.attributes('aria-pressed')).toBe('false');
+    await seletor.setValue('month');
+    expect(seletor.element.value).toBe('month');
   });
 
   it('exposes stable controls for the desktop scheduling flow', async () => {
@@ -127,28 +139,63 @@ describe('CalendarView', () => {
     expect(wrapper.text()).toContain('CALENDAR.EMPTY_FILTERED_DESCRIPTION');
   });
 
-  it('separates calendar actions, filters, search, and date controls in the toolbar', async () => {
+  it('keeps the whole toolbar on a single row, like Google Calendar', async () => {
     const wrapper = mountCalendar();
     await flushPromises();
 
-    expect(
-      wrapper.find('[data-testid="calendar-header-actions"]').exists()
-    ).toBe(true);
-    expect(
-      wrapper.find('[data-testid="calendar-toolbar-filters"]').exists()
-    ).toBe(true);
-    expect(
-      wrapper.find('[data-testid="calendar-toolbar-search"]').exists()
-    ).toBe(true);
-    expect(
-      wrapper.find('[data-testid="calendar-toolbar-period"]').exists()
-    ).toBe(true);
-    expect(
-      wrapper.find('[data-testid="calendar-toolbar-filters"]').classes()
-    ).toEqual(expect.arrayContaining(['shrink-0']));
-    expect(
-      wrapper.find('[data-testid="calendar-workspace"] header').classes()
-    ).toEqual(expect.arrayContaining(['2xl:grid']));
+    const barra = wrapper.find('[data-testid="calendar-topbar"]');
+    expect(barra.exists()).toBe(true);
+    // Uma linha só: antes eram três faixas empilhadas.
+    expect(barra.classes()).toEqual(
+      expect.arrayContaining(['flex', 'items-center'])
+    );
+    expect(barra.classes()).not.toContain('flex-wrap');
+
+    [
+      'calendar-new-appointment',
+      'calendar-toolbar-period',
+      'calendar-date-label',
+      'calendar-toolbar-search',
+      'calendar-toolbar-view',
+      'calendar-open-settings',
+    ].forEach(id => {
+      expect(barra.find(`[data-testid="${id}"]`).exists()).toBe(true);
+    });
+  });
+
+  it('moves the calendars into a sidebar with a mini month, like Google', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [{ id: 3, name: 'Dra. Ana', active: true }],
+    });
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const lateral = wrapper.find('[data-testid="calendar-sidebar"]');
+    expect(lateral.exists()).toBe(true);
+    // Seis semanas do mini-calendário.
+    expect(lateral.findAll('button').length).toBeGreaterThanOrEqual(42);
+    expect(lateral.find('[data-testid="calendar-resource-3"]').exists()).toBe(
+      true
+    );
+  });
+
+  it('hides a calendar from the grid when its checkbox is cleared', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        { id: 3, name: 'Dra. Ana', active: true },
+        { id: 4, name: 'Sala 1', active: true },
+      ],
+    });
+    const wrapper = mountCalendar();
+    await flushPromises();
+    CalendarAPI.getAppointments.mockClear();
+
+    await wrapper.find('[data-testid="calendar-resource-3"]').setValue(false);
+    await flushPromises();
+
+    expect(CalendarAPI.getAppointments).toHaveBeenLastCalledWith(
+      expect.objectContaining({ resource_ids: [4] })
+    );
   });
 
   it('filters the calendar by the selected appointment status', async () => {
@@ -249,20 +296,40 @@ describe('CalendarView', () => {
       wrapper.find('[data-testid="calendar-appointment-resource"]').text()
     ).toBe('Dra. Ana');
   });
-  it('opens the booking dialog prefilled when an empty slot is clicked', async () => {
+  it('opens the quick-create popover when an empty slot is clicked', async () => {
+    // Direção A: o clique abre um balão ancorado, como no Google. O diálogo
+    // inteiro fica atrás de "Mais opções".
     const wrapper = mountCalendar();
     await flushPromises();
-
-    const open = vi.fn();
-    wrapper.vm.bookingDialog = { open };
 
     const slots = wrapper.findAll('[data-testid="calendar-slot"]');
     expect(slots.length).toBeGreaterThan(0);
 
     await slots[0].trigger('click');
+    await flushPromises();
 
-    expect(open).toHaveBeenCalledTimes(1);
-    expect(open.mock.calls[0][0].startsAt).toBeInstanceOf(Date);
-    expect(open.mock.calls[0][0].startsAt.getMinutes()).toBe(0);
+    expect(wrapper.find('[data-testid="calendar-quick-create"]').exists()).toBe(
+      true
+    );
+    expect(wrapper.vm.quickSlot).toBeInstanceOf(Date);
+    expect(wrapper.vm.quickSlot.getMinutes()).toBe(0);
+  });
+
+  it('hands the slot to the full dialog from "more options"', async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    abrirDialogo.mockClear();
+
+    await wrapper.findAll('[data-testid="calendar-slot"]')[0].trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="calendar-quick-more"]').trigger('click');
+
+    expect(abrirDialogo).toHaveBeenCalledTimes(1);
+    expect(abrirDialogo.mock.calls[0][0].startsAt).toBeInstanceOf(Date);
+    // O balão fecha ao passar a vez para o diálogo.
+    expect(wrapper.find('[data-testid="calendar-quick-create"]').exists()).toBe(
+      false
+    );
   });
 });

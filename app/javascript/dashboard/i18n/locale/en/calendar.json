@@ -277,6 +277,20 @@
         "NO_SHOW": "No-show recorded"
       }
     },
-    "BOOK_SLOT_LABEL": "Book {day} at {time}"
+    "BOOK_SLOT_LABEL": "Book {day} at {time}",
+    "MY_CALENDARS": "My calendars",
+    "NO_RESOURCES_YET": "No calendars registered yet.",
+    "VIEW": "View",
+    "QUICK": {
+      "TITLE": "New appointment",
+      "CONTACT": "Search patient",
+      "PROCEDURE": "Procedure",
+      "RESOURCE": "Professional",
+      "SEARCHING": "Searching...",
+      "SAVE": "Save",
+      "MORE_OPTIONS": "More options",
+      "NO_RESOURCE": "No professional available for this procedure.",
+      "ERROR": "Could not book. Please try again."
+    }
   }
 }
