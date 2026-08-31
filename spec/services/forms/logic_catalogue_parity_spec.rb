@@ -42,6 +42,7 @@ RSpec.describe Forms::Logic do
     expect(js_list(catalogue, 'const ACTIONS')).to eq(Forms::Logic::ACTIONS)
     expect(js_list(catalogue, 'const CALCULATE_OPERATORS')).to eq(Forms::Logic::CALCULATE_OPERATORS)
     expect(js_list(catalogue, 'const VARIABLE_KINDS')).to eq(Forms::Logic::VARIABLE_KINDS)
+    expect(js_list(catalogue, 'const COMBINATORS')).to eq(Forms::Logic::COMBINATORS)
   end
 
   it 'never offers the legacy operator to a new schema' do

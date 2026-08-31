@@ -95,6 +95,6 @@ class Forms::VisiblePath
   def condition_matches?(condition)
     return false if condition.blank?
 
-    Forms::Logic.matches?(condition['comparison'], @answers[condition['ref'].to_s], condition['expected'])
+    Forms::Logic.satisfied?(condition, @answers)
   end
 end

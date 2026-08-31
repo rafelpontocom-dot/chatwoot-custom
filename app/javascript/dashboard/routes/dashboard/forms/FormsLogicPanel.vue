@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import {
   ACTIONS,
   CALCULATE_OPERATORS,
+  COMBINATORS,
   isUnaryOperator,
   operatorsFor,
 } from './logicCatalogue';
@@ -62,6 +63,24 @@ const jumpOptions = computed(() => {
   return [...seguintes, ...finais];
 });
 
+/**
+ * Uma condição guardada é simples ou um grupo. A interface trabalha sempre com
+ * lista: uma condição só é um grupo de um, e é isso que deixa acrescentar a
+ * segunda sem reescrever nada.
+ */
+const condicoesDe = rule =>
+  rule.condition?.combinator
+    ? rule.condition.conditions || []
+    : [rule.condition].filter(Boolean);
+
+const combinadorDe = rule => rule.condition?.combinator || COMBINATORS[0];
+
+/** Volta à forma simples quando fica uma só: o schema não guarda grupo de um. */
+const condicaoGuardada = (condicoes, combinator) =>
+  condicoes.length > 1
+    ? { combinator, conditions: condicoes }
+    : condicoes[0] || {};
+
 const operatorsForRef = ref => operatorsFor(fieldByKey.value[ref]?.type);
 
 const optionsForRef = ref => {
@@ -100,13 +119,19 @@ const removeRule = index => {
   writeRules(rules.value.filter((_, position) => position !== index));
 };
 
-const patchRule = (index, patch) => {
+/** `posicao` diz qual condição do grupo se está a alterar. */
+const patchRule = (index, patch, posicao = 0) => {
   writeRules(
     rules.value.map((rule, position) => {
       if (position !== index) return rule;
+      const condicoes = condicoesDe(rule).map((condicao, k) =>
+        k === posicao ? { ...condicao, ...(patch.condition || {}) } : condicao
+      );
       return {
         ...rule,
-        condition: { ...rule.condition, ...(patch.condition || {}) },
+        condition: patch.condition
+          ? condicaoGuardada(condicoes, combinadorDe(rule))
+          : rule.condition,
         action: patch.action
           ? { ...rule.action, ...patch.action }
           : rule.action,
@@ -115,12 +140,50 @@ const patchRule = (index, patch) => {
   );
 };
 
+const escreverCondicoes = (index, condicoes, combinator) =>
+  writeRules(
+    rules.value.map((rule, position) =>
+      position === index
+        ? { ...rule, condition: condicaoGuardada(condicoes, combinator) }
+        : rule
+    )
+  );
+
+const addCondition = index => {
+  const rule = rules.value[index];
+  const ref = props.field.key;
+  escreverCondicoes(
+    index,
+    [
+      ...condicoesDe(rule),
+      { ref, comparison: operatorsForRef(ref)[0], expected: '' },
+    ],
+    combinadorDe(rule)
+  );
+};
+
+const removeCondition = (index, posicao) => {
+  const rule = rules.value[index];
+  escreverCondicoes(
+    index,
+    condicoesDe(rule).filter((_, k) => k !== posicao),
+    combinadorDe(rule)
+  );
+};
+
+const changeCombinator = (index, combinator) => {
+  const rule = rules.value[index];
+  escreverCondicoes(index, condicoesDe(rule), combinator);
+};
+
 /** Trocar a pergunta da condição invalida o operador anterior. */
-const changeRef = (index, ref) => {
+const changeRef = (index, ref, posicao = 0) => {
   const [firstOperator] = operatorsForRef(ref);
-  patchRule(index, {
-    condition: { ref, comparison: firstOperator, expected: '' },
-  });
+  patchRule(
+    index,
+    { condition: { ref, comparison: firstOperator, expected: '' } },
+    posicao
+  );
 };
 
 const changeAction = (index, kind) => {
@@ -241,89 +304,144 @@ const controlClass =
           class="grid gap-2 rounded-lg border border-n-weak bg-n-solid-2 p-2.5"
           data-test="forms-logic-rule"
         >
-          <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2">
-            <span
-              class="text-micro font-bold uppercase tracking-wide text-n-teal-11"
+          <div
+            v-for="(condicao, posicao) in condicoesDe(rule)"
+            :key="posicao"
+            class="grid gap-2"
+          >
+            <div
+              class="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2"
             >
-              {{ t('FORMS.LOGIC.WHEN') }}
-            </span>
-            <select
-              :class="controlClass"
-              :value="rule.condition.ref"
-              data-test="forms-logic-ref"
-              @change="changeRef(index, $event.target.value)"
-            >
-              <option
-                v-for="item in conditionOptions"
-                :key="item.key"
-                :value="item.key"
+              <!-- A primeira linha diz QUANDO; as seguintes dizem E ou OU. -->
+              <span
+                v-if="!posicao"
+                class="text-micro font-bold uppercase tracking-wide text-n-teal-11"
               >
-                {{ item.label || item.key }}
-              </option>
-            </select>
+                {{ t('FORMS.LOGIC.WHEN') }}
+              </span>
+              <select
+                v-else
+                class="reset-base mb-0 h-7 w-full rounded-lg border border-solid border-n-weak bg-n-solid-1 px-1 text-micro font-bold uppercase text-n-teal-11 outline-none"
+                :value="combinadorDe(rule)"
+                data-test="forms-logic-combinator"
+                @change="changeCombinator(index, $event.target.value)"
+              >
+                <option
+                  v-for="combinator in COMBINATORS"
+                  :key="combinator"
+                  :value="combinator"
+                >
+                  {{ t(`FORMS.LOGIC.COMBINATOR.${combinator}`) }}
+                </option>
+              </select>
+              <select
+                :class="controlClass"
+                :value="condicao.ref"
+                data-test="forms-logic-ref"
+                @change="changeRef(index, $event.target.value, posicao)"
+              >
+                <option
+                  v-for="item in conditionOptions"
+                  :key="item.key"
+                  :value="item.key"
+                >
+                  {{ item.label || item.key }}
+                </option>
+              </select>
+            </div>
+            <div
+              class="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2"
+            >
+              <span />
+              <div
+                class="grid gap-2"
+                :class="
+                  isUnaryOperator(condicao.comparison) ? '' : 'grid-cols-2'
+                "
+              >
+                <select
+                  :class="controlClass"
+                  :value="condicao.comparison"
+                  data-test="forms-logic-operator"
+                  @change="
+                    patchRule(
+                      index,
+                      { condition: { comparison: $event.target.value } },
+                      posicao
+                    )
+                  "
+                >
+                  <option
+                    v-for="operator in operatorsForRef(condicao.ref)"
+                    :key="operator"
+                    :value="operator"
+                  >
+                    {{ t(`FORMS.LOGIC.OP.${operator}`) }}
+                  </option>
+                </select>
+                <!-- «está vazia» e «foi respondida» não têm valor a comparar. -->
+                <select
+                  v-if="
+                    !isUnaryOperator(condicao.comparison) &&
+                    optionsForRef(condicao.ref).length
+                  "
+                  :class="controlClass"
+                  :value="condicao.expected"
+                  data-test="forms-logic-expected"
+                  @change="
+                    patchRule(
+                      index,
+                      { condition: { expected: $event.target.value } },
+                      posicao
+                    )
+                  "
+                >
+                  <option
+                    v-for="option in optionsForRef(condicao.ref)"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+                <input
+                  v-else-if="!isUnaryOperator(condicao.comparison)"
+                  :class="controlClass"
+                  :value="condicao.expected"
+                  :placeholder="t('FORMS.LOGIC.VALUE')"
+                  data-test="forms-logic-expected"
+                  @input="
+                    patchRule(
+                      index,
+                      { condition: { expected: $event.target.value } },
+                      posicao
+                    )
+                  "
+                />
+              </div>
+            </div>
+            <div v-if="condicoesDe(rule).length > 1" class="text-end">
+              <button
+                type="button"
+                class="rounded px-2 py-0.5 text-micro font-semibold text-n-slate-11 hover:bg-n-slate-3"
+                data-test="forms-logic-remove-condition"
+                @click="removeCondition(index, posicao)"
+              >
+                {{ t('FORMS.LOGIC.REMOVE_CONDITION') }}
+              </button>
+            </div>
           </div>
+
           <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2">
             <span />
-            <div
-              class="grid gap-2"
-              :class="
-                isUnaryOperator(rule.condition.comparison) ? '' : 'grid-cols-2'
-              "
+            <button
+              type="button"
+              class="min-h-7 rounded border border-dashed border-n-weak text-micro font-semibold text-n-slate-11 hover:border-n-teal-7 hover:text-n-teal-11"
+              data-test="forms-logic-add-condition"
+              @click="addCondition(index)"
             >
-              <select
-                :class="controlClass"
-                :value="rule.condition.comparison"
-                data-test="forms-logic-operator"
-                @change="
-                  patchRule(index, {
-                    condition: { comparison: $event.target.value },
-                  })
-                "
-              >
-                <option
-                  v-for="operator in operatorsForRef(rule.condition.ref)"
-                  :key="operator"
-                  :value="operator"
-                >
-                  {{ t(`FORMS.LOGIC.OP.${operator}`) }}
-                </option>
-              </select>
-              <!-- «está vazia» e «foi respondida» não têm valor a comparar. -->
-              <select
-                v-if="
-                  !isUnaryOperator(rule.condition.comparison) &&
-                  optionsForRef(rule.condition.ref).length
-                "
-                :class="controlClass"
-                :value="rule.condition.expected"
-                data-test="forms-logic-expected"
-                @change="
-                  patchRule(index, {
-                    condition: { expected: $event.target.value },
-                  })
-                "
-              >
-                <option
-                  v-for="option in optionsForRef(rule.condition.ref)"
-                  :key="option"
-                  :value="option"
-                >
-                  {{ option }}
-                </option>
-              </select>
-              <input
-                v-else-if="!isUnaryOperator(rule.condition.comparison)"
-                :class="controlClass"
-                :value="rule.condition.expected"
-                :placeholder="t('FORMS.LOGIC.VALUE')"
-                data-test="forms-logic-expected"
-                @input="
-                  patchRule(index, {
-                    condition: { expected: $event.target.value },
-                  })
-                "
-              />
-            </div>
+              {{ t('FORMS.LOGIC.ADD_CONDITION') }}
+            </button>
           </div>
 
           <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2">

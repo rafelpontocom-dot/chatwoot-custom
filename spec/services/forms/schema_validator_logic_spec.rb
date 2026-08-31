@@ -164,6 +164,63 @@ RSpec.describe Forms::SchemaValidator do
     end
   end
 
+  describe 'condition groups' do
+    def grupo(combinator, *condicoes)
+      [{ 'field_key' => 'observacoes',
+         'payloads' => [{ 'condition' => { 'combinator' => combinator, 'conditions' => condicoes },
+                          'action' => { 'kind' => 'navigate', 'field_key' => 'assinatura' } }] }]
+    end
+
+    def cond(ref, comparison, expected)
+      { 'ref' => ref, 'comparison' => comparison, 'expected' => expected }
+    end
+
+    it 'accepts conditions combined with all or any' do
+      %w[all any].each do |combinator|
+        schema = anamnese(
+          logics: grupo(combinator,
+                        cond('gravida', 'is', 'Não'),
+                        cond('idade', 'greater_than', '60'))
+        )
+
+        expect(described_class.new(schema)).to be_valid
+      end
+    end
+
+    it 'refuses a combinator it does not know' do
+      validator = described_class.new(anamnese(logics: grupo('maybe', cond('gravida', 'is', 'Não'))))
+
+      expect(validator).not_to be_valid
+      expect(validator.errors).to include('logic groups must combine with all or any')
+    end
+
+    it 'refuses an empty group' do
+      validator = described_class.new(anamnese(logics: grupo('all')))
+
+      expect(validator).not_to be_valid
+      expect(validator.errors).to include('logic groups must contain conditions')
+    end
+
+    it 'refuses a group inside a group' do
+      # Aninhar pede parênteses, e uma regra com parênteses deixa de se ler
+      # como uma frase — que é como a secretaria a mantém.
+      aninhado = { 'combinator' => 'any', 'conditions' => [cond('gravida', 'is', 'Sim')] }
+      validator = described_class.new(anamnese(logics: grupo('all', aninhado)))
+
+      expect(validator).not_to be_valid
+      expect(validator.errors).to include('logic groups cannot contain another group')
+    end
+
+    it 'still checks each operator against its own field type inside a group' do
+      validator = described_class.new(
+        anamnese(logics: grupo('all', cond('assinatura', 'starts_with', 'a')))
+      )
+
+      expect(validator).not_to be_valid
+      expect(validator.errors).to include('logic comparison is not supported by the referenced field type')
+    end
+  end
+
   it 'keeps accepting a schema with no logic at all' do
     expect(described_class.new(anamnese)).to be_valid
   end

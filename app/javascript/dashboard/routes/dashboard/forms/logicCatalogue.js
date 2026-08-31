@@ -60,6 +60,8 @@ export const CALCULATE_OPERATORS = [
   'assignment',
 ];
 export const VARIABLE_KINDS = ['number', 'text'];
+/** Um nível só, sem parênteses: é o que mantém a regra legível. */
+export const COMBINATORS = ['all', 'any'];
 
 /**
  * Assinatura, anexo e campo oculto ficam só com os comuns: não há «contém»

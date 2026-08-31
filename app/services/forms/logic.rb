@@ -86,6 +86,27 @@ module Forms::Logic
     instance_exec(answer, expected, &comparator)
   end
 
+  # Uma condição é simples — `{ref, comparison, expected}` — ou um grupo:
+  # `{combinator, conditions}`. Um nível só, sem parênteses, porque é o que
+  # mantém a regra legível por quem a escreve.
+  def satisfied?(condition, answers)
+    condition = condition.to_h
+    respostas = answers.to_h.stringify_keys
+    return group_satisfied?(condition, respostas) if condition['combinator'].present?
+
+    matches?(condition['comparison'], respostas[condition['ref'].to_s], condition['expected'])
+  end
+
+  # Um grupo vazio nunca se cumpre: dizer que sim faria a regra disparar
+  # sempre, que é o oposto do que quem a deixou por preencher esperava.
+  def group_satisfied?(condition, answers)
+    filhas = Array(condition['conditions'])
+    return false if filhas.empty?
+
+    metodo = condition['combinator'].to_s == 'any' ? :any? : :all?
+    filhas.public_send(metodo) { |filha| satisfied?(filha, answers) }
+  end
+
   def blank_answer?(answer)
     answer.blank? || (answer.is_a?(Array) && answer.compact_blank.empty?)
   end

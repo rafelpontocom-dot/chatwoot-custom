@@ -491,6 +491,12 @@
         "multiplication": "multiplicar",
         "division": "dividir",
         "assignment": "definir como"
+      },
+      "ADD_CONDITION": "Adicionar condição",
+      "REMOVE_CONDITION": "Remover condição",
+      "COMBINATOR": {
+        "all": "e",
+        "any": "ou"
       }
     },
     "SETTINGS_NAV": {

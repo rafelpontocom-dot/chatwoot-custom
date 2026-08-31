@@ -69,4 +69,63 @@ RSpec.describe Forms::Logic do
       expect(described_class.matches?('inventado', 'Sim', 'Sim')).to be(false)
     end
   end
+
+  describe '.satisfied? with a group' do
+    let(:respostas) { { 'gravida' => 'Não', 'idade' => '62', 'medicacao' => ['Anticoagulante'] } }
+
+    def grupo(combinator, *condicoes)
+      { 'combinator' => combinator, 'conditions' => condicoes }
+    end
+
+    def cond(ref, comparison, expected)
+      { 'ref' => ref, 'comparison' => comparison, 'expected' => expected }
+    end
+
+    it 'requires every condition when combining with all' do
+      expect(
+        described_class.satisfied?(
+          grupo('all', cond('gravida', 'is', 'Não'), cond('idade', 'greater_than', '60')),
+          respostas
+        )
+      ).to be(true)
+
+      expect(
+        described_class.satisfied?(
+          grupo('all', cond('gravida', 'is', 'Sim'), cond('idade', 'greater_than', '60')),
+          respostas
+        )
+      ).to be(false)
+    end
+
+    it 'requires only one when combining with any' do
+      expect(
+        described_class.satisfied?(
+          grupo('any', cond('gravida', 'is', 'Sim'), cond('idade', 'greater_than', '60')),
+          respostas
+        )
+      ).to be(true)
+    end
+
+    it 'mixes field types inside the same group' do
+      expect(
+        described_class.satisfied?(
+          grupo('all',
+                cond('medicacao', 'contains', 'Anticoagulante'),
+                cond('idade', 'greater_or_equal_than', '62')),
+          respostas
+        )
+      ).to be(true)
+    end
+
+    it 'never holds for an empty group' do
+      # Dizer que sim faria a regra disparar sempre, que é o oposto do que quem
+      # a deixou por preencher esperava.
+      expect(described_class.satisfied?(grupo('all'), respostas)).to be(false)
+      expect(described_class.satisfied?(grupo('any'), respostas)).to be(false)
+    end
+
+    it 'still answers a plain condition, as published versions carry them' do
+      expect(described_class.satisfied?(cond('gravida', 'is', 'Não'), respostas)).to be(true)
+    end
+  end
 end

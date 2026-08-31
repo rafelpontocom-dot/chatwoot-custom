@@ -93,6 +93,29 @@ class Forms::LogicValidator
   end
 
   def validate_condition(condition)
+    return validate_group(condition) if condition['combinator'].present?
+
+    validate_simple_condition(condition)
+  end
+
+  # Um nível só. Aninhar grupos pede parênteses, e uma regra com parênteses
+  # deixa de se ler como uma frase — que é a única forma de a secretaria a
+  # conseguir manter.
+  def validate_group(condition)
+    return errors << 'logic groups must combine with all or any' unless Forms::Logic::COMBINATORS.include?(condition['combinator'].to_s)
+
+    filhas = condition['conditions']
+    return errors << 'logic groups must contain conditions' unless filhas.is_a?(Array) && filhas.present?
+
+    filhas.each do |filha|
+      filha = filha.to_h
+      next errors << 'logic groups cannot contain another group' if filha['combinator'].present?
+
+      validate_simple_condition(filha)
+    end
+  end
+
+  def validate_simple_condition(condition)
     ref = condition['ref'].to_s
     return errors << 'logic conditions must reference an existing field' unless field_keys.include?(ref)
 

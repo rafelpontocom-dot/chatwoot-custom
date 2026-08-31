@@ -208,6 +208,98 @@ describe('FormsLogicPanel', () => {
     expect(ultimoEvento(wrapper, 'updateVariables')[1].name).toBe('variavel_2');
   });
 
+  describe('grupos de condições', () => {
+    const comUmaRegra = async wrapper => {
+      await wrapper.get('[data-test="forms-logic-add-rule"]').trigger('click');
+      await wrapper.setProps({ logics: ultimoEvento(wrapper, 'updateLogics') });
+      return wrapper;
+    };
+
+    it('keeps a single condition in its plain shape', async () => {
+      const wrapper = await comUmaRegra(monta());
+
+      // O schema não guarda grupo de um: seria ruído na versão publicada.
+      const regra = ultimoEvento(wrapper, 'updateLogics')[0].payloads[0];
+      expect(regra.condition.combinator).toBeUndefined();
+      expect(regra.condition.ref).toBe('gravida');
+    });
+
+    it('turns the rule into a group when a second condition is added', async () => {
+      const wrapper = await comUmaRegra(monta());
+
+      await wrapper
+        .get('[data-test="forms-logic-add-condition"]')
+        .trigger('click');
+
+      const condicao = ultimoEvento(wrapper, 'updateLogics')[0].payloads[0]
+        .condition;
+      expect(condicao.combinator).toBe('all');
+      expect(condicao.conditions).toHaveLength(2);
+    });
+
+    it('offers and or or between conditions', async () => {
+      const wrapper = await comUmaRegra(monta());
+      await wrapper
+        .get('[data-test="forms-logic-add-condition"]')
+        .trigger('click');
+      await wrapper.setProps({ logics: ultimoEvento(wrapper, 'updateLogics') });
+
+      const combinador = wrapper.get('[data-test="forms-logic-combinator"]');
+      expect(
+        combinador.findAll('option').map(option => option.element.value)
+      ).toEqual(['all', 'any']);
+
+      await combinador.setValue('any');
+
+      expect(
+        ultimoEvento(wrapper, 'updateLogics')[0].payloads[0].condition
+          .combinator
+      ).toBe('any');
+    });
+
+    it('edits one condition of the group without touching the other', async () => {
+      const wrapper = await comUmaRegra(monta());
+      await wrapper
+        .get('[data-test="forms-logic-add-condition"]')
+        .trigger('click');
+      await wrapper.setProps({ logics: ultimoEvento(wrapper, 'updateLogics') });
+
+      await wrapper
+        .findAll('[data-test="forms-logic-operator"]')[1]
+        .setValue('is_not');
+
+      const condicoes = ultimoEvento(wrapper, 'updateLogics')[0].payloads[0]
+        .condition.conditions;
+      expect(condicoes[0].comparison).toBe('is');
+      expect(condicoes[1].comparison).toBe('is_not');
+    });
+
+    it('falls back to the plain shape when the group drops to one', async () => {
+      const wrapper = await comUmaRegra(monta());
+      await wrapper
+        .get('[data-test="forms-logic-add-condition"]')
+        .trigger('click');
+      await wrapper.setProps({ logics: ultimoEvento(wrapper, 'updateLogics') });
+
+      await wrapper
+        .findAll('[data-test="forms-logic-remove-condition"]')[1]
+        .trigger('click');
+
+      const condicao = ultimoEvento(wrapper, 'updateLogics')[0].payloads[0]
+        .condition;
+      expect(condicao.combinator).toBeUndefined();
+      expect(condicao.ref).toBe('gravida');
+    });
+
+    it('does not offer to remove the only condition there is', async () => {
+      const wrapper = await comUmaRegra(monta());
+
+      expect(
+        wrapper.find('[data-test="forms-logic-remove-condition"]').exists()
+      ).toBe(false);
+    });
+  });
+
   it('asks for a question to be selected instead of showing an empty rule list', () => {
     const wrapper = monta({ field: null });
 
