@@ -10,8 +10,11 @@ vi.mock('vue-i18n', () => ({
   }),
 }));
 
+const empurraRota = vi.fn();
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {} }),
+  useRouter: () => ({ push: empurraRota, replace: vi.fn() }),
 }));
 
 vi.mock('dashboard/api/calendar', () => ({

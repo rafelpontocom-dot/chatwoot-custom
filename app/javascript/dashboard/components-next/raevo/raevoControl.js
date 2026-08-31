@@ -13,8 +13,13 @@
 // `field-base`, que pinta TODO input com fundo cinza, raio próprio e 16px de
 // margem inferior. Sem ela, a geometria abaixo é silenciosamente sobrescrita —
 // era a causa da "caixa dentro de caixa" e do espaçamento irregular dos campos.
+// `mb-0` é a segunda metade da mesma defesa. `_base.scss` dá a `select` e a
+// `textarea` a regra `field-base` — com 16px de margem inferior — sem oferecer
+// a saída `.reset-base` que oferece aos inputs. Como não editamos ficheiro do
+// upstream, a margem morre aqui, numa utilitária que ganha por especificidade.
 const BASE =
-  'reset-base w-full border border-n-strong bg-n-surface-1 text-sm text-n-slate-12 ' +
+  'reset-base mb-0 w-full border border-solid border-n-strong bg-n-surface-1 ' +
+  'text-sm text-n-slate-12 ' +
   'outline-none transition-colors placeholder:text-n-slate-9 ' +
   'focus:border-n-brand focus:ring-2 focus:ring-n-brand/20 ' +
   'disabled:cursor-not-allowed disabled:opacity-60';
@@ -27,5 +32,13 @@ export const RAEVO_CONTROL_CLASS = `h-10 rounded-full px-4 ${BASE}`;
 // select. Sem isso o campo mostra dois chevrons: o global e o do RaevoField.
 export const RAEVO_SELECT_CLASS = `h-10 appearance-none rounded-full bg-none px-4 pr-10 ${BASE}`;
 
+/** select fora de um RaevoField — ninguém lhe desenha o chevron, por isso
+ * mantém (sem `bg-none`) a seta que `_base.scss` já pinta em todo o produto. */
+export const RAEVO_SELECT_STANDALONE_CLASS = `h-10 appearance-none rounded-full px-4 pr-8 ${BASE}`;
+
 /** textarea — não é pílula: várias linhas pedem canto de painel */
 export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-3 py-2.5 ${BASE}`;
+
+/** `input[type=color]` — é uma amostra de cor, não um campo de texto: o
+ * conteúdo é a própria cor, por isso não leva padding horizontal de texto. */
+export const RAEVO_SWATCH_CLASS = `h-10 cursor-pointer rounded-full p-1 ${BASE}`;

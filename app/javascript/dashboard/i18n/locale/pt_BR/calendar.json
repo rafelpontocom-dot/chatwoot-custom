@@ -220,7 +220,8 @@
       },
       "REMOVE_RESOURCE": "Apagar",
       "ARCHIVED": "arquivada",
-      "REMOVE_RESOURCE_CONFIRM": "Apagar a agenda \"{name}\"? Se já houver consultas marcadas, ela será arquivada em vez de apagada."
+      "REMOVE_RESOURCE_CONFIRM": "Apagar a agenda \"{name}\"? Se já houver consultas marcadas, ela será arquivada em vez de apagada.",
+      "BACK_TO_CALENDAR": "Voltar para a agenda"
     },
     "DETAIL": {
       "TITLE": "Detalhes do agendamento",

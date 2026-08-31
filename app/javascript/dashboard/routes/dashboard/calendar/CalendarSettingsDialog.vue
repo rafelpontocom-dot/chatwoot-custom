@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -8,7 +8,21 @@ import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import {
+  RAEVO_CONTROL_CLASS,
+  RAEVO_SELECT_STANDALONE_CLASS,
+  RAEVO_SWATCH_CLASS,
+  RAEVO_TEXTAREA_CLASS,
+} from 'dashboard/components-next/raevo/raevoControl';
 import { RAEVO_DEFAULT_PROCEDURE_COLOR } from 'dashboard/constants/raevoPalette';
+
+// A mesma definição serve às duas superfícies: em `inline` ela vira o corpo da
+// página de configuração, sem moldura de diálogo e sem a fita de abas — quem
+// escolhe a secção é a navegação lateral, como no Google Calendar.
+const props = defineProps({
+  inline: { type: Boolean, default: false },
+  tab: { type: String, default: '' },
+});
 
 const emit = defineEmits(['updated']);
 
@@ -18,7 +32,7 @@ const agents = useMapGetter('agents/getAgents');
 const boards = useMapGetter('kanbanBoards/kanbanBoards');
 const inboxes = useMapGetter('inboxes/getAllInboxes');
 const dialog = ref(null);
-const activeTab = ref('procedures');
+const activeTab = ref(props.tab || 'procedures');
 const procedures = ref([]);
 const resources = ref([]);
 const availabilityResourceId = ref(null);
@@ -589,9 +603,21 @@ const copyProcedureBookingLink = async procedure => {
 
 const open = async () => {
   resetForms();
-  dialog.value?.open();
+  if (!props.inline) dialog.value?.open();
   await loadSettings();
 };
+
+watch(
+  () => props.tab,
+  tab => {
+    if (!tab || tab === activeTab.value) return;
+    selectSettingsTab(tab);
+  }
+);
+
+onMounted(() => {
+  if (props.inline) open();
+});
 
 const close = () => dialog.value?.close();
 
@@ -858,17 +884,25 @@ defineExpose({ open });
 </script>
 
 <template>
-  <Dialog
+  <component
+    :is="inline ? 'div' : Dialog"
     ref="dialog"
-    width="3xl"
-    overflow-y-auto
-    :title="t('CALENDAR.SETTINGS.TITLE')"
-    :description="t('CALENDAR.SETTINGS.DESCRIPTION')"
-    :show-confirm-button="false"
+    v-bind="
+      inline
+        ? {}
+        : {
+            width: '3xl',
+            overflowYAuto: true,
+            title: t('CALENDAR.SETTINGS.TITLE'),
+            description: t('CALENDAR.SETTINGS.DESCRIPTION'),
+            showConfirmButton: false,
+          }
+    "
     @close="resetForms"
   >
     <div class="grid gap-4">
       <div
+        v-if="!inline"
         class="inline-flex w-fit rounded-md border border-n-weak bg-n-surface-2 p-0.5"
         role="tablist"
         :aria-label="t('CALENDAR.SETTINGS.TABS_LABEL')"
@@ -938,9 +972,12 @@ defineExpose({ open });
           class="grid gap-4"
         >
           <div
-            class="flex items-start justify-between gap-4 rounded-lg border border-n-weak bg-n-surface-2 p-4"
+            class="flex items-start justify-between gap-4"
+            :class="
+              inline ? '' : 'rounded-lg border border-n-weak bg-n-surface-2 p-4'
+            "
           >
-            <div class="grid gap-1">
+            <div v-if="!inline" class="grid gap-1">
               <h4 class="text-sm font-semibold text-n-slate-12">
                 {{ t('CALENDAR.SETTINGS.PROCEDURES') }}
               </h4>
@@ -971,7 +1008,7 @@ defineExpose({ open });
                   v-model="procedureForm.name"
                   data-testid="calendar-procedure-name"
                   type="text"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1.5">
@@ -984,7 +1021,7 @@ defineExpose({ open });
                   min="5"
                   max="480"
                   type="number"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
             </div>
@@ -998,7 +1035,7 @@ defineExpose({ open });
                   min="0"
                   max="120"
                   type="number"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1.5">
@@ -1010,7 +1047,7 @@ defineExpose({ open });
                   min="0"
                   max="120"
                   type="number"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1.5">
@@ -1019,7 +1056,7 @@ defineExpose({ open });
                 </span>
                 <select
                   v-model="procedureForm.locationType"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_SELECT_STANDALONE_CLASS"
                 >
                   <option value="in_person">
                     {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.IN_PERSON') }}
@@ -1042,7 +1079,7 @@ defineExpose({ open });
                 <input
                   v-model="procedureForm.color"
                   type="color"
-                  class="h-10 w-full rounded-md border border-n-weak bg-n-surface-1 p-1 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_SWATCH_CLASS"
                 />
               </label>
             </div>
@@ -1093,7 +1130,7 @@ defineExpose({ open });
                   <input
                     v-model="procedureForm.publicTitle"
                     type="text"
-                    class="h-10 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                    :class="RAEVO_CONTROL_CLASS"
                   />
                 </label>
                 <label class="grid gap-1.5">
@@ -1105,7 +1142,7 @@ defineExpose({ open });
                     data-testid="calendar-procedure-public-slug"
                     type="text"
                     autocomplete="off"
-                    class="h-10 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                    :class="RAEVO_CONTROL_CLASS"
                   />
                 </label>
                 <label class="grid gap-1.5 sm:col-span-2">
@@ -1115,7 +1152,7 @@ defineExpose({ open });
                   <textarea
                     v-model="procedureForm.publicDescription"
                     rows="2"
-                    class="rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                    :class="RAEVO_TEXTAREA_CLASS"
                   />
                 </label>
               </div>
@@ -1135,13 +1172,16 @@ defineExpose({ open });
                 class="flex items-center gap-2 text-sm text-n-slate-12"
               >
                 <span>{{ t('CALENDAR.SETTINGS.MAX_SESSIONS') }}</span>
-                <input
-                  v-model="procedureForm.maxSessions"
-                  min="2"
-                  max="100"
-                  type="number"
-                  class="h-8 w-20 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
-                />
+                <!-- O controlo canónico é `w-full`; a largura vive no invólucro. -->
+                <div class="w-20 shrink-0">
+                  <input
+                    v-model="procedureForm.maxSessions"
+                    min="2"
+                    max="100"
+                    type="number"
+                    :class="RAEVO_CONTROL_CLASS"
+                  />
+                </div>
               </label>
               <NextButton
                 type="submit"
@@ -1208,9 +1248,12 @@ defineExpose({ open });
           class="grid gap-4"
         >
           <div
-            class="flex items-start justify-between gap-4 rounded-lg border border-n-weak bg-n-surface-2 p-4"
+            class="flex items-start justify-between gap-4"
+            :class="
+              inline ? '' : 'rounded-lg border border-n-weak bg-n-surface-2 p-4'
+            "
           >
-            <div class="grid gap-1">
+            <div v-if="!inline" class="grid gap-1">
               <h4 class="text-sm font-semibold text-n-slate-12">
                 {{ t('CALENDAR.SETTINGS.RESOURCES') }}
               </h4>
@@ -1243,7 +1286,7 @@ defineExpose({ open });
                   v-model="resourceForm.name"
                   data-testid="calendar-resource-name"
                   type="text"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1.5">
@@ -1252,7 +1295,7 @@ defineExpose({ open });
                 </span>
                 <select
                   v-model="resourceForm.resourceType"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                  :class="RAEVO_SELECT_STANDALONE_CLASS"
                 >
                   <option value="room">
                     {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.ROOM') }}
@@ -1277,7 +1320,7 @@ defineExpose({ open });
                 }}</span>
                 <select
                   v-model="resourceForm.userId"
-                  class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_SELECT_STANDALONE_CLASS"
                   @change="selectProfessional(resourceForm.userId)"
                 >
                   <option value="">
@@ -1478,7 +1521,7 @@ defineExpose({ open });
                 }}</span>
                 <select
                   v-model="availabilityForm.weekday"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_SELECT_STANDALONE_CLASS"
                 >
                   <option
                     v-for="weekday in 7"
@@ -1496,7 +1539,7 @@ defineExpose({ open });
                 <input
                   v-model="availabilityForm.startsAtLocal"
                   type="time"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1">
@@ -1506,7 +1549,7 @@ defineExpose({ open });
                 <input
                   v-model="availabilityForm.endsAtLocal"
                   type="time"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <NextButton
@@ -1526,7 +1569,7 @@ defineExpose({ open });
                 }}</span>
                 <select
                   v-model="exceptionForm.kind"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_SELECT_STANDALONE_CLASS"
                 >
                   <option value="block">
                     {{ t('CALENDAR.SETTINGS.AVAILABILITY.BLOCK') }}
@@ -1543,7 +1586,7 @@ defineExpose({ open });
                 <input
                   v-model="exceptionForm.date"
                   type="date"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1">
@@ -1554,7 +1597,7 @@ defineExpose({ open });
                   v-model="exceptionForm.startsAtLocal"
                   type="time"
                   :required="exceptionForm.kind === 'date_override'"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1">
@@ -1565,7 +1608,7 @@ defineExpose({ open });
                   v-model="exceptionForm.endsAtLocal"
                   type="time"
                   :required="exceptionForm.kind === 'date_override'"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <NextButton
@@ -1649,7 +1692,7 @@ defineExpose({ open });
               <input
                 v-model="bookingPageForm.title"
                 type="text"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+                :class="RAEVO_CONTROL_CLASS"
               />
             </label>
             <label class="grid gap-1.5">
@@ -1658,7 +1701,7 @@ defineExpose({ open });
               </span>
               <select
                 v-model="bookingPageForm.duplicatePolicy"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
               >
                 <option value="create_new">
                   {{ t('CALENDAR.SETTINGS.DUPLICATE_POLICIES.CREATE_NEW') }}
@@ -1679,7 +1722,7 @@ defineExpose({ open });
             <textarea
               v-model="bookingPageForm.description"
               rows="2"
-              class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+              :class="RAEVO_TEXTAREA_CLASS"
             />
           </label>
           <div class="grid gap-3 sm:grid-cols-3">
@@ -1691,7 +1734,7 @@ defineExpose({ open });
                 v-model="bookingPageForm.minimumNoticeMinutes"
                 min="0"
                 type="number"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :class="RAEVO_CONTROL_CLASS"
               />
             </label>
             <label class="grid gap-1.5">
@@ -1702,7 +1745,7 @@ defineExpose({ open });
                 v-model="bookingPageForm.maximumNoticeDays"
                 min="1"
                 type="number"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :class="RAEVO_CONTROL_CLASS"
               />
             </label>
             <label class="grid gap-1.5">
@@ -1711,7 +1754,7 @@ defineExpose({ open });
               </span>
               <select
                 v-model="bookingPageForm.slotIntervalMinutes"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
               >
                 <option
                   v-for="interval in [5, 10, 15, 20, 30, 60]"
@@ -1730,7 +1773,7 @@ defineExpose({ open });
               </span>
               <select
                 v-model="bookingPageForm.boardId"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
                 @change="selectBookingBoard"
               >
                 <option value="">
@@ -1752,7 +1795,7 @@ defineExpose({ open });
               <select
                 v-model="bookingPageForm.stageId"
                 :disabled="!bookingPageForm.boardId"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
               >
                 <option value="">
                   {{ t('CALENDAR.SETTINGS.SELECT_DESTINATION') }}
@@ -1772,7 +1815,7 @@ defineExpose({ open });
               </span>
               <select
                 v-model="bookingPageForm.inboxId"
-                class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
               >
                 <option value="">
                   {{ t('CALENDAR.SETTINGS.SELECT_DESTINATION') }}
@@ -1879,16 +1922,16 @@ defineExpose({ open });
               <input
                 v-model="field.key"
                 :placeholder="t('CALENDAR.SETTINGS.PUBLIC_FIELD_KEY')"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
+                :class="RAEVO_CONTROL_CLASS"
               />
               <input
                 v-model="field.label"
                 :placeholder="t('CALENDAR.SETTINGS.PUBLIC_FIELD_LABEL')"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
+                :class="RAEVO_CONTROL_CLASS"
               />
               <select
                 v-model="field.kind"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
               >
                 <option value="text">{{ t('CALENDAR.SETTINGS.TEXT') }}</option>
                 <option value="date">{{ t('CALENDAR.SETTINGS.DATE') }}</option>
@@ -1900,7 +1943,8 @@ defineExpose({ open });
                 v-if="field.kind === 'select'"
                 v-model="field.optionsText"
                 :placeholder="t('CALENDAR.SETTINGS.SELECT_OPTIONS')"
-                class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand sm:col-span-2"
+                class="sm:col-span-2"
+                :class="[RAEVO_CONTROL_CLASS]"
               />
               <label
                 class="flex h-9 items-center gap-1 text-xs text-n-slate-11"
@@ -1932,7 +1976,7 @@ defineExpose({ open });
                 {{ t('CALENDAR.SETTINGS.CAPTCHA_PROVIDER') }}
                 <select
                   v-model="bookingPageForm.captchaProvider"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
+                  :class="RAEVO_SELECT_STANDALONE_CLASS"
                 >
                   <option value="">
                     {{ t('CALENDAR.SETTINGS.CAPTCHA_DISABLED') }}
@@ -1947,7 +1991,7 @@ defineExpose({ open });
                 <input
                   v-model="bookingPageForm.captchaSiteKey"
                   :disabled="!bookingPageForm.captchaProvider"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
             </div>
@@ -1968,7 +2012,7 @@ defineExpose({ open });
                 {{ t('CALENDAR.SETTINGS.PRIVATE_LINK_PROCEDURE') }}
                 <select
                   v-model="bookingLinkForm.procedureId"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
+                  :class="RAEVO_SELECT_STANDALONE_CLASS"
                 >
                   <option value="">
                     {{ t('CALENDAR.SETTINGS.PRIVATE_LINK_ANY_PROCEDURE') }}
@@ -1989,7 +2033,7 @@ defineExpose({ open });
                 <input
                   v-model="bookingLinkForm.expiresAt"
                   type="datetime-local"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <label class="grid gap-1 text-xs font-medium text-n-slate-12">
@@ -1998,7 +2042,7 @@ defineExpose({ open });
                   v-model="bookingLinkForm.maxUses"
                   min="1"
                   type="number"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm outline-none focus:border-n-brand"
+                  :class="RAEVO_CONTROL_CLASS"
                 />
               </label>
               <NextButton
@@ -2033,7 +2077,7 @@ defineExpose({ open });
       </section>
     </div>
 
-    <template #footer>
+    <template v-if="!inline" #footer>
       <div class="flex justify-end">
         <NextButton
           type="button"
@@ -2044,5 +2088,5 @@ defineExpose({ open });
         />
       </div>
     </template>
-  </Dialog>
+  </component>
 </template>

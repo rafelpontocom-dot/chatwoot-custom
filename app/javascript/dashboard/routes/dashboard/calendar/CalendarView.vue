@@ -1,20 +1,23 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { debounce } from '@chatwoot/utils';
 import calendarAPI from 'dashboard/api/calendar';
+import { useMapGetter } from 'dashboard/composables/store';
+import { frontendURL } from 'dashboard/helper/URLHelper';
 import KanbanCalendarBookingDialog from '../kanban/KanbanCalendarBookingDialog.vue';
 import {
   RAEVO_CONTROL_CLASS,
   RAEVO_SELECT_CLASS,
 } from 'dashboard/components-next/raevo/raevoControl';
 import CalendarAppointmentDetailsDialog from './CalendarAppointmentDetailsDialog.vue';
-import CalendarSettingsDialog from './CalendarSettingsDialog.vue';
 import CalendarQuickCreate from './CalendarQuickCreate.vue';
 
 const { t, locale } = useI18n();
 const route = useRoute() || { query: {} };
+const router = useRouter();
+const currentAccountId = useMapGetter('getCurrentAccountId');
 const selectedDate = ref(new Date());
 const view = ref('week');
 const appointments = ref([]);
@@ -24,7 +27,6 @@ const searchQuery = ref('');
 const isLoading = ref(false);
 const loadError = ref(false);
 const bookingDialog = ref(null);
-const settingsDialog = ref(null);
 const appointmentDetailsDialog = ref(null);
 const draggedAppointment = ref(null);
 // Direção A · o clique num horário vazio abre um balão ancorado, como no
@@ -330,7 +332,13 @@ const openFullDialogFromQuick = () => {
   closeQuickCreate();
   bookingDialog.value?.open({ startsAt });
 };
-const openSettings = () => settingsDialog.value?.open();
+// A engrenagem passa a levar à página de configuração; o diálogo antigo sai.
+const openSettings = () =>
+  router.push(
+    frontendURL(
+      `accounts/${currentAccountId.value}/calendar/settings/procedures`
+    )
+  );
 const openAppointment = appointment =>
   appointmentDetailsDialog.value?.open(appointment.id);
 const openRequestedAppointment = async appointmentId => {
@@ -761,7 +769,6 @@ onMounted(() => {
       @created="loadAppointments"
       @open-full-dialog="openFullDialogFromQuick"
     />
-    <CalendarSettingsDialog ref="settingsDialog" />
     <CalendarAppointmentDetailsDialog
       ref="appointmentDetailsDialog"
       @updated="loadAppointments"

@@ -220,7 +220,8 @@
       },
       "REMOVE_RESOURCE": "Delete",
       "ARCHIVED": "archived",
-      "REMOVE_RESOURCE_CONFIRM": "Delete the agenda \"{name}\"? If it already has appointments it will be archived instead."
+      "REMOVE_RESOURCE_CONFIRM": "Delete the agenda \"{name}\"? If it already has appointments it will be archived instead.",
+      "BACK_TO_CALENDAR": "Back to calendar"
     },
     "DETAIL": {
       "TITLE": "Appointment details",
