@@ -1,6 +1,5 @@
 class KanbanCards::ImportExistingConversationsService
   BATCH_SIZE = 1000
-  GROUP_IDENTIFIER_PATTERN = '%@g.us%'.freeze
 
   def initialize(account:, kanban_board:, ignore_groups: false)
     @account = account
@@ -169,17 +168,16 @@ class KanbanCards::ImportExistingConversationsService
                .order(:id)
 
     relation = relation.where(inbox_id: allowed_inbox_ids) if kanban_board.selected_inboxes?
-    relation = exclude_group_conversations(relation) if ignore_groups
-    relation
+    # Broadcast sai sempre; grupo continua sendo escolha de quem importa.
+    KanbanCards::ConversationEligibility.exclude_identifiers(
+      relation, excluded_identifier_patterns
+    )
   end
 
-  def exclude_group_conversations(relation)
-    relation
-      .left_joins(:contact, :contact_inbox)
-      .where.not('LOWER(COALESCE(conversations.identifier, ?)) LIKE ?', '', GROUP_IDENTIFIER_PATTERN)
-      .where.not('LOWER(COALESCE(contacts.identifier, ?)) LIKE ?', '', GROUP_IDENTIFIER_PATTERN)
-      .where.not('LOWER(COALESCE(contacts.phone_number, ?)) LIKE ?', '', GROUP_IDENTIFIER_PATTERN)
-      .where.not('LOWER(COALESCE(contact_inboxes.source_id, ?)) LIKE ?', '', GROUP_IDENTIFIER_PATTERN)
+  def excluded_identifier_patterns
+    patterns = [KanbanCards::ConversationEligibility::BROADCAST_PATTERN]
+    patterns << KanbanCards::ConversationEligibility::GROUP_PATTERN if ignore_groups
+    patterns
   end
 
   def allowed_inbox_ids

@@ -6,6 +6,9 @@ class KanbanCards::AutoCreateFromConversationService
 
   def perform!
     return summary unless contact && inbox
+    # O feed de status do WhatsApp chega como conversa comum e virava card no
+    # funil: uma oportunidade que nunca fecha, atribuída a alguém.
+    return skip_broadcast if KanbanCards::ConversationEligibility.broadcast?(conversation)
 
     eligible_boards.find_each do |kanban_board|
       create_for_board(kanban_board)
@@ -126,12 +129,18 @@ class KanbanCards::AutoCreateFromConversationService
     summary[:skipped][:without_active_stage] += 1
   end
 
+  def skip_broadcast
+    summary[:skipped][:broadcast] += 1
+    summary
+  end
+
   def summary_hash
     {
       created: 0,
       skipped: {
         existing_card: 0,
-        without_active_stage: 0
+        without_active_stage: 0,
+        broadcast: 0
       }
     }
   end

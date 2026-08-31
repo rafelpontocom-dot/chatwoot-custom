@@ -303,6 +303,19 @@ RSpec.describe KanbanCards::AutoCreateFromConversationService do
       expect { service.perform! }.not_to change(ConversationKanbanState, :count)
     end
 
+    it 'never creates a card for the WhatsApp status feed' do
+      board
+      broadcast_contact = create(:contact, account: account, identifier: 'status@broadcast')
+      broadcast_conversation = create(
+        :conversation, account: account, contact: broadcast_contact, inbox: inbox
+      )
+
+      resultado = described_class.new(broadcast_conversation).perform!
+
+      expect(KanbanCard.count).to eq(0)
+      expect(resultado[:skipped][:broadcast]).to eq(1)
+    end
+
     it 'returns summary counts' do
       existing_board = board
       create_automatic_card(kanban_board: existing_board)
@@ -314,7 +327,8 @@ RSpec.describe KanbanCards::AutoCreateFromConversationService do
         created: 1,
         skipped: {
           existing_card: 1,
-          without_active_stage: 1
+          without_active_stage: 1,
+          broadcast: 0
         }
       )
     end

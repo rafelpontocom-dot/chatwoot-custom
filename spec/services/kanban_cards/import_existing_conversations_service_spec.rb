@@ -94,6 +94,28 @@ RSpec.describe KanbanCards::ImportExistingConversationsService do
       expect(KanbanCard.conversation.pluck(:conversation_id)).to contain_exactly(selected_conversation.id)
     end
 
+    it 'never imports the WhatsApp status feed, with or without ignore_groups' do
+      # `status@broadcast` junta as publicações de todos os contactos numa
+      # conversa só. Virava card no funil: oportunidade que nunca fecha.
+      broadcast_contact = create(:contact, account: account, identifier: 'status@broadcast')
+      broadcast_contact_inbox = create(
+        :contact_inbox, contact: broadcast_contact, inbox: inbox, source_id: 'status@broadcast'
+      )
+      create(
+        :conversation,
+        account: account,
+        contact: broadcast_contact,
+        contact_inbox: broadcast_contact_inbox,
+        inbox: inbox,
+        identifier: 'status@broadcast'
+      )
+      regular_conversation = create(:conversation, account: account, inbox: inbox)
+
+      described_class.new(account: account, kanban_board: board, ignore_groups: false).perform!
+
+      expect(KanbanCard.conversation.pluck(:conversation_id)).to contain_exactly(regular_conversation.id)
+    end
+
     it 'excludes group conversations when ignore_groups is true' do
       group_contact = create(:contact, account: account, identifier: '5511999999999@g.us')
       group_contact_inbox = create(:contact_inbox, contact: group_contact, inbox: inbox, source_id: '5511999999999@g.us')
