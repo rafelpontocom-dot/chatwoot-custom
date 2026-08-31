@@ -8,6 +8,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Draggable from 'vuedraggable';
 import { OnClickOutside } from '@vueuse/components';
+import { dynamicTime } from 'shared/helpers/timeHelper';
 import { useRequestSidebarFocus } from 'dashboard/composables/useSidebarFocus';
 import FormsCanvasEditor from './FormsCanvasEditor.vue';
 import FormsBuilderSettingsDialog from './FormsBuilderSettingsDialog.vue';
@@ -99,6 +100,55 @@ const updateSchemaVariables = variables => {
 const selectedTemplate = computed(() =>
   templates.value.find(template => template.id === selectedTemplateId.value)
 );
+
+/**
+ * O estado do formulário, sempre à vista: rascunho ou publicado, que versão,
+ * quantas respostas já entraram e quando foi mexido pela última vez.
+ *
+ * Antes o subtítulo dizia só «v3» ou «Rascunho», e quem editava não sabia se
+ * estava a mexer em algo que já tinha 128 respostas lá fora.
+ */
+const isPublished = computed(() =>
+  Boolean(selectedTemplate.value?.active_version)
+);
+
+const submissionsCount = computed(
+  () => selectedTemplate.value?.submissions_count || 0
+);
+
+const statusParts = computed(() => {
+  const template = selectedTemplate.value;
+  if (!template) return [];
+
+  const parts = [];
+  if (template.active_version) {
+    parts.push(
+      t('FORMS.STATUS.VERSION', {
+        number: template.active_version.version_number,
+      })
+    );
+  }
+  parts.push(
+    submissionsCount.value
+      ? t('FORMS.STATUS.SUBMISSIONS', submissionsCount.value, {
+          count: submissionsCount.value,
+        })
+      : t('FORMS.STATUS.NO_SUBMISSIONS')
+  );
+  if (template.updated_at) {
+    parts.push(
+      t('FORMS.STATUS.EDITED', {
+        when: dynamicTime(new Date(template.updated_at).getTime() / 1000),
+      })
+    );
+  }
+  return parts;
+});
+
+// O separador é dado, não marcação: no template ele seria texto cru e o lint
+// de i18n reclamaria com razão de uma pontuação solta.
+const statusLine = computed(() => statusParts.value.join(' · '));
+
 const isSensitiveHealth = computed(
   () => editor.value?.accessClassification === 'sensitive_health'
 );
@@ -1775,13 +1825,30 @@ onBeforeUnmount(() => {
               <h2 class="text-xl font-semibold text-n-slate-12">
                 {{ editor.name }}
               </h2>
-              <p class="mt-1 text-sm text-n-slate-10">
-                {{
-                  selectedTemplate?.active_version
-                    ? `v${selectedTemplate.active_version.version_number}`
-                    : t('FORMS.STATUS.DRAFT')
-                }}
-              </p>
+              <div
+                class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-n-slate-10"
+                data-test="forms-status-line"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold"
+                  :class="
+                    isPublished
+                      ? 'bg-n-teal-3 text-n-teal-11'
+                      : 'bg-n-amber-3 text-n-amber-11'
+                  "
+                >
+                  <span
+                    class="size-1.5 rounded-full bg-current"
+                    aria-hidden="true"
+                  />
+                  {{
+                    isPublished
+                      ? t('FORMS.STATUS.PUBLISHED')
+                      : t('FORMS.STATUS.DRAFT')
+                  }}
+                </span>
+                <span>{{ statusLine }}</span>
+              </div>
               <div
                 v-if="hasUnsavedChanges || localDraftRestored"
                 class="mt-2 flex items-center gap-2 text-xs text-n-amber-11"

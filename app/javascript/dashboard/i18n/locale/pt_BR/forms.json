@@ -306,7 +306,12 @@
       }
     },
     "STATUS": {
-      "DRAFT": "Rascunho"
+      "DRAFT": "Rascunho",
+      "PUBLISHED": "Publicado",
+      "NO_SUBMISSIONS": "Nenhuma resposta ainda",
+      "SUBMISSIONS": "{count} resposta | {count} respostas",
+      "EDITED": "editado {when}",
+      "VERSION": "v{number}"
     },
     "VERSIONS": {
       "TITLE": "Histórico de versões",

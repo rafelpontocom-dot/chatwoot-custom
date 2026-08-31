@@ -197,6 +197,48 @@ describe('FormsView', () => {
     });
   });
 
+  it('shows what state the form is in, and what is already out there', async () => {
+    // O subtítulo dizia só «v3» ou «Rascunho»: quem editava não sabia se estava
+    // a mexer em algo que já tinha respostas lá fora.
+    FormsAPI.getTemplates.mockResolvedValue({
+      data: [
+        {
+          ...templateBase(),
+          submissions_count: 128,
+          updated_at: '2026-08-30T10:00:00.000Z',
+        },
+      ],
+    });
+    const wrapper = mountForms({
+      boards: [{ id: 1, inboxes: [{ id: 3 }], stages: [{ id: 2 }] }],
+    });
+    await flushPromises();
+
+    const linha = wrapper.get('[data-test="forms-status-line"]').text();
+    expect(linha).toContain('FORMS.STATUS.PUBLISHED');
+    expect(linha).toContain('FORMS.STATUS.VERSION');
+    expect(linha).toContain('FORMS.STATUS.SUBMISSIONS');
+    expect(linha).toContain('FORMS.STATUS.EDITED');
+  });
+
+  it('says a draft has no responses instead of showing a zero', async () => {
+    const rascunho = {
+      ...templateBase(),
+      active_version: null,
+      submissions_count: 0,
+    };
+    FormsAPI.getTemplates.mockResolvedValue({ data: [rascunho] });
+    const wrapper = mountForms({
+      boards: [{ id: 1, inboxes: [{ id: 3 }], stages: [{ id: 2 }] }],
+    });
+    await flushPromises();
+
+    const linha = wrapper.get('[data-test="forms-status-line"]').text();
+    expect(linha).toContain('FORMS.STATUS.DRAFT');
+    expect(linha).toContain('FORMS.STATUS.NO_SUBMISSIONS');
+    expect(linha).not.toContain('FORMS.STATUS.VERSION');
+  });
+
   it('keeps structure, form and properties as three persistent columns', async () => {
     // Antes a estrutura era um painel absoluto por cima do canvas e as
     // propriedades eram um modal: as duas tapavam o formulário a ser escrito.

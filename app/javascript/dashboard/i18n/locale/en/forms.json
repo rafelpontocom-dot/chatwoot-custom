@@ -306,7 +306,12 @@
       }
     },
     "STATUS": {
-      "DRAFT": "Draft"
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "NO_SUBMISSIONS": "No responses yet",
+      "SUBMISSIONS": "{count} response | {count} responses",
+      "EDITED": "edited {when}",
+      "VERSION": "v{number}"
     },
     "VERSIONS": {
       "TITLE": "Version history",

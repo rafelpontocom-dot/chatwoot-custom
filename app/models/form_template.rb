@@ -40,6 +40,9 @@ class FormTemplate < ApplicationRecord
   belongs_to :active_version, class_name: 'FormTemplateVersion', optional: true
 
   has_many :form_template_versions, dependent: :destroy
+  # As respostas ficam presas à versão que as recebeu, não ao template: uma
+  # publicação nova não pode reescrever o que já foi respondido.
+  has_many :form_submissions, through: :form_template_versions
   has_one_attached :brand_logo
   has_many_attached :content_images
 
@@ -132,6 +135,7 @@ class FormTemplate < ApplicationRecord
       brand_logo_url: brand_logo_url,
       settings: settings,
       active_version: active_version&.admin_payload,
+      submissions_count: form_submissions.count,
       created_at: created_at,
       updated_at: updated_at
     }
