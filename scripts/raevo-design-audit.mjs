@@ -142,7 +142,7 @@ const INSTRUMENTO = `(() => {
   const px = v => Math.round(parseFloat(v) || 0);
   const add = (mapa, chave) => { mapa[chave] = (mapa[chave] || 0) + 1; };
 
-  const campos = {}, botoes = {}, tipos = {}, raios = {}, cores = {},
+  const campos = {}, botoes = {}, superficies = {}, tipos = {}, raios = {}, cores = {},
         bordas = {}, sombras = {}, paddingsBotao = {}, alvosPequenos = [],
         rotulos = {};
 
@@ -167,16 +167,32 @@ const INSTRUMENTO = `(() => {
     }
   });
 
+  // Nem todo [role=button] é um botão. Card de funil, linha da Home e item de
+  // lista também são clicáveis, e a altura deles é ditada pelo conteúdo — contá-los
+  // junto com os controlos inventava divergência que não existe. Um controlo tem
+  // uma linha de conteúdo; uma superfície empilha blocos.
+  const ehSuperficie = el => {
+    if (el.getBoundingClientRect().height > 48) return true;
+    return [...el.children].some(f => {
+      const d = getComputedStyle(f).display;
+      return d === 'block' || d === 'flex' || d === 'grid';
+    });
+  };
+
   document.querySelectorAll('button, [role="button"], a[role="button"]').forEach(el => {
     if (!vis(el)) return;
     const r = el.getBoundingClientRect();
     const s = getComputedStyle(el);
-    add(botoes, Math.round(r.height));
-    add(paddingsBotao, px(s.paddingLeft) + '/' + px(s.paddingRight));
-    add(raios, 'botao:' + s.borderRadius.split(' ')[0]);
     if (r.height < 24 || r.width < 24) {
       alvosPequenos.push(Math.round(r.width) + 'x' + Math.round(r.height));
     }
+    if (ehSuperficie(el)) {
+      add(superficies, Math.round(r.height));
+      return;
+    }
+    add(botoes, Math.round(r.height));
+    add(paddingsBotao, px(s.paddingLeft) + '/' + px(s.paddingRight));
+    add(raios, 'botao:' + s.borderRadius.split(' ')[0]);
   });
 
   document.querySelectorAll('*').forEach(el => {
@@ -190,9 +206,16 @@ const INSTRUMENTO = `(() => {
     if (s.borderTopWidth !== '0px' && s.borderTopStyle !== 'none') {
       add(bordas, s.borderTopColor);
     }
+    // "Sombra em repouso" tem de excluir duas coisas que também compilam para
+    // box-shadow: o ring do Tailwind (spread sem desfoque, usado como halo de
+    // recorte) e o que legitimamente flutua — menu, modal, gaveta.
     if (s.boxShadow && s.boxShadow !== 'none') {
-      const r = el.getBoundingClientRect();
-      add(sombras, r.width > 240 && r.height > 120 ? 'painel' : 'pequeno');
+      const flutua = s.position === 'absolute' || s.position === 'fixed';
+      const temDesfoque = /\d+px\s+\d+px\s+([1-9]\d*)px/.test(s.boxShadow);
+      if (!flutua && temDesfoque) {
+        const r = el.getBoundingClientRect();
+        add(sombras, r.width > 240 && r.height > 120 ? 'painel' : 'pequeno');
+      }
     }
     if (s.backgroundColor && s.backgroundColor !== 'rgba(0, 0, 0, 0)') {
       add(cores, 'fundo:' + s.backgroundColor);
@@ -216,7 +239,7 @@ const INSTRUMENTO = `(() => {
   });
 
   return {
-    campos, botoes, tipos, raios, cores, bordas, sombras,
+    campos, botoes, superficies, tipos, raios, cores, bordas, sombras,
     paddingsBotao, rotulos,
     alvosPequenos: alvosPequenos.slice(0, 20),
     molduraMaisFunda: profundidade,
@@ -248,6 +271,7 @@ async function rodar() {
   const total = {
     campos: {},
     botoes: {},
+    superficies: {},
     tipos: {},
     raios: {},
     cores: {},
@@ -285,6 +309,7 @@ async function rodar() {
     distintos: {
       alturaDeCampo: Object.keys(total.campos).length,
       alturaDeBotao: Object.keys(total.botoes).length,
+      alturaDeSuperficieClicavel: Object.keys(total.superficies).length,
       degrausDeTipografia: Object.keys(total.tipos).length,
       raios: Object.keys(total.raios).length,
       paddingsDeBotao: Object.keys(total.paddingsBotao).length,
@@ -293,6 +318,7 @@ async function rodar() {
     detalhe: {
       alturaDeCampo: ordenar(total.campos),
       alturaDeBotao: ordenar(total.botoes),
+      alturaDeSuperficieClicavel: ordenar(total.superficies),
       raios: ordenar(total.raios),
       paddingsDeBotao: ordenar(total.paddingsBotao),
       posicaoDoRotulo: ordenar(total.rotulos),
