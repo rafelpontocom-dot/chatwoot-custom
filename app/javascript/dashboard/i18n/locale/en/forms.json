@@ -429,6 +429,56 @@
       "MOVE_UP": "Move earlier",
       "MOVE_DOWN": "Move later",
       "DUPLICATE_QUESTION": "Duplicate question"
+    },
+    "LOGIC": {
+      "TABS": {
+        "QUESTION": "Question",
+        "LOGIC": "Logic"
+      },
+      "HIDDEN_FIELDS": "Hidden fields",
+      "HIDDEN_FIELDS_HELP": "Filled by the invitation, never shown to the patient.",
+      "VARIABLES": "Variables",
+      "VARIABLES_HELP": "Calculates a hidden value from the answers.",
+      "ADD_VARIABLE": "Add variable",
+      "VARIABLE_NAME": "Name",
+      "REMOVE_VARIABLE": "Remove variable",
+      "RULES": "Rules for this question",
+      "RULES_HELP": "The first rule that holds is the one that applies.",
+      "ADD_RULE": "Add rule",
+      "REMOVE_RULE": "Remove rule",
+      "WHEN": "When",
+      "THEN": "Then",
+      "VALUE": "Value",
+      "NO_RULES": "No rules yet.",
+      "SELECT_QUESTION": "Select a question to give it logic.",
+      "ACTION": {
+        "NAVIGATE": "go to",
+        "CALCULATE": "calculate"
+      },
+      "OP": {
+        "is": "is",
+        "is_not": "is not",
+        "contains": "contains",
+        "does_not_contain": "does not contain",
+        "starts_with": "starts with",
+        "ends_with": "ends with",
+        "equal": "equals",
+        "not_equal": "does not equal",
+        "greater_than": "is greater than",
+        "greater_or_equal_than": "is greater or equal to",
+        "less_or_equal_than": "is less or equal to",
+        "is_before": "is before",
+        "is_after": "is after",
+        "is_empty": "is empty",
+        "is_not_empty": "was answered"
+      },
+      "CALC": {
+        "addition": "add",
+        "subtraction": "subtract",
+        "multiplication": "multiply",
+        "division": "divide",
+        "assignment": "set to"
+      }
     }
   }
 }

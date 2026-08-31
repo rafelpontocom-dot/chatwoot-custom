@@ -429,6 +429,56 @@
       "MOVE_UP": "Mover para antes",
       "MOVE_DOWN": "Mover para depois",
       "DUPLICATE_QUESTION": "Duplicar pergunta"
+    },
+    "LOGIC": {
+      "TABS": {
+        "QUESTION": "Pergunta",
+        "LOGIC": "Lógica"
+      },
+      "HIDDEN_FIELDS": "Campos ocultos",
+      "HIDDEN_FIELDS_HELP": "Preenchidos pelo convite, nunca mostrados ao paciente.",
+      "VARIABLES": "Variáveis",
+      "VARIABLES_HELP": "Calcula um valor oculto a partir das respostas.",
+      "ADD_VARIABLE": "Adicionar variável",
+      "VARIABLE_NAME": "Nome",
+      "REMOVE_VARIABLE": "Remover variável",
+      "RULES": "Regras desta pergunta",
+      "RULES_HELP": "A primeira regra que se cumpre é a que vale.",
+      "ADD_RULE": "Adicionar regra",
+      "REMOVE_RULE": "Remover regra",
+      "WHEN": "Quando",
+      "THEN": "Então",
+      "VALUE": "Valor",
+      "NO_RULES": "Nenhuma regra ainda.",
+      "SELECT_QUESTION": "Selecione uma pergunta para dar lógica a ela.",
+      "ACTION": {
+        "NAVIGATE": "ir para",
+        "CALCULATE": "calcular"
+      },
+      "OP": {
+        "is": "é",
+        "is_not": "não é",
+        "contains": "contém",
+        "does_not_contain": "não contém",
+        "starts_with": "começa com",
+        "ends_with": "termina com",
+        "equal": "é igual a",
+        "not_equal": "é diferente de",
+        "greater_than": "é maior que",
+        "greater_or_equal_than": "é maior ou igual a",
+        "less_or_equal_than": "é menor ou igual a",
+        "is_before": "é antes de",
+        "is_after": "é depois de",
+        "is_empty": "está vazia",
+        "is_not_empty": "foi respondida"
+      },
+      "CALC": {
+        "addition": "somar",
+        "subtraction": "subtrair",
+        "multiplication": "multiplicar",
+        "division": "dividir",
+        "assignment": "definir como"
+      }
     }
   }
 }

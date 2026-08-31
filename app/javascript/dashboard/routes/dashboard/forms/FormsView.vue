@@ -71,6 +71,25 @@ const clinicalAccessSearch = ref('');
 /** Editar é um modo, não uma secção: a lista sai da frente enquanto dura. */
 const isEditing = computed(() => Boolean(editor.value));
 
+/** Todas as perguntas do formulário, em ordem: é o universo da lógica. */
+const allBuilderFields = computed(() =>
+  (editor.value?.schema?.sections || []).flatMap(
+    section => section.fields || []
+  )
+);
+
+// `logics` e `variables` vivem na raiz do schema, não na secção: uma regra
+// pode saltar de uma secção para outra, e uma variável atravessa o formulário.
+const updateSchemaLogics = logics => {
+  if (!editor.value) return;
+  editor.value.schema.logics = logics;
+};
+
+const updateSchemaVariables = variables => {
+  if (!editor.value) return;
+  editor.value.schema.variables = variables;
+};
+
 const selectedTemplate = computed(() =>
   templates.value.find(template => template.id === selectedTemplateId.value)
 );
@@ -2246,6 +2265,11 @@ onBeforeUnmount(() => {
                   ? opportunityFieldOptions(selectedBuilderField)
                   : []
               "
+              :fields="allBuilderFields"
+              :logics="editor.schema.logics || []"
+              :variables="editor.schema.variables || []"
+              :endings="editor.schema.endings || []"
+              :hidden-fields="editor.schema.hidden_fields || []"
               :can-map-to-crm="!isSensitiveHealth"
               :is-uploading-content-image="isUploadingContentImage"
               @upload-content-image="uploadContentImage"
@@ -2259,6 +2283,8 @@ onBeforeUnmount(() => {
               @move-field="moveSelectedBuilderField"
               @duplicate-field="duplicateSelectedBuilderField"
               @remove-field="removeSelectedBuilderField"
+              @update-logics="updateSchemaLogics"
+              @update-variables="updateSchemaVariables"
             />
           </section>
 
