@@ -4,7 +4,7 @@ require 'rails_helper'
 # oferecer os operadores sem ir ao servidor a cada seleção, e o servidor tem de
 # recusar o que não conhece. Duas cópias divergem sozinhas — este teste é o que
 # impede isso, lendo o ficheiro do front e comparando com o Ruby.
-RSpec.describe 'Forms logic catalogue parity' do
+RSpec.describe Forms::Logic do
   let(:catalogue) do
     Rails.root.join('app/javascript/dashboard/routes/dashboard/forms/logicCatalogue.js').read
   end
