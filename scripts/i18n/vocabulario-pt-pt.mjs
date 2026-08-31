@@ -47,6 +47,20 @@ export const VOCABULARIO = [
   ['salvas', 'guardadas'],
   ['salvos', 'guardados'],
   ['apelido', 'nome curto'],
+  // Acrescentados ao trazer calendário, financeiro, formulários e pipeline
+  // para pt-PT: apareciam em texto de interface e passavam sem adaptação.
+  ['seção', 'secção'],
+  ['seções', 'secções'],
+  ['etapa', 'etapa'],
+  ['anexo', 'anexo'],
+  ['fatura', 'fatura'],
+  ['agendamento', 'marcação'],
+  ['agendamentos', 'marcações'],
+  ['agendar', 'marcar'],
+  ['agendada', 'marcada'],
+  ['agendado', 'marcado'],
+  ['grátis', 'gratuito'],
+  ['cancelamento', 'cancelamento'],
 ];
 
 const preservaCaixa = (original, substituto) => {

@@ -61,15 +61,21 @@ class FormTemplateVersion < ApplicationRecord
   end
 
   def schema_has_sections
-    validator = Forms::SchemaValidator.new(
-      schema,
-      require_public_contact_mapping: form_template&.public_enabled? && !form_template.sensitive_health?,
-      require_crm_destination: form_template&.access_classification == 'commercial',
-      allow_attachments: form_template&.sensitive_health?
-    )
+    validator = Forms::SchemaValidator.new(schema, **template_validation_flags)
     return if validator.valid?
 
     validator.errors.each { |error| errors.add(:schema, error) }
+  end
+
+  # As três bandeiras saem todas do template; agrupá-las tira a ramificação de
+  # dentro da validação e deixa uma coisa só para ler.
+  def template_validation_flags
+    clinico = form_template&.sensitive_health? || false
+    {
+      require_public_contact_mapping: (form_template&.public_enabled? && !clinico) || false,
+      require_crm_destination: form_template&.access_classification == 'commercial',
+      sensitive_health: clinico
+    }
   end
 
   def sensitive_health_schema_requirements

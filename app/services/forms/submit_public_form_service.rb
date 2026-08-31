@@ -26,6 +26,8 @@ class Forms::SubmitPublicFormService
 
     Forms::MapSubmissionToCrmService.new(submission: submission).perform
     Forms::CreatePublicOpportunityService.new(submission: submission).perform
+    # Depois de a oportunidade existir: uma ação que move etapa precisa do card.
+    Forms::ApplySubmissionActionsService.new(submission: submission.reload).perform
     Forms::SubmissionEventDispatcher.new(submission: submission.reload).dispatch
     submission
   end

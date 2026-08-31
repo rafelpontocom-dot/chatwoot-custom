@@ -13,13 +13,16 @@ class Forms::SchemaValidator
     schema = nil,
     require_public_contact_mapping: false,
     require_crm_destination: false,
-    allow_attachments: false,
+    sensitive_health: false,
     **schema_keywords
   )
     @schema = (schema || schema_keywords).to_h
     @require_public_contact_mapping = require_public_contact_mapping
     @require_crm_destination = require_crm_destination
-    @allow_attachments = allow_attachments
+    # `sensitive_health` é uma bandeira só: era `allow_attachments` em paralelo,
+    # mas os dois valiam sempre o mesmo — anexo clínico e classificação clínica
+    # são a mesma decisão vista de dois lados.
+    @sensitive_health = sensitive_health
     @errors = []
   end
 
@@ -42,6 +45,7 @@ class Forms::SchemaValidator
     end
     validate_condition_references(field_keys)
     validate_logic(field_keys)
+    validate_submission_actions
     validate_crm_destination
     validate_opportunity_mapping(field_keys)
     validate_public_contact_mapping(field_keys)
@@ -92,7 +96,7 @@ class Forms::SchemaValidator
   end
 
   def validate_attachment_field(type)
-    return unless type == 'attachment' && !@allow_attachments
+    return unless type == 'attachment' && !@sensitive_health
 
     errors << 'attachment fields require a private clinical form'
   end
@@ -122,6 +126,15 @@ class Forms::SchemaValidator
   # em cada pergunta: «maior que» não faz sentido numa assinatura.
   def field_types
     @field_types ||= {}
+  end
+
+  # O que acontece depois da resposta também é assunto próprio.
+  def validate_submission_actions
+    validator = Forms::SubmissionActionsValidator.new(
+      schema: @schema,
+      sensitive_health: @sensitive_health
+    )
+    errors.concat(validator.errors)
   end
 
   # Lógica é um assunto próprio, com regras próprias; vive na sua classe para
