@@ -17,6 +17,20 @@ Formulários comerciais P0 agora possuem catálogo administrativo exclusivo para
 - Blocos de imagem aceitam upload direto de PNG, JPEG ou WebP de até 5 MB; o editor insere uma URL gerenciada pelo CRM e mantém URL externa como alternativa para conteúdos já hospedados.
 - O construtor usa blocos Vue próprios: título, texto rico seguro, imagem com legenda, divisor, grupos de perguntas e uma ou duas colunas responsivas. O texto rico pode incluir listas, ênfase e links HTTP(S) seguros para políticas e orientações. Tiptap é usado apenas para o conteúdo rico permitido; HTML, JavaScript e CSS arbitrários não são aceitos.
 
+### Decisão do editor e da lógica — 31/08/2026
+
+Revista após estudar HeyForm e Typeform a correr, e medir o editor atual: `FormsView.vue` com 3262 linhas, 70 estados reativos e dez diálogos. O problema nunca foi o motor de renderização, que já funciona; foi não existir alvo escrito. Estas premissas são esse alvo.
+
+- **O editor passa a ter três áreas persistentes, nenhuma em diálogo.** Estrutura à esquerda (perguntas e finais), o formulário real ao centro — a prévia é o próprio editor —, e à direita um painel contextual com `Pergunta`, `Design` e `Lógica`. Os dez diálogos atuais tornam-se secções desse painel. O editor é rota de ecrã inteiro e esconde a barra lateral do CRM.
+- **A configuração avançada é uma linha por decisão**: rótulo, uma frase de apoio e um controlo, agrupadas por navegação lateral. Sem aninhamento e sem diálogo dentro de diálogo.
+- **O estado do formulário fica sempre visível** no cabeçalho: rascunho ou publicado, número da versão, contagem de respostas e quando foi editado.
+- **A lógica deixa de ser condicional simples.** Passa a ter campos ocultos, variáveis e regras. Uma regra lê-se `Quando [pergunta] [operador] [valor] Então [ir para | calcular]`. A primeira regra que se cumpre é a que vale. Os operadores dependem do tipo da pergunta; condições combinam-se com E/OU sem parênteses, para continuarem legíveis por uma secretária.
+- **A resposta pertence ao contacto; o envio pertence à oportunidade.** O conteúdo é histórico da pessoa e sobrevive ao card: uma paciente que volta dois anos depois mantém a trilha. O envio é um evento datado, preso ao atendimento que o originou e à versão do formulário. A ficha do contacto mostra a série completa; o card mostra apenas o envio daquele atendimento.
+- **Anamnese nunca se sobrescreve.** Cada preenchimento é uma linha nova. O contacto guarda a série, não o estado atual: «grávida?» é uma resposta datada, não um atributo do contacto — um atributo daria a impressão de estar em dia quando tem oito meses. Cadastro e dados de NF são o oposto e continuam a mapear para o contacto.
+- **Ações após a resposta são um conjunto fixo e curto**, não um construtor de fluxos: notificar a equipa, mover a oportunidade de etapa, aplicar etiqueta, disparar webhook interno e anexar ao histórico. Com dez clínicas, um motor genérico seria construir para um cliente que não existe.
+
+Referência de organização de ecrã e de modelo de lógica: HeyForm e Typeform. Nenhum código de terceiros entra na base; o Raevo já está à frente dos dois no que importa para dado clínico — convite assinado com expiração e limite de uso, resposta cifrada e auditoria de leitura, que nenhum deles tem.
+
 Produtos relacionados: [Kanban Comercial](./kanban-sales-prd.md), [Agenda Operacional](./kanban-calendar-prd.md) e [Editor de Automações](./kanban-visual-workflows-prd.md)
 
 ## Decisão de produto

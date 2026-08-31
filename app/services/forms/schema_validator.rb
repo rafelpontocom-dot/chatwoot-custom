@@ -41,6 +41,7 @@ class Forms::SchemaValidator
       validate_section(section, section_keys, field_keys)
     end
     validate_condition_references(field_keys)
+    validate_logic(field_keys)
     validate_crm_destination
     validate_opportunity_mapping(field_keys)
     validate_public_contact_mapping(field_keys)
@@ -84,6 +85,7 @@ class Forms::SchemaValidator
 
     errors << 'field keys must be unique' if field_keys.include?(key)
     field_keys << key
+    field_types[key] = type
     validate_attachment_field(type)
     errors << 'selection fields must include options' if SELECTION_TYPES.include?(type) && invalid_options?(field['options'])
     validate_condition(field)
@@ -114,6 +116,19 @@ class Forms::SchemaValidator
     end
 
     errors << 'conditional fields must use a supported condition'
+  end
+
+  # Guardado por chave para o validador de lógica saber que operadores cabem
+  # em cada pergunta: «maior que» não faz sentido numa assinatura.
+  def field_types
+    @field_types ||= {}
+  end
+
+  # Lógica é um assunto próprio, com regras próprias; vive na sua classe para
+  # este validador continuar a tratar só de estrutura.
+  def validate_logic(field_keys)
+    validator = Forms::LogicValidator.new(schema: @schema, field_keys: field_keys, field_types: field_types)
+    errors.concat(validator.errors)
   end
 
   def validate_condition_references(field_keys)

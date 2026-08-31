@@ -29,8 +29,12 @@ class Forms::AnswersValidator
     @schema.fetch('sections', []).flat_map { |section| section.fetch('fields', []) }
   end
 
+  def visible_path
+    @visible_path ||= Forms::VisiblePath.new(schema: @schema, answers: @answers)
+  end
+
   def visible_fields
-    fields.select { |field| field['type'] != 'hidden' && visible?(field) }
+    fields.select { |field| field['type'] != 'hidden' && visible_path.visible?(field['key']) }
   end
 
   def answer_fields
@@ -98,18 +102,6 @@ class Forms::AnswersValidator
     DateTime.iso8601(value.to_s)
   rescue ArgumentError
     errors << "#{field['label']} precisa ser uma data e hora válida"
-  end
-
-  def visible?(field)
-    condition = field['visible_when'].to_h
-    return true if condition.blank?
-
-    case condition['operator']
-    when 'equals'
-      @answers[condition['field']] == condition['value']
-    else
-      false
-    end
   end
 
   def blank_value?(value)
