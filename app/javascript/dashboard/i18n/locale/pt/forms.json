@@ -368,7 +368,8 @@
         "DISCARDED": "Descartado"
       },
       "NO_CONTACT": "Contacto não vinculado",
-      "NO_OPPORTUNITY": "Sem oportunidade vinculada"
+      "NO_OPPORTUNITY": "Sem oportunidade vinculada",
+      "VARIABLES": "Valores calculados"
     },
     "INVITATION": {
       "TITLE": "Enviar formulário",
@@ -520,7 +521,8 @@
         "move_stage": "Mover a oportunidade",
         "apply_label": "Aplicar uma etiqueta",
         "notify": "Avisar a equipe",
-        "webhook": "Chamar um webhook"
+        "webhook": "Chamar um webhook",
+        "attach_to_history": "Anexar ao histórico"
       },
       "MODE": {
         "automatic": "aplicar na hora",

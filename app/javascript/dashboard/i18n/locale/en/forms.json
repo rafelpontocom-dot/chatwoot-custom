@@ -368,7 +368,8 @@
         "DISCARDED": "Discarded"
       },
       "NO_CONTACT": "No linked contact",
-      "NO_OPPORTUNITY": "No linked opportunity"
+      "NO_OPPORTUNITY": "No linked opportunity",
+      "VARIABLES": "Calculated values"
     },
     "INVITATION": {
       "TITLE": "Send form",
@@ -520,7 +521,8 @@
         "move_stage": "Move the opportunity",
         "apply_label": "Apply a label",
         "notify": "Notify the team",
-        "webhook": "Call a webhook"
+        "webhook": "Call a webhook",
+        "attach_to_history": "Attach to history"
       },
       "MODE": {
         "automatic": "apply on arrival",

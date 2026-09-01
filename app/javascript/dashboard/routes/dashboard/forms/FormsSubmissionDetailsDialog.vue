@@ -33,6 +33,18 @@ const submissionSections = computed(() => {
   }, []);
 });
 
+/**
+ * O que as regras de cálculo somaram. Fica antes das secções porque é a
+ * leitura de topo — uma triagem quer o número antes das respostas que o
+ * produziram. Vazio quando o formulário não declara variáveis.
+ */
+const computedVariables = computed(() =>
+  Object.entries(submission.value?.variables || {}).map(([name, value]) => ({
+    name,
+    value,
+  }))
+);
+
 const formatAnswer = value => {
   if (Array.isArray(value)) return value.join(', ');
   if (value === true) return t('FORMS.SUBMISSIONS.YES');
@@ -75,6 +87,26 @@ defineExpose({ open });
       {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
     </p>
     <div v-else class="grid max-h-[65vh] gap-4 overflow-y-auto pr-1">
+      <section
+        v-if="computedVariables.length"
+        class="overflow-hidden rounded-lg border border-n-weak bg-n-solid-2"
+      >
+        <h3
+          class="mb-0 border-b border-n-weak px-4 py-3 text-sm font-semibold text-n-slate-12"
+        >
+          {{ t('FORMS.SUBMISSIONS.VARIABLES') }}
+        </h3>
+        <dl class="flex flex-wrap gap-x-8 gap-y-3 px-4 py-3">
+          <div v-for="variable in computedVariables" :key="variable.name">
+            <dt class="text-xs font-medium text-n-slate-10">
+              {{ variable.name }}
+            </dt>
+            <dd class="mb-0 mt-1 text-sm font-semibold text-n-slate-12">
+              {{ variable.value }}
+            </dd>
+          </div>
+        </dl>
+      </section>
       <section
         v-for="section in submissionSections"
         :key="section.title"

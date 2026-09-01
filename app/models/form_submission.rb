@@ -111,7 +111,8 @@ class FormSubmission < ApplicationRecord
     summary_payload.merge(
       version_number: form_template_version.version_number,
       answers: answers,
-      fields: response_fields
+      fields: response_fields,
+      variables: computed_variables
     )
   end
 
@@ -121,8 +122,19 @@ class FormSubmission < ApplicationRecord
       answers: sensitive_answers,
       fields: response_fields,
       consent_snapshot: consent_snapshot,
+      variables: computed_variables,
       attachments: clinical_attachment_payload
     )
+  end
+
+  # Derivado, nunca guardado: o schema da versão é imutável e as respostas
+  # estão gravadas, portanto isto dá sempre o mesmo — e um número calculado a
+  # partir de resposta clínica não fica a mais em nenhuma coluna.
+  def computed_variables
+    Forms::Variables.new(
+      schema: form_template_version.schema,
+      answers: sensitive_health_form? ? sensitive_answers : answers
+    ).call
   end
 
   private
