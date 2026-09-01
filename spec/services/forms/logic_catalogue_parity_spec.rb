@@ -1,12 +1,13 @@
 require 'rails_helper'
 
-# A tabela de operadores vive em dois sítios por necessidade: a interface tem de
-# oferecer os operadores sem ir ao servidor a cada seleção, e o servidor tem de
-# recusar o que não conhece. Duas cópias divergem sozinhas — este teste é o que
-# impede isso, lendo o ficheiro do front e comparando com o Ruby.
+# A lógica vive em dois sítios por necessidade: a interface tem de oferecer os
+# operadores sem ir ao servidor a cada seleção e tem de mostrar exatamente as
+# perguntas que o servidor vai aceitar; o servidor tem de recusar o que não
+# conhece. Duas cópias divergem sozinhas — este teste é o que impede isso,
+# lendo o ficheiro do front e comparando com o Ruby.
 RSpec.describe Forms::Logic do
   let(:catalogue) do
-    Rails.root.join('app/javascript/dashboard/routes/dashboard/forms/logicCatalogue.js').read
+    Rails.root.join('app/javascript/shared/helpers/forms/logic.js').read
   end
 
   # Lê `const NOME = ['a', 'b'];` ou uma entrada de objeto `chave: [...]`.
@@ -47,7 +48,30 @@ RSpec.describe Forms::Logic do
 
   it 'never offers the legacy operator to a new schema' do
     # `equals` sobrevive só para as versões já publicadas, que são imutáveis.
-    # Se aparecesse no catálogo do front, entraria em schema novo.
-    expect(catalogue).not_to include("'equals'")
+    # O front tem de o saber comparar, mas não o pode oferecer: se aparecesse
+    # numa lista de operadores, entraria em schema novo.
+    listas = catalogue.scan(/(?:const \w+_OPERATORS|OPERATORS)\s*=\s*\[(.*?)\]/m).flatten
+
+    expect(listas.join).not_to include('equals')
+  end
+
+  # O editor de ações tem a sua própria lista de tipos, pela mesma razão. Ela já
+  # esteve a oferecer quatro quando o servidor conhecia cinco.
+  it 'offers exactly the submission actions the server can execute' do
+    editor = Rails.root.join('app/javascript/dashboard/routes/dashboard/forms/FormsSubmissionActions.vue').read
+    front_kinds = editor.match(/const KINDS = \[(.*?)\];/m)[1].scan(/'([a-z_]+)'/).flatten
+    front_automatic = editor.match(/const ALWAYS_AUTOMATIC = \[(.*?)\];/m)[1].scan(/'([a-z_]+)'/).flatten
+
+    expect(front_kinds).to match_array(Forms::SubmissionActions::KINDS)
+    expect(front_automatic).to match_array(Forms::SubmissionActions::ALWAYS_AUTOMATIC)
+  end
+
+  # A divergência que dói não é a tabela, é o comparador: um operador que o
+  # servidor sabe avaliar e o navegador não faz o paciente ver um formulário
+  # diferente daquele que vai ser aceite.
+  it 'knows how to compare everything the server can compare' do
+    front_comparadores = catalogue.match(/const COMPARATORS = \{(.*?)\n\};/m)[1].scan(/^\s*(\w+):/).flatten
+
+    expect(front_comparadores).to match_array(Forms::Logic::COMPARATORS.keys)
   end
 end

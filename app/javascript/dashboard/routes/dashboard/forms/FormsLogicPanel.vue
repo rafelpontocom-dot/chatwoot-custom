@@ -8,7 +8,7 @@ import {
   COMBINATORS,
   isUnaryOperator,
   operatorsFor,
-} from './logicCatalogue';
+} from 'shared/helpers/forms/logic';
 
 /**
  * A lógica de uma pergunta, no formato que o servidor valida.

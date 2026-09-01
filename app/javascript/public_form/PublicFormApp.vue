@@ -8,6 +8,7 @@ import {
   watch,
 } from 'vue';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
+import { visiblePathKeys } from 'shared/helpers/forms/visiblePath';
 import FormRichTextContent from './FormRichTextContent.vue';
 
 const payload = ref(null);
@@ -73,6 +74,7 @@ const translations = {
       'Recebemos as suas informações. A equipa dará continuidade ao atendimento.',
     unavailable: 'Não foi possível abrir este formulário.',
     required: 'Campo obrigatório',
+    consentRequired: 'Precisa ser aceito para continuar',
     step: 'Etapa {current} de {total}',
     signatureHint: 'Digite seu nome completo para registrar este aceite.',
     attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por arquivo.',
@@ -93,6 +95,7 @@ const translations = {
       'Recebemos as suas informações. A equipa dará continuidade ao atendimento.',
     unavailable: 'Não foi possível abrir este formulário.',
     required: 'Campo obrigatório',
+    consentRequired: 'Precisa de ser aceite para continuar',
     step: 'Etapa {current} de {total}',
     signatureHint: 'Digite o seu nome completo para registar este aceite.',
     attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por ficheiro.',
@@ -113,6 +116,7 @@ const translations = {
       'Recebemos suas informações. A equipe dará continuidade ao atendimento.',
     unavailable: 'Não foi possível abrir este formulário.',
     required: 'Campo obrigatório',
+    consentRequired: 'Precisa ser aceito para continuar',
     step: 'Etapa {current} de {total}',
     signatureHint: 'Digite seu nome completo para registrar este aceite.',
     attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por arquivo.',
@@ -140,25 +144,17 @@ const privacyPolicyUrl = computed(
 );
 const brandInitial = computed(() => brandName.value.trim().charAt(0) || 'R');
 const sections = computed(() => payload.value?.schema?.sections || []);
-const conditionMatches = (answer, conditionValue) => {
-  if (
-    typeof answer === 'boolean' &&
-    ['true', 'false'].includes(conditionValue)
-  ) {
-    return answer === (conditionValue === 'true');
-  }
-
-  return answer === conditionValue;
-};
-const isFieldVisible = field => {
-  const condition = field.visible_when;
-  if (!condition) return true;
-
-  return (
-    condition.operator === 'equals' &&
-    conditionMatches(answers.value[condition.field], condition.value)
-  );
-};
+/**
+ * O mesmo percurso que o servidor volta a correr no envio. Enquanto isto foi
+ * uma condição por campo com um único operador, o navegador mostrava um
+ * formulário e o servidor aceitava outro: resposta a pergunta saltada era
+ * descartada em silêncio, e pergunta nunca mostrada era recusada por estar em
+ * branco. Ver `Forms::VisiblePath`.
+ */
+const visibleKeys = computed(
+  () => new Set(visiblePathKeys(payload.value?.schema, answers.value))
+);
+const isFieldVisible = field => visibleKeys.value.has(String(field?.key));
 const visibleFields = section => section?.fields?.filter(isFieldVisible) || [];
 const isGuidedPresentation = computed(
   () => payload.value?.form?.presentation === 'guided'
@@ -422,7 +418,13 @@ function validateCurrentSection() {
   if (!invalid) return true;
 
   invalidFieldKey.value = invalid.key;
-  errorMessage.value = `${invalid.label}: ${copy.value.required.toLowerCase()}`;
+  // Um consentimento por marcar não está «em branco»: está por aceitar. Dizer
+  // «campo obrigatório» manda a pessoa procurar o que não preencheu.
+  const motivo =
+    invalid.type === 'consent'
+      ? copy.value.consentRequired
+      : copy.value.required;
+  errorMessage.value = `${invalid.label}: ${motivo.toLowerCase()}`;
   document.getElementById(fieldId(invalid))?.focus();
   return false;
 }
@@ -549,7 +551,7 @@ async function submitForm() {
         <div class="min-w-0">
           <p
             data-test="public-form-brand"
-            class="truncate text-sm font-semibold text-n-slate-12"
+            class="break-words text-sm font-semibold text-n-slate-12"
           >
             {{ brandName }}
           </p>
