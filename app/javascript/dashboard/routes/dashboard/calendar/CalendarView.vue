@@ -137,10 +137,21 @@ const hourSlots = computed(() => {
     (_, index) => firstHour + index
   );
 });
+/**
+ * A semana tem de caber no ecrã.
+ *
+ * Com 10rem de mínimo por dia, sete dias exigiam 1184px e o espaço útil num
+ * portátil de 1280px é ~1027px: sábado ficava cortado ao meio e domingo nem
+ * aparecia — a semana toda existia, mas metade dela só depois de rolar.
+ *
+ * 6rem cabe com folga (7×96+64 = 728px) e o `1fr` faz as colunas crescerem
+ * para ocupar o que houver. O `overflow-auto` do contentor continua a servir
+ * ecrãs estreitos, onde rolar é mesmo a resposta certa.
+ */
 const gridClass = computed(() =>
   view.value === 'day'
     ? 'grid-cols-[4rem_minmax(16rem,1fr)]'
-    : 'grid-cols-[4rem_repeat(7,minmax(10rem,1fr))]'
+    : 'grid-cols-[4rem_repeat(7,minmax(6rem,1fr))]'
 );
 // Raevo · Sereno — o estado da consulta se lê pela cor da régua à esquerda,
 // não só pelo preenchimento. Ver docs/raevo-design-system.md §2.
