@@ -1333,6 +1333,32 @@ const addCustomField = () => {
   syncCustomFieldDefinitionsText();
 };
 
+/**
+ * Cria um campo já dentro da aba onde se carregou e abre-o para edição.
+ *
+ * Criar estava longe de onde os campos vivem: um botão no topo, um diálogo a
+ * pedir o nome, e só depois o campo aparecia algures. O «+» na última linha põe
+ * a criação onde o olho já está; o nome escreve-se no editor como qualquer
+ * outra propriedade.
+ */
+const addCustomFieldToSection = sectionKey => {
+  const definition = createCustomFieldRow({
+    key: '',
+    label: '',
+    fieldType: 'text',
+    layoutSection: sectionKey,
+    layoutPosition:
+      form.customFieldDefinitions.filter(
+        item => (item.layoutSection || 'details') === sectionKey
+      ).length + 1,
+    autoKey: true,
+  });
+  form.customFieldDefinitions.push(definition);
+  selectedCustomFieldId.value = definition.clientId;
+  activeFieldSectionKey.value = sectionKey;
+  syncCustomFieldDefinitionsText();
+};
+
 const openCustomFieldManager = clientId => {
   selectedCustomFieldId.value =
     clientId || form.customFieldDefinitions[0]?.clientId || null;
