@@ -1515,7 +1515,15 @@
         "TITLE": "Tempo nesta etapa"
       },
       "YES": "Sim",
-      "NO": "Não"
+      "NO": "Não",
+      "REPLY_STATE": {
+        "US": "Aguarda-nos",
+        "THEM": "Aguarda o paciente",
+        "OVERDUE": "Sem resposta",
+        "JUST_NOW": "agora",
+        "HOURS": "{count}h",
+        "DAYS": "{count}d"
+      }
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversa",

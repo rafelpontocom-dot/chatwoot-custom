@@ -82,6 +82,80 @@ const subject = computed(() => props.card.subject || '');
  *
  * Sem assunto, o contacto sobe a título: um cartão tem sempre de dizer de quem é.
  */
+/**
+ * De quem é a vez, e há quanto tempo.
+ *
+ * Dias na etapa dizem que algo parou; isto diz de quem é a culpa. Se o paciente
+ * escreveu e ninguém respondeu, é receita a fugir — e é o que nenhum CRM mostra,
+ * porque nenhum tem a conversa por baixo.
+ *
+ * A faixa na aresta só acende quando pede ação. Acender em todos os cartões era
+ * o erro do âmbar de «sem próxima ação»: um alerta sempre ligado deixa de ser
+ * alerta. Quando a bola está com o paciente, o chip informa e a aresta cala-se.
+ */
+const ATTENTION_AFTER_HOURS = 4;
+const OVERDUE_AFTER_HOURS = 24;
+
+const replyState = computed(
+  () => props.card.replyState || props.card.reply_state || null
+);
+
+const replyWaitingHours = computed(() => {
+  const since = replyState.value?.since;
+  if (!since) return 0;
+
+  const desde = new Date(since).getTime();
+  if (Number.isNaN(desde)) return 0;
+
+  return (Date.now() - desde) / 3600000;
+});
+
+const replyStatus = computed(() => {
+  const state = replyState.value;
+  if (!state?.side) return null;
+
+  const horas = replyWaitingHours.value;
+  if (state.side === 'them') {
+    return { key: 'them', tone: '', edge: '', hours: horas };
+  }
+
+  if (horas >= OVERDUE_AFTER_HOURS) {
+    return {
+      key: 'overdue',
+      tone: 'bg-n-ruby-3 text-n-ruby-11',
+      edge: 'bg-n-ruby-9',
+      hours: horas,
+    };
+  }
+  if (horas >= ATTENTION_AFTER_HOURS) {
+    return {
+      key: 'us',
+      tone: 'bg-n-amber-3 text-n-amber-11',
+      edge: 'bg-n-amber-9',
+      hours: horas,
+    };
+  }
+
+  return { key: 'us', tone: '', edge: '', hours: horas };
+});
+
+/** Horas até um dia, dias depois disso: ninguém lê «53 horas». */
+const replyElapsedLabel = computed(() => {
+  const horas = replyWaitingHours.value;
+  if (horas < 1) return t('KANBAN.CARD.REPLY_STATE.JUST_NOW');
+  if (horas < OVERDUE_AFTER_HOURS) {
+    return t('KANBAN.CARD.REPLY_STATE.HOURS', { count: Math.floor(horas) });
+  }
+
+  return t('KANBAN.CARD.REPLY_STATE.DAYS', { count: Math.floor(horas / 24) });
+});
+
+const replyLabel = computed(() =>
+  replyStatus.value
+    ? t(`KANBAN.CARD.REPLY_STATE.${replyStatus.value.key.toUpperCase()}`)
+    : ''
+);
+
 const cardTitle = computed(() => subject.value || contactName.value);
 const cardSubtitle = computed(() => {
   if (!subject.value) return '';
@@ -244,6 +318,18 @@ const openConversation = event => {
     @keydown.enter.prevent="openDetails"
     @keydown.space.prevent="openDetails"
   >
+    <!--
+      A faixa só acende quando pede ação. Acender em todos os cartões seria
+      repetir o erro do âmbar de «sem próxima ação»: um alerta sempre ligado
+      deixa de ser alerta.
+    -->
+    <span
+      v-if="replyStatus?.edge"
+      data-testid="kanban-card-reply-edge"
+      class="absolute inset-y-0 start-0 w-[3px] rounded-s-lg"
+      :class="replyStatus.edge"
+      aria-hidden="true"
+    />
     <input
       type="checkbox"
       data-testid="kanban-card-select"
@@ -364,7 +450,30 @@ const openConversation = event => {
         class="mt-2 flex min-w-0 items-center justify-between gap-2"
       >
         <div
-          v-if="nextActionStatusConfig"
+          v-if="replyStatus"
+          data-testid="kanban-card-reply-state"
+          class="inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold leading-4"
+          :class="replyStatus.tone || 'bg-n-alpha-2 text-n-slate-11'"
+        >
+          <i
+            class="size-3.5 flex-shrink-0"
+            :class="
+              replyStatus.key === 'them'
+                ? 'i-lucide-arrow-right'
+                : 'i-lucide-arrow-left'
+            "
+          />
+          <span class="truncate">{{ replyLabel }}</span>
+          <span class="flex-shrink-0">·&nbsp;{{ replyElapsedLabel }}</span>
+        </div>
+
+        <!--
+          Quando a resposta está em atraso, «sem próxima ação» é ruído: os dois
+          dizem que nada está a acontecer, e quatro chips em 288px esmagam-se
+          todos até «W… · 6h». O sinal mais acionável fica; o neutro sai.
+        -->
+        <div
+          v-if="nextActionStatusConfig && !replyStatus?.edge"
           data-testid="kanban-card-next-action"
           class="inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold leading-4"
           :class="nextActionStatusConfig.class"

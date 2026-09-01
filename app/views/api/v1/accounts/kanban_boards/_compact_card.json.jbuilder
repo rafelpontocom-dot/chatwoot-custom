@@ -29,6 +29,7 @@ json.expected_close_date card.expected_close_date&.iso8601
 json.custom_field_values card.custom_field_values
 json.compact_custom_fields card.compact_custom_fields
 json.stale_in_stage card.stale_in_stage?
+json.reply_state card.reply_state
 json.contact do
   json.partial! 'api/v1/models/contact', formats: [:json], resource: card.contact
 end

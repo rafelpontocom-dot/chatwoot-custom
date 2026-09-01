@@ -265,6 +265,22 @@ class KanbanCard < ApplicationRecord
     stage_entered_at <= threshold_days.days.ago(now)
   end
 
+  # De quem é a vez, e desde quando.
+  #
+  # `waiting_since` é posto quando o paciente escreve e limpo quando alguém da
+  # clínica responde. Presente significa que a bola está connosco — o sinal que
+  # nenhum CRM do mercado mostra, porque nenhum tem a conversa por baixo.
+  #
+  # Dias na etapa dizem que algo está parado; isto diz de quem é a culpa.
+  def reply_state
+    return nil if conversation.nil?
+
+    waiting = conversation.waiting_since
+    return { 'side' => 'us', 'since' => waiting.iso8601 } if waiting.present?
+
+    { 'side' => 'them', 'since' => conversation.last_activity_at&.iso8601 }
+  end
+
   def compact_custom_fields
     kanban_board.compact_custom_field_definitions.filter_map do |definition|
       value = custom_field_values.to_h[definition['key']]

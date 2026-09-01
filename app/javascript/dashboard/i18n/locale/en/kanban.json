@@ -1512,7 +1512,15 @@
         "TITLE": "Time in this stage"
       },
       "YES": "Yes",
-      "NO": "No"
+      "NO": "No",
+      "REPLY_STATE": {
+        "US": "Waiting on us",
+        "THEM": "Waiting on the patient",
+        "OVERDUE": "No reply",
+        "JUST_NOW": "just now",
+        "HOURS": "{count}h",
+        "DAYS": "{count}d"
+      }
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversation",
