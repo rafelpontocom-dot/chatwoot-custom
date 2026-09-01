@@ -7,16 +7,26 @@
       "skillPath": "skills/accessibility-compliance/SKILL.md",
       "computedHash": "186f46d43938d274670dc4675f30e8da2176230041dc9683cacf1387f5e6a822"
     },
+    "agentic-browser-testing": {
+      "source": "petrkindlmann/qa-skills",
+      "sourceType": "github",
+      "skillPath": "skills/agentic-browser-testing/SKILL.md"
+    },
     "chatwoot-cli": {
       "source": "chatwoot/cli",
       "sourceType": "github",
       "skillPath": "skills/chatwoot-cli/SKILL.md",
       "computedHash": "59c31a0af46bcca0d2cb267c489358b8fc57568ef47f95ce34f4f395ab5af414"
     },
+    "cross-browser-testing": {
+      "source": "petrkindlmann/qa-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cross-browser-testing/SKILL.md"
+    },
     "frappe-ui-patterns": {
       "source": "lubusin/agent-skills",
       "sourceType": "github",
-      "skillPath": "frappe-ui-patterns/SKILL.md",
+      "skillPath": "ui-patterns/SKILL.md",
       "computedHash": "851a4cdf456a171a0676ca91147e1a723c837d0e4ac99bb0ef3feba4e9b4e24b"
     },
     "playwright": {
@@ -24,6 +34,16 @@
       "sourceType": "github",
       "skillPath": "plugins/playwright/skills/playwright/SKILL.md",
       "computedHash": "a4d3bdb9bdee41a841c59e1360afec67d44b6770c291fd9c244021fa51f1d813"
+    },
+    "playwright-automation": {
+      "source": "petrkindlmann/qa-skills",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-automation/SKILL.md"
+    },
+    "selector-drift-recovery": {
+      "source": "petrkindlmann/qa-skills",
+      "sourceType": "github",
+      "skillPath": "skills/selector-drift-recovery/SKILL.md"
     },
     "signup-login-page-generator": {
       "source": "kostja94/marketing-skills",
@@ -42,6 +62,11 @@
       "sourceType": "github",
       "skillPath": "skills/ui-visual-validator/SKILL.md",
       "computedHash": "55b92232dbc54ed72db4b8cafa0884bfc7ad2a5da0bbfb1f12520e2982fee219"
+    },
+    "visual-testing": {
+      "source": "petrkindlmann/qa-skills",
+      "sourceType": "github",
+      "skillPath": "skills/visual-testing/SKILL.md"
     },
     "web-design-guidelines": {
       "source": "asyrafhussin/agent-skills",

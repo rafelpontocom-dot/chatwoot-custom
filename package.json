@@ -21,7 +21,8 @@
     "sync:i18n": "bin/sync_i18n_file_change",
     "raevo:design": "node scripts/check-design-tokens.mjs",
     "raevo:design:all": "node scripts/check-design-tokens.mjs --all",
-    "raevo:palette": "node scripts/validate_palette.js \"#2563EB,#0F9D8F,#B45309,#A21CAF\" --mode light --pairs all"
+    "raevo:palette": "node scripts/validate_palette.js \"#2563EB,#0F9D8F,#B45309,#A21CAF\" --mode light --pairs all",
+    "skills:install": "node scripts/install-skills.mjs"
   },
   "size-limit": [
     {

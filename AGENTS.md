@@ -266,6 +266,19 @@ Para qualquer mudança em Kanban, oportunidade, Agenda, Financeiro, Formulários
 4. `agentic-browser-testing`: execute uma jornada real com dados de teste, incluindo criação, alteração, erro e recuperação.
 5. `visual-testing`: registre screenshot de desktop 1280px antes/depois e investigue sobreposição, corte de texto, vazio excessivo e regressão visual.
 
+As skills desta porta vivem em `.claude/skills/`, que é ignorado pelo git. O que é
+versionado é o `skills-lock.json`. Numa máquina nova — Codex incluído — instale-as antes
+de começar, senão os cinco passos acima não têm como ser executados:
+
+```bash
+pnpm skills:install            # todas as declaradas no lock
+pnpm skills:install visual-testing agentic-browser-testing   # só algumas
+```
+
+Requer o `gh` autenticado. Os passos 4 e 5 (`agentic-browser-testing` e `visual-testing`)
+precisam da aplicação a correr e de um browser: não são análise de código e não podem ser
+dados por cumpridos sem uma jornada real e screenshots antes/depois.
+
 Todo controle só por ícone precisa de rótulo acessível e tooltip. Títulos de etapa, oportunidade, procedimento e campo nunca podem depender de `truncate` para caber: use quebra de palavra, largura estável ou detalhe progressivo. Não introduza efeitos, sombras, gradientes ou animações sem ajudar o usuário a compreender estado, prioridade ou transição.
 
 ## Manutenção do Upstream Chatwoot
