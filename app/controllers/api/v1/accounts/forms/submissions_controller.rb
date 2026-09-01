@@ -5,6 +5,11 @@ class Api::V1::Accounts::Forms::SubmissionsController < Api::V1::Accounts::BaseC
     authorize FormSubmission.new(account: Current.account), :index?
 
     submissions = visible_submissions.includes(:contact, :kanban_card, form_template_version: :form_template)
+    # A série de uma pessoa: cada preenchimento é uma linha nova, nunca uma
+    # sobrescrita. «Grávida?» é uma resposta datada, não um atributo do
+    # contacto — um atributo daria a impressão de estar em dia quando tem oito
+    # meses.
+    submissions = submissions.where(contact_id: params[:contact_id]) if params[:contact_id].present?
     submissions = submissions.order(submitted_at: :desc)
     render json: submissions.map(&:summary_payload)
   end

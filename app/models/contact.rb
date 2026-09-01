@@ -65,6 +65,11 @@ class Contact < ApplicationRecord
   has_many :notes, dependent: :destroy_async
   has_many :finance_customers, dependent: :destroy_async
   has_many :finance_payments, dependent: :destroy_async
+  # A resposta pertence ao contacto: é histórico da pessoa e sobrevive ao card
+  # que a originou. Não se apaga em cascata com o contacto — uma anamnese tem
+  # trilha de acesso e prazo de retenção próprios (`Forms::ClinicalRetentionService`),
+  # e apagá-la por arrasto seria decidir isso sem quem tem de decidir.
+  has_many :form_submissions, dependent: :restrict_with_exception
   before_validation :prepare_contact_attributes
   after_create_commit :dispatch_create_event, :ip_lookup
   after_update_commit :dispatch_update_event

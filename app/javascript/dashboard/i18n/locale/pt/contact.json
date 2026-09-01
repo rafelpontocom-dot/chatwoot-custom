@@ -511,6 +511,7 @@
         "ATTRIBUTES": "Atributos",
         "HISTORY": "Histórico",
         "KANBAN": "Oportunidades",
+        "FORMS": "Respostas",
         "NOTES": "Notas",
         "MEDIA": "Mídia",
         "MERGE": "Mesclar"
@@ -524,6 +525,11 @@
         "DUE_DATE": "Data de vencimento",
         "NOT_SET": "Não definido",
         "OPEN_CONVERSATION": "Abrir conversa"
+      },
+      "FORMS": {
+        "EMPTY_STATE": "Este contacto ainda não respondeu a nenhum formulário",
+        "ERROR": "Não foi possível carregar as respostas",
+        "OPPORTUNITY": "Oportunidade:"
       },
       "ATTRIBUTES": {
         "SEARCH_PLACEHOLDER": "Pesquisar atributos",

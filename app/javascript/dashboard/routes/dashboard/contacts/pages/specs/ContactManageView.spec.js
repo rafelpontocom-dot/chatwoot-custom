@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import ContactManageView from '../ContactManageView.vue';
 
 const mockDispatch = vi.fn(() => Promise.resolve());
+let mockRole = 'administrator';
 const mockRouterBack = vi.fn();
 const mockRouterPush = vi.fn();
 
@@ -31,6 +32,10 @@ vi.mock('vue-i18n', () => ({
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({
     dispatch: mockDispatch,
+  }),
+  // `useAdmin` lê o papel daqui: sem isto a vista nem monta.
+  useStoreGetters: () => ({
+    getCurrentRole: { value: mockRole },
   }),
   useMapGetter: name => {
     if (name === 'contacts/getContactById') {
@@ -77,6 +82,8 @@ const mountComponent = () =>
         ContactMerge: true,
         ContactCustomAttributes: true,
         ContactKanbanCards: true,
+        ContactFormSubmissions: true,
+        FormsSubmissionDetailsDialog: true,
       },
     },
   });
@@ -84,11 +91,28 @@ const mountComponent = () =>
 describe('ContactManageView', () => {
   beforeEach(() => {
     mockDispatch.mockClear();
+    mockRole = 'administrator';
   });
 
   it('includes kanban opportunities in the contact sidebar tabs', () => {
     const wrapper = mountComponent();
 
     expect(wrapper.text()).toContain('Opportunities');
+  });
+
+  // A ficha de respostas é de administração, como em `FormSubmissionPolicy`:
+  // um agente atende conversas, não lê fichas de pacientes.
+  it('offers the form responses tab to an administrator', () => {
+    const wrapper = mountComponent();
+
+    expect(wrapper.text()).toContain('CONTACTS_LAYOUT.SIDEBAR.TABS.FORMS');
+  });
+
+  it('keeps the form responses tab away from an agent', () => {
+    mockRole = 'agent';
+
+    const wrapper = mountComponent();
+
+    expect(wrapper.text()).not.toContain('CONTACTS_LAYOUT.SIDEBAR.TABS.FORMS');
   });
 });

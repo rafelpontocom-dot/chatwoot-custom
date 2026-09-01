@@ -80,4 +80,26 @@ RSpec.describe FormSubmissionPolicy, type: :policy do
       expect(form_submission_policy).not_to permit(allowed_agent_context, submission)
     end
   end
+
+  # A regra do produto para formulário comercial: respostas são de
+  # administração. Um agente atende conversas, não lê fichas de pacientes.
+  describe 'a commercial submission' do
+    let(:commercial_submission) do
+      commercial = FormTemplate.new(account: account, access_classification: 'commercial',
+                                    name: 'Pré-consulta', slug: 'pre-consulta')
+      FormSubmission.new(account: account,
+                         form_template_version: FormTemplateVersion.new(account: account, form_template: commercial))
+    end
+
+    permissions :show?, :index?, :export? do
+      it 'is readable by an administrator' do
+        expect(form_submission_policy).to permit(administrator_context, commercial_submission)
+      end
+
+      it 'is out of reach for an agent, even one with clinical access elsewhere' do
+        expect(form_submission_policy).not_to permit(allowed_agent_context, commercial_submission)
+        expect(form_submission_policy).not_to permit(other_agent_context, commercial_submission)
+      end
+    end
+  end
 end

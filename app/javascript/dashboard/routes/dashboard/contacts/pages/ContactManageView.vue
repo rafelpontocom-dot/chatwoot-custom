@@ -3,6 +3,7 @@ import { onMounted, computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useRoute, useRouter } from 'vue-router';
 
 import ContactsDetailsLayout from 'dashboard/components-next/Contacts/ContactsDetailsLayout.vue';
@@ -13,10 +14,13 @@ import ContactNotes from 'dashboard/components-next/Contacts/ContactsSidebar/Con
 import ContactHistory from 'dashboard/components-next/Contacts/ContactsSidebar/ContactHistory.vue';
 import ContactMedia from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMedia.vue';
 import ContactKanbanCards from 'dashboard/components-next/Contacts/ContactsSidebar/ContactKanbanCards.vue';
+import ContactFormSubmissions from 'dashboard/components-next/Contacts/ContactsSidebar/ContactFormSubmissions.vue';
+import FormsSubmissionDetailsDialog from 'dashboard/routes/dashboard/forms/FormsSubmissionDetailsDialog.vue';
 import ContactMerge from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMerge.vue';
 import ContactCustomAttributes from 'dashboard/components-next/Contacts/ContactsSidebar/ContactCustomAttributes.vue';
 
 const store = useStore();
+const { isAdmin } = useAdmin();
 const route = useRoute();
 const router = useRouter();
 
@@ -25,6 +29,12 @@ const uiFlags = useMapGetter('contacts/getUIFlags');
 
 const activeTab = ref('attributes');
 const contactMergeRef = ref(null);
+const submissionDialogRef = ref(null);
+
+// Ler a resposta é o que faz a série servir para alguma coisa: sem isto fica
+// uma lista de nomes e datas sem porta de entrada.
+const openSubmission = submissionId =>
+  submissionDialogRef.value?.open(submissionId);
 
 const isFetchingItem = computed(() => uiFlags.value.isFetchingItem);
 const isMergingContact = computed(() => uiFlags.value.isMerging);
@@ -61,6 +71,16 @@ const tabs = computed(() => {
       label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.KANBAN'),
       value: 'kanban',
     },
+    // A ficha de respostas é de administração, como em `FormSubmissionPolicy`:
+    // um agente atende conversas, não lê fichas de pacientes.
+    ...(isAdmin.value
+      ? [
+          {
+            label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.FORMS'),
+            value: 'forms',
+          },
+        ]
+      : []),
     {
       label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.NOTES'),
       value: 'notes',
@@ -76,8 +96,10 @@ const tabs = computed(() => {
   ];
 });
 
+// Sobre as abas efetivamente visíveis: `forms` só existe para administração, e
+// um índice sobre a lista fixa apontaria para a aba errada sem ela.
 const activeTabIndex = computed(() => {
-  return CONTACT_TABS_OPTIONS.findIndex(v => v.value === activeTab.value);
+  return tabs.value.findIndex(v => v.value === activeTab.value);
 });
 
 const goToContactsList = () => {
@@ -201,6 +223,11 @@ onMounted(() => {
             v-if="activeTab === 'kanban' && selectedContact"
             :contact-id="selectedContact.id"
           />
+          <ContactFormSubmissions
+            v-if="activeTab === 'forms' && selectedContact"
+            :contact-id="selectedContact.id"
+            @open-submission="openSubmission"
+          />
           <ContactNotes v-if="activeTab === 'notes'" />
           <ContactHistory v-if="activeTab === 'history'" />
           <ContactMedia v-if="activeTab === 'media'" />
@@ -214,5 +241,6 @@ onMounted(() => {
         </template>
       </template>
     </ContactsDetailsLayout>
+    <FormsSubmissionDetailsDialog ref="submissionDialogRef" />
   </div>
 </template>

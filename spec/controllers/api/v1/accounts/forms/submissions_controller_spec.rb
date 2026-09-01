@@ -27,6 +27,25 @@ RSpec.describe 'Form submissions API', type: :request do
   end
   let(:submissions_path) { "/api/v1/accounts/#{account.id}/forms/submissions" }
 
+  # A resposta pertence ao contacto: a ficha mostra a série completa, o card
+  # mostra apenas o envio daquele atendimento.
+  it 'lists only the series of the contact that was asked for' do
+    submission
+    outro = create(:contact, account: account, name: 'Outra pessoa')
+    outra_submissao = FormSubmission.create_from_answers!(
+      account: account,
+      form_template_version: submission.form_template_version,
+      answers: { 'nome' => 'Outra pessoa' },
+      contact: outro
+    )
+
+    get submissions_path, params: { contact_id: contact.id }, headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body.pluck('id')).to eq([submission.id])
+    expect(response.parsed_body.pluck('id')).not_to include(outra_submissao.id)
+  end
+
   it 'lists safe submission summaries and exposes answers only in the authorized detail' do
     submission
 

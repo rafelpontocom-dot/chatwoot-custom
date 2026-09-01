@@ -72,8 +72,8 @@ class FormsAPI extends ApiClient {
     return axios.delete(`${this.url}/field_groups/${id}`);
   }
 
-  getSubmissions() {
-    return axios.get(`${this.url}/submissions`);
+  getSubmissions(params = {}, config = {}) {
+    return axios.get(`${this.url}/submissions`, { params, ...config });
   }
 
   getSubmission(id) {

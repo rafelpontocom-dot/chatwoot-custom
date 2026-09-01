@@ -511,6 +511,7 @@
         "ATTRIBUTES": "Attributes",
         "HISTORY": "History",
         "KANBAN": "Opportunities",
+        "FORMS": "Form responses",
         "NOTES": "Notes",
         "MEDIA": "Media",
         "MERGE": "Merge"
@@ -524,6 +525,11 @@
         "DUE_DATE": "Due date",
         "NOT_SET": "Not set",
         "OPEN_CONVERSATION": "Open conversation"
+      },
+      "FORMS": {
+        "EMPTY_STATE": "This contact has not answered any form yet",
+        "ERROR": "Could not load form responses",
+        "OPPORTUNITY": "Opportunity:"
       },
       "ATTRIBUTES": {
         "SEARCH_PLACEHOLDER": "Search for attributes",
