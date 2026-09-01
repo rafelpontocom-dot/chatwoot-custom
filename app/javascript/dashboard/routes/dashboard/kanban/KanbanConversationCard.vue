@@ -304,7 +304,7 @@ const openConversation = event => {
               class="flex-shrink-0 !size-3.5"
             />
             <h4
-              class="line-clamp-2 min-w-0 flex-1 break-words text-xs font-bold leading-[15px] tracking-tight text-n-slate-12"
+              class="line-clamp-2 min-w-0 flex-1 break-words text-sm font-bold leading-[18px] tracking-tight text-n-slate-12"
               :title="cardTitle"
             >
               {{ cardTitle }}
@@ -319,7 +319,7 @@ const openConversation = event => {
           <p
             v-if="cardSubtitle"
             data-testid="kanban-card-subtitle"
-            class="break-words text-micro leading-[14px] text-n-slate-10"
+            class="break-words text-xs leading-[15px] text-n-slate-10"
           >
             {{ cardSubtitle }}
           </p>
@@ -344,9 +344,9 @@ const openConversation = event => {
           :key="field.key"
           class="flex min-w-0 items-baseline gap-1"
         >
-          <dt class="shrink-0 text-micro text-n-slate-10">{{ field.label }}</dt>
+          <dt class="shrink-0 text-xs text-n-slate-10">{{ field.label }}</dt>
           <dd
-            class="mb-0 min-w-0 break-words text-micro font-semibold tabular-nums text-n-slate-12"
+            class="mb-0 min-w-0 break-words text-xs font-semibold tabular-nums text-n-slate-12"
           >
             {{ formatCompactValue(field) }}
           </dd>
@@ -366,7 +366,7 @@ const openConversation = event => {
         <div
           v-if="nextActionStatusConfig"
           data-testid="kanban-card-next-action"
-          class="inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-micro font-semibold leading-4"
+          class="inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold leading-4"
           :class="nextActionStatusConfig.class"
         >
           <i

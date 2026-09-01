@@ -2520,7 +2520,7 @@ onUnmounted(() => {
           <template #item="{ element: stage }">
             <section
               :data-stage-id="stage.id"
-              class="flex w-60 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
+              class="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
             >
               <div
                 v-if="!isNeutralStageColor(stage.color)"
