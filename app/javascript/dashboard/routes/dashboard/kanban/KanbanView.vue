@@ -2666,7 +2666,7 @@ onUnmounted(() => {
                 <template v-else>
                   <div class="flex min-w-0 flex-1 items-start gap-2">
                     <h3
-                      class="min-w-0 flex-1 break-words text-xs font-bold leading-5 tracking-tight text-n-slate-12"
+                      class="min-w-0 flex-1 break-words text-base font-bold leading-6 tracking-tight text-n-slate-12"
                     >
                       <!--
                         Nome da etapa nunca corta: quebra em duas linhas e a

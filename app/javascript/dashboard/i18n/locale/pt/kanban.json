@@ -771,7 +771,8 @@
           "BOOLEAN": "Caixa de seleção",
           "URL": "URL",
           "FORMULA": "Fórmula"
-        }
+        },
+        "EDIT_FIELD_HINT": "Clique para editar este campo. Arraste pela pega para o mover."
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",

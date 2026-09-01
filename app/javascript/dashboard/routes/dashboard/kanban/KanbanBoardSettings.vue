@@ -4094,6 +4094,7 @@ onMounted(async () => {
                           "
                           item-key="clientId"
                           group="kanban-custom-field-layout"
+                          handle=".field-row-drag-handle"
                           :data-section-key="section.key"
                           class="grid min-h-12 content-start gap-1 rounded-md border border-dashed border-n-weak bg-n-surface-2 p-1.5"
                           @dragover.prevent
@@ -4101,13 +4102,23 @@ onMounted(async () => {
                           @change="moveCustomFieldInLayout(section.key, $event)"
                         >
                           <template #item="{ element }">
+                            <!--
+                              A linha abria o editor ao clique, mas o cursor
+                              dizia «arrasta-me»: quem arrastava concluía que o
+                              campo estava travado. Arrastar passa a ser só pela
+                              pega; o resto da linha é clique, e diz-lo.
+                            -->
                             <button
                               type="button"
-                              class="flex min-w-0 cursor-grab items-center gap-2 rounded border border-n-weak bg-n-surface-1 px-2 py-1.5 text-left text-xs text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                              :data-testid="`kanban-settings-section-field-${element.key}`"
+                              class="flex min-w-0 cursor-pointer items-center gap-2 rounded border border-n-weak bg-n-surface-1 px-2 py-1.5 text-left text-xs text-n-slate-12 outline-none transition-colors hover:border-n-brand hover:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                              :title="
+                                t('KANBAN.SETTINGS.SALES.EDIT_FIELD_HINT')
+                              "
                               @click="selectCustomField(element)"
                             >
                               <i
-                                class="i-lucide-grip-vertical size-3.5 shrink-0"
+                                class="field-row-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 cursor-grab text-n-slate-10"
                               />
                               <span class="truncate">
                                 {{

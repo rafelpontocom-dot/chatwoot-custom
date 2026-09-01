@@ -768,7 +768,8 @@
           "BOOLEAN": "Checkbox",
           "URL": "URL",
           "FORMULA": "Formula"
-        }
+        },
+        "EDIT_FIELD_HINT": "Click to edit this field. Drag by the handle to move it."
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",
