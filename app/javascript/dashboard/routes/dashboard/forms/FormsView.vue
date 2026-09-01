@@ -1,5 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -7,6 +14,7 @@ import FormsAPI from 'dashboard/api/forms';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Draggable from 'vuedraggable';
+import FormsBlockLibrary from './FormsBlockLibrary.vue';
 import { OnClickOutside } from '@vueuse/components';
 import { dynamicTime } from 'shared/helpers/timeHelper';
 import { useRequestSidebarFocus } from 'dashboard/composables/useSidebarFocus';
@@ -31,7 +39,7 @@ const activeBuilderSectionIndex = ref(0);
 const selectedBuilderFieldKey = ref('');
 const showFormActionsMenu = ref(false);
 const selectedBuilderContentBlockId = ref('');
-const builderLibraryQuery = ref('');
+const builderLibraryRef = ref(null);
 const hasUnsavedChanges = ref(false);
 const localDraftRestored = ref(false);
 const localDraftUpdatedAt = ref(null);
@@ -47,15 +55,10 @@ const copied = ref(false);
 const createDialog = ref(null);
 const submissionDialog = ref(null);
 const versionsDialog = ref(null);
-const fieldGroupDialog = ref(null);
 const saveFieldGroupDialog = ref(null);
 const deleteFieldGroupDialog = ref(null);
-const fieldTypeDialog = ref(null);
-const contentBlockDialog = ref(null);
 const builderSettingsDialog = ref(null);
 const duplicateDialog = ref(null);
-const pendingFieldSectionIndex = ref(null);
-const pendingContentSectionIndex = ref(null);
 const selectedSubmission = ref(null);
 const versions = ref([]);
 const isLoadingVersions = ref(false);
@@ -1293,10 +1296,13 @@ function addBuilderFieldInline(type = 'text') {
   addField(activeBuilderSection.value, type);
 }
 
-function openFieldTypeDialog(section) {
-  pendingFieldSectionIndex.value =
+// Escolher o tipo passou a ser uma só porta: a biblioteca da coluna esquerda.
+// Havia dois caminhos para a mesma ação — um diálogo e a biblioteca — e um
+// deles ia divergir. Aqui torna-se a secção ativa e leva-se a pessoa à busca.
+function focusBuilderLibrary(section) {
+  activeBuilderSectionIndex.value =
     editor.value.schema.sections.indexOf(section);
-  fieldTypeDialog.value?.open();
+  nextTick(() => builderLibraryRef.value?.focusSearch());
 }
 
 const contentBlockTypes = computed(() => [
@@ -1321,12 +1327,6 @@ const contentBlockTypes = computed(() => [
     label: t('FORMS.CONTENT_BLOCKS.DIVIDER'),
   },
 ]);
-
-function openContentBlockDialog(section) {
-  pendingContentSectionIndex.value =
-    editor.value.schema.sections.indexOf(section);
-  contentBlockDialog.value?.open();
-}
 
 function uniqueContentBlockId(type) {
   const usedIds = new Set(
@@ -1366,19 +1366,6 @@ function newContentBlock(type) {
   return { id, type };
 }
 
-function addContentBlock(type) {
-  const section =
-    editor.value.schema.sections[pendingContentSectionIndex.value];
-  if (!section) return;
-
-  section.content_blocks ||= [];
-  const block = newContentBlock(type);
-  section.content_blocks.push(block);
-  activeBuilderSectionIndex.value = pendingContentSectionIndex.value;
-  selectBuilderContentBlock(block.id);
-  contentBlockDialog.value?.close();
-}
-
 function addBuilderContentBlock(type) {
   if (!activeBuilderSection.value) return;
 
@@ -1386,13 +1373,6 @@ function addBuilderContentBlock(type) {
   activeBuilderSection.value.content_blocks ||= [];
   activeBuilderSection.value.content_blocks.push(block);
   selectBuilderContentBlock(block.id);
-}
-
-function matchesBuilderLibrary(label) {
-  const query = builderLibraryQuery.value.trim().toLocaleLowerCase();
-  if (!query) return true;
-
-  return label.toLocaleLowerCase().includes(query);
 }
 
 function removeSelectedBuilderContentBlock() {
@@ -1411,14 +1391,6 @@ function contentBlockLabel(block) {
     contentBlockTypes.value.find(type => type.value === block.type)?.label ||
     block.type
   );
-}
-
-function addFieldFromType(type) {
-  const section = editor.value.schema.sections[pendingFieldSectionIndex.value];
-  if (!section) return;
-
-  addField(section, type);
-  fieldTypeDialog.value?.close();
 }
 
 function uniqueFieldKey(key, usedKeys) {
@@ -1472,7 +1444,6 @@ function addFieldGroup(group) {
     })),
   });
   selectBuilderSection(editor.value.schema.sections.length - 1);
-  fieldGroupDialog.value?.close();
 }
 
 function addCustomFieldGroup(group) {
@@ -1502,7 +1473,6 @@ function addCustomFieldGroup(group) {
     })),
   });
   selectBuilderSection(editor.value.schema.sections.length - 1);
-  fieldGroupDialog.value?.close();
 }
 
 function serializableFieldGroupSection() {
@@ -2139,112 +2109,19 @@ onBeforeUnmount(() => {
                 </button>
               </div>
 
-              <details
-                class="group mt-3 rounded border border-n-slate-4 bg-n-solid-1"
-                open
-              >
-                <summary
-                  class="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 px-2 text-xs font-semibold text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-teal-6 [&::-webkit-details-marker]:hidden"
-                >
-                  <span>{{ t('FORMS.BUILDER.LIBRARY') }}</span>
-                  <span
-                    class="i-lucide-chevron-down size-3.5 text-n-slate-9 transition group-open:rotate-180"
-                    aria-hidden="true"
-                  />
-                </summary>
-                <div class="border-t border-n-slate-4 p-2">
-                  <label class="sr-only" for="forms-builder-library-search">
-                    {{ t('FORMS.BUILDER.SEARCH_LIBRARY') }}
-                  </label>
-                  <div class="relative">
-                    <span
-                      class="i-lucide-search pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-n-slate-9"
-                      aria-hidden="true"
-                    />
-                    <input
-                      id="forms-builder-library-search"
-                      v-model="builderLibraryQuery"
-                      data-test="forms-builder-library-search"
-                      :placeholder="t('FORMS.BUILDER.SEARCH_LIBRARY')"
-                      class="min-h-9 w-full rounded border border-n-slate-5 bg-n-solid-1 pl-8 pr-2 text-xs text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-                    />
-                  </div>
-                  <div class="mt-3 grid gap-3">
-                    <section>
-                      <p
-                        class="px-1 text-micro font-semibold uppercase tracking-wide text-n-slate-9"
-                      >
-                        {{ t('FORMS.BUILDER.QUESTIONS') }}
-                      </p>
-                      <div class="mt-1 grid gap-0.5">
-                        <button
-                          v-for="type in fieldTypes.filter(item =>
-                            matchesBuilderLibrary(item.label)
-                          )"
-                          :key="type.value"
-                          type="button"
-                          class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-                          :data-test="`forms-builder-library-field-${type.value}`"
-                          @click="addBuilderField(type.value)"
-                        >
-                          <span
-                            class="i-lucide-circle-plus size-3.5 text-n-teal-10"
-                            aria-hidden="true"
-                          />
-                          {{ type.label }}
-                        </button>
-                      </div>
-                    </section>
-                    <section>
-                      <p
-                        class="px-1 text-micro font-semibold uppercase tracking-wide text-n-slate-9"
-                      >
-                        {{ t('FORMS.BUILDER.CONTENT') }}
-                      </p>
-                      <div class="mt-1 grid gap-0.5">
-                        <button
-                          v-for="block in contentBlockTypes.filter(item =>
-                            matchesBuilderLibrary(item.label)
-                          )"
-                          :key="block.value"
-                          type="button"
-                          class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-                          :data-test="`forms-builder-library-content-${block.value}`"
-                          @click="addBuilderContentBlock(block.value)"
-                        >
-                          <span
-                            :class="block.icon"
-                            class="size-3.5 text-n-teal-10"
-                            aria-hidden="true"
-                          />
-                          {{ block.label }}
-                        </button>
-                      </div>
-                    </section>
-                    <section>
-                      <p
-                        class="px-1 text-micro font-semibold uppercase tracking-wide text-n-slate-9"
-                      >
-                        {{ t('FORMS.BUILDER.SAVED_BLOCKS') }}
-                      </p>
-                      <button
-                        v-if="
-                          matchesBuilderLibrary(t('FORMS.ACTIONS.ADD_GROUP'))
-                        "
-                        type="button"
-                        class="mt-1 flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-                        @click="fieldGroupDialog?.open()"
-                      >
-                        <span
-                          class="i-lucide-layout-template size-3.5 text-n-teal-10"
-                          aria-hidden="true"
-                        />
-                        {{ t('FORMS.ACTIONS.ADD_GROUP') }}
-                      </button>
-                    </section>
-                  </div>
-                </div>
-              </details>
+              <FormsBlockLibrary
+                ref="builderLibraryRef"
+                :field-types="fieldTypes"
+                :content-block-types="contentBlockTypes"
+                :field-group-options="fieldGroupOptions"
+                :custom-field-groups="customFieldGroups"
+                class="mt-3"
+                @add-field="addBuilderField"
+                @add-content="addBuilderContentBlock"
+                @add-group="addFieldGroup"
+                @add-saved-group="addCustomFieldGroup"
+                @delete-saved-group="openDeleteFieldGroupDialog"
+              />
 
               <Draggable
                 v-model="editor.schema.sections"
@@ -2348,7 +2225,7 @@ onBeforeUnmount(() => {
                       type="button"
                       class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
                       :data-test="`forms-builder-add-content-${sectionIndex}`"
-                      @click="openContentBlockDialog(section)"
+                      @click="focusBuilderLibrary(section)"
                     >
                       <span
                         class="i-lucide-text-cursor-input size-3.5"
@@ -2360,7 +2237,7 @@ onBeforeUnmount(() => {
                       type="button"
                       class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
                       :data-test="`forms-builder-add-question-${sectionIndex}`"
-                      @click="openFieldTypeDialog(section)"
+                      @click="focusBuilderLibrary(section)"
                     >
                       <span class="i-lucide-plus size-3.5" aria-hidden="true" />
                       {{ t('FORMS.BUILDER.ADD_QUESTION') }}
@@ -2375,7 +2252,7 @@ onBeforeUnmount(() => {
                 color="slate"
                 :label="t('FORMS.ACTIONS.ADD_GROUP')"
                 icon="i-lucide-layout-template"
-                @click="fieldGroupDialog?.open()"
+                @click="focusBuilderLibrary(activeBuilderSection)"
               />
               <button
                 type="button"
@@ -3256,130 +3133,6 @@ onBeforeUnmount(() => {
         </span>
       </li>
     </ul>
-  </Dialog>
-
-  <Dialog
-    ref="fieldTypeDialog"
-    width="lg"
-    :title="t('FORMS.BUILDER.ADD_QUESTION_TITLE')"
-    :description="t('FORMS.BUILDER.ADD_QUESTION_DESCRIPTION')"
-    :show-confirm-button="false"
-    :cancel-button-label="t('FORMS.ACTIONS.CLOSE')"
-  >
-    <div class="grid gap-3 sm:grid-cols-2">
-      <button
-        v-for="type in fieldTypes"
-        :key="type.value"
-        type="button"
-        class="flex min-h-14 items-center justify-between gap-3 rounded border border-n-slate-4 bg-n-solid-1 px-4 py-3 text-left transition hover:border-n-teal-7 hover:bg-n-teal-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-        :data-test="`forms-add-field-${type.value}`"
-        @click="addFieldFromType(type.value)"
-      >
-        <span class="text-sm font-semibold text-n-slate-12">
-          {{ type.label }}
-        </span>
-        <span class="i-lucide-plus size-4 text-n-teal-10" aria-hidden="true" />
-      </button>
-    </div>
-  </Dialog>
-
-  <Dialog
-    ref="contentBlockDialog"
-    width="lg"
-    :title="t('FORMS.CONTENT_BLOCKS.TITLE')"
-    :description="t('FORMS.CONTENT_BLOCKS.DESCRIPTION')"
-    :show-confirm-button="false"
-    :cancel-button-label="t('FORMS.ACTIONS.CLOSE')"
-  >
-    <div class="grid gap-3 sm:grid-cols-2">
-      <button
-        v-for="type in contentBlockTypes"
-        :key="type.value"
-        type="button"
-        class="flex min-h-14 items-center gap-3 rounded border border-n-slate-4 bg-n-solid-1 px-4 py-3 text-left transition hover:border-n-teal-7 hover:bg-n-teal-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-        :data-test="`forms-add-content-${type.value}`"
-        @click="addContentBlock(type.value)"
-      >
-        <span
-          :class="type.icon"
-          class="size-4 shrink-0 text-n-teal-10"
-          aria-hidden="true"
-        />
-        <span class="text-sm font-semibold text-n-slate-12">
-          {{ type.label }}
-        </span>
-      </button>
-    </div>
-  </Dialog>
-
-  <Dialog
-    ref="fieldGroupDialog"
-    width="lg"
-    :title="t('FORMS.FIELD_GROUPS.TITLE')"
-    :description="t('FORMS.FIELD_GROUPS.DESCRIPTION')"
-    :show-confirm-button="false"
-    :cancel-button-label="t('FORMS.ACTIONS.CLOSE')"
-  >
-    <div class="grid gap-3">
-      <button
-        v-for="group in fieldGroupOptions"
-        :key="group.id"
-        type="button"
-        class="grid min-h-20 grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 rounded border border-n-slate-4 bg-n-solid-1 px-4 py-3 text-left transition hover:border-n-teal-7 hover:bg-n-teal-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-        :data-test="`forms-field-group-${group.id}`"
-        @click="addFieldGroup(group.id)"
-      >
-        <span
-          class="i-lucide-layout-template size-5 text-n-teal-10"
-          aria-hidden="true"
-        />
-        <span class="min-w-0">
-          <span class="block text-sm font-semibold text-n-slate-12">
-            {{ group.title }}
-          </span>
-          <span class="mt-1 block text-sm leading-5 text-n-slate-10">
-            {{ group.description }}
-          </span>
-        </span>
-        <span class="i-lucide-plus size-4 text-n-slate-10" aria-hidden="true" />
-      </button>
-    </div>
-    <section
-      v-if="customFieldGroups.length"
-      class="mt-5 border-t border-n-slate-4 pt-5"
-    >
-      <h3 class="text-sm font-semibold text-n-slate-12">
-        {{ t('FORMS.FIELD_GROUPS.SAVED_TITLE') }}
-      </h3>
-      <div class="mt-3 grid gap-2">
-        <div
-          v-for="group in customFieldGroups"
-          :key="group.id"
-          class="flex min-h-12 items-center gap-3 rounded border border-n-slate-4 bg-n-solid-1 px-3 py-2"
-        >
-          <button
-            type="button"
-            class="min-w-0 flex-1 text-left text-sm font-medium text-n-slate-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-            @click="addCustomFieldGroup(group)"
-          >
-            <span class="block break-words">{{ group.name }}</span>
-            <span class="mt-0.5 block text-xs font-normal text-n-slate-10">
-              {{ group.section?.fields?.length || 0 }}
-              {{ t('FORMS.FIELD_GROUPS.QUESTIONS') }}
-            </span>
-          </button>
-          <button
-            type="button"
-            class="inline-flex size-8 shrink-0 items-center justify-center rounded text-n-slate-10 transition hover:bg-n-ruby-2 hover:text-n-ruby-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6"
-            :aria-label="t('FORMS.FIELD_GROUPS.DELETE', { name: group.name })"
-            :title="t('FORMS.ACTIONS.REMOVE')"
-            @click="openDeleteFieldGroupDialog(group)"
-          >
-            <span class="i-lucide-trash-2 size-4" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-    </section>
   </Dialog>
 
   <Dialog

@@ -2,6 +2,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import { computed } from 'vue';
 import FormsView from '../FormsView.vue';
 import FormsBuilderSettingsDialog from '../FormsBuilderSettingsDialog.vue';
+import FormsBlockLibrary from '../FormsBlockLibrary.vue';
 import FormsAPI from 'dashboard/api/forms';
 
 const dispatch = vi.fn();
@@ -76,6 +77,9 @@ const mountForms = ({ boards = [], agents = [], teams = [] } = {}) => {
             '<div><slot /><button data-test="dialog-confirm" @click="$emit(\'confirm\')" /></div>',
         },
         FormsBuilderSettingsDialog,
+        // Sem isto o shallowMount stuba a biblioteca e todos os botões de
+        // acrescentar pergunta, conteúdo e bloco desaparecem do teste.
+        FormsBlockLibrary,
         // O painel de design tem spec próprio. Aqui só interessa que o
         // FormsView reaja aos eventos dele.
         FormsDesignPanel: {
@@ -911,10 +915,14 @@ describe('FormsView', () => {
     const wrapper = mountForms();
     await flushPromises();
 
+    // O «+» da secção leva à biblioteca da coluna esquerda, que é a única porta
+    // para escolher o tipo. Havia um diálogo a fazer o mesmo em paralelo.
     await wrapper
       .get('[data-test="forms-builder-add-question-0"]')
       .trigger('click');
-    await wrapper.get('[data-test="forms-add-field-date"]').trigger('click');
+    await wrapper
+      .get('[data-test="forms-builder-library-field-date"]')
+      .trigger('click');
     await flushPromises();
 
     expect(
@@ -1262,8 +1270,9 @@ describe('FormsView', () => {
     const wrapper = mountForms();
     await flushPromises();
 
+    // Os blocos vivem na biblioteca da coluna esquerda, não num diálogo.
     await wrapper
-      .get('[data-test="forms-field-group-contact"]')
+      .get('[data-test="forms-builder-library-group-contact"]')
       .trigger('click');
     const save = wrapper
       .findAll('button')
@@ -1535,7 +1544,7 @@ describe('FormsView', () => {
       .get('[data-test="forms-builder-add-content-0"]')
       .trigger('click');
     await wrapper
-      .get('[data-test="forms-add-content-rich_text"]')
+      .get('[data-test="forms-builder-library-content-rich_text"]')
       .trigger('click');
 
     expect(wrapper.find('[data-test="forms-rich-text-editor"]').exists()).toBe(
