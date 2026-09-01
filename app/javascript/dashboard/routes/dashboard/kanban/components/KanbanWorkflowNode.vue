@@ -88,11 +88,13 @@ const stateTone = state =>
         <div class="min-w-0">
           <p
             data-testid="kanban-workflow-node-category"
-            class="m-0 truncate text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+            class="m-0 break-words text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
           >
             {{ data.categoryLabel || data.category }}
           </p>
-          <p class="m-0 truncate text-xs font-semibold text-n-slate-12">
+          <p
+            class="m-0 line-clamp-2 break-words text-xs font-semibold text-n-slate-12"
+          >
             {{ data.label }}
           </p>
         </div>
@@ -103,7 +105,10 @@ const stateTone = state =>
         aria-hidden="true"
       />
     </div>
-    <p v-if="data.summary" class="m-0 mt-1 truncate text-xs text-n-slate-10">
+    <p
+      v-if="data.summary"
+      class="m-0 mt-1 line-clamp-2 break-words text-xs text-n-slate-10"
+    >
       {{ data.summary }}
     </p>
     <span
@@ -135,7 +140,7 @@ const stateTone = state =>
       :key="branch.id"
       class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
-      <span class="min-w-0 flex-1 truncate">{{ branch.label }}</span>
+      <span class="min-w-0 flex-1 break-words">{{ branch.label }}</span>
       <button
         type="button"
         class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
@@ -154,7 +159,7 @@ const stateTone = state =>
     <div
       class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
     >
-      <span class="min-w-0 flex-1 truncate">{{ data.fallbackLabel }}</span>
+      <span class="min-w-0 flex-1 break-words">{{ data.fallbackLabel }}</span>
       <button
         type="button"
         class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
