@@ -534,9 +534,28 @@ const compactCardFieldDefinitions = computed({
     form.compactCardFieldKeys = definitions.map(definition => definition.key);
   },
 });
+/**
+ * Três, o mesmo teto do cartão real (`KanbanConversationCard`). A prévia
+ * mostrava dois: quem configurasse um terceiro campo não o via aqui e ficava
+ * sem saber se tinha ficado de fora.
+ */
+const COMPACT_CARD_PREVIEW_LIMIT = 3;
 const compactCardPreviewFields = computed(() =>
-  compactCardFieldDefinitions.value.slice(0, 2)
+  compactCardFieldDefinitions.value.slice(0, COMPACT_CARD_PREVIEW_LIMIT)
 );
+
+/**
+ * O grupo a que o campo pertence, para quem escolhe saber de onde ele vem sem
+ * ir procurar. Os grupos organizam a configuração; o cartão continua plano.
+ */
+const compactCardFieldSection = key => {
+  const definition = form.customFieldDefinitions.find(item => item.key === key);
+  const section = form.customFieldSections.find(
+    item => item.key === definition?.section
+  );
+
+  return section?.label || section?.key || '';
+};
 
 const customFieldTypeOptions = computed(() => [
   { value: 'text', label: t('KANBAN.SETTINGS.SALES.FIELD_TYPES.TEXT') },
@@ -4153,9 +4172,17 @@ onMounted(async () => {
                                 <i
                                   class="compact-card-drag-handle i-lucide-grip-vertical size-4 shrink-0 cursor-grab text-n-slate-10"
                                 />
-                                <span class="min-w-0 flex-1 truncate">{{
-                                  element.label || element.key
-                                }}</span>
+                                <span class="grid min-w-0 flex-1">
+                                  <span class="truncate">{{
+                                    element.label || element.key
+                                  }}</span>
+                                  <span
+                                    v-if="compactCardFieldSection(element.key)"
+                                    class="truncate text-xs text-n-slate-10"
+                                  >
+                                    {{ compactCardFieldSection(element.key) }}
+                                  </span>
+                                </span>
                                 <button
                                   v-if="compactCardFieldIndex(element.key) > 0"
                                   type="button"
