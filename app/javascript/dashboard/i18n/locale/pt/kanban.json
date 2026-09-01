@@ -772,7 +772,8 @@
           "URL": "URL",
           "FORMULA": "Fórmula"
         },
-        "EDIT_FIELD_HINT": "Clique para editar este campo. Arraste pela pega para o mover."
+        "EDIT_FIELD_HINT": "Clique para editar este campo. Arraste pela pega para o mover.",
+        "ADD_FIELD_HERE": "Adicionar campo neste separador"
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",

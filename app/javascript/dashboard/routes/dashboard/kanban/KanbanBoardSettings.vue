@@ -4143,6 +4143,20 @@ onMounted(async () => {
                             </p>
                           </template>
                         </Draggable>
+                        <!--
+                          Criar onde os campos estão. Estava num botão no topo,
+                          atrás de um diálogo que pedia o nome antes de mostrar
+                          seja o que for.
+                        -->
+                        <button
+                          type="button"
+                          :data-testid="`kanban-settings-add-field-${section.key}`"
+                          class="mt-1 flex min-h-9 w-full items-center gap-2 rounded border border-dashed border-n-weak px-2 py-1.5 text-left text-xs font-medium text-n-slate-11 outline-none transition-colors hover:border-n-brand hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                          @click="addCustomFieldToSection(section.key)"
+                        >
+                          <i class="i-lucide-plus size-3.5 shrink-0" />
+                          {{ t('KANBAN.SETTINGS.SALES.ADD_FIELD_HERE') }}
+                        </button>
                       </div>
                     </section>
 
