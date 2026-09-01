@@ -299,7 +299,8 @@
       "ARCHIVED_BOARDS": "Archived funnels",
       "LOADING_ARCHIVED_BOARDS": "Loading archived funnels...",
       "EMPTY_ARCHIVED_BOARDS": "There are no archived funnels.",
-      "RESTORE_BOARD": "Restore funnel"
+      "RESTORE_BOARD": "Restore funnel",
+      "OPEN_FUNNEL": "Open funnel {name}, {count} opportunities"
     },
     "BOARD_FORM": {
       "AUTO_CREATE_CARDS": "Create cards automatically for new conversations",
@@ -464,7 +465,9 @@
       "REORDER_CARD_ERROR": "Could not reorder the card.",
       "REMOVE_STAGE_SUCCESS": "Kanban stage removed.",
       "REMOVE_STAGE_ERROR": "Could not remove the kanban stage.",
-      "REMOVE_STAGE_NOT_EMPTY": "Move or remove all cards before removing this stage."
+      "REMOVE_STAGE_NOT_EMPTY": "Move or remove all cards before removing this stage.",
+      "EDIT_STAGE_NAMED": "Edit stage {name}",
+      "REMOVE_STAGE_NAMED": "Remove stage {name}"
     },
     "COLORS": {
       "SLATE": "slate",
@@ -1472,7 +1475,9 @@
       "CLOSE": "Close add item picker",
       "CONTACT_FALLBACK": "Contact #{id}",
       "INBOX_FALLBACK": "Inbox #{id}",
-      "INBOX_LABEL": "Inbox"
+      "INBOX_LABEL": "Inbox",
+      "NO_INBOXES_HINT": "This contact has no inbox linked yet, so an opportunity cannot be opened for them. Link the contact to an inbox in Contacts, or pick another contact.",
+      "NO_INBOXES_ACTION": "Pick another contact"
     },
     "CARD": {
       "SELECT": "Select opportunity",

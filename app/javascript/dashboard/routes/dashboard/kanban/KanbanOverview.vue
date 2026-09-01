@@ -267,13 +267,19 @@ onMounted(async () => {
           data-testid="overview-board-card"
           :data-kanban-board-id="board.id"
           class="group flex w-full flex-col gap-3 border-b border-n-weak bg-n-solid-1 p-3 text-left transition-colors last:border-b-0 hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
+          :aria-label="
+            t('KANBAN.OVERVIEW.OPEN_FUNNEL', {
+              name: board.name,
+              count: boardCardsCount(board),
+            })
+          "
           @click="openBoard(board.id)"
         >
           <div
             class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
           >
             <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <span class="truncate text-sm font-semibold text-n-slate-12">
+              <span class="break-words text-sm font-semibold text-n-slate-12">
                 {{ board.name }}
               </span>
               <span

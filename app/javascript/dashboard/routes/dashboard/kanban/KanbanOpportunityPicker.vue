@@ -416,13 +416,32 @@ onUnmounted(() => {
           {{ t('KANBAN.ADD_ITEM.INBOXES_ERROR') }}
         </p>
 
-        <p
+        <!--
+          Beco sem saída: a pessoa escolhia o contacto e ficava com uma frase
+          solta, sem perceber porquê nem o que fazer. Um contacto criado por
+          formulário público não tem caixa nenhuma, e é o caso mais comum.
+        -->
+        <div
           v-else-if="contactableInboxes.length === 0"
           data-testid="kanban-inboxes-empty"
-          class="mb-0 text-sm text-n-slate-11"
+          class="grid gap-2 rounded-lg border border-n-weak bg-n-solid-2 p-3"
+          role="status"
         >
-          {{ t('KANBAN.ADD_ITEM.NO_INBOXES') }}
-        </p>
+          <p class="mb-0 text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.ADD_ITEM.NO_INBOXES') }}
+          </p>
+          <p class="mb-0 text-sm text-n-slate-11">
+            {{ t('KANBAN.ADD_ITEM.NO_INBOXES_HINT') }}
+          </p>
+          <button
+            type="button"
+            data-testid="kanban-inboxes-empty-reset"
+            class="justify-self-start rounded-full px-3 py-1.5 text-sm font-medium text-n-brand outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+            @click="clearSelectedContact"
+          >
+            {{ t('KANBAN.ADD_ITEM.NO_INBOXES_ACTION') }}
+          </button>
+        </div>
 
         <div
           v-else

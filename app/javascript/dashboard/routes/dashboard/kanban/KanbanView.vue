@@ -2642,7 +2642,11 @@ onUnmounted(() => {
                       type="button"
                       class="flex size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
-                      :aria-label="t('KANBAN.ACTIONS.EDIT_STAGE')"
+                      :aria-label="
+                        t('KANBAN.ACTIONS.EDIT_STAGE_NAMED', {
+                          name: stage.name,
+                        })
+                      "
                       @click="startEditingStage(stage)"
                     >
                       <i class="i-lucide-pencil size-4" />
@@ -2651,7 +2655,11 @@ onUnmounted(() => {
                       type="button"
                       class="flex size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="!!activeActionKey"
-                      :aria-label="t('KANBAN.ACTIONS.REMOVE_STAGE')"
+                      :aria-label="
+                        t('KANBAN.ACTIONS.REMOVE_STAGE_NAMED', {
+                          name: stage.name,
+                        })
+                      "
                       @click="openRemoveStageConfirmation(stage)"
                     >
                       <i class="i-lucide-x size-4" />
@@ -2768,7 +2776,7 @@ onUnmounted(() => {
       :on-confirm="() => performBulkOperation('archive')"
       :title="t('KANBAN.BULK.ARCHIVE_TITLE')"
       :message="t('KANBAN.BULK.ARCHIVE_MESSAGE')"
-      :message-value="selectedCardsCount"
+      :message-value="String(selectedCardsCount)"
       :confirm-text="t('KANBAN.BULK.ARCHIVE')"
       :reject-text="t('KANBAN.ACTIONS.CANCEL')"
     />
@@ -2787,7 +2795,7 @@ onUnmounted(() => {
       :on-confirm="bulkRestoreArchivedCards"
       :title="t('KANBAN.BULK.RESTORE_TITLE')"
       :message="t('KANBAN.BULK.RESTORE_MESSAGE')"
-      :message-value="selectedArchivedCardIds.length"
+      :message-value="String(selectedArchivedCardIds.length)"
       :confirm-text="t('KANBAN.BULK.RESTORE')"
       :reject-text="t('KANBAN.ACTIONS.CANCEL')"
     />

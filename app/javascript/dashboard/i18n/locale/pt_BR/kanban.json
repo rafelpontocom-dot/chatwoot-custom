@@ -302,7 +302,8 @@
       "ARCHIVED_BOARDS": "Funis arquivados",
       "LOADING_ARCHIVED_BOARDS": "Carregando funis arquivados...",
       "EMPTY_ARCHIVED_BOARDS": "Não há funis arquivados.",
-      "RESTORE_BOARD": "Restaurar funil"
+      "RESTORE_BOARD": "Restaurar funil",
+      "OPEN_FUNNEL": "Abrir funil {name}, {count} oportunidades"
     },
     "BOARD_FORM": {
       "AUTO_CREATE_CARDS": "Criar cartões automaticamente para novas conversas",
@@ -467,7 +468,9 @@
       "REORDER_CARD_ERROR": "Não foi possível reordenar o cartão.",
       "REMOVE_STAGE_SUCCESS": "Etapa do kanban removida.",
       "REMOVE_STAGE_ERROR": "Não foi possível remover a etapa do kanban.",
-      "REMOVE_STAGE_NOT_EMPTY": "Mova ou remova todos os cartões antes de remover esta etapa."
+      "REMOVE_STAGE_NOT_EMPTY": "Mova ou remova todos os cartões antes de remover esta etapa.",
+      "EDIT_STAGE_NAMED": "Editar etapa {name}",
+      "REMOVE_STAGE_NAMED": "Remover etapa {name}"
     },
     "COLORS": {
       "SLATE": "cinza",
@@ -1475,7 +1478,9 @@
       "CLOSE": "Fechar seletor de item",
       "CONTACT_FALLBACK": "Contato #{id}",
       "INBOX_FALLBACK": "Caixa de entrada #{id}",
-      "INBOX_LABEL": "Caixa de entrada"
+      "INBOX_LABEL": "Caixa de entrada",
+      "NO_INBOXES_HINT": "Este contato ainda não tem caixa de entrada vinculada, então não é possível abrir uma oportunidade para ele. Vincule o contato a uma caixa em Contatos, ou escolha outro contato.",
+      "NO_INBOXES_ACTION": "Escolher outro contato"
     },
     "CARD": {
       "SELECT": "Selecionar oportunidade",
