@@ -1715,6 +1715,32 @@ onUnmounted(() => {
         data-testid="kanban-workspace-header"
         class="relative m-3 grid gap-3 rounded-xl border border-n-weak bg-n-solid-1 px-4 py-3 lg:mx-6"
       >
+        <!--
+          Legenda das cores, uma só vez. Repeti-la por coluna seria ruído, e sem
+          ela a barra de saúde é bonita e muda.
+        -->
+        <div
+          v-if="viewMode === 'kanban' && stages.length"
+          data-testid="kanban-health-legend"
+          class="order-last flex flex-wrap items-center gap-x-4 gap-y-1 text-micro text-n-slate-10"
+        >
+          <span class="font-semibold uppercase tracking-wide">
+            {{ t('KANBAN.STAGE.HEALTH_LEGEND') }}
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <i class="h-1 w-4 rounded-full bg-n-teal-9" aria-hidden="true" />
+            {{ t('KANBAN.STAGE.HEALTH_OK') }}
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <i class="h-1 w-4 rounded-full bg-n-amber-9" aria-hidden="true" />
+            {{ t('KANBAN.STAGE.HEALTH_WARN') }}
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <i class="h-1 w-4 rounded-full bg-n-ruby-9" aria-hidden="true" />
+            {{ t('KANBAN.STAGE.HEALTH_STUCK') }}
+          </span>
+        </div>
+
         <div
           data-testid="kanban-workspace-primary-row"
           class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:gap-3"
@@ -1722,6 +1748,16 @@ onUnmounted(() => {
           <div class="min-w-0 flex-1">
             <OnClickOutside @trigger="isBoardDropdownOpen = false">
               <div class="relative flex max-w-[26rem] flex-col">
+                <!--
+                  O nome do funil sozinho não diz em que módulo se está. Quem
+                  chega por um link direto vê «E2E Kanban Local» e mais nada.
+                -->
+                <p
+                  data-testid="kanban-workspace-eyebrow"
+                  class="mb-0 px-1 text-micro font-semibold uppercase tracking-wide text-n-slate-10"
+                >
+                  {{ t('KANBAN.WORKSPACE_LABEL') }}
+                </p>
                 <button
                   type="button"
                   data-testid="kanban-board-switcher"

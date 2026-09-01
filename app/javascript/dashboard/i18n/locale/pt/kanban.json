@@ -238,7 +238,11 @@
       "CAPACITY_ALERT": "Esta etapa está acima do limite de alerta de cards.",
       "STALE_COUNT": "{count} parado | {count} parados",
       "STALE_TITLE": "Cards acima do limiar de estagnação desta etapa",
-      "HEALTH_SUMMARY": "{ok} saudáveis, {warn} a precisar de atenção, {stuck} parados"
+      "HEALTH_SUMMARY": "{ok} saudáveis, {warn} a precisar de atenção, {stuck} parados",
+      "HEALTH_LEGEND": "Saúde da etapa",
+      "HEALTH_OK": "Saudável",
+      "HEALTH_WARN": "A precisar de atenção",
+      "HEALTH_STUCK": "Parado"
     },
     "BULK": {
       "SELECTED": "{count} selecionadas",
@@ -593,7 +597,7 @@
         "IMPORTANT_FIELD_HELP": "Destaca o campo no formulário; não o torna obrigatório.",
         "SHOW_ON_CARD_HELP": "Exibe este campo no cartão resumido do funil.",
         "CARD_LAYOUT": "Layout do card",
-        "CARD_LAYOUT_DESCRIPTION": "Arraste para definir a ordem. Os dois primeiros campos aparecem no card compacto.",
+        "CARD_LAYOUT_DESCRIPTION": "Arraste para definir a ordem. Os três primeiros campos aparecem no cartão compacto.",
         "CARD_LAYOUT_FIELDS": "Campos no card",
         "CARD_LAYOUT_EMPTY": "Selecione campos na edição para exibi-los aqui.",
         "CARD_LAYOUT_PREVIEW": "Prévia",
@@ -1542,6 +1546,7 @@
       "BOT": "Bot",
       "CREATE_ERROR": "Não foi possível adicionar a nota de contacto.",
       "FETCH_ERROR": "Não foi possível carregar as notas de contacto."
-    }
+    },
+    "WORKSPACE_LABEL": "Funil"
   }
 }

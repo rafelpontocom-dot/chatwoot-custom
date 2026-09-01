@@ -238,7 +238,11 @@
       "CAPACITY_ALERT": "This stage is above its card alert limit.",
       "STALE_COUNT": "{count} stalled | {count} stalled",
       "STALE_TITLE": "Cards past this stage’s staleness threshold",
-      "HEALTH_SUMMARY": "{ok} healthy, {warn} needing attention, {stuck} stalled"
+      "HEALTH_SUMMARY": "{ok} healthy, {warn} needing attention, {stuck} stalled",
+      "HEALTH_LEGEND": "Stage health",
+      "HEALTH_OK": "Healthy",
+      "HEALTH_WARN": "Needs attention",
+      "HEALTH_STUCK": "Stalled"
     },
     "BULK": {
       "SELECTED": "{count} selected",
@@ -590,7 +594,7 @@
         "IMPORTANT_FIELD_HELP": "Highlights the field in the form; it does not make it required.",
         "SHOW_ON_CARD_HELP": "Shows this field on the compact funnel card.",
         "CARD_LAYOUT": "Card layout",
-        "CARD_LAYOUT_DESCRIPTION": "Drag to set the order. The first two fields appear on the compact card.",
+        "CARD_LAYOUT_DESCRIPTION": "Drag to set the order. The first three fields appear on the compact card.",
         "CARD_LAYOUT_FIELDS": "Fields on card",
         "CARD_LAYOUT_EMPTY": "Select fields while editing to show them here.",
         "CARD_LAYOUT_PREVIEW": "Preview",
@@ -1539,6 +1543,7 @@
       "BOT": "Bot",
       "CREATE_ERROR": "Could not add the contact note.",
       "FETCH_ERROR": "Could not load contact notes."
-    }
+    },
+    "WORKSPACE_LABEL": "Pipeline"
   }
 }
