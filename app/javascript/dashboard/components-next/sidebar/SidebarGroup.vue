@@ -263,6 +263,7 @@ watch(
         <component
           :is="to && !hasChildren ? 'router-link' : 'button'"
           ref="triggerRef"
+          v-tooltip.right="label"
           :to="to && !hasChildren ? to : undefined"
           type="button"
           class="flex items-center justify-center size-10 rounded-lg"
@@ -270,7 +271,7 @@ watch(
             'text-n-slate-12 bg-n-alpha-2': isActive || hasActiveChild,
             'text-n-slate-11 hover:bg-n-alpha-2': !isActive && !hasActiveChild,
           }"
-          :title="label"
+          :aria-label="label"
           @click="hasChildren ? handleCollapsedClick() : undefined"
         >
           <Icon v-if="icon" :icon="icon" class="size-4" />
