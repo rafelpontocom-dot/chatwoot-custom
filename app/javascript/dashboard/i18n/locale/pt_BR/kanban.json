@@ -237,7 +237,8 @@
     "STAGE": {
       "CAPACITY_ALERT": "Esta etapa está acima do limite de alerta de cards.",
       "STALE_COUNT": "{count} parado | {count} parados",
-      "STALE_TITLE": "Cards acima do limiar de estagnação desta etapa"
+      "STALE_TITLE": "Cards acima do limiar de estagnação desta etapa",
+      "HEALTH_SUMMARY": "{ok} saudáveis, {warn} precisando de atenção, {stuck} parados"
     },
     "BULK": {
       "SELECTED": "{count} selecionadas",

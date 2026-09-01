@@ -237,7 +237,8 @@
     "STAGE": {
       "CAPACITY_ALERT": "This stage is above its card alert limit.",
       "STALE_COUNT": "{count} stalled | {count} stalled",
-      "STALE_TITLE": "Cards past this stage’s staleness threshold"
+      "STALE_TITLE": "Cards past this stage’s staleness threshold",
+      "HEALTH_SUMMARY": "{ok} healthy, {warn} needing attention, {stuck} stalled"
     },
     "BULK": {
       "SELECTED": "{count} selected",

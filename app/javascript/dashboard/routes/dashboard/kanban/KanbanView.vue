@@ -216,6 +216,46 @@ const stageOverCapacity = stage =>
 const stageStaleCount = stage =>
   (stage.cards || []).filter(card => card.staleInStage ?? card.stale_in_stage)
     .length;
+/**
+ * A saúde da etapa em três partes.
+ *
+ * A contagem diz «8 cartões», e é preciso abrir a coluna para saber se são oito
+ * saudáveis ou oito parados. A barra responde antes de se ler o nome da etapa:
+ * quase toda de uma cor é uma etapa que anda, repartida é uma etapa entupida.
+ *
+ * Calculada dos cartões já carregados — não custa um pedido.
+ */
+const ATTENTION_AFTER_HOURS = 4;
+const OVERDUE_AFTER_HOURS = 24;
+
+const cardWaitingHours = card => {
+  const state = card.replyState || card.reply_state;
+  if (state?.side !== 'us' || !state.since) return 0;
+
+  const desde = new Date(state.since).getTime();
+  return Number.isNaN(desde) ? 0 : (Date.now() - desde) / 3600000;
+};
+
+const stageHealth = stage => {
+  const cards = stage.cards || [];
+  const saude = { ok: 0, warn: 0, stuck: 0, total: cards.length };
+
+  cards.forEach(card => {
+    const horas = cardWaitingHours(card);
+    const parado = card.staleInStage ?? card.stale_in_stage;
+    if (parado || horas >= OVERDUE_AFTER_HOURS) saude.stuck += 1;
+    else if (horas >= ATTENTION_AFTER_HOURS) saude.warn += 1;
+    else saude.ok += 1;
+  });
+
+  return saude;
+};
+
+const stageHealthLabel = stage => {
+  const { ok, warn, stuck } = stageHealth(stage);
+  return t('KANBAN.STAGE.HEALTH_SUMMARY', { ok, warn, stuck });
+};
+
 const selectedCardsCount = computed(() => selectedCardIds.value.length);
 
 const { isPanning, startPan } = usePanScroll();
@@ -2642,6 +2682,35 @@ onUnmounted(() => {
                       <i class="i-lucide-triangle-alert size-3" />
                       {{ `${stageCardCount(stage)}/${stage.wipLimit}` }}
                     </span>
+                  </div>
+                  <!--
+                    Barra de saúde: sem margem lateral, encostada às arestas do
+                    cabeçalho, para se ler como uma régua da coluna e não como
+                    mais um elemento dentro dela.
+                  -->
+                  <div
+                    v-if="stageHealth(stage).total"
+                    data-testid="kanban-stage-health"
+                    class="absolute inset-x-0 bottom-0 flex h-1 gap-px overflow-hidden"
+                    role="img"
+                    :aria-label="stageHealthLabel(stage)"
+                    :title="stageHealthLabel(stage)"
+                  >
+                    <span
+                      v-if="stageHealth(stage).ok"
+                      class="bg-n-teal-9"
+                      :style="{ flex: `${stageHealth(stage).ok} 1 0%` }"
+                    />
+                    <span
+                      v-if="stageHealth(stage).warn"
+                      class="bg-n-amber-9"
+                      :style="{ flex: `${stageHealth(stage).warn} 1 0%` }"
+                    />
+                    <span
+                      v-if="stageHealth(stage).stuck"
+                      class="bg-n-ruby-9"
+                      :style="{ flex: `${stageHealth(stage).stuck} 1 0%` }"
+                    />
                   </div>
                   <!--
                     Controles de hover sobrepostos, nunca reservando largura: era
