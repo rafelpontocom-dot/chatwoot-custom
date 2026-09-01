@@ -931,11 +931,12 @@ const menuItems = computed(() => {
       },
     ]"
     class="bg-n-background flex flex-col text-sm pb-px fixed top-0 ltr:left-0 rtl:right-0 h-full z-40 w-[200px] md:w-auto md:relative md:flex-shrink-0 md:ltr:translate-x-0 md:rtl:translate-x-0 ltr:border-r rtl:border-l border-n-weak"
+    :aria-expanded="!isEffectivelyCollapsed"
     :class="[
       {
         'shadow-lg md:shadow-none': isMobileSidebarOpen,
         'ltr:-translate-x-full rtl:translate-x-full': !isMobileSidebarOpen,
-        'transition-transform duration-200 ease-out md:transition-[width]':
+        'transition-transform duration-200 ease-out md:transition-[width] md:duration-[240ms] md:ease-[cubic-bezier(0.4,0,0.2,1)]':
           !isResizing,
       },
     ]"

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import camelcaseKeys from 'camelcase-keys';
 import Draggable from 'vuedraggable';
+import { usePanScroll } from 'dashboard/composables/usePanScroll';
 
 import { useAlert } from 'dashboard/composables';
 import { useAdmin } from 'dashboard/composables/useAdmin';
@@ -216,6 +217,8 @@ const stageStaleCount = stage =>
   (stage.cards || []).filter(card => card.staleInStage ?? card.stale_in_stage)
     .length;
 const selectedCardsCount = computed(() => selectedCardIds.value.length);
+
+const { isPanning, startPan } = usePanScroll();
 const pendingBulkImpactTarget = computed(() => {
   const pending = pendingBulkOperation.value;
   if (!pending) return '';
@@ -2494,7 +2497,16 @@ onUnmounted(() => {
         @load-more-stage-cards="loadMoreStageCards"
       />
 
-      <div v-else class="flex min-h-0 flex-1 overflow-x-auto p-4">
+      <!--
+        Segurar o botão do meio e arrastar percorre o funil na horizontal, sem
+        ter de descer à barra de rolagem. Ver `usePanScroll`.
+      -->
+      <div
+        v-else
+        class="flex min-h-0 flex-1 overflow-x-auto p-4"
+        :class="{ 'cursor-grabbing select-none': isPanning }"
+        @mousedown="startPan"
+      >
         <Draggable
           v-model="stageListModel"
           item-key="id"
