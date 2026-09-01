@@ -1510,7 +1510,9 @@
         "TODAY": "today",
         "DAYS": "{count} day | {count} days",
         "TITLE": "Time in this stage"
-      }
+      },
+      "YES": "Yes",
+      "NO": "No"
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversation",

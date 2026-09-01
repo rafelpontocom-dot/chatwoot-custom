@@ -31,6 +31,12 @@ const emit = defineEmits([
   'toggleSelection',
 ]);
 
+/**
+ * Três é o teto: acima disso o cartão deixa de se ler de relance, que é a única
+ * coisa que um quadro tem de fazer bem. O resto vive no detalhe.
+ */
+const COMPACT_FIELD_LIMIT = 3;
+
 const { t } = useI18n();
 const store = useStore();
 
@@ -67,6 +73,32 @@ const assigneeThumbnail = computed(
   () => assignee.value?.thumbnail || assignee.value?.avatarUrl || ''
 );
 const subject = computed(() => props.card.subject || '');
+
+/**
+ * Os campos que a conta escolheu mostrar no cartão, em Definições do funil →
+ * Sales fields → Card layout.
+ *
+ * A configuração existia, era guardada em `compact_card_field_keys` e a API já
+ * a servia resolvida em cada cartão — só que o cartão nunca a lia. Configurar
+ * o layout não mudava nada, o que é pior do que não o oferecer.
+ */
+const compactFields = computed(() =>
+  (
+    props.card.compactCustomFields ||
+    props.card.compact_custom_fields ||
+    []
+  ).slice(0, COMPACT_FIELD_LIMIT)
+);
+
+const formatCompactValue = field => {
+  const { value } = field;
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'boolean') {
+    return value ? t('KANBAN.CARD.YES') : t('KANBAN.CARD.NO');
+  }
+
+  return String(value ?? '');
+};
 const amountCents = computed(
   () => props.card.amountCents ?? props.card.amount_cents
 );
@@ -284,6 +316,25 @@ const openConversation = event => {
           rounded-full
         />
       </div>
+
+      <dl
+        v-if="compactFields.length"
+        data-testid="kanban-card-compact-fields"
+        class="mt-2 flex flex-wrap gap-x-3 gap-y-1"
+      >
+        <div
+          v-for="field in compactFields"
+          :key="field.key"
+          class="flex min-w-0 items-baseline gap-1"
+        >
+          <dt class="shrink-0 text-micro text-n-slate-10">{{ field.label }}</dt>
+          <dd
+            class="mb-0 min-w-0 break-words text-micro font-semibold tabular-nums text-n-slate-12"
+          >
+            {{ formatCompactValue(field) }}
+          </dd>
+        </div>
+      </dl>
 
       <div
         v-if="

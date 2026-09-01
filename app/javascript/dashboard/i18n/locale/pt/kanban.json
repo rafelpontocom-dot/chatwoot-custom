@@ -1513,7 +1513,9 @@
         "TODAY": "hoje",
         "DAYS": "{count} dia | {count} dias",
         "TITLE": "Tempo nesta etapa"
-      }
+      },
+      "YES": "Sim",
+      "NO": "Não"
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversa",

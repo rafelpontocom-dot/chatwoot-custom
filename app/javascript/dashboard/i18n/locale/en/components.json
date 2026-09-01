@@ -65,5 +65,9 @@
     "ORDERED_LIST": "Ordered List",
     "TABLE": "Table",
     "IMAGE": "Image"
+  },
+  "APP_SIDEBAR": {
+    "COLLAPSE": "Collapse sidebar",
+    "EXPAND": "Expand sidebar"
   }
 }

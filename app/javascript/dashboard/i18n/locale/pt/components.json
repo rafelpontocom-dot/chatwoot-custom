@@ -65,5 +65,9 @@
     "ORDERED_LIST": "Lista numerada",
     "TABLE": "Tabela",
     "IMAGE": "Imagem"
+  },
+  "APP_SIDEBAR": {
+    "COLLAPSE": "Recolher menu",
+    "EXPAND": "Expandir menu"
   }
 }
