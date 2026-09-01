@@ -21,7 +21,10 @@ import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
-import { useSidebarFocus } from 'dashboard/composables/useSidebarFocus';
+import {
+  useSidebarFocus,
+  useRequestSidebarFocus,
+} from 'dashboard/composables/useSidebarFocus';
 import {
   SIDEBAR_SORT_SECTIONS,
   getSidebarSortOptions,
@@ -110,6 +113,7 @@ const toggleShortcutModalFn = show => {
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
 
 const { isSidebarFocused } = useSidebarFocus();
+const { setSidebarFocus } = useRequestSidebarFocus();
 
 const expandedItem = ref(null);
 
@@ -137,6 +141,28 @@ const isEffectivelyCollapsed = computed(
 const effectiveWidth = computed(() =>
   isSidebarFocused.value ? MIN_WIDTH : sidebarWidth.value
 );
+
+const toggleCollapseLabel = computed(() =>
+  isEffectivelyCollapsed.value
+    ? t('APP_SIDEBAR.EXPAND')
+    : t('APP_SIDEBAR.COLLAPSE')
+);
+
+/**
+ * O recolhimento manual é preferência e fica gravado; o do editor de
+ * formulários é estado de momento. Quando os dois coincidem, mandar expandir
+ * significa que a pessoa quer a barra de volta — e a vontade dela ganha ao
+ * automatismo.
+ */
+const toggleCollapse = () => {
+  if (isEffectivelyCollapsed.value) {
+    setSidebarFocus(false);
+    snapToExpanded();
+    return;
+  }
+
+  snapToCollapsed();
+};
 
 // Resize handle logic
 const isResizing = ref(false);
@@ -969,6 +995,37 @@ const menuItems = computed(() => {
             @show-create-account-modal="emit('showCreateAccountModal')"
           />
         </template>
+      </div>
+
+      <!--
+        Recolher era um gesto escondido: só arrastando a aresta. Uma seta que
+        inverte diz o que faz e onde clicar. Fica fora do bloco acima para
+        aparecer nos dois estados — recolhida, alinha ao centro.
+      -->
+      <div
+        class="flex"
+        :class="
+          isEffectivelyCollapsed ? 'justify-center px-1' : 'px-2 justify-end'
+        "
+      >
+        <button
+          type="button"
+          data-testid="sidebar-collapse-toggle"
+          class="flex size-7 items-center justify-center rounded-lg text-n-slate-10 outline-none transition-colors hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+          :aria-label="toggleCollapseLabel"
+          :aria-expanded="!isEffectivelyCollapsed"
+          :title="toggleCollapseLabel"
+          @click="toggleCollapse"
+        >
+          <span
+            class="size-4"
+            :class="
+              isEffectivelyCollapsed
+                ? 'i-lucide-chevron-right'
+                : 'i-lucide-chevron-left'
+            "
+          />
+        </button>
       </div>
       <div
         class="flex gap-2"
