@@ -14,8 +14,9 @@ module Forms::SubmissionActions
   APPLY_LABEL = 'apply_label'.freeze
   NOTIFY = 'notify'.freeze
   WEBHOOK = 'webhook'.freeze
+  ATTACH_TO_HISTORY = 'attach_to_history'.freeze
 
-  KINDS = [MOVE_STAGE, APPLY_LABEL, NOTIFY, WEBHOOK].freeze
+  KINDS = [MOVE_STAGE, APPLY_LABEL, NOTIFY, WEBHOOK, ATTACH_TO_HISTORY].freeze
 
   AUTOMATIC = 'automatic'.freeze
   REVIEW = 'review'.freeze
@@ -29,7 +30,8 @@ module Forms::SubmissionActions
     MOVE_STAGE => %w[kanban_stage_id],
     APPLY_LABEL => %w[label],
     NOTIFY => [],
-    WEBHOOK => %w[url]
+    WEBHOOK => %w[url],
+    ATTACH_TO_HISTORY => []
   }.freeze
 
   module_function

@@ -28,6 +28,7 @@ class Forms::ApplySubmissionActionsService
     when Forms::SubmissionActions::APPLY_LABEL then aplicar_etiqueta(action)
     when Forms::SubmissionActions::NOTIFY then notificar
     when Forms::SubmissionActions::WEBHOOK then disparar_webhook(action)
+    when Forms::SubmissionActions::ATTACH_TO_HISTORY then anexar_ao_historico(action)
     end
   rescue StandardError => e
     # Uma ação que falha não pode levar a resposta do paciente com ela: a
@@ -91,6 +92,27 @@ class Forms::ApplySubmissionActionsService
       contact_id: submission.contact_id
     }
     Forms::SubmissionWebhookJob.perform_later(action['url'].to_s, payload)
+  end
+
+  # Deixa na conversa o rasto de que a pessoa respondeu, para quem a atende ver
+  # sem sair dali. Nota privada e sem respostas: o conteúdo pertence à ficha,
+  # que tem autorização própria, e não ao histórico que a equipa toda lê.
+  def anexar_ao_historico(action)
+    conversa = kanban_card.conversation
+    return registar_falha(action) if conversa.blank?
+
+    Messages::MessageBuilder.new(
+      nil,
+      conversa,
+      {
+        content: I18n.t(
+          'forms.submission_actions.attached_to_history',
+          form_name: submission.form_template_version.form_template.name
+        ),
+        message_type: 'outgoing',
+        private: true
+      }
+    ).perform
   end
 
   def registar_pendentes(pendentes)

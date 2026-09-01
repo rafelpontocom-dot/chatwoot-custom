@@ -105,6 +105,33 @@ RSpec.describe Forms::ApplySubmissionActionsService do
     end
   end
 
+  describe 'attach_to_history' do
+    it 'leaves a private note on the conversation, without any answer in it' do
+      conversation = create(:conversation, account: account, contact: contact, inbox: card.inbox)
+      card.update!(conversation: conversation)
+      submission = submission_for([{ 'kind' => 'attach_to_history', 'mode' => 'automatic' }])
+
+      expect { described_class.new(submission: submission).perform }
+        .to change { conversation.messages.count }.by(1)
+
+      nota = conversation.messages.last
+      expect(nota.private).to be(true)
+      expect(nota.content).to include('Captação')
+      # O conteúdo pertence à ficha, que tem autorização própria, e não ao
+      # histórico que a equipa toda lê.
+      expect(nota.content).not_to include('Maria')
+    end
+
+    it 'records a failure when the opportunity has no conversation' do
+      card.update!(conversation: nil)
+      submission = submission_for([{ 'kind' => 'attach_to_history', 'mode' => 'automatic' }])
+
+      described_class.new(submission: submission).perform
+
+      expect(submission.reload.metadata['failed_actions']).to eq(['attach_to_history'])
+    end
+  end
+
   describe 'guards' do
     it 'does nothing at all for a clinical form' do
       clinico = FormTemplate.create!(

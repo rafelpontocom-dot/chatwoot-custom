@@ -20,7 +20,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update']);
-const KINDS = ['move_stage', 'apply_label', 'notify', 'webhook'];
+const KINDS = [
+  'move_stage',
+  'apply_label',
+  'notify',
+  'webhook',
+  'attach_to_history',
+];
 const MODES = ['automatic', 'review'];
 // Ninguém confirma uma chamada HTTP em nome de outro sistema.
 const ALWAYS_AUTOMATIC = ['webhook'];

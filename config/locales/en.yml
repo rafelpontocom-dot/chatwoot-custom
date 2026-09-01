@@ -31,6 +31,10 @@
 
 en:
   hello: 'Hello world'
+  forms:
+    submission_actions:
+      attached_to_history: 'Form answered: %{form_name}. The answers are in the response record.'
+
   inbox:
     reauthorization:
       success: 'Channel reauthorized successfully'
