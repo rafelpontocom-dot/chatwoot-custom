@@ -134,7 +134,10 @@ const nextActionStatusConfig = computed(() => {
     missing: {
       label: t('KANBAN.CARD.NEXT_ACTION.MISSING'),
       icon: 'i-lucide-calendar-x',
-      class: 'bg-n-amber-3 text-n-amber-11',
+      // Neutro de propósito: não ter próxima ação marcada é o estado inicial
+      // de toda a oportunidade, não uma falha. Em âmbar, o quadro inteiro
+      // acendia e o âmbar deixava de querer dizer nada.
+      class: 'bg-n-alpha-2 text-n-slate-11',
     },
     overdue: {
       label: t('KANBAN.CARD.NEXT_ACTION.OVERDUE'),
@@ -253,14 +256,20 @@ const openConversation = event => {
               class="flex-shrink-0 !size-3.5"
             />
             <h4
-              class="min-w-0 flex-1 truncate text-xs font-bold leading-[15px] tracking-tight text-n-slate-12"
+              class="min-w-0 flex-1 break-words text-xs font-bold leading-[15px] tracking-tight text-n-slate-12"
             >
               {{ contactName }}
             </h4>
           </div>
+          <!--
+            O assunto é o que a oportunidade é. Cortado a meio — «Inquérito
+            Pré-Consulta de ...» — obrigava a abrir o cartão para saber de que
+            se tratava. Duas linhas chegam para quase todos e mantêm a altura
+            do cartão previsível.
+          -->
           <p
             v-if="subject"
-            class="truncate text-micro leading-[14px] text-n-slate-10"
+            class="line-clamp-2 break-words text-micro leading-[14px] text-n-slate-10"
             :title="subject"
           >
             {{ subject }}
