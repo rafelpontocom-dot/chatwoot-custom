@@ -75,6 +75,22 @@ const assigneeThumbnail = computed(
 const subject = computed(() => props.card.subject || '');
 
 /**
+ * Num funil comercial vende-se a oportunidade, não a pessoa: o assunto é que
+ * manda no cartão. O contacto passa a subtítulo — e some quando repetiria o
+ * título, como em «Maria Raevo / Jornada QA - Maria Raevo», onde o cartão
+ * dizia o mesmo nome duas vezes e mais nada de útil.
+ *
+ * Sem assunto, o contacto sobe a título: um cartão tem sempre de dizer de quem é.
+ */
+const cardTitle = computed(() => subject.value || contactName.value);
+const cardSubtitle = computed(() => {
+  if (!subject.value) return '';
+  if (subject.value.includes(contactName.value)) return '';
+
+  return contactName.value;
+});
+
+/**
  * Os campos que a conta escolheu mostrar no cartão, em Definições do funil →
  * Sales fields → Card layout.
  *
@@ -288,9 +304,10 @@ const openConversation = event => {
               class="flex-shrink-0 !size-3.5"
             />
             <h4
-              class="min-w-0 flex-1 break-words text-xs font-bold leading-[15px] tracking-tight text-n-slate-12"
+              class="line-clamp-2 min-w-0 flex-1 break-words text-xs font-bold leading-[15px] tracking-tight text-n-slate-12"
+              :title="cardTitle"
             >
-              {{ contactName }}
+              {{ cardTitle }}
             </h4>
           </div>
           <!--
@@ -300,11 +317,11 @@ const openConversation = event => {
             do cartão previsível.
           -->
           <p
-            v-if="subject"
-            class="line-clamp-2 break-words text-micro leading-[14px] text-n-slate-10"
-            :title="subject"
+            v-if="cardSubtitle"
+            data-testid="kanban-card-subtitle"
+            class="break-words text-micro leading-[14px] text-n-slate-10"
           >
-            {{ subject }}
+            {{ cardSubtitle }}
           </p>
         </div>
 

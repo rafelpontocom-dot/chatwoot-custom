@@ -313,16 +313,34 @@ describe('KanbanConversationCard', () => {
 
   // Raevo · Sereno — a pessoa é a manchete do card, o assunto é apoio.
   // Invertido em 29/08/2026 para bater com o mockup aprovado.
-  it('renders contact name above subject when subject is present', () => {
+  // Num funil comercial vende-se a oportunidade, não a pessoa.
+  it('renders the opportunity above the contact when there is a subject', () => {
     const wrapper = mountCard();
     const text = wrapper.text();
-    const subject = wrapper.find('p[title="Enterprise expansion"]');
 
-    expect(subject.exists()).toBe(true);
-    expect(text).toContain('Enterprise expansion');
-    expect(text.indexOf('Jane Doe')).toBeLessThan(
-      text.indexOf('Enterprise expansion')
+    expect(wrapper.find('h4').text()).toContain('Enterprise expansion');
+    expect(wrapper.find('[data-testid="kanban-card-subtitle"]').text()).toBe(
+      'Jane Doe'
     );
+    expect(text).toContain('Enterprise expansion');
+  });
+
+  it('drops the contact line when the subject already names them', () => {
+    // «Maria Raevo / Jornada QA - Maria Raevo» dizia o mesmo nome duas vezes.
+    const wrapper = mountCard({
+      card: { ...buildCard(), subject: 'Consulta - Jane Doe' },
+    });
+
+    expect(wrapper.find('h4').text()).toContain('Consulta - Jane Doe');
+    expect(wrapper.find('[data-testid="kanban-card-subtitle"]').exists()).toBe(
+      false
+    );
+  });
+
+  it('promotes the contact to the title when there is no subject', () => {
+    const wrapper = mountCard({ card: { ...buildCard(), subject: '' } });
+
+    expect(wrapper.find('h4').text()).toContain('Jane Doe');
   });
 
   it('renders manual-like card contact safely', () => {
