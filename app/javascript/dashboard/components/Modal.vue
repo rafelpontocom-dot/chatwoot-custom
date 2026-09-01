@@ -1,6 +1,6 @@
 <script setup>
 // [TODO] Use Teleport to move the modal to the end of the body
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import Button from 'dashboard/components-next/button/Button.vue';
 
@@ -27,15 +27,23 @@ const modalClassName = computed(() => {
 
 // [TODO] Revisit this logic to use outside click directive
 const mousedDownOnBackdrop = ref(false);
+const containerRef = ref(null);
 
 const handleMouseDown = () => {
   mousedDownOnBackdrop.value = true;
 };
 
+// Quem tinha o foco quando o modal abriu. Sem isto, fechar devolve o foco ao
+// `body` e quem navega por teclado recomeça do topo da página.
+const elementoQueAbriu = ref(null);
+
 const close = () => {
   show.value = false;
   emit('close');
   onClose();
+  const anterior = elementoQueAbriu.value;
+  elementoQueAbriu.value = null;
+  nextTick(() => anterior?.focus?.());
 };
 
 const onMouseUp = () => {
@@ -57,6 +65,25 @@ const onKeydown = e => {
 useEventListener(document.body, 'mouseup', onMouseUp);
 useEventListener(document, 'keydown', onKeydown);
 
+watch(
+  show,
+  aberto => {
+    if (!aberto) return;
+
+    elementoQueAbriu.value = document.activeElement;
+    // O foco entra no diálogo: no primeiro campo, se existir, senão no próprio
+    // contentor. Ficar de fora deixa a leitura a meio da página por trás.
+    nextTick(() => {
+      const caixa = containerRef.value;
+      const primeiro = caixa?.querySelector(
+        'input:not([type=hidden]), textarea, select'
+      );
+      (primeiro || caixa)?.focus?.();
+    });
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
   if (import.meta.env.DEV && onClose && typeof onClose === 'function') {
     // eslint-disable-next-line no-console
@@ -76,7 +103,11 @@ onMounted(() => {
       @mousedown="handleMouseDown"
     >
       <div
-        class="relative max-h-full overflow-auto bg-n-alpha-3 shadow-md modal-container rtl:text-right skip-context-menu"
+        ref="containerRef"
+        role="dialog"
+        aria-modal="true"
+        tabindex="-1"
+        class="relative max-h-full overflow-auto bg-n-alpha-3 shadow-md modal-container rtl:text-right skip-context-menu outline-none"
         :class="{
           'rounded-xl w-[37.5rem]': !fullWidth,
           'items-center rounded-none flex h-full justify-center w-full':
