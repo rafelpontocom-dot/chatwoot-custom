@@ -1,9 +1,11 @@
 class Forms::SubmitPublicFormService
-  BOOLEAN_FIELD_TYPES = %w[checkbox consent].freeze
-
   def initialize(invitation:, answers:, metadata: {}, attachments: {})
     @invitation = invitation
-    @answers = normalize_answers(answers)
+    # A coerção de booleanos é do `AnswersValidator`, contra o schema. Havia
+    # aqui uma segunda, com `ActiveModel::Type::Boolean`, que lia o «não» de um
+    # consentimento recusado como `true` — só a string inglesa `false` a
+    # convencia. Duas leituras do mesmo valor discordavam sobre um aceite.
+    @answers = answers.to_h.stringify_keys
     @metadata = metadata.to_h.stringify_keys
     @attachments = attachments
   end
@@ -96,20 +98,5 @@ class Forms::SubmitPublicFormService
       filename: file.original_filename,
       content_type: file.content_type
     }
-  end
-
-  def normalize_answers(answers)
-    normalized = answers.to_h.stringify_keys
-    checkbox_fields.each do |field|
-      key = field['key']
-      normalized[key] = ActiveModel::Type::Boolean.new.cast(normalized[key]) if normalized.key?(key)
-    end
-    normalized
-  end
-
-  def checkbox_fields
-    @invitation.form_template_version.schema.fetch('sections', []).flat_map do |section|
-      section.fetch('fields', []).select { |field| BOOLEAN_FIELD_TYPES.include?(field['type']) }
-    end
   end
 end

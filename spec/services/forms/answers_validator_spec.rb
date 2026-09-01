@@ -89,4 +89,66 @@ RSpec.describe Forms::AnswersValidator do
     expect(validator).to be_valid
     expect(validator.permitted_answers).to eq('deseja_contato' => 'nao')
   end
+
+  describe 'respostas vindas do formulário público' do
+    let(:consent_schema) do
+      {
+        'sections' => [{
+          'key' => 's',
+          'fields' => [
+            { 'key' => 'declaracao', 'type' => 'consent', 'label' => 'Declaro', 'required' => true }
+          ]
+        }]
+      }
+    end
+
+    it 'accepts a consent that arrived as text' do
+      validator = described_class.new(schema: consent_schema, answers: { 'declaracao' => 'true' })
+
+      expect(validator).to be_valid
+      # Persiste booleano, não a string: é assim que a resposta fica legível
+      # para quem a ler daqui a dois anos.
+      expect(validator.permitted_answers['declaracao']).to be(true)
+    end
+
+    it 'says the consent must be accepted, not that it is blank' do
+      validator = described_class.new(schema: consent_schema, answers: { 'declaracao' => 'false' })
+
+      expect(validator).not_to be_valid
+      expect(validator.errors.first).to include('precisa ser aceito')
+    end
+
+    context 'when the consent is optional' do
+      let(:optional_schema) do
+        {
+          'sections' => [{
+            'key' => 's',
+            'fields' => [
+              { 'key' => 'novidades', 'type' => 'consent', 'label' => 'Quero receber novidades', 'required' => false }
+            ]
+          }]
+        }
+      end
+
+      # Recusar uma newsletter é uma resposta. Se bloqueasse o envio, um campo
+      # acessório impediria a pessoa de entregar o formulário todo.
+      it 'lets the submission through when it is declined' do
+        validator = described_class.new(schema: optional_schema, answers: { 'novidades' => 'false' })
+
+        expect(validator).to be_valid
+        expect(validator.permitted_answers['novidades']).to be(false)
+      end
+
+      it 'lets the submission through when it is left untouched' do
+        expect(described_class.new(schema: optional_schema, answers: {})).to be_valid
+      end
+
+      it 'still refuses a value that is no answer at all' do
+        validator = described_class.new(schema: optional_schema, answers: { 'novidades' => 'talvez' })
+
+        expect(validator).not_to be_valid
+        expect(validator.errors.first).to include('precisa ser aceito ou recusado')
+      end
+    end
+  end
 end

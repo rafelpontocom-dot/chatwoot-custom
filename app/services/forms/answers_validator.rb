@@ -3,7 +3,10 @@ class Forms::AnswersValidator
 
   def initialize(schema:, answers:)
     @schema = schema.to_h
-    @answers = answers.to_h.stringify_keys
+    # O formulário público envia `multipart/form-data` e o `FormData` do
+    # navegador converte tudo em texto: o `true` de um consentimento chega
+    # como `"true"`. Sem isto, nenhum consentimento obrigatório passava.
+    @answers = Forms::AnswerCoercion.call(@schema, answers.to_h.stringify_keys)
     @errors = []
   end
 
@@ -44,10 +47,13 @@ class Forms::AnswersValidator
   def validate_field(field)
     key = field.fetch('key')
     value = @answers[key]
+    # Consentimento primeiro: por aceitar ele vale `false`, que o Rails
+    # considera vazio — e a pessoa levaria «não pode ficar em branco» quando o
+    # que precisa de ler é que tem de aceitar.
+    return validate_consent(field, value) if field['type'] == 'consent'
     return validate_required(field, value) if blank_value?(value)
 
     validate_selection(field, value) if Forms::SchemaValidator::SELECTION_TYPES.include?(field['type'])
-    validate_consent(field, value) if field['type'] == 'consent'
     validate_email(field, value) if field['type'] == 'email'
     validate_typed_value(field, value)
   end
@@ -64,8 +70,14 @@ class Forms::AnswersValidator
     errors << "#{field['label']} possui uma opção inválida" unless selected_values.all? { |selected| allowed_values.include?(selected) }
   end
 
+  # Obrigatório só passa aceite. Um opcional pode ficar por aceitar — recusar
+  # uma newsletter é uma resposta, não uma falha de preenchimento —, mas o que
+  # a coerção não reconheceu como booleano não é consentimento nenhum.
   def validate_consent(field, value)
-    errors << "#{field['label']} precisa ser aceito" unless value == true
+    return errors << "#{field['label']} precisa ser aceito" if field['required'] && value != true
+    return if value == true || blank_value?(value)
+
+    errors << "#{field['label']} precisa ser aceito ou recusado"
   end
 
   def validate_email(field, value)
