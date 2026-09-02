@@ -5572,21 +5572,34 @@ onMounted(async () => {
               class="grid content-start gap-4 rounded-xl border border-solid border-n-weak bg-n-surface-1 p-5"
             >
               <div>
-                <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                <h3
+                  class="mb-0 flex items-baseline gap-2 text-sm font-medium text-n-slate-12"
+                >
                   {{ customFieldTabLabel(activeFieldSectionKey) }}
+                  <span
+                    data-testid="kanban-settings-summary-total"
+                    class="text-xs font-normal tabular-nums text-n-slate-11"
+                  >
+                    {{
+                      t('KANBAN.SETTINGS.SALES.SUMMARY.TOTAL', {
+                        count: activeSectionSummary.total,
+                      })
+                    }}
+                  </span>
                 </h3>
                 <p class="mb-0 mt-1 text-xs text-n-slate-11">
                   {{ t('KANBAN.SETTINGS.SALES.NO_FIELD_SELECTED_HELP') }}
                 </p>
               </div>
-              <dl class="grid grid-cols-2 gap-3">
+              <!--
+                Cinco métricas em duas colunas deixavam «Calculados» sozinho na
+                terceira linha. Em lista não há órfãos, seja qual for o número
+                delas — e o denominador diz mais do que a contagem solta: «0»
+                não é a mesma coisa em duas ou em vinte e seis.
+              -->
+              <dl class="grid gap-0">
                 <div
                   v-for="linha in [
-                    {
-                      k: 'TOTAL',
-                      v: activeSectionSummary.total,
-                      testid: 'summary-total',
-                    },
                     {
                       k: 'ON_CARD',
                       v: activeSectionSummary.noCartao,
@@ -5610,15 +5623,16 @@ onMounted(async () => {
                   ]"
                   :key="linha.k"
                   :data-testid="`kanban-settings-${linha.testid}`"
-                  class="grid gap-0.5 rounded-lg bg-n-surface-2 px-3 py-2"
+                  class="flex items-baseline justify-between gap-3 border-b border-solid border-n-weak py-2 last:border-b-0"
                 >
-                  <dt class="text-micro font-medium text-n-slate-11">
+                  <dt class="text-xs text-n-slate-11">
                     {{ t(`KANBAN.SETTINGS.SALES.SUMMARY.${linha.k}`) }}
                   </dt>
-                  <dd
-                    class="mb-0 text-xl font-semibold tabular-nums text-n-slate-12"
-                  >
-                    {{ linha.v }}
+                  <dd class="mb-0 text-sm tabular-nums text-n-slate-11">
+                    <span class="font-semibold text-n-slate-12">{{
+                      linha.v
+                    }}</span>
+                    / {{ activeSectionSummary.total }}
                   </dd>
                 </div>
               </dl>

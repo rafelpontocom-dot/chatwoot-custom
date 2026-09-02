@@ -1254,9 +1254,11 @@ describe('KanbanBoardSettings', () => {
       '[data-testid="kanban-settings-field-editor-empty"]'
     );
     expect(resumo.exists()).toBe(true);
+    // O `t` está mockado para devolver a chave, por isso o número lê-se no
+    // denominador de uma das linhas em vez do total interpolado.
     expect(
-      wrapper.find('[data-testid="kanban-settings-summary-total"]').text()
-    ).toContain('1');
+      wrapper.find('[data-testid="kanban-settings-summary-on-card"]').text()
+    ).toContain('/ 1');
   });
 
   it('searches fields across every tab', async () => {

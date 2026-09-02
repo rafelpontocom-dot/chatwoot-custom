@@ -778,7 +778,7 @@
         "EDIT_FIELD_HINT": "Click to edit this field. Drag by the handle to move it.",
         "ADD_FIELD_HERE": "Add field to this tab",
         "SUMMARY": {
-          "TOTAL": "Fields",
+          "TOTAL": "{count} fields",
           "ON_CARD": "On the card",
           "REQUIRED": "Required",
           "CONDITIONAL": "Conditional",

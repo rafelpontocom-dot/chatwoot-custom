@@ -781,7 +781,7 @@
         "EDIT_FIELD_HINT": "Clique para editar este campo. Arraste pela pega para movê-lo.",
         "ADD_FIELD_HERE": "Adicionar campo nesta aba",
         "SUMMARY": {
-          "TOTAL": "Campos",
+          "TOTAL": "{count} campos",
           "ON_CARD": "No card",
           "REQUIRED": "Obrigatórios",
           "CONDITIONAL": "Condicionais",
