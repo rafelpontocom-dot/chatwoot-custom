@@ -94,6 +94,11 @@ en:
     conversations:
       unread_counts:
         feature_not_enabled: Conversation unread counts feature not enabled for this account
+    kanban_import:
+      contact_not_found: contact not found; import the contacts first
+      subject_missing: the row has no subject and the contact has no name
+      inbox_missing: the account has no inbox to attach the opportunity to
+
     data_import:
       data_type:
         invalid: Invalid data type
