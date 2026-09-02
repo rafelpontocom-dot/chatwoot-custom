@@ -1394,6 +1394,13 @@ const addCustomFieldToSection = sectionKey => {
   selectedCustomFieldId.value = definition.clientId;
   activeFieldSectionKey.value = sectionKey;
   syncCustomFieldDefinitionsText();
+  // Criar um campo põe o cursor no nome. Como diálogo o Modal fazia isto
+  // sozinho; ao virar painel perdeu-se, e ficava-se a olhar para o botão.
+  nextTick(() =>
+    document
+      .querySelector('[data-testid="kanban-settings-custom-field-label"]')
+      ?.focus?.()
+  );
 };
 
 /**
@@ -3750,7 +3757,7 @@ onMounted(async () => {
                 class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand/40"
               >
                 <span>{{ t('KANBAN.SETTINGS.SALES.CARD_LAYOUT') }}</span>
-                <span class="text-micro font-normal text-n-slate-10">
+                <span class="text-micro font-normal text-n-slate-11">
                   {{ t('KANBAN.SETTINGS.SALES.CARD_LAYOUT_DESCRIPTION') }}
                 </span>
               </summary>
@@ -4132,19 +4139,7 @@ onMounted(async () => {
               <h2 class="mb-0 text-base font-medium text-n-slate-12">
                 {{ t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_TITLE') }}
               </h2>
-              <p class="mb-0 mt-1 text-sm text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_DESCRIPTION') }}
-              </p>
             </div>
-            <Button
-              type="submit"
-              data-testid="kanban-settings-save-fields"
-              icon="i-lucide-save"
-              :label="t('KANBAN.SETTINGS.SAVE')"
-              color="blue"
-              size="sm"
-              :is-loading="isSaving"
-            />
           </div>
 
           <div
@@ -4292,7 +4287,7 @@ onMounted(async () => {
                   <i class="i-lucide-layout-grid size-3.5 text-n-slate-10" />
                   {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUPS') }}
                   <span
-                    class="rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-normal text-n-slate-10"
+                    class="rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-normal text-n-slate-11"
                   >
                     {{
                       customFieldGroupsForSection(activeFieldSectionKey).length
@@ -5057,7 +5052,7 @@ onMounted(async () => {
                     class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-medium text-n-slate-12 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand/40"
                   >
                     <span>{{ t('KANBAN.SETTINGS.SALES.CONDITION') }}</span>
-                    <span class="text-micro font-normal text-n-slate-10">
+                    <span class="text-micro font-normal text-n-slate-11">
                       {{
                         selectedCustomField.conditionFieldKey
                           ? conditionSummary(selectedCustomField)
@@ -5174,7 +5169,7 @@ onMounted(async () => {
                     <span>
                       {{ t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES') }}
                     </span>
-                    <span class="text-micro font-normal text-n-slate-10">
+                    <span class="text-micro font-normal text-n-slate-11">
                       {{
                         selectedCustomField.requiredStageIds.length
                           ? t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES_COUNT', {
@@ -5221,7 +5216,7 @@ onMounted(async () => {
                     <span>
                       {{ t('KANBAN.SETTINGS.SALES.FIELD_ADVANCED_SETTINGS') }}
                     </span>
-                    <span class="text-micro font-normal text-n-slate-10">
+                    <span class="text-micro font-normal text-n-slate-11">
                       {{
                         t(
                           'KANBAN.SETTINGS.SALES.FIELD_ADVANCED_SETTINGS_DESCRIPTION'
@@ -6487,7 +6482,13 @@ onMounted(async () => {
           </button>
         </p>
 
-        <div class="flex justify-end gap-2 lg:col-start-2">
+        <!--
+          Um só «Guardar» por ecrã, e sempre ao alcance: eram dois botões
+          iguais, e tirar o de cima sem fixar o de baixo obrigava a rolar.
+        -->
+        <div
+          class="sticky bottom-0 flex justify-end gap-2 border-t border-n-weak bg-n-background py-3 lg:col-start-2"
+        >
           <Button
             type="submit"
             data-testid="kanban-settings-save"
