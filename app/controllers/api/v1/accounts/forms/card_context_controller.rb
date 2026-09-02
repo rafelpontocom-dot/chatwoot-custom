@@ -2,11 +2,12 @@ class Api::V1::Accounts::Forms::CardContextController < Api::V1::Accounts::BaseC
   before_action :fetch_card
 
   def show
-    authorize FormSubmission.new(account: Current.account), :index?
+    authorize @card, :show?
 
     render json: {
       invitations: invitations.map { |invitation| invitation_payload(invitation) },
-      submissions: submissions.map(&:summary_payload)
+      submissions: submissions.map { |submission| submission_payload(submission) },
+      contact_submissions: contact_submissions.map { |submission| submission_payload(submission) }
     }
   end
 
@@ -21,10 +22,48 @@ class Api::V1::Accounts::Forms::CardContextController < Api::V1::Accounts::BaseC
   end
 
   def submissions
-    FormSubmission.includes(form_template_version: :form_template).where(kanban_card: @card).order(submitted_at: :desc)
+    scoped_submissions.where(kanban_card: @card).order(submitted_at: :desc)
+  end
+
+  # O que a pessoa respondeu noutras oportunidades e continua a valer para ela.
+  # Só entram os formulários marcados como sendo do contacto: uma proposta
+  # comercial de outro negócio não tem que aparecer aqui.
+  def contact_submissions
+    return FormSubmission.none if @card.contact_id.blank?
+
+    scoped_submissions
+      .where(contact_id: @card.contact_id)
+      .where.not(kanban_card_id: @card.id)
+      .select { |submission| submission.form_template_version.form_template.store_on_contact? }
+      .sort_by(&:submitted_at)
+      .reverse
+  end
+
+  def scoped_submissions
+    FormSubmission.includes(form_template_version: :form_template).where(account_id: Current.account.id)
+  end
+
+  # Quem não pode abrir continua a ver que existe resposta — e é tudo o que vê.
+  # Esconder a existência levava a secretária a pedir a anamnese outra vez a
+  # quem já a tinha preenchido.
+  def submission_payload(submission)
+    return submission.summary_payload if policy(submission).show?
+
+    submission.restricted_summary_payload
   end
 
   def invitation_payload(invitation)
-    invitation.admin_payload.merge(form_name: invitation.form_template_version.form_template.name)
+    template = invitation.form_template_version.form_template
+    return invitation.admin_payload.merge(form_name: template.name) if readable?(template)
+
+    invitation.admin_payload.merge(form_name: nil, restricted: true)
+  end
+
+  # Um formulário comercial não tem nome a esconder. Um clínico tem: o título
+  # diz o diagnóstico a quem nunca poderia abrir a resposta.
+  def readable?(template)
+    return true unless template.sensitive_health?
+
+    Current.account_user&.administrator? || template.clinically_accessible_to?(Current.user)
   end
 end

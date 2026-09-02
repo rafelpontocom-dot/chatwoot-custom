@@ -312,7 +312,17 @@
       "CRITICAL_RESPONSE_DISABLED": "No critical answer",
       "CRITICAL_RESPONSE_VALUE": "Value that raises the flag",
       "CRITICAL_RESPONSE_SELECT_VALUE": "Choose a published option",
-      "CRITICAL_RESPONSE_HINT": "Starts an automation when this exact answer arrives. It carries identifiers only, never the answer."
+      "CRITICAL_RESPONSE_HINT": "Starts an automation when this exact answer arrives. It carries identifiers only, never the answer.",
+      "ANSWER_SECTION": "The answer",
+      "ANSWER_SCOPE": "Where the answer is kept",
+      "ANSWER_SCOPE_HINT": "An anamnesis follows the patient into the next appointment. A quote belongs to the deal it came from.",
+      "ANSWER_SCOPE_CARD": "Only in this opportunity",
+      "ANSWER_SCOPE_CONTACT": "Also on the contact, visible from every opportunity of that person",
+      "ANSWER_VALIDITY": "Answer validity (days)",
+      "ANSWER_VALIDITY_HINT": "After this, the answer is marked as out of date. Nothing is deleted.",
+      "ANSWER_VALIDITY_PLACEHOLDER": "Never goes out of date",
+      "LINK_INDIVIDUAL": "This form has no public link yet. Turn on \"Allow public form\" above, or send it from an opportunity to create a link for one person.",
+      "LINK_INDIVIDUAL_CLINICAL": "A clinical form has no public link, by design. Open the opportunity, go to Forms and send it: that creates a single-use link for that patient."
     },
     "STATUS": {
       "DRAFT": "Draft",
@@ -335,7 +345,8 @@
     },
     "LOCALES": {
       "PT_BR": "Portuguese - Brazil",
-      "PT_PT": "Portuguese - Portugal"
+      "PT_PT": "Portuguese - Portugal",
+      "ACCOUNT": "Account language"
     },
     "SUBMISSIONS": {
       "CLINICAL_DOCUMENTS": "Clinical documents",
@@ -369,7 +380,13 @@
       },
       "NO_CONTACT": "No linked contact",
       "NO_OPPORTUNITY": "No linked opportunity",
-      "VARIABLES": "Calculated values"
+      "VARIABLES": "Calculated values",
+      "CONTACT_HISTORY": "Contact forms",
+      "CONTACT_HISTORY_HINT": "Answered in other opportunities of this person and kept on the contact.",
+      "RESTRICTED_TITLE": "Clinical form",
+      "RESTRICTED_HINT": "There is an answer here. You do not have permission to open it.",
+      "EXPIRED": "Out of date",
+      "VALID_UNTIL": "Valid until {date}"
     },
     "INVITATION": {
       "TITLE": "Send form",

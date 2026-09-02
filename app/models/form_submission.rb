@@ -95,10 +95,43 @@ class FormSubmission < ApplicationRecord
       form_template_id: form_template_version.form_template_id,
       contact: contact && { id: contact.id, name: contact.name },
       opportunity: kanban_card && { id: kanban_card.id, subject: kanban_card.subject },
+      valid_until: valid_until,
+      answer_expired: answer_expired?,
       # O que o formulário propôs e ninguém decidiu ainda. Leva só o tipo: o
       # card mostra a pergunta, não os detalhes da configuração.
       pending_actions: pending_action_summaries
     }
+  end
+
+  # O que se mostra a quem pode saber que a resposta existe mas não pode lê-la.
+  # O nome do formulário sai de propósito: «Inquérito Pré-Consulta de Obesidade»
+  # conta o diagnóstico sem abrir uma única resposta.
+  def restricted_summary_payload
+    {
+      id: id,
+      status: status,
+      submitted_at: submitted_at,
+      restricted: true,
+      contact: contact && { id: contact.id, name: contact.name },
+      opportunity: kanban_card && { id: kanban_card.id, subject: kanban_card.subject },
+      valid_until: valid_until,
+      answer_expired: answer_expired?
+    }
+  end
+
+  # Vencida não é apagada. A médica precisa de saber que a anamnese é de 2023
+  # tanto quanto precisaria de a ler — e apagá-la ao fim do prazo perdia o
+  # histórico do doente para poupar uma linha de lista.
+  def valid_until
+    dias = form_template_version.form_template.answer_validity_days
+    return if dias.blank? || dias <= 0
+
+    submitted_at + dias.days
+  end
+
+  def answer_expired?
+    limite = valid_until
+    limite.present? && limite.past?
   end
 
   def pending_action_summaries

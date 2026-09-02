@@ -46,7 +46,85 @@ RSpec.describe 'Form card context API', type: :request do
     expect(response.parsed_body.to_s).not_to include('answers')
   end
 
+  it 'lets an agent see a clinical answer exists without saying which form it was' do
+    agent = create(:user, account: account, role: :agent)
+    # Sem acesso à caixa de entrada, o agente nem o cartão vê — a aba de
+    # formulários não é maneira de contornar isso.
+    create(:inbox_member, user: agent, inbox: card.inbox)
+    clinical = FormTemplate.create!(
+      account: account,
+      name: 'Inquérito Pré-Consulta de Obesidade',
+      slug: 'anamnese-obesidade',
+      category: 'clinical',
+      access_classification: 'sensitive_health'
+    )
+    submission = nil
+    with_modified_env 'ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY' => 'forms-test-encryption-key' do
+      clinical_version = clinical.publish!(schema: clinical_schema)
+      submission = FormSubmission.create_from_answers!(
+        account: account,
+        form_template_version: clinical_version,
+        contact: contact,
+        kanban_card: card,
+        answers: { 'aceito' => true }
+      )
+    end
+
+    get path, headers: agent.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    resposta = response.parsed_body['submissions'].first
+    expect(resposta).to include('id' => submission.id, 'restricted' => true)
+    expect(resposta).not_to have_key('form_name')
+    expect(response.parsed_body.to_s).not_to include('Obesidade')
+  end
+
+  it 'keeps answers of the person separate from answers of this opportunity' do
+    outro_card = create(:kanban_card, account: account, contact: contact)
+    template.update!(settings: { 'store_on_contact' => true })
+    da_pessoa = FormSubmission.create!(
+      account: account,
+      form_template_version: version,
+      contact: contact,
+      kanban_card: outro_card,
+      answers: { 'nome' => 'Pedro Raevo' },
+      metadata: {},
+      submitted_at: Time.current
+    )
+
+    get path, headers: administrator.create_new_auth_token, as: :json
+
+    expect(response.parsed_body['submissions']).to be_empty
+    expect(response.parsed_body['contact_submissions']).to include(include('id' => da_pessoa.id))
+  end
+
+  it 'leaves an opportunity-scoped answer out of the contact section' do
+    outro_card = create(:kanban_card, account: account, contact: contact)
+    FormSubmission.create!(
+      account: account,
+      form_template_version: version,
+      contact: contact,
+      kanban_card: outro_card,
+      answers: { 'nome' => 'Pedro Raevo' },
+      metadata: {},
+      submitted_at: Time.current
+    )
+
+    get path, headers: administrator.create_new_auth_token, as: :json
+
+    expect(response.parsed_body['contact_submissions']).to be_empty
+  end
+
   private
+
+  def clinical_schema
+    {
+      'sections' => [
+        { 'key' => 'consentimento',
+          'fields' => [{ 'key' => 'aceito', 'type' => 'consent', 'label' => 'Aceito', 'required' => true }] }
+      ]
+    }
+  end
 
   def schema
     {

@@ -18,6 +18,9 @@ const ESCOPO_RAEVO = [
   'app/javascript/dashboard/routes/dashboard/calendar',
   'app/javascript/dashboard/routes/dashboard/finance',
   'app/javascript/dashboard/routes/dashboard/forms',
+  // O formulário do doente é a superfície mais exposta que temos e estava fora
+  // da porta: foi lá que uma borda invisível passou despercebida.
+  'app/javascript/public_form',
   'app/javascript/v3/views/login',
 ];
 const todos = process.argv.includes('--all');

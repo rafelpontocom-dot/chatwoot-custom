@@ -225,12 +225,24 @@ RSpec.describe 'Public forms API', type: :request do
     )
   end
 
-  it 'does not reveal a consumed invitation' do
+  # Quem tem o link nas mãos é quem respondeu: dizer-lhe que já respondeu não
+  # revela nada que ele não saiba, e poupa-lhe o telefonema à clínica a
+  # perguntar se a anamnese se perdeu. Um token de 32 bytes não se adivinha,
+  # por isso não há aqui superfície a proteger.
+  it 'tells the patient the form was already answered' do
     invitation_result.invitation.consume!
 
     get "/formularios/convites/#{invitation_result.token}", as: :json
 
+    expect(response).to have_http_status(:gone)
+    expect(response.parsed_body['state']).to eq('consumed')
+  end
+
+  it 'keeps a token that never existed indistinguishable from a wrong one' do
+    get '/formularios/convites/nao-existe-de-todo', as: :json
+
     expect(response).to have_http_status(:not_found)
+    expect(response.parsed_body['state']).to eq('not_found')
   end
 
   it 'does not recreate a draft after the invitation has been consumed' do
@@ -240,7 +252,7 @@ RSpec.describe 'Public forms API', type: :request do
           params: { draft: { answers: { nome_completo: 'Pedro Raevo' }, current_section_index: 0 } },
           as: :json
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to have_http_status(:gone)
     expect(FormInvitationDraft.where(form_invitation: invitation_result.invitation)).not_to exist
   end
 

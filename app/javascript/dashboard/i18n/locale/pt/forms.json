@@ -312,7 +312,17 @@
       "CRITICAL_RESPONSE_DISABLED": "Sem resposta crítica",
       "CRITICAL_RESPONSE_VALUE": "Valor que liga o alerta",
       "CRITICAL_RESPONSE_SELECT_VALUE": "Escolha uma opção publicada",
-      "CRITICAL_RESPONSE_HINT": "Inicia uma automação quando esta resposta exata chega. Ela leva apenas identificadores, nunca a resposta."
+      "CRITICAL_RESPONSE_HINT": "Inicia uma automação quando esta resposta exata chega. Ela leva apenas identificadores, nunca a resposta.",
+      "ANSWER_SECTION": "A resposta",
+      "ANSWER_SCOPE": "Onde fica a resposta",
+      "ANSWER_SCOPE_HINT": "Uma anamnese acompanha o doente na consulta seguinte. Um orçamento pertence ao negócio de onde saiu.",
+      "ANSWER_SCOPE_CARD": "Só nesta oportunidade",
+      "ANSWER_SCOPE_CONTACT": "Também no contacto, visível em todas as oportunidades dessa pessoa",
+      "ANSWER_VALIDITY": "Validade da resposta (dias)",
+      "ANSWER_VALIDITY_HINT": "Passado esse prazo, a resposta fica marcada como vencida. Não se apaga nada.",
+      "ANSWER_VALIDITY_PLACEHOLDER": "Nunca vence",
+      "LINK_INDIVIDUAL": "Este formulário ainda não tem link público. Ligue «Permitir formulário público» acima, ou envie-o a partir de uma oportunidade para criar um link para uma pessoa.",
+      "LINK_INDIVIDUAL_CLINICAL": "Um formulário clínico não tem link público, de propósito. Abra a oportunidade, vá a Formulários e envie: cria um link de uso único para aquele doente."
     },
     "STATUS": {
       "DRAFT": "Rascunho",
@@ -335,7 +345,8 @@
     },
     "LOCALES": {
       "PT_BR": "Português - Brasil",
-      "PT_PT": "Português - Portugal"
+      "PT_PT": "Português - Portugal",
+      "ACCOUNT": "Idioma da conta"
     },
     "SUBMISSIONS": {
       "CLINICAL_DOCUMENTS": "Documentos clínicos",
@@ -369,7 +380,13 @@
       },
       "NO_CONTACT": "Contacto não vinculado",
       "NO_OPPORTUNITY": "Sem oportunidade vinculada",
-      "VARIABLES": "Valores calculados"
+      "VARIABLES": "Valores calculados",
+      "CONTACT_HISTORY": "Formulários do contacto",
+      "CONTACT_HISTORY_HINT": "Respondidos noutras oportunidades desta pessoa e guardados no contacto.",
+      "RESTRICTED_TITLE": "Formulário clínico",
+      "RESTRICTED_HINT": "Existe uma resposta. Não tem permissão para a abrir.",
+      "EXPIRED": "Vencida",
+      "VALID_UNTIL": "Válida até {date}"
     },
     "INVITATION": {
       "TITLE": "Enviar formulário",

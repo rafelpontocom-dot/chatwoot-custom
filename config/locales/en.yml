@@ -94,6 +94,14 @@ en:
     conversations:
       unread_counts:
         feature_not_enabled: Conversation unread counts feature not enabled for this account
+    forms:
+      invitation:
+        not_found: This form link is not valid.
+        consumed: This form has already been answered. There is nothing left to fill in.
+        expired: This form link has expired. Ask the clinic for a new one.
+        revoked: This form link was cancelled. Ask the clinic for a new one.
+      invalid_request: Invalid form request
+      rate_limited: Too many attempts. Wait a minute and try again.
     kanban_import:
       contact_not_found: contact not found; import the contacts first
       subject_missing: the row has no subject and the contact has no name

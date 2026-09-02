@@ -17,6 +17,7 @@ import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
 import FormsInvitationDialog from '../forms/FormsInvitationDialog.vue';
 import FormsSubmissionDetailsDialog from '../forms/FormsSubmissionDetailsDialog.vue';
+import KanbanFormSubmissionRow from './KanbanFormSubmissionRow.vue';
 import { useAccountCurrency } from 'dashboard/composables/useAccountCurrency';
 
 const props = defineProps({
@@ -129,7 +130,11 @@ const paymentDialog = ref(null);
 const paymentDetailsDialog = ref(null);
 const formsInvitationDialog = ref(null);
 const formsSubmissionDialog = ref(null);
-const formsContext = ref({ invitations: [], submissions: [] });
+const formsContext = ref({
+  invitations: [],
+  submissions: [],
+  contact_submissions: [],
+});
 const isLoadingFormsContext = ref(false);
 const formsContextError = ref('');
 const invitationPendingRevocation = ref(null);
@@ -944,6 +949,10 @@ const resolvePendingAction = async (submission, action, decision) => {
   }
 };
 
+// A linha emite um evento só; quem resolve continua a ser esta função.
+const onResolvePendingAction = ({ submission, action, decision }) =>
+  resolvePendingAction(submission, action, decision);
+
 const openFormsSubmission = submission => {
   formsSubmissionDialog.value?.open(submission.id);
 };
@@ -985,7 +994,11 @@ const loadFormsContext = async () => {
     const { data } = await FormsAPI.getCardContext(card.value.id);
     formsContext.value = data;
   } catch {
-    formsContext.value = { invitations: [], submissions: [] };
+    formsContext.value = {
+      invitations: [],
+      submissions: [],
+      contact_submissions: [],
+    };
     formsContextError.value = t('FORMS.ERROR.LOAD');
   } finally {
     isLoadingFormsContext.value = false;
@@ -1010,15 +1023,6 @@ const formatFormInvitationDate = value => {
   if (Number.isNaN(date.getTime())) return '';
 
   return date.toLocaleString();
-};
-
-const formSubmissionStatusLabel = status => {
-  const labels = {
-    submitted: t('FORMS.SUBMISSIONS.STATUS.SUBMITTED'),
-    discarded: t('FORMS.SUBMISSIONS.STATUS.DISCARDED'),
-  };
-
-  return labels[status] || status;
 };
 
 const sendFormsInvitationLink = url => {
@@ -2412,78 +2416,49 @@ watch(invitationPendingRevocation, async invitation => {
                   >
                     {{ t('FORMS.SUBMISSIONS.HISTORY') }}
                   </h4>
-                  <article
+                  <KanbanFormSubmissionRow
                     v-for="submission in formsContext.submissions"
                     :key="submission.id"
-                    class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
+                    :submission="submission"
+                    :resolving-action="resolvingAction"
+                    :pending-action-error="pendingActionError"
+                    @open="openFormsSubmission"
+                    @resolve="onResolvePendingAction"
+                  />
+                </section>
+                <!--
+                  O que a pessoa respondeu noutras oportunidades e continua a
+                  valer para ela. Separado de propósito: são formulários do
+                  doente, não deste negócio.
+                -->
+                <section
+                  v-if="formsContext.contact_submissions?.length"
+                  data-testid="kanban-opportunity-contact-forms"
+                  class="grid gap-2"
+                >
+                  <h4
+                    class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
                   >
-                    <div class="min-w-0">
-                      <p
-                        class="mb-0 break-words text-sm font-medium text-n-slate-12"
-                      >
-                        {{ submission.form_name }}
-                      </p>
-                      <span class="text-xs text-n-slate-10">
-                        {{ formSubmissionStatusLabel(submission.status) }}
-                      </span>
-                      <div
-                        v-for="action in submission.pending_actions || []"
-                        :key="action.index"
-                        class="mt-2 flex flex-wrap items-center gap-2 rounded border border-n-amber-6 bg-n-amber-2 px-2 py-1.5"
-                        :data-testid="`kanban-pending-action-${submission.id}-${action.index}`"
-                      >
-                        <span class="text-xs font-medium text-n-amber-11">
-                          {{
-                            t(`FORMS.SUBMISSION_ACTIONS.KIND.${action.kind}`)
-                          }}
-                        </span>
-                        <button
-                          type="button"
-                          class="rounded px-2 py-0.5 text-xs font-semibold text-n-teal-11 transition hover:bg-n-teal-3"
-                          :disabled="resolvingAction !== null"
-                          :data-testid="`kanban-pending-confirm-${submission.id}-${action.index}`"
-                          @click="
-                            resolvePendingAction(submission, action, 'confirm')
-                          "
-                        >
-                          {{ t('FORMS.SUBMISSION_ACTIONS.PENDING_CONFIRM') }}
-                        </button>
-                        <button
-                          type="button"
-                          class="rounded px-2 py-0.5 text-xs font-semibold text-n-slate-11 transition hover:bg-n-slate-3"
-                          :disabled="resolvingAction !== null"
-                          :data-testid="`kanban-pending-dismiss-${submission.id}-${action.index}`"
-                          @click="
-                            resolvePendingAction(submission, action, 'dismiss')
-                          "
-                        >
-                          {{ t('FORMS.SUBMISSION_ACTIONS.PENDING_DISMISS') }}
-                        </button>
-                      </div>
-                      <p
-                        v-if="pendingActionError"
-                        class="mb-0 mt-2 text-xs text-n-ruby-11"
-                        role="alert"
-                      >
-                        {{ pendingActionError }}
-                      </p>
-                    </div>
-                    <NextButton
-                      type="button"
-                      sm
-                      variant="faded"
-                      color="slate"
-                      icon="i-lucide-file-text"
-                      :label="t('FORMS.SUBMISSIONS.OPEN')"
-                      :data-testid="`kanban-opportunity-open-form-submission-${submission.id}`"
-                      @click="openFormsSubmission(submission)"
-                    />
-                  </article>
+                    {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY') }}
+                  </h4>
+                  <p class="mb-0 text-xs text-n-slate-10">
+                    {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY_HINT') }}
+                  </p>
+                  <KanbanFormSubmissionRow
+                    v-for="submission in formsContext.contact_submissions"
+                    :key="submission.id"
+                    :submission="submission"
+                    :resolving-action="resolvingAction"
+                    :pending-action-error="pendingActionError"
+                    @open="openFormsSubmission"
+                    @resolve="onResolvePendingAction"
+                  />
                 </section>
                 <p
                   v-if="
                     !formsContext.invitations.length &&
-                    !formsContext.submissions.length
+                    !formsContext.submissions.length &&
+                    !formsContext.contact_submissions?.length
                   "
                   class="mb-0 text-sm text-n-slate-10"
                 >

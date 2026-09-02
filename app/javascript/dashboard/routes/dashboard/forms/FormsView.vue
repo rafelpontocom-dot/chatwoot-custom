@@ -463,7 +463,12 @@ function hydrateEditor(template) {
     publicToken: template.public_token,
     brandLogoUrl: template.brand_logo_url || '',
     settings: {
-      locale: template.settings?.locale || 'pt_BR',
+      // O idioma da conta, não um `pt_BR` fixo: numa clínica portuguesa isso
+      // saía ao doente como «digite seu nome para registrar este aceite».
+      // Vazio quer dizer «o idioma da conta», que é o que o servidor usa
+      // quando o formulário não fixa nenhum. Estava `pt_BR` fixo, e uma clínica
+      // portuguesa mandava ao doente um formulário em brasileiro.
+      locale: template.settings?.locale || '',
       description: template.settings?.description || '',
       brand_name: template.settings?.brand_name || '',
       brand_logo_url: template.settings?.brand_logo_url || '',
@@ -480,6 +485,10 @@ function hydrateEditor(template) {
       },
       clinical_retention_days:
         template.settings?.clinical_retention_days || null,
+      // Nulo é «nunca vence»; `|| null` mantém-no nulo em vez de o transformar
+      // num zero que o servidor recusaria.
+      answer_validity_days: template.settings?.answer_validity_days || null,
+      store_on_contact: template.settings?.store_on_contact === true,
       captcha_provider: template.settings?.captcha_provider || '',
       captcha_site_key: template.settings?.captcha_site_key || '',
       abandonment_delay_hours:
@@ -2423,10 +2432,13 @@ onBeforeUnmount(() => {
                         v-model="editor.settings.locale"
                         class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                       >
+                        <option value="">
+                          {{ t('FORMS.LOCALES.ACCOUNT') }}
+                        </option>
                         <option value="pt_BR">
                           {{ t('FORMS.LOCALES.PT_BR') }}
                         </option>
-                        <option value="pt_PT">
+                        <option value="pt">
                           {{ t('FORMS.LOCALES.PT_PT') }}
                         </option>
                       </select>
@@ -2434,6 +2446,73 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div v-show="settingsSection === 'publishing'">
+                  <!--
+                    Onde a resposta fica e até quando vale. São as duas decisões
+                    que a clínica toma sobre a resposta e não sobre o link, e
+                    andavam sem sítio nenhum no produto.
+                  -->
+                  <section
+                    class="rounded border border-n-slate-4 bg-n-solid-1 p-5"
+                  >
+                    <h3 class="text-sm font-medium text-n-slate-12">
+                      {{ t('FORMS.EDITOR.ANSWER_SECTION') }}
+                    </h3>
+                    <fieldset class="mt-3 border-0 p-0">
+                      <legend class="text-sm font-medium text-n-slate-11">
+                        {{ t('FORMS.EDITOR.ANSWER_SCOPE') }}
+                      </legend>
+                      <p class="mt-1 text-sm text-n-slate-10">
+                        {{ t('FORMS.EDITOR.ANSWER_SCOPE_HINT') }}
+                      </p>
+                      <label
+                        class="mt-2 flex min-h-10 cursor-pointer items-start gap-3 rounded px-2 py-1.5 text-sm text-n-slate-12 hover:bg-n-slate-2"
+                      >
+                        <input
+                          v-model="editor.settings.store_on_contact"
+                          type="radio"
+                          :value="false"
+                          name="forms-answer-scope"
+                          class="mt-0.5 size-4 accent-n-teal-9"
+                        />
+                        <span>{{ t('FORMS.EDITOR.ANSWER_SCOPE_CARD') }}</span>
+                      </label>
+                      <label
+                        class="flex min-h-10 cursor-pointer items-start gap-3 rounded px-2 py-1.5 text-sm text-n-slate-12 hover:bg-n-slate-2"
+                      >
+                        <input
+                          v-model="editor.settings.store_on_contact"
+                          data-test="forms-store-on-contact"
+                          type="radio"
+                          :value="true"
+                          name="forms-answer-scope"
+                          class="mt-0.5 size-4 accent-n-teal-9"
+                        />
+                        <span>{{
+                          t('FORMS.EDITOR.ANSWER_SCOPE_CONTACT')
+                        }}</span>
+                      </label>
+                    </fieldset>
+                    <label class="mt-4 block" for="forms-answer-validity-days">
+                      <span class="block text-sm font-medium text-n-slate-11">
+                        {{ t('FORMS.EDITOR.ANSWER_VALIDITY') }}
+                      </span>
+                      <span class="mt-1 block text-sm text-n-slate-10">
+                        {{ t('FORMS.EDITOR.ANSWER_VALIDITY_HINT') }}
+                      </span>
+                      <input
+                        id="forms-answer-validity-days"
+                        v-model.number="editor.settings.answer_validity_days"
+                        data-test="forms-answer-validity-days"
+                        type="number"
+                        min="1"
+                        inputmode="numeric"
+                        :placeholder="
+                          t('FORMS.EDITOR.ANSWER_VALIDITY_PLACEHOLDER')
+                        "
+                        class="mt-2 min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      />
+                    </label>
+                  </section>
                   <label
                     class="mt-4 grid gap-1.5 text-sm font-medium text-n-slate-11"
                   >
@@ -2499,6 +2578,58 @@ onBeforeUnmount(() => {
                         class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
                       />
                     </label>
+                  </div>
+                  <!--
+                    Um formulário clínico não tem link público — tem um link por
+                    doente. Sem isto, quem publicava ficava à procura de um
+                    endereço que nunca ia existir.
+                  -->
+                  <div
+                    v-if="!publicUrl"
+                    data-test="forms-individual-link-hint"
+                    class="mt-3 flex items-start gap-2 rounded border border-n-slate-4 bg-n-slate-2 p-3"
+                  >
+                    <span
+                      class="i-lucide-link mt-0.5 size-4 shrink-0 text-n-slate-10"
+                      aria-hidden="true"
+                    />
+                    <p class="text-sm leading-6 text-n-slate-11">
+                      {{
+                        isSensitiveHealth
+                          ? t('FORMS.EDITOR.LINK_INDIVIDUAL_CLINICAL')
+                          : t('FORMS.EDITOR.LINK_INDIVIDUAL')
+                      }}
+                    </p>
+                  </div>
+                  <div
+                    v-if="publicUrl"
+                    class="mt-3 flex items-center gap-2 rounded bg-n-slate-2 p-2"
+                  >
+                    <input
+                      :value="publicUrl"
+                      readonly
+                      class="min-w-0 flex-1 bg-transparent px-2 text-sm text-n-slate-11 outline-none"
+                    />
+                    <Button
+                      size="sm"
+                      variant="faded"
+                      color="slate"
+                      :label="
+                        copied
+                          ? t('FORMS.ACTIONS.COPIED')
+                          : t('FORMS.ACTIONS.COPY_LINK')
+                      "
+                      @click="copyPublicLink"
+                    />
+                    <a
+                      :href="publicUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-test="forms-public-preview"
+                      class="inline-flex min-h-8 shrink-0 items-center rounded px-2 text-sm font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                    >
+                      {{ t('FORMS.ACTIONS.PREVIEW') }}
+                    </a>
                   </div>
                 </div>
                 <div v-show="settingsSection === 'automation'">
@@ -2726,36 +2857,6 @@ onBeforeUnmount(() => {
                       />
                     </label>
                   </section>
-                  <div
-                    v-if="publicUrl"
-                    class="mt-3 flex items-center gap-2 rounded bg-n-slate-2 p-2"
-                  >
-                    <input
-                      :value="publicUrl"
-                      readonly
-                      class="min-w-0 flex-1 bg-transparent px-2 text-sm text-n-slate-11 outline-none"
-                    />
-                    <Button
-                      size="sm"
-                      variant="faded"
-                      color="slate"
-                      :label="
-                        copied
-                          ? t('FORMS.ACTIONS.COPIED')
-                          : t('FORMS.ACTIONS.COPY_LINK')
-                      "
-                      @click="copyPublicLink"
-                    />
-                    <a
-                      :href="publicUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-test="forms-public-preview"
-                      class="inline-flex min-h-8 shrink-0 items-center rounded px-2 text-sm font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
-                    >
-                      {{ t('FORMS.ACTIONS.PREVIEW') }}
-                    </a>
-                  </div>
                 </div>
               </section>
 

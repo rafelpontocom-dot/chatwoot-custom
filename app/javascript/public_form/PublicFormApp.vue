@@ -19,6 +19,13 @@ const isLoading = ref(true);
 const isSubmitting = ref(false);
 const submitted = ref(false);
 const errorMessage = ref('');
+// `consumed`, `expired` ou `revoked`: dizem coisas diferentes a quem abre o
+// link, e um «não encontrado» para as três punha o doente ao telefone.
+const invitationState = ref('');
+const brand = ref(null);
+// Respondido, expirado ou cancelado são desfechos, não falhas: o ecrã trata-os
+// como informação. Só `not_found` e a falha de rede continuam a ser erro.
+const AVISOS = ['consumed', 'expired', 'revoked'];
 const brandLogoFailed = ref(false);
 const invalidFieldKey = ref('');
 const honeypot = ref('');
@@ -64,7 +71,10 @@ const appearanceThemes = {
 };
 
 const translations = {
-  pt_PT: {
+  // A chave é `pt` porque é esse o código de locale do Chatwoot para Portugal.
+  // Estava `pt_PT` e `pt-PT`, que nenhuma conta tem: toda a clínica portuguesa
+  // caía no bloco brasileiro e pedia ao doente para «digitar» a assinatura.
+  pt: {
     back: 'Voltar',
     continue: 'Continuar',
     loading: 'A preparar o formulário...',
@@ -73,27 +83,11 @@ const translations = {
     submittedDescription:
       'Recebemos as suas informações. A equipa dará continuidade ao atendimento.',
     unavailable: 'Não foi possível abrir este formulário.',
-    required: 'Campo obrigatório',
-    consentRequired: 'Precisa ser aceito para continuar',
-    step: 'Etapa {current} de {total}',
-    signatureHint: 'Digite seu nome completo para registrar este aceite.',
-    attachmentHint: 'PDF, JPG, PNG ou HEIC. Máximo de 10 MB por arquivo.',
-    captchaRequired: 'Conclua a verificação de segurança para enviar.',
-    privacyPolicy: 'Política de privacidade',
-    preview: 'Prévia privada:',
-    previewDescription:
-      'Você pode testar a experiência, mas esta prévia não envia respostas.',
-    previewSubmit: 'Envio desativado na prévia',
-  },
-  'pt-PT': {
-    back: 'Voltar',
-    continue: 'Continuar',
-    loading: 'A preparar o formulário...',
-    submit: 'Enviar formulário',
-    submitted: 'Formulário enviado',
-    submittedDescription:
-      'Recebemos as suas informações. A equipa dará continuidade ao atendimento.',
-    unavailable: 'Não foi possível abrir este formulário.',
+    invitation_consumed:
+      'Este formulário já foi respondido. Não falta preencher nada.',
+    invitation_expired: 'Este link expirou. Peça um novo à clínica.',
+    invitation_revoked: 'Este link foi cancelado. Peça um novo à clínica.',
+    invitation_not_found: 'Este link não é válido.',
     required: 'Campo obrigatório',
     consentRequired: 'Precisa de ser aceite para continuar',
     step: 'Etapa {current} de {total}',
@@ -115,6 +109,11 @@ const translations = {
     submittedDescription:
       'Recebemos suas informações. A equipe dará continuidade ao atendimento.',
     unavailable: 'Não foi possível abrir este formulário.',
+    invitation_consumed:
+      'Este formulário já foi respondido. Não falta preencher nada.',
+    invitation_expired: 'Este link expirou. Peça um novo à clínica.',
+    invitation_revoked: 'Este link foi cancelado. Peça um novo à clínica.',
+    invitation_not_found: 'Este link não é válido.',
     required: 'Campo obrigatório',
     consentRequired: 'Precisa ser aceito para continuar',
     step: 'Etapa {current} de {total}',
@@ -129,16 +128,29 @@ const translations = {
   },
 };
 
+// `pt-PT`, `pt_PT` e `pt` são a mesma língua escrita de três maneiras; quem
+// configura a conta não tem que adivinhar qual delas o código espera.
+const normalizeLocale = locale =>
+  String(locale || '')
+    .replace('-', '_')
+    .replace(/^pt_PT$/i, 'pt');
+
+const formInfo = computed(() => payload.value?.form || brand.value || null);
+const isInvitationNotice = computed(() =>
+  AVISOS.includes(invitationState.value)
+);
 const copy = computed(
-  () => translations[payload.value?.form?.locale] || translations.default
+  () =>
+    translations[normalizeLocale(formInfo.value?.locale)] ||
+    translations.default
 );
 const appearance = computed(
-  () => appearanceThemes[payload.value?.form?.theme] || appearanceThemes.calm
+  () => appearanceThemes[formInfo.value?.theme] || appearanceThemes.calm
 );
 const brandName = computed(
-  () => payload.value?.form?.brand_name || payload.value?.form?.name || ''
+  () => formInfo.value?.brand_name || formInfo.value?.name || ''
 );
-const brandLogoUrl = computed(() => payload.value?.form?.brand_logo_url || '');
+const brandLogoUrl = computed(() => formInfo.value?.brand_logo_url || '');
 const privacyPolicyUrl = computed(
   () => payload.value?.form?.privacy_policy_url || ''
 );
@@ -344,7 +356,14 @@ onMounted(async () => {
       const response = await fetch(window.location.pathname, {
         headers: { Accept: 'application/json' },
       });
-      if (!response.ok) throw new Error('form_unavailable');
+      if (!response.ok) {
+        const corpo = await response.json().catch(() => ({}));
+        invitationState.value = corpo.state || '';
+        // A marca chega mesmo quando o formulário já não chega: a página de
+        // «já respondeu» continua a ser da clínica.
+        brand.value = corpo.form || null;
+        throw new Error('form_unavailable');
+      }
       payload.value = await response.json();
       if (payload.value.draft) {
         isHydratingDraft = true;
@@ -363,7 +382,9 @@ onMounted(async () => {
     await nextTick();
     renderCaptcha();
   } catch {
-    errorMessage.value = translations.default.unavailable;
+    errorMessage.value =
+      copy.value[`invitation_${invitationState.value}`] ||
+      copy.value.unavailable;
   } finally {
     isLoading.value = false;
   }
@@ -379,6 +400,33 @@ function optionValue(option) {
 
 function optionLabel(option) {
   return typeof option === 'object' ? option.label || option.value : option;
+}
+
+function isOptionChecked(field, option) {
+  return (answers.value[field.key] || []).includes(optionValue(option));
+}
+
+// A resposta continua a ser a mesma lista de valores que o `select multiple`
+// produzia — só a maneira de a construir é que mudou.
+function toggleOption(field, option, event) {
+  const valor = optionValue(option);
+  const atuais = answers.value[field.key] || [];
+  answers.value[field.key] = event.target.checked
+    ? [...atuais, valor]
+    : atuais.filter(item => item !== valor);
+}
+
+// Um grupo de caixas é um `fieldset`, que não recebe foco: quem recebe é a
+// primeira caixa lá dentro. Sem isto, o erro apontava para um campo que o
+// teclado nunca alcançava.
+function focusField(field) {
+  const alvo = document.getElementById(fieldId(field));
+  if (!alvo) return;
+  if (typeof alvo.focus === 'function' && alvo.tagName !== 'FIELDSET') {
+    alvo.focus();
+    return;
+  }
+  alvo.querySelector('input, select, textarea')?.focus();
 }
 
 function isRequiredMissing(field) {
@@ -425,13 +473,13 @@ function validateCurrentSection() {
       ? copy.value.consentRequired
       : copy.value.required;
   errorMessage.value = `${invalid.label}: ${motivo.toLowerCase()}`;
-  document.getElementById(fieldId(invalid))?.focus();
+  focusField(invalid);
   return false;
 }
 
 function focusCurrentField() {
   const [field] = currentFields.value;
-  if (field) document.getElementById(fieldId(field))?.focus();
+  if (field) focusField(field);
 }
 
 function continueForm() {
@@ -532,7 +580,7 @@ async function submitForm() {
     :class="appearance.shell"
   >
     <div class="mx-auto w-full max-w-2xl">
-      <header v-if="payload" class="mb-5 flex items-center gap-3 px-1 sm:mb-6">
+      <header v-if="formInfo" class="mb-5 flex items-center gap-3 px-1 sm:mb-6">
         <img
           v-if="brandLogoUrl && !brandLogoFailed"
           :src="brandLogoUrl"
@@ -555,7 +603,13 @@ async function submitForm() {
           >
             {{ brandName }}
           </p>
-          <p class="mt-0.5 text-xs text-n-slate-10">{{ payload.form.name }}</p>
+          <!--
+            O nome do formulário só existe quando o formulário existe. Na página
+            de «já respondeu» há marca mas não há formulário.
+          -->
+          <p v-if="payload" class="mt-0.5 text-xs text-n-slate-10">
+            {{ payload.form.name }}
+          </p>
         </div>
       </header>
 
@@ -571,12 +625,30 @@ async function submitForm() {
           {{ copy.loading }}
         </div>
 
+        <!--
+          Já ter respondido não é um erro. Quem preencheu tudo e voltou a abrir
+          o link merece a mesma marca de visto de quem acabou de enviar, não um
+          aviso vermelho a dizer-lhe que falhou.
+        -->
         <div
           v-else-if="errorMessage && !payload"
-          role="alert"
-          class="py-16 text-center text-n-ruby-10"
+          :role="isInvitationNotice ? 'status' : 'alert'"
+          class="mx-auto max-w-md py-12 text-center"
         >
-          {{ errorMessage }}
+          <div
+            v-if="isInvitationNotice"
+            class="mx-auto flex size-12 items-center justify-center rounded-full bg-n-teal-3 text-lg font-semibold text-n-teal-11"
+          >
+            <FluentIcon icon="checkmark" size="24" aria-hidden="true" />
+          </div>
+          <p
+            class="mb-0 text-sm leading-6"
+            :class="
+              isInvitationNotice ? 'mt-5 text-n-slate-11' : 'text-n-ruby-10'
+            "
+          >
+            {{ errorMessage }}
+          </p>
         </div>
 
         <div
@@ -795,13 +867,50 @@ async function submitForm() {
                     class="w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                   />
 
-                  <select
-                    v-else-if="
-                      field.type === 'select' || field.type === 'multi_select'
+                  <!--
+                    «Assinale todas as que se aplicam» é uma lista de caixas,
+                    não uma caixa de lista. O `select multiple` mostrava 5 de 11
+                    opções e exigia Ctrl+clique — no telemóvel, onde a maioria
+                    dos doentes preenche isto, era intransponível.
+                  -->
+                  <fieldset
+                    v-else-if="field.type === 'multi_select'"
+                    :id="fieldId(field)"
+                    :aria-describedby="
+                      field.help_text ? `${fieldId(field)}-help` : undefined
                     "
+                    :aria-invalid="invalidFieldKey === field.key"
+                    class="m-0 border-0 p-0"
+                  >
+                    <legend class="sr-only">{{ field.label }}</legend>
+                    <div class="grid gap-1">
+                      <label
+                        v-for="(option, indice) in field.options"
+                        :key="optionValue(option)"
+                        class="flex min-h-11 cursor-pointer items-center gap-3 rounded border border-solid border-n-slate-4 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+                      >
+                        <!--
+                          Pelo índice e não pelo valor: «Dislipidemia
+                          (colesterol/triglicéridos elevados)» dava um id com
+                          espaços e parênteses, que não é id nenhum.
+                        -->
+                        <input
+                          :id="`${fieldId(field)}-opcao-${indice}`"
+                          type="checkbox"
+                          :value="optionValue(option)"
+                          :checked="isOptionChecked(field, option)"
+                          class="size-5 shrink-0 accent-n-teal-9"
+                          @change="toggleOption(field, option, $event)"
+                        />
+                        <span>{{ optionLabel(option) }}</span>
+                      </label>
+                    </div>
+                  </fieldset>
+
+                  <select
+                    v-else-if="field.type === 'select'"
                     :id="fieldId(field)"
                     v-model="answers[field.key]"
-                    :multiple="field.type === 'multi_select'"
                     :required="field.required"
                     :aria-invalid="invalidFieldKey === field.key"
                     :aria-describedby="
@@ -809,7 +918,7 @@ async function submitForm() {
                     "
                     class="min-h-11 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-base text-n-slate-12 outline-none transition focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
                   >
-                    <option v-if="field.type === 'select'" value="" disabled />
+                    <option value="" disabled />
                     <option
                       v-for="option in field.options"
                       :key="optionValue(option)"
