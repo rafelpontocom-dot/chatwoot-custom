@@ -199,6 +199,7 @@ Rails.application.routes.draw do
                 patch :reorder, on: :member
                 resources :cards, only: [:index], module: :stages
               end
+              resources :imports, only: [:create, :show]
               post 'cards/manual', to: 'cards#create_manual'
               get 'cards/archived', to: 'cards#archived'
               patch 'cards/bulk', to: 'cards#bulk'
