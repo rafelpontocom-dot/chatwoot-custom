@@ -157,6 +157,39 @@ const formatWebhookDeliveryDate = value => {
   }).format(new Date(value));
 };
 
+/**
+ * O tom e o ícone de cada estado de cobrança.
+ *
+ * As nove pastilhas desenhavam todas o mesmo cinzento sem ícone: numa lista de
+ * cobranças, «vencida» — o único estado que exige ação hoje — não saltava mais
+ * do que «recebida». Três tons dizem o que fazer (agir / feito / a decorrer) e
+ * o ícone diz o mesmo sem depender de cor, como pede o design system.
+ */
+const PAYMENT_STATUS_TONES = Object.freeze({
+  overdue: { tone: 'ruby', icon: 'i-lucide-alert-triangle' },
+  failed: { tone: 'ruby', icon: 'i-lucide-x-circle' },
+  chargeback: { tone: 'ruby', icon: 'i-lucide-alert-octagon' },
+  received: { tone: 'teal', icon: 'i-lucide-check-circle-2' },
+  confirmed: { tone: 'teal', icon: 'i-lucide-check' },
+  refunded: { tone: 'amber', icon: 'i-lucide-undo-2' },
+  draft: { tone: 'slate', icon: 'i-lucide-file-text' },
+  canceled: { tone: 'slate', icon: 'i-lucide-ban' },
+  pending: { tone: 'slate', icon: 'i-lucide-clock' },
+});
+
+const PAYMENT_TONE_CLASSES = Object.freeze({
+  ruby: 'bg-n-ruby-2 text-n-ruby-11',
+  teal: 'bg-n-teal-3 text-n-teal-11',
+  amber: 'bg-n-amber-2 text-n-amber-11',
+  slate: 'bg-n-alpha-2 text-n-slate-11',
+});
+
+const paymentStatusTone = status =>
+  PAYMENT_STATUS_TONES[status] || PAYMENT_STATUS_TONES.pending;
+
+const paymentStatusClass = status =>
+  PAYMENT_TONE_CLASSES[paymentStatusTone(status).tone];
+
 const paymentStatusLabel = status => {
   switch (status) {
     case 'draft':
@@ -551,7 +584,7 @@ onMounted(loadFinance);
             v-if="canConfigure"
             type="button"
             data-testid="finance-toggle-settings"
-            class="flex size-9 items-center justify-center rounded-full border border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="flex p-0 size-9 items-center justify-center rounded-full border border-solid border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
             :class="activeView === 'settings' ? 'bg-n-blue-3 text-n-brand' : ''"
             :aria-pressed="activeView === 'settings'"
             :aria-label="
@@ -965,8 +998,14 @@ onMounted(loadFinance);
                 {{ formatAmount(payment) }}
               </span>
               <span
-                class="w-fit rounded-full bg-n-alpha-2 px-2.5 py-1 text-xs font-medium text-n-slate-11"
+                class="flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                :class="paymentStatusClass(payment.status)"
               >
+                <i
+                  class="size-3.5 shrink-0"
+                  :class="paymentStatusTone(payment.status).icon"
+                  aria-hidden="true"
+                />
                 {{ paymentStatusLabel(payment.status) }}
               </span>
               <div class="flex items-center justify-end gap-1">
@@ -984,7 +1023,7 @@ onMounted(loadFinance);
                   v-if="payment.invoice_url"
                   type="button"
                   data-testid="finance-payment-copy-link"
-                  class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                   :aria-label="
                     copiedPaymentId === payment.id
                       ? t('FINANCE.PAYMENTS.COPIED')
@@ -1011,7 +1050,7 @@ onMounted(loadFinance);
                   v-if="canPreparePaymentLinkForConversation(payment)"
                   type="button"
                   data-testid="finance-payment-send-link"
-                  class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                   :aria-label="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
                   :title="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
                   @click="preparePaymentLinkForConversation(payment)"
@@ -1021,7 +1060,7 @@ onMounted(loadFinance);
                 <button
                   type="button"
                   data-testid="finance-payment-details"
-                  class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                   :aria-label="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
                   :title="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
                   @click="openPaymentDetails(payment)"
