@@ -635,7 +635,7 @@ onMounted(() => {
       >
         <button
           type="button"
-          class="flex size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+          class="flex p-0 size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
           :aria-label="t('CALENDAR.PREVIOUS')"
           :title="t('CALENDAR.PREVIOUS')"
           @click="changePeriod(-1)"
@@ -644,7 +644,7 @@ onMounted(() => {
         </button>
         <button
           type="button"
-          class="flex size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+          class="flex p-0 size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
           :aria-label="t('CALENDAR.NEXT')"
           :title="t('CALENDAR.NEXT')"
           @click="changePeriod(1)"
@@ -653,7 +653,7 @@ onMounted(() => {
         </button>
         <button
           type="button"
-          class="rounded-full border border-n-weak px-3 py-1.5 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+          class="rounded-full border border-solid border-n-weak px-3 py-1.5 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
           @click="goToToday"
         >
           {{ t('CALENDAR.TODAY') }}
@@ -699,7 +699,7 @@ onMounted(() => {
       <button
         type="button"
         data-testid="calendar-open-settings"
-        class="flex size-9 shrink-0 items-center justify-center rounded-full border border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="flex p-0 size-9 shrink-0 items-center justify-center rounded-full border border-solid border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
         :aria-label="t('CALENDAR.SETTINGS.OPEN')"
         :title="t('CALENDAR.SETTINGS.OPEN')"
         @click="openSettings"
@@ -731,7 +731,7 @@ onMounted(() => {
               :key="day.toISOString()"
               type="button"
               :data-testid="isToday(day) ? 'calendar-mini-today' : null"
-              class="flex size-6 items-center justify-center rounded-full text-micro tabular-nums outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+              class="flex p-0 size-6 items-center justify-center rounded-full text-micro tabular-nums outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
               :class="[
                 isSelectedDay(day)
                   ? 'bg-n-brand font-semibold text-white'

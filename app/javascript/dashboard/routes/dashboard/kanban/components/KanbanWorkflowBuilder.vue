@@ -2016,7 +2016,7 @@ const handleBuilderKeydown = event => {
           <button
             type="button"
             data-testid="kanban-workflow-undo"
-            class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="flex p-0 size-8 items-center justify-center rounded-md border border-solid border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
             :disabled="!canUndo"
             :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UNDO')"
             :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.UNDO')"
@@ -2027,7 +2027,7 @@ const handleBuilderKeydown = event => {
           <button
             type="button"
             data-testid="kanban-workflow-redo"
-            class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="flex p-0 size-8 items-center justify-center rounded-md border border-solid border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-n-brand"
             :disabled="!canRedo"
             :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REDO')"
             :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REDO')"
@@ -2038,7 +2038,7 @@ const handleBuilderKeydown = event => {
           <button
             type="button"
             data-testid="kanban-workflow-auto-arrange"
-            class="flex size-8 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="flex p-0 size-8 items-center justify-center rounded-md border border-solid border-n-weak bg-n-surface-1 text-n-slate-11 shadow-sm hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
             :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUTO_ARRANGE')"
             :title="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.AUTO_ARRANGE')"
             @click="autoArrangeCanvas"
@@ -2049,7 +2049,7 @@ const handleBuilderKeydown = event => {
             ref="mobilePaletteTrigger"
             type="button"
             data-testid="kanban-workflow-open-mobile-palette"
-            class="flex size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:hidden"
+            class="flex p-0 size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:hidden"
             :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
             :aria-expanded="showMobilePalette"
             aria-controls="kanban-workflow-mobile-palette"
@@ -2060,7 +2060,7 @@ const handleBuilderKeydown = event => {
           <button
             type="button"
             data-testid="kanban-workflow-add-node"
-            class="hidden size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:flex"
+            class="hidden p-0 size-8 items-center justify-center rounded-md bg-n-brand text-white hover:bg-n-brand/90 focus:outline-none focus:ring-2 focus:ring-n-brand lg:flex"
             :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADD_NODE')"
             :aria-expanded="showNodeMenu"
             aria-controls="kanban-workflow-node-menu"
@@ -2116,7 +2116,7 @@ const handleBuilderKeydown = event => {
           >
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+              class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
               :aria-label="t('KANBAN.ACTIONS.CLOSE')"
               :title="t('KANBAN.ACTIONS.CLOSE')"
               @click="closeMobilePalette"
@@ -2475,7 +2475,7 @@ const handleBuilderKeydown = event => {
             </div>
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+              class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
               :aria-label="t('KANBAN.ACTIONS.CLOSE')"
               :title="t('KANBAN.ACTIONS.CLOSE')"
               @click="closeInspector"

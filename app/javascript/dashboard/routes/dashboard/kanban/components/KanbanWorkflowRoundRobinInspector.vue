@@ -37,7 +37,7 @@ const data = computed(() => props.node.data);
         />
         <button
           type="button"
-          class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex p-0 size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
           :aria-label="
             t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ROUND_ROBIN_REMOVE_OPTION')
           "
@@ -57,7 +57,7 @@ const data = computed(() => props.node.data);
     <button
       type="button"
       data-testid="kanban-workflow-add-round-robin-option"
-      class="flex h-8 w-fit items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+      class="flex h-8 w-fit items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
       @click="emit('add')"
     >
       <i class="i-lucide-plus size-3.5" aria-hidden="true" />{{

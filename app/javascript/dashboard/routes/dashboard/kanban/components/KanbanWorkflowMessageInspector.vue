@@ -133,7 +133,7 @@ const insert = value => {
             emoji === '🙂' ? 'kanban-message-emoji-button' : undefined
           "
           type="button"
-          class="flex size-8 items-center justify-center rounded-md text-sm hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
+          class="flex p-0 size-8 items-center justify-center rounded-md text-sm hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
           :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_EMOJI')"
           @click="insert(emoji)"
         >
@@ -143,7 +143,7 @@ const insert = value => {
           <button
             type="button"
             data-testid="kanban-message-variable-button"
-            class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
             :aria-label="
               t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_VARIABLE')
             "

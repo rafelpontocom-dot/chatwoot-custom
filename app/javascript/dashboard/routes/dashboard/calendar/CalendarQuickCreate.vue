@@ -183,7 +183,7 @@ const estilo = computed(() => {
       <button
         type="button"
         data-testid="calendar-quick-close"
-        class="-mt-1 flex size-7 flex-shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="-mt-1 flex p-0 size-7 flex-shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
         :aria-label="t('GENERAL.CLOSE')"
         @click="emit('close')"
       >

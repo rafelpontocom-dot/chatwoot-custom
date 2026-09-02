@@ -56,7 +56,7 @@ watch(() => [props.show, props.conversationId], activateConversation, {
         <div class="flex items-center gap-1">
           <button
             type="button"
-            class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+            class="flex p-0 size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.CONVERSATION_DRAWER.OPEN_FULL')"
             :title="t('KANBAN.CONVERSATION_DRAWER.OPEN_FULL')"
             @click="emit('openFullConversation')"
@@ -66,7 +66,7 @@ watch(() => [props.show, props.conversationId], activateConversation, {
           <button
             type="button"
             data-testid="kanban-conversation-drawer-close"
-            class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+            class="flex p-0 size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('GENERAL.CLOSE')"
             @click="emit('close')"
           >

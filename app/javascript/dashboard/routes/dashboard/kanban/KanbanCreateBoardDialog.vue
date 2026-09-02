@@ -145,7 +145,7 @@ watch(
         <div class="mt-4 flex justify-end gap-2">
           <button
             type="submit"
-            class="flex size-9 items-center justify-center rounded-md border border-n-weak bg-n-surface-2 text-n-slate-12 transition-colors hover:bg-n-teal-9 hover:text-white focus:outline-none focus:ring-2 focus:ring-n-teal-8 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-n-surface-2 disabled:hover:text-n-slate-12"
+            class="flex p-0 size-9 items-center justify-center rounded-md border border-solid border-n-weak bg-n-surface-2 text-n-slate-12 transition-colors hover:bg-n-teal-9 hover:text-white focus:outline-none focus:ring-2 focus:ring-n-teal-8 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-n-surface-2 disabled:hover:text-n-slate-12"
             :disabled="!boardName.trim() || isCreating"
             :aria-label="t('KANBAN.ACTIONS.CONFIRM_CREATE_BOARD')"
             :title="t('KANBAN.ACTIONS.CONFIRM_CREATE_BOARD')"
@@ -155,7 +155,7 @@ watch(
           </button>
           <button
             type="button"
-            class="flex size-9 items-center justify-center rounded-md border border-n-weak bg-n-surface-2 text-n-slate-12 transition-colors hover:bg-n-ruby-9 hover:text-white focus:outline-none focus:ring-2 focus:ring-n-ruby-8"
+            class="flex p-0 size-9 items-center justify-center rounded-md border border-solid border-n-weak bg-n-surface-2 text-n-slate-12 transition-colors hover:bg-n-ruby-9 hover:text-white focus:outline-none focus:ring-2 focus:ring-n-ruby-8"
             :aria-label="t('KANBAN.ACTIONS.CANCEL_CREATE_BOARD')"
             :title="t('KANBAN.ACTIONS.CANCEL_CREATE_BOARD')"
             data-testid="kanban-create-board-cancel"

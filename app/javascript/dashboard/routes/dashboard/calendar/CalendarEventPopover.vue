@@ -138,7 +138,7 @@ const primaryAction = computed(() => {
       <button
         v-if="isActive"
         type="button"
-        class="flex size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="flex p-0 size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
         :title="t('CALENDAR.DETAIL.RESCHEDULE')"
         :aria-label="t('CALENDAR.DETAIL.RESCHEDULE')"
         data-testid="calendar-event-reschedule"
@@ -149,7 +149,7 @@ const primaryAction = computed(() => {
       <button
         v-if="isActive"
         type="button"
-        class="flex size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="flex p-0 size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
         :title="t('CALENDAR.DETAIL.CANCEL')"
         :aria-label="t('CALENDAR.DETAIL.CANCEL')"
         data-testid="calendar-event-cancel"
@@ -159,7 +159,7 @@ const primaryAction = computed(() => {
       </button>
       <button
         type="button"
-        class="flex size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="flex p-0 size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
         :title="t('CALENDAR.DETAIL.TITLE')"
         :aria-label="t('CALENDAR.DETAIL.TITLE')"
         data-testid="calendar-event-details"
@@ -169,7 +169,7 @@ const primaryAction = computed(() => {
       </button>
       <button
         type="button"
-        class="flex size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="flex p-0 size-8 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
         :title="t('GENERAL.CLOSE')"
         :aria-label="t('GENERAL.CLOSE')"
         data-testid="calendar-event-close"

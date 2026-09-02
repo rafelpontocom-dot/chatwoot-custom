@@ -47,6 +47,88 @@ const REGRAS = [
     ignorar: () => false },
 ];
 
+/**
+ * Borda de botão que não desenha.
+ *
+ * `_base.scss` do Chatwoot dá `border-0 border-none` a TODO `<button>`. Uma
+ * utilitária `border-n-*` num botão define a cor mas não o estilo, e o
+ * navegador calcula largura 0: a borda desaparece sem erro nenhum. Aconteceu
+ * às linhas de campo, ao «+» das opções e às pastilhas de aba do Kanban ao
+ * mesmo tempo, e só se viu no browser. É por tag, não por linha, porque a tag
+ * de um botão real ocupa dez.
+ */
+/**
+ * Percorre as tags `<button>` de um ficheiro, entregando classe e linha.
+ * A tag de um botão real ocupa dez linhas; verificar por linha não a vê.
+ */
+function* botoes(fonte) {
+  const abre = /<button\b/g;
+  let m;
+  while ((m = abre.exec(fonte))) {
+    let i = abre.lastIndex;
+    let aspa = null;
+    while (i < fonte.length) {
+      const c = fonte[i];
+      if (aspa) {
+        if (c === aspa) aspa = null;
+      } else if (c === '"' || c === "'") aspa = c;
+      else if (c === '>') break;
+      i += 1;
+    }
+    const tag = fonte.slice(m.index, i + 1);
+    yield {
+      classes: [...tag.matchAll(/:?class="([^"]*)"/g)].map(x => x[1]).join(' '),
+      linha: fonte.slice(0, m.index).split('\n').length,
+    };
+  }
+}
+
+/**
+ * Ícone esmagado pelo padding de base.
+ *
+ * `_base.scss` dá `px-2.5` a TODO `<button>`: 20px de padding horizontal. Num
+ * botão quadrado de 24px sobram 4px para o ícone, e ele desenha como um risco.
+ * Um botão de 16px chega a sobrar -4px. Botão só-de-ícone declara `p-0`.
+ */
+function iconesEsmagados(fonte) {
+  const achados = [];
+  for (const { classes, linha } of botoes(fonte)) {
+    const sz = /(^|[\s'"])size-(\d+(?:\.\d+)?)\b/.exec(classes);
+    if (!sz) continue;
+    if (/(^|[\s'"])p[xy]?-\d/.test(classes) || /(^|[\s'"])p-0\b/.test(classes))
+      continue;
+    // sobra = lado - 20px de padding; abaixo de 14px o ícone já não cabe
+    if (Number(sz[2]) * 4 - 20 < 14) achados.push(linha);
+  }
+  return achados;
+}
+
+function bordasInvisiveis(fonte) {
+  const achados = [];
+  const abre = /<button\b/g;
+  let m;
+  while ((m = abre.exec(fonte))) {
+    let i = abre.lastIndex;
+    let aspa = null;
+    while (i < fonte.length) {
+      const c = fonte[i];
+      if (aspa) {
+        if (c === aspa) aspa = null;
+      } else if (c === '"' || c === "'") aspa = c;
+      else if (c === '>') break;
+      i += 1;
+    }
+    const tag = fonte.slice(m.index, i + 1);
+    const classes = [...tag.matchAll(/:?class="([^"]*)"/g)].map(x => x[1]).join(' ');
+    // `border-n-*` sem prefixo de estado é intenção de desenhar uma borda
+    const querBorda = /(^|[\s'"])border-n-[a-z]+-?\d*\b/.test(classes);
+    if (querBorda && !/border-(solid|dashed|dotted)/.test(classes)) {
+      achados.push(fonte.slice(0, m.index).split('\n').length);
+    }
+  }
+  return achados;
+}
+
 let achados = 0;
 for (const arq of arquivos) {
   const linhas = readFileSync(arq, 'utf8').split('\n');
@@ -63,6 +145,20 @@ for (const arq of arquivos) {
       console.log(`    ${linha.trim().slice(0, 110)}`);
     }
   });
+}
+
+for (const arq of arquivos) {
+  const fonte = readFileSync(arq, 'utf8');
+  for (const linha of bordasInvisiveis(fonte)) {
+    achados++;
+    console.log(`${arq}:${linha}  borda de botão sem border-solid → invisível`);
+    console.log('    `_base.scss` zera a borda de todo <button>; acrescente border-solid.');
+  }
+  for (const linha of iconesEsmagados(fonte)) {
+    achados++;
+    console.log(`${arq}:${linha}  botão quadrado sem p-0 → ícone esmagado`);
+    console.log('    `_base.scss` dá px-2.5 a todo <button>; acrescente p-0.');
+  }
 }
 
 console.log('');

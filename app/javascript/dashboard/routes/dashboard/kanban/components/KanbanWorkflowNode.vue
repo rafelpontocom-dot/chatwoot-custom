@@ -143,7 +143,7 @@ const stateTone = state =>
       <span class="min-w-0 flex-1 break-words">{{ branch.label }}</span>
       <button
         type="button"
-        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="data.addAfterLabel"
         @click.stop="data.addAfterOption(data.id, branch.id)"
       >
@@ -162,7 +162,7 @@ const stateTone = state =>
       <span class="min-w-0 flex-1 break-words">{{ data.fallbackLabel }}</span>
       <button
         type="button"
-        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="data.addAfterLabel"
         @click.stop="data.addAfterOption(data.id, data.fallbackId)"
       >
@@ -185,7 +185,7 @@ const stateTone = state =>
       <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
       <button
         type="button"
-        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="data.addAfterLabel"
         @click.stop="data.addAfterOption(data.id, option.id)"
       >
@@ -221,7 +221,7 @@ const stateTone = state =>
       <span class="min-w-0 flex-1 truncate">{{ output.label }}</span>
       <button
         type="button"
-        class="flex size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-5 items-center justify-center rounded text-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="data.addAfterLabel"
         @click.stop="data.addAfterOption(data.id, output.id)"
       >
@@ -238,7 +238,7 @@ const stateTone = state =>
   <button
     v-else-if="data.canAddAfter"
     type="button"
-    class="nodrag nopan absolute -right-3 top-full z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-n-brand bg-n-surface-1 text-n-brand shadow-sm hover:bg-n-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-n-brand"
+    class="nodrag nopan absolute -right-3 top-full z-10 flex p-0 size-6 -translate-y-1/2 items-center justify-center rounded-full border border-solid border-n-brand bg-n-surface-1 text-n-brand shadow-sm hover:bg-n-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-n-brand"
     :aria-label="data.addAfterLabel"
     @click.stop="data.addAfter(data.id)"
   >

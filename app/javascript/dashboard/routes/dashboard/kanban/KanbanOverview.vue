@@ -127,7 +127,7 @@ onMounted(async () => {
             v-if="isAdmin"
             type="button"
             data-testid="overview-open-archived-boards"
-            class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+            class="flex p-0 size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.OVERVIEW.ARCHIVED_BOARDS')"
             :title="t('KANBAN.OVERVIEW.ARCHIVED_BOARDS')"
             @click="openArchivedBoards"
@@ -158,7 +158,7 @@ onMounted(async () => {
             </h2>
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+              class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
               :aria-label="t('KANBAN.ACTIONS.CLOSE')"
               @click="showArchivedBoards = false"
             >
@@ -200,7 +200,7 @@ onMounted(async () => {
               <button
                 type="button"
                 :data-testid="`overview-restore-board-${board.id}`"
-                class="flex size-9 flex-none items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
+                class="flex p-0 size-9 flex-none items-center justify-center rounded-md text-n-brand outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
                 :disabled="Boolean(restoringBoardId)"
                 :aria-label="t('KANBAN.OVERVIEW.RESTORE_BOARD')"
                 :title="t('KANBAN.OVERVIEW.RESTORE_BOARD')"
@@ -266,7 +266,7 @@ onMounted(async () => {
           type="button"
           data-testid="overview-board-card"
           :data-kanban-board-id="board.id"
-          class="group flex w-full flex-col gap-3 border-b border-n-weak bg-n-solid-1 p-3 text-left transition-colors last:border-b-0 hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
+          class="border-solid group flex w-full flex-col gap-3 border-b border-n-weak bg-n-solid-1 p-3 text-left transition-colors last:border-b-0 hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
           :aria-label="
             t('KANBAN.OVERVIEW.OPEN_FUNNEL', {
               name: board.name,

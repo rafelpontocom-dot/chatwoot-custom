@@ -59,7 +59,7 @@ const emit = defineEmits(['close', 'connect', 'delete']);
         v-if="!node.data.terminal"
         type="button"
         data-testid="kanban-workflow-connect-node"
-        class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="connectLabel"
         :title="connectLabel"
         @click="emit('connect')"
@@ -68,7 +68,7 @@ const emit = defineEmits(['close', 'connect', 'delete']);
       </button>
       <button
         type="button"
-        class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="closeLabel"
         :title="closeLabel"
         @click="emit('close')"
@@ -78,7 +78,7 @@ const emit = defineEmits(['close', 'connect', 'delete']);
       <button
         v-if="!['trigger', 'end'].includes(node.type)"
         type="button"
-        class="flex size-8 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-8 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="deleteLabel"
         :title="deleteLabel"
         @click="emit('delete')"

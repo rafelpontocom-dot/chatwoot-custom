@@ -157,7 +157,7 @@ const changeInterval = (rule, field, value) => {
           </div>
           <button
             type="button"
-            class="flex size-8 shrink-0 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="flex p-0 size-8 shrink-0 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
             :disabled="isSaving"
             :title="t('CALENDAR.SETTINGS.AVAILABILITY.REMOVE')"
             :aria-label="t('CALENDAR.SETTINGS.AVAILABILITY.REMOVE')"
@@ -172,7 +172,7 @@ const changeInterval = (rule, field, value) => {
       <button
         v-if="day.intervals.length"
         type="button"
-        class="flex size-8 shrink-0 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="flex p-0 size-8 shrink-0 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
         :disabled="isSaving"
         :title="t('CALENDAR.SETTINGS.AVAILABILITY.ADD_INTERVAL')"
         :aria-label="t('CALENDAR.SETTINGS.AVAILABILITY.ADD_INTERVAL')"

@@ -361,7 +361,7 @@ onUnmounted(() => {
       </div>
       <button
         type="button"
-        class="mt-7 flex size-8 flex-shrink-0 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+        class="mt-7 flex p-0 size-8 flex-shrink-0 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
         :aria-label="t('KANBAN.ADD_ITEM.CLOSE')"
         @click="handleClose"
       >
@@ -390,7 +390,7 @@ onUnmounted(() => {
         </div>
         <button
           type="button"
-          class="flex size-7 flex-shrink-0 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          class="flex p-0 size-7 flex-shrink-0 items-center justify-center rounded-lg text-n-slate-11 outline-none hover:bg-n-alpha-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.ADD_ITEM.CLEAR_CONTACT')"
           @click="clearSelectedContact"
         >

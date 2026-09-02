@@ -298,7 +298,7 @@ onUnmounted(() => {
         <button
           ref="activityCloseButton"
           type="button"
-          class="flex size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+          class="flex p-0 size-9 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.ACTIONS.CLOSE')"
           @click="emit('close')"
         >
@@ -317,7 +317,7 @@ onUnmounted(() => {
           :key="item.key"
           type="button"
           :data-testid="`kanban-activity-tab-${item.key}`"
-          class="whitespace-nowrap border-b-2 px-2.5 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+          class="border-solid whitespace-nowrap border-b-2 px-2.5 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
           role="tab"
           :aria-selected="activeView === item.key"
           aria-controls="kanban-activity-results"
@@ -383,7 +383,7 @@ onUnmounted(() => {
           </p>
           <button
             type="button"
-            class="mx-auto mt-3 flex items-center rounded-md border border-n-weak px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+            class="mx-auto mt-3 flex items-center rounded-md border border-solid border-n-weak px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.ACTIONS.RETRY')"
             @click="loadActivities()"
           >
@@ -458,7 +458,7 @@ onUnmounted(() => {
               :key="card.id"
               type="button"
               :data-testid="`kanban-activity-card-${card.id}`"
-              class="grid gap-1 rounded-lg border border-n-weak p-3 text-left outline-none hover:border-n-brand hover:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+              class="grid gap-1 rounded-lg border border-solid border-n-weak p-3 text-left outline-none hover:border-n-brand hover:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
               @click="emit('openDetails', card)"
             >
               <span class="truncate text-sm font-medium text-n-slate-12">
@@ -501,7 +501,7 @@ onUnmounted(() => {
             v-if="activityHasMore && !isLoadingActivities"
             type="button"
             data-testid="kanban-activity-load-more"
-            class="mt-3 flex w-full items-center justify-center rounded-md border border-n-weak px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+            class="mt-3 flex w-full items-center justify-center rounded-md border border-solid border-n-weak px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
             @click="loadActivities({ append: true })"
           >
             {{ t('KANBAN.ACTIVITY.LOAD_MORE') }}

@@ -343,7 +343,7 @@ const openConversation = event => {
     <button
       type="button"
       data-testid="kanban-card-open-details"
-      class="no-drag pointer-events-auto absolute right-9 top-2 flex size-7 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-slate-11 opacity-0 shadow transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-n-brand group-hover:opacity-100"
+      class="no-drag pointer-events-auto absolute right-9 top-2 flex p-0 size-7 items-center justify-center rounded-full border border-solid border-n-weak bg-n-solid-1 text-n-slate-11 opacity-0 shadow transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-n-brand group-hover:opacity-100"
       :aria-label="t('KANBAN.ACTIONS.OPEN_CARD_DETAILS')"
       :title="t('KANBAN.ACTIONS.OPEN_CARD_DETAILS')"
       @click.stop="openDetails"
@@ -353,7 +353,7 @@ const openConversation = event => {
     <button
       type="button"
       data-testid="kanban-card-remove"
-      class="no-drag pointer-events-auto absolute top-2 ltr:right-2 rtl:left-2 flex size-7 items-center justify-center rounded-full border border-n-weak bg-n-solid-1 text-n-ruby-11 opacity-0 shadow transition-opacity hover:bg-n-ruby-3 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-n-ruby-9 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+      class="no-drag pointer-events-auto absolute top-2 ltr:right-2 rtl:left-2 flex p-0 size-7 items-center justify-center rounded-full border border-solid border-n-weak bg-n-solid-1 text-n-ruby-11 opacity-0 shadow transition-opacity hover:bg-n-ruby-3 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-n-ruby-9 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
       :aria-label="t('KANBAN.ACTIONS.REMOVE_CARD')"
       :title="t('KANBAN.ACTIONS.REMOVE_CARD')"
       :disabled="!!activeActionKey"
@@ -514,7 +514,7 @@ const openConversation = event => {
             v-if="hasConversation"
             type="button"
             data-testid="kanban-card-open-conversation"
-            class="no-drag flex size-7 items-center justify-center rounded-md text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+            class="no-drag flex p-0 size-7 items-center justify-center rounded-md text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
             :title="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
             @click.stop="openConversation"

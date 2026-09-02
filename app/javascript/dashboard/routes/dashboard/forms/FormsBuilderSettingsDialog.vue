@@ -144,7 +144,7 @@ defineExpose({ open, close });
           :key="tab.id"
           type="button"
           role="tab"
-          class="border-b-2 px-2 py-2.5 text-sm font-semibold outline-none transition"
+          class="border-solid border-b-2 px-2 py-2.5 text-sm font-semibold outline-none transition"
           :class="
             activeTab === tab.id
               ? 'border-n-slate-12 text-n-slate-12'
@@ -486,7 +486,7 @@ defineExpose({ open, close });
             <div class="flex items-center gap-2 border-t border-n-slate-4 pt-4">
               <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_UP')"
                 :title="t('FORMS.ACTIONS.MOVE_UP')"
                 :disabled="fieldIndex <= 0"
@@ -496,7 +496,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :title="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :disabled="fieldIndex < 0 || fieldIndex === fieldCount - 1"
@@ -572,7 +572,7 @@ defineExpose({ open, close });
             <div class="flex items-center gap-2 border-t border-n-slate-4 pt-4">
               <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_UP')"
                 :title="t('FORMS.ACTIONS.MOVE_UP')"
                 :disabled="sectionIndex <= 0"
@@ -583,7 +583,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :title="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :disabled="

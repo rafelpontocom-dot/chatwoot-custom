@@ -194,7 +194,7 @@ watch(
           <button
             type="button"
             data-test="forms-canvas-prev-section"
-            class="flex size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
+            class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
             :disabled="sectionIndex === 0"
             :aria-label="t('FORMS.CANVAS.PREV_SECTION')"
             @click="emit('selectSection', sectionIndex - 1)"
@@ -212,7 +212,7 @@ watch(
           <button
             type="button"
             data-test="forms-canvas-next-section"
-            class="flex size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
+            class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
             :disabled="sectionIndex >= sections.length - 1"
             :aria-label="t('FORMS.CANVAS.NEXT_SECTION')"
             @click="emit('selectSection', sectionIndex + 1)"
@@ -238,7 +238,7 @@ watch(
         <button
           type="button"
           data-test="forms-canvas-open-settings"
-          class="flex size-8 flex-shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+          class="flex p-0 size-8 flex-shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
           :aria-label="t('FORMS.CANVAS.ADVANCED')"
           :title="t('FORMS.CANVAS.ADVANCED')"
           @click="emit('openSettings')"
@@ -306,7 +306,7 @@ watch(
                   v-if="(field.options || []).length > 1"
                   type="button"
                   :data-test="`forms-canvas-remove-option-${index}`"
-                  class="flex size-6 flex-shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+                  class="flex p-0 size-6 flex-shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
                   :aria-label="t('FORMS.CANVAS.REMOVE_OPTION')"
                   @click="removeOption(index)"
                 >
@@ -378,7 +378,7 @@ watch(
           :key="option.value"
           type="button"
           :data-test="`forms-canvas-type-${option.value}`"
-          class="rounded-full border px-3 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+          class="rounded-full border border-solid px-3 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
           :class="
             field.type === option.value
               ? 'border-transparent bg-n-blue-3 font-semibold text-n-brand'
@@ -414,7 +414,7 @@ watch(
             :key="item.key"
             type="button"
             :data-test="`forms-canvas-rail-${index}`"
-            class="flex size-7 items-center justify-center rounded-full border text-xs tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="flex p-0 size-7 items-center justify-center rounded-full border border-solid text-xs tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
             :class="
               index === currentIndex
                 ? 'border-transparent bg-n-brand text-white'
@@ -436,7 +436,7 @@ watch(
             v-if="fields.length > 1"
             type="button"
             data-test="forms-canvas-move-up"
-            class="flex size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
+            class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
             :disabled="currentIndex === 0"
             :aria-label="t('FORMS.CANVAS.MOVE_UP')"
             :title="t('FORMS.CANVAS.MOVE_UP')"
@@ -448,7 +448,7 @@ watch(
             v-if="fields.length > 1"
             type="button"
             data-test="forms-canvas-move-down"
-            class="flex size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
+            class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:opacity-40"
             :disabled="currentIndex >= fields.length - 1"
             :aria-label="t('FORMS.CANVAS.MOVE_DOWN')"
             :title="t('FORMS.CANVAS.MOVE_DOWN')"
@@ -459,7 +459,7 @@ watch(
           <button
             type="button"
             data-test="forms-canvas-duplicate-question"
-            class="flex size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
             :aria-label="t('FORMS.CANVAS.DUPLICATE_QUESTION')"
             :title="t('FORMS.CANVAS.DUPLICATE_QUESTION')"
             @click="duplicateQuestion"
@@ -470,7 +470,7 @@ watch(
             v-if="fields.length > 1"
             type="button"
             data-test="forms-canvas-remove-question"
-            class="flex size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus-visible:ring-2 focus-visible:ring-n-brand"
             :aria-label="t('FORMS.CANVAS.REMOVE_QUESTION')"
             :title="t('FORMS.CANVAS.REMOVE_QUESTION')"
             @click="emit('removeField', field.key)"

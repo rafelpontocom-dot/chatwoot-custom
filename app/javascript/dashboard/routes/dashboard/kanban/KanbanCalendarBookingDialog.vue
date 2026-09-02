@@ -628,7 +628,7 @@ defineExpose({ open });
               :key="slot"
               type="button"
               data-testid="calendar-availability-slot"
-              class="rounded border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-12 outline-none hover:border-n-brand hover:text-n-brand focus:ring-2 focus:ring-n-brand/40"
+              class="rounded border border-solid border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-12 outline-none hover:border-n-brand hover:text-n-brand focus:ring-2 focus:ring-n-brand/40"
               @click="selectAvailabilitySlot(slot)"
             >
               {{ slotLabel(slot) }}

@@ -439,7 +439,7 @@ defineExpose({ open, openForReschedule });
                 :key="slot"
                 type="button"
                 data-testid="reschedule-available-slot"
-                class="rounded-md border border-n-weak bg-n-surface-1 px-2.5 py-1.5 text-sm text-n-slate-12 outline-none hover:border-n-brand hover:bg-n-brand/10 focus-visible:ring-2 focus-visible:ring-n-brand"
+                class="rounded-md border border-solid border-n-weak bg-n-surface-1 px-2.5 py-1.5 text-sm text-n-slate-12 outline-none hover:border-n-brand hover:bg-n-brand/10 focus-visible:ring-2 focus-visible:ring-n-brand"
                 @click="selectRescheduleSlot(slot)"
               >
                 {{ formatSlot(slot) }}

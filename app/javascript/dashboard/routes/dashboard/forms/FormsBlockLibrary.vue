@@ -184,7 +184,7 @@ defineExpose({ focusSearch });
               </button>
               <button
                 type="button"
-                class="inline-flex size-6 shrink-0 items-center justify-center rounded text-n-slate-10 transition hover:bg-n-ruby-2 hover:text-n-ruby-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6"
+                class="inline-flex p-0 size-6 shrink-0 items-center justify-center rounded text-n-slate-10 transition hover:bg-n-ruby-2 hover:text-n-ruby-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-ruby-6"
                 :aria-label="
                   t('FORMS.FIELD_GROUPS.DELETE', {
                     name: group.name,

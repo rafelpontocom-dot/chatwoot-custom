@@ -100,7 +100,7 @@ const removeEdge = () => {
       <button
         type="button"
         data-testid="kanban-workflow-edge-insert"
-        class="flex size-6 items-center justify-center rounded border border-n-weak bg-n-surface-1 text-n-brand hover:bg-n-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-6 items-center justify-center rounded border border-solid border-n-weak bg-n-surface-1 text-n-brand hover:bg-n-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="sourceNode?.data?.addAfterLabel"
         :title="sourceNode?.data?.addAfterLabel"
         @click.stop="insertAfter"
@@ -111,7 +111,7 @@ const removeEdge = () => {
         v-if="data.remove"
         type="button"
         data-testid="kanban-workflow-edge-remove"
-        class="flex size-6 items-center justify-center rounded border border-transparent text-n-slate-10 hover:border-n-ruby-6 hover:bg-n-ruby-2 hover:text-n-ruby-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-6 items-center justify-center rounded border border-transparent text-n-slate-10 hover:border-n-ruby-6 hover:bg-n-ruby-2 hover:text-n-ruby-11 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="data.removeLabel"
         :title="data.removeLabel"
         @click.stop="removeEdge"

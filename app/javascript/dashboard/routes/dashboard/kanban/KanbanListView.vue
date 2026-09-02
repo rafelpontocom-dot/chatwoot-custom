@@ -196,7 +196,7 @@ const lastActivity = card =>
           <button
             v-if="card.conversationId || card.conversation_id"
             type="button"
-            class="col-start-2 flex size-8 items-center justify-center self-end justify-self-end rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 md:col-auto md:self-auto"
+            class="col-start-2 flex p-0 size-8 items-center justify-center self-end justify-self-end rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 md:col-auto md:self-auto"
             :aria-label="t('KANBAN.LIST.OPEN')"
             :title="t('KANBAN.LIST.OPEN')"
             @click="emit('openConversation', card)"

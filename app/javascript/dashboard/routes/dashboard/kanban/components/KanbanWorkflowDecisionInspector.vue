@@ -61,7 +61,7 @@ const nodeHint = computed(() =>
           <button
             type="button"
             draggable="true"
-            class="hidden size-9 cursor-grab items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand active:cursor-grabbing sm:flex"
+            class="hidden p-0 size-9 cursor-grab items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 focus:outline-none focus:ring-2 focus:ring-n-brand active:cursor-grabbing sm:flex"
             :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DRAG_BRANCH')"
             @dragstart="emit('drag-start-branch', branchIndex)"
           >
@@ -78,7 +78,7 @@ const nodeHint = computed(() =>
             <button
               type="button"
               :data-testid="`kanban-workflow-move-branch-up-${branchIndex}`"
-              class="flex size-9 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+              class="flex p-0 size-9 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
               :aria-label="
                 t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MOVE_BRANCH_UP')
               "
@@ -90,7 +90,7 @@ const nodeHint = computed(() =>
             <button
               type="button"
               :data-testid="`kanban-workflow-move-branch-down-${branchIndex}`"
-              class="flex size-9 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+              class="flex p-0 size-9 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-1 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
               :aria-label="
                 t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MOVE_BRANCH_DOWN')
               "
@@ -101,7 +101,7 @@ const nodeHint = computed(() =>
             </button>
             <button
               type="button"
-              class="flex size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+              class="flex p-0 size-9 items-center justify-center rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
               :aria-label="
                 t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_BRANCH')
               "
@@ -189,7 +189,7 @@ const nodeHint = computed(() =>
           <span v-else />
           <button
             type="button"
-            class="flex size-9 items-center justify-center self-end rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+            class="flex p-0 size-9 items-center justify-center self-end rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
             :aria-label="
               t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_CONDITION')
             "
@@ -202,7 +202,7 @@ const nodeHint = computed(() =>
         <button
           type="button"
           data-testid="kanban-workflow-add-condition"
-          class="flex h-8 w-fit items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+          class="flex h-8 w-fit items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
           @click="emit('add-condition', branch)"
         >
           <i class="i-lucide-plus size-3.5" aria-hidden="true" />{{
@@ -213,7 +213,7 @@ const nodeHint = computed(() =>
       <button
         type="button"
         data-testid="kanban-workflow-add-branch"
-        class="flex h-8 w-fit items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex h-8 w-fit items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
         @click="emit('add-branch')"
       >
         <i class="i-lucide-plus size-3.5" aria-hidden="true" />{{
@@ -302,7 +302,7 @@ const nodeHint = computed(() =>
         <span v-else />
         <button
           type="button"
-          class="flex size-9 items-center justify-center self-end rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex p-0 size-9 items-center justify-center self-end rounded-md text-n-ruby-11 hover:bg-n-ruby-3 focus:outline-none focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-40"
           :aria-label="
             t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.REMOVE_CONDITION')
           "
@@ -315,7 +315,7 @@ const nodeHint = computed(() =>
       <button
         type="button"
         data-testid="kanban-workflow-add-filter-condition"
-        class="flex h-8 w-fit items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex h-8 w-fit items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-12 hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
         @click="emit('add-condition', data)"
       >
         <i class="i-lucide-plus size-3.5" aria-hidden="true" />{{

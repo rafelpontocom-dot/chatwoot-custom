@@ -2363,7 +2363,7 @@ onMounted(load);
               >
                 <button
                   type="button"
-                  class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                  class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
                   :aria-label="
                     t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_EMOJI')
                   "
@@ -2384,7 +2384,7 @@ onMounted(load);
               >
                 <button
                   type="button"
-                  class="flex size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                  class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
                   :aria-label="
                     t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSERT_VARIABLE')
                   "
@@ -2518,7 +2518,7 @@ onMounted(load);
           <button
             type="button"
             data-testid="kanban-automations-trigger-popover"
-            class="flex h-8 min-w-0 max-w-56 items-center gap-2 rounded-md border border-n-weak bg-n-surface-1 px-2.5 text-left text-xs text-n-slate-12 outline-none hover:bg-n-surface-2 focus:ring-2 focus:ring-n-brand"
+            class="flex h-8 min-w-0 max-w-56 items-center gap-2 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2.5 text-left text-xs text-n-slate-12 outline-none hover:bg-n-surface-2 focus:ring-2 focus:ring-n-brand"
           >
             <i
               class="i-lucide-zap size-4 shrink-0 text-n-brand"
@@ -2814,7 +2814,7 @@ onMounted(load);
           <button
             type="button"
             data-testid="kanban-automations-advanced-popover"
-            class="flex size-8 shrink-0 items-center justify-center rounded-md border border-n-weak bg-n-surface-1 text-n-slate-11 outline-none hover:bg-n-surface-2 focus:ring-2 focus:ring-n-brand"
+            class="flex p-0 size-8 shrink-0 items-center justify-center rounded-md border border-solid border-n-weak bg-n-surface-1 text-n-slate-11 outline-none hover:bg-n-surface-2 focus:ring-2 focus:ring-n-brand"
             :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ADVANCED')"
             :title="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.ADVANCED')"
           >
@@ -3162,7 +3162,7 @@ onMounted(load);
             v-for="template in automationTemplates"
             :key="template.id"
             type="button"
-            class="group grid min-h-[5.5rem] grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="group grid min-h-[5.5rem] grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-2 rounded-md border border-solid border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
             :data-testid="`kanban-automations-template-${template.id === 'nps-google-review' ? 'nps-google' : template.id}`"
             @click="openTemplate(template)"
           >
@@ -3188,7 +3188,7 @@ onMounted(load);
           <button
             type="button"
             data-testid="kanban-automations-template-birthday"
-            class="group grid min-h-[5.5rem] grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            class="group grid min-h-[5.5rem] grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-2 rounded-md border border-solid border-n-weak bg-n-surface-1 p-3 text-left transition-colors hover:border-n-brand hover:bg-n-surface-2 focus:outline-none focus:ring-2 focus:ring-n-brand"
             @click="openBirthdayAutomation"
           >
             <i
@@ -3311,7 +3311,7 @@ onMounted(load);
                 <button
                   type="button"
                   :data-testid="`kanban-automation-rule-${rule.id}`"
-                  class="flex size-7 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+                  class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-surface-2 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
                   :aria-label="t('KANBAN.SETTINGS.AUTOMATIONS.RULES.EDIT')"
                   @click="openRule(rule)"
                 >

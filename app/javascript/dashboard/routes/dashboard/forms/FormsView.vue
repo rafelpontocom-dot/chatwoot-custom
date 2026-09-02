@@ -1871,7 +1871,7 @@ onBeforeUnmount(() => {
             <div class="flex min-w-0 items-start gap-2">
               <button
                 type="button"
-                class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                class="mt-0.5 flex p-0 size-8 shrink-0 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
                 :aria-label="t('FORMS.ACTIONS.BACK_TO_LIST')"
                 :title="t('FORMS.ACTIONS.BACK_TO_LIST')"
                 data-test="forms-back-to-list"
@@ -2037,7 +2037,7 @@ onBeforeUnmount(() => {
                   <button
                     type="button"
                     data-test="forms-actions-menu"
-                    class="flex size-10 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+                    class="flex p-0 size-10 items-center justify-center rounded-full text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
                     :aria-label="t('FORMS.ACTIONS.MORE')"
                     :aria-expanded="showFormActionsMenu"
                     @click="showFormActionsMenu = !showFormActionsMenu"
@@ -2100,7 +2100,7 @@ onBeforeUnmount(() => {
                 </h3>
                 <button
                   type="button"
-                  class="inline-flex size-8 items-center justify-center rounded text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                  class="inline-flex p-0 size-8 items-center justify-center rounded text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
                   :aria-label="t('FORMS.BUILDER.ADD_SECTION')"
                   :title="t('FORMS.BUILDER.ADD_SECTION')"
                   @click="addSection"

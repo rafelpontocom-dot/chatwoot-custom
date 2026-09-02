@@ -133,7 +133,7 @@ const controls = [
         v-for="control in controls"
         :key="control.key"
         type="button"
-        class="inline-flex size-8 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+        class="inline-flex p-0 size-8 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
         :class="{
           'bg-n-teal-3 text-n-teal-11':
             (control.key === 'bold' && editor?.isActive('bold')) ||
@@ -184,7 +184,7 @@ const controls = [
       </button>
       <button
         type="button"
-        class="inline-flex size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+        class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
         :aria-label="t('FORMS.ACTIONS.CLOSE')"
         :title="t('FORMS.ACTIONS.CLOSE')"
         @click="closeLinkEditor"
