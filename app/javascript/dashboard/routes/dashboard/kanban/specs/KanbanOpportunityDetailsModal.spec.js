@@ -417,8 +417,28 @@ const descriptionInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-description"]');
 const amountInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-amount"]');
-const customFieldInput = (wrapper, key) =>
-  wrapper.find(`[data-testid="kanban-custom-field-${key}"]`);
+// Os campos personalizados passaram a usar o `RaevoFieldRow`, como os nativos:
+// a linha está em repouso e o controlo só existe depois de se carregar nela.
+// O ajudante abre a linha, para as asserções continuarem a falar de controlos.
+const contactInput = async (wrapper, key, testid) => {
+  const existente = wrapper.find(`[data-testid="${testid}"]`);
+  if (existente.exists()) return existente;
+
+  const linha = wrapper.find(`[data-testid="kanban-row-contact-${key}"]`);
+  if (linha.exists()) await linha.trigger('click');
+
+  return wrapper.find(`[data-testid="${testid}"]`);
+};
+
+const customFieldInput = async (wrapper, key) => {
+  const existente = wrapper.find(`[data-testid="kanban-custom-field-${key}"]`);
+  if (existente.exists()) return existente;
+
+  const linha = wrapper.find(`[data-testid="kanban-row-${key}"]`);
+  if (linha.exists()) await linha.trigger('click');
+
+  return wrapper.find(`[data-testid="kanban-custom-field-${key}"]`);
+};
 const startsAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-starts-at"]');
 const dueAtInput = wrapper =>
@@ -625,15 +645,17 @@ describe('KanbanOpportunityDetailsModal', () => {
       .trigger('click');
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-contact-email"]').element
-        .value
+      (await contactInput(wrapper, 'email', 'kanban-opportunity-contact-email'))
+        .element.value
     ).toBe('buyer@example.com');
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-contact-phone"]').element
-        .value
+      (await contactInput(wrapper, 'phone', 'kanban-opportunity-contact-phone'))
+        .element.value
     ).toBe('+55 62 99999-0000');
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-contact-name"]').exists()
+      (
+        await contactInput(wrapper, 'name', 'kanban-opportunity-contact-name')
+      ).exists()
     ).toBe(true);
   });
 
@@ -644,9 +666,9 @@ describe('KanbanOpportunityDetailsModal', () => {
     const wrapper = await mountModal();
 
     await openContactTab(wrapper);
-    await wrapper
-      .find('[data-testid="kanban-opportunity-contact-name"]')
-      .setValue('Acme Updated');
+    await (
+      await contactInput(wrapper, 'name', 'kanban-opportunity-contact-name')
+    ).setValue('Acme Updated');
     await wrapper
       .find('[data-testid="kanban-opportunity-save-contact"]')
       .trigger('click');
@@ -699,8 +721,13 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
 
     expect(contactDetails.classes()).toContain('grid');
+    // O contacto usa a mesma linha dos restantes campos: o valor lê-se em
+    // repouso, e o controlo só existe depois de se abrir a linha.
     expect(
-      contactDetails.find('[data-testid="kanban-opportunity-contact-email"]')
+      wrapper.find('[data-testid="kanban-row-contact-email"]').text()
+    ).toContain('contato-com-endereco-muito-longo@example.com');
+    expect(
+      (await contactInput(wrapper, 'email', 'kanban-opportunity-contact-email'))
         .element.value
     ).toBe('contato-com-endereco-muito-longo@example.com');
   });
@@ -1030,12 +1057,12 @@ describe('KanbanOpportunityDetailsModal', () => {
     const wrapper = await mountModal();
 
     expect(wrapper.text()).not.toContain('Custom fields');
-    expect(customFieldInput(wrapper, 'consulta_realizada').element.value).toBe(
-      'Sim'
-    );
-    expect(customFieldInput(wrapper, 'observacao_venda').element.value).toBe(
-      'Cliente quer fechar no WhatsApp'
-    );
+    expect(
+      (await customFieldInput(wrapper, 'consulta_realizada')).element.value
+    ).toBe('Sim');
+    expect(
+      (await customFieldInput(wrapper, 'observacao_venda')).element.value
+    ).toBe('Cliente quer fechar no WhatsApp');
   });
 
   it('organizes custom fields in tabs using their configured section', async () => {
@@ -1068,15 +1095,19 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper.find('[data-testid="kanban-opportunity-tab-marketing"]').text()
     ).toContain('Marketing');
-    expect(customFieldInput(wrapper, 'qualificacao').exists()).toBe(true);
-    expect(customFieldInput(wrapper, 'gclid').exists()).toBe(false);
+    expect((await customFieldInput(wrapper, 'qualificacao')).exists()).toBe(
+      true
+    );
+    expect((await customFieldInput(wrapper, 'gclid')).exists()).toBe(false);
 
     await wrapper
       .find('[data-testid="kanban-opportunity-tab-marketing"]')
       .trigger('click');
 
-    expect(customFieldInput(wrapper, 'qualificacao').exists()).toBe(false);
-    expect(customFieldInput(wrapper, 'gclid').element.value).toBe(
+    expect((await customFieldInput(wrapper, 'qualificacao')).exists()).toBe(
+      false
+    );
+    expect((await customFieldInput(wrapper, 'gclid')).element.value).toBe(
       'google-click-123'
     );
   });
@@ -1110,7 +1141,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
     expect(group.text()).toContain('Agenda');
     expect(group.classes()).toContain('border-l-2');
-    expect(group.find('label').classes()).toContain('grid-cols-[9rem_1fr]');
+    // A linha do campo personalizado é a mesma dos nativos: um só tratamento
+    // de campo no painel, em vez de uma grelha própria por tipo de campo.
+    expect(
+      group.findAll('[data-testid="raevo-field-row"]').length
+    ).toBeGreaterThan(0);
   });
 
   it('uses a configurable Financeiro tab for a financial workflow, not one tab per field', async () => {
@@ -1157,12 +1192,12 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
     expect(customFields.text()).toContain('Como será pago?');
     expect(customFields.text()).toContain('O pagamento aconteceu?');
-    expect(customFieldInput(wrapper, 'forma_pagamento').element.value).toBe(
-      'Pix'
-    );
-    expect(customFieldInput(wrapper, 'data_pagamento').element.value).toBe(
-      '2026-08-11'
-    );
+    expect(
+      (await customFieldInput(wrapper, 'forma_pagamento')).element.value
+    ).toBe('Pix');
+    expect(
+      (await customFieldInput(wrapper, 'data_pagamento')).element.value
+    ).toBe('2026-08-11');
   });
 
   it('loads next action fields', async () => {
@@ -1279,10 +1314,12 @@ describe('KanbanOpportunityDetailsModal', () => {
     await abrirLinhas(wrapper);
 
     await amountInput(wrapper).setValue('199.90');
-    await customFieldInput(wrapper, 'consulta_realizada').setValue('Não');
-    await customFieldInput(wrapper, 'observacao_venda').setValue(
-      'Fechamento sem reunião'
-    );
+    await (
+      await customFieldInput(wrapper, 'consulta_realizada')
+    ).setValue('Não');
+    await (
+      await customFieldInput(wrapper, 'observacao_venda')
+    ).setValue('Fechamento sem reunião');
     await wrapper.find('form').trigger('submit');
     await flushPromises();
 
@@ -1377,11 +1414,15 @@ describe('KanbanOpportunityDetailsModal', () => {
       ],
     });
 
-    expect(customFieldInput(wrapper, 'prioridade').attributes('type')).toBe(
-      'checkbox'
+    expect(
+      (await customFieldInput(wrapper, 'prioridade')).attributes('type')
+    ).toBe('checkbox');
+    expect(
+      (await customFieldInput(wrapper, 'prioridade')).element.checked
+    ).toBe(true);
+    expect((await customFieldInput(wrapper, 'produtos')).element.multiple).toBe(
+      true
     );
-    expect(customFieldInput(wrapper, 'prioridade').element.checked).toBe(true);
-    expect(customFieldInput(wrapper, 'produtos').element.multiple).toBe(true);
   });
 
   it('shows a conditional field when a boolean source is false', async () => {
@@ -1398,8 +1439,10 @@ describe('KanbanOpportunityDetailsModal', () => {
       ],
     });
 
-    expect(customFieldInput(wrapper, 'aceitou').element.checked).toBe(false);
-    expect(customFieldInput(wrapper, 'motivo').exists()).toBe(true);
+    expect((await customFieldInput(wrapper, 'aceitou')).element.checked).toBe(
+      false
+    );
+    expect((await customFieldInput(wrapper, 'motivo')).exists()).toBe(true);
   });
 
   it('renders the recent next action history', async () => {
@@ -1653,8 +1696,8 @@ describe('KanbanOpportunityDetailsModal', () => {
       .trigger('click');
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-contact-name"]').element
-        .value
+      (await contactInput(wrapper, 'name', 'kanban-opportunity-contact-name'))
+        .element.value
     ).toBe('Acme Buyer');
   });
 

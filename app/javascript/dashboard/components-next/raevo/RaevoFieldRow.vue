@@ -99,7 +99,12 @@ defineExpose({ abrir, fechar });
       :aria-label="t('RAEVO.FIELD_ROW.EDIT', { field: label })"
       @click="abrir"
     >
-      <span class="pt-0.5 text-xs leading-5 text-n-slate-11">
+      <!--
+        Rótulo e valor no mesmo degrau da escala. O valor desenhava a 14px e o
+        rótulo a 12px: o valor pesava mais do que a pergunta a que responde, e a
+        linha lia-se ao contrário. A hierarquia fica na cor, não no tamanho.
+      -->
+      <span class="text-sm leading-5 text-n-slate-11">
         {{ label }}
       </span>
       <span

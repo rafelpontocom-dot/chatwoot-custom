@@ -683,6 +683,35 @@ const hasCustomFields = computed(
 );
 const getCustomFieldValue = definition =>
   customFieldValues.value[definition.key] ?? '';
+
+/**
+ * O valor como se lê, para a linha em repouso.
+ *
+ * Os campos personalizados desenhavam uma linha só deles — rótulo de 9rem,
+ * outro espaçamento, sempre em edição — enquanto os nativos usavam o
+ * `RaevoFieldRow`. Duas linhas diferentes para a mesma coisa no mesmo painel.
+ */
+const customFieldDisplayValue = definition => {
+  const valor = getCustomFieldValue(definition);
+
+  if (definition.fieldType === 'boolean') {
+    return valor
+      ? t('KANBAN.OPPORTUNITY_DETAILS.BOOLEAN_YES')
+      : t('KANBAN.OPPORTUNITY_DETAILS.BOOLEAN_NO');
+  }
+  if (Array.isArray(valor)) return valor.join(', ');
+
+  return valor === '' || valor === null || valor === undefined
+    ? ''
+    : String(valor);
+};
+
+const customFieldRowVariant = definition => {
+  if (['select', 'multiselect'].includes(definition.fieldType)) return 'select';
+  if (definition.fieldType === 'textarea') return 'textarea';
+
+  return 'input';
+};
 const setCustomFieldValue = (definition, value) => {
   customFieldValues.value = {
     ...customFieldValues.value,
@@ -1938,47 +1967,48 @@ watch(invitationPendingRevocation, async invitation => {
                     esquerda, controlo à direita — para o diálogo deixar de ter
                     três tratamentos de campo.
                   -->
-                  <label
+                  <RaevoFieldRow
                     v-for="detail in contactDetails"
                     :key="detail.key"
-                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
+                    :row-testid="`kanban-row-contact-${detail.key}`"
+                    :label="detail.label"
+                    :value="detail.value || ''"
                   >
-                    <span class="min-w-0 break-words text-xs text-n-slate-11">
-                      {{ detail.label }}
-                    </span>
-                    <input
-                      v-if="detail.key === 'name'"
-                      v-model="contactDraft.name"
-                      data-testid="kanban-opportunity-contact-name"
-                      type="text"
-                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm font-medium text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="detail.label"
-                    />
-                    <input
-                      v-else-if="detail.key === 'phone'"
-                      v-model="contactDraft.phone_number"
-                      data-testid="kanban-opportunity-contact-phone"
-                      type="tel"
-                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="detail.label"
-                    />
-                    <input
-                      v-else-if="detail.key === 'email'"
-                      v-model="contactDraft.email"
-                      data-testid="kanban-opportunity-contact-email"
-                      type="email"
-                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="detail.label"
-                    />
-                    <input
-                      v-else
-                      v-model="contactDraft.identifier"
-                      data-testid="kanban-opportunity-contact-identifier"
-                      type="text"
-                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="detail.label"
-                    />
-                  </label>
+                    <template #control="{ controlClass }">
+                      <input
+                        v-if="detail.key === 'name'"
+                        v-model="contactDraft.name"
+                        data-testid="kanban-opportunity-contact-name"
+                        type="text"
+                        :class="controlClass"
+                        :aria-label="detail.label"
+                      />
+                      <input
+                        v-else-if="detail.key === 'phone'"
+                        v-model="contactDraft.phone_number"
+                        data-testid="kanban-opportunity-contact-phone"
+                        type="tel"
+                        :class="controlClass"
+                        :aria-label="detail.label"
+                      />
+                      <input
+                        v-else-if="detail.key === 'email'"
+                        v-model="contactDraft.email"
+                        data-testid="kanban-opportunity-contact-email"
+                        type="email"
+                        :class="controlClass"
+                        :aria-label="detail.label"
+                      />
+                      <input
+                        v-else
+                        v-model="contactDraft.identifier"
+                        data-testid="kanban-opportunity-contact-identifier"
+                        type="text"
+                        :class="controlClass"
+                        :aria-label="detail.label"
+                      />
+                    </template>
+                  </RaevoFieldRow>
                 </div>
                 <p
                   v-if="contactSaveError"
@@ -1996,40 +2026,44 @@ watch(invitationPendingRevocation, async invitation => {
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
                 </h3>
                 <div class="grid gap-1">
-                  <label
+                  <RaevoFieldRow
                     v-for="entry in contactAttributeEntries"
                     :key="`${entry.source}-${entry.key}`"
-                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
+                    :row-testid="`kanban-row-attr-${entry.key}`"
+                    :label="formatContactAttributeLabel(entry.key)"
+                    :value="formatContactAttributeValue(entry.value)"
                   >
-                    <span class="min-w-0 break-words text-xs text-n-slate-11">
-                      {{ formatContactAttributeLabel(entry.key) }}
-                    </span>
-                    <input
-                      v-if="typeof entry.value !== 'boolean'"
-                      :value="formatContactAttributeValue(entry.value)"
-                      type="text"
-                      class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="formatContactAttributeLabel(entry.key)"
-                      @input="
-                        setContactAttributeValue(entry, $event.target.value)
-                      "
-                    />
-                    <span
-                      v-else
-                      class="flex h-8 items-center gap-2 text-sm text-n-slate-12"
-                    >
+                    <template #control="{ controlClass }">
                       <input
-                        :checked="entry.value"
-                        type="checkbox"
-                        class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                        v-if="typeof entry.value !== 'boolean'"
+                        :value="formatContactAttributeValue(entry.value)"
+                        type="text"
+                        :class="controlClass"
                         :aria-label="formatContactAttributeLabel(entry.key)"
-                        @change="
-                          setContactAttributeValue(entry, $event.target.checked)
+                        @input="
+                          setContactAttributeValue(entry, $event.target.value)
                         "
                       />
-                      {{ formatContactAttributeLabel(entry.key) }}
-                    </span>
-                  </label>
+                      <span
+                        v-else
+                        class="flex h-8 items-center gap-2 text-sm text-n-slate-12"
+                      >
+                        <input
+                          :checked="entry.value"
+                          type="checkbox"
+                          class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                          :aria-label="formatContactAttributeLabel(entry.key)"
+                          @change="
+                            setContactAttributeValue(
+                              entry,
+                              $event.target.checked
+                            )
+                          "
+                        />
+                        {{ formatContactAttributeLabel(entry.key) }}
+                      </span>
+                    </template>
+                  </RaevoFieldRow>
                 </div>
               </section>
             </section>
@@ -2542,127 +2576,136 @@ watch(invitationPendingRevocation, async invitation => {
                     "
                     class="grid"
                   >
-                    <label
+                    <!--
+                      Uma linha só, em todo o painel. Os campos personalizados
+                      desenhavam a sua própria — rótulo de 9rem, outro
+                      espaçamento, sempre em edição — enquanto os nativos usavam
+                      o `RaevoFieldRow`. Passam ao mesmo componente, e com ele
+                      ganham o mesmo repouso e a mesma entrada em edição.
+                    -->
+                    <RaevoFieldRow
                       v-for="definition in group.definitions"
                       :key="definition.key"
-                      class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
+                      :row-testid="`kanban-row-${definition.key}`"
+                      :label="definition.label"
+                      :value="customFieldDisplayValue(definition)"
+                      :variant="customFieldRowVariant(definition)"
                     >
-                      <span class="min-w-0 text-xs text-n-slate-11">
-                        {{ definition.label }}
-                        <i
-                          v-if="definition.important"
-                          class="i-lucide-asterisk ml-1 inline-block size-3 text-n-amber-11"
-                          :title="
-                            t('KANBAN.OPPORTUNITY_DETAILS.IMPORTANT_FIELD')
+                      <template #control="{ controlClass, fieldId }">
+                        <select
+                          v-if="definition.fieldType === 'select'"
+                          :id="fieldId"
+                          :value="getCustomFieldValue(definition)"
+                          :data-testid="`kanban-custom-field-${definition.key}`"
+                          :class="controlClass"
+                          :aria-label="definition.label"
+                          @change="
+                            setCustomFieldValue(definition, $event.target.value)
+                          "
+                        >
+                          <!--
+                              A opção vazia mostrava o rótulo do campo, e a linha
+                              lia-se «Consulta realizada? | Consulta realizada?» —
+                              impossível distinguir por preencher de preenchido.
+                            -->
+                          <option value="">
+                            {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY') }}
+                          </option>
+                          <option
+                            v-for="option in definition.options || []"
+                            :key="option"
+                            :value="option"
+                          >
+                            {{ option }}
+                          </option>
+                        </select>
+
+                        <select
+                          v-else-if="definition.fieldType === 'multiselect'"
+                          :id="fieldId"
+                          multiple
+                          :value="getCustomFieldValue(definition)"
+                          :data-testid="`kanban-custom-field-${definition.key}`"
+                          :class="controlClass"
+                          :aria-label="definition.label"
+                          @change="
+                            setCustomFieldValue(
+                              definition,
+                              selectedMultiselectValues($event)
+                            )
+                          "
+                        >
+                          <option
+                            v-for="option in definition.options || []"
+                            :key="option"
+                            :value="option"
+                          >
+                            {{ option }}
+                          </option>
+                        </select>
+
+                        <textarea
+                          v-else-if="definition.fieldType === 'textarea'"
+                          :id="fieldId"
+                          :value="getCustomFieldValue(definition)"
+                          rows="3"
+                          :data-testid="`kanban-custom-field-${definition.key}`"
+                          :class="controlClass"
+                          :aria-label="definition.label"
+                          @input="
+                            setCustomFieldValue(definition, $event.target.value)
                           "
                         />
-                      </span>
 
-                      <select
-                        v-if="definition.fieldType === 'select'"
-                        :value="getCustomFieldValue(definition)"
-                        :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
-                        :aria-label="definition.label"
-                        @change="
-                          setCustomFieldValue(definition, $event.target.value)
-                        "
-                      >
-                        <!--
-                          A opção vazia mostrava o rótulo do campo, e a linha
-                          lia-se «Consulta realizada? | Consulta realizada?» —
-                          impossível distinguir por preencher de preenchido.
-                        -->
-                        <option value="">
-                          {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY') }}
-                        </option>
-                        <option
-                          v-for="option in definition.options || []"
-                          :key="option"
-                          :value="option"
-                        >
-                          {{ option }}
-                        </option>
-                      </select>
+                        <input
+                          v-else-if="definition.fieldType === 'boolean'"
+                          :id="fieldId"
+                          type="checkbox"
+                          :checked="Boolean(getCustomFieldValue(definition))"
+                          :data-testid="`kanban-custom-field-${definition.key}`"
+                          class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                          :aria-label="definition.label"
+                          @change="
+                            setCustomFieldValue(
+                              definition,
+                              $event.target.checked
+                            )
+                          "
+                        />
 
-                      <select
-                        v-else-if="definition.fieldType === 'multiselect'"
-                        multiple
-                        :value="getCustomFieldValue(definition)"
-                        :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="min-h-16 min-w-0 border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
-                        :aria-label="definition.label"
-                        @change="
-                          setCustomFieldValue(
-                            definition,
-                            selectedMultiselectValues($event)
-                          )
-                        "
-                      >
-                        <option
-                          v-for="option in definition.options || []"
-                          :key="option"
-                          :value="option"
-                        >
-                          {{ option }}
-                        </option>
-                      </select>
-
-                      <textarea
-                        v-else-if="definition.fieldType === 'textarea'"
-                        :value="getCustomFieldValue(definition)"
-                        rows="3"
-                        :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="min-h-16 min-w-0 resize-y border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
-                        :aria-label="definition.label"
-                        @input="
-                          setCustomFieldValue(definition, $event.target.value)
-                        "
-                      />
-
-                      <input
-                        v-else-if="definition.fieldType === 'boolean'"
-                        type="checkbox"
-                        :checked="Boolean(getCustomFieldValue(definition))"
-                        :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                        :aria-label="definition.label"
-                        @change="
-                          setCustomFieldValue(definition, $event.target.checked)
-                        "
-                      />
-
-                      <input
-                        v-else
-                        :value="getCustomFieldValue(definition)"
-                        :type="
-                          definition.fieldType === 'integer' ||
-                          definition.fieldType === 'decimal' ||
-                          definition.fieldType === 'currency' ||
-                          definition.fieldType === 'formula'
-                            ? 'number'
-                            : definition.fieldType === 'date'
-                              ? 'date'
-                              : definition.fieldType === 'datetime'
-                                ? 'datetime-local'
-                                : definition.fieldType === 'url'
-                                  ? 'url'
-                                  : 'text'
-                        "
-                        :step="
-                          definition.fieldType === 'decimal'
-                            ? '0.01'
-                            : undefined
-                        "
-                        :disabled="definition.fieldType === 'formula'"
-                        :data-testid="`kanban-custom-field-${definition.key}`"
-                        class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:ring-2 focus:ring-n-brand/40"
-                        :aria-label="definition.label"
-                        @input="
-                          setCustomFieldValue(definition, $event.target.value)
-                        "
-                      />
-                    </label>
+                        <input
+                          v-else
+                          :id="fieldId"
+                          :value="getCustomFieldValue(definition)"
+                          :type="
+                            definition.fieldType === 'integer' ||
+                            definition.fieldType === 'decimal' ||
+                            definition.fieldType === 'currency' ||
+                            definition.fieldType === 'formula'
+                              ? 'number'
+                              : definition.fieldType === 'date'
+                                ? 'date'
+                                : definition.fieldType === 'datetime'
+                                  ? 'datetime-local'
+                                  : definition.fieldType === 'url'
+                                    ? 'url'
+                                    : 'text'
+                          "
+                          :step="
+                            definition.fieldType === 'decimal'
+                              ? '0.01'
+                              : undefined
+                          "
+                          :disabled="definition.fieldType === 'formula'"
+                          :data-testid="`kanban-custom-field-${definition.key}`"
+                          class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:ring-2 focus:ring-n-brand/40"
+                          :aria-label="definition.label"
+                          @input="
+                            setCustomFieldValue(definition, $event.target.value)
+                          "
+                        />
+                      </template>
+                    </RaevoFieldRow>
                   </div>
                 </section>
               </div>

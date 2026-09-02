@@ -1452,7 +1452,9 @@
         "SAVE_ERROR": "Não foi possível atualizar a cadência de follow-up."
       },
       "OWNER_NONE": "Sem responsável",
-      "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança."
+      "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança.",
+      "BOOLEAN_YES": "Sim",
+      "BOOLEAN_NO": "Não"
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",

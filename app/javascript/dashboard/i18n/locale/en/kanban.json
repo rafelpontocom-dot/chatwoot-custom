@@ -1449,7 +1449,9 @@
         "SAVE_ERROR": "Could not update the follow-up cadence."
       },
       "OWNER_NONE": "No owner",
-      "FIELD_AMOUNT_HINT": "Sale forecast, not the charge."
+      "FIELD_AMOUNT_HINT": "Sale forecast, not the charge.",
+      "BOOLEAN_YES": "Yes",
+      "BOOLEAN_NO": "No"
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",
