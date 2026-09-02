@@ -82,6 +82,14 @@
         "PLACEHOLDER": "Your account name",
         "ERROR": ""
       },
+      "CURRENCY": {
+        "LABEL": "Currency",
+        "PLACEHOLDER": "Use the default (BRL)"
+      },
+      "TIMEZONE": {
+        "LABEL": "Time zone",
+        "PLACEHOLDER": "Use the server time zone"
+      },
       "DOMAIN": {
         "LABEL": "Incoming Email Domain",
         "PLACEHOLDER": "The domain where you will receive the emails",

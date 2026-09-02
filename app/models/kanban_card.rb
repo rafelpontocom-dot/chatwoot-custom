@@ -509,11 +509,28 @@ class KanbanCard < ApplicationRecord
     self.description = nil if description.blank?
   end
 
+  def inherit_account_currency?
+    return true if amount_currency.blank?
+
+    new_record? && !amount_currency_changed?
+  end
+
+  def account_default_currency
+    account&.currency.presence || 'BRL'
+  end
+
   def normalize_blank_sales_fields
     self.next_action_type = nil if next_action_type.blank?
     self.next_action_note = nil if next_action_note.blank?
     self.lost_reason = nil if lost_reason.blank?
-    self.amount_currency = 'BRL' if amount_currency.blank?
+    # A moeda vem da conta. Estava cozida a 'BRL': uma clínica em Portugal
+    # gravava euros e via-os apresentados com cifrão brasileiro, e não havia
+    # por onde mudar. Quem formata pergunta ao servidor, não adivinha.
+    #
+    # O `default` da coluna chega antes deste callback, por isso um cartão novo
+    # nunca tem a moeda em branco: só se herda da conta enquanto ninguém a
+    # escolheu, e um cartão já gravado mantém a que tem.
+    self.amount_currency = account_default_currency if inherit_account_currency?
     self.custom_field_values = normalized_custom_field_values
   end
 

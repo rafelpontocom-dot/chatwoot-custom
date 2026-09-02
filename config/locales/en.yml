@@ -59,6 +59,8 @@ en:
     account:
       reporting_timezone:
         invalid: is not a valid timezone
+      currency:
+        invalid: is not a supported currency
       support_email:
         invalid: is not a valid email address
     validations:

@@ -42,6 +42,8 @@ export default {
       id: '',
       name: '',
       locale: 'en',
+      currency: '',
+      reportingTimezone: '',
       domain: '',
       supportEmail: '',
       features: {},
@@ -56,6 +58,27 @@ export default {
     },
   },
   computed: {
+    // Poucas e reais. A lista longa de moedas do mundo faria a secretária
+    // procurar a sua no meio de cento e tal.
+    currencyOptions() {
+      return [
+        { value: 'BRL', label: 'BRL — R$' },
+        { value: 'EUR', label: 'EUR — €' },
+        { value: 'USD', label: 'USD — $' },
+        { value: 'GBP', label: 'GBP — £' },
+      ];
+    },
+    timezoneOptions() {
+      return [
+        'America/Sao_Paulo',
+        'America/Fortaleza',
+        'America/Manaus',
+        'Europe/Lisbon',
+        'Europe/Madrid',
+        'Europe/London',
+        'UTC',
+      ];
+    },
     ...mapGetters({
       getAccount: 'accounts/getAccount',
       uiFlags: 'accounts/getUIFlags',
@@ -119,6 +142,11 @@ export default {
         }
         this.name = name;
         this.locale = locale;
+        // Vivem em `account.settings`, com o resto do que a conta configura.
+        const definicoes =
+          (this.getAccount(this.accountId) || {}).settings || {};
+        this.currency = definicoes.currency || '';
+        this.reportingTimezone = definicoes.reporting_timezone || '';
         this.id = id;
         this.domain = domain;
         this.supportEmail = support_email;
@@ -140,6 +168,8 @@ export default {
           name: this.name,
           domain: this.domain,
           support_email: this.supportEmail,
+          currency: this.currency,
+          reporting_timezone: this.reportingTimezone,
         });
         // If user locale is set, update the locale with user locale
         const updatedLocale = this.uiSettings?.locale || this.locale;
@@ -197,6 +227,49 @@ export default {
                 :value="lang.iso_639_1_code"
               >
                 {{ lang.name }}
+              </option>
+            </select>
+          </WithLabel>
+          <!--
+            Moeda e fuso ao lado do idioma: é o sítio onde já se define como a
+            conta fala. O fuso já era lido pelos lembretes e pelos relatórios,
+            mas não havia por onde o definir.
+          -->
+          <WithLabel
+            name="currency"
+            :label="$t('GENERAL_SETTINGS.FORM.CURRENCY.LABEL')"
+          >
+            <select
+              v-model="currency"
+              data-testid="account-currency"
+              class="!mb-0 text-sm"
+            >
+              <option value="">
+                {{ $t('GENERAL_SETTINGS.FORM.CURRENCY.PLACEHOLDER') }}
+              </option>
+              <option
+                v-for="option in currencyOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </WithLabel>
+          <WithLabel
+            name="reporting-timezone"
+            :label="$t('GENERAL_SETTINGS.FORM.TIMEZONE.LABEL')"
+          >
+            <select
+              v-model="reportingTimezone"
+              data-testid="account-reporting-timezone"
+              class="!mb-0 text-sm"
+            >
+              <option value="">
+                {{ $t('GENERAL_SETTINGS.FORM.TIMEZONE.PLACEHOLDER') }}
+              </option>
+              <option v-for="zona in timezoneOptions" :key="zona" :value="zona">
+                {{ zona }}
               </option>
             </select>
           </WithLabel>

@@ -17,6 +17,7 @@ import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
 import FormsInvitationDialog from '../forms/FormsInvitationDialog.vue';
 import FormsSubmissionDetailsDialog from '../forms/FormsSubmissionDetailsDialog.vue';
+import { useAccountCurrency } from 'dashboard/composables/useAccountCurrency';
 
 const props = defineProps({
   boardId: {
@@ -114,7 +115,8 @@ const description = ref('');
 const ownerId = ref('');
 const stageId = ref('');
 const amountValue = ref('');
-const amountCurrency = ref('BRL');
+const { currency: accountCurrency } = useAccountCurrency();
+const amountCurrency = ref('');
 const expectedCloseDate = ref('');
 const customFieldValues = ref({});
 const timeline = ref([]);
@@ -245,7 +247,8 @@ const financeSummary = computed(() => {
       (total, payment) => total + Number(payment.amount_cents || 0),
       0
     ),
-    currency: latestPayment?.currency || amountCurrency.value || 'BRL',
+    currency:
+      latestPayment?.currency || amountCurrency.value || accountCurrency.value,
     latestReceivedAt,
   };
 });
@@ -374,7 +377,7 @@ const amountDisplay = computed(() => {
   if (Number.isNaN(n)) return bruto;
   return new Intl.NumberFormat(undefined, {
     style: 'currency',
-    currency: amountCurrency.value || 'BRL',
+    currency: amountCurrency.value || accountCurrency.value,
   }).format(n);
 });
 const selectableLostReasonOptions = computed(() => {
@@ -788,7 +791,7 @@ const setFormState = payload => {
     ? String(card.value.kanbanStageId)
     : '';
   amountValue.value = formatAmountInput(card.value.amountCents);
-  amountCurrency.value = card.value.amountCurrency || 'BRL';
+  amountCurrency.value = card.value.amountCurrency || accountCurrency.value;
   expectedCloseDate.value = card.value.expectedCloseDate || '';
   customFieldValues.value = card.value.customFieldValues || {};
   startsAt.value = formatDateTimeInput(card.value.startsAt);
@@ -1051,7 +1054,7 @@ const copyFinancePaymentLink = async payment => {
 const formatFinanceAmount = (amountCents, currency) =>
   new Intl.NumberFormat(undefined, {
     style: 'currency',
-    currency: currency || 'BRL',
+    currency: currency || accountCurrency.value,
   }).format(Number(amountCents || 0) / 100);
 
 const formatFinanceDate = value => {
@@ -1108,7 +1111,7 @@ const buildCardPayload = extraPayload => ({
   owner_id: ownerId.value ? Number(ownerId.value) : null,
   kanban_stage_id: stageId.value ? Number(stageId.value) : null,
   amount_cents: toAmountCents(amountValue.value),
-  amount_currency: amountCurrency.value || 'BRL',
+  amount_currency: amountCurrency.value || accountCurrency.value,
   expected_close_date: expectedCloseDate.value || null,
   custom_field_values: customFieldValues.value,
   starts_at: toIso8601(startsAt.value),

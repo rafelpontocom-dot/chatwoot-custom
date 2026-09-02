@@ -3,6 +3,8 @@ import KanbanConversationCard from '../KanbanConversationCard.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
+    // O formato do dinheiro segue a língua da aplicação, não a do browser.
+    locale: { value: 'pt_BR' },
     t: (key, arg = {}, extra = {}) => {
       const values = typeof arg === 'number' ? { count: arg, ...extra } : arg;
       const translations = {

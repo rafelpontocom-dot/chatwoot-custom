@@ -52,7 +52,11 @@ class Account < ApplicationRecord
 
   store_accessor :settings, :audio_transcriptions, :auto_resolve_label
   store_accessor :settings, :captain_models, :captain_features
-  store_accessor :settings, :reporting_timezone
+  # A moeda da conta. Um consultório tem uma; Portugal em EUR e Brasil em BRL
+  # são contas diferentes, não funis diferentes — por isso vive aqui e não no
+  # funil. O fuso já existia e já era lido em três sítios, mas não havia por
+  # onde o definir.
+  store_accessor :settings, :reporting_timezone, :currency
   store_accessor :settings, :keep_pending_on_bot_failure
   store_accessor :settings, :captain_auto_resolve_mode, :captain_false_promise_harness_enabled
   include AccountCaptainAutoResolve

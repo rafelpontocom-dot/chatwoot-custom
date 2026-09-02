@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { intlLocale } from 'dashboard/composables/useAccountCurrency';
 import { useStore } from 'dashboard/composables/store';
 import { format } from 'date-fns';
 import { CONVERSATION_PRIORITY } from 'shared/constants/messages';
@@ -37,7 +38,7 @@ const emit = defineEmits([
  */
 const COMPACT_FIELD_LIMIT = 3;
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useStore();
 
 const conversation = computed(() => props.card.conversation || {});
@@ -204,7 +205,7 @@ const amountLabel = computed(() => {
     return '';
   }
 
-  return new Intl.NumberFormat('pt-BR', {
+  return new Intl.NumberFormat(intlLocale(locale.value), {
     style: 'currency',
     currency: amountCurrency.value,
   }).format(Number(amountCents.value) / 100);
