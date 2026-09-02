@@ -1589,7 +1589,11 @@
       "SUBMIT": "Import",
       "QUEUED": "Import started.",
       "QUEUED_HELP": "It runs in the background. Rows that could not be imported come back in a file with the reason for each one.",
-      "ERROR_GENERIC": "The import could not be started."
+      "ERROR_GENERIC": "The import could not be started.",
+      "DONE": "{imported} of {total} rows imported",
+      "FAILED": "The import could not be finished.",
+      "DOWNLOAD_FAILED": "Download the rows that did not import",
+      "PREVIEW": "First rows of the file"
     }
   }
 }

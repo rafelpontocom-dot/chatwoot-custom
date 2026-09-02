@@ -1592,7 +1592,11 @@
       "SUBMIT": "Importar",
       "QUEUED": "Importação iniciada.",
       "QUEUED_HELP": "Roda em segundo plano. As linhas que não entraram voltam em um arquivo com o motivo de cada uma.",
-      "ERROR_GENERIC": "Não foi possível iniciar a importação."
+      "ERROR_GENERIC": "Não foi possível iniciar a importação.",
+      "DONE": "{imported} de {total} linhas importadas",
+      "FAILED": "A importação não chegou ao fim.",
+      "DOWNLOAD_FAILED": "Baixar as linhas que não entraram",
+      "PREVIEW": "Primeiras linhas do arquivo"
     }
   }
 }
