@@ -76,6 +76,39 @@ describe('RaevoFieldRow', () => {
     wrapper.unmount();
   });
 
+  it('survives the focusout its own opening causes', async () => {
+    const wrapper = montar({ value: '480,00' });
+
+    // Sem `await`: o `focusout` tem de chegar no meio da abertura, que é
+    // quando o navegador o dispara — a destruição do botão que se acabou de
+    // carregar. Depois de a abertura terminar já é outro caso.
+    const clique = wrapper
+      .find('[data-testid="raevo-field-row-read"]')
+      .trigger('click');
+    wrapper
+      .find('[data-testid="raevo-field-row"]')
+      .element.dispatchEvent(
+        new FocusEvent('focusout', { bubbles: true, relatedTarget: null })
+      );
+    await clique;
+
+    expect(wrapper.find('input').exists()).toBe(true);
+    expect(wrapper.emitted('close')).toBeFalsy();
+  });
+
+  it('still closes when the focus really leaves the row', async () => {
+    const wrapper = montar({ value: '480,00' });
+
+    await wrapper.find('[data-testid="raevo-field-row-read"]').trigger('click');
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .find('[data-testid="raevo-field-row"]')
+      .trigger('focusout', { relatedTarget: document.body });
+
+    expect(wrapper.find('input').exists()).toBe(false);
+    expect(wrapper.emitted('close')).toBeTruthy();
+  });
+
   it('leaves edit mode on Escape without swallowing it from the panel', async () => {
     const wrapper = montar();
     await wrapper.find('[data-testid="raevo-field-row-read"]').trigger('click');

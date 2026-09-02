@@ -37,17 +37,23 @@ const { t } = useI18n();
 
 const editando = ref(false);
 const raiz = ref(null);
+// Entrar em edição destrói o botão que se acabou de carregar, e essa destruição
+// dispara um `focusout` sem destino — que fechava a linha no mesmo instante em
+// que ela abria. A linha abria e fechava-se a si própria.
+const abrindo = ref(false);
 
 const temValor = computed(() => String(props.value ?? '').trim().length > 0);
 
 const abrir = async () => {
   if (props.disabled || editando.value) return;
+  abrindo.value = true;
   editando.value = true;
   emit('open');
   await nextTick();
   raiz.value
     ?.querySelector('input, select, textarea')
     ?.focus({ preventScroll: true });
+  abrindo.value = false;
 };
 
 const fechar = () => {
@@ -59,6 +65,7 @@ const fechar = () => {
 // Sair ao perder o foco para fora da linha — mas não ao andar entre o controlo
 // e a sua própria mensagem de erro.
 const aoSairFoco = event => {
+  if (abrindo.value) return;
   if (raiz.value?.contains(event.relatedTarget)) return;
   fechar();
 };
