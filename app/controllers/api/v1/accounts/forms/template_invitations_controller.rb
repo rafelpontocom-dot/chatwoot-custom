@@ -2,7 +2,7 @@ class Api::V1::Accounts::Forms::TemplateInvitationsController < Api::V1::Account
   before_action :fetch_template
 
   def create
-    authorize @form_template, :update?
+    authorize @form_template, :invite?
     result = Forms::CreateInvitationService.new(
       account: Current.account,
       form_template_version: published_version,

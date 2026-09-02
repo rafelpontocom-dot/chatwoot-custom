@@ -383,7 +383,6 @@
       "VARIABLES": "Valores calculados",
       "CONTACT_HISTORY": "Formulários do contacto",
       "CONTACT_HISTORY_HINT": "Respondidos noutras oportunidades desta pessoa e guardados no contacto.",
-      "RESTRICTED_TITLE": "Formulário clínico",
       "RESTRICTED_HINT": "Existe uma resposta. Não tem permissão para a abrir.",
       "EXPIRED": "Vencida",
       "VALID_UNTIL": "Válida até {date}"

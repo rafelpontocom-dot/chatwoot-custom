@@ -8,10 +8,9 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
  *
  * Existe em duas situações que parecem a mesma e não são: a resposta que se
  * pode ler, e a que se sabe existir mas não se pode abrir. Esconder a segunda
- * fazia a secretária pedir a anamnese outra vez a quem já a tinha preenchido;
- * mostrar-lhe o título — «Inquérito Pré-Consulta de Obesidade» — contava-lhe o
- * diagnóstico sem abrir uma única resposta. Por isso a linha aparece sempre, e
- * o que varia é quanto diz.
+ * fazia a secretária pedir a anamnese outra vez a quem já a tinha preenchido.
+ * O que fica fechado é o conteúdo — o peso, a medicação, o estado psicológico
+ * —, não o nome do inquérito, que ela viu quando o enviou.
  */
 const props = defineProps({
   submission: { type: Object, required: true },
@@ -24,11 +23,7 @@ const { t, locale } = useI18n();
 
 const restrita = computed(() => props.submission.restricted === true);
 
-const titulo = computed(() =>
-  restrita.value
-    ? t('FORMS.SUBMISSIONS.RESTRICTED_TITLE')
-    : props.submission.form_name
-);
+const titulo = computed(() => props.submission.form_name);
 
 // «Vencida» leva ícone e palavra, nunca só a cor: quem não distingue vermelho
 // de cinzento tem o mesmo direito a saber que a anamnese é de há três anos.

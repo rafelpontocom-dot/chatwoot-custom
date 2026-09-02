@@ -53,17 +53,6 @@ class Api::V1::Accounts::Forms::CardContextController < Api::V1::Accounts::BaseC
   end
 
   def invitation_payload(invitation)
-    template = invitation.form_template_version.form_template
-    return invitation.admin_payload.merge(form_name: template.name) if readable?(template)
-
-    invitation.admin_payload.merge(form_name: nil, restricted: true)
-  end
-
-  # Um formulário comercial não tem nome a esconder. Um clínico tem: o título
-  # diz o diagnóstico a quem nunca poderia abrir a resposta.
-  def readable?(template)
-    return true unless template.sensitive_health?
-
-    Current.account_user&.administrator? || template.clinically_accessible_to?(Current.user)
+    invitation.admin_payload.merge(form_name: invitation.form_template_version.form_template.name)
   end
 end

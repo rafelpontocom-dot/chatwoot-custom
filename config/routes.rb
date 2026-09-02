@@ -168,6 +168,7 @@ Rails.application.routes.draw do
               post :revoke, on: :member
             end
             resources :templates, only: %i[index show create update] do
+              get :sendable, on: :collection
               post :publish, on: :member
               post :duplicate, on: :member
               post :logo, on: :member, action: :upload_logo

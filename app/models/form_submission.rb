@@ -104,19 +104,11 @@ class FormSubmission < ApplicationRecord
   end
 
   # O que se mostra a quem pode saber que a resposta existe mas não pode lê-la.
-  # O nome do formulário sai de propósito: «Inquérito Pré-Consulta de Obesidade»
-  # conta o diagnóstico sem abrir uma única resposta.
+  # O nome do formulário fica: quem atende é quem o envia, e escolheu-o numa
+  # lista onde o nome estava. O que se guarda são as respostas — o peso, a
+  # medicação, o estado psicológico —, não o título do inquérito.
   def restricted_summary_payload
-    {
-      id: id,
-      status: status,
-      submitted_at: submitted_at,
-      restricted: true,
-      contact: contact && { id: contact.id, name: contact.name },
-      opportunity: kanban_card && { id: kanban_card.id, subject: kanban_card.subject },
-      valid_until: valid_until,
-      answer_expired: answer_expired?
-    }
+    summary_payload.merge(restricted: true)
   end
 
   # Vencida não é apagada. A médica precisa de saber que a anamnese é de 2023

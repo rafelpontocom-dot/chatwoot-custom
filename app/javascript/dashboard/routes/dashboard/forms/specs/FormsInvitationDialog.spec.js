@@ -4,7 +4,7 @@ import FormsAPI from 'dashboard/api/forms';
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 vi.mock('dashboard/api/forms', () => ({
-  default: { getTemplates: vi.fn(), createInvitation: vi.fn() },
+  default: { getSendableTemplates: vi.fn(), createInvitation: vi.fn() },
 }));
 vi.mock('shared/helpers/clipboard', () => ({ copyTextToClipboard: vi.fn() }));
 
@@ -30,13 +30,15 @@ describe('FormsInvitationDialog', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('offers a published anamnese for the already linked contact', async () => {
-    FormsAPI.getTemplates.mockResolvedValue({
+    // O servidor já devolve só os que se podem enviar, e sem o schema: quem
+    // envia pode ser agente, e agente não vê a configuração do formulário.
+    FormsAPI.getSendableTemplates.mockResolvedValue({
       data: [
         {
           id: 3,
           name: 'Anamnese inicial',
+          category: 'clinical',
           access_classification: 'sensitive_health',
-          active_version: { version_number: 1 },
         },
       ],
     });

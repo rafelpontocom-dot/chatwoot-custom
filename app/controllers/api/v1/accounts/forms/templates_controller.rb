@@ -11,6 +11,15 @@ class Api::V1::Accounts::Forms::TemplatesController < Api::V1::Accounts::BaseCon
     render json: @form_template.admin_payload
   end
 
+  # A lista de quem envia, não a de quem edita. Devolve só o que serve para
+  # escolher um formulário; o `index` continua a ser de administrador porque
+  # leva o schema e as definições inteiras.
+  def sendable
+    authorize FormTemplate.new(account: Current.account), :invite?
+    templates = Current.account.form_templates.includes(:active_version).order(:name).select(&:sendable?)
+    render json: templates.map(&:invitation_payload)
+  end
+
   def create
     template = Current.account.form_templates.build(template_params)
     authorize template

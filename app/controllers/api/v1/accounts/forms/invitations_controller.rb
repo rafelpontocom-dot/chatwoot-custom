@@ -2,7 +2,7 @@ class Api::V1::Accounts::Forms::InvitationsController < Api::V1::Accounts::BaseC
   before_action :fetch_invitation
 
   def revoke
-    authorize @invitation.form_template_version.form_template, :update?
+    authorize @invitation.form_template_version.form_template, :revoke?
     @invitation.revoke!
 
     render json: @invitation.admin_payload

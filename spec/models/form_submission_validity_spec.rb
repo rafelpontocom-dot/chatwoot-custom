@@ -60,12 +60,12 @@ RSpec.describe FormSubmission do
   describe '#restricted_summary_payload' do
     let(:settings) { {} }
 
-    it 'says a form was answered without saying which one' do
+    it 'says a form was answered without carrying the answers' do
       payload = submission.restricted_summary_payload
 
       expect(payload[:restricted]).to be(true)
       expect(payload[:id]).to eq(submission.id)
-      expect(payload).not_to have_key(:form_name)
+      expect(payload[:form_name]).to eq('Anamnese')
       expect(payload).not_to have_key(:answers)
     end
   end

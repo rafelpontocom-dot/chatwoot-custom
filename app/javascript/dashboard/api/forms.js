@@ -10,6 +10,12 @@ class FormsAPI extends ApiClient {
     return axios.get(`${this.url}/templates`);
   }
 
+  // Quem envia não precisa do schema nem das definições — e, sendo agente, não
+  // tem sequer permissão para os ver.
+  getSendableTemplates() {
+    return axios.get(`${this.url}/templates/sendable`);
+  }
+
   getTemplate(id) {
     return axios.get(`${this.url}/templates/${id}`);
   }

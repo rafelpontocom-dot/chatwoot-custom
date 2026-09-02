@@ -25,14 +25,8 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const error = ref('');
 const copied = ref(false);
-const publishedTemplates = computed(() =>
-  templates.value.filter(
-    template =>
-      ['commercial', 'sensitive_health'].includes(
-        template.access_classification
-      ) && template.active_version
-  )
-);
+// O servidor já devolve só os que se podem enviar.
+const publishedTemplates = computed(() => templates.value);
 const selectedTemplate = computed(() =>
   publishedTemplates.value.find(
     template => String(template.id) === String(templateId.value)
@@ -59,7 +53,7 @@ const open = async () => {
   dialog.value?.open();
   isLoading.value = true;
   try {
-    const { data } = await FormsAPI.getTemplates();
+    const { data } = await FormsAPI.getSendableTemplates();
     templates.value = data;
     templateId.value = String(publishedTemplates.value[0]?.id || '');
   } catch (loadError) {

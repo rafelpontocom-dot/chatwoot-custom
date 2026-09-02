@@ -34,8 +34,20 @@ RSpec.describe 'Form invitations API', type: :request do
     expect(invitation.reload).to be_revoked
   end
 
-  it 'does not allow an agent to revoke an invitation' do
+  # Quem envia cancela. A secretária que mandou a anamnese para o número errado
+  # tem que a poder revogar sem esperar por um administrador; o que ela continua
+  # a não poder é ler a resposta.
+  it 'lets an agent revoke an invitation they could have sent' do
     post path, headers: agent.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(invitation.reload).to be_revoked
+  end
+
+  it 'does not let someone outside the account revoke it' do
+    outro = create(:user, account: create(:account), role: :administrator)
+
+    post path, headers: outro.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:unauthorized)
     expect(invitation.reload).to be_active

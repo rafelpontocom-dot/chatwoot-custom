@@ -112,6 +112,24 @@ class FormTemplate < ApplicationRecord
     }
   end
 
+  # O que basta para escolher um formulário e enviá-lo. Sem schema, sem
+  # definições, sem contagem de respostas: quem envia não tem que ver o que a
+  # clínica configurou nem quantas pessoas já responderam.
+  def invitation_payload
+    {
+      id: id,
+      name: name,
+      category: category,
+      access_classification: access_classification
+    }
+  end
+
+  # Um convite individual precisa de versão publicada, e o formulário público
+  # não se envia a ninguém — vive por link aberto.
+  def sendable?
+    active_version.present? && %w[commercial sensitive_health].include?(access_classification)
+  end
+
   def brand_logo_url
     return unless brand_logo.attached?
 

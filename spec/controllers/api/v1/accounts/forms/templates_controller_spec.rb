@@ -32,6 +32,8 @@ RSpec.describe 'Form templates API', type: :request do
     expect(response.parsed_body.dig('active_version', 'version_number')).to eq(1)
   end
 
+  # A lista de edição leva o schema e as definições inteiras; a de envio não.
+  # Ver «gives an agent the forms they can send».
   it 'prevents an agent from configuring templates' do
     get templates_path, headers: agent.create_new_auth_token, as: :json
 
@@ -149,6 +151,53 @@ RSpec.describe 'Form templates API', type: :request do
       'public_enabled' => false
     )
     expect(response.parsed_body.dig('active_version', 'version_number')).to eq(1)
+  end
+
+  # Enviar é trabalho de quem atende. O que a secretária continua a não poder é
+  # abrir a resposta — ver `FormSubmissionPolicy` e o contexto da oportunidade.
+  it 'lets an agent send a form to a contact' do
+    template = FormTemplate.create!(
+      account: account,
+      name: 'Pré-consulta',
+      slug: 'pre-consulta-agente',
+      category: 'pre_consultation',
+      access_classification: 'commercial'
+    )
+    template.publish!(schema: schema.deep_stringify_keys)
+    contact = create(:contact, account: account)
+    card.update!(contact: contact)
+
+    post "#{templates_path}/#{template.id}/invitations",
+         headers: agent.create_new_auth_token,
+         params: { invitation: { contact_id: contact.id, kanban_card_id: card.id } },
+         as: :json
+
+    expect(response).to have_http_status(:created)
+    expect(response.parsed_body.fetch('token')).to be_present
+  end
+
+  it 'gives an agent the forms they can send, and nothing else about them' do
+    publicado = FormTemplate.create!(
+      account: account,
+      name: 'Pré-consulta',
+      slug: 'pre-consulta-lista',
+      category: 'pre_consultation',
+      access_classification: 'commercial'
+    )
+    publicado.publish!(schema: schema.deep_stringify_keys)
+    FormTemplate.create!(
+      account: account,
+      name: 'Rascunho por publicar',
+      slug: 'rascunho',
+      category: 'other',
+      access_classification: 'commercial'
+    )
+
+    get "#{templates_path}/sendable", headers: agent.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body.map { |t| t['name'] }).to eq(['Pré-consulta'])
+    expect(response.parsed_body.first.keys).to contain_exactly('id', 'name', 'category', 'access_classification')
   end
 
   it 'issues a single-use invitation without exposing its digest' do

@@ -46,7 +46,7 @@ RSpec.describe 'Form card context API', type: :request do
     expect(response.parsed_body.to_s).not_to include('answers')
   end
 
-  it 'lets an agent see a clinical answer exists without saying which form it was' do
+  it 'lets an agent see a clinical answer exists without letting them read it' do
     agent = create(:user, account: account, role: :agent)
     # Sem acesso à caixa de entrada, o agente nem o cartão vê — a aba de
     # formulários não é maneira de contornar isso.
@@ -75,8 +75,10 @@ RSpec.describe 'Form card context API', type: :request do
     expect(response).to have_http_status(:success)
     resposta = response.parsed_body['submissions'].first
     expect(resposta).to include('id' => submission.id, 'restricted' => true)
-    expect(resposta).not_to have_key('form_name')
-    expect(response.parsed_body.to_s).not_to include('Obesidade')
+    # O nome fica — foi ele que a secretária escolheu ao enviar. O conteúdo não.
+    expect(resposta['form_name']).to eq('Inquérito Pré-Consulta de Obesidade')
+    expect(resposta).not_to have_key('answers')
+    expect(response.parsed_body.to_s).not_to include('aceito')
   end
 
   it 'keeps answers of the person separate from answers of this opportunity' do

@@ -383,7 +383,6 @@
       "VARIABLES": "Calculated values",
       "CONTACT_HISTORY": "Contact forms",
       "CONTACT_HISTORY_HINT": "Answered in other opportunities of this person and kept on the contact.",
-      "RESTRICTED_TITLE": "Clinical form",
       "RESTRICTED_HINT": "There is an answer here. You do not have permission to open it.",
       "EXPIRED": "Out of date",
       "VALID_UNTIL": "Valid until {date}"
