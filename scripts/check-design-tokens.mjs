@@ -103,6 +103,46 @@ function iconesEsmagados(fonte) {
   return achados;
 }
 
+/**
+ * Botão que submete o formulário sem querer.
+ *
+ * `Button.vue` renderiza um `<button>` sem `type`, e o HTML assume `submit`.
+ * Dentro de um `<form>`, qualquer botão sem `type` explícito dispara o submit
+ * além do seu próprio `@click`. Foi assim que «Excluir funil» abria o diálogo
+ * de confirmação e ao mesmo tempo gravava as definições — e o redirecionamento
+ * do save levava o diálogo com a página. O utilizador não conseguia apagar.
+ */
+function submitSemQuerer(fonte) {
+  const achados = [];
+  const inicio = fonte.indexOf('<form');
+  if (inicio < 0) return achados;
+  const fim = fonte.indexOf('</form>', inicio);
+  if (fim < 0) return achados;
+
+  const dentro = fonte.slice(inicio, fim);
+  const abre = /<Button\b/g;
+  let m;
+  while ((m = abre.exec(dentro))) {
+    let i = abre.lastIndex;
+    let aspa = null;
+    while (i < dentro.length) {
+      const c = dentro[i];
+      if (aspa) {
+        if (c === aspa) aspa = null;
+      } else if (c === '"' || c === "'") aspa = c;
+      else if (c === '>') break;
+      i += 1;
+    }
+    const tag = dentro.slice(m.index, i + 1);
+    if (!/\stype=/.test(tag)) {
+      achados.push(
+        fonte.slice(0, inicio + m.index).split('\n').length
+      );
+    }
+  }
+  return achados;
+}
+
 function bordasInvisiveis(fonte) {
   const achados = [];
   const abre = /<button\b/g;
@@ -153,6 +193,11 @@ for (const arq of arquivos) {
     achados++;
     console.log(`${arq}:${linha}  borda de botão sem border-solid → invisível`);
     console.log('    `_base.scss` zera a borda de todo <button>; acrescente border-solid.');
+  }
+  for (const linha of submitSemQuerer(fonte)) {
+    achados++;
+    console.log(`${arq}:${linha}  <Button> sem type dentro de <form> → submete sem querer`);
+    console.log('    Sem `type`, o HTML assume submit; acrescente type="button".');
   }
   for (const linha of iconesEsmagados(fonte)) {
     achados++;

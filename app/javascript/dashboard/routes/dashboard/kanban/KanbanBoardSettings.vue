@@ -3116,6 +3116,7 @@ onMounted(async () => {
             <div class="flex items-center justify-end">
               <Button
                 v-if="!showCreateStageForm"
+                type="button"
                 data-testid="kanban-settings-create-stage-toggle"
                 icon="i-lucide-plus"
                 :label="t('KANBAN.ACTIONS.CREATE_STAGE')"
@@ -4194,16 +4195,7 @@ onMounted(async () => {
           <div
             class="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]"
           >
-            <section class="grid gap-3 rounded-md border border-n-weak p-3">
-              <div class="grid gap-1">
-                <h4 class="mb-0 text-sm font-medium text-n-slate-12">
-                  {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT') }}
-                </h4>
-                <p class="mb-0 text-xs text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT_DESCRIPTION') }}
-                </p>
-              </div>
-
+            <section class="grid content-start gap-3">
               <!--
                 `role="tab"` é um contrato: quem o lê espera setas para
                 andar entre abas, um só ponto de tabulação, e um painel
@@ -6508,6 +6500,7 @@ onMounted(async () => {
             {{ t('KANBAN.SETTINGS.DELETE.DESCRIPTION') }}
           </p>
           <Button
+            type="button"
             data-testid="kanban-settings-delete"
             icon="i-lucide-trash"
             :label="t('KANBAN.SETTINGS.DELETE.ACTION')"
