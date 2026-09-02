@@ -1931,19 +1931,27 @@ watch(invitationPendingRevocation, async invitation => {
                   </button>
                 </div>
                 <div class="grid gap-1">
+                  <!--
+                    O rótulo vivia só no placeholder: assim que o campo era
+                    preenchido, deixava de haver forma de saber o que ele era.
+                    Passa à mesma linha dos campos personalizados — rótulo à
+                    esquerda, controlo à direita — para o diálogo deixar de ter
+                    três tratamentos de campo.
+                  -->
                   <label
                     v-for="detail in contactDetails"
                     :key="detail.key"
-                    class="grid border-b border-n-weak py-2 last:border-b-0"
+                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
                   >
-                    <span class="sr-only">{{ detail.label }}</span>
+                    <span class="min-w-0 break-words text-xs text-n-slate-11">
+                      {{ detail.label }}
+                    </span>
                     <input
                       v-if="detail.key === 'name'"
                       v-model="contactDraft.name"
                       data-testid="kanban-opportunity-contact-name"
                       type="text"
                       class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm font-medium text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :placeholder="detail.label"
                       :aria-label="detail.label"
                     />
                     <input
@@ -1952,7 +1960,6 @@ watch(invitationPendingRevocation, async invitation => {
                       data-testid="kanban-opportunity-contact-phone"
                       type="tel"
                       class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :placeholder="detail.label"
                       :aria-label="detail.label"
                     />
                     <input
@@ -1961,7 +1968,6 @@ watch(invitationPendingRevocation, async invitation => {
                       data-testid="kanban-opportunity-contact-email"
                       type="email"
                       class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :placeholder="detail.label"
                       :aria-label="detail.label"
                     />
                     <input
@@ -1970,7 +1976,6 @@ watch(invitationPendingRevocation, async invitation => {
                       data-testid="kanban-opportunity-contact-identifier"
                       type="text"
                       class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :placeholder="detail.label"
                       :aria-label="detail.label"
                     />
                   </label>
@@ -1994,9 +1999,9 @@ watch(invitationPendingRevocation, async invitation => {
                   <label
                     v-for="entry in contactAttributeEntries"
                     :key="`${entry.source}-${entry.key}`"
-                    class="grid border-b border-n-weak py-2 last:border-b-0"
+                    class="grid grid-cols-[9rem_1fr] items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
                   >
-                    <span class="sr-only">
+                    <span class="min-w-0 break-words text-xs text-n-slate-11">
                       {{ formatContactAttributeLabel(entry.key) }}
                     </span>
                     <input
@@ -2004,7 +2009,6 @@ watch(invitationPendingRevocation, async invitation => {
                       :value="formatContactAttributeValue(entry.value)"
                       type="text"
                       class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-2 focus:ring-n-brand/40"
-                      :placeholder="formatContactAttributeLabel(entry.key)"
                       :aria-label="formatContactAttributeLabel(entry.key)"
                       @input="
                         setContactAttributeValue(entry, $event.target.value)
