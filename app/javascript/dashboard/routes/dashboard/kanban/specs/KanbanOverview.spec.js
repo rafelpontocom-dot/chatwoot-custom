@@ -53,8 +53,10 @@ const createTestStore = (role = 'agent') =>
   createStore({
     modules: {
       kanbanBoards: { namespaced: true, ...kanbanBoardsModule },
+      // O módulo `auth` real não é namespaced. O mock dizia que era, e por isso
+      // `auth/getCurrentRole` resolvia nos testes e era `undefined` no produto:
+      // o botão de arquivados nunca aparecia a ninguém e ninguém dava por isso.
       auth: {
-        namespaced: true,
         state: { currentUser: { accounts: [{ id: 1, role }] } },
         getters: {
           getCurrentRole: () => role,
@@ -211,6 +213,48 @@ describe('KanbanOverview', () => {
     );
     expect(createButton.exists()).toBe(true);
     expect(createButton.text()).toContain('Adicionar Funil');
+  });
+
+  it('lets an administrator move a funnel up the list', async () => {
+    KanbanBoardsAPI.reorderBoard = vi.fn().mockResolvedValue({});
+    KanbanBoardsAPI.get.mockResolvedValue({
+      data: [
+        { id: 1, name: 'Primeiro', cards_count: 0, stages_summary: [] },
+        { id: 2, name: 'Segundo', cards_count: 0, stages_summary: [] },
+      ],
+    });
+    const wrapper = await mountOverview('administrator');
+    await flushPromises();
+    await nextTick();
+
+    // O primeiro funil não tem para onde subir, o último não tem para onde descer.
+    expect(
+      wrapper
+        .find('[data-testid="overview-move-board-1-up"]')
+        .attributes('disabled')
+    ).toBeDefined();
+
+    await wrapper
+      .find('[data-testid="overview-move-board-1-down"]')
+      .trigger('click');
+
+    expect(KanbanBoardsAPI.reorderBoard).toHaveBeenCalledWith(1, 'down');
+  });
+
+  it('hides the reorder controls from agents', async () => {
+    KanbanBoardsAPI.get.mockResolvedValue({
+      data: [
+        { id: 1, name: 'Primeiro', cards_count: 0, stages_summary: [] },
+        { id: 2, name: 'Segundo', cards_count: 0, stages_summary: [] },
+      ],
+    });
+    const wrapper = await mountOverview();
+    await flushPromises();
+    await nextTick();
+
+    expect(
+      wrapper.find('[data-testid="overview-move-board-1-down"]').exists()
+    ).toBe(false);
   });
 
   it('lists and restores archived boards for administrators', async () => {

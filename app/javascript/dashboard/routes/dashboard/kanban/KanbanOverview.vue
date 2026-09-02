@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
@@ -16,8 +17,7 @@ const router = useRouter();
 const route = useRoute();
 const store = useStore();
 
-const currentRole = useMapGetter('auth/getCurrentRole');
-const isAdmin = computed(() => currentRole.value === 'administrator');
+const { isAdmin } = useAdmin();
 
 const boards = useMapGetter('kanbanBoards/kanbanBoards');
 const isLoading = useMapGetter('kanbanBoards/kanbanBoardsLoading');
@@ -99,6 +99,33 @@ const restoreBoard = async board => {
     await store.dispatch('kanbanBoards/refreshBoards');
   } finally {
     restoringBoardId.value = null;
+  }
+};
+
+const reorderingBoardId = ref(null);
+
+const canMoveBoard = (board, direction) => {
+  const index = boards.value.findIndex(item => item.id === board.id);
+  return index >= 0 && Boolean(boards.value[index + direction]);
+};
+
+/**
+ * A ordem dos funis passa a ser escolhida, não herdada da data de criação.
+ *
+ * Troca com o vizinho e recarrega: a ordem que aparece é a que ficou gravada,
+ * não a que o cliente adivinhou. Subir e descer em vez de arrastar porque a
+ * lista é curta e todo o gesto precisa de caminho de teclado.
+ */
+const moveBoard = async (board, direction) => {
+  if (!isAdmin.value || reorderingBoardId.value) return;
+  if (!canMoveBoard(board, direction)) return;
+
+  reorderingBoardId.value = board.id;
+  try {
+    await KanbanBoardsAPI.reorderBoard(board.id, direction < 0 ? 'up' : 'down');
+    await store.dispatch('kanbanBoards/refreshBoards');
+  } finally {
+    reorderingBoardId.value = null;
   }
 };
 
@@ -260,142 +287,190 @@ onMounted(async () => {
         v-else-if="hasBoards"
         class="overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
       >
-        <button
+        <div
           v-for="board in boards"
           :key="board.id"
-          type="button"
-          data-testid="overview-board-card"
-          :data-kanban-board-id="board.id"
-          class="border-solid group flex w-full flex-col gap-3 border-b border-n-weak bg-n-solid-1 p-3 text-left transition-colors last:border-b-0 hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
-          :aria-label="
-            t('KANBAN.OVERVIEW.OPEN_FUNNEL', {
-              name: board.name,
-              count: boardCardsCount(board),
-            })
-          "
-          @click="openBoard(board.id)"
+          class="flex items-stretch border-b border-solid border-n-weak last:border-b-0"
         >
-          <div
-            class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+          <button
+            type="button"
+            data-testid="overview-board-card"
+            :data-kanban-board-id="board.id"
+            class="group flex min-w-0 flex-1 flex-col gap-3 bg-n-solid-1 p-3 text-left transition-colors hover:bg-n-alpha-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
+            :aria-label="
+              t('KANBAN.OVERVIEW.OPEN_FUNNEL', {
+                name: board.name,
+                count: boardCardsCount(board),
+              })
+            "
+            @click="openBoard(board.id)"
           >
-            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <span class="break-words text-sm font-semibold text-n-slate-12">
-                {{ board.name }}
-              </span>
-              <span
-                class="inline-flex items-center rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs font-medium text-n-slate-11"
-                data-testid="overview-cards-count"
-              >
-                {{
-                  t('KANBAN.OVERVIEW.OPPORTUNITIES_COUNT', {
-                    count: boardCardsCount(board),
-                  })
-                }}
-              </span>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-              <div class="flex items-center" data-testid="overview-agent-list">
-                <template v-if="boardVisibilityMode(board) === 'all_agents'">
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-0.5 text-xs font-medium text-n-slate-11"
-                  >
-                    <i class="i-lucide-users size-3.5" />
-                    {{ t('KANBAN.SETTINGS.AGENTS.ALL') }}
-                  </span>
-                </template>
-                <template v-else>
-                  <Avatar
-                    v-for="user in previewItems(boardUsers(board))"
-                    :key="user.id"
-                    :name="user.name"
-                    :src="user.avatar_url || user.avatarUrl || ''"
-                    :size="28"
-                    rounded-full
-                    class="-ml-2 first:ml-0 ring-2 ring-n-surface-2"
-                    data-testid="overview-agent-avatar"
-                  />
-                  <span
-                    v-if="extraItemsCount(boardUsers(board))"
-                    class="-ml-2 inline-flex size-7 items-center justify-center rounded-full bg-n-alpha-2 text-xs font-medium text-n-slate-11 ring-2 ring-n-surface-2"
-                  >
-                    {{
-                      t('KANBAN.OVERVIEW.EXTRA_COUNT', {
-                        count: extraItemsCount(boardUsers(board)),
-                      })
-                    }}
-                  </span>
-                </template>
+            <div
+              class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+            >
+              <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <span class="break-words text-sm font-semibold text-n-slate-12">
+                  {{ board.name }}
+                </span>
+                <span
+                  class="inline-flex items-center rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs font-medium text-n-slate-11"
+                  data-testid="overview-cards-count"
+                >
+                  {{
+                    t('KANBAN.OVERVIEW.OPPORTUNITIES_COUNT', {
+                      count: boardCardsCount(board),
+                    })
+                  }}
+                </span>
               </div>
 
-              <div
-                class="flex flex-wrap items-center gap-2"
-                data-testid="overview-inbox-list"
-              >
-                <template v-if="boardInboxScopeMode(board) === 'all_inboxes'">
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-0.5 text-xs font-medium text-n-slate-11"
-                    data-testid="overview-inbox-pill"
-                  >
-                    <i class="i-lucide-inbox size-3.5" />
-                    {{ t('KANBAN.SETTINGS.INBOXES.ALL') }}
-                  </span>
-                </template>
-                <template v-else>
-                  <span
-                    v-for="inbox in previewItems(boardInboxes(board))"
-                    :key="inbox.id"
-                    class="inline-flex max-w-40 items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2.5 py-1 text-xs font-medium text-n-slate-11"
-                    data-testid="overview-inbox-pill"
-                  >
-                    <i
-                      :class="inboxIcon(inbox)"
-                      class="size-3.5 flex-shrink-0"
+              <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+                <div
+                  class="flex items-center"
+                  data-testid="overview-agent-list"
+                >
+                  <template v-if="boardVisibilityMode(board) === 'all_agents'">
+                    <span
+                      class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-0.5 text-xs font-medium text-n-slate-11"
+                    >
+                      <i class="i-lucide-users size-3.5" />
+                      {{ t('KANBAN.SETTINGS.AGENTS.ALL') }}
+                    </span>
+                  </template>
+                  <template v-else>
+                    <Avatar
+                      v-for="user in previewItems(boardUsers(board))"
+                      :key="user.id"
+                      :name="user.name"
+                      :src="user.avatar_url || user.avatarUrl || ''"
+                      :size="28"
+                      rounded-full
+                      class="-ml-2 first:ml-0 ring-2 ring-n-surface-2"
+                      data-testid="overview-agent-avatar"
                     />
-                    <span class="truncate">{{ inbox.name }}</span>
-                  </span>
-                  <span
-                    v-if="extraItemsCount(boardInboxes(board))"
-                    class="inline-flex items-center rounded-full bg-n-alpha-2 px-2 py-1 text-xs font-medium text-n-slate-11"
-                  >
-                    {{
-                      t('KANBAN.OVERVIEW.EXTRA_COUNT', {
-                        count: extraItemsCount(boardInboxes(board)),
-                      })
-                    }}
-                  </span>
-                </template>
+                    <span
+                      v-if="extraItemsCount(boardUsers(board))"
+                      class="-ml-2 inline-flex size-7 items-center justify-center rounded-full bg-n-alpha-2 text-xs font-medium text-n-slate-11 ring-2 ring-n-surface-2"
+                    >
+                      {{
+                        t('KANBAN.OVERVIEW.EXTRA_COUNT', {
+                          count: extraItemsCount(boardUsers(board)),
+                        })
+                      }}
+                    </span>
+                  </template>
+                </div>
+
+                <div
+                  class="flex flex-wrap items-center gap-2"
+                  data-testid="overview-inbox-list"
+                >
+                  <template v-if="boardInboxScopeMode(board) === 'all_inboxes'">
+                    <span
+                      class="inline-flex items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-0.5 text-xs font-medium text-n-slate-11"
+                      data-testid="overview-inbox-pill"
+                    >
+                      <i class="i-lucide-inbox size-3.5" />
+                      {{ t('KANBAN.SETTINGS.INBOXES.ALL') }}
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span
+                      v-for="inbox in previewItems(boardInboxes(board))"
+                      :key="inbox.id"
+                      class="inline-flex max-w-40 items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2.5 py-1 text-xs font-medium text-n-slate-11"
+                      data-testid="overview-inbox-pill"
+                    >
+                      <i
+                        :class="inboxIcon(inbox)"
+                        class="size-3.5 flex-shrink-0"
+                      />
+                      <span class="truncate">{{ inbox.name }}</span>
+                    </span>
+                    <span
+                      v-if="extraItemsCount(boardInboxes(board))"
+                      class="inline-flex items-center rounded-full bg-n-alpha-2 px-2 py-1 text-xs font-medium text-n-slate-11"
+                    >
+                      {{
+                        t('KANBAN.OVERVIEW.EXTRA_COUNT', {
+                          count: extraItemsCount(boardInboxes(board)),
+                        })
+                      }}
+                    </span>
+                  </template>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div
-            v-if="boardStages(board).length"
-            class="flex flex-wrap gap-1.5"
-            data-testid="overview-stage-list"
-          >
-            <span
-              v-for="stage in boardStages(board)"
-              :key="stage.id"
-              class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-11"
-              data-testid="overview-stage-pill"
+            <div
+              v-if="boardStages(board).length"
+              class="flex flex-wrap gap-1.5"
+              data-testid="overview-stage-list"
             >
               <span
-                class="size-2 flex-shrink-0 rounded-full"
-                :class="getKanbanStageColorClass(stage.color)"
-              />
-              <span class="truncate">{{ stage.name }}</span>
-              <span
-                class="inline-flex min-w-5 justify-center rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-semibold text-n-slate-12"
+                v-for="stage in boardStages(board)"
+                :key="stage.id"
+                class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-11"
+                data-testid="overview-stage-pill"
               >
-                {{ stage.cards_count ?? stage.cardsCount ?? 0 }}
+                <span
+                  class="size-2 flex-shrink-0 rounded-full"
+                  :class="getKanbanStageColorClass(stage.color)"
+                />
+                <span class="truncate">{{ stage.name }}</span>
+                <span
+                  class="inline-flex min-w-5 justify-center rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-semibold text-n-slate-12"
+                >
+                  {{ stage.cards_count ?? stage.cardsCount ?? 0 }}
+                </span>
               </span>
-            </span>
+            </div>
+            <p v-else class="text-sm text-n-slate-11">
+              {{ t('KANBAN.OVERVIEW.EMPTY_STAGES') }}
+            </p>
+          </button>
+          <!--
+          A ordem dos funis era a data de criação e mais nada. Subir e descer,
+          não arrastar: a lista é curta, e todo o gesto precisa de teclado.
+        -->
+          <div
+            v-if="isAdmin && boards.length > 1"
+            class="flex shrink-0 flex-col items-center justify-center gap-1 pr-3"
+          >
+            <button
+              type="button"
+              :data-testid="`overview-move-board-${board.id}-up`"
+              :disabled="
+                !canMoveBoard(board, -1) || reorderingBoardId === board.id
+              "
+              class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-40"
+              :aria-label="
+                t('KANBAN.OVERVIEW.MOVE_FUNNEL_UP', { name: board.name })
+              "
+              :title="t('KANBAN.OVERVIEW.MOVE_FUNNEL_UP', { name: board.name })"
+              @click="moveBoard(board, -1)"
+            >
+              <i class="i-lucide-chevron-up size-4" />
+            </button>
+            <button
+              type="button"
+              :data-testid="`overview-move-board-${board.id}-down`"
+              :disabled="
+                !canMoveBoard(board, 1) || reorderingBoardId === board.id
+              "
+              class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-40"
+              :aria-label="
+                t('KANBAN.OVERVIEW.MOVE_FUNNEL_DOWN', { name: board.name })
+              "
+              :title="
+                t('KANBAN.OVERVIEW.MOVE_FUNNEL_DOWN', { name: board.name })
+              "
+              @click="moveBoard(board, 1)"
+            >
+              <i class="i-lucide-chevron-down size-4" />
+            </button>
           </div>
-          <p v-else class="text-sm text-n-slate-11">
-            {{ t('KANBAN.OVERVIEW.EMPTY_STAGES') }}
-          </p>
-        </button>
+        </div>
       </div>
     </div>
   </main>
