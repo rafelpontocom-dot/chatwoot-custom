@@ -15,8 +15,11 @@ vi.mock('vue-i18n', () => ({
   }),
 }));
 
+const mockOnBeforeRouteLeave = vi.fn();
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
+    name: 'kanban_board_settings',
     params: {
       accountId: '1',
       boardId: '10',
@@ -26,6 +29,7 @@ vi.mock('vue-router', () => ({
     push: mockPush,
     replace: mockReplace,
   }),
+  onBeforeRouteLeave: guarda => mockOnBeforeRouteLeave(guarda),
 }));
 
 vi.mock('dashboard/composables', () => ({
@@ -1038,12 +1042,20 @@ describe('KanbanBoardSettings', () => {
     ).toBe(false);
   });
 
-  it('opens the field editor as a dialog when a field row is clicked', async () => {
+  it('shows the field properties beside the list, not on top of it', async () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
       .find('[data-testid="kanban-settings-manage-custom-fields"]')
       .trigger('click');
+
+    // Antes de escolher um campo, o painel diz o que fazer em vez de ficar vazio.
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-field-editor-empty"]')
+        .exists()
+    ).toBe(true);
+
     await wrapper
       .find('[data-field-key="consulta_realizada"]')
       .trigger('click');
@@ -1056,18 +1068,30 @@ describe('KanbanBoardSettings', () => {
       editor.find('[data-testid="kanban-settings-custom-field-label"]').element
         .value
     ).toBe('Consulta realizada?');
-
-    await wrapper
-      .find('[data-testid="kanban-settings-close-custom-field-editor"]')
-      .trigger('click');
-    await nextTick();
-
+    // A lista continua à vista ao lado do painel: nada foi tapado.
+    expect(wrapper.find('[data-field-key="consulta_realizada"]').exists()).toBe(
+      true
+    );
+    expect(
+      wrapper.find('[data-testid="kanban-settings-add-field-details"]').exists()
+    ).toBe(true);
     expect(
       wrapper
-        .find('[data-testid="kanban-settings-custom-field-editor"]')
+        .find('[data-testid="kanban-settings-field-editor-empty"]')
         .exists()
     ).toBe(false);
-    // Fechar o campo não fecha o gestor por trás dele.
+  });
+
+  it('gives the field workspace an address of its own', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .trigger('click');
+
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'kanban_board_field_settings' })
+    );
     expect(
       wrapper
         .find('[data-testid="kanban-settings-custom-field-manager"]')

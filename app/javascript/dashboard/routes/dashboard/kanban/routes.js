@@ -28,6 +28,12 @@ export const routes = [
     meta,
   },
   {
+    path: frontendURL('accounts/:accountId/kanban/:boardId/settings/fields'),
+    name: 'kanban_board_field_settings',
+    component: KanbanBoardSettings,
+    meta,
+  },
+  {
     path: frontendURL('accounts/:accountId/kanban/:boardId/automations'),
     name: 'kanban_board_automations',
     component: KanbanAutomations,
