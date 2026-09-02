@@ -1444,7 +1444,7 @@ watch(invitationPendingRevocation, async invitation => {
             <button
               type="button"
               data-testid="kanban-opportunity-toggle-labels"
-              class="flex h-7 items-center gap-1 rounded-md border border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+              class="flex h-7 items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
               :aria-expanded="showLabelsPopover"
               aria-controls="kanban-opportunity-labels-popover"
               @click="showLabelsPopover = !showLabelsPopover"
@@ -1467,7 +1467,7 @@ watch(invitationPendingRevocation, async invitation => {
                 <button
                   type="button"
                   data-testid="kanban-opportunity-save-labels"
-                  class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                   :aria-label="
                     isSavingLabels
                       ? t('KANBAN.OPPORTUNITY_DETAILS.SAVING_LABELS')
@@ -1496,7 +1496,7 @@ watch(invitationPendingRevocation, async invitation => {
                   :key="label.id || label.title"
                   type="button"
                   data-testid="kanban-opportunity-label"
-                  class="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition"
+                  class="flex items-center gap-1.5 rounded-full border border-solid px-2 py-1 text-xs font-medium transition"
                   :class="
                     selectedLabelTitleSet.has(label.title)
                       ? 'border-n-blue-9 bg-n-blue-3 text-n-blue-12'
@@ -1532,7 +1532,7 @@ watch(invitationPendingRevocation, async invitation => {
           v-if="hasConversation"
           type="button"
           data-testid="kanban-opportunity-header-open-conversation"
-          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
           :title="t('KANBAN.OPPORTUNITY_DETAILS.OPEN_CONVERSATION')"
           @click="openConversation"
@@ -1542,7 +1542,7 @@ watch(invitationPendingRevocation, async invitation => {
         <button
           type="button"
           data-testid="kanban-opportunity-edit-subject"
-          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.EDIT_TITLE')"
           :title="t('KANBAN.OPPORTUNITY_DETAILS.EDIT_TITLE')"
           @click="editSubject"
@@ -1553,7 +1553,7 @@ watch(invitationPendingRevocation, async invitation => {
           v-if="canManageFields"
           type="button"
           data-testid="kanban-opportunity-manage-fields"
-          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.MANAGE_FIELDS')"
           :title="t('KANBAN.OPPORTUNITY_DETAILS.MANAGE_FIELDS')"
           @click="emit('manageFields')"
@@ -1563,7 +1563,7 @@ watch(invitationPendingRevocation, async invitation => {
         <button
           type="button"
           data-testid="kanban-opportunity-close"
-          class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+          class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.CLOSE')"
           @click="requestClose"
         >
@@ -1608,7 +1608,7 @@ watch(invitationPendingRevocation, async invitation => {
             :key="tab.key"
             type="button"
             :data-testid="`kanban-opportunity-tab-${tab.key}`"
-            class="whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
+            class="border-solid whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
             role="tab"
             :aria-selected="activeTabKey === tab.key"
             aria-controls="kanban-opportunity-tab-panel"
@@ -1626,7 +1626,7 @@ watch(invitationPendingRevocation, async invitation => {
             v-if="canManageFields"
             type="button"
             data-testid="kanban-opportunity-add-tab"
-            class="flex size-9 shrink-0 items-center justify-center border-b-2 border-transparent text-n-slate-11 hover:text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
+            class="flex p-0 size-9 shrink-0 items-center justify-center border-b-2 border-transparent text-n-slate-11 hover:text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
             :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
             :title="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
             @click="emit('manageFields', { action: 'newTab' })"
@@ -1637,7 +1637,7 @@ watch(invitationPendingRevocation, async invitation => {
             :id="`kanban-opportunity-tab-${timelineTab.key}`"
             type="button"
             :data-testid="`kanban-opportunity-tab-${timelineTab.key}`"
-            class="whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
+            class="border-solid whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
             role="tab"
             :aria-selected="activeTabKey === timelineTab.key"
             aria-controls="kanban-opportunity-tab-panel"
@@ -1921,7 +1921,7 @@ watch(invitationPendingRevocation, async invitation => {
                   <button
                     type="button"
                     data-testid="kanban-opportunity-save-contact"
-                    class="flex size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="isSavingContact || !card.contact?.id"
                     :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
                     :title="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
@@ -2140,7 +2140,7 @@ watch(invitationPendingRevocation, async invitation => {
                     <button
                       type="button"
                       data-testid="kanban-opportunity-payment-details"
-                      class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                      class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                       :aria-label="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
                       :title="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
                       @click="openFinancePaymentDetails(payment)"
@@ -2160,7 +2160,7 @@ watch(invitationPendingRevocation, async invitation => {
                       v-if="payment.invoice_url"
                       type="button"
                       data-testid="kanban-opportunity-copy-payment-link"
-                      class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                      class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                       :aria-label="
                         copiedFinancePaymentId === payment.id
                           ? t('FINANCE.PAYMENTS.COPIED')
@@ -2186,7 +2186,7 @@ watch(invitationPendingRevocation, async invitation => {
                       v-if="hasConversation && payment.invoice_url"
                       type="button"
                       data-testid="kanban-opportunity-send-payment-link"
-                      class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                      class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
                       :aria-label="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
                       :title="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
                       @click="sendFinancePaymentLink(payment)"
@@ -2337,7 +2337,7 @@ watch(invitationPendingRevocation, async invitation => {
                         "
                         type="button"
                         :data-testid="`kanban-opportunity-revoke-form-invitation-${invitation.id}`"
-                        class="flex size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-ruby-8"
+                        class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-ruby-8"
                         :aria-label="t('FORMS.INVITATION.REVOKE')"
                         :title="t('FORMS.INVITATION.REVOKE')"
                         @click="requestFormInvitationRevocation(invitation)"
@@ -2564,7 +2564,14 @@ watch(invitationPendingRevocation, async invitation => {
                           setCustomFieldValue(definition, $event.target.value)
                         "
                       >
-                        <option value="">{{ definition.label }}</option>
+                        <!--
+                          A opção vazia mostrava o rótulo do campo, e a linha
+                          lia-se «Consulta realizada? | Consulta realizada?» —
+                          impossível distinguir por preencher de preenchido.
+                        -->
+                        <option value="">
+                          {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY') }}
+                        </option>
                         <option
                           v-for="option in definition.options || []"
                           :key="option"
@@ -2603,7 +2610,6 @@ watch(invitationPendingRevocation, async invitation => {
                         rows="3"
                         :data-testid="`kanban-custom-field-${definition.key}`"
                         class="min-h-16 min-w-0 resize-y border-0 bg-transparent px-0 py-1 text-sm text-n-slate-12 outline-none focus:ring-2 focus:ring-n-brand/40"
-                        :placeholder="definition.label"
                         :aria-label="definition.label"
                         @input="
                           setCustomFieldValue(definition, $event.target.value)
@@ -2647,7 +2653,6 @@ watch(invitationPendingRevocation, async invitation => {
                         :disabled="definition.fieldType === 'formula'"
                         :data-testid="`kanban-custom-field-${definition.key}`"
                         class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:ring-2 focus:ring-n-brand/40"
-                        :placeholder="definition.label"
                         :aria-label="definition.label"
                         @input="
                           setCustomFieldValue(definition, $event.target.value)
