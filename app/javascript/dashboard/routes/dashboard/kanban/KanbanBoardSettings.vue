@@ -74,6 +74,8 @@ const activeFormulaFieldId = ref(null);
 const activeFormulaSuggestionIndex = ref(0);
 const formulaPreviewValues = ref({});
 const showRemoveMarketingConfirmation = ref(false);
+const showBulkRemoveConfirmation = ref(false);
+const bulkTargetSection = ref('');
 const selectedCustomFieldId = ref(null);
 const customFieldPaletteSearch = ref('');
 const activeFieldSectionLabelInput = ref(null);
@@ -1361,6 +1363,91 @@ function syncCustomFieldDefinitionsText() {
  * Sem isto quem navega por teclado volta ao topo do documento e tem de
  * atravessar a lista inteira para chegar ao campo seguinte.
  */
+/**
+ * O que esta aba tem, para o painel dizer algo enquanto nenhum campo está
+ * escolhido. Antes ocupava 70% do ecrã a dizer «nenhum campo selecionado».
+ */
+const activeSectionSummary = computed(() => {
+  // eslint-disable-next-line no-use-before-define
+  const campos = customFieldsForLayoutSection(activeFieldSectionKey.value);
+
+  return {
+    total: campos.length,
+    noCartao: campos.filter(campo =>
+      form.compactCardFieldKeys.includes(campo.key)
+    ).length,
+    obrigatorios: campos.filter(campo => campo.requiredStageIds?.length).length,
+    condicionais: campos.filter(campo => campo.conditionFieldKey).length,
+    calculados: campos.filter(campo => campo.fieldType === 'formula').length,
+  };
+});
+
+/**
+ * Seleção múltipla de campos.
+ *
+ * Com os 26 campos do preset de marketing, mover ou apagar era campo a campo:
+ * 26 viagens ao painel. A escala é que torna isto necessário — numa aba com
+ * três campos ninguém sentiria falta.
+ */
+const selectedFieldKeys = ref([]);
+
+const visibleFieldKeys = computed(() =>
+  // eslint-disable-next-line no-use-before-define
+  customFieldsForLayoutSection(activeFieldSectionKey.value).map(
+    definition => definition.clientId
+  )
+);
+
+const allVisibleSelected = computed(
+  () =>
+    visibleFieldKeys.value.length > 0 &&
+    visibleFieldKeys.value.every(id => selectedFieldKeys.value.includes(id))
+);
+
+const toggleFieldSelection = (clientId, checked) => {
+  selectedFieldKeys.value = checked
+    ? [...new Set([...selectedFieldKeys.value, clientId])]
+    : selectedFieldKeys.value.filter(id => id !== clientId);
+};
+
+const toggleAllVisibleFields = checked => {
+  selectedFieldKeys.value = checked ? [...visibleFieldKeys.value] : [];
+};
+
+const selectedFieldDefinitions = () =>
+  form.customFieldDefinitions.filter(definition =>
+    selectedFieldKeys.value.includes(definition.clientId)
+  );
+
+const moveSelectedFieldsToSection = sectionKey => {
+  if (!sectionKey) return;
+
+  selectedFieldDefinitions().forEach(definition => {
+    definition.layoutSection = sectionKey;
+    definition.layoutGroup = '';
+  });
+  // eslint-disable-next-line no-use-before-define
+  renumberCustomFieldSection(sectionKey);
+  selectedFieldKeys.value = [];
+  bulkTargetSection.value = '';
+  syncCustomFieldDefinitionsText();
+};
+
+const removeSelectedFields = () => {
+  const doomed = new Set(selectedFieldDefinitions());
+  const keys = new Set([...doomed].map(definition => definition.key));
+  form.customFieldDefinitions = form.customFieldDefinitions.filter(
+    definition => !doomed.has(definition)
+  );
+  form.compactCardFieldKeys = form.compactCardFieldKeys.filter(
+    key => !keys.has(key)
+  );
+  selectedFieldKeys.value = [];
+  showBulkRemoveConfirmation.value = false;
+  selectedCustomFieldId.value = null;
+  syncCustomFieldDefinitionsText();
+};
+
 const clearSelectedCustomField = () => {
   const clientId = selectedCustomFieldId.value;
   selectedCustomFieldId.value = null;
@@ -1721,6 +1808,14 @@ const renumberCustomFieldSection = sectionKey => {
  * Só a aba ativa é ponto de tabulação (roving tabindex): assim o Tab atravessa
  * o grupo de abas de uma vez e quem quer trocar de aba usa as setas.
  */
+const selectFieldTab = sectionKey => {
+  activeFieldSectionKey.value = sectionKey;
+  // A seleção pertence à aba: mantê-la ao trocar deixava o utilizador a apagar
+  // campos que já não estavam à vista.
+  // eslint-disable-next-line no-use-before-define
+  selectedFieldKeys.value = [];
+};
+
 const onFieldTabKeydown = (event, index) => {
   const sections = customFieldLayoutSections.value;
   const passo = { ArrowRight: 1, ArrowLeft: -1 };
@@ -1737,7 +1832,7 @@ const onFieldTabKeydown = (event, index) => {
 
   event.preventDefault();
   const proxima = sections[alvo];
-  activeFieldSectionKey.value = proxima.key;
+  selectFieldTab(proxima.key);
   nextTick(() =>
     document.getElementById(`kanban-field-tab-${proxima.key}`)?.focus()
   );
@@ -4143,7 +4238,7 @@ onMounted(async () => {
           </div>
 
           <div
-            class="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]"
+            class="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
           >
             <section class="grid content-start gap-3">
               <!--
@@ -4173,7 +4268,7 @@ onMounted(async () => {
                       ? 'border-n-brand bg-n-brand/10 font-semibold text-n-brand'
                       : 'border-n-weak bg-n-surface-1 font-medium text-n-slate-11 hover:bg-n-alpha-1 hover:text-n-slate-12'
                   "
-                  @click="activeFieldSectionKey = section.key"
+                  @click="selectFieldTab(section.key)"
                   @keydown="onFieldTabKeydown($event, sectionIndex)"
                 >
                   <span
@@ -4202,11 +4297,18 @@ onMounted(async () => {
                 </button>
               </div>
 
+              <!--
+                A barra da aba ativa. «Grupos» vivia numa linha própria e
+                permanente, com o contador a zero na maioria dos quadros: é uma
+                propriedade da aba, e é aqui que as propriedades da aba estão.
+                A barra passa a existir para todas as abas — «Geral» não tinha
+                nenhuma, e por isso não tinha por onde chegar aos grupos.
+              -->
               <div
-                v-if="activeCustomFieldSection"
                 class="flex flex-wrap items-end justify-between gap-3 rounded-md bg-n-surface-2 px-3 py-2"
               >
                 <label
+                  v-if="activeCustomFieldSection"
                   class="grid min-w-48 flex-1 gap-1 text-xs font-medium text-n-slate-11"
                 >
                   {{ t('KANBAN.SETTINGS.SALES.FIELD_SECTION_NAME') }}
@@ -4218,8 +4320,35 @@ onMounted(async () => {
                     @input="syncCustomFieldDefinitionsText"
                   />
                 </label>
+                <p
+                  v-else
+                  class="mb-0 min-w-48 flex-1 text-sm font-medium text-n-slate-12"
+                >
+                  {{ customFieldTabLabel(activeFieldSectionKey) }}
+                </p>
                 <div class="flex items-center gap-1">
                   <button
+                    type="button"
+                    data-testid="kanban-settings-manage-field-groups"
+                    class="flex h-8 items-center gap-1.5 rounded px-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                    @click="openFieldGroupManager"
+                  >
+                    <i
+                      class="i-lucide-layout-grid size-3.5"
+                      aria-hidden="true"
+                    />
+                    {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUPS') }}
+                    <span
+                      class="rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-normal text-n-slate-11"
+                    >
+                      {{
+                        customFieldGroupsForSection(activeFieldSectionKey)
+                          .length
+                      }}
+                    </span>
+                  </button>
+                  <button
+                    v-if="activeCustomFieldSection"
                     type="button"
                     :data-testid="`kanban-settings-rename-section-${activeCustomFieldSection.key}`"
                     class="flex p-0 size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
@@ -4231,7 +4360,9 @@ onMounted(async () => {
                     <i class="i-lucide-pencil size-3.5" />
                   </button>
                   <button
-                    v-if="activeFieldSectionIndex > 0"
+                    v-if="
+                      activeCustomFieldSection && activeFieldSectionIndex > 0
+                    "
                     type="button"
                     :data-testid="`kanban-settings-move-section-${activeCustomFieldSection.key}-up`"
                     class="flex p-0 size-8 items-center justify-center rounded text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
@@ -4246,8 +4377,9 @@ onMounted(async () => {
                   </button>
                   <button
                     v-if="
+                      activeCustomFieldSection &&
                       activeFieldSectionIndex <
-                      customFieldLayoutSections.length - 1
+                        customFieldLayoutSections.length - 1
                     "
                     type="button"
                     :data-testid="`kanban-settings-move-section-${activeCustomFieldSection.key}-down`"
@@ -4262,6 +4394,7 @@ onMounted(async () => {
                     <i class="i-lucide-chevron-down size-4" />
                   </button>
                   <button
+                    v-if="activeCustomFieldSection"
                     type="button"
                     :data-testid="`kanban-settings-remove-section-${activeCustomFieldSection.key}`"
                     class="flex p-0 size-8 items-center justify-center rounded text-n-ruby-11 outline-none hover:bg-n-ruby-2 focus:ring-2 focus:ring-n-ruby-8"
@@ -4276,26 +4409,6 @@ onMounted(async () => {
                   </button>
                 </div>
               </div>
-
-              <button
-                type="button"
-                data-testid="kanban-settings-manage-field-groups"
-                class="flex items-center justify-between gap-3 rounded-md border border-solid border-n-weak bg-n-surface-1 px-3 py-2 text-left text-xs font-medium text-n-slate-12 outline-none hover:bg-n-alpha-1 focus:ring-2 focus:ring-n-brand/40"
-                @click="openFieldGroupManager"
-              >
-                <span class="flex items-center gap-2">
-                  <i class="i-lucide-layout-grid size-3.5 text-n-slate-10" />
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_GROUPS') }}
-                  <span
-                    class="rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-normal text-n-slate-11"
-                  >
-                    {{
-                      customFieldGroupsForSection(activeFieldSectionKey).length
-                    }}
-                  </span>
-                </span>
-                <i class="i-lucide-settings-2 size-3.5 text-n-slate-10" />
-              </button>
 
               <div
                 v-if="showRemoveFieldSectionConfirmation"
@@ -4613,6 +4726,101 @@ onMounted(async () => {
                 </div>
 
                 <!--
+                  Ações em massa. Com os 26 campos do preset de marketing,
+                  mover ou apagar era campo a campo: 26 viagens ao painel.
+                -->
+                <div
+                  v-if="
+                    customFieldsForLayoutSection(activeFieldSectionKey).length
+                  "
+                  class="flex flex-wrap items-center gap-2 rounded-md bg-n-surface-2 px-2 py-1.5"
+                >
+                  <label
+                    class="flex items-center gap-2 text-xs text-n-slate-11"
+                  >
+                    <input
+                      type="checkbox"
+                      data-testid="kanban-settings-select-all-fields"
+                      :checked="allVisibleSelected"
+                      class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                      @change="toggleAllVisibleFields($event.target.checked)"
+                    />
+                    {{
+                      selectedFieldKeys.length
+                        ? t('KANBAN.SETTINGS.SALES.SELECTED_COUNT', {
+                            count: selectedFieldKeys.length,
+                          })
+                        : t('KANBAN.SETTINGS.SALES.SELECT_ALL_FIELDS')
+                    }}
+                  </label>
+                  <div
+                    v-if="selectedFieldKeys.length"
+                    data-testid="kanban-settings-bulk-actions"
+                    class="ms-auto flex flex-wrap items-center gap-2"
+                  >
+                    <select
+                      v-model="bulkTargetSection"
+                      data-testid="kanban-settings-bulk-target"
+                      class="reset-base mb-0 h-8 rounded-full border border-solid border-n-strong bg-n-surface-1 px-3 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+                      :aria-label="t('KANBAN.SETTINGS.SALES.MOVE_SELECTED_TO')"
+                      @change="moveSelectedFieldsToSection(bulkTargetSection)"
+                    >
+                      <option value="">
+                        {{ t('KANBAN.SETTINGS.SALES.MOVE_SELECTED_TO') }}
+                      </option>
+                      <option
+                        v-for="section in customFieldLayoutSections.filter(
+                          item => item.key !== activeFieldSectionKey
+                        )"
+                        :key="section.key"
+                        :value="section.key"
+                      >
+                        {{ section.label }}
+                      </option>
+                    </select>
+                    <Button
+                      type="button"
+                      data-testid="kanban-settings-bulk-remove"
+                      icon="i-lucide-trash-2"
+                      :label="t('KANBAN.SETTINGS.SALES.REMOVE_SELECTED')"
+                      color="ruby"
+                      size="xs"
+                      faded
+                      @click="showBulkRemoveConfirmation = true"
+                    />
+                  </div>
+                </div>
+                <div
+                  v-if="showBulkRemoveConfirmation"
+                  class="grid gap-2 rounded-md border border-solid border-n-ruby-6 bg-n-ruby-2 p-2"
+                >
+                  <p class="m-0 text-micro text-n-ruby-11">
+                    {{
+                      t('KANBAN.SETTINGS.SALES.REMOVE_SELECTED_WARNING', {
+                        count: selectedFieldKeys.length,
+                      })
+                    }}
+                  </p>
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      :label="t('KANBAN.ACTIONS.CANCEL')"
+                      color="slate"
+                      size="xs"
+                      @click="showBulkRemoveConfirmation = false"
+                    />
+                    <Button
+                      type="button"
+                      data-testid="kanban-settings-confirm-bulk-remove"
+                      icon="i-lucide-trash-2"
+                      :label="t('KANBAN.SETTINGS.SALES.REMOVE_SELECTED')"
+                      color="ruby"
+                      size="xs"
+                      @click="removeSelectedFields"
+                    />
+                  </div>
+                </div>
+                <!--
                   A linha abria o editor ao clique, mas o cursor dizia
                   «arrasta-me»: quem arrastava concluía que o campo
                   estava travado. Arrastar passa a ser só pela pega; o
@@ -4637,8 +4845,30 @@ onMounted(async () => {
                 >
                   <template #item="{ element }">
                     <div
-                      class="flex min-w-0 items-center gap-1 rounded border border-solid border-n-weak bg-n-surface-1 pl-2 pr-1 transition-colors hover:border-n-brand focus-within:border-n-brand"
+                      class="flex min-w-0 items-center gap-1 rounded border border-solid bg-n-surface-1 pl-2 pr-1 transition-colors focus-within:border-n-brand hover:border-n-brand"
+                      :class="
+                        selectedFieldKeys.includes(element.clientId)
+                          ? 'border-n-brand bg-n-brand/5'
+                          : 'border-n-weak'
+                      "
                     >
+                      <input
+                        type="checkbox"
+                        :data-testid="`kanban-settings-select-field-${element.key}`"
+                        :checked="selectedFieldKeys.includes(element.clientId)"
+                        class="size-4 shrink-0 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                        :aria-label="
+                          t('KANBAN.SETTINGS.SALES.SELECT_FIELD', {
+                            name: element.label || element.key,
+                          })
+                        "
+                        @change="
+                          toggleFieldSelection(
+                            element.clientId,
+                            $event.target.checked
+                          )
+                        "
+                      />
                       <i
                         class="field-row-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 cursor-grab text-n-slate-11"
                         aria-hidden="true"
@@ -5330,21 +5560,68 @@ onMounted(async () => {
                 />
               </footer>
             </section>
+            <!--
+              Sem campo escolhido, o painel dizia «nenhum campo selecionado» e
+              ocupava o resto do ecrã a não dizer nada. Passa a responder às
+              perguntas que se fazem antes de escolher: quantos campos tem esta
+              aba, quantos chegam ao cartão, quantos travam a mudança de etapa.
+            -->
             <div
               v-else
               data-testid="kanban-settings-field-editor-empty"
-              class="grid min-h-48 content-center justify-items-center gap-2 rounded-xl border border-dashed border-n-weak px-6 py-10 text-center"
+              class="grid content-start gap-4 rounded-xl border border-solid border-n-weak bg-n-surface-1 p-5"
             >
-              <i
-                class="i-lucide-list-tree size-6 text-n-slate-10"
-                aria-hidden="true"
-              />
-              <p class="mb-0 text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.SETTINGS.SALES.NO_FIELD_SELECTED') }}
-              </p>
-              <p class="mb-0 max-w-64 text-xs text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.SALES.NO_FIELD_SELECTED_HELP') }}
-              </p>
+              <div>
+                <h3 class="mb-0 text-sm font-medium text-n-slate-12">
+                  {{ customFieldTabLabel(activeFieldSectionKey) }}
+                </h3>
+                <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.NO_FIELD_SELECTED_HELP') }}
+                </p>
+              </div>
+              <dl class="grid grid-cols-2 gap-3">
+                <div
+                  v-for="linha in [
+                    {
+                      k: 'TOTAL',
+                      v: activeSectionSummary.total,
+                      testid: 'summary-total',
+                    },
+                    {
+                      k: 'ON_CARD',
+                      v: activeSectionSummary.noCartao,
+                      testid: 'summary-on-card',
+                    },
+                    {
+                      k: 'REQUIRED',
+                      v: activeSectionSummary.obrigatorios,
+                      testid: 'summary-required',
+                    },
+                    {
+                      k: 'CONDITIONAL',
+                      v: activeSectionSummary.condicionais,
+                      testid: 'summary-conditional',
+                    },
+                    {
+                      k: 'CALCULATED',
+                      v: activeSectionSummary.calculados,
+                      testid: 'summary-calculated',
+                    },
+                  ]"
+                  :key="linha.k"
+                  :data-testid="`kanban-settings-${linha.testid}`"
+                  class="grid gap-0.5 rounded-lg bg-n-surface-2 px-3 py-2"
+                >
+                  <dt class="text-micro font-medium text-n-slate-11">
+                    {{ t(`KANBAN.SETTINGS.SALES.SUMMARY.${linha.k}`) }}
+                  </dt>
+                  <dd
+                    class="mb-0 text-xl font-semibold tabular-nums text-n-slate-12"
+                  >
+                    {{ linha.v }}
+                  </dd>
+                </div>
+              </dl>
             </div>
           </div>
         </section>

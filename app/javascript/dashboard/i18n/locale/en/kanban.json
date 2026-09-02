@@ -609,7 +609,7 @@
         "FIELDS_NAV": "Fields",
         "FIELD_MANAGER_TITLE": "Fields",
         "NO_FIELD_SELECTED": "No field selected",
-        "NO_FIELD_SELECTED_HELP": "Pick a field on the left to configure it, or add one with +.",
+        "NO_FIELD_SELECTED_HELP": "What this tab holds. Pick a field on the left to configure it, or add one with +.",
         "SEARCH_FIELDS": "Search fields",
         "NO_FIELDS_FOUND": "No field matches this search.",
         "EDIT_FIELD_TITLE": "Field",
@@ -776,7 +776,20 @@
           "FORMULA": "Formula"
         },
         "EDIT_FIELD_HINT": "Click to edit this field. Drag by the handle to move it.",
-        "ADD_FIELD_HERE": "Add field to this tab"
+        "ADD_FIELD_HERE": "Add field to this tab",
+        "SUMMARY": {
+          "TOTAL": "Fields",
+          "ON_CARD": "On the card",
+          "REQUIRED": "Required",
+          "CONDITIONAL": "Conditional",
+          "CALCULATED": "Calculated"
+        },
+        "SELECT_FIELD": "Select {name}",
+        "SELECT_ALL_FIELDS": "Select all",
+        "SELECTED_COUNT": "{count} selected",
+        "MOVE_SELECTED_TO": "Move to tab…",
+        "REMOVE_SELECTED": "Remove",
+        "REMOVE_SELECTED_WARNING": "Remove {count} fields? Values already saved on cards are kept."
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",

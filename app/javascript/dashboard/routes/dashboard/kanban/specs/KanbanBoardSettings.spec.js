@@ -1165,6 +1165,100 @@ describe('KanbanBoardSettings', () => {
     expect(wrapper.vm.activeFieldSectionKey).toBe('details');
   });
 
+  it('moves several fields to another tab in one go', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            { key: 'um', label: 'Um', field_type: 'text' },
+            { key: 'dois', label: 'Dois', field_type: 'text' },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+
+    // Sem seleção não há barra de ações: só aparece quando há o que fazer.
+    expect(
+      wrapper.find('[data-testid="kanban-settings-bulk-actions"]').exists()
+    ).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-settings-select-all-fields"]')
+      .setValue(true);
+    expect(
+      wrapper.find('[data-testid="kanban-settings-bulk-actions"]').exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-settings-bulk-target"]')
+      .setValue('marketing');
+
+    expect(
+      wrapper.vm.form.customFieldDefinitions.map(
+        definition => definition.layoutSection
+      )
+    ).toEqual(['marketing', 'marketing']);
+    expect(
+      wrapper.find('[data-testid="kanban-settings-bulk-actions"]').exists()
+    ).toBe(false);
+  });
+
+  it('asks before removing a batch of fields', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            { key: 'um', label: 'Um', field_type: 'text' },
+            { key: 'dois', label: 'Dois', field_type: 'text' },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-select-field-um"]')
+      .setValue(true);
+    await wrapper
+      .find('[data-testid="kanban-settings-bulk-remove"]')
+      .trigger('click');
+
+    // Perguntar antes: apagar vários de uma vez não pode ser um clique só.
+    expect(wrapper.vm.form.customFieldDefinitions).toHaveLength(2);
+
+    await wrapper
+      .find('[data-testid="kanban-settings-confirm-bulk-remove"]')
+      .trigger('click');
+
+    expect(
+      wrapper.vm.form.customFieldDefinitions.map(definition => definition.key)
+    ).toEqual(['dois']);
+  });
+
+  it('tells the tab apart before a field is picked', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+
+    const resumo = wrapper.find(
+      '[data-testid="kanban-settings-field-editor-empty"]'
+    );
+    expect(resumo.exists()).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-settings-summary-total"]').text()
+    ).toContain('1');
+  });
+
   it('searches fields across every tab', async () => {
     const { wrapper } = await mountSettings({
       getSettingsResponse: {

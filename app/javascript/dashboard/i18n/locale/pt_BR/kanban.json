@@ -612,7 +612,7 @@
         "FIELDS_NAV": "Campos",
         "FIELD_MANAGER_TITLE": "Campos",
         "NO_FIELD_SELECTED": "Nenhum campo selecionado",
-        "NO_FIELD_SELECTED_HELP": "Escolha um campo à esquerda para configurá-lo, ou adicione um com o +.",
+        "NO_FIELD_SELECTED_HELP": "O que esta aba tem. Escolha um campo à esquerda para configurá-lo, ou adicione um com o +.",
         "SEARCH_FIELDS": "Buscar campo",
         "NO_FIELDS_FOUND": "Nenhum campo corresponde a esta busca.",
         "EDIT_FIELD_TITLE": "Campo",
@@ -779,7 +779,20 @@
           "FORMULA": "Fórmula"
         },
         "EDIT_FIELD_HINT": "Clique para editar este campo. Arraste pela pega para movê-lo.",
-        "ADD_FIELD_HERE": "Adicionar campo nesta aba"
+        "ADD_FIELD_HERE": "Adicionar campo nesta aba",
+        "SUMMARY": {
+          "TOTAL": "Campos",
+          "ON_CARD": "No card",
+          "REQUIRED": "Obrigatórios",
+          "CONDITIONAL": "Condicionais",
+          "CALCULATED": "Calculados"
+        },
+        "SELECT_FIELD": "Selecionar {name}",
+        "SELECT_ALL_FIELDS": "Selecionar todos",
+        "SELECTED_COUNT": "{count} selecionados",
+        "MOVE_SELECTED_TO": "Mover para a aba…",
+        "REMOVE_SELECTED": "Remover",
+        "REMOVE_SELECTED_WARNING": "Remover {count} campos? Os valores já salvos nos cards permanecem."
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
