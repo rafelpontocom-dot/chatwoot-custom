@@ -589,7 +589,7 @@
         "LEGACY_FIELD_HELP": "Opcional. Espelha a próxima consulta em um campo existente enquanto a equipe migra para a Agenda."
       },
       "SALES": {
-        "TITLE": "Campos comerciais",
+        "TITLE": "Comercial",
         "NEXT_ACTION_TYPES": "Tipos de próxima ação",
         "NEXT_ACTION_TYPES_PLACEHOLDER": "Um tipo de ação por linha",
         "LOST_REASON_OPTIONS": "Motivos de perda",
@@ -610,7 +610,8 @@
         "CARD_LAYOUT_MORE_FIELDS": "+{count} campo(s) fora do card compacto",
         "CUSTOM_FIELDS_PLACEHOLDER": "Array JSON com key, label, field_type, options, required_stage_ids, condition, formula e layout",
         "MANAGE_CUSTOM_FIELDS": "Gerir campos",
-        "FIELD_MANAGER_TITLE": "Gerenciador de campos da oportunidade",
+        "FIELDS_NAV": "Campos",
+        "FIELD_MANAGER_TITLE": "Campos",
         "FIELD_MANAGER_DESCRIPTION": "Escolha uma aba, adicione campos pelo +, e clique num campo para o configurar.",
         "NO_FIELD_SELECTED": "Nenhum campo selecionado",
         "NO_FIELD_SELECTED_HELP": "Escolha um campo à esquerda para o configurar, ou acrescente um com o +.",

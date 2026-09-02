@@ -586,7 +586,7 @@
         "LEGACY_FIELD_HELP": "Optional. Mirrors the next appointment to an existing field while the team moves to Calendar."
       },
       "SALES": {
-        "TITLE": "Sales fields",
+        "TITLE": "Sales",
         "NEXT_ACTION_TYPES": "Next action types",
         "NEXT_ACTION_TYPES_PLACEHOLDER": "One action type per line",
         "LOST_REASON_OPTIONS": "Lost reasons",
@@ -607,7 +607,8 @@
         "CARD_LAYOUT_MORE_FIELDS": "+{count} field(s) outside the compact card",
         "CUSTOM_FIELDS_PLACEHOLDER": "JSON array with key, label, field_type, options, required_stage_ids, condition, formula and layout",
         "MANAGE_CUSTOM_FIELDS": "Manage fields",
-        "FIELD_MANAGER_TITLE": "Opportunity field manager",
+        "FIELDS_NAV": "Fields",
+        "FIELD_MANAGER_TITLE": "Fields",
         "FIELD_MANAGER_DESCRIPTION": "Pick a tab, add fields with +, and click a field to configure it.",
         "NO_FIELD_SELECTED": "No field selected",
         "NO_FIELD_SELECTED_HELP": "Pick a field on the left to configure it, or add one with +.",

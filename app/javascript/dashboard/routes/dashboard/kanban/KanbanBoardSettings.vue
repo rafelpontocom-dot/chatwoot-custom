@@ -247,6 +247,19 @@ const openSettingsSection = key => {
   // continua a viver neste componente e no mesmo formulário.
   if (key === 'fields') {
     activeSettingsSection.value = 'fields';
+    // Abrir a página numa aba vazia quando os campos estão noutra é começar por
+    // parecer que não há campos nenhuns.
+    showRemoveMarketingConfirmation.value = false;
+    // Aterrar na aba onde os campos estão. Abrir numa aba vazia enquanto os
+    // campos vivem noutra é começar por parecer que não há campos nenhuns.
+    const abas = form.customFieldSections.map(section => section.key);
+    const abaComCampos = form.customFieldDefinitions[0]?.layoutSection;
+    activeFieldSectionKey.value =
+      (abas.includes(abaComCampos) && abaComCampos) ||
+      (abas.includes(activeFieldSectionKey.value) &&
+        activeFieldSectionKey.value) ||
+      abas[0] ||
+      'details';
     router.push({
       name: 'kanban_board_field_settings',
       params: { accountId: route.params.accountId, boardId: boardId.value },
@@ -286,7 +299,7 @@ const settingsNavigation = computed(() => [
   },
   {
     key: 'fields',
-    label: t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_TITLE'),
+    label: t('KANBAN.SETTINGS.SALES.FIELDS_NAV'),
     icon: 'i-lucide-list-tree',
   },
   {
@@ -1129,6 +1142,10 @@ const applySettings = payload => {
       };
     }
   );
+  // Só «Geral» é permanente: é onde os campos aterram quando uma aba é
+  // removida, portanto não pode desaparecer. Marketing nasce com o quadro mas
+  // é uma aba como as outras — um consultório que não faz campanhas não tem por
+  // que carregar 26 campos de UTM para sempre.
   const builtInSections = [
     {
       key: 'details',
@@ -1137,10 +1154,13 @@ const applySettings = payload => {
       color: 'slate',
       groups: [],
     },
+  ];
+  const defaultSections = [
+    ...builtInSections,
     {
       key: 'marketing',
       label: t('KANBAN.SETTINGS.SALES.TABS.MARKETING'),
-      builtIn: true,
+      builtIn: false,
       color: 'slate',
       groups: [],
     },
@@ -1151,16 +1171,17 @@ const applySettings = payload => {
   const configuredSectionsByKey = new Map(
     configuredSections.map(section => [section.key, section])
   );
+  const semConfiguracao = configuredSections.length === 0;
+  const modelo = semConfiguracao ? defaultSections : builtInSections;
   form.customFieldSections = hasPersistedTabOrder
     ? configuredSections
     : [
-        ...builtInSections.map(section => ({
+        ...modelo.map(section => ({
           ...section,
           ...(configuredSectionsByKey.get(section.key) || {}),
         })),
         ...configuredSections.filter(
-          section =>
-            !builtInSections.some(builtIn => builtIn.key === section.key)
+          section => !modelo.some(item => item.key === section.key)
         ),
       ];
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
@@ -1376,24 +1397,6 @@ const addCustomFieldToSection = sectionKey => {
 };
 
 /**
- * Abre a página dos campos. Com um `clientId`, já no campo pedido — quem vem do
- * resumo comercial disse qual campo quer ver.
- */
-const openCustomFieldManager = clientId => {
-  const selected = form.customFieldDefinitions.find(
-    definition => definition.clientId === clientId
-  );
-  selectedCustomFieldId.value = selected?.clientId || null;
-  activeFieldSectionKey.value =
-    selected?.layoutSection ||
-    form.customFieldDefinitions[0]?.layoutSection ||
-    'details';
-  showRemoveMarketingConfirmation.value = false;
-  // eslint-disable-next-line no-use-before-define
-  openSettingsSection('fields');
-};
-
-/**
  * A secção segue o endereço, não só o clique.
  *
  * Sem isto o botão «voltar» do browser mudava a URL e deixava a página na
@@ -1477,22 +1480,22 @@ const customFieldLayoutSections = computed(() => {
     configuredSections.push({
       color: 'slate',
       groups: [],
-      builtIn: ['details', 'marketing'].includes(section.key),
+      builtIn: section.key === 'details',
       ...section,
     });
   });
-  ['details', 'marketing'].forEach(sectionKey => {
-    if (seenKeys.has(sectionKey)) return;
-
-    seenKeys.add(sectionKey);
+  // Só «Geral» é reposta: repor Marketing era o que a mantinha fixa — removê-la
+  // e recarregar trazia-a de volta.
+  if (!seenKeys.has('details')) {
+    seenKeys.add('details');
     configuredSections.push({
-      key: sectionKey,
-      label: customFieldSectionLabel(sectionKey),
+      key: 'details',
+      label: customFieldSectionLabel('details'),
       builtIn: true,
       color: 'slate',
       groups: [],
     });
-  });
+  }
   const knownKeys = new Set(configuredSections.map(section => section.key));
 
   form.customFieldDefinitions.forEach(definition => {
@@ -3065,7 +3068,7 @@ onMounted(async () => {
             v-for="item in settingsNavigation"
             :key="item.key"
             type="button"
-            class="flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-n-brand/40"
+            class="flex min-h-10 min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-n-brand/40"
             :class="
               activeSettingsSection === item.key
                 ? 'bg-n-brand/10 text-n-brand'
@@ -3082,7 +3085,7 @@ onMounted(async () => {
               :class="[item.icon]"
               aria-hidden="true"
             />
-            <span class="truncate">{{ item.label }}</span>
+            <span class="min-w-0 truncate">{{ item.label }}</span>
           </button>
         </nav>
 
@@ -3732,60 +3735,12 @@ onMounted(async () => {
             </label>
           </details>
           <div class="grid gap-3">
-            <div class="flex items-center justify-between gap-3">
-              <h3 class="mb-0 text-sm font-medium text-n-slate-12">
-                {{ t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS') }}
-              </h3>
-              <Button
-                type="button"
-                data-testid="kanban-settings-manage-custom-fields"
-                icon="i-lucide-settings-2"
-                :label="t('KANBAN.SETTINGS.SALES.MANAGE_CUSTOM_FIELDS')"
-                color="slate"
-                size="sm"
-                @click="openCustomFieldManager()"
-              />
-            </div>
-
-            <div
-              data-testid="kanban-settings-custom-field-summary"
-              class="grid overflow-hidden rounded-md border border-n-weak bg-n-surface-1"
-            >
-              <button
-                v-for="definition in form.customFieldDefinitions.slice(0, 8)"
-                :key="definition.clientId"
-                type="button"
-                class="border-solid flex min-w-0 items-center gap-2 border-b border-n-weak px-3 py-2 text-left text-sm text-n-slate-12 outline-none last:border-b-0 hover:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
-                @click="openCustomFieldManager(definition.clientId)"
-              >
-                <i
-                  class="i-lucide-list-tree size-4 shrink-0 text-n-slate-11"
-                  aria-hidden="true"
-                />
-                <span class="min-w-0 flex-1 break-words">{{
-                  definition.label
-                }}</span>
-                <span class="shrink-0 text-xs text-n-slate-11">{{
-                  definition.fieldType
-                }}</span>
-                <i
-                  class="i-lucide-chevron-right size-4 shrink-0 text-n-slate-11"
-                  aria-hidden="true"
-                />
-              </button>
-              <span
-                v-if="form.customFieldDefinitions.length > 8"
-                class="border-b border-n-weak px-3 py-2 text-xs text-n-slate-10"
-              >
-                {{ `+${form.customFieldDefinitions.length - 8}` }}
-              </span>
-              <span
-                v-if="!form.customFieldDefinitions.length"
-                class="px-3 py-3 text-sm text-n-slate-11"
-              >
-                {{ t('KANBAN.SETTINGS.SALES.NO_CUSTOM_FIELDS') }}
-              </span>
-            </div>
+            <!--
+              A lista dos campos vivia aqui e na página «Campos»: dois sítios a
+              dizer a mesma coisa, e o nome desta secção a prometer campos que
+              ela não configura. Fica só o que é mesmo comercial; os campos têm
+              a sua própria entrada na navegação.
+            -->
 
             <details
               data-testid="kanban-settings-compact-card-layout"

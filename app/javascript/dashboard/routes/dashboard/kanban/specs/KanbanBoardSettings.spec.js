@@ -671,7 +671,7 @@ describe('KanbanBoardSettings', () => {
       wrapper.findAll('[data-testid="kanban-settings-custom-field-editor"]')
     ).toHaveLength(0);
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-add-field-details"]')
@@ -726,22 +726,11 @@ describe('KanbanBoardSettings', () => {
     );
   });
 
-  it('summarizes configured fields as a compact list before opening the manager', async () => {
-    const { wrapper } = await mountSettings();
-    const fieldList = wrapper.find(
-      '[data-testid="kanban-settings-custom-field-summary"]'
-    );
-
-    expect(fieldList.exists()).toBe(true);
-    expect(fieldList.text()).toContain('Consulta realizada?');
-    expect(fieldList.text()).toContain('select');
-  });
-
   it('shows a reorderable compact card preview in the field manager', async () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-add-field-details"]')
@@ -780,7 +769,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-compact-card-move-campanha-up"]')
@@ -796,7 +785,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-add-field-details"]')
@@ -822,7 +811,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-section-tab-marketing"]')
@@ -901,7 +890,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-section-tab-marketing"]')
@@ -969,7 +958,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-section-tab-marketing"]')
@@ -1012,7 +1001,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     expect(wrapper.find('[data-field-key="gbraid"]').exists()).toBe(false);
@@ -1024,7 +1013,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     expect(wrapper.find('[data-field-key="consulta_realizada"]').exists()).toBe(
@@ -1046,7 +1035,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     // Antes de escolher um campo, o painel diz o que fazer em vez de ficar vazio.
@@ -1086,7 +1075,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     expect(mockPush).toHaveBeenCalledWith(
@@ -1113,7 +1102,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     // A pega só serve o rato: sem estes botões não há como reordenar.
@@ -1143,7 +1132,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     const details = wrapper.find(
@@ -1198,7 +1187,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-field-palette-search"]')
@@ -1249,7 +1238,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     expect(
@@ -1277,7 +1266,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-field-key="consulta_realizada"]')
@@ -1298,7 +1287,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-field-key="consulta_realizada"]')
@@ -1325,7 +1314,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-add-field-section"]')
@@ -1382,7 +1371,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
     expect(
@@ -1394,7 +1383,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-add-field-section"]')
@@ -1439,7 +1428,7 @@ describe('KanbanBoardSettings', () => {
     const { wrapper } = await mountSettings();
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-manage-field-groups"]')
@@ -1510,7 +1499,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-section-tab-consulta"]')
@@ -1549,16 +1538,12 @@ describe('KanbanBoardSettings', () => {
       .trigger('submit');
 
     const payload = KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1];
+    // Só «Geral» é reposta. Um quadro cuja configuração não tem Marketing não
+    // volta a recebê-la: era isso que a mantinha fixa.
     expect(payload.kanban_board.custom_field_sections).toEqual([
       {
         key: 'details',
         label: 'KANBAN.SETTINGS.SALES.TABS.GENERAL',
-        color: 'slate',
-        groups: [],
-      },
-      {
-        key: 'marketing',
-        label: 'KANBAN.SETTINGS.SALES.TABS.MARKETING',
         color: 'slate',
         groups: [],
       },
@@ -1567,6 +1552,46 @@ describe('KanbanBoardSettings', () => {
     expect(
       payload.kanban_board.custom_field_definitions[0].layout.section
     ).toBe('details');
+  });
+
+  it('lets the account remove the marketing tab for good', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_sections: [
+            { key: 'details', label: 'Geral' },
+            { key: 'marketing', label: 'Marketing' },
+          ],
+          custom_field_definitions: [],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-section-tab-marketing"]')
+      .trigger('click');
+
+    // Marketing deixa de ser built-in: ganha os mesmos controlos das outras.
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-remove-section-marketing"]')
+        .exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-settings-remove-section-marketing"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-confirm-remove-section"]')
+      .trigger('click');
+
+    expect(
+      wrapper.vm.form.customFieldSections.map(section => section.key)
+    ).toEqual(['details']);
   });
 
   it('shows a numeric preview for a valid formula before saving', async () => {
@@ -1588,7 +1613,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper.find('[data-field-key="total"]').trigger('click');
     await wrapper
@@ -1605,7 +1630,7 @@ describe('KanbanBoardSettings', () => {
   it('moves custom fields between tabs with the visual layout editor', async () => {
     const { wrapper } = await mountSettings();
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     const detailsSection = wrapper
       .findAllComponents({ name: 'Draggable' })
@@ -1665,7 +1690,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper.find('[data-field-key="motivo"]').trigger('click');
     const row = wrapper.find(
@@ -1687,7 +1712,7 @@ describe('KanbanBoardSettings', () => {
   it('offers native opportunity fields as condition sources', async () => {
     const { wrapper } = await mountSettings();
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-field-key="consulta_realizada"]')
@@ -1742,7 +1767,7 @@ describe('KanbanBoardSettings', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper.find('[data-field-key="aprovacao"]').trigger('click');
     const conditionValue = wrapper.find(
@@ -1775,7 +1800,7 @@ describe('KanbanBoardSettings', () => {
       },
     });
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper.find('[data-field-key="valor_total"]').trigger('click');
     const row = wrapper.find(
@@ -1851,7 +1876,7 @@ describe('KanbanBoardSettings', () => {
       },
     });
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper.find('[data-field-key="total"]').trigger('click');
     const formulaInput = wrapper.find(
@@ -2033,7 +2058,7 @@ describe('KanbanBoardSettings', () => {
       .find('[data-testid="kanban-settings-lost-reason-options"]')
       .setValue('Preço\n\nFechou com outro');
     await wrapper
-      .find('[data-testid="kanban-settings-manage-custom-fields"]')
+      .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-custom-fields"]')
