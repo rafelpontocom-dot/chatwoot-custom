@@ -789,7 +789,16 @@
         "SELECTED_COUNT": "{count} selected",
         "MOVE_SELECTED_TO": "Move to tab…",
         "REMOVE_SELECTED": "Remove",
-        "REMOVE_SELECTED_WARNING": "Remove {count} fields? Values already saved on cards are kept."
+        "REMOVE_SELECTED_WARNING": "Remove {count} fields? Values already saved on cards are kept.",
+        "DATA_LOSS_TITLE": "These fields hold data",
+        "DATA_LOSS_MESSAGE": "Removing them hides the values from every card. The data stays in the database, but nobody can read it in the product.",
+        "DATA_LOSS_CARDS": "{count} cards",
+        "DATA_LOSS_CONFIRM": "Remove anyway",
+        "PREVIEW": "How the tab will look",
+        "PREVIEW_EMPTY": "Add a field to see the tab take shape.",
+        "PREVIEW_HIDDEN": "{count} conditional fields appear only when their condition is met.",
+        "PREVIEW_CALCULATED": "calculated",
+        "PREVIEW_HALF_MARK": "½"
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",

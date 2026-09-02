@@ -627,9 +627,14 @@ const activeTabGroups = computed(() => {
   );
 
   if (ungrouped.length) {
+    // Quando a aba não tem grupos, os seus campos são a aba — não «outros».
+    // Estavam a ser empurrados para debaixo de um cabeçalho genérico, abaixo
+    // dos campos nativos, como se fossem sobras.
     groups.push({
       key: 'ungrouped',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.UNGROUPED_FIELDS'),
+      label: groups.length
+        ? t('KANBAN.OPPORTUNITY_DETAILS.UNGROUPED_FIELDS')
+        : '',
       color: 'slate',
       definitions: ungrouped,
     });
@@ -705,6 +710,16 @@ const customFieldDisplayValue = definition => {
     ? ''
     : String(valor);
 };
+
+/**
+ * A largura escolhida na configuração.
+ *
+ * `layout.width` era guardada, aparecia no editor e nunca chegava aqui: quem
+ * escolhia «metade» estava a configurar o nada. Meia largura ocupa uma coluna;
+ * o resto atravessa as duas, como já acontecia com tudo.
+ */
+const customFieldSpanClass = definition =>
+  definition.layout?.width === 'half' ? '' : 'sm:col-span-2';
 
 const customFieldRowVariant = definition => {
   if (['select', 'multiselect'].includes(definition.fieldType)) return 'select';
@@ -2545,10 +2560,15 @@ watch(invitationPendingRevocation, async invitation => {
                 <section
                   v-for="group in activeTabGroups"
                   :key="group.key"
-                  class="grid gap-2 border-b border-n-weak py-3 pl-3 first:pt-0 last:border-b-0 last:pb-0 border-l-2"
-                  :class="customFieldGroupClass(group.color)"
+                  class="grid gap-2 border-b border-n-weak py-3 first:pt-0 last:border-b-0 last:pb-0"
+                  :class="
+                    group.label
+                      ? ['border-l-2 pl-3', customFieldGroupClass(group.color)]
+                      : ''
+                  "
                 >
                   <button
+                    v-if="group.label"
                     type="button"
                     class="flex items-center justify-between gap-3 text-left"
                     :aria-expanded="
@@ -2572,9 +2592,10 @@ watch(invitationPendingRevocation, async invitation => {
                   </button>
                   <div
                     v-show="
+                      !group.label ||
                       isGroupExpanded(groupToggleKey(activeTabKey, group.key))
                     "
-                    class="grid"
+                    class="grid gap-x-4 sm:grid-cols-2"
                   >
                     <!--
                       Uma linha só, em todo o painel. Os campos personalizados
@@ -2586,6 +2607,7 @@ watch(invitationPendingRevocation, async invitation => {
                     <RaevoFieldRow
                       v-for="definition in group.definitions"
                       :key="definition.key"
+                      :class="customFieldSpanClass(definition)"
                       :row-testid="`kanban-row-${definition.key}`"
                       :label="definition.label"
                       :value="customFieldDisplayValue(definition)"

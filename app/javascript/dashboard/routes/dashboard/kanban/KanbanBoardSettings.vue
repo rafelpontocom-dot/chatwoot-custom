@@ -75,6 +75,8 @@ const activeFormulaSuggestionIndex = ref(0);
 const formulaPreviewValues = ref({});
 const showRemoveMarketingConfirmation = ref(false);
 const showBulkRemoveConfirmation = ref(false);
+const camposComDados = ref([]);
+const showDataLossConfirmation = ref(false);
 const bulkTargetSection = ref('');
 const selectedCustomFieldId = ref(null);
 const customFieldPaletteSearch = ref('');
@@ -1448,6 +1450,34 @@ const removeSelectedFields = () => {
   syncCustomFieldDefinitionsText();
 };
 
+/**
+ * A aba como o formulário a vai desenhar: só os campos sem condição, na ordem
+ * configurada. Os condicionais ficam de fora porque no formulário só aparecem
+ * quando a condição se cumpre — mostrá-los aqui mentiria ao contrário.
+ */
+const previewFields = computed(() =>
+  // eslint-disable-next-line no-use-before-define
+  customFieldsForLayoutSection(activeFieldSectionKey.value).filter(
+    definition => !definition.conditionFieldKey
+  )
+);
+
+const previewHiddenCount = computed(
+  () => activeSectionSummary.value.condicionais
+);
+
+const previewPlaceholder = definition => {
+  if (definition.fieldType === 'formula') {
+    return t('KANBAN.SETTINGS.SALES.PREVIEW_CALCULATED');
+  }
+  if (['select', 'multiselect'].includes(definition.fieldType)) {
+    // eslint-disable-next-line no-use-before-define
+    return customFieldOptionValues(definition)[0] || '—';
+  }
+
+  return '—';
+};
+
 const clearSelectedCustomField = () => {
   const clientId = selectedCustomFieldId.value;
   selectedCustomFieldId.value = null;
@@ -1533,6 +1563,13 @@ onBeforeRouteLeave(destino => {
   showUnsavedChangesConfirmation.value = true;
   return false;
 });
+
+const confirmDataLoss = () => {
+  showDataLossConfirmation.value = false;
+  camposComDados.value = [];
+  // eslint-disable-next-line no-use-before-define
+  saveSettings({ confirmarPerda: true });
+};
 
 const isStaleSettingsError = error =>
   error?.response?.status === 409 &&
@@ -2263,7 +2300,29 @@ const buildPayload = () => ({
   },
 });
 
-const saveSettings = async () => {
+/**
+ * Apagar um campo que já tem valores.
+ *
+ * O servidor sempre recusou com `custom_field_data_loss_confirmation_required`
+ * e a lista dos campos com a contagem de cartões afetados — mas o dashboard
+ * nunca tratou esse código: dava um 422 sem explicação e não havia forma de
+ * seguir em frente. Agora diz quantos cartões perdem o quê, e só avança se
+ * quem está a ver disser que sim.
+ */
+const isDataLossError = error =>
+  error?.response?.status === 422 &&
+  error?.response?.data?.code ===
+    'custom_field_data_loss_confirmation_required';
+
+const customFieldLabelForKey = key =>
+  form.customFieldDefinitions.find(definition => definition.key === key)
+    ?.label ||
+  serverSettingsPayload.value?.customFieldDefinitions?.find(
+    definition => definition.key === key
+  )?.label ||
+  key;
+
+const saveSettings = async ({ confirmarPerda = false } = {}) => {
   if (!form.name.trim() || isSaving.value || !isAdmin.value) return;
 
   isSaving.value = true;
@@ -2272,7 +2331,9 @@ const saveSettings = async () => {
   try {
     const response = await KanbanBoardsAPI.updateSettings(
       boardId.value,
-      buildPayload()
+      confirmarPerda
+        ? { ...buildPayload(), confirm_data_loss: true }
+        : buildPayload()
     );
     applySettings(response.data);
     await store.dispatch('kanbanBoards/refreshBoards');
@@ -2282,6 +2343,12 @@ const saveSettings = async () => {
       params: { accountId: route.params.accountId, boardId: boardId.value },
     });
   } catch (error) {
+    if (isDataLossError(error)) {
+      camposComDados.value = error.response.data.affected_fields || [];
+      showDataLossConfirmation.value = true;
+      return;
+    }
+
     saveError.value = isStaleSettingsError(error)
       ? t('KANBAN.SETTINGS.STALE_SETTINGS')
       : getErrorMessage(error, t('KANBAN.SETTINGS.SAVE_ERROR'));
@@ -5636,6 +5703,66 @@ onMounted(async () => {
                   </dd>
                 </div>
               </dl>
+
+              <!--
+                Configurava-se às cegas: para ver o efeito era preciso gravar,
+                voltar ao quadro e abrir um cartão. A pré-visualização mostra a
+                aba como a secretária a vai ver, com a largura, a ordem e as
+                condições já aplicadas.
+              -->
+              <div class="grid gap-2 border-t border-solid border-n-weak pt-4">
+                <p class="mb-0 text-xs font-medium text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.PREVIEW') }}
+                </p>
+                <div
+                  v-if="previewFields.length"
+                  data-testid="kanban-settings-field-preview"
+                  class="grid rounded-lg bg-n-surface-2 p-3"
+                >
+                  <div
+                    v-for="campo in previewFields"
+                    :key="campo.clientId"
+                    :data-testid="`kanban-settings-preview-${campo.key}`"
+                    class="grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 py-1"
+                  >
+                    <span class="min-w-0 break-words text-xs text-n-slate-11">
+                      {{
+                        campo.label || t('KANBAN.SETTINGS.SALES.UNNAMED_FIELD')
+                      }}
+                      <i
+                        v-if="campo.requiredStageIds.length"
+                        class="i-lucide-asterisk ml-0.5 inline-block size-2.5 text-n-amber-11"
+                        :title="t('KANBAN.SETTINGS.SALES.REQUIRED_STAGES')"
+                      />
+                    </span>
+                    <span
+                      class="flex shrink-0 items-baseline gap-2 text-xs text-n-slate-9"
+                    >
+                      {{ previewPlaceholder(campo) }}
+                      <span
+                        v-if="campo.layoutWidth === 'half'"
+                        class="rounded bg-n-alpha-2 px-1 text-micro text-n-slate-11"
+                        :title="t('KANBAN.SETTINGS.SALES.FIELD_WIDTHS.HALF')"
+                      >
+                        {{ t('KANBAN.SETTINGS.SALES.PREVIEW_HALF_MARK') }}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+                <p v-else class="m-0 text-xs text-n-slate-11">
+                  {{ t('KANBAN.SETTINGS.SALES.PREVIEW_EMPTY') }}
+                </p>
+                <p
+                  v-if="previewHiddenCount"
+                  class="m-0 text-micro text-n-slate-11"
+                >
+                  {{
+                    t('KANBAN.SETTINGS.SALES.PREVIEW_HIDDEN', {
+                      count: previewHiddenCount,
+                    })
+                  }}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -6840,6 +6967,64 @@ onMounted(async () => {
           </footer>
         </div>
       </woot-modal>
+
+      <Modal
+        v-model:show="showDataLossConfirmation"
+        :on-close="() => (showDataLossConfirmation = false)"
+      >
+        <section
+          v-if="showDataLossConfirmation"
+          data-testid="kanban-settings-data-loss-dialog"
+          class="grid w-[min(100vw-2rem,32rem)] gap-4 p-5"
+          :aria-label="t('KANBAN.SETTINGS.SALES.DATA_LOSS_TITLE')"
+        >
+          <div>
+            <h3 class="mb-0 text-base font-medium text-n-slate-12">
+              {{ t('KANBAN.SETTINGS.SALES.DATA_LOSS_TITLE') }}
+            </h3>
+            <p class="mb-0 mt-1 text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.SALES.DATA_LOSS_MESSAGE') }}
+            </p>
+          </div>
+          <ul class="m-0 grid list-none gap-1 p-0">
+            <li
+              v-for="campo in camposComDados"
+              :key="campo.key"
+              class="flex items-baseline justify-between gap-3 rounded-lg bg-n-ruby-2 px-3 py-2 text-sm"
+            >
+              <span class="min-w-0 break-words font-medium text-n-slate-12">
+                {{ customFieldLabelForKey(campo.key) }}
+              </span>
+              <span class="shrink-0 tabular-nums text-n-ruby-11">
+                {{
+                  t('KANBAN.SETTINGS.SALES.DATA_LOSS_CARDS', {
+                    count: campo.count,
+                  })
+                }}
+              </span>
+            </li>
+          </ul>
+          <div class="flex justify-end gap-2">
+            <Button
+              type="button"
+              data-testid="kanban-settings-cancel-data-loss"
+              :label="t('KANBAN.ACTIONS.CANCEL')"
+              color="slate"
+              size="sm"
+              @click="showDataLossConfirmation = false"
+            />
+            <Button
+              type="button"
+              data-testid="kanban-settings-confirm-data-loss"
+              icon="i-lucide-trash-2"
+              :label="t('KANBAN.SETTINGS.SALES.DATA_LOSS_CONFIRM')"
+              color="ruby"
+              size="sm"
+              @click="confirmDataLoss"
+            />
+          </div>
+        </section>
+      </Modal>
 
       <woot-delete-modal
         v-model:show="showUnsavedChangesConfirmation"

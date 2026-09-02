@@ -792,7 +792,16 @@
         "SELECTED_COUNT": "{count} selecionados",
         "MOVE_SELECTED_TO": "Mover para a aba…",
         "REMOVE_SELECTED": "Remover",
-        "REMOVE_SELECTED_WARNING": "Remover {count} campos? Os valores já salvos nos cards permanecem."
+        "REMOVE_SELECTED_WARNING": "Remover {count} campos? Os valores já salvos nos cards permanecem.",
+        "DATA_LOSS_TITLE": "Estes campos têm dados",
+        "DATA_LOSS_MESSAGE": "Removê-los esconde os valores em todos os cards. Os dados ficam no banco, mas ninguém volta a lê-los no produto.",
+        "DATA_LOSS_CARDS": "{count} cards",
+        "DATA_LOSS_CONFIRM": "Remover mesmo assim",
+        "PREVIEW": "Como a aba vai ficar",
+        "PREVIEW_EMPTY": "Adicione um campo para ver a aba ganhar forma.",
+        "PREVIEW_HIDDEN": "{count} campos condicionais só aparecem quando a condição é atendida.",
+        "PREVIEW_CALCULATED": "calculado",
+        "PREVIEW_HALF_MARK": "½"
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
