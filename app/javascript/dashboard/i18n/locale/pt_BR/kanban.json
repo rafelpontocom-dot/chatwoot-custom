@@ -308,7 +308,9 @@
       "LOADING_ARCHIVED_BOARDS": "Carregando funis arquivados...",
       "EMPTY_ARCHIVED_BOARDS": "Não há funis arquivados.",
       "RESTORE_BOARD": "Restaurar funil",
-      "OPEN_FUNNEL": "Abrir funil {name}, {count} oportunidades"
+      "OPEN_FUNNEL": "Abrir funil {name}, {count} oportunidades",
+      "MOVE_FUNNEL_UP": "Subir {name}",
+      "MOVE_FUNNEL_DOWN": "Descer {name}"
     },
     "BOARD_FORM": {
       "AUTO_CREATE_CARDS": "Criar cartões automaticamente para novas conversas",

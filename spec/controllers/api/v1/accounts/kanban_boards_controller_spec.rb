@@ -6,6 +6,40 @@ RSpec.describe 'Kanban Boards API', type: :request do
   let(:agent) { create(:user, account: account, role: :agent) }
   let!(:kanban_board) { create(:kanban_board, account: account, name: 'Sales') }
 
+  describe 'PATCH /api/v1/accounts/{account.id}/kanban_boards/{id}/reorder' do
+    before { create(:kanban_board, account: account, name: 'Support') }
+
+    it 'moves a board down and renumbers the account' do
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/reorder",
+            params: { direction: 'down' },
+            headers: administrator.create_new_auth_token,
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(KanbanBoard.where(account: account).active.ordered.pluck(:name)).to eq(%w[Support Sales])
+    end
+
+    it 'leaves the order untouched at the edges' do
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/reorder",
+            params: { direction: 'up' },
+            headers: administrator.create_new_auth_token,
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(KanbanBoard.where(account: account).active.ordered.pluck(:name)).to eq(%w[Sales Support])
+    end
+
+    it 'refuses an agent without configure permission' do
+      patch "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/reorder",
+            params: { direction: 'down' },
+            headers: agent.create_new_auth_token,
+            as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(KanbanBoard.where(account: account).active.ordered.pluck(:name)).to eq(%w[Sales Support])
+    end
+  end
+
   describe 'GET /api/v1/accounts/{account.id}/kanban_boards' do
     it 'returns unauthorized for unauthenticated users' do
       get "/api/v1/accounts/#{account.id}/kanban_boards"

@@ -105,6 +105,31 @@ class KanbanBoard < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :archived, -> { where(active: false).where.not(archived_at: nil) }
   scope :ordered, -> { order(position: :asc, id: :asc) }
+
+  # Os funis nascem todos com `position` 0, porque nunca houve por onde a
+  # mudar: ordenar por (position, id) dava a ordem de criação e mais nada.
+  # Numerar antes de trocar é o que torna a troca possível.
+  def self.normalize_positions_for_account!(account)
+    transaction do
+      where(account: account).active.order(:id).lock.each(&:id)
+
+      where(account: account).active.ordered.each.with_index(1) do |board, position|
+        board.update!(position: position) if board.position != position
+      end
+    end
+  end
+
+  # Troca de lugar com o funil vizinho. Só com o vizinho: é o que a lista da
+  # visão geral oferece, e poupa enviar a ordem inteira a cada movimento.
+  def move!(direction)
+    self.class.transaction do
+      self.class.normalize_positions_for_account!(account)
+      reload
+
+      neighbour = neighbour_for(direction)
+      swap_position_with!(neighbour) if neighbour
+    end
+  end
   scope :accepting_inbox, lambda { |inbox_id|
     joins_sql = KanbanBoardInbox.where('kanban_board_inboxes.kanban_board_id = kanban_boards.id')
                                 .where(inbox_id: inbox_id)
@@ -189,6 +214,21 @@ class KanbanBoard < ApplicationRecord
   end
 
   private
+
+  def swap_position_with!(neighbour)
+    neighbour_position = neighbour.position
+    neighbour.update!(position: position)
+    update!(position: neighbour_position)
+  end
+
+  def neighbour_for(direction)
+    siblings = self.class.where(account_id: account_id).active.where.not(id: id)
+
+    case direction
+    when 'up' then siblings.where(position: ...position).ordered.last
+    when 'down' then siblings.where('position > ?', position).ordered.first
+    end
+  end
 
   def normalize_sales_configuration
     self.next_action_types = normalize_string_list(next_action_types)

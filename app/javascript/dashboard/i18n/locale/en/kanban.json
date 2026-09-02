@@ -305,7 +305,9 @@
       "LOADING_ARCHIVED_BOARDS": "Loading archived funnels...",
       "EMPTY_ARCHIVED_BOARDS": "There are no archived funnels.",
       "RESTORE_BOARD": "Restore funnel",
-      "OPEN_FUNNEL": "Open funnel {name}, {count} opportunities"
+      "OPEN_FUNNEL": "Open funnel {name}, {count} opportunities",
+      "MOVE_FUNNEL_UP": "Move {name} up",
+      "MOVE_FUNNEL_DOWN": "Move {name} down"
     },
     "BOARD_FORM": {
       "AUTO_CREATE_CARDS": "Create cards automatically for new conversations",

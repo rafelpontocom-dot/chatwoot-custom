@@ -19,6 +19,10 @@ class KanbanBoardPolicy < ApplicationPolicy
     administrator? || custom_role_permission?('kanban_configure')
   end
 
+  def reorder?
+    update?
+  end
+
   def automate?
     automation_configure?
   end

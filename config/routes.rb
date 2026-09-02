@@ -186,6 +186,7 @@ Rails.application.routes.draw do
           resources :kanban_boards, only: [:index, :create, :show, :destroy], constraints: { id: /\d+/ } do
             patch '', on: :member, action: :update
             get :archived, on: :collection
+            patch :reorder, on: :member, to: 'kanban_boards/positions#update'
             patch :restore, on: :member
             post :duplicate, on: :member, to: 'kanban_boards/duplicates#create'
 

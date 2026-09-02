@@ -37,6 +37,10 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.get(`${this.url}/archived`);
   }
 
+  reorderBoard(boardId, direction) {
+    return axios.patch(`${this.url}/${boardId}/reorder`, { direction });
+  }
+
   restoreBoard(boardId) {
     return axios.patch(`${this.url}/${boardId}/restore`);
   }
