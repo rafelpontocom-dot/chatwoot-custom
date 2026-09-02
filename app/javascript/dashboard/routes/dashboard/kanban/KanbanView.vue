@@ -26,6 +26,7 @@ import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/cons
 import KanbanConversationCard from './KanbanConversationCard.vue';
 import KanbanActivityCenter from './KanbanActivityCenter.vue';
 import KanbanOpportunityDetailsModal from './KanbanOpportunityDetailsModal.vue';
+import KanbanImportDialog from './KanbanImportDialog.vue';
 import KanbanOpportunityPicker from './KanbanOpportunityPicker.vue';
 import KanbanListView from './KanbanListView.vue';
 import KanbanConversationDrawer from './KanbanConversationDrawer.vue';
@@ -973,6 +974,13 @@ const closeBulkImpactConfirmation = () => {
 
   showBulkImpactConfirmation.value = false;
   pendingBulkOperation.value = null;
+};
+
+const importDialog = ref(null);
+
+const abrirImportacao = () => {
+  showBoardActionsMenu.value = false;
+  importDialog.value?.abrir();
 };
 
 const openBoardSettings = () => {
@@ -1990,6 +1998,15 @@ onUnmounted(() => {
                       >
                         <i class="i-lucide-zap size-4 text-n-slate-10" />
                         {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TITLE') }}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="kanban-board-import-button"
+                        class="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                        @click="abrirImportacao"
+                      >
+                        <i class="i-lucide-upload size-4 text-n-slate-10" />
+                        {{ t('KANBAN.IMPORT.TITLE') }}
                       </button>
                       <button
                         type="button"
@@ -3228,5 +3245,16 @@ onUnmounted(() => {
         />
       </div>
     </woot-modal>
+    <!--
+      Importar oportunidades de outro CRM. Fica ao nível de topo: dentro da
+      gaveta da oportunidade só existia com um cartão aberto, que é exactamente
+      quando ninguém está a importar.
+    -->
+    <KanbanImportDialog
+      ref="importDialog"
+      :board-id="selectedBoard?.id"
+      :stages="stages"
+      :field-definitions="selectedBoard?.customFieldDefinitions || []"
+    />
   </main>
 </template>

@@ -37,6 +37,21 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.get(`${this.url}/archived`);
   }
 
+  importOpportunities(boardId, { file, fallbackStageId, mapping }) {
+    const payload = new FormData();
+    payload.append('import_file', file);
+    if (fallbackStageId) payload.append('fallback_stage_id', fallbackStageId);
+    Object.entries(mapping || {}).forEach(([coluna, chave]) => {
+      if (chave) payload.append(`mapping[${coluna}]`, chave);
+    });
+
+    return axios.post(`${this.url}/${boardId}/imports`, payload);
+  }
+
+  getImport(boardId, importId) {
+    return axios.get(`${this.url}/${boardId}/imports/${importId}`);
+  }
+
   reorderBoard(boardId, direction) {
     return axios.patch(`${this.url}/${boardId}/reorder`, { direction });
   }

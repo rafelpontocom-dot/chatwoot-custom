@@ -1580,6 +1580,19 @@
       "CREATE_ERROR": "Não foi possível adicionar a nota de contacto.",
       "FETCH_ERROR": "Não foi possível carregar as notas de contacto."
     },
-    "WORKSPACE_LABEL": "Funil"
+    "WORKSPACE_LABEL": "Funil",
+    "IMPORT": {
+      "TITLE": "Importar oportunidades",
+      "DESCRIPTION": "Um CSV do CRM antigo. Os contactos têm de ser importados primeiro — uma linha cujo contacto não esteja cá volta no ficheiro de erros.",
+      "FILE": "Ficheiro CSV",
+      "FALLBACK_STAGE": "Etapa para linhas sem correspondência",
+      "FALLBACK_STAGE_HELP": "A coluna de etapa é usada quando corresponde; o resto entra aqui em vez de perder a linha.",
+      "MAPPING": "Emparelhe as colunas com os campos do funil",
+      "IGNORE": "Ignorar esta coluna",
+      "SUBMIT": "Importar",
+      "QUEUED": "Importação começada.",
+      "QUEUED_HELP": "Corre em segundo plano. As linhas que não entraram voltam num ficheiro com a razão de cada uma.",
+      "ERROR_GENERIC": "Não foi possível começar a importação."
+    }
   }
 }

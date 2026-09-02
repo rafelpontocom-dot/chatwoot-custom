@@ -1577,6 +1577,19 @@
       "CREATE_ERROR": "Could not add the contact note.",
       "FETCH_ERROR": "Could not load contact notes."
     },
-    "WORKSPACE_LABEL": "Pipeline"
+    "WORKSPACE_LABEL": "Pipeline",
+    "IMPORT": {
+      "TITLE": "Import opportunities",
+      "DESCRIPTION": "A CSV from your old CRM. Contacts have to be imported first — a row whose contact is not here comes back in the error file.",
+      "FILE": "CSV file",
+      "FALLBACK_STAGE": "Stage for rows without a match",
+      "FALLBACK_STAGE_HELP": "A stage column is used when it matches; anything else lands here instead of losing the row.",
+      "MAPPING": "Match the columns to the funnel fields",
+      "IGNORE": "Ignore this column",
+      "SUBMIT": "Import",
+      "QUEUED": "Import started.",
+      "QUEUED_HELP": "It runs in the background. Rows that could not be imported come back in a file with the reason for each one.",
+      "ERROR_GENERIC": "The import could not be started."
+    }
   }
 }
