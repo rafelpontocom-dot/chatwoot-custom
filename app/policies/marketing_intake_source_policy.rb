@@ -1,0 +1,2 @@
+class MarketingIntakeSourcePolicy < MarketingModuleSettingPolicy
+end

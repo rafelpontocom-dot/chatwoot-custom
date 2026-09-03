@@ -121,6 +121,7 @@ class Account < ApplicationRecord
   has_many :form_submissions, dependent: :destroy_async
   has_one :marketing_module_setting, dependent: :destroy
   has_many :marketing_touchpoints, dependent: :destroy_async
+  has_many :marketing_intake_sources, dependent: :destroy_async
 
   has_one_attached :contacts_export
 

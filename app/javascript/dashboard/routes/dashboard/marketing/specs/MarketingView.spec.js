@@ -7,17 +7,29 @@ const apiMocks = vi.hoisted(() => ({
   updateModule: vi.fn(),
   getTouchpoints: vi.fn(),
   getSummary: vi.fn(),
+  getIntakeSources: vi.fn(),
+  createIntakeSource: vi.fn(),
+  rotateIntakeSource: vi.fn(),
+  deactivateIntakeSource: vi.fn(),
 }));
+const boardsMocks = vi.hoisted(() => ({ get: vi.fn(), getSettings: vi.fn() }));
 const storeMocks = vi.hoisted(() => ({
   currentAccount: { id: 7, permissions: ['administrator'] },
+  inboxes: [{ id: 3, name: 'WhatsApp' }],
 }));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, locale: { value: 'pt_BR' } }),
 }));
 vi.mock('dashboard/api/marketing', () => ({ default: apiMocks }));
+vi.mock('dashboard/api/kanbanBoards', () => ({ default: boardsMocks }));
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: () => computed(() => storeMocks.currentAccount),
+  useMapGetter: key =>
+    computed(() =>
+      key === 'inboxes/getInboxes'
+        ? storeMocks.inboxes
+        : storeMocks.currentAccount
+    ),
 }));
 
 // `shallowMount` stuba os filhos e o conteúdo dos slots some — inclusive o
@@ -27,6 +39,11 @@ const stubs = {
     template: '<header><slot name="actions" /><slot /></header>',
   },
   RaevoStamp: { template: '<span />' },
+  RaevoField: {
+    template:
+      '<label><slot :control-class="\'c\'" :field-id="\'f\'" /></label>',
+  },
+  NextButton: { template: '<button />' },
   'router-link': { template: '<a><slot /></a>' },
 };
 
@@ -36,6 +53,13 @@ describe('MarketingView', () => {
   beforeEach(() => {
     storeMocks.currentAccount = { id: 7, permissions: ['administrator'] };
     apiMocks.getModule.mockResolvedValue({ data: { enabled: true } });
+    apiMocks.getIntakeSources.mockResolvedValue({ data: { payload: [] } });
+    boardsMocks.get.mockResolvedValue({
+      data: { payload: [{ id: 1, name: 'Funil' }] },
+    });
+    boardsMocks.getSettings.mockResolvedValue({
+      data: { stages: [{ id: 5, name: 'Novo' }], allowed_inbox_ids: [3] },
+    });
     apiMocks.getSummary.mockResolvedValue({
       data: {
         total: 4,

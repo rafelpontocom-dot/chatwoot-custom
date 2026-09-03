@@ -18,6 +18,10 @@ Metrics/ClassLength:
   Exclude:
     - 'app/models/message.rb'
     - 'app/models/conversation.rb'
+    # Como os dois acima: o comprimento vem de declarar associações, uma por
+    # linha. Cada módulo do Raevo acrescenta as suas, e encurtar a classe para
+    # caber num limite não a tornaria mais legível.
+    - 'app/models/account.rb'
 
 Metrics/MethodLength:
   Max: 19

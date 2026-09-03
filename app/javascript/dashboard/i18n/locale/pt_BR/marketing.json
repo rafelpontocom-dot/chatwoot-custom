@@ -37,6 +37,25 @@
       "CONTACT": "Contato",
       "UNKNOWN": "—",
       "NO_CONTACT": "Não identificado"
+    },
+    "INTAKE": {
+      "TITLE": "Entrada de leads",
+      "DESCRIPTION": "Dê a uma landing page, ao n8n ou a um parceiro um jeito de mandar leads direto para um quadro.",
+      "NAME": "Nome da origem",
+      "NAME_PLACEHOLDER": "Landing — capilar",
+      "BOARD": "Quadro",
+      "STAGE": "Etapa",
+      "INBOX": "Caixa de entrada",
+      "CREATE": "Criar origem",
+      "TOKEN_ONCE": "Copie este token agora — ele não é mostrado de novo.",
+      "COPY": "Copiar",
+      "ROTATE": "Novo token",
+      "DEACTIVATE": "Desligar",
+      "NONE": "Nenhuma origem ainda.",
+      "RECEIVED": "{count} leads",
+      "ENDPOINT": "Envie um POST para",
+      "SCHEMA_HINT": "Um GET em /schema lista todos os campos aceitos.",
+      "ERROR": "Não foi possível salvar a origem."
     }
   }
 }

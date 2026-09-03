@@ -2,9 +2,12 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import MarketingAPI from 'dashboard/api/marketing';
+import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import { intlLocale } from 'dashboard/composables/useAccountCurrency';
 import { useMapGetter } from 'dashboard/composables/store';
 import { frontendURL } from 'dashboard/helper/URLHelper';
+import NextButton from 'dashboard/components-next/button/Button.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
 
@@ -59,6 +62,84 @@ const shareOf = (rows, count) => {
   return `${Math.round((count / maior) * 100)}%`;
 };
 
+// Entrada de leads: o token é a credencial de uma escrita pública, por isso
+// aparece uma única vez e pode ser desligado na hora.
+const intakeSources = ref([]);
+const boards = ref([]);
+const boardStages = ref([]);
+const allowedInboxIds = ref([]);
+const novaOrigem = ref({ name: '', board_id: '', stage_id: '', inbox_id: '' });
+const tokenRevelado = ref('');
+const intakeError = ref('');
+const isSavingSource = ref(false);
+const inboxes = useMapGetter('inboxes/getInboxes');
+
+const intakeEndpoint = `${window.location.origin}/public/api/v1/marketing/intake`;
+const inboxOptions = computed(() =>
+  (inboxes.value || []).filter(
+    inbox =>
+      !allowedInboxIds.value.length || allowedInboxIds.value.includes(inbox.id)
+  )
+);
+
+const loadIntake = async () => {
+  const [sourcesResponse, boardsResponse] = await Promise.all([
+    MarketingAPI.getIntakeSources(),
+    KanbanBoardsAPI.get(),
+  ]);
+  intakeSources.value = sourcesResponse.data.payload || [];
+  boards.value = boardsResponse.data?.payload || boardsResponse.data || [];
+};
+
+const onBoardChosen = async boardId => {
+  novaOrigem.value.stage_id = '';
+  novaOrigem.value.inbox_id = '';
+  boardStages.value = [];
+  allowedInboxIds.value = [];
+  if (!boardId) return;
+
+  const { data } = await KanbanBoardsAPI.getSettings(boardId);
+  boardStages.value = data.stages || [];
+  allowedInboxIds.value = data.allowed_inbox_ids || [];
+};
+
+const createSource = async () => {
+  isSavingSource.value = true;
+  intakeError.value = '';
+  tokenRevelado.value = '';
+  try {
+    const { data } = await MarketingAPI.createIntakeSource({
+      intake_source: {
+        name: novaOrigem.value.name,
+        crm_destination: {
+          kanban_board_id: novaOrigem.value.board_id,
+          kanban_stage_id: novaOrigem.value.stage_id,
+          inbox_id: novaOrigem.value.inbox_id,
+        },
+      },
+    });
+    tokenRevelado.value = data.token;
+    novaOrigem.value = { name: '', board_id: '', stage_id: '', inbox_id: '' };
+    await loadIntake();
+  } catch (error) {
+    intakeError.value =
+      error?.response?.data?.message || t('MARKETING.INTAKE.ERROR');
+  } finally {
+    isSavingSource.value = false;
+  }
+};
+
+const rotateSource = async id => {
+  const { data } = await MarketingAPI.rotateIntakeSource(id);
+  tokenRevelado.value = data.token;
+  await loadIntake();
+};
+
+const deactivateSource = async id => {
+  await MarketingAPI.deactivateIntakeSource(id);
+  await loadIntake();
+};
+
 const loadModule = async () => {
   const { data } = await MarketingAPI.getModule();
   marketingModule.value = data;
@@ -100,6 +181,7 @@ onMounted(async () => {
   try {
     await loadModule();
     await loadPanel();
+    if (isEnabled.value && canConfigure.value) await loadIntake();
   } catch (error) {
     loadError.value =
       error?.response?.data?.message || t('MARKETING.LOAD_ERROR');
@@ -185,6 +267,164 @@ onMounted(async () => {
         </label>
         <p v-if="saveError" class="mb-0 text-xs text-n-ruby-11" role="alert">
           {{ saveError }}
+        </p>
+      </section>
+
+      <!--
+        Entrada de leads: um endereço por origem, para a landing e o n8n
+        mandarem lead direto para um quadro. O token é a credencial de uma
+        escrita pública — aparece uma vez e desliga na hora.
+      -->
+      <section
+        v-if="activeView === 'settings' && isEnabled"
+        class="grid gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
+      >
+        <div class="grid gap-1">
+          <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+            {{ t('MARKETING.INTAKE.TITLE') }}
+          </h3>
+          <p class="mb-0 text-sm text-n-slate-11">
+            {{ t('MARKETING.INTAKE.DESCRIPTION') }}
+          </p>
+          <p class="mb-0 text-xs text-n-slate-10">
+            {{ t('MARKETING.INTAKE.ENDPOINT') }}
+            <code class="rounded bg-n-alpha-2 px-1">{{ intakeEndpoint }}</code>
+            — {{ t('MARKETING.INTAKE.SCHEMA_HINT') }}
+          </p>
+        </div>
+
+        <p
+          v-if="tokenRevelado"
+          class="mb-0 grid gap-1 rounded-lg bg-n-alpha-2 p-3"
+          data-testid="marketing-intake-token"
+        >
+          <span class="text-xs font-medium text-n-slate-11">
+            {{ t('MARKETING.INTAKE.TOKEN_ONCE') }}
+          </span>
+          <code class="break-all text-sm text-n-slate-12">{{
+            tokenRevelado
+          }}</code>
+        </p>
+
+        <ul v-if="intakeSources.length" class="grid list-none gap-1 p-0">
+          <li
+            v-for="src in intakeSources"
+            :key="src.id"
+            class="flex flex-wrap items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
+          >
+            <span class="min-w-0 flex-1 break-words text-sm text-n-slate-12">
+              {{ src.name }}
+            </span>
+            <span class="text-xs tabular-nums text-n-slate-10">
+              {{
+                t('MARKETING.INTAKE.RECEIVED', { count: src.received_count })
+              }}
+            </span>
+            <button
+              type="button"
+              class="rounded-full border border-solid border-n-weak px-3 py-1 text-xs text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+              @click="rotateSource(src.id)"
+            >
+              {{ t('MARKETING.INTAKE.ROTATE') }}
+            </button>
+            <button
+              v-if="src.active"
+              type="button"
+              class="rounded-full border border-solid border-n-weak px-3 py-1 text-xs text-n-ruby-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+              @click="deactivateSource(src.id)"
+            >
+              {{ t('MARKETING.INTAKE.DEACTIVATE') }}
+            </button>
+          </li>
+        </ul>
+        <p v-else class="mb-0 text-sm text-n-slate-9">
+          {{ t('MARKETING.INTAKE.NONE') }}
+        </p>
+
+        <form class="grid gap-3 sm:grid-cols-4" @submit.prevent="createSource">
+          <RaevoField :label="t('MARKETING.INTAKE.NAME')">
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="novaOrigem.name"
+                type="text"
+                required
+                :class="controlClass"
+                :placeholder="t('MARKETING.INTAKE.NAME_PLACEHOLDER')"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField :label="t('MARKETING.INTAKE.BOARD')" variant="select">
+            <template #default="{ controlClass, fieldId }">
+              <select
+                :id="fieldId"
+                v-model="novaOrigem.board_id"
+                required
+                :class="controlClass"
+                @change="onBoardChosen(novaOrigem.board_id)"
+              >
+                <option value="" />
+                <option
+                  v-for="board in boards"
+                  :key="board.id"
+                  :value="board.id"
+                >
+                  {{ board.name }}
+                </option>
+              </select>
+            </template>
+          </RaevoField>
+          <RaevoField :label="t('MARKETING.INTAKE.STAGE')" variant="select">
+            <template #default="{ controlClass, fieldId }">
+              <select
+                :id="fieldId"
+                v-model="novaOrigem.stage_id"
+                required
+                :class="controlClass"
+              >
+                <option value="" />
+                <option
+                  v-for="stage in boardStages"
+                  :key="stage.id"
+                  :value="stage.id"
+                >
+                  {{ stage.name }}
+                </option>
+              </select>
+            </template>
+          </RaevoField>
+          <RaevoField :label="t('MARKETING.INTAKE.INBOX')" variant="select">
+            <template #default="{ controlClass, fieldId }">
+              <select
+                :id="fieldId"
+                v-model="novaOrigem.inbox_id"
+                required
+                :class="controlClass"
+              >
+                <option value="" />
+                <option
+                  v-for="inbox in inboxOptions"
+                  :key="inbox.id"
+                  :value="inbox.id"
+                >
+                  {{ inbox.name }}
+                </option>
+              </select>
+            </template>
+          </RaevoField>
+          <div class="sm:col-span-4">
+            <NextButton
+              type="submit"
+              :label="t('MARKETING.INTAKE.CREATE')"
+              :disabled="isSavingSource"
+              data-testid="marketing-create-intake-source"
+              sm
+            />
+          </div>
+        </form>
+
+        <p v-if="intakeError" class="mb-0 text-xs text-n-ruby-11" role="alert">
+          {{ intakeError }}
         </p>
       </section>
 

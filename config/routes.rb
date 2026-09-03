@@ -167,6 +167,9 @@ Rails.application.routes.draw do
             resources :touchpoints, only: [:index] do
               get :summary, on: :collection
             end
+            resources :intake_sources, only: [:index, :create, :update, :destroy] do
+              post :rotate, on: :member
+            end
           end
           namespace :forms do
             resources :field_groups, only: %i[index create destroy]
@@ -717,6 +720,11 @@ Rails.application.routes.draw do
               end
             end
           end
+        end
+
+        namespace :marketing do
+          get 'intake/schema', to: 'intake#schema'
+          post 'intake', to: 'intake#create'
         end
 
         resources :csat_survey, only: [:show, :update]

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_03_110100) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_03_120000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1852,6 +1852,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_110100) do
     t.index ["account_id"], name: "index_macros_on_account_id"
   end
 
+  create_table "marketing_intake_sources", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "token", null: false
+    t.jsonb "crm_destination", default: {}, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "last_received_at"
+    t.integer "received_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_marketing_intake_sources_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_marketing_intake_sources_on_account_id"
+    t.index ["token"], name: "index_marketing_intake_sources_on_token", unique: true
+  end
+
   create_table "marketing_module_settings", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.boolean "enabled", default: false, null: false
@@ -2377,6 +2392,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_110100) do
   add_foreign_key "kanban_saved_filters", "accounts"
   add_foreign_key "kanban_saved_filters", "kanban_boards"
   add_foreign_key "kanban_saved_filters", "users"
+  add_foreign_key "marketing_intake_sources", "accounts"
   add_foreign_key "marketing_module_settings", "accounts"
   add_foreign_key "marketing_module_settings", "users", column: "disabled_by_id"
   add_foreign_key "marketing_module_settings", "users", column: "enabled_by_id"

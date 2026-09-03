@@ -37,6 +37,25 @@
       "CONTACT": "Contact",
       "UNKNOWN": "—",
       "NO_CONTACT": "Not identified"
+    },
+    "INTAKE": {
+      "TITLE": "Lead intake",
+      "DESCRIPTION": "Give a landing page, n8n or a partner a way to send leads straight into a board.",
+      "NAME": "Source name",
+      "NAME_PLACEHOLDER": "Landing — hair",
+      "BOARD": "Board",
+      "STAGE": "Stage",
+      "INBOX": "Inbox",
+      "CREATE": "Create source",
+      "TOKEN_ONCE": "Copy this token now — it is not shown again.",
+      "COPY": "Copy",
+      "ROTATE": "New token",
+      "DEACTIVATE": "Switch off",
+      "NONE": "No source yet.",
+      "RECEIVED": "{count} leads",
+      "ENDPOINT": "Send a POST to",
+      "SCHEMA_HINT": "A GET on /schema lists every field it accepts.",
+      "ERROR": "Could not save the source."
     }
   }
 }
