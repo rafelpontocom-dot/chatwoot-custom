@@ -1,0 +1,2 @@
+class MarketingLeadFormPolicy < MarketingModuleSettingPolicy
+end

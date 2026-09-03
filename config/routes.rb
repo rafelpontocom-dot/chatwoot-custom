@@ -41,6 +41,7 @@ Rails.application.routes.draw do
   get '/health', to: 'health#show'
   get '/api', to: 'api#index'
   get '/calendar/google/callback', to: 'calendar/google_callbacks#show'
+  get '/marketing/meta/callback', to: 'marketing/meta_callbacks#show'
   get '/agendar/:public_token', to: 'public/calendar_bookings#show'
   get '/agendar/convite/:private_token', to: 'public/calendar_bookings#private_show'
   get '/agendar/convite/:private_token/:procedure_slug', to: 'public/calendar_bookings#private_procedure'
@@ -170,6 +171,13 @@ Rails.application.routes.draw do
             resources :intake_sources, only: [:index, :create, :update, :destroy] do
               post :rotate, on: :member
             end
+            resources :connections, only: [:index, :destroy] do
+              post :authorization_url, on: :collection
+              post :sync_pages, on: :member
+              post :subscribe_page, on: :member
+              post :sync_lead_forms, on: :member
+            end
+            resources :lead_forms, only: [:index, :update]
           end
           namespace :forms do
             resources :field_groups, only: %i[index create destroy]

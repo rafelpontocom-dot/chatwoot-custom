@@ -1,0 +1,2 @@
+class MarketingProviderConnectionPolicy < MarketingModuleSettingPolicy
+end

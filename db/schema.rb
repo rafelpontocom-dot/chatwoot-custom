@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_03_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_03_130100) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1867,6 +1867,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_120000) do
     t.index ["token"], name: "index_marketing_intake_sources_on_token", unique: true
   end
 
+  create_table "marketing_lead_forms", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "marketing_provider_connection_id", null: false
+    t.string "page_id", null: false
+    t.string "page_name"
+    t.string "external_form_id", null: false
+    t.string "name"
+    t.jsonb "questions", default: [], null: false
+    t.jsonb "field_mapping", default: {}, null: false
+    t.jsonb "crm_destination", default: {}, null: false
+    t.boolean "active", default: false, null: false
+    t.datetime "last_synced_at"
+    t.datetime "last_lead_at"
+    t.integer "received_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "external_form_id"], name: "index_marketing_lead_forms_on_account_and_form", unique: true
+    t.index ["account_id"], name: "index_marketing_lead_forms_on_account_id"
+    t.index ["marketing_provider_connection_id"], name: "index_marketing_lead_forms_on_connection"
+  end
+
   create_table "marketing_module_settings", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.boolean "enabled", default: false, null: false
@@ -1881,6 +1902,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_120000) do
     t.index ["account_id"], name: "index_marketing_module_settings_on_account_id", unique: true
     t.index ["disabled_by_id"], name: "index_marketing_module_settings_on_disabled_by_id"
     t.index ["enabled_by_id"], name: "index_marketing_module_settings_on_enabled_by_id"
+  end
+
+  create_table "marketing_provider_connections", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "provider", null: false
+    t.string "external_account_id", null: false
+    t.string "display_name"
+    t.string "status", default: "disconnected", null: false
+    t.text "access_token"
+    t.datetime "expires_at"
+    t.string "last_error"
+    t.datetime "last_verified_at"
+    t.jsonb "settings", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "provider", "external_account_id"], name: "index_marketing_connections_on_account_provider_and_external", unique: true
+    t.index ["account_id"], name: "index_marketing_provider_connections_on_account_id"
   end
 
   create_table "marketing_touchpoints", force: :cascade do |t|
@@ -2393,9 +2432,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_120000) do
   add_foreign_key "kanban_saved_filters", "kanban_boards"
   add_foreign_key "kanban_saved_filters", "users"
   add_foreign_key "marketing_intake_sources", "accounts"
+  add_foreign_key "marketing_lead_forms", "accounts"
+  add_foreign_key "marketing_lead_forms", "marketing_provider_connections"
   add_foreign_key "marketing_module_settings", "accounts"
   add_foreign_key "marketing_module_settings", "users", column: "disabled_by_id"
   add_foreign_key "marketing_module_settings", "users", column: "enabled_by_id"
+  add_foreign_key "marketing_provider_connections", "accounts"
   add_foreign_key "marketing_touchpoints", "accounts"
   add_foreign_key "marketing_touchpoints", "contacts", on_delete: :nullify
   add_foreign_key "marketing_touchpoints", "conversations", on_delete: :nullify

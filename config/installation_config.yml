@@ -129,6 +129,22 @@
 - name: FB_APP_ID
   display_title: 'Facebook App ID'
   locked: false
+- name: MARKETING_META_APP_ID
+  display_title: 'Meta Lead Ads App ID'
+  description: 'Separate Meta app for Lead Ads. The Messenger app cannot be reused: a Meta app has one callback per object type, and subscribing leadgen there would route leads into the Messenger gem.'
+  locked: false
+- name: MARKETING_META_APP_SECRET
+  display_title: 'Meta Lead Ads App Secret'
+  type: secret
+  locked: false
+- name: MARKETING_META_VERIFY_TOKEN
+  display_title: 'Meta Lead Ads Verify Token'
+  description: 'Token Meta echoes back when it verifies the leadgen webhook'
+  type: secret
+  locked: false
+- name: MARKETING_META_OAUTH_CALLBACK_URL
+  display_title: 'Meta Lead Ads OAuth Callback URL'
+  locked: false
 - name: FB_VERIFY_TOKEN
   display_title: 'Facebook Verify Token'
   description: 'The verify token used for Facebook Messenger Webhook'
