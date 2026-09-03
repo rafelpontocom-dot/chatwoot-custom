@@ -1460,7 +1460,11 @@
       "OWNER_NONE": "No owner",
       "FIELD_AMOUNT_HINT": "Sale forecast, not the charge.",
       "BOOLEAN_YES": "Yes",
-      "BOOLEAN_NO": "No"
+      "BOOLEAN_NO": "No",
+      "ADD_ATTRIBUTE": "Add a field",
+      "ADD_ATTRIBUTE_PLACEHOLDER": "Select a field",
+      "ADD_ATTRIBUTE_ACTION": "Add",
+      "ATTRIBUTE_EMPTY": "Not set"
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",

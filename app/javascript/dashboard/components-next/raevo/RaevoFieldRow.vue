@@ -62,10 +62,17 @@ const fechar = () => {
   emit('close');
 };
 
+// Carregar no rótulo tira o foco do controlo por um instante antes de o
+// navegador o devolver — e o `focusout` desse intervalo chega sem destino,
+// indistinguível de um clique fora. Sem esta marca, clicar no próprio rótulo
+// fechava o campo em vez de o focar.
+const cliqueInterno = ref(false);
+
 // Sair ao perder o foco para fora da linha — mas não ao andar entre o controlo
 // e a sua própria mensagem de erro.
 const aoSairFoco = event => {
   if (abrindo.value) return;
+  if (cliqueInterno.value) return;
   if (raiz.value?.contains(event.relatedTarget)) return;
   fechar();
 };
@@ -86,10 +93,28 @@ defineExpose({ abrir, fechar });
 </script>
 
 <template>
-  <div ref="raiz" data-testid="raevo-field-row" @focusout="aoSairFoco">
-    <!-- Edição: o campo completo do design system, rótulo em cima -->
-    <div v-if="editando" class="py-1" @keydown="aoTeclar">
-      <RaevoField :label="label" :variant="variant" :hint="hint" :error="error">
+  <div
+    ref="raiz"
+    data-testid="raevo-field-row"
+    @focusout="aoSairFoco"
+    @mousedown="cliqueInterno = true"
+    @mouseup="cliqueInterno = false"
+  >
+    <!--
+      Edição: o mesmo campo do design system, mas na geometria em que a linha
+      já se lia — rótulo à esquerda, controle à direita, mesma coluna e mesmo
+      degrau de texto. `px-2` repete o recuo do botão de repouso para o rótulo
+      não deslizar no instante em que o campo abre. Texto longo é a exceção:
+      várias linhas não cabem ao lado, então continua empilhado.
+    -->
+    <div v-if="editando" class="px-2 py-1" @keydown="aoTeclar">
+      <RaevoField
+        :label="label"
+        :variant="variant"
+        :hint="hint"
+        :error="error"
+        :inline="variant !== 'textarea'"
+      >
         <template #default="slotProps">
           <slot name="control" v-bind="slotProps" />
         </template>

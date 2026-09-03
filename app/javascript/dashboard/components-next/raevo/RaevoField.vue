@@ -42,6 +42,18 @@ const props = defineProps({
     type: String,
     default: undefined,
   },
+  /**
+   * Rótulo à esquerda, controle à direita, na mesma linha.
+   *
+   * Numa ficha densa que se lê em linha, empilhar só ao editar reescreve a
+   * geometria debaixo do cursor: o rótulo encolhe de 14px para 12px e o campo
+   * salta para baixo dele. Em linha, abrir o campo não move mais nada.
+   * Texto longo continua empilhado — várias linhas não cabem ao lado.
+   */
+  inline: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const fieldId = useId();
@@ -60,15 +72,27 @@ const describedBy = computed(() => {
 </script>
 
 <template>
-  <div class="grid gap-1.5">
+  <div
+    class="grid"
+    :class="
+      inline
+        ? 'grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1'
+        : 'gap-1.5'
+    "
+  >
     <!--
       Rótulo mais leve que o título de seção: sem essa diferença os dois pesam
-      igual e a hierarquia do painel desaparece.
+      igual e a hierarquia do painel desaparece. Em linha ele mantém o degrau
+      do texto ao lado — encolher só ao editar era o salto que se via.
     -->
     <label
       v-if="label"
       :for="fieldId"
-      class="text-xs font-medium leading-4 text-n-slate-11"
+      :class="
+        inline
+          ? 'text-sm leading-5 text-n-slate-11'
+          : 'text-xs font-medium leading-4 text-n-slate-11'
+      "
     >
       {{ label }}
       <span
@@ -91,11 +115,13 @@ const describedBy = computed(() => {
       />
     </div>
 
+    <!-- Em linha, mensagem e dica alinham com o controle, não com o rótulo -->
     <p
       v-if="error"
       :id="`${fieldId}-error`"
       :data-testid="errorTestid"
       class="mb-0 text-xs text-n-ruby-11"
+      :class="inline && 'col-start-2'"
       role="alert"
     >
       {{ error }}
@@ -104,6 +130,7 @@ const describedBy = computed(() => {
       v-else-if="hint"
       :id="`${fieldId}-hint`"
       class="mb-0 text-xs text-n-slate-11"
+      :class="inline && 'col-start-2'"
     >
       {{ hint }}
     </p>

@@ -8,6 +8,7 @@ import { copyTextToClipboard } from 'shared/helpers/clipboard';
 
 const storeMocks = vi.hoisted(() => ({
   labels: [],
+  attributeDefinitions: [],
   currentAccount: { permissions: ['administrator'] },
   dispatch: vi.fn(),
 }));
@@ -192,6 +193,15 @@ vi.mock('dashboard/composables/store', async () => {
     useMapGetter: key => {
       if (key === 'getCurrentAccount') {
         return computed(() => storeMocks.currentAccount);
+      }
+
+      if (key === 'attributes/getAttributesByModel') {
+        return computed(
+          () => model =>
+            storeMocks.attributeDefinitions.filter(
+              definition => definition.attribute_model === model
+            )
+        );
       }
 
       return computed(() => storeMocks.labels);

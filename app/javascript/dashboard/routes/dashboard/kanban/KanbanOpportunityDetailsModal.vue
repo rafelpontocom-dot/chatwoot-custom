@@ -7,6 +7,7 @@ import ContactAPI from 'dashboard/api/contacts';
 import FinanceAPI from 'dashboard/api/finance';
 import FormsAPI from 'dashboard/api/forms';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
@@ -97,6 +98,10 @@ const { t } = useI18n();
 const store = useStore();
 const accountLabels = useMapGetter('labels/getLabels');
 const currentAccount = useMapGetter('getCurrentAccount');
+const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
+const contactAttributeDefinitions = computed(
+  () => getAttributesByModel.value('contact_attribute') || []
+);
 
 const financeStatusLabels = {
   draft: () => t('FINANCE.PAYMENTS.STATUS.DRAFT'),
@@ -257,47 +262,106 @@ const financeSummary = computed(() => {
     latestReceivedAt,
   };
 });
-const contactDetails = computed(() =>
-  [
-    {
-      key: 'name',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_NAME'),
-      value: contactDraft.value.name,
-    },
-    {
-      key: 'phone',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_PHONE'),
-      value: contactDraft.value.phone_number,
-    },
-    {
-      key: 'email',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_EMAIL'),
-      value: contactDraft.value.email,
-    },
-    {
-      key: 'identifier',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_IDENTIFIER'),
-      value: contactDraft.value.identifier,
-    },
-  ].filter(detail => detail.value || detail.key !== 'identifier')
-);
-const contactAttributeEntries = computed(() => {
-  const additionalEntries = Object.entries(
-    contactDraft.value.additional_attributes || {}
-  ).map(([key, value]) => ({ key, value, source: 'additional_attributes' }));
-  const customEntries = Object.entries(
-    contactDraft.value.custom_attributes || {}
-  ).map(([key, value]) => ({ key, value, source: 'custom_attributes' }));
-
-  return [...additionalEntries, ...customEntries].filter(
-    ({ value }) => value !== '' && value !== null && value !== undefined
-  );
-});
+const contactDetails = computed(() => [
+  {
+    key: 'name',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_NAME'),
+    value: contactDraft.value.name,
+  },
+  {
+    key: 'phone',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_PHONE'),
+    value: contactDraft.value.phone_number,
+  },
+  {
+    key: 'email',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_EMAIL'),
+    value: contactDraft.value.email,
+  },
+  {
+    key: 'identifier',
+    label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_IDENTIFIER'),
+    value: contactDraft.value.identifier,
+  },
+]);
 const formatContactAttributeLabel = key =>
   String(key)
     .replace(/[_-]+/g, ' ')
     .replace(/^./, character => character.toUpperCase());
+
+// A lista sai das definicoes da conta, nao dos valores gravados no contato:
+// um atributo que este contato nunca preencheu tem de continuar alcancavel.
+const contactAttributeEntries = computed(() => {
+  const custom = contactDraft.value.custom_attributes || {};
+  const defined = contactAttributeDefinitions.value.map(definition => ({
+    key: definition.attribute_key,
+    value: custom[definition.attribute_key],
+    source: 'custom_attributes',
+    label:
+      definition.attribute_display_name ||
+      formatContactAttributeLabel(definition.attribute_key),
+    displayType: definition.attribute_display_type,
+    options: definition.attribute_values || [],
+  }));
+  const definedKeys = new Set(defined.map(entry => entry.key));
+
+  const toEntry =
+    source =>
+    ([key, value]) => ({
+      key,
+      value,
+      source,
+      label: formatContactAttributeLabel(key),
+      displayType: typeof value === 'boolean' ? 'checkbox' : 'text',
+      options: [],
+    });
+
+  return [
+    ...Object.entries(contactDraft.value.additional_attributes || {}).map(
+      toEntry('additional_attributes')
+    ),
+    ...defined,
+    // valores gravados que perderam a definicao continuam visiveis
+    ...Object.entries(custom)
+      .filter(([key]) => !definedKeys.has(key))
+      .map(toEntry('custom_attributes')),
+  ];
+});
+
+const hasAttributeValue = value =>
+  value !== '' && value !== null && value !== undefined;
+
+// Campos abertos manualmente nesta sessao: sem isto, limpar um valor
+// faria a linha desaparecer e nao haveria como redigitar.
+const revealedAttributeKeys = ref(new Set());
+
+const visibleContactAttributes = computed(() =>
+  contactAttributeEntries.value.filter(
+    entry =>
+      hasAttributeValue(entry.value) ||
+      revealedAttributeKeys.value.has(entry.key)
+  )
+);
+const availableContactAttributes = computed(() =>
+  contactAttributeEntries.value.filter(
+    entry =>
+      !hasAttributeValue(entry.value) &&
+      !revealedAttributeKeys.value.has(entry.key)
+  )
+);
+const attributeToAdd = ref('');
+const revealContactAttribute = () => {
+  if (!attributeToAdd.value) return;
+
+  revealedAttributeKeys.value = new Set(revealedAttributeKeys.value).add(
+    attributeToAdd.value
+  );
+  attributeToAdd.value = '';
+};
 const formatContactAttributeValue = value => {
+  // Um campo aberto e ainda vazio desenhava a string "undefined" na linha em
+  // repouso. Vazio é ausência de valor, e quem desenha ausência é o RaevoFieldRow.
+  if (!hasAttributeValue(value)) return '';
   if (Array.isArray(value)) return value.join(', ');
   if (typeof value === 'boolean') {
     return value
@@ -789,6 +853,8 @@ const setFormState = payload => {
       ...(card.value.contact?.additional_attributes || {}),
     },
   };
+  revealedAttributeKeys.value = new Set();
+  attributeToAdd.value = '';
   subject.value = card.value.subject || '';
   description.value = card.value.description || '';
   ownerId.value = card.value.ownerId ? String(card.value.ownerId) : '';
@@ -1419,6 +1485,9 @@ onMounted(() => {
   loadLabels();
   loadTimeline();
   loadFinanceModule();
+  // sem as definicoes carregadas o bloco de contato volta a mostrar
+  // apenas os atributos que ja tinham valor
+  store.dispatch('attributes/get');
 });
 
 watch(activeTabKey, tab => {
@@ -1996,9 +2065,10 @@ watch(invitationPendingRevocation, async invitation => {
                     :label="detail.label"
                     :value="detail.value || ''"
                   >
-                    <template #control="{ controlClass }">
+                    <template #control="{ controlClass, fieldId }">
                       <input
                         v-if="detail.key === 'name'"
+                        :id="fieldId"
                         v-model="contactDraft.name"
                         data-testid="kanban-opportunity-contact-name"
                         type="text"
@@ -2007,6 +2077,7 @@ watch(invitationPendingRevocation, async invitation => {
                       />
                       <input
                         v-else-if="detail.key === 'phone'"
+                        :id="fieldId"
                         v-model="contactDraft.phone_number"
                         data-testid="kanban-opportunity-contact-phone"
                         type="tel"
@@ -2015,6 +2086,7 @@ watch(invitationPendingRevocation, async invitation => {
                       />
                       <input
                         v-else-if="detail.key === 'email'"
+                        :id="fieldId"
                         v-model="contactDraft.email"
                         data-testid="kanban-opportunity-contact-email"
                         type="email"
@@ -2023,6 +2095,7 @@ watch(invitationPendingRevocation, async invitation => {
                       />
                       <input
                         v-else
+                        :id="fieldId"
                         v-model="contactDraft.identifier"
                         data-testid="kanban-opportunity-contact-identifier"
                         type="text"
@@ -2041,40 +2114,58 @@ watch(invitationPendingRevocation, async invitation => {
                 </p>
               </section>
               <section
-                v-if="contactAttributeEntries.length"
+                v-if="
+                  visibleContactAttributes.length ||
+                  availableContactAttributes.length
+                "
                 class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
               >
                 <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
                   {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
                 </h3>
-                <div class="grid gap-1">
+                <div v-if="visibleContactAttributes.length" class="grid gap-1">
                   <RaevoFieldRow
-                    v-for="entry in contactAttributeEntries"
+                    v-for="entry in visibleContactAttributes"
                     :key="`${entry.source}-${entry.key}`"
                     :row-testid="`kanban-row-attr-${entry.key}`"
-                    :label="formatContactAttributeLabel(entry.key)"
+                    :label="entry.label"
                     :value="formatContactAttributeValue(entry.value)"
                   >
-                    <template #control="{ controlClass }">
-                      <input
-                        v-if="typeof entry.value !== 'boolean'"
-                        :value="formatContactAttributeValue(entry.value)"
-                        type="text"
+                    <template #control="{ controlClass, fieldId }">
+                      <select
+                        v-if="entry.displayType === 'list'"
+                        :id="fieldId"
+                        :value="entry.value ?? ''"
                         :class="controlClass"
-                        :aria-label="formatContactAttributeLabel(entry.key)"
-                        @input="
+                        :aria-label="entry.label"
+                        @change="
                           setContactAttributeValue(entry, $event.target.value)
                         "
-                      />
+                      >
+                        <option value="">
+                          {{ t('KANBAN.OPPORTUNITY_DETAILS.ATTRIBUTE_EMPTY') }}
+                        </option>
+                        <option
+                          v-for="option in entry.options"
+                          :key="option"
+                          :value="option"
+                        >
+                          {{ option }}
+                        </option>
+                      </select>
+                      <!--
+                        O rótulo ao lado já nomeia o campo. Repeti-lo aqui
+                        desenhava o mesmo texto duas vezes na mesma linha.
+                      -->
                       <span
-                        v-else
-                        class="flex h-8 items-center gap-2 text-sm text-n-slate-12"
+                        v-else-if="entry.displayType === 'checkbox'"
+                        class="flex h-10 items-center"
                       >
                         <input
-                          :checked="entry.value"
+                          :id="fieldId"
+                          :checked="entry.value === true"
                           type="checkbox"
                           class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                          :aria-label="formatContactAttributeLabel(entry.key)"
                           @change="
                             setContactAttributeValue(
                               entry,
@@ -2082,10 +2173,70 @@ watch(invitationPendingRevocation, async invitation => {
                             )
                           "
                         />
-                        {{ formatContactAttributeLabel(entry.key) }}
                       </span>
+                      <input
+                        v-else
+                        :id="fieldId"
+                        :value="entry.value ?? ''"
+                        :type="entry.displayType === 'date' ? 'date' : 'text'"
+                        :class="controlClass"
+                        :aria-label="entry.label"
+                        @input="
+                          setContactAttributeValue(entry, $event.target.value)
+                        "
+                      />
                     </template>
                   </RaevoFieldRow>
+                </div>
+                <!--
+                  Divulgacao progressiva: os campos vazios ficam atras deste
+                  controlo para o bloco nao crescer com a conta, mas continuam
+                  todos alcancaveis, inclusive por teclado.
+                -->
+                <div
+                  v-if="availableContactAttributes.length"
+                  class="flex items-end gap-2"
+                >
+                  <RaevoField
+                    :label="t('KANBAN.OPPORTUNITY_DETAILS.ADD_ATTRIBUTE')"
+                    variant="select"
+                    class="flex-1"
+                  >
+                    <template #default="{ controlClass, fieldId }">
+                      <select
+                        :id="fieldId"
+                        v-model="attributeToAdd"
+                        data-testid="kanban-opportunity-add-attribute"
+                        :class="controlClass"
+                      >
+                        <option value="">
+                          {{
+                            t(
+                              'KANBAN.OPPORTUNITY_DETAILS.ADD_ATTRIBUTE_PLACEHOLDER'
+                            )
+                          }}
+                        </option>
+                        <option
+                          v-for="entry in availableContactAttributes"
+                          :key="`${entry.source}-${entry.key}`"
+                          :value="entry.key"
+                        >
+                          {{ entry.label }}
+                        </option>
+                      </select>
+                    </template>
+                  </RaevoField>
+                  <NextButton
+                    :label="
+                      t('KANBAN.OPPORTUNITY_DETAILS.ADD_ATTRIBUTE_ACTION')
+                    "
+                    :disabled="!attributeToAdd"
+                    data-testid="kanban-opportunity-add-attribute-action"
+                    faded
+                    slate
+                    sm
+                    @click="revealContactAttribute"
+                  />
                 </div>
               </section>
             </section>
