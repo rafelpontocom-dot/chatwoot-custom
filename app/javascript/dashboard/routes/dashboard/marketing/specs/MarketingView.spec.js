@@ -12,7 +12,9 @@ const storeMocks = vi.hoisted(() => ({
   currentAccount: { id: 7, permissions: ['administrator'] },
 }));
 
-vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: key => key, locale: { value: 'pt_BR' } }),
+}));
 vi.mock('dashboard/api/marketing', () => ({ default: apiMocks }));
 vi.mock('dashboard/composables/store', () => ({
   useMapGetter: () => computed(() => storeMocks.currentAccount),

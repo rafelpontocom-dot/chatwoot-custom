@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import MarketingAPI from 'dashboard/api/marketing';
+import { intlLocale } from 'dashboard/composables/useAccountCurrency';
 import { useMapGetter } from 'dashboard/composables/store';
 import { frontendURL } from 'dashboard/helper/URLHelper';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
@@ -10,7 +11,7 @@ import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
 // Raevo · Sereno — a tela operacional responde "de onde vieram os leads".
 // Ligar o módulo e conectar plataformas vivem atrás da engrenagem, como no
 // Financeiro. Ver docs/raevo-design-system.md §5.
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const currentAccount = useMapGetter('getCurrentAccount');
 
 const activeView = ref('panel');
@@ -42,6 +43,21 @@ const campaignRows = computed(() =>
 
 const contactPath = contact =>
   frontendURL(`accounts/${accountId.value}/contacts/${contact.id}`);
+
+// A data segue o idioma da conta; `toLocaleString` sozinho seguia o do browser
+// e mostrava formato americano para uma clínica brasileira.
+const formatMoment = value =>
+  new Intl.DateTimeFormat(intlLocale(locale.value), {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
+
+// A barra existe para o número deixar de flutuar a meia tela do seu rótulo, e
+// para a proporção entre origens se ler sem fazer conta.
+const shareOf = (rows, count) => {
+  const maior = Math.max(...rows.map(([, value]) => value), 1);
+  return `${Math.round((count / maior) * 100)}%`;
+};
 
 const loadModule = async () => {
   const { data } = await MarketingAPI.getModule();
@@ -230,11 +246,17 @@ onMounted(async () => {
               <div
                 v-for="[origin, count] in originRows"
                 :key="origin"
-                class="flex items-baseline justify-between gap-3"
+                class="grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3"
               >
                 <dt class="min-w-0 break-words text-sm text-n-slate-11">
                   {{ origin }}
                 </dt>
+                <div class="h-1.5 w-full rounded-full bg-n-alpha-2">
+                  <div
+                    class="h-full rounded-full bg-n-brand"
+                    :style="{ width: shareOf(originRows, count) }"
+                  />
+                </div>
                 <dd
                   class="mb-0 text-sm font-semibold tabular-nums text-n-slate-12"
                 >
@@ -256,11 +278,17 @@ onMounted(async () => {
             <div
               v-for="[campaign, count] in campaignRows"
               :key="campaign"
-              class="flex items-baseline justify-between gap-3"
+              class="grid grid-cols-[minmax(0,14rem)_1fr_auto] items-center gap-3"
             >
               <dt class="min-w-0 break-words text-sm text-n-slate-11">
                 {{ campaign }}
               </dt>
+              <div class="h-1.5 w-full rounded-full bg-n-alpha-2">
+                <div
+                  class="h-full rounded-full bg-n-brand"
+                  :style="{ width: shareOf(campaignRows, count) }"
+                />
+              </div>
               <dd
                 class="mb-0 text-sm font-semibold tabular-nums text-n-slate-12"
               >
@@ -312,7 +340,7 @@ onMounted(async () => {
                   class="border-t border-n-weak"
                 >
                   <td class="py-2 pr-3 tabular-nums text-n-slate-11">
-                    {{ new Date(touchpoint.occurred_at).toLocaleString() }}
+                    {{ formatMoment(touchpoint.occurred_at) }}
                   </td>
                   <td class="py-2 pr-3 text-n-slate-12">
                     {{
