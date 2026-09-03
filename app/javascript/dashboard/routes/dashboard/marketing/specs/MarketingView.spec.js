@@ -11,6 +11,14 @@ const apiMocks = vi.hoisted(() => ({
   createIntakeSource: vi.fn(),
   rotateIntakeSource: vi.fn(),
   deactivateIntakeSource: vi.fn(),
+  getConnections: vi.fn(),
+  connectionAuthorizationUrl: vi.fn(),
+  disconnect: vi.fn(),
+  syncPages: vi.fn(),
+  subscribePage: vi.fn(),
+  syncLeadForms: vi.fn(),
+  getLeadForms: vi.fn(),
+  updateLeadForm: vi.fn(),
 }));
 const boardsMocks = vi.hoisted(() => ({ get: vi.fn(), getSettings: vi.fn() }));
 const storeMocks = vi.hoisted(() => ({
@@ -38,7 +46,8 @@ const stubs = {
   RaevoPageHeader: {
     template: '<header><slot name="actions" /><slot /></header>',
   },
-  RaevoStamp: { template: '<span />' },
+  // o stub tem de mostrar o rótulo, senão o texto do selo some do teste
+  RaevoStamp: { props: ['label'], template: '<span>{{ label }}</span>' },
   RaevoField: {
     template:
       '<label><slot :control-class="\'c\'" :field-id="\'f\'" /></label>',
@@ -54,6 +63,8 @@ describe('MarketingView', () => {
     storeMocks.currentAccount = { id: 7, permissions: ['administrator'] };
     apiMocks.getModule.mockResolvedValue({ data: { enabled: true } });
     apiMocks.getIntakeSources.mockResolvedValue({ data: { payload: [] } });
+    apiMocks.getConnections.mockResolvedValue({ data: { payload: [] } });
+    apiMocks.getLeadForms.mockResolvedValue({ data: { payload: [] } });
     boardsMocks.get.mockResolvedValue({
       data: { payload: [{ id: 1, name: 'Funil' }] },
     });
@@ -150,5 +161,62 @@ describe('MarketingView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('boom');
+  });
+
+  it('offers Meta and marks the other platforms as not ready yet', async () => {
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="marketing-connect-meta"]').exists()
+    ).toBe(true);
+    expect(wrapper.text()).toContain('Google Ads');
+    expect(wrapper.text()).toContain('MARKETING.CONNECTIONS.SOON');
+  });
+
+  it('warns while there is still time to reconnect', async () => {
+    apiMocks.getConnections.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 1,
+            provider: 'meta',
+            status: 'connected',
+            display_name: 'Clinica',
+            token_expiring: true,
+            pages: [],
+          },
+        ],
+      },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    expect(wrapper.text()).toContain('MARKETING.CONNECTIONS.EXPIRING');
+  });
+
+  it('turns a refusal from Meta into a sentence rather than a silence', async () => {
+    apiMocks.connectionAuthorizationUrl.mockRejectedValue({
+      response: { data: { message: 'Meta Lead Ads app is not configured' } },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="marketing-connect-meta"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Meta Lead Ads app is not configured');
   });
 });

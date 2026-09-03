@@ -56,6 +56,26 @@
       "ENDPOINT": "Send a POST to",
       "SCHEMA_HINT": "A GET on /schema lists every field it accepts.",
       "ERROR": "Could not save the source."
+    },
+    "CONNECTIONS": {
+      "TITLE": "Ad accounts",
+      "DESCRIPTION": "Connect Meta to bring its lead forms in. Google and TikTok come with the cost reports.",
+      "CONNECT": "Connect Meta",
+      "DISCONNECT": "Disconnect",
+      "SYNC_PAGES": "Refresh pages",
+      "SOON": "Coming soon",
+      "NONE": "No account connected.",
+      "EXPIRING": "Token expires soon — reconnect",
+      "PAGES": "Pages",
+      "SUBSCRIBE": "Receive leads",
+      "UNSUBSCRIBE": "Stop receiving",
+      "SYNC_FORMS": "Load forms",
+      "FORMS": "Lead forms",
+      "FORM_INACTIVE": "Off",
+      "FORM_ACTIVE": "On",
+      "ERROR": "Meta refused the request.",
+      "CONNECTED": "Meta connected.",
+      "CONNECT_ERROR": "Could not connect to Meta."
     }
   }
 }

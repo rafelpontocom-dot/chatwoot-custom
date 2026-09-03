@@ -82,6 +82,63 @@ const inboxOptions = computed(() =>
   )
 );
 
+const connections = ref([]);
+const leadForms = ref([]);
+const connectionError = ref('');
+const isBusyConnection = ref(false);
+
+// Nome de plataforma não se traduz, mas também não entra cru no template:
+// a regra do repo não distingue marca de texto de interface.
+const metaLabel = 'Meta';
+const soonPlatforms = ['Google Ads', 'TikTok Ads'];
+
+const metaConnection = computed(() =>
+  connections.value.find(c => c.provider === 'meta')
+);
+const metaPages = computed(() => metaConnection.value?.pages || []);
+
+const loadConnections = async () => {
+  const [connectionsResponse, formsResponse] = await Promise.all([
+    MarketingAPI.getConnections(),
+    MarketingAPI.getLeadForms(),
+  ]);
+  connections.value = connectionsResponse.data.payload || [];
+  leadForms.value = formsResponse.data.payload || [];
+};
+
+// Chamada que fala com o Meta: o erro dele vira uma frase na tela, e a
+// conexão fica em `attention` para a pessoa saber que precisa reconectar.
+const withMeta = async acao => {
+  isBusyConnection.value = true;
+  connectionError.value = '';
+  try {
+    await acao();
+    await loadConnections();
+  } catch (error) {
+    connectionError.value =
+      error?.response?.data?.message || t('MARKETING.CONNECTIONS.ERROR');
+  } finally {
+    isBusyConnection.value = false;
+  }
+};
+
+const connectMeta = () =>
+  withMeta(async () => {
+    const { data } = await MarketingAPI.connectionAuthorizationUrl();
+    window.location.href = data.url;
+  });
+
+const disconnectMeta = id => withMeta(() => MarketingAPI.disconnect(id));
+const syncPages = id => withMeta(() => MarketingAPI.syncPages(id));
+const togglePage = (id, pageId, subscribed) =>
+  withMeta(() => MarketingAPI.subscribePage(id, pageId, subscribed));
+const syncForms = (id, pageId) =>
+  withMeta(() => MarketingAPI.syncLeadForms(id, pageId));
+const toggleForm = (form, active) =>
+  withMeta(() =>
+    MarketingAPI.updateLeadForm(form.id, { lead_form: { active } })
+  );
+
 const loadIntake = async () => {
   const [sourcesResponse, boardsResponse] = await Promise.all([
     MarketingAPI.getIntakeSources(),
@@ -181,7 +238,10 @@ onMounted(async () => {
   try {
     await loadModule();
     await loadPanel();
-    if (isEnabled.value && canConfigure.value) await loadIntake();
+    if (isEnabled.value && canConfigure.value) {
+      await loadIntake();
+      await loadConnections();
+    }
   } catch (error) {
     loadError.value =
       error?.response?.data?.message || t('MARKETING.LOAD_ERROR');
@@ -267,6 +327,179 @@ onMounted(async () => {
         </label>
         <p v-if="saveError" class="mb-0 text-xs text-n-ruby-11" role="alert">
           {{ saveError }}
+        </p>
+      </section>
+
+      <!--
+        Contas de anúncio. Meta primeiro porque é o Lead Ads que precisa dela;
+        Google e TikTok chegam com os relatórios de custo, e aparecem
+        desabilitados para a ausência ser deliberada e não parecer falta.
+      -->
+      <section
+        v-if="activeView === 'settings' && isEnabled"
+        class="grid gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
+      >
+        <div class="grid gap-1">
+          <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+            {{ t('MARKETING.CONNECTIONS.TITLE') }}
+          </h3>
+          <p class="mb-0 text-sm text-n-slate-11">
+            {{ t('MARKETING.CONNECTIONS.DESCRIPTION') }}
+          </p>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div class="grid gap-2 rounded-lg border border-n-weak p-3">
+            <span
+              class="flex items-center gap-2 text-sm font-medium text-n-slate-12"
+            >
+              <i class="i-lucide-facebook size-4" />
+              {{ metaLabel }}
+            </span>
+            <template v-if="metaConnection">
+              <RaevoStamp
+                :variant="
+                  metaConnection.status === 'connected' ? 'success' : 'warning'
+                "
+                :label="
+                  metaConnection.display_name ||
+                  metaConnection.external_account_id
+                "
+              />
+              <p
+                v-if="metaConnection.token_expiring"
+                class="mb-0 text-xs text-n-amber-11"
+                role="alert"
+              >
+                {{ t('MARKETING.CONNECTIONS.EXPIRING') }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <NextButton
+                  :label="t('MARKETING.CONNECTIONS.SYNC_PAGES')"
+                  :disabled="isBusyConnection"
+                  faded
+                  slate
+                  sm
+                  @click="syncPages(metaConnection.id)"
+                />
+                <NextButton
+                  :label="t('MARKETING.CONNECTIONS.DISCONNECT')"
+                  :disabled="isBusyConnection"
+                  faded
+                  ruby
+                  sm
+                  @click="disconnectMeta(metaConnection.id)"
+                />
+              </div>
+            </template>
+            <NextButton
+              v-else
+              :label="t('MARKETING.CONNECTIONS.CONNECT')"
+              :disabled="isBusyConnection"
+              data-testid="marketing-connect-meta"
+              sm
+              @click="connectMeta"
+            />
+          </div>
+
+          <div
+            v-for="platform in soonPlatforms"
+            :key="platform"
+            class="grid gap-2 rounded-lg border border-dashed border-n-weak p-3 opacity-60"
+          >
+            <span class="text-sm font-medium text-n-slate-11">{{
+              platform
+            }}</span>
+            <RaevoStamp
+              variant="neutral"
+              :label="t('MARKETING.CONNECTIONS.SOON')"
+            />
+          </div>
+        </div>
+
+        <!-- Assinar `leadgen` é o que faz o Meta começar a nos avisar. -->
+        <div v-if="metaPages.length" class="grid gap-2">
+          <h4
+            class="mb-0 text-xs font-medium uppercase tracking-[0.16em] text-n-slate-10"
+          >
+            {{ t('MARKETING.CONNECTIONS.PAGES') }}
+          </h4>
+          <div
+            v-for="page in metaPages"
+            :key="page.id"
+            class="flex flex-wrap items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
+          >
+            <span class="min-w-0 flex-1 break-words text-sm text-n-slate-12">
+              {{ page.name }}
+            </span>
+            <NextButton
+              :label="
+                page.subscribed
+                  ? t('MARKETING.CONNECTIONS.UNSUBSCRIBE')
+                  : t('MARKETING.CONNECTIONS.SUBSCRIBE')
+              "
+              :disabled="isBusyConnection"
+              faded
+              slate
+              sm
+              @click="togglePage(metaConnection.id, page.id, !page.subscribed)"
+            />
+            <NextButton
+              :label="t('MARKETING.CONNECTIONS.SYNC_FORMS')"
+              :disabled="isBusyConnection"
+              faded
+              slate
+              sm
+              @click="syncForms(metaConnection.id, page.id)"
+            />
+          </div>
+        </div>
+
+        <div v-if="leadForms.length" class="grid gap-2">
+          <h4
+            class="mb-0 text-xs font-medium uppercase tracking-[0.16em] text-n-slate-10"
+          >
+            {{ t('MARKETING.CONNECTIONS.FORMS') }}
+          </h4>
+          <div
+            v-for="form in leadForms"
+            :key="form.id"
+            class="flex flex-wrap items-center gap-3 border-b border-n-weak py-2 last:border-b-0"
+            data-testid="marketing-lead-form-row"
+          >
+            <span class="min-w-0 flex-1 break-words text-sm text-n-slate-12">
+              {{ form.name || form.external_form_id }}
+              <span class="text-n-slate-10">· {{ form.page_name }}</span>
+            </span>
+            <RaevoStamp
+              :variant="form.active ? 'success' : 'neutral'"
+              :label="
+                form.active
+                  ? t('MARKETING.CONNECTIONS.FORM_ACTIVE')
+                  : t('MARKETING.CONNECTIONS.FORM_INACTIVE')
+              "
+            />
+            <NextButton
+              :label="
+                form.active
+                  ? t('MARKETING.CONNECTIONS.UNSUBSCRIBE')
+                  : t('MARKETING.CONNECTIONS.SUBSCRIBE')
+              "
+              :disabled="isBusyConnection"
+              faded
+              slate
+              sm
+              @click="toggleForm(form, !form.active)"
+            />
+          </div>
+        </div>
+
+        <p
+          v-if="connectionError"
+          class="mb-0 text-xs text-n-ruby-11"
+          role="alert"
+        >
+          {{ connectionError }}
         </p>
       </section>
 

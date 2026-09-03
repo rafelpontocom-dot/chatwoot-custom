@@ -56,6 +56,26 @@
       "ENDPOINT": "Envie um POST para",
       "SCHEMA_HINT": "Um GET em /schema lista todos os campos aceitos.",
       "ERROR": "Não foi possível salvar a origem."
+    },
+    "CONNECTIONS": {
+      "TITLE": "Contas de anúncio",
+      "DESCRIPTION": "Conecte o Meta para trazer os formulários de lead. Google e TikTok chegam com os relatórios de custo.",
+      "CONNECT": "Conectar Meta",
+      "DISCONNECT": "Desconectar",
+      "SYNC_PAGES": "Atualizar páginas",
+      "SOON": "Em breve",
+      "NONE": "Nenhuma conta conectada.",
+      "EXPIRING": "O token expira em breve — reconecte",
+      "PAGES": "Páginas",
+      "SUBSCRIBE": "Receber leads",
+      "UNSUBSCRIBE": "Parar de receber",
+      "SYNC_FORMS": "Carregar formulários",
+      "FORMS": "Formulários de lead",
+      "FORM_INACTIVE": "Desligado",
+      "FORM_ACTIVE": "Ligado",
+      "ERROR": "O Meta recusou a chamada.",
+      "CONNECTED": "Meta conectado.",
+      "CONNECT_ERROR": "Não foi possível conectar ao Meta."
     }
   }
 }
