@@ -405,7 +405,7 @@ O preset cobre exatamente:
 
 - `Origem`, `Sub-origem`, `Campanha`, `Conjunto` e `Anuncio`;
 - `utm_content`, `utm_medium`, `utm_campaign`, `utm_source`, `utm_term` e `utm_referrer`;
-- `referrer`, `gclientid`, `gclid` e `fvclid`;
+- `referrer`, `gclientid`, `gclid` e `fbclid`;
 - `ttad_name`, `ttad_id`, `fbc`, `fbp` e `ttclid`;
 - `campaign_id`, `adset_id`, `ad_id`, `landing_page`, `event_id` e `landing_page_full`.
 

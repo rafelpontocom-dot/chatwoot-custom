@@ -673,7 +673,7 @@
           "REFERRER": "referrer",
           "GOOGLE_CLIENT_ID": "gclientid",
           "GCLID": "gclid",
-          "FBCLID": "fvclid",
+          "FBCLID": "fbclid",
           "FBC": "fbc",
           "FBP": "fbp",
           "TTCLID": "ttclid",

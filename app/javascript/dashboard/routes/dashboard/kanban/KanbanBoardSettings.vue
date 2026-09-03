@@ -730,7 +730,7 @@ const marketingFieldDefinitions = computed(() => {
     field('referrer', 'REFERRER'),
     field('gclientid', 'GOOGLE_CLIENT_ID'),
     field('gclid', 'GCLID'),
-    field('fvclid', 'FBCLID'),
+    field('fbclid', 'FBCLID'),
     field('ttad_name', 'TIKTOK_AD_NAME'),
     field('ttad_id', 'TIKTOK_AD_ID'),
     field('fbc', 'FBC'),
@@ -755,7 +755,8 @@ const marketingFieldAliases = Object.freeze({
   google_client_id: 'gclientid',
   tiktok_ad_id: 'ttad_id',
   tiktok_ad_name: 'ttad_name',
-  fbclid: 'fvclid',
+  // o preset carregou `fvclid` por engano de digitação; a chave certa é `fbclid`
+  fvclid: 'fbclid',
 });
 const obsoleteMarketingFieldKeys = new Set([
   'utm_id',

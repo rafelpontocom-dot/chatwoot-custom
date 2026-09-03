@@ -7,7 +7,8 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
     'google_client_id' => 'gclientid',
     'tiktok_ad_id' => 'ttad_id',
     'tiktok_ad_name' => 'ttad_name',
-    'fbclid' => 'fvclid'
+    # o preset carregou `fvclid` por engano de digitacao; a chave certa e `fbclid`
+    'fvclid' => 'fbclid'
   }.freeze
 
   before_action :fetch_kanban_board

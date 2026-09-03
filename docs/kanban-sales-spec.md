@@ -524,7 +524,7 @@ O card apresenta `Geral`, `Contato`, `Agente`, `Agenda` quando habilitada, `Mark
 
 As configurações do board devem oferecer um editor visual com `vuedraggable`. Mover um campo entre áreas atualiza `layout.section`; reordenar um campo atualiza `layout.position`. `layout.width` continua controlando a largura do campo dentro da aba. O mesmo gerenciador mostra uma prévia do card compacto e permite ordenar ou remover seus campos visíveis sem editar JSON.
 
-O botão de preset de Marketing substitui somente campos conhecidos do preset na seção Marketing, remove chaves obsoletas e preserva campos desconhecidos criados pelo cliente. A ordem e as chaves canônicas são: `origem_do_lead`, `sub_origem`, `campaign`, `adset`, `ad`, `utm_content`, `utm_medium`, `utm_campaign`, `utm_source`, `utm_term`, `utm_referrer`, `referrer`, `gclientid`, `gclid`, `fvclid`, `ttad_name`, `ttad_id`, `fbc`, `fbp`, `ttclid`, `campaign_id`, `adset_id`, `ad_id`, `landing_page`, `event_id` e `landing_page_full`.
+O botão de preset de Marketing substitui somente campos conhecidos do preset na seção Marketing, remove chaves obsoletas e preserva campos desconhecidos criados pelo cliente. A ordem e as chaves canônicas são: `origem_do_lead`, `sub_origem`, `campaign`, `adset`, `ad`, `utm_content`, `utm_medium`, `utm_campaign`, `utm_source`, `utm_term`, `utm_referrer`, `referrer`, `gclientid`, `gclid`, `fbclid`, `ttad_name`, `ttad_id`, `fbc`, `fbp`, `ttclid`, `campaign_id`, `adset_id`, `ad_id`, `landing_page`, `event_id` e `landing_page_full`.
 
 Formato sugerido de `custom_field_definitions`:
 

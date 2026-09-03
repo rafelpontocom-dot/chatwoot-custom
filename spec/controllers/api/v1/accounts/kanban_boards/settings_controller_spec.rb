@@ -232,7 +232,7 @@ RSpec.describe 'Kanban board settings API', type: :request do
       board.update!(
         custom_field_definitions: [
           {
-            key: 'fbclid', label: 'fbclid', field_type: 'text',
+            key: 'fvclid', label: 'fvclid', field_type: 'text',
             layout: { section: 'marketing', position: 1 }
           }
         ]
@@ -242,7 +242,7 @@ RSpec.describe 'Kanban board settings API', type: :request do
         account: account,
         kanban_board: board,
         kanban_stage: stage,
-        custom_field_values: { fbclid: 'legacy-click-id' }
+        custom_field_values: { fvclid: 'legacy-click-id' }
       )
 
       patch settings_url(board),
@@ -251,7 +251,7 @@ RSpec.describe 'Kanban board settings API', type: :request do
               kanban_board: {
                 custom_field_definitions: [
                   {
-                    key: 'fvclid', label: 'fvclid', field_type: 'text',
+                    key: 'fbclid', label: 'fbclid', field_type: 'text',
                     layout: { section: 'marketing', position: 1 }
                   }
                 ]
@@ -260,8 +260,8 @@ RSpec.describe 'Kanban board settings API', type: :request do
             as: :json
 
       expect(response).to have_http_status(:success)
-      expect(board.reload.custom_field_definitions.pluck('key')).to eq(['fvclid'])
-      expect(card.reload.custom_field_values).to eq('fvclid' => 'legacy-click-id')
+      expect(board.reload.custom_field_definitions.pluck('key')).to eq(['fbclid'])
+      expect(card.reload.custom_field_values).to eq('fbclid' => 'legacy-click-id')
     end
 
     it 'rejects a stale settings update without overwriting the newer configuration' do
