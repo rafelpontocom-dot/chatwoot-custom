@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_03_130100) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_03_140000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1943,6 +1943,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_130100) do
     t.index ["kanban_card_id"], name: "index_marketing_touchpoints_on_kanban_card_id"
   end
 
+  create_table "marketing_webhook_deliveries", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "provider", default: "meta", null: false
+    t.string "provider_event_id"
+    t.string "payload_digest", null: false
+    t.text "raw_payload", null: false
+    t.string "processing_status", default: "failed", null: false
+    t.text "error_message"
+    t.datetime "received_at", null: false
+    t.datetime "processed_at"
+    t.integer "retry_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "payload_digest"], name: "index_marketing_deliveries_on_account_and_digest", unique: true
+    t.index ["account_id", "processing_status", "received_at"], name: "index_marketing_deliveries_for_account_status"
+    t.index ["account_id", "provider_event_id"], name: "index_marketing_deliveries_on_account_and_event", unique: true, where: "(provider_event_id IS NOT NULL)"
+    t.index ["account_id"], name: "index_marketing_webhook_deliveries_on_account_id"
+  end
+
   create_table "mentions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "conversation_id", null: false
@@ -2442,6 +2461,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_130100) do
   add_foreign_key "marketing_touchpoints", "contacts", on_delete: :nullify
   add_foreign_key "marketing_touchpoints", "conversations", on_delete: :nullify
   add_foreign_key "marketing_touchpoints", "kanban_cards", on_delete: :nullify
+  add_foreign_key "marketing_webhook_deliveries", "accounts"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").

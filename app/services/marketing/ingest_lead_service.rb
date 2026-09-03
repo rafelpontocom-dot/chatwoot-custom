@@ -11,8 +11,9 @@ class Marketing::IngestLeadService
 
   CONTACT_KEYS = %w[name email phone_number].freeze
 
-  def initialize(source:, payload:, locale: 'pt_BR')
+  def initialize(source:, payload:, locale: 'pt_BR', touchpoint_source: 'form_submission')
     @source = source
+    @touchpoint_source = touchpoint_source
     @payload = payload.to_h.stringify_keys
     @locale = locale
   end
@@ -32,7 +33,7 @@ class Marketing::IngestLeadService
 
   private
 
-  attr_reader :source, :payload, :locale
+  attr_reader :source, :payload, :locale, :touchpoint_source
 
   delegate :account, to: :source
 
@@ -77,7 +78,7 @@ class Marketing::IngestLeadService
     ).perform
 
     Marketing::RecordTouchpointService.new(
-      account: account, source: 'form_submission', attribution: attribution,
+      account: account, source: touchpoint_source, attribution: attribution,
       contact: contact, kanban_card: card, dedupe_parts: dedupe_parts
     ).perform
     Marketing::StampCardAttributionService.new(kanban_card: card).perform

@@ -124,6 +124,7 @@ class Account < ApplicationRecord
   has_many :marketing_intake_sources, dependent: :destroy_async
   has_many :marketing_provider_connections, dependent: :destroy_async
   has_many :marketing_lead_forms, dependent: :destroy_async
+  has_many :marketing_webhook_deliveries, dependent: :destroy_async
 
   has_one_attached :contacts_export
 

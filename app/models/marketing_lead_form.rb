@@ -40,6 +40,14 @@ class MarketingLeadForm < ApplicationRecord
 
   scope :active, -> { where(active: true) }
 
+  # Serve de origem para o `IngestLeadService`, tal como uma
+  # `MarketingIntakeSource`: as duas sao um lugar configurado de onde vem lead,
+  # com destino proprio.
+  def register_delivery!
+    increment!(:received_count) # rubocop:disable Rails/SkipsModelValidations
+    update_columns(last_lead_at: Time.current, updated_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
+  end
+
   # As perguntas como o Meta as devolve: `name` e a chave que vem no lead.
   def question_keys
     Array(questions).filter_map { |question| question['key'].presence }

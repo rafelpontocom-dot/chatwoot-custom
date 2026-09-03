@@ -780,6 +780,8 @@ Rails.application.routes.draw do
   post 'webhooks/finance/asaas/:connection_id', to: 'webhooks/finance/asaas#receive'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'
+  get 'webhooks/marketing/meta', to: 'webhooks/marketing/meta#verify'
+  post 'webhooks/marketing/meta', to: 'webhooks/marketing/meta#receive'
   get 'webhooks/instagram', to: 'webhooks/instagram#verify'
   post 'webhooks/instagram', to: 'webhooks/instagram#events'
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'
