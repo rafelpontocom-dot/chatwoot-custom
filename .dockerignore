@@ -15,3 +15,6 @@ vendor/bundle
 .DS_Store
 *.swp
 *~
+
+# sockets nunca entram num contexto de build — o overmind deixa um na raiz
+*.sock
