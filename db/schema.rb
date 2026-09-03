@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_03_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_03_110100) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1852,6 +1852,43 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_100000) do
     t.index ["account_id"], name: "index_macros_on_account_id"
   end
 
+  create_table "marketing_module_settings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.boolean "enabled", default: false, null: false
+    t.datetime "enabled_at"
+    t.bigint "enabled_by_id"
+    t.datetime "disabled_at"
+    t.bigint "disabled_by_id"
+    t.jsonb "settings", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_marketing_module_settings_on_account_id", unique: true
+    t.index ["disabled_by_id"], name: "index_marketing_module_settings_on_disabled_by_id"
+    t.index ["enabled_by_id"], name: "index_marketing_module_settings_on_enabled_by_id"
+  end
+
+  create_table "marketing_touchpoints", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "contact_id"
+    t.bigint "conversation_id"
+    t.bigint "kanban_card_id"
+    t.string "source", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "occurred_at", null: false
+    t.string "dedupe_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "contact_id", "occurred_at"], name: "index_marketing_touchpoints_on_account_contact_and_time"
+    t.index ["account_id", "dedupe_digest"], name: "index_marketing_touchpoints_on_account_and_digest", unique: true
+    t.index ["account_id", "occurred_at"], name: "index_marketing_touchpoints_on_account_id_and_occurred_at"
+    t.index ["account_id", "source", "occurred_at"], name: "index_marketing_touchpoints_on_account_source_and_time"
+    t.index ["account_id"], name: "index_marketing_touchpoints_on_account_id"
+    t.index ["contact_id"], name: "index_marketing_touchpoints_on_contact_id"
+    t.index ["conversation_id"], name: "index_marketing_touchpoints_on_conversation_id"
+    t.index ["kanban_card_id"], name: "index_marketing_touchpoints_on_kanban_card_id"
+  end
+
   create_table "mentions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "conversation_id", null: false
@@ -2340,6 +2377,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_100000) do
   add_foreign_key "kanban_saved_filters", "accounts"
   add_foreign_key "kanban_saved_filters", "kanban_boards"
   add_foreign_key "kanban_saved_filters", "users"
+  add_foreign_key "marketing_module_settings", "accounts"
+  add_foreign_key "marketing_module_settings", "users", column: "disabled_by_id"
+  add_foreign_key "marketing_module_settings", "users", column: "enabled_by_id"
+  add_foreign_key "marketing_touchpoints", "accounts"
+  add_foreign_key "marketing_touchpoints", "contacts", on_delete: :nullify
+  add_foreign_key "marketing_touchpoints", "conversations", on_delete: :nullify
+  add_foreign_key "marketing_touchpoints", "kanban_cards", on_delete: :nullify
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
