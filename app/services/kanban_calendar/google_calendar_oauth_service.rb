@@ -11,7 +11,9 @@ class KanbanCalendar::GoogleCalendarOauthService
   def authorization_url
     ensure_google_credentials!
     state = SecureRandom.urlsafe_base64(32)
-    Rails.cache.write(state_cache_key(state), { resource_id: @resource.id, account_id: @resource.account_id }, expires_in: STATE_TTL)
+    Rails.cache.write(state_cache_key(state),
+                      { 'resource_id' => @resource.id, 'account_id' => @resource.account_id },
+                      expires_in: STATE_TTL)
     oauth_client.auth_code.authorize_url(
       redirect_uri: callback_url,
       scope: SCOPE,
@@ -42,8 +44,12 @@ class KanbanCalendar::GoogleCalendarOauthService
   end
 
   def self.resource_from_state!(state)
-    payload = Rails.cache.delete(state_cache_key(state))
-    raise KanbanCalendar::GoogleCalendarApiError, 'Google authorization expired' if payload.blank?
+    # `Rails.cache.delete` devolve true/false, nao o valor guardado: ler antes
+    # de apagar. E chave indiferente porque o que passa por um cache
+    # serializado nao volta necessariamente com simbolos.
+    payload = Rails.cache.read(state_cache_key(state)).to_h.with_indifferent_access
+    Rails.cache.delete(state_cache_key(state))
+    raise KanbanCalendar::GoogleCalendarApiError, 'Google authorization expired' if payload[:resource_id].blank?
 
     KanbanCalendarResource.where(account_id: payload[:account_id]).find(payload[:resource_id])
   end

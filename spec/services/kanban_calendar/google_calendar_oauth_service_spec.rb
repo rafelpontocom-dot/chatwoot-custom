@@ -11,13 +11,16 @@ RSpec.describe KanbanCalendar::GoogleCalendarOauthService do
     )
   end
 
+  # Uma loja de verdade, e nao um duplo: o duplo anterior fazia `delete`
+  # devolver o valor guardado, coisa que cache nenhum faz — e por isso o teste
+  # passava enquanto ligar uma agenda falhava sempre.
   it 'uses a one-time cached state for the Google callback' do
+    allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
     state = SecureRandom.urlsafe_base64(24)
-    cache = instance_double(ActiveSupport::Cache::Store)
-    allow(Rails).to receive(:cache).and_return(cache)
-    allow(cache).to receive(:delete)
-      .with(described_class.state_cache_key(state))
-      .and_return({ resource_id: resource.id, account_id: account.id }, nil)
+    Rails.cache.write(
+      described_class.state_cache_key(state),
+      { 'resource_id' => resource.id, 'account_id' => account.id }
+    )
 
     expect(described_class.resource_from_state!(state)).to eq(resource)
     expect { described_class.resource_from_state!(state) }
