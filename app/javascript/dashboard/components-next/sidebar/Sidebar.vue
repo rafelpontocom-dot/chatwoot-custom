@@ -532,6 +532,13 @@ const menuItems = computed(() => {
       permissions: ['administrator'],
     },
     {
+      name: 'Marketing',
+      label: t('SIDEBAR.MARKETING'),
+      icon: 'i-lucide-target',
+      to: accountScopedRoute('marketing_index'),
+      activeOn: ['marketing_index'],
+    },
+    {
       name: 'Captain',
       icon: 'i-woot-captain',
       label: t('SIDEBAR.CAPTAIN'),

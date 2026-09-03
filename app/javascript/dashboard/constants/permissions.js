@@ -24,6 +24,8 @@ export const AVAILABLE_CUSTOM_ROLE_PERMISSIONS = [
   'finance_manage',
   'finance_refund',
   'finance_configure',
+  'marketing_view',
+  'marketing_configure',
 ];
 
 export const ROLES = ['agent', 'administrator'];

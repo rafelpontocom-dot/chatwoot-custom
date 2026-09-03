@@ -53,7 +53,9 @@
       "FINANCE_CREATE": "Criar cobranças",
       "FINANCE_MANAGE": "Cancelar cobranças e confirmar recebimentos externos",
       "FINANCE_REFUND": "Solicitar estornos ao provedor",
-      "FINANCE_CONFIGURE": "Configurar módulo e provedores financeiros"
+      "FINANCE_CONFIGURE": "Configurar módulo e provedores financeiros",
+      "MARKETING_VIEW": "Marketing — ver a origem dos leads",
+      "MARKETING_CONFIGURE": "Marketing — configurar conexões e entrada de leads"
     },
     "FORM": {
       "NAME": {

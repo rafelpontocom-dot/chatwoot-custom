@@ -8,6 +8,7 @@ import bulkActions from './bulkActions.json';
 import campaign from './campaign.json';
 import calendar from './calendar.json';
 import finance from './finance.json';
+import marketing from './marketing.json';
 import forms from './forms.json';
 import cannedMgmt from './cannedMgmt.json';
 import chatlist from './chatlist.json';
@@ -58,6 +59,7 @@ export default {
   ...campaign,
   ...calendar,
   ...finance,
+  ...marketing,
   ...cannedMgmt,
   ...chatlist,
   ...companies,

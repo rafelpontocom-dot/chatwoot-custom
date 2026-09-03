@@ -12,6 +12,7 @@ import { routes as captainRoutes } from './captain/captain.routes';
 import { routes as kanbanRoutes } from './kanban/routes';
 import { routes as calendarRoutes } from './calendar/routes';
 import { routes as financeRoutes } from './finance/routes';
+import { routes as marketingRoutes } from './marketing/routes';
 import { routes as formsRoutes } from './forms/routes';
 import { routes as homeRoutes } from './home/routes';
 import AppContainer from './Dashboard.vue';
@@ -31,6 +32,7 @@ export default {
         ...kanbanRoutes,
         ...calendarRoutes,
         ...financeRoutes,
+        ...marketingRoutes,
         ...formsRoutes,
         ...inboxRoutes,
         ...conversation.routes,

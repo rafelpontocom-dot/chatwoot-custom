@@ -42,6 +42,8 @@
 # - 'finance_manage': Can cancel charges and confirm external payments.
 # - 'finance_refund': Can request provider refunds.
 # - 'finance_configure': Can configure the Finance module and providers.
+# - 'marketing_view': Can see where each lead came from.
+# - 'marketing_configure': Can configure the Marketing module, its connections and lead intake.
 
 class CustomRole < ApplicationRecord
   belongs_to :account
@@ -73,6 +75,8 @@ class CustomRole < ApplicationRecord
     finance_manage
     finance_refund
     finance_configure
+    marketing_view
+    marketing_configure
   ].freeze
 
   validates :name, presence: true

@@ -162,6 +162,12 @@ Rails.application.routes.draw do
               post :refund, on: :member
             end
           end
+          namespace :marketing do
+            resource :module, controller: 'module', only: [:show, :update]
+            resources :touchpoints, only: [:index] do
+              get :summary, on: :collection
+            end
+          end
           namespace :forms do
             resources :field_groups, only: %i[index create destroy]
             resources :invitations, only: [] do

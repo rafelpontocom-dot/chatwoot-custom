@@ -1,0 +1,42 @@
+{
+  "MARKETING": {
+    "EYEBROW": "Marketing",
+    "TITLE": "Lead origin",
+    "SUBTITLE": "Where the people who reached the clinic came from.",
+    "LOADING": "Loading…",
+    "LOAD_ERROR": "Could not load the marketing data.",
+    "OPEN_SETTINGS": "Open marketing settings",
+    "BACK_TO_PANEL": "Back to the panel",
+    "STATUS": {
+      "ENABLED": "On",
+      "DISABLED": "Off"
+    },
+    "SETTINGS": {
+      "TITLE": "Marketing module",
+      "DESCRIPTION": "With it on, every lead that arrives carries where it came from. Ad connections and lead intake live here.",
+      "ENABLE": "Capture lead origin for this account",
+      "SAVE_ERROR": "Could not save the marketing settings."
+    },
+    "EMPTY": {
+      "DISABLED_TITLE": "Marketing is off for this account",
+      "DISABLED_BODY": "Turn it on in the settings to start recording where each lead came from."
+    },
+    "PANEL": {
+      "CAPTURE_RATE": "Capture rate",
+      "CAPTURE_RATE_HINT": "{identified} of {total} leads in the last 30 days",
+      "BY_ORIGIN": "By origin",
+      "TOP_CAMPAIGNS": "Top campaigns",
+      "RECENT": "Recent leads",
+      "NO_DATA": "Nothing recorded yet.",
+      "NO_TOUCHPOINTS": "No lead has arrived with a known origin yet."
+    },
+    "TABLE": {
+      "WHEN": "When",
+      "ORIGIN": "Origin",
+      "CAMPAIGN": "Campaign",
+      "CONTACT": "Contact",
+      "UNKNOWN": "—",
+      "NO_CONTACT": "Not identified"
+    }
+  }
+}

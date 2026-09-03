@@ -1,0 +1,42 @@
+{
+  "MARKETING": {
+    "EYEBROW": "Marketing",
+    "TITLE": "Origem dos leads",
+    "SUBTITLE": "De onde vieram as pessoas que chegaram à clínica.",
+    "LOADING": "Carregando…",
+    "LOAD_ERROR": "Não foi possível carregar os dados de marketing.",
+    "OPEN_SETTINGS": "Abrir configurações de marketing",
+    "BACK_TO_PANEL": "Voltar ao painel",
+    "STATUS": {
+      "ENABLED": "Ligado",
+      "DISABLED": "Desligado"
+    },
+    "SETTINGS": {
+      "TITLE": "Módulo de Marketing",
+      "DESCRIPTION": "Com ele ligado, todo lead que chega traz de onde veio. Conexões de anúncio e entrada de leads ficam aqui.",
+      "ENABLE": "Captar a origem dos leads nesta conta",
+      "SAVE_ERROR": "Não foi possível salvar as configurações de marketing."
+    },
+    "EMPTY": {
+      "DISABLED_TITLE": "Marketing está desligado nesta conta",
+      "DISABLED_BODY": "Ligue nas configurações para começar a registrar de onde cada lead veio."
+    },
+    "PANEL": {
+      "CAPTURE_RATE": "Taxa de captação",
+      "CAPTURE_RATE_HINT": "{identified} de {total} leads nos últimos 30 dias",
+      "BY_ORIGIN": "Por origem",
+      "TOP_CAMPAIGNS": "Campanhas do topo",
+      "RECENT": "Leads recentes",
+      "NO_DATA": "Nada registrado ainda.",
+      "NO_TOUCHPOINTS": "Nenhum lead chegou com origem conhecida ainda."
+    },
+    "TABLE": {
+      "WHEN": "Quando",
+      "ORIGIN": "Origem",
+      "CAMPAIGN": "Campanha",
+      "CONTACT": "Contato",
+      "UNKNOWN": "—",
+      "NO_CONTACT": "Não identificado"
+    }
+  }
+}

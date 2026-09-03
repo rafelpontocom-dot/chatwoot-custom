@@ -1,0 +1,2 @@
+class MarketingTouchpointPolicy < MarketingModuleSettingPolicy
+end

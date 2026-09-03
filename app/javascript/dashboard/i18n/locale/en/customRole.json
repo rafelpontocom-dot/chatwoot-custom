@@ -53,7 +53,9 @@
       "FINANCE_CREATE": "Create charges",
       "FINANCE_MANAGE": "Cancel charges and confirm external payments",
       "FINANCE_REFUND": "Request provider refunds",
-      "FINANCE_CONFIGURE": "Configure the finance module and providers"
+      "FINANCE_CONFIGURE": "Configure the finance module and providers",
+      "MARKETING_VIEW": "Marketing — view lead origin",
+      "MARKETING_CONFIGURE": "Marketing — configure connections and lead intake"
     },
     "FORM": {
       "NAME": {
