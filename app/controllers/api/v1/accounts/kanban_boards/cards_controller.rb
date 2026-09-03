@@ -33,7 +33,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
             .kanban_cards
             .where(active: false)
             .where.not(archived_at: nil)
-            .includes(:kanban_stage, :inbox, :conversation, :archived_by, contact: :labels)
+            .includes(:kanban_stage, :contact, :inbox, :conversation, :archived_by)
             .order(archived_at: :desc, id: :desc)
             .select { |card| policy(card).restore? }
 
@@ -197,7 +197,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
     card_ids = Array(bulk_params[:card_ids]).map(&:to_i).uniq
     raise ActiveRecord::RecordNotFound if card_ids.blank? || card_ids.length > KanbanCards::BulkUpdateService::MAX_CARDS
 
-    cards = bulk_cards_scope.where(id: card_ids).includes(:kanban_stage, :inbox, :conversation, contact: :labels).to_a
+    cards = bulk_cards_scope.where(id: card_ids).includes(:kanban_stage, :contact, :inbox, :conversation).to_a
     raise ActiveRecord::RecordNotFound unless cards.length == card_ids.length
 
     cards.sort_by { |card| card_ids.index(card.id) }

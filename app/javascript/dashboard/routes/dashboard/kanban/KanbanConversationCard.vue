@@ -2,12 +2,11 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { intlLocale } from 'dashboard/composables/useAccountCurrency';
-import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { useStore } from 'dashboard/composables/store';
 import { format } from 'date-fns';
 import { CONVERSATION_PRIORITY } from 'shared/constants/messages';
 
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
-import Label from 'dashboard/components-next/label/Label.vue';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import CardPriorityIcon from 'dashboard/components-next/Conversation/ConversationCard/CardPriorityIcon.vue';
 
@@ -41,32 +40,6 @@ const COMPACT_FIELD_LIMIT = 3;
 
 const { t, locale } = useI18n();
 const store = useStore();
-const accountLabels = useMapGetter('labels/getLabels');
-
-// Cabem duas numa linha sem empurrar o resto do card; as restantes viram
-// contagem, com os títulos completos no title para não se perderem.
-const MAX_VISIBLE_CONTACT_LABELS = 2;
-
-const contactLabels = computed(() => {
-  const titles = props.card?.contact?.labels || [];
-  const porTitulo = new Map(
-    (accountLabels.value || []).map(label => [label.title, label])
-  );
-
-  return titles.map(title => porTitulo.get(title) || { title });
-});
-const visibleContactLabels = computed(() =>
-  contactLabels.value.slice(0, MAX_VISIBLE_CONTACT_LABELS)
-);
-const hiddenContactLabelCount = computed(() =>
-  Math.max(contactLabels.value.length - MAX_VISIBLE_CONTACT_LABELS, 0)
-);
-const allContactLabelTitles = computed(() =>
-  contactLabels.value.map(label => label.title).join(', ')
-);
-const hiddenContactLabelsLabel = computed(() =>
-  hiddenContactLabelCount.value ? `+${hiddenContactLabelCount.value}` : ''
-);
 
 const conversation = computed(() => props.card.conversation || {});
 const contact = computed(
@@ -466,31 +439,6 @@ const openConversation = event => {
           </dd>
         </div>
       </dl>
-
-      <!--
-        Etiquetas da pessoa — é por aqui que "já é paciente" chega do WhatsApp.
-        Uma linha só, com as restantes contadas, para a altura do card não
-        variar com quantas etiquetas a clínica usa.
-      -->
-      <div
-        v-if="visibleContactLabels.length"
-        data-testid="kanban-card-contact-labels"
-        class="mt-2 flex min-w-0 items-center gap-1"
-      >
-        <Label
-          v-for="label in visibleContactLabels"
-          :key="label.title"
-          :label="label"
-          compact
-        />
-        <span
-          v-if="hiddenContactLabelsLabel"
-          class="shrink-0 text-micro font-semibold tabular-nums text-n-slate-10"
-          :title="allContactLabelTitles"
-        >
-          {{ hiddenContactLabelsLabel }}
-        </span>
-      </div>
 
       <div
         v-if="

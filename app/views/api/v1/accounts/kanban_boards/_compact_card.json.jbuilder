@@ -32,9 +32,6 @@ json.stale_in_stage card.stale_in_stage?
 json.reply_state card.reply_state
 json.contact do
   json.partial! 'api/v1/models/contact', formats: [:json], resource: card.contact
-  # o partial de contato e partilhado por todos os endpoints; as etiquetas
-  # so sao serializadas aqui, onde o funil precisa de as mostrar
-  json.labels card.contact.label_list
 end
 json.inbox do
   json.partial! 'api/v1/models/inbox_slim', formats: [:json], resource: card.inbox

@@ -79,7 +79,6 @@ class KanbanCards::VisibleStageCardsQuery
     KanbanCard
       .active
       .left_outer_joins(:conversation)
-      .includes(contact: :labels)
       .where(account_id: account.id, kanban_board_id: kanban_board.id, kanban_stage_id: kanban_stage.id)
       .where(visibility_condition)
   end
