@@ -62,6 +62,9 @@ json.active card.active if card.respond_to?(:active)
 if card.respond_to?(:origin)
   json.contact do
     json.partial! 'api/v1/models/contact', formats: [:json], resource: card.contact
+    # o partial de contato e partilhado por todos os endpoints; as etiquetas
+    # so sao serializadas aqui, onde o funil precisa de as mostrar
+    json.labels card.contact.label_list
   end
   json.inbox do
     json.partial! 'api/v1/models/inbox_slim', formats: [:json], resource: card.inbox

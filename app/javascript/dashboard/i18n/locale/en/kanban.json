@@ -1464,7 +1464,8 @@
       "ADD_ATTRIBUTE": "Add a field",
       "ADD_ATTRIBUTE_PLACEHOLDER": "Select a field",
       "ADD_ATTRIBUTE_ACTION": "Add",
-      "ATTRIBUTE_EMPTY": "Not set"
+      "ATTRIBUTE_EMPTY": "Not set",
+      "CONTACT_LABELS": "Contact labels"
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",

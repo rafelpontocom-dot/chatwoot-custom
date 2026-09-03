@@ -34,13 +34,19 @@ vi.mock('vue-i18n', () => ({
   }),
 }));
 
-vi.mock('dashboard/composables/store', () => ({
-  useStore: () => ({
-    getters: {
-      'inboxes/getInboxById': () => ({ name: 'Support Inbox' }),
-    },
-  }),
-}));
+vi.mock('dashboard/composables/store', async () => {
+  const { computed } = await vi.importActual('vue');
+
+  return {
+    useStore: () => ({
+      getters: {
+        'inboxes/getInboxById': () => ({ name: 'Support Inbox' }),
+      },
+    }),
+    // o cartão lê o vocabulário de etiquetas da conta para dar cor aos chips
+    useMapGetter: () => computed(() => []),
+  };
+});
 
 vi.mock('shared/helpers/timeHelper', () => ({
   dynamicTime: () => 'just now',

@@ -7,6 +7,7 @@ import ContactAPI from 'dashboard/api/contacts';
 import FinanceAPI from 'dashboard/api/finance';
 import FormsAPI from 'dashboard/api/forms';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import Label from 'dashboard/components-next/label/Label.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
@@ -326,6 +327,17 @@ const contactAttributeEntries = computed(() => {
       .filter(([key]) => !definedKeys.has(key))
       .map(toEntry('custom_attributes')),
   ];
+});
+
+// As etiquetas chegam do serializador como títulos; a cor vem do vocabulário
+// da conta, para o ponto colorido ser o mesmo em todo o produto.
+const contactLabels = computed(() => {
+  const titles = card.value?.contact?.labels || [];
+  const porTitulo = new Map(
+    (accountLabels.value || []).map(label => [label.title, label])
+  );
+
+  return titles.map(title => porTitulo.get(title) || { title });
 });
 
 const hasAttributeValue = value =>
@@ -2112,6 +2124,30 @@ watch(invitationPendingRevocation, async invitation => {
                 >
                   {{ contactSaveError }}
                 </p>
+                <!--
+                  Etiquetas do contato, não da oportunidade. Chegam do WhatsApp
+                  e valem para a pessoa em qualquer negócio; por isso são só de
+                  leitura aqui — quem as edita é o WhatsApp ou a ficha do
+                  contato. As da oportunidade vivem no botão do cabeçalho.
+                -->
+                <div v-if="contactLabels.length" class="grid gap-2">
+                  <h4
+                    class="mb-0 text-xs font-medium leading-4 text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_LABELS') }}
+                  </h4>
+                  <div
+                    class="flex flex-wrap gap-1.5"
+                    data-testid="kanban-opportunity-contact-labels"
+                  >
+                    <Label
+                      v-for="label in contactLabels"
+                      :key="label.title"
+                      :label="label"
+                      compact
+                    />
+                  </div>
+                </div>
               </section>
               <section
                 v-if="
