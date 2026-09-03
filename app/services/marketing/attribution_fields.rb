@@ -18,6 +18,8 @@ class Marketing::AttributionFields
     referrer
     gclientid
     gclid
+    gbraid
+    wbraid
     fbclid
     ttad_name
     ttad_id
@@ -34,11 +36,10 @@ class Marketing::AttributionFields
 
   # Guardadas no contato, fora do card.
   #
-  # `gbraid` e `wbraid` sao os identificadores de clique do Google para
-  # privacidade no iOS — em trafego de iPhone o Google manda estes *em vez de*
-  # `gclid`. Capturar e barato e nao da para voltar no tempo; exibi-los espera a
-  # fase do Google, quando ha o que fazer com eles.
-  CONTACT_ONLY_KEYS = %w[gbraid wbraid msclkid dclid utm_id].freeze
+  # `gbraid` e `wbraid` subiram para o card: em trafego de iPhone o Google manda
+  # estes *em vez de* `gclid`, e sem eles a atribuicao do Google se perde
+  # justamente onde mais dói. O que fica aqui e o que ainda nao tem uso.
+  CONTACT_ONLY_KEYS = %w[msclkid dclid utm_id].freeze
 
   ALL_KEYS = (CARD_KEYS + CONTACT_ONLY_KEYS).freeze
 

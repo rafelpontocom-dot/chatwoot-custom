@@ -673,6 +673,8 @@
           "REFERRER": "referrer",
           "GOOGLE_CLIENT_ID": "gclientid",
           "GCLID": "gclid",
+          "GBRAID": "gbraid",
+          "WBRAID": "wbraid",
           "FBCLID": "fbclid",
           "FBC": "fbc",
           "FBP": "fbp",

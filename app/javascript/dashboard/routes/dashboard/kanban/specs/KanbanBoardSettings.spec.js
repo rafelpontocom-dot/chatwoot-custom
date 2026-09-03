@@ -841,6 +841,8 @@ describe('KanbanBoardSettings', () => {
             }),
             expect.objectContaining({ key: 'utm_source' }),
             expect.objectContaining({ key: 'gclid' }),
+            expect.objectContaining({ key: 'gbraid' }),
+            expect.objectContaining({ key: 'wbraid' }),
             expect.objectContaining({ key: 'fbclid' }),
             expect.objectContaining({ key: 'ttclid' }),
             expect.objectContaining({ key: 'campaign' }),
@@ -871,6 +873,8 @@ describe('KanbanBoardSettings', () => {
       'referrer',
       'gclientid',
       'gclid',
+      'gbraid',
+      'wbraid',
       'fbclid',
       'ttad_name',
       'ttad_id',
@@ -1004,7 +1008,10 @@ describe('KanbanBoardSettings', () => {
       .find('[data-testid="kanban-settings-nav-fields"]')
       .trigger('click');
 
-    expect(wrapper.find('[data-field-key="gbraid"]').exists()).toBe(false);
+    // `gbraid` voltou ao preset: no iOS o Google manda ele em vez de `gclid`,
+    // então descartá-lo perdia a atribuição justo no tráfego de iPhone.
+    expect(wrapper.find('[data-field-key="gbraid"]').exists()).toBe(true);
+    expect(wrapper.find('[data-field-key="dclid"]').exists()).toBe(false);
     expect(wrapper.find('[data-field-key="campaign"]').exists()).toBe(true);
     expect(wrapper.find('[data-field-key="utm_source"]').exists()).toBe(true);
   });

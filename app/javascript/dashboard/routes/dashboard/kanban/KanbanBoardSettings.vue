@@ -682,6 +682,8 @@ const marketingFieldLabels = computed(() => ({
     'KANBAN.SETTINGS.SALES.MARKETING_FIELDS.GOOGLE_CLIENT_ID'
   ),
   GCLID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.GCLID'),
+  GBRAID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.GBRAID'),
+  WBRAID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.WBRAID'),
   FBCLID: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.FBCLID'),
   FBC: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.FBC'),
   FBP: t('KANBAN.SETTINGS.SALES.MARKETING_FIELDS.FBP'),
@@ -730,6 +732,8 @@ const marketingFieldDefinitions = computed(() => {
     field('referrer', 'REFERRER'),
     field('gclientid', 'GOOGLE_CLIENT_ID'),
     field('gclid', 'GCLID'),
+    field('gbraid', 'GBRAID'),
+    field('wbraid', 'WBRAID'),
     field('fbclid', 'FBCLID'),
     field('ttad_name', 'TIKTOK_AD_NAME'),
     field('ttad_id', 'TIKTOK_AD_ID'),
@@ -758,13 +762,10 @@ const marketingFieldAliases = Object.freeze({
   // o preset carregou `fvclid` por engano de digitação; a chave certa é `fbclid`
   fvclid: 'fbclid',
 });
-const obsoleteMarketingFieldKeys = new Set([
-  'utm_id',
-  'gbraid',
-  'wbraid',
-  'dclid',
-  'msclkid',
-]);
+// `gbraid` e `wbraid` voltaram: são os identificadores de clique do Google
+// para privacidade no iOS, e nesse tráfego o Google manda estes *em vez de*
+// `gclid`. Sem eles, a clínica perde a atribuição do Google no iPhone.
+const obsoleteMarketingFieldKeys = new Set(['utm_id', 'dclid', 'msclkid']);
 
 const normalizeMarketingFieldDefinitions = definitions => {
   const canonicalDefinitions = marketingFieldDefinitions.value;

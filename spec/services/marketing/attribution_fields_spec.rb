@@ -33,9 +33,10 @@ RSpec.describe Marketing::AttributionFields do
 
   describe '.card_values' do
     it 'returns only what the opportunity tab can display' do
-      attribution = { 'utm_source' => 'google', 'gclid' => 'abc', 'gbraid' => 'ios-click', 'msclkid' => 'bing' }
+      attribution = { 'utm_source' => 'google', 'gclid' => 'abc', 'gbraid' => 'ios', 'msclkid' => 'bing' }
 
-      expect(described_class.card_values(attribution)).to eq('utm_source' => 'google', 'gclid' => 'abc')
+      expect(described_class.card_values(attribution))
+        .to eq('utm_source' => 'google', 'gclid' => 'abc', 'gbraid' => 'ios')
     end
   end
 
@@ -44,8 +45,10 @@ RSpec.describe Marketing::AttributionFields do
     expect(described_class::CARD_KEYS).not_to include('fvclid')
   end
 
-  it 'captures the Google iOS click ids without putting them on the card' do
-    expect(described_class::CONTACT_ONLY_KEYS).to include('gbraid', 'wbraid')
-    expect(described_class::CARD_KEYS).not_to include('gbraid', 'wbraid')
+  # No iOS o Google manda estes em vez de gclid: fora do card, a atribuição do
+  # Google se perde justamente no tráfego de iPhone.
+  it 'shows the Google iOS click ids on the card, next to gclid' do
+    expect(described_class::CARD_KEYS).to include('gbraid', 'wbraid')
+    expect(described_class::CARD_KEYS.index('gbraid')).to eq(described_class::CARD_KEYS.index('gclid') + 1)
   end
 end

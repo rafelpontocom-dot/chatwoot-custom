@@ -670,6 +670,8 @@
           "REFERRER": "Referrer",
           "GOOGLE_CLIENT_ID": "Google client ID",
           "GCLID": "Google click ID (gclid)",
+          "GBRAID": "Google iOS click ID (gbraid)",
+          "WBRAID": "Google iOS web click ID (wbraid)",
           "FBCLID": "Meta click ID (fbclid)",
           "FBC": "Meta click cookie (fbc)",
           "FBP": "Meta browser cookie (fbp)",

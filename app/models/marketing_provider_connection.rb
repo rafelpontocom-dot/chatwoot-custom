@@ -42,6 +42,10 @@ class MarketingProviderConnection < ApplicationRecord
 
   scope :connected, -> { where(status: 'connected') }
 
+  def status_connected?
+    status == 'connected'
+  end
+
   # O Meta nao emite refresh token: troca-se por um de longa duracao, de uns 60
   # dias. Expirar em silencio e parar de receber lead por uma semana e o modo de
   # falha realista, entao avisamos com folga.
