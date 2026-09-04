@@ -82,4 +82,14 @@ RSpec.describe 'Marketing connections API', type: :request do
 
     expect(response).to have_http_status(:not_found)
   end
+
+  # O /me/accounts do Meta devolve todas as páginas que a pessoa administra.
+  # Numa agência, isso inclui as dos outros clientes.
+  it 'keeps the page list away from someone who only reads the funnel' do
+    connection
+
+    get base_path, headers: agent.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:unauthorized)
+  end
 end

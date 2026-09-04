@@ -2,8 +2,12 @@ class Api::V1::Accounts::Marketing::ConnectionsController < Api::V1::Accounts::B
   before_action :ensure_marketing_module_enabled
   before_action :fetch_connection, only: [:destroy, :sync_pages, :subscribe_page, :sync_lead_forms]
 
+  # `configure?`, nao `view?`: o /me/accounts do Meta devolve TODAS as paginas
+  # que a pessoa administra. Numa agencia que atende varias clinicas, isso
+  # inclui as paginas dos outros clientes — nao e coisa para a secretaria de
+  # uma clinica enxergar.
   def index
-    authorize MarketingProviderConnection, :view?
+    authorize MarketingProviderConnection, :configure?
     render json: { payload: connections.map(&:public_payload) }
   end
 

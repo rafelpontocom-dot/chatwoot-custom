@@ -2,8 +2,12 @@ class Api::V1::Accounts::Marketing::LeadFormsController < Api::V1::Accounts::Bas
   before_action :ensure_marketing_module_enabled
   before_action :fetch_lead_form, only: [:update]
 
+  # `configure?`, nao `view?`: o /me/accounts do Meta devolve TODAS as paginas
+  # que a pessoa administra. Numa agencia que atende varias clinicas, isso
+  # inclui as paginas dos outros clientes — nao e coisa para a secretaria de
+  # uma clinica enxergar.
   def index
-    authorize MarketingLeadForm, :view?
+    authorize MarketingLeadForm, :configure?
     render json: { payload: lead_forms.map(&:public_payload) }
   end
 
