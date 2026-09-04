@@ -77,7 +77,7 @@
       "CONNECTED": "Meta conectado.",
       "CONNECT_ERROR": "Não foi possível conectar ao Meta.",
       "ERRORS": {
-        "PERMISSION": "A conta Meta conectada não tem acesso suficiente a esta página. No Gerenciador de Negócios, dê a ela controle total da página, incluindo acesso a leads, e conecte de novo.",
+        "PERMISSION": "O Meta recusou por falta de acesso. Duas coisas precisam estar certas no Gerenciador de Negócios: a conta conectada com controle total da página, e o app Raevo liberado em Acesso a leads, aba CRMs, dessa página. Depois conecte de novo.",
         "TOKEN_EXPIRED": "A sessão do Meta expirou. Desconecte e conecte de novo.",
         "RATE_LIMIT": "O Meta está limitando as chamadas. Tente de novo em alguns minutos."
       },
