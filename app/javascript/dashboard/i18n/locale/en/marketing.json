@@ -75,7 +75,14 @@
       "FORM_ACTIVE": "On",
       "ERROR": "Meta refused the request.",
       "CONNECTED": "Meta connected.",
-      "CONNECT_ERROR": "Could not connect to Meta."
+      "CONNECT_ERROR": "Could not connect to Meta.",
+      "ERRORS": {
+        "PERMISSION": "The connected Meta account does not have enough access to this page. In Business Manager give it full control of the page, including lead access, then connect again.",
+        "TOKEN_EXPIRED": "The Meta session expired. Disconnect and connect again.",
+        "RATE_LIMIT": "Meta is throttling the requests. Try again in a few minutes."
+      },
+      "PAGE_LIMITED": "Limited access",
+      "PAGE_LIMITED_HINT": "Without full control of this page, Meta refuses to hand over its leads."
     }
   }
 }

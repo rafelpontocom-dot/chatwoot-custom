@@ -75,7 +75,14 @@
       "FORM_ACTIVE": "Ligado",
       "ERROR": "O Meta recusou a chamada.",
       "CONNECTED": "Meta conectado.",
-      "CONNECT_ERROR": "Não foi possível conectar ao Meta."
+      "CONNECT_ERROR": "Não foi possível conectar ao Meta.",
+      "ERRORS": {
+        "PERMISSION": "A conta Meta conectada não tem acesso suficiente a esta página. No Gerenciador de Negócios, dê a ela controle total da página, incluindo acesso a leads, e conecte de novo.",
+        "TOKEN_EXPIRED": "A sessão do Meta expirou. Desconecte e conecte de novo.",
+        "RATE_LIMIT": "O Meta está limitando as chamadas. Tente de novo em alguns minutos."
+      },
+      "PAGE_LIMITED": "Acesso limitado",
+      "PAGE_LIMITED_HINT": "Sem controle total desta página, o Meta recusa entregar os leads dela."
     }
   }
 }

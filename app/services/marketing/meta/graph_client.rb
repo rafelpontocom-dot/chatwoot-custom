@@ -12,7 +12,7 @@ class Marketing::Meta::GraphClient
 
   def self.request(method, path, params = {})
     response = public_send(method, path, query: params, timeout: REQUEST_TIMEOUT_SECONDS)
-    raise Marketing::Meta::ApiError, error_message(response) unless response.success?
+    raise_api_error(response) unless response.success?
 
     response.parsed_response
   rescue *NETWORK_ERRORS => e
@@ -20,11 +20,13 @@ class Marketing::Meta::GraphClient
   end
 
   # O texto de erro do Meta pode conter id e nome de conta alheia; guardamos so
-  # o que serve para diagnosticar.
-  def self.error_message(response)
+  # o que serve para diagnosticar, mais o codigo, que e o que a tela traduz em
+  # "va dar controle total da pagina" em vez de "OAuthException (200)".
+  def self.raise_api_error(response)
     error = response.parsed_response.is_a?(Hash) ? response.parsed_response['error'] : nil
-    return "Meta responded #{response.code}" if error.blank?
+    raise Marketing::Meta::ApiError, "Meta responded #{response.code}" if error.blank?
 
-    "Meta responded #{response.code}: #{error['type']} (#{error['code']})"
+    code = error['code']
+    raise Marketing::Meta::ApiError.new("Meta responded #{response.code}: #{error['type']} (#{code})", code: code)
   end
 end

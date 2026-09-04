@@ -38,7 +38,7 @@ class Marketing::Meta::SyncPagesService
   def fetch_pages
     response = Marketing::Meta::GraphClient.request(
       :get, '/me/accounts',
-      fields: 'id,name,access_token', access_token: connection.access_token, limit: 100
+      fields: 'id,name,access_token,tasks', access_token: connection.access_token, limit: 100
     )
     Array(response['data'])
   end

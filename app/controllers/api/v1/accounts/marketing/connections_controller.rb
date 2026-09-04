@@ -65,11 +65,12 @@ class Api::V1::Accounts::Marketing::ConnectionsController < Api::V1::Accounts::B
   end
 
   # O erro do Meta vira 422 com a classe, nunca com o texto do provedor.
+  # `error_code` e a chave que a tela traduz no que a pessoa precisa ir arrumar.
   def with_meta
     yield
     true
   rescue Marketing::Meta::ApiError => e
-    render json: { message: e.message }, status: :unprocessable_entity
+    render json: { message: e.message, error_code: e.reason }, status: :unprocessable_entity
     false
   end
 

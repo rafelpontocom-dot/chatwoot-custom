@@ -219,4 +219,87 @@ describe('MarketingView', () => {
 
     expect(wrapper.text()).toContain('Meta Lead Ads app is not configured');
   });
+
+  // "OAuthException (200)" não diz o que fazer; o motivo, sim.
+  it('explains a permission refusal instead of echoing the Meta code', async () => {
+    apiMocks.connectionAuthorizationUrl.mockRejectedValue({
+      response: {
+        data: {
+          message: 'Meta responded 403: OAuthException (200)',
+          error_code: 'permission',
+        },
+      },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="marketing-connect-meta"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('MARKETING.CONNECTIONS.ERRORS.PERMISSION');
+    expect(wrapper.text()).not.toContain('OAuthException');
+  });
+
+  // O Meta diz, por página, o que a conta pode fazer nela: avisar antes vale
+  // mais do que deixar o clique falhar.
+  it('flags a page the connected account does not fully control', async () => {
+    apiMocks.getConnections.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 1,
+            provider: 'meta',
+            status: 'connected',
+            display_name: 'Pedro Raphael',
+            pages: [
+              { id: '10', name: 'Clinica', tasks: ['ADVERTISE', 'ANALYZE'] },
+              { id: '11', name: 'Outra', tasks: ['ADVERTISE', 'MANAGE'] },
+            ],
+          },
+        ],
+      },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    expect(wrapper.text()).toContain('MARKETING.CONNECTIONS.PAGE_LIMITED');
+    expect(
+      wrapper.text().match(/MARKETING\.CONNECTIONS\.PAGE_LIMITED_HINT/g)
+    ).toHaveLength(1);
+  });
+
+  // Página sincronizada antes de pedirmos `tasks` não prova nada — e um aviso
+  // falso mandaria a pessoa mexer numa permissão que já está certa.
+  it('stays quiet about a page synced before we asked for its tasks', async () => {
+    apiMocks.getConnections.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 1,
+            provider: 'meta',
+            status: 'connected',
+            display_name: 'Pedro Raphael',
+            pages: [{ id: '10', name: 'Clinica' }],
+          },
+        ],
+      },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    expect(wrapper.text()).not.toContain('MARKETING.CONNECTIONS.PAGE_LIMITED');
+  });
 });

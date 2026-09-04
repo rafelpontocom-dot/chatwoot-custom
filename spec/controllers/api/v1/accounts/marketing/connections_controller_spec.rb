@@ -74,6 +74,19 @@ RSpec.describe 'Marketing connections API', type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
   end
 
+  # Sem o motivo a tela so consegue dizer "o Meta recusou", que nao ajuda
+  # ninguem a descobrir que falta controle total da pagina.
+  it 'says why Meta refused so the screen can point at the fix' do
+    allow(Marketing::Meta::SubscribePageService).to receive(:new)
+      .and_raise(Marketing::Meta::ApiError.new('Meta responded 403: OAuthException (200)', code: 200))
+
+    post "#{base_path}/#{connection.id}/subscribe_page", params: { page_id: '1' },
+                                                         headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body['error_code']).to eq('permission')
+  end
+
   it 'refuses a connection from another account' do
     stranger = create(:account)
     other = stranger.marketing_provider_connections.create!(provider: 'meta', external_account_id: 'x')

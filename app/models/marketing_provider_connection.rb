@@ -59,10 +59,16 @@ class MarketingProviderConnection < ApplicationRecord
     expires_at.present? && expires_at <= RENEWAL_WINDOW.from_now
   end
 
-  # Nunca o texto do provedor no erro guardado: so a classe, para nao vazar
-  # detalhe de conta alheia num painel.
+  # Nunca o texto cru do provedor: de um erro do Meta guardamos a mensagem que
+  # o GraphClient ja reduziu a tipo e codigo — e o que permite diagnosticar
+  # depois — e de qualquer outra excecao, so a classe.
   def mark_attention!(error)
-    update!(status: 'attention', last_error: error.is_a?(String) ? error : error.class.name)
+    detail = case error
+             when String then error
+             when Marketing::Meta::ApiError then error.message
+             else error.class.name
+             end
+    update!(status: 'attention', last_error: detail)
   end
 
   def public_payload

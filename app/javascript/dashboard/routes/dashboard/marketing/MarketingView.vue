@@ -106,6 +106,29 @@ const loadConnections = async () => {
   leadForms.value = formsResponse.data.payload || [];
 };
 
+// `OAuthException (200)` não diz a ninguém o que fazer. Quando o backend
+// reconhece o motivo, ele vira a frase que aponta onde arrumar; quando não
+// reconhece, vale a mensagem que veio — que nesse caso é nossa, do tipo
+// "o app do Lead Ads não está configurado", e essa sim ajuda.
+const REFUSAL_REASONS = ['permission', 'token_expired', 'rate_limit'];
+
+const metaRefusalMessage = error => {
+  const reason = error?.response?.data?.error_code;
+  if (REFUSAL_REASONS.includes(reason)) {
+    return t(`MARKETING.CONNECTIONS.ERRORS.${reason.toUpperCase()}`);
+  }
+  return error?.response?.data?.message || t('MARKETING.CONNECTIONS.ERROR');
+};
+
+// O Meta diz, por página, o que a conta conectada pode fazer nela. Sem
+// `MANAGE` os leads não saem — e é melhor avisar antes do clique falhar.
+// Página sincronizada antes deste campo existir não tem `tasks`: nesse caso
+// não afirmamos nada.
+const pageHasLimitedAccess = page =>
+  Array.isArray(page.tasks) &&
+  page.tasks.length > 0 &&
+  !page.tasks.includes('MANAGE');
+
 // Chamada que fala com o Meta: o erro dele vira uma frase na tela, e a
 // conexão fica em `attention` para a pessoa saber que precisa reconectar.
 const withMeta = async acao => {
@@ -115,8 +138,7 @@ const withMeta = async acao => {
     await acao();
     await loadConnections();
   } catch (error) {
-    connectionError.value =
-      error?.response?.data?.message || t('MARKETING.CONNECTIONS.ERROR');
+    connectionError.value = metaRefusalMessage(error);
   } finally {
     isBusyConnection.value = false;
   }
@@ -431,7 +453,19 @@ onMounted(async () => {
           >
             <span class="min-w-0 flex-1 break-words text-sm text-n-slate-12">
               {{ page.name }}
+              <span
+                v-if="pageHasLimitedAccess(page)"
+                class="block text-xs text-n-slate-11"
+              >
+                {{ t('MARKETING.CONNECTIONS.PAGE_LIMITED_HINT') }}
+              </span>
             </span>
+            <RaevoStamp
+              v-if="pageHasLimitedAccess(page)"
+              variant="warning"
+              icon="i-lucide-shield-alert"
+              :label="t('MARKETING.CONNECTIONS.PAGE_LIMITED')"
+            />
             <NextButton
               :label="
                 page.subscribed
