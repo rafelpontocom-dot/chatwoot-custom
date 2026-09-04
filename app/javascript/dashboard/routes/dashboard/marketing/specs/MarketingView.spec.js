@@ -278,6 +278,35 @@ describe('MarketingView', () => {
     ).toHaveLength(1);
   });
 
+  // Desconectar deixava a linha no banco e a tela escondia o botão de
+  // conectar: sem saída, e "Atualizar páginas" ainda chamava o Meta sem token.
+  it('offers connecting again after a disconnect', async () => {
+    apiMocks.getConnections.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 1,
+            provider: 'meta',
+            status: 'disconnected',
+            display_name: 'Pedro Raphael',
+            pages: [],
+          },
+        ],
+      },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="marketing-connect-meta"]').exists()
+    ).toBe(true);
+    expect(wrapper.text()).not.toContain('MARKETING.CONNECTIONS.SYNC_PAGES');
+  });
+
   // Com o papel na página já correto, é esta a resposta que resta.
   it('names the permission Meta withheld', async () => {
     apiMocks.getConnections.mockResolvedValue({

@@ -92,9 +92,14 @@ const isBusyConnection = ref(false);
 const metaLabel = 'Meta';
 const soonPlatforms = ['Google Ads', 'TikTok Ads'];
 
-const metaConnection = computed(() =>
-  connections.value.find(c => c.provider === 'meta')
-);
+// Desconectar zera o token mas guarda a linha, porque formulário e toque
+// apontam para ela. Para a tela, porém, uma conexão sem token é o mesmo que
+// não ter conexão: senão sobra "Atualizar páginas" — que chama o Meta sem
+// token — e o botão de conectar some, deixando a pessoa sem saída.
+const metaConnection = computed(() => {
+  const record = connections.value.find(c => c.provider === 'meta');
+  return record && record.status !== 'disconnected' ? record : null;
+});
 const metaPages = computed(() => metaConnection.value?.pages || []);
 
 const loadConnections = async () => {

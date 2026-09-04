@@ -4,7 +4,7 @@ class Marketing::Meta::ApiError < StandardError
   # ele que diz o que a pessoa tem de ir arrumar.
   REASONS = {
     10 => 'permission', 200 => 'permission', 299 => 'permission',
-    102 => 'token_expired', 190 => 'token_expired',
+    102 => 'token_expired', 190 => 'token_expired', 2500 => 'token_expired',
     4 => 'rate_limit', 17 => 'rate_limit', 32 => 'rate_limit', 613 => 'rate_limit'
   }.freeze
 

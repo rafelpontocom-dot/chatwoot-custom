@@ -62,6 +62,21 @@ RSpec.describe Marketing::Meta::OauthService do
       expect(described_class.connect!(code: 'abc', state: state).account_id).to eq(account.id)
     end
 
+    # Desconectar guarda a linha porque formulario e toque apontam para ela;
+    # reconectar tem de reviver essa mesma linha, e nao esbarrar no indice.
+    it 'revives the row left behind by a disconnect' do
+      old = account.marketing_provider_connections.create!(
+        provider: 'meta', external_account_id: 'meta-user-1', status: 'disconnected',
+        access_token: nil, last_error: 'Meta responded 400: OAuthException (2500)'
+      )
+
+      connection = described_class.connect!(code: 'abc', state: state)
+
+      expect(connection.id).to eq(old.id)
+      expect(connection).to have_attributes(status: 'connected', access_token: 'long', last_error: nil)
+      expect(account.marketing_provider_connections.count).to eq(1)
+    end
+
     it 'refuses a state that was already used' do
       described_class.connect!(code: 'abc', state: state)
 
