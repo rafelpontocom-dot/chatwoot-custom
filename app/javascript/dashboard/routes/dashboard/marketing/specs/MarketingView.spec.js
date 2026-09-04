@@ -278,6 +278,84 @@ describe('MarketingView', () => {
     ).toHaveLength(1);
   });
 
+  // O botão de ligar existia sem caminho possível: sem editor de destino, ele
+  // só devolvia a validação crua do Rails.
+  it('refuses to turn on a form with nowhere to put the lead', async () => {
+    apiMocks.getLeadForms.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 9,
+            name: 'Forms Diagnóstico',
+            page_name: 'Clinica',
+            active: false,
+            questions: [],
+            crm_destination: {},
+          },
+        ],
+      },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    expect(wrapper.text()).toContain('MARKETING.CONNECTIONS.NEEDS_DESTINATION');
+  });
+
+  it('saves where the lead lands and which question fills which field', async () => {
+    apiMocks.getLeadForms.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 9,
+            name: 'Forms Diagnóstico',
+            page_name: 'Clinica',
+            active: false,
+            questions: [{ key: 'full_name', label: 'Seu nome' }],
+            crm_destination: {
+              kanban_board_id: 1,
+              kanban_stage_id: 2,
+              inbox_id: 3,
+            },
+            field_mapping: { full_name: 'name' },
+          },
+        ],
+      },
+    });
+    apiMocks.updateLeadForm.mockResolvedValue({ data: {} });
+    boardsMocks.getSettings.mockResolvedValue({
+      data: { stages: [{ id: 2, name: 'Novo' }], allowed_inbox_ids: [3] },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="marketing-configure-form"]')
+      .trigger('click');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-save-form-destination"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(apiMocks.updateLeadForm).toHaveBeenCalledWith(9, {
+      lead_form: {
+        crm_destination: {
+          kanban_board_id: 1,
+          kanban_stage_id: 2,
+          inbox_id: 3,
+        },
+        field_mapping: { full_name: 'name' },
+      },
+    });
+  });
+
   // Desconectar deixava a linha no banco e a tela escondia o botão de
   // conectar: sem saída, e "Atualizar páginas" ainda chamava o Meta sem token.
   it('offers connecting again after a disconnect', async () => {

@@ -185,6 +185,77 @@ const toggleForm = (form, active) =>
     MarketingAPI.updateLeadForm(form.id, { lead_form: { active } })
   );
 
+// Um formulário só liga depois de dizer onde o lead cai. Sem editor, o botão
+// de ligar existia sem caminho possível e devolvia a validação crua do Rails.
+const CRM_FIELDS = ['name', 'email', 'phone_number', 'subject'];
+
+const formEmEdicao = ref(null);
+const destino = ref({ board_id: '', stage_id: '', inbox_id: '', mapping: {} });
+const destinoStages = ref([]);
+const destinoInboxIds = ref([]);
+
+const destinoInboxOptions = computed(() =>
+  (inboxes.value || []).filter(
+    inbox =>
+      !destinoInboxIds.value.length || destinoInboxIds.value.includes(inbox.id)
+  )
+);
+
+const formPronto = form => {
+  const d = form.crm_destination || {};
+  return Boolean(d.kanban_board_id && d.kanban_stage_id && d.inbox_id);
+};
+
+const carregarEtapas = async (boardId, limpar) => {
+  if (limpar) {
+    destino.value.stage_id = '';
+    destino.value.inbox_id = '';
+  }
+  destinoStages.value = [];
+  destinoInboxIds.value = [];
+  if (!boardId) return;
+
+  const { data } = await KanbanBoardsAPI.getSettings(boardId);
+  destinoStages.value = data.stages || [];
+  destinoInboxIds.value = data.allowed_inbox_ids || [];
+};
+
+const configurarForm = async form => {
+  if (formEmEdicao.value === form.id) {
+    formEmEdicao.value = null;
+    return;
+  }
+  formEmEdicao.value = form.id;
+  const d = form.crm_destination || {};
+  destino.value = {
+    board_id: d.kanban_board_id || '',
+    stage_id: d.kanban_stage_id || '',
+    inbox_id: d.inbox_id || '',
+    mapping: { ...(form.field_mapping || {}) },
+  };
+  await carregarEtapas(destino.value.board_id, false);
+};
+
+// Pergunta deixada em branco mantém o nome que o Meta lhe deu; guardar a
+// chave vazia faria o mapeamento apagar o nome do campo no lead.
+const salvarDestino = form =>
+  withMeta(async () => {
+    const mapping = Object.fromEntries(
+      Object.entries(destino.value.mapping).filter(([, field]) => field)
+    );
+    await MarketingAPI.updateLeadForm(form.id, {
+      lead_form: {
+        crm_destination: {
+          kanban_board_id: destino.value.board_id,
+          kanban_stage_id: destino.value.stage_id,
+          inbox_id: destino.value.inbox_id,
+        },
+        field_mapping: mapping,
+      },
+    });
+    formEmEdicao.value = null;
+  });
+
 const loadIntake = async () => {
   const [sourcesResponse, boardsResponse] = await Promise.all([
     MarketingAPI.getIntakeSources(),
@@ -565,17 +636,153 @@ onMounted(async () => {
               "
             />
             <NextButton
+              :label="t('MARKETING.CONNECTIONS.CONFIGURE')"
+              :disabled="isBusyConnection"
+              data-testid="marketing-configure-form"
+              faded
+              slate
+              sm
+              @click="configurarForm(form)"
+            />
+            <NextButton
               :label="
                 form.active
                   ? t('MARKETING.CONNECTIONS.UNSUBSCRIBE')
                   : t('MARKETING.CONNECTIONS.SUBSCRIBE')
               "
-              :disabled="isBusyConnection"
+              :disabled="isBusyConnection || !formPronto(form)"
+              :title="
+                formPronto(form)
+                  ? ''
+                  : t('MARKETING.CONNECTIONS.NEEDS_DESTINATION')
+              "
               faded
               slate
               sm
               @click="toggleForm(form, !form.active)"
             />
+            <p
+              v-if="!formPronto(form)"
+              class="mb-0 w-full text-xs text-n-slate-11"
+            >
+              {{ t('MARKETING.CONNECTIONS.NEEDS_DESTINATION') }}
+            </p>
+
+            <!-- Onde o lead cai, e qual pergunta vira qual campo. -->
+            <form
+              v-if="formEmEdicao === form.id"
+              class="grid w-full gap-3 border-t border-n-weak pt-3 sm:grid-cols-3"
+              @submit.prevent="salvarDestino(form)"
+            >
+              <RaevoField
+                :label="t('MARKETING.CONNECTIONS.BOARD')"
+                variant="select"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <select
+                    :id="fieldId"
+                    v-model="destino.board_id"
+                    required
+                    :class="controlClass"
+                    @change="carregarEtapas(destino.board_id, true)"
+                  >
+                    <option value="" />
+                    <option
+                      v-for="board in boards"
+                      :key="board.id"
+                      :value="board.id"
+                    >
+                      {{ board.name }}
+                    </option>
+                  </select>
+                </template>
+              </RaevoField>
+              <RaevoField
+                :label="t('MARKETING.CONNECTIONS.STAGE')"
+                variant="select"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <select
+                    :id="fieldId"
+                    v-model="destino.stage_id"
+                    required
+                    :class="controlClass"
+                  >
+                    <option value="" />
+                    <option
+                      v-for="stage in destinoStages"
+                      :key="stage.id"
+                      :value="stage.id"
+                    >
+                      {{ stage.name }}
+                    </option>
+                  </select>
+                </template>
+              </RaevoField>
+              <RaevoField
+                :label="t('MARKETING.CONNECTIONS.INBOX')"
+                variant="select"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <select
+                    :id="fieldId"
+                    v-model="destino.inbox_id"
+                    required
+                    :class="controlClass"
+                  >
+                    <option value="" />
+                    <option
+                      v-for="inbox in destinoInboxOptions"
+                      :key="inbox.id"
+                      :value="inbox.id"
+                    >
+                      {{ inbox.name }}
+                    </option>
+                  </select>
+                </template>
+              </RaevoField>
+
+              <p class="mb-0 text-xs text-n-slate-11 sm:col-span-3">
+                {{ t('MARKETING.CONNECTIONS.MAPPING_HINT') }}
+              </p>
+              <RaevoField
+                v-for="question in form.questions"
+                :key="question.key"
+                :label="question.label || question.key"
+                variant="select"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <select
+                    :id="fieldId"
+                    v-model="destino.mapping[question.key]"
+                    :class="controlClass"
+                  >
+                    <option value="">
+                      {{ t('MARKETING.CONNECTIONS.FIELD_NONE') }}
+                    </option>
+                    <option
+                      v-for="field in CRM_FIELDS"
+                      :key="field"
+                      :value="field"
+                    >
+                      {{
+                        t(`MARKETING.CONNECTIONS.FIELDS.${field.toUpperCase()}`)
+                      }}
+                    </option>
+                  </select>
+                </template>
+              </RaevoField>
+
+              <div class="sm:col-span-3">
+                <NextButton
+                  type="submit"
+                  :label="t('MARKETING.CONNECTIONS.SAVE_DESTINATION')"
+                  :disabled="isBusyConnection"
+                  data-testid="marketing-save-form-destination"
+                  sm
+                />
+              </div>
+            </form>
           </div>
         </div>
 

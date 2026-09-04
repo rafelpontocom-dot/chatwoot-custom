@@ -85,7 +85,21 @@
       "PAGE_LIMITED_HINT": "Sem controle total desta página, o Meta recusa entregar os leads dela.",
       "CHECK_PERMISSIONS": "Conferir permissões",
       "PERMISSIONS_OK": "O Meta concedeu todas as permissões que os formulários de lead precisam.",
-      "PERMISSIONS_MISSING": "O Meta não concedeu: {scopes}. Adicione essas permissões ao app e conecte de novo, deixando todas as caixas marcadas."
+      "PERMISSIONS_MISSING": "O Meta não concedeu: {scopes}. Adicione essas permissões ao app e conecte de novo, deixando todas as caixas marcadas.",
+      "CONFIGURE": "Configurar",
+      "NEEDS_DESTINATION": "Escolha onde o lead cai antes de ligar este formulário.",
+      "BOARD": "Quadro",
+      "STAGE": "Etapa",
+      "INBOX": "Caixa de entrada",
+      "MAPPING_HINT": "Ligue cada pergunta a um campo do CRM. Pergunta deixada em branco mantém o nome que o Meta lhe deu.",
+      "FIELD_NONE": "Não usar",
+      "FIELDS": {
+        "NAME": "Nome",
+        "EMAIL": "E-mail",
+        "PHONE_NUMBER": "Telefone",
+        "SUBJECT": "Título da oportunidade"
+      },
+      "SAVE_DESTINATION": "Salvar"
     }
   }
 }

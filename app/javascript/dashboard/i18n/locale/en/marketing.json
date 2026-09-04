@@ -85,7 +85,21 @@
       "PAGE_LIMITED_HINT": "Without full control of this page, Meta refuses to hand over its leads.",
       "CHECK_PERMISSIONS": "Check permissions",
       "PERMISSIONS_OK": "Meta granted every permission the lead forms need.",
-      "PERMISSIONS_MISSING": "Meta did not grant: {scopes}. Add these permissions to the app, then disconnect and connect again leaving every box ticked."
+      "PERMISSIONS_MISSING": "Meta did not grant: {scopes}. Add these permissions to the app, then disconnect and connect again leaving every box ticked.",
+      "CONFIGURE": "Configure",
+      "NEEDS_DESTINATION": "Choose where the lead lands before turning this form on.",
+      "BOARD": "Board",
+      "STAGE": "Stage",
+      "INBOX": "Inbox",
+      "MAPPING_HINT": "Match each question to a CRM field. A question left blank keeps the name Meta gave it.",
+      "FIELD_NONE": "Do not use",
+      "FIELDS": {
+        "NAME": "Name",
+        "EMAIL": "Email",
+        "PHONE_NUMBER": "Phone",
+        "SUBJECT": "Opportunity title"
+      },
+      "SAVE_DESTINATION": "Save"
     }
   }
 }
