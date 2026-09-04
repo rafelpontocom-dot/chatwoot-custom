@@ -319,6 +319,7 @@ describe('MarketingView', () => {
               kanban_board_id: 1,
               kanban_stage_id: 2,
               inbox_id: 3,
+              sub_origem: '[ORG] Instagram',
             },
             field_mapping: { full_name: 'name' },
           },
@@ -327,7 +328,13 @@ describe('MarketingView', () => {
     });
     apiMocks.updateLeadForm.mockResolvedValue({ data: {} });
     boardsMocks.getSettings.mockResolvedValue({
-      data: { stages: [{ id: 2, name: 'Novo' }], allowed_inbox_ids: [3] },
+      data: {
+        stages: [{ id: 2, name: 'Novo' }],
+        allowed_inbox_ids: [3],
+        custom_field_definitions: [
+          { key: 'sub_origem', options: ['[MP] Meta', '[ORG] Instagram'] },
+        ],
+      },
     });
 
     const wrapper = montar();
@@ -350,10 +357,52 @@ describe('MarketingView', () => {
           kanban_board_id: 1,
           kanban_stage_id: 2,
           inbox_id: 3,
+          origem_do_lead: '',
+          sub_origem: '[ORG] Instagram',
         },
         field_mapping: { full_name: 'name' },
       },
     });
+  });
+
+  // Origem e sub-origem sao `select` no card: valor fora das opcoes fica
+  // gravado e o campo aparece vazio. A lista tem de vir do quadro escolhido.
+  it('offers only the origins the chosen board actually has', async () => {
+    apiMocks.getLeadForms.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 9,
+            name: 'Forms Diagnóstico',
+            active: false,
+            questions: [],
+            crm_destination: { kanban_board_id: 1 },
+          },
+        ],
+      },
+    });
+    boardsMocks.getSettings.mockResolvedValue({
+      data: {
+        stages: [],
+        allowed_inbox_ids: [],
+        custom_field_definitions: [
+          { key: 'origem_do_lead', options: ['Mídia Paga', 'Indicação'] },
+        ],
+      },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="marketing-configure-form"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Indicação');
+    expect(wrapper.text()).toContain('MARKETING.CONNECTIONS.ORIGIN_DEFAULT');
   });
 
   // Desconectar deixava a linha no banco e a tela escondia o botão de

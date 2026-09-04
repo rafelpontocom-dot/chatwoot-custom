@@ -97,9 +97,12 @@
         "NAME": "Nome",
         "EMAIL": "E-mail",
         "PHONE_NUMBER": "Telefone",
-        "SUBJECT": "Título da oportunidade"
+        "SUBJECT": "Título da oportunidade",
+        "ORIGEM_DO_LEAD": "Origem do lead",
+        "SUB_ORIGEM": "Sub-origem"
       },
-      "SAVE_DESTINATION": "Salvar"
+      "SAVE_DESTINATION": "Salvar",
+      "ORIGIN_DEFAULT": "Padrão (Mídia Paga / [MP] Meta)"
     }
   }
 }

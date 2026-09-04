@@ -206,6 +206,20 @@ const formPronto = form => {
   return Boolean(d.kanban_board_id && d.kanban_stage_id && d.inbox_id);
 };
 
+// As opções de origem saem do próprio quadro. Origem e sub-origem são `select`
+// no card: valor fora das opções fica gravado e o campo aparece vazio na tela,
+// então não dá para oferecer uma lista fixa que pode não bater com este quadro.
+const OPCOES_VAZIAS = { origem_do_lead: [], sub_origem: [] };
+const destinoOrigens = ref({ ...OPCOES_VAZIAS });
+
+const opcoesDoQuadro = definicoes =>
+  Object.fromEntries(
+    Object.keys(OPCOES_VAZIAS).map(key => [
+      key,
+      (definicoes || []).find(d => d.key === key)?.options || [],
+    ])
+  );
+
 const carregarEtapas = async (boardId, limpar) => {
   if (limpar) {
     destino.value.stage_id = '';
@@ -213,11 +227,13 @@ const carregarEtapas = async (boardId, limpar) => {
   }
   destinoStages.value = [];
   destinoInboxIds.value = [];
+  destinoOrigens.value = { ...OPCOES_VAZIAS };
   if (!boardId) return;
 
   const { data } = await KanbanBoardsAPI.getSettings(boardId);
   destinoStages.value = data.stages || [];
   destinoInboxIds.value = data.allowed_inbox_ids || [];
+  destinoOrigens.value = opcoesDoQuadro(data.custom_field_definitions);
 };
 
 const configurarForm = async form => {
@@ -231,6 +247,8 @@ const configurarForm = async form => {
     board_id: d.kanban_board_id || '',
     stage_id: d.kanban_stage_id || '',
     inbox_id: d.inbox_id || '',
+    origem_do_lead: d.origem_do_lead || '',
+    sub_origem: d.sub_origem || '',
     mapping: { ...(form.field_mapping || {}) },
   };
   await carregarEtapas(destino.value.board_id, false);
@@ -249,6 +267,8 @@ const salvarDestino = form =>
           kanban_board_id: destino.value.board_id,
           kanban_stage_id: destino.value.stage_id,
           inbox_id: destino.value.inbox_id,
+          origem_do_lead: destino.value.origem_do_lead,
+          sub_origem: destino.value.sub_origem,
         },
         field_mapping: mapping,
       },
@@ -737,6 +757,38 @@ onMounted(async () => {
                       :value="inbox.id"
                     >
                       {{ inbox.name }}
+                    </option>
+                  </select>
+                </template>
+              </RaevoField>
+
+              <!--
+                Vazio mantém o padrão que o Meta justifica: Mídia Paga e
+                [MP] Meta. Quem quiser separar por formulário escolhe aqui.
+              -->
+              <RaevoField
+                v-for="campo in ['origem_do_lead', 'sub_origem']"
+                :key="campo"
+                :label="
+                  t(`MARKETING.CONNECTIONS.FIELDS.${campo.toUpperCase()}`)
+                "
+                variant="select"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <select
+                    :id="fieldId"
+                    v-model="destino[campo]"
+                    :class="controlClass"
+                  >
+                    <option value="">
+                      {{ t('MARKETING.CONNECTIONS.ORIGIN_DEFAULT') }}
+                    </option>
+                    <option
+                      v-for="opcao in destinoOrigens[campo]"
+                      :key="opcao"
+                      :value="opcao"
+                    >
+                      {{ opcao }}
                     </option>
                   </select>
                 </template>

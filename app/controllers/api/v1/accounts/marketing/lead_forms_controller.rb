@@ -35,7 +35,8 @@ class Api::V1::Accounts::Marketing::LeadFormsController < Api::V1::Accounts::Bas
     params.require(:lead_form).permit(
       :active,
       field_mapping: {},
-      crm_destination: [:kanban_board_id, :kanban_stage_id, :inbox_id, :opportunity_policy]
+      crm_destination: [:kanban_board_id, :kanban_stage_id, :inbox_id, :opportunity_policy,
+                        :origem_do_lead, :sub_origem]
     )
   end
 

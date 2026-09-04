@@ -66,12 +66,21 @@ class Marketing::Meta::ProcessLeadgenEventService
     raw.transform_keys { |key| mapping.fetch(key, key).to_s }
   end
 
+  # Origem e sub-origem tem padrao porque todo lead do Lead Ads e midia paga do
+  # Meta, mas a clinica que separa campanha por origem pode dizer outra no
+  # formulario — sao `select` no card, e a tela so oferece opcao do quadro.
+  DEFAULT_ORIGIN = { 'origem_do_lead' => 'Mídia Paga', 'sub_origem' => '[MP] Meta' }.freeze
+
   def ad_attribution(lead)
     {
       'campaign' => lead['campaign_name'], 'campaign_id' => lead['campaign_id'],
       'adset' => lead['adset_name'], 'adset_id' => lead['adset_id'],
-      'ad' => lead['ad_name'], 'ad_id' => lead['ad_id'],
-      'origem_do_lead' => 'Mídia Paga', 'sub_origem' => '[MP] Meta'
-    }.compact_blank
+      'ad' => lead['ad_name'], 'ad_id' => lead['ad_id']
+    }.merge(configured_origin).compact_blank
+  end
+
+  def configured_origin
+    chosen = lead_form.crm_destination.to_h.slice('origem_do_lead', 'sub_origem').compact_blank
+    DEFAULT_ORIGIN.merge(chosen)
   end
 end

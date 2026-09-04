@@ -70,6 +70,21 @@ RSpec.describe Marketing::Meta::ProcessLeadgenEventService do
     card = KanbanCard.last
     expect(card.custom_field_values).to include('campaign' => 'FUE Setembro', 'origem_do_lead' => 'Mídia Paga')
     expect(MarketingTouchpoint.last.payload).to include('ad_id' => '333', 'sub_origem' => '[MP] Meta')
+  end
+
+  # Todo lead do Lead Ads e midia paga do Meta, mas a clinica que separa
+  # campanha por origem precisa poder dizer outra coisa neste formulario.
+  it 'honours the origin chosen on the form over the default' do
+    lead_form.update!(
+      crm_destination: lead_form.crm_destination.merge(
+        'origem_do_lead' => 'Indicação', 'sub_origem' => '[ORG] Instagram'
+      )
+    )
+
+    described_class.new(delivery: delivery, event: event).perform
+
+    expect(MarketingTouchpoint.last.payload)
+      .to include('origem_do_lead' => 'Indicação', 'sub_origem' => '[ORG] Instagram')
     expect(MarketingTouchpoint.last.source).to eq('meta_lead_ad')
   end
 
