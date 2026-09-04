@@ -1,4 +1,9 @@
 class Marketing::Meta::SyncLeadFormsService
+  # Formulario arquivado nao coleta lead. Uma clinica antiga acumula dezenas
+  # deles, e importa-los faz a pessoa procurar o formulario vivo no meio de
+  # nomes quase iguais de datas diferentes.
+  RETIRED_STATUSES = %w[ARCHIVED DELETED].freeze
+
   # Traz os formularios de uma pagina com as perguntas como o anunciante as
   # escreveu. E o vocabulario do Meta; o mapeamento para o CRM e escolha de
   # quem configura, e por isso nunca e sobrescrito por uma sincronizacao.
@@ -23,7 +28,7 @@ class Marketing::Meta::SyncLeadFormsService
       :get, "/#{page_id}/leadgen_forms",
       fields: 'id,name,status,questions', access_token: page_token, limit: 100
     )
-    Array(response['data'])
+    Array(response['data']).reject { |form| RETIRED_STATUSES.include?(form['status']) }
   end
 
   def page_token
