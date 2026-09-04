@@ -77,7 +77,7 @@
       "CONNECTED": "Meta connected.",
       "CONNECT_ERROR": "Could not connect to Meta.",
       "ERRORS": {
-        "PERMISSION": "Meta refused for lack of access. Two things must be true in Business Manager: the connected account needs full control of the page, and the Raevo app must be granted access under that page’s Lead Access, CRMs tab. Then connect again.",
+        "PERMISSION": "Meta refused for lack of access, for the account that connected ({account}). Three things must be true for that page in Business Manager: the account needs full control of the page; the Raevo app must appear under Lead Access, CRMs; and that same account must be assigned under Lead Access, People, with permission to access leads — not only to manage who does.",
         "TOKEN_EXPIRED": "The Meta session expired. Disconnect and connect again.",
         "RATE_LIMIT": "Meta is throttling the requests. Try again in a few minutes."
       },

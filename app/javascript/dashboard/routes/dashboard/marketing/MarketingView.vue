@@ -120,7 +120,14 @@ const REFUSAL_REASONS = ['permission', 'token_expired', 'rate_limit'];
 const metaRefusalMessage = error => {
   const reason = error?.response?.data?.error_code;
   if (REFUSAL_REASONS.includes(reason)) {
-    return t(`MARKETING.CONNECTIONS.ERRORS.${reason.toUpperCase()}`);
+    // O nome da conta importa: a recusa costuma ser porque quem autorizou não
+    // é quem foi liberado no Gerenciador de Negócios, e são pessoas diferentes.
+    return t(`MARKETING.CONNECTIONS.ERRORS.${reason.toUpperCase()}`, {
+      account:
+        metaConnection.value?.display_name ||
+        metaConnection.value?.external_account_id ||
+        '',
+    });
   }
   return error?.response?.data?.message || t('MARKETING.CONNECTIONS.ERROR');
 };
