@@ -61,6 +61,10 @@ class MarketingAPI extends ApiClient {
     });
   }
 
+  connectionPermissions(id) {
+    return axios.get(`${this.url}/connections/${id}/permissions`);
+  }
+
   syncLeadForms(id, pageId) {
     return axios.post(`${this.url}/connections/${id}/sync_lead_forms`, {
       page_id: pageId,

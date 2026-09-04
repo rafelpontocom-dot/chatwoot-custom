@@ -1,6 +1,6 @@
 class Api::V1::Accounts::Marketing::ConnectionsController < Api::V1::Accounts::BaseController
   before_action :ensure_marketing_module_enabled
-  before_action :fetch_connection, only: [:destroy, :sync_pages, :subscribe_page, :sync_lead_forms]
+  before_action :fetch_connection, only: [:destroy, :sync_pages, :subscribe_page, :sync_lead_forms, :permissions]
 
   # `configure?`, nao `view?`: o /me/accounts do Meta devolve TODAS as paginas
   # que a pessoa administra. Numa agencia que atende varias clinicas, isso
@@ -39,6 +39,14 @@ class Api::V1::Accounts::Marketing::ConnectionsController < Api::V1::Accounts::B
     authorize MarketingProviderConnection, :configure?
     forms = nil
     render json: { payload: forms.map(&:public_payload) } if with_meta { forms = sync_forms! }
+  end
+
+  # O que o Meta realmente concedeu. E a unica resposta possivel quando papel
+  # na pagina esta certo e a chamada continua sendo recusada.
+  def permissions
+    authorize MarketingProviderConnection, :configure?
+    audit = nil
+    render json: audit if with_meta { audit = Marketing::Meta::PermissionAuditService.new(connection: @connection).perform }
   end
 
   private

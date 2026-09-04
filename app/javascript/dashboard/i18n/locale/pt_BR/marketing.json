@@ -82,7 +82,10 @@
         "RATE_LIMIT": "O Meta está limitando as chamadas. Tente de novo em alguns minutos."
       },
       "PAGE_LIMITED": "Acesso limitado",
-      "PAGE_LIMITED_HINT": "Sem controle total desta página, o Meta recusa entregar os leads dela."
+      "PAGE_LIMITED_HINT": "Sem controle total desta página, o Meta recusa entregar os leads dela.",
+      "CHECK_PERMISSIONS": "Conferir permissões",
+      "PERMISSIONS_OK": "O Meta concedeu todas as permissões que os formulários de lead precisam.",
+      "PERMISSIONS_MISSING": "O Meta não concedeu: {scopes}. Adicione essas permissões ao app e conecte de novo, deixando todas as caixas marcadas."
     }
   }
 }

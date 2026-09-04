@@ -119,6 +119,9 @@ Rails.application.routes.draw do
           resource :audit_logs, only: [:show]
           resource :birthday_automation, only: [:show, :update], controller: 'birthday_automation'
           resource :raevo_home, only: [:show], controller: 'raevo_home'
+          namespace :raevo_ai do
+            resource :overview, only: [:show], controller: 'overview'
+          end
           resources :callbacks, only: [] do
             collection do
               post :register_facebook_page
@@ -176,6 +179,7 @@ Rails.application.routes.draw do
               post :sync_pages, on: :member
               post :subscribe_page, on: :member
               post :sync_lead_forms, on: :member
+              get :permissions, on: :member
             end
             resources :lead_forms, only: [:index, :update]
           end

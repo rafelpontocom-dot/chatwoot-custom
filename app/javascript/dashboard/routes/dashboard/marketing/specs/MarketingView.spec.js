@@ -17,6 +17,7 @@ const apiMocks = vi.hoisted(() => ({
   syncPages: vi.fn(),
   subscribePage: vi.fn(),
   syncLeadForms: vi.fn(),
+  connectionPermissions: vi.fn(),
   getLeadForms: vi.fn(),
   updateLeadForm: vi.fn(),
 }));
@@ -275,6 +276,40 @@ describe('MarketingView', () => {
     expect(
       wrapper.text().match(/MARKETING\.CONNECTIONS\.PAGE_LIMITED_HINT/g)
     ).toHaveLength(1);
+  });
+
+  // Com o papel na página já correto, é esta a resposta que resta.
+  it('names the permission Meta withheld', async () => {
+    apiMocks.getConnections.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 1,
+            provider: 'meta',
+            status: 'connected',
+            display_name: 'Pedro Raphael',
+            pages: [],
+          },
+        ],
+      },
+    });
+    apiMocks.connectionPermissions.mockResolvedValue({
+      data: { granted: ['pages_show_list'], missing: ['leads_retrieval'] },
+    });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="marketing-check-permissions"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(
+      'MARKETING.CONNECTIONS.PERMISSIONS_MISSING'
+    );
   });
 
   // Página sincronizada antes de pedirmos `tasks` não prova nada — e um aviso

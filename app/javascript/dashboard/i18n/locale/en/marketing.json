@@ -82,7 +82,10 @@
         "RATE_LIMIT": "Meta is throttling the requests. Try again in a few minutes."
       },
       "PAGE_LIMITED": "Limited access",
-      "PAGE_LIMITED_HINT": "Without full control of this page, Meta refuses to hand over its leads."
+      "PAGE_LIMITED_HINT": "Without full control of this page, Meta refuses to hand over its leads.",
+      "CHECK_PERMISSIONS": "Check permissions",
+      "PERMISSIONS_OK": "Meta granted every permission the lead forms need.",
+      "PERMISSIONS_MISSING": "Meta did not grant: {scopes}. Add these permissions to the app, then disconnect and connect again leaving every box ticked."
     }
   }
 }

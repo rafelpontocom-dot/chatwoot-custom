@@ -96,6 +96,24 @@ RSpec.describe 'Marketing connections API', type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it 'reports which permissions Meta withheld' do
+    allow(Marketing::Meta::PermissionAuditService).to receive(:new).and_return(
+      instance_double(Marketing::Meta::PermissionAuditService,
+                      perform: { granted: ['pages_show_list'], missing: ['leads_retrieval'] })
+    )
+
+    get "#{base_path}/#{connection.id}/permissions", headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body['missing']).to eq(['leads_retrieval'])
+  end
+
+  it 'keeps the permission audit away from someone who only reads the funnel' do
+    get "#{base_path}/#{connection.id}/permissions", headers: agent.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:unauthorized)
+  end
+
   # O /me/accounts do Meta devolve todas as páginas que a pessoa administra.
   # Numa agência, isso inclui as dos outros clientes.
   it 'keeps the page list away from someone who only reads the funnel' do

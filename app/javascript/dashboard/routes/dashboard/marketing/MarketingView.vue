@@ -151,6 +151,18 @@ const connectMeta = () =>
   });
 
 const disconnectMeta = id => withMeta(() => MarketingAPI.disconnect(id));
+
+// Pergunta ao Meta o que ele de fato concedeu. Quando o papel na página já
+// está certo e a chamada continua sendo recusada, é isto que separa
+// "permissão não adicionada ao app" de "caixa desmarcada no consentimento".
+const permissionAudit = ref(null);
+
+const checkPermissions = id =>
+  withMeta(async () => {
+    permissionAudit.value = null;
+    const { data } = await MarketingAPI.connectionPermissions(id);
+    permissionAudit.value = data;
+  });
 const syncPages = id => withMeta(() => MarketingAPI.syncPages(id));
 const togglePage = (id, pageId, subscribed) =>
   withMeta(() => MarketingAPI.subscribePage(id, pageId, subscribed));
@@ -405,6 +417,15 @@ onMounted(async () => {
                   @click="syncPages(metaConnection.id)"
                 />
                 <NextButton
+                  :label="t('MARKETING.CONNECTIONS.CHECK_PERMISSIONS')"
+                  :disabled="isBusyConnection"
+                  data-testid="marketing-check-permissions"
+                  faded
+                  slate
+                  sm
+                  @click="checkPermissions(metaConnection.id)"
+                />
+                <NextButton
                   :label="t('MARKETING.CONNECTIONS.DISCONNECT')"
                   :disabled="isBusyConnection"
                   faded
@@ -413,6 +434,24 @@ onMounted(async () => {
                   @click="disconnectMeta(metaConnection.id)"
                 />
               </div>
+              <p
+                v-if="permissionAudit"
+                class="mb-0 text-xs"
+                :class="
+                  permissionAudit.missing.length
+                    ? 'text-n-amber-11'
+                    : 'text-n-teal-11'
+                "
+                role="status"
+              >
+                {{
+                  permissionAudit.missing.length
+                    ? t('MARKETING.CONNECTIONS.PERMISSIONS_MISSING', {
+                        scopes: permissionAudit.missing.join(', '),
+                      })
+                    : t('MARKETING.CONNECTIONS.PERMISSIONS_OK')
+                }}
+              </p>
             </template>
             <NextButton
               v-else
