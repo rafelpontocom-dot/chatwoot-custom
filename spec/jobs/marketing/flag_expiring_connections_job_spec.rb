@@ -19,6 +19,25 @@ RSpec.describe Marketing::FlagExpiringConnectionsJob do
     expect(expiring.reload).to have_attributes(status: 'attention', last_error: 'token_expiring')
   end
 
+  # Faixa numa tela de configuração ninguém vê; a expiração precisa procurar
+  # a pessoa, não esperar por ela.
+  it 'writes to the administrators, since nobody opens the settings page' do
+    connection(expires_at: 3.days.from_now)
+
+    expect { described_class.perform_now }
+      .to have_enqueued_mail(AdministratorNotifications::IntegrationsNotificationMailer, :marketing_meta_token_expiring)
+  end
+
+  # Marcar tira a conexão do escopo `connected`: um email por vencimento, e não
+  # um por hora durante a semana inteira de folga.
+  it 'writes once, not every hour until the token dies' do
+    connection(expires_at: 3.days.from_now)
+    described_class.perform_now
+
+    expect { described_class.perform_now }
+      .not_to have_enqueued_mail(AdministratorNotifications::IntegrationsNotificationMailer, :marketing_meta_token_expiring)
+  end
+
   it 'leaves a healthy connection alone' do
     healthy = connection(expires_at: 40.days.from_now)
 

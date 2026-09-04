@@ -10,6 +10,15 @@ class Marketing::FlagExpiringConnectionsJob < ApplicationJob
       .connected
       .where.not(expires_at: nil)
       .where(expires_at: ..MarketingProviderConnection::RENEWAL_WINDOW.from_now)
-      .find_each { |connection| connection.mark_attention!('token_expiring') }
+      .find_each do |connection|
+        connection.mark_attention!('token_expiring')
+        # Marcar tira a conexao do escopo `connected`, entao a proxima hora nao
+        # a encontra: e um email por vencimento, nao um por hora durante a
+        # semana de folga.
+        AdministratorNotifications::IntegrationsNotificationMailer
+          .with(account: connection.account)
+          .marketing_meta_token_expiring(connection)
+          .deliver_later
+      end
   end
 end
