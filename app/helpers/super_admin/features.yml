@@ -150,3 +150,9 @@ shopify:
   enabled: true
   icon: 'icon-shopify'
   config_key: 'shopify'
+marketing:
+  name: 'Marketing'
+  description: 'Meta Lead Ads app used to bring lead forms into the pipeline'
+  enabled: true
+  icon: 'icon-target'
+  config_key: 'marketing'
