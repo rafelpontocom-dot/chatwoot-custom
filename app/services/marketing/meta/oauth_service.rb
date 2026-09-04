@@ -6,7 +6,11 @@ class Marketing::Meta::OauthService
   # `leadgen` no app atual mandaria os leads para dentro da gem de Messenger.
   AUTHORIZE_URL = 'https://www.facebook.com/v21.0/dialog/oauth'.freeze
   TOKEN_URL = 'https://graph.facebook.com/v21.0/oauth/access_token'.freeze
-  SCOPE = 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management'.freeze
+  # `pages_manage_ads` nao e opcional: sem ela o Meta recusa ler
+  # /{pagina}/leadgen_forms com "(#200) Requires pages_manage_ads permission",
+  # mesmo com leads_retrieval concedido e controle total da pagina.
+  SCOPE = 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_manage_ads,' \
+          'pages_read_engagement,business_management'.freeze
   STATE_TTL = 10.minutes
 
   def initialize(account:)

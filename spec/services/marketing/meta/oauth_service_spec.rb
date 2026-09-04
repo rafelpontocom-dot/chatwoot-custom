@@ -22,6 +22,12 @@ RSpec.describe Marketing::Meta::OauthService do
       expect(url).to include('leads_retrieval', 'pages_show_list', 'pages_manage_metadata')
     end
 
+    # O Meta recusa ler /{pagina}/leadgen_forms sem esta, com "(#200) Requires
+    # pages_manage_ads permission" — e nenhuma das outras a substitui.
+    it 'asks for the permission that lists the lead forms' do
+      expect(described_class.new(account: account).authorization_url).to include('pages_manage_ads')
+    end
+
     it 'refuses when the Lead Ads app was never configured' do
       allow(GlobalConfigService).to receive(:load).with('MARKETING_META_APP_ID', nil).and_return(nil)
 
