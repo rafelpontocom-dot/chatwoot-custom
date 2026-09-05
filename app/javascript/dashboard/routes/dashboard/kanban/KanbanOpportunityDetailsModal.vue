@@ -60,10 +60,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  raevoAiOpportunityTabEnabled: {
-    type: Boolean,
-    default: false,
-  },
   calendarEnabled: {
     type: Boolean,
     default: false,
@@ -570,9 +566,7 @@ const customFieldTabs = computed(() => {
     });
   });
 
-  return [...sections.values()].filter(
-    section => section.key !== 'ai' || props.raevoAiOpportunityTabEnabled
-  );
+  return [...sections.values()];
 });
 const timelineTab = computed(() => ({
   key: 'timeline',

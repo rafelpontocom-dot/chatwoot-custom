@@ -11,7 +11,6 @@ import { useAlert } from 'dashboard/composables';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
-import RaevoAiAPI from 'dashboard/api/raevoAi';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
 import {
@@ -39,12 +38,10 @@ const store = useStore();
 
 const agents = useMapGetter('agents/getAgents');
 const boards = useMapGetter('kanbanBoards/kanbanBoards');
-const currentAccount = useMapGetter('getCurrentAccount');
 const inboxes = useMapGetter('inboxes/getAllInboxes');
 const isFetchingBoards = useMapGetter('kanbanBoards/kanbanBoardsLoading');
 const { isAdmin } = useAdmin();
 const selectedBoard = ref(null);
-const opportunityAiTab = ref({ enabled: false, board_ids: [] });
 const isFetchingBoard = ref(false);
 const isCreatingStage = ref(false);
 const selectedOpportunityCardId = ref(null);
@@ -136,14 +133,6 @@ const isInitialLoading = computed(
 const currentBoardName = computed(
   () => selectedBoard.value?.name || t('KANBAN.NO_BOARD_SELECTED')
 );
-const raevoAiOpportunityTabEnabled = computed(() => {
-  if (!currentAccount.value?.features?.includes('raevo_ai')) return false;
-
-  return (
-    opportunityAiTab.value.enabled === true &&
-    opportunityAiTab.value.board_ids?.includes(Number(selectedBoard.value?.id))
-  );
-});
 const boardAllowedInboxIds = computed(
   () => selectedBoard.value?.allowedInboxIds || []
 );
@@ -1715,27 +1704,10 @@ watch(requestedOpportunityCardId, cardId => {
   }
 });
 
-const loadOpportunityAiTab = async () => {
-  if (!currentAccount.value?.features?.includes('raevo_ai')) return;
-
-  try {
-    const { data } = await RaevoAiAPI.getOpportunityTab();
-    opportunityAiTab.value = {
-      enabled: data?.enabled === true,
-      board_ids: Array(data?.board_ids).map(Number),
-    };
-  } catch {
-    // Sem configuração ou sem acesso, a aba fica escondida: nunca expomos
-    // campos operacionais da Elis por engano.
-    opportunityAiTab.value = { enabled: false, board_ids: [] };
-  }
-};
-
 onMounted(() => {
   emitter.on(BUS_EVENTS.KANBAN_REALTIME_EVENT, handleRealtimeKanbanEvent);
   window.addEventListener('keydown', handleOpportunityKeydown);
   fetchBoards();
-  loadOpportunityAiTab();
 });
 
 onUnmounted(() => {
@@ -3190,7 +3162,6 @@ onUnmounted(() => {
           :lost-reason-options="selectedBoard.lostReasonOptions || []"
           :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           :custom-field-sections="selectedBoard.customFieldSections || []"
-          :raevo-ai-opportunity-tab-enabled="raevoAiOpportunityTabEnabled"
           :calendar-enabled="selectedBoard.calendarEnabled"
           :calendar-booking-stage-ids="
             selectedBoard.calendarBookingStageIds || []

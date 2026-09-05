@@ -315,7 +315,6 @@ const mountModal = async ({
     },
   ],
   customFieldSections = [],
-  raevoAiOpportunityTabEnabled = false,
   calendarEnabled = false,
   boards = [],
   financeModule = { enabled: false },
@@ -364,7 +363,6 @@ const mountModal = async ({
       lostReasonOptions: ['Preço', 'Sem resposta'],
       customFieldDefinitions,
       customFieldSections,
-      raevoAiOpportunityTabEnabled,
       ownerOptions: [
         { value: 7, label: 'Jane Agent' },
         { value: 8, label: 'Ana Paula' },
@@ -791,7 +789,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ]);
   });
 
-  it('shows the read-only IA tab only for a tenant-enabled CRM board', async () => {
+  it('shows the read-only IA tab when the board has IA fields and the runtime is inactive', async () => {
     const aiDefinitions = [
       {
         key: 'raevo_ai_summary',
@@ -813,30 +811,20 @@ describe('KanbanOpportunityDetailsModal', () => {
       },
     });
 
-    const disabled = await mountModal({
+    const inactive = await mountModal({
       card,
       customFieldDefinitions: aiDefinitions,
       customFieldSections: [{ key: 'ai', label: 'IA' }],
     });
-    expect(
-      disabled.find('[data-testid="kanban-opportunity-tab-ai"]').exists()
-    ).toBe(false);
-
-    const enabled = await mountModal({
-      card,
-      customFieldDefinitions: aiDefinitions,
-      customFieldSections: [{ key: 'ai', label: 'IA' }],
-      raevoAiOpportunityTabEnabled: true,
-    });
-    await enabled
+    await inactive
       .find('[data-testid="kanban-opportunity-tab-ai"]')
       .trigger('click');
 
     expect(
-      enabled.find('[data-testid="raevo-ai-opportunity-panel"]').text()
+      inactive.find('[data-testid="raevo-ai-opportunity-panel"]').text()
     ).toContain('Paciente quer atendimento à tarde.');
     expect(
-      enabled
+      inactive
         .find('[data-testid="raevo-ai-opportunity-panel"]')
         .find('input, textarea, select')
         .exists()
