@@ -27,6 +27,24 @@ RSpec.describe 'Raevo AI opportunity tab API', type: :request do
     expect(board.reload.configured_custom_field_definitions).to include(hash_including('key' => 'raevo_ai_summary'))
   end
 
+  it 'lets an administrator configure the tab while the integration is disabled' do
+    disabled_integration = RaevoAiIntegration.create!(
+      account: account,
+      clinic_id: 'clinic-disabled',
+      enabled: false,
+      settings: { 'crm' => { 'boards' => { 'acquisition' => { 'board_id' => board.id, 'fields' => {} } } } }
+    )
+
+    patch path,
+          params: { enabled: true, board_ids: [board.id] },
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(disabled_integration.reload).to have_attributes(enabled: false)
+    expect(board.reload.configured_custom_field_definitions).to include(hash_including('key' => 'raevo_ai_summary'))
+  end
+
   it 'does not expose the configuration to a user from another account' do
     integration
     outsider = create(:user, account: create(:account), role: :administrator)

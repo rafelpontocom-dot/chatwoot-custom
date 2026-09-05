@@ -120,6 +120,7 @@ Rails.application.routes.draw do
           resource :birthday_automation, only: [:show, :update], controller: 'birthday_automation'
           resource :raevo_home, only: [:show], controller: 'raevo_home'
           namespace :raevo_ai do
+            resource :integration, only: [:create], controller: 'integrations'
             resource :overview, only: [:show], controller: 'overview'
             resource :opportunity_tab, only: [:show, :update], controller: 'opportunity_tabs'
           end

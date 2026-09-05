@@ -19,7 +19,7 @@ class Api::V1::Accounts::RaevoAi::OpportunityTabsController < Api::V1::Accounts:
 
   def fetch_integration
     @integration = Current.account.raevo_ai_integration
-    return head :not_found unless @integration&.enabled?
+    return head :not_found unless @integration
   end
 
   def authorize_account
