@@ -744,6 +744,7 @@ Rails.application.routes.draw do
         namespace :raevo_ai do
           resources :handoffs, only: [:create]
           post 'crm/context', to: 'crm_commands#context'
+          post 'crm/opportunities', to: 'crm_commands#opportunities'
           post 'crm/fields', to: 'crm_commands#fields'
           post 'crm/stages', to: 'crm_commands#stages'
           post 'crm/labels', to: 'crm_commands#labels'

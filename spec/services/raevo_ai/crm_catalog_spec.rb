@@ -57,6 +57,19 @@ RSpec.describe RaevoAi::CrmCatalog do
     expect(catalog.resolve_stage!('acquisition', 'scheduling_requested', current_stage_id: new_lead.id)).to eq(scheduling)
   end
 
+  it 'resolves only the explicitly published initial stage' do
+    integration.settings['crm']['boards']['acquisition']['initial_stage_id'] = new_lead.id
+    integration.save!
+
+    expect(described_class.new(integration: integration).resolve_initial_stage!('acquisition')).to eq(new_lead)
+  end
+
+  it 'rejects a board without an explicitly published initial stage' do
+    expect do
+      described_class.new(integration: integration).resolve_initial_stage!('acquisition')
+    end.to raise_error(RaevoAi::CrmCatalog::InvalidCatalog, 'initial stage is not published in the tenant catalog')
+  end
+
   it 'rejects a configured board from another account' do
     integration.settings['crm']['boards']['acquisition']['board_id'] = create(:kanban_board).id
     integration.save!

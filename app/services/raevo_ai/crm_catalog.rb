@@ -38,6 +38,14 @@ class RaevoAi::CrmCatalog
     target_stage
   end
 
+  def resolve_initial_stage!(board_key)
+    board = resolve_board!(board_key)
+    configuration = board_configuration(board_key)
+    raise InvalidCatalog, 'initial stage is not published in the tenant catalog' if configuration['initial_stage_id'].blank?
+
+    configured_stage!(board, { 'stage_id' => configuration['initial_stage_id'] })
+  end
+
   def resolve_label!(board_key, label)
     normalized_label = label.to_s.downcase
     configuration = board_configuration(board_key).fetch('labels', {}).values.find do |item|

@@ -28,6 +28,7 @@ RSpec.describe 'Raevo AI CRM commands API', type: :request do
           'boards' => {
             'acquisition' => {
               'board_id' => board.id,
+              'initial_stage_id' => source_stage.id,
               'fields' => {
                 'preferred_period' => {
                   'field_key' => 'preferred_period', 'type' => 'select',
@@ -49,6 +50,23 @@ RSpec.describe 'Raevo AI CRM commands API', type: :request do
     )
   end
   let(:headers) { { 'X-Raevo-Clinic-Id' => integration.clinic_id, 'X-Raevo-Command-Token' => token } }
+
+  it 'creates the opportunity through the tenant catalog without accepting a caller-supplied card or stage' do
+    expect do
+      post '/public/api/v1/raevo_ai/crm/opportunities', params: {
+        action_id: 'turn-100:opportunity', conversation_id: conversation.display_id, board_key: 'acquisition',
+        card_id: 999_999, stage_id: target_stage.id
+      }, headers: headers, as: :json
+    end.to change(KanbanCard.conversation, :count).by(1)
+
+    expect(response).to have_http_status(:ok)
+    expect(KanbanCard.conversation.last).to have_attributes(kanban_board: board, kanban_stage: source_stage, conversation: conversation)
+    expect(response.parsed_body).to eq(
+      'action_id' => 'turn-100:opportunity',
+      'status' => 'applied',
+      'receipts' => { 'opportunity' => { 'status' => 'created' } }
+    )
+  end
 
   it 'updates the card resolved from the trusted conversation and ignores a supplied card_id' do
     other_card = create(:kanban_card, account: account, kanban_board: board, kanban_stage: source_stage)
