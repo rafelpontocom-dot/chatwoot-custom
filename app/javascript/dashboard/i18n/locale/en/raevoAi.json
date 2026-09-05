@@ -1,0 +1,64 @@
+{
+  "RAEVO_AI": {
+    "EYEBROW": "RAEVO AI",
+    "TITLE": "My Elis",
+    "SUBTITLE": "Manage your AI service in the same workspace as conversations and CRM.",
+    "NATIVE_AREA": {
+      "TITLE": "Native Chatwoot area",
+      "DESCRIPTION": "This area will progressively replace the external customer panel. Account access and permissions remain inside Chatwoot; AI configuration and knowledge stay protected by the Raevo backend."
+    },
+    "OVERVIEW": {
+      "EYEBROW": "OPERATIONS",
+      "TITLE": "Elis overview",
+      "LOADING": "Loading Elis overview",
+      "CLINIC_FALLBACK": "Clinic",
+      "STATUS_UNKNOWN": "status unavailable",
+      "ERROR": {
+        "TITLE": "The overview could not be loaded",
+        "DESCRIPTION": "The Elis connection is temporarily unavailable. No settings were changed.",
+        "RETRY": "Try again"
+      },
+      "METRICS": {
+        "CONVERSATIONS": "Conversations in the last 30 days",
+        "HANDOFFS": "Handoffs in the last 30 days",
+        "APPOINTMENTS": "Appointments in the last 30 days",
+        "PAYMENTS": "Payments in the last 30 days",
+        "KNOWLEDGE": "Knowledge items",
+        "PROMPT_VERSION": "Active prompt version"
+      }
+    },
+    "PACKAGES": {
+      "EYEBROW": "SERVICE MODEL",
+      "TITLE": "Supported Elis packages",
+      "DESCRIPTION": "Qualification-only is no longer offered. Every package includes CRM and a clear path to human handoff.",
+      "QUALIFY_HANDOFF": {
+        "TITLE": "Service + qualification and handoff + CRM",
+        "DESCRIPTION": "Elis qualifies the contact, keeps the CRM updated, and transfers the conversation to the team when needed."
+      },
+      "SCHEDULE": {
+        "TITLE": "Service through scheduling + CRM",
+        "DESCRIPTION": "Elis qualifies, moves the opportunity stage, schedules when possible, and hands off when the customer asks for a person."
+      },
+      "COMPLETE": {
+        "TITLE": "Complete service + scheduling, payment and CRM",
+        "DESCRIPTION": "Elis completes the journey, including a confirmed appointment and payment-link delivery, while keeping CRM history consistent."
+      }
+    },
+    "OPPORTUNITY": {
+      "PANEL_LABEL": "Elis operational details",
+      "SUMMARY": "Elis service summary",
+      "SUMMARY_EMPTY": "Elis has not recorded an operational update yet.",
+      "EMPTY_VALUE": "Not informed",
+      "SETTINGS": {
+        "EYEBROW": "CRM CONFIGURATION",
+        "TITLE": "Elis opportunity tab",
+        "DESCRIPTION": "Choose the CRM boards where the read-only Elis operational tab is available. Only boards published in the Elis CRM catalog can be saved.",
+        "BOARDS": "CRM boards",
+        "ENABLED": "Show the IA tab on selected boards",
+        "ENABLED_HINT": "Disabling it hides the tab without deleting the previous operational history.",
+        "SAVE": "Save configuration",
+        "ERROR": "The IA tab configuration could not be loaded or saved. No changes were applied."
+      }
+    }
+  }
+}

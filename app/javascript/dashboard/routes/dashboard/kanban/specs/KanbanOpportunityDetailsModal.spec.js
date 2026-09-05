@@ -315,6 +315,7 @@ const mountModal = async ({
     },
   ],
   customFieldSections = [],
+  raevoAiOpportunityTabEnabled = false,
   calendarEnabled = false,
   boards = [],
   financeModule = { enabled: false },
@@ -363,6 +364,7 @@ const mountModal = async ({
       lostReasonOptions: ['Preço', 'Sem resposta'],
       customFieldDefinitions,
       customFieldSections,
+      raevoAiOpportunityTabEnabled,
       ownerOptions: [
         { value: 7, label: 'Jane Agent' },
         { value: 8, label: 'Ana Paula' },
@@ -787,6 +789,58 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.emitted('manageFields').at(-1)).toEqual([
       { action: 'newTab' },
     ]);
+  });
+
+  it('shows the read-only IA tab only for a tenant-enabled CRM board', async () => {
+    const aiDefinitions = [
+      {
+        key: 'raevo_ai_summary',
+        label: 'Resumo do atendimento',
+        fieldType: 'textarea',
+        layout: { section: 'ai', position: 1, width: 'full' },
+      },
+      {
+        key: 'raevo_ai_status',
+        label: 'Status do atendimento',
+        fieldType: 'select',
+        layout: { section: 'ai', position: 2, width: 'full' },
+      },
+    ];
+    const card = buildCard({
+      customFieldValues: {
+        raevo_ai_summary: 'Paciente quer atendimento à tarde.',
+        raevo_ai_status: 'pre_agendado',
+      },
+    });
+
+    const disabled = await mountModal({
+      card,
+      customFieldDefinitions: aiDefinitions,
+      customFieldSections: [{ key: 'ai', label: 'IA' }],
+    });
+    expect(
+      disabled.find('[data-testid="kanban-opportunity-tab-ai"]').exists()
+    ).toBe(false);
+
+    const enabled = await mountModal({
+      card,
+      customFieldDefinitions: aiDefinitions,
+      customFieldSections: [{ key: 'ai', label: 'IA' }],
+      raevoAiOpportunityTabEnabled: true,
+    });
+    await enabled
+      .find('[data-testid="kanban-opportunity-tab-ai"]')
+      .trigger('click');
+
+    expect(
+      enabled.find('[data-testid="raevo-ai-opportunity-panel"]').text()
+    ).toContain('Paciente quer atendimento à tarde.');
+    expect(
+      enabled
+        .find('[data-testid="raevo-ai-opportunity-panel"]')
+        .find('input, textarea, select')
+        .exists()
+    ).toBe(false);
   });
 
   it('merges legacy aliases into the standard general and marketing tabs', async () => {

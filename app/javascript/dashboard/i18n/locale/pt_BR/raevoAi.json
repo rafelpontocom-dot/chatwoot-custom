@@ -1,0 +1,48 @@
+{
+  "RAEVO_AI": {
+    "EYEBROW": "RAEVO IA",
+    "TITLE": "Minha Elis",
+    "SUBTITLE": "Gerencie sua IA no mesmo ambiente das conversas e do CRM.",
+    "NATIVE_AREA": {
+      "TITLE": "Área nativa no Chatwoot",
+      "DESCRIPTION": "Esta área substituirá gradualmente o painel externo do cliente. O acesso e as permissões ficam no Chatwoot; configurações e conhecimento da IA permanecem protegidos pelo backend Raevo."
+    },
+    "OVERVIEW": {
+      "EYEBROW": "OPERAÇÃO",
+      "TITLE": "Resumo da Elis",
+      "LOADING": "Carregando resumo da Elis",
+      "CLINIC_FALLBACK": "Clínica",
+      "STATUS_UNKNOWN": "status indisponível",
+      "ERROR": {
+        "TITLE": "Não foi possível carregar o resumo",
+        "DESCRIPTION": "A conexão com a Elis está temporariamente indisponível. Nenhuma configuração foi alterada.",
+        "RETRY": "Tentar novamente"
+      },
+      "METRICS": {
+        "CONVERSATIONS": "Conversas nos últimos 30 dias",
+        "HANDOFFS": "Handoffs nos últimos 30 dias",
+        "APPOINTMENTS": "Agendamentos nos últimos 30 dias",
+        "PAYMENTS": "Pagamentos nos últimos 30 dias",
+        "KNOWLEDGE": "Itens de conhecimento",
+        "PROMPT_VERSION": "Versão ativa do prompt"
+      }
+    },
+    "PACKAGES": {
+      "EYEBROW": "MODELO DE ATENDIMENTO",
+      "TITLE": "Pacotes atendidos pela Elis",
+      "DESCRIPTION": "A modalidade somente qualificação deixa de existir. Todos os pacotes incluem CRM e um caminho claro para handoff humano.",
+      "QUALIFY_HANDOFF": {
+        "TITLE": "Atendimento + qualificação e handoff + CRM",
+        "DESCRIPTION": "A Elis qualifica o contato, mantém o CRM atualizado e transfere a conversa para a equipe quando necessário."
+      },
+      "SCHEDULE": {
+        "TITLE": "Atendimento até agendar + CRM",
+        "DESCRIPTION": "A Elis qualifica, muda a etapa da oportunidade, agenda quando possível e faz handoff se o cliente pedir atendimento humano."
+      },
+      "COMPLETE": {
+        "TITLE": "Atendimento completo + agendamento, pagamento e CRM",
+        "DESCRIPTION": "A Elis conclui a jornada, incluindo agendamento confirmado e envio do link de pagamento, com histórico consistente no CRM."
+      }
+    }
+  }
+}

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_04_200000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_04_210000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -2117,6 +2117,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_04_200000) do
     t.index ["user_id"], name: "index_portals_members_on_user_id"
   end
 
+  create_table "raevo_ai_commands", force: :cascade do |t|
+    t.bigint "raevo_ai_integration_id", null: false
+    t.string "action_id", null: false
+    t.string "command_type", null: false
+    t.string "payload_digest", null: false
+    t.string "state", default: "claimed", null: false
+    t.jsonb "result", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["raevo_ai_integration_id", "action_id"], name: "idx_raevo_ai_commands_on_integration_and_action", unique: true
+  end
+
+  create_table "raevo_ai_integrations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "clinic_id", null: false
+    t.boolean "enabled", default: false, null: false
+    t.jsonb "settings", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_raevo_ai_integrations_on_account_id", unique: true
+    t.index ["clinic_id"], name: "index_raevo_ai_integrations_on_clinic_id", unique: true
+  end
+
   create_table "related_categories", force: :cascade do |t|
     t.bigint "category_id"
     t.bigint "related_category_id"
@@ -2463,6 +2486,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_04_200000) do
   add_foreign_key "marketing_touchpoints", "conversations", on_delete: :nullify
   add_foreign_key "marketing_touchpoints", "kanban_cards", on_delete: :nullify
   add_foreign_key "marketing_webhook_deliveries", "accounts"
+  add_foreign_key "raevo_ai_commands", "raevo_ai_integrations"
+  add_foreign_key "raevo_ai_integrations", "accounts"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").

@@ -121,6 +121,7 @@ Rails.application.routes.draw do
           resource :raevo_home, only: [:show], controller: 'raevo_home'
           namespace :raevo_ai do
             resource :overview, only: [:show], controller: 'overview'
+            resource :opportunity_tab, only: [:show, :update], controller: 'opportunity_tabs'
           end
           resources :callbacks, only: [] do
             collection do
@@ -737,6 +738,15 @@ Rails.application.routes.draw do
         namespace :marketing do
           get 'intake/schema', to: 'intake#schema'
           post 'intake', to: 'intake#create'
+        end
+
+        namespace :raevo_ai do
+          resources :handoffs, only: [:create]
+          post 'crm/context', to: 'crm_commands#context'
+          post 'crm/fields', to: 'crm_commands#fields'
+          post 'crm/stages', to: 'crm_commands#stages'
+          post 'crm/labels', to: 'crm_commands#labels'
+          post 'crm/contact_name', to: 'crm_commands#contact_name'
         end
 
         resources :csat_survey, only: [:show, :update]

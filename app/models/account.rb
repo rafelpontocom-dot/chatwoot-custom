@@ -27,6 +27,7 @@ class Account < ApplicationRecord
   include FlagShihTzu
   include Reportable
   include Featurable
+  include RaevoAiFeaturable
   include CacheKeys
   include CaptainFeaturable
   include AccountEmailRateLimitable
@@ -119,6 +120,7 @@ class Account < ApplicationRecord
   has_many :form_templates, dependent: :destroy_async
   has_many :form_field_groups, dependent: :destroy_async
   has_many :form_submissions, dependent: :destroy_async
+  has_one :raevo_ai_integration, dependent: :destroy
   has_one :marketing_module_setting, dependent: :destroy
   has_many :marketing_touchpoints, dependent: :destroy_async
   has_many :marketing_intake_sources, dependent: :destroy_async

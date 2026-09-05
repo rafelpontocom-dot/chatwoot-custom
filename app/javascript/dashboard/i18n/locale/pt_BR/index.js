@@ -36,6 +36,7 @@ import macros from './macros.json';
 import mfa from './mfa.json';
 import onboarding from './onboarding.json';
 import report from './report.json';
+import raevoAi from './raevoAi.json';
 import resetPassword from './resetPassword.json';
 import search from './search.json';
 import sessionLimit from './sessionLimit.json';
@@ -88,6 +89,7 @@ export default {
   ...mfa,
   ...onboarding,
   ...report,
+  ...raevoAi,
   ...resetPassword,
   ...search,
   ...sessionLimit,

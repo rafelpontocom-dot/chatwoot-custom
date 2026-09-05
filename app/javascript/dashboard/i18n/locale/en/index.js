@@ -33,6 +33,7 @@ import labelsMgmt from './labelsMgmt.json';
 import login from './login.json';
 import macros from './macros.json';
 import report from './report.json';
+import raevoAi from './raevoAi.json';
 import resetPassword from './resetPassword.json';
 import search from './search.json';
 import setNewPassword from './setNewPassword.json';
@@ -84,6 +85,7 @@ export default {
   ...login,
   ...macros,
   ...report,
+  ...raevoAi,
   ...resetPassword,
   ...search,
   ...setNewPassword,

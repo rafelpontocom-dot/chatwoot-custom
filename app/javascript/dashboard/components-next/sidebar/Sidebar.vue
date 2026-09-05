@@ -539,6 +539,13 @@ const menuItems = computed(() => {
       activeOn: ['marketing_index'],
     },
     {
+      name: 'Raevo AI',
+      label: t('SIDEBAR.RAEVO_AI'),
+      icon: 'i-lucide-sparkles',
+      to: accountScopedRoute('raevo_ai'),
+      activeOn: ['raevo_ai'],
+    },
+    {
       name: 'Captain',
       icon: 'i-woot-captain',
       label: t('SIDEBAR.CAPTAIN'),

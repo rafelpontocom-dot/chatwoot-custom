@@ -14,6 +14,7 @@ import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanCalendarAppointmentsSection from './KanbanCalendarAppointmentsSection.vue';
+import RaevoAiOpportunityPanel from './RaevoAiOpportunityPanel.vue';
 import KanbanOpportunityPipelineMenu from './KanbanOpportunityPipelineMenu.vue';
 import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
@@ -58,6 +59,10 @@ const props = defineProps({
   customFieldSections: {
     type: Array,
     default: () => [],
+  },
+  raevoAiOpportunityTabEnabled: {
+    type: Boolean,
+    default: false,
   },
   calendarEnabled: {
     type: Boolean,
@@ -503,6 +508,7 @@ const customFieldSectionKey = definition => {
       geral: 'details',
       marketing: 'marketing',
       mkt: 'marketing',
+      ai: 'ai',
     }[key] ||
     key ||
     'details'
@@ -564,7 +570,9 @@ const customFieldTabs = computed(() => {
     });
   });
 
-  return [...sections.values()];
+  return [...sections.values()].filter(
+    section => section.key !== 'ai' || props.raevoAiOpportunityTabEnabled
+  );
 });
 const timelineTab = computed(() => ({
   key: 'timeline',
@@ -2716,8 +2724,14 @@ watch(invitationPendingRevocation, async invitation => {
               </template>
             </section>
 
+            <RaevoAiOpportunityPanel
+              v-if="activeTabKey === 'ai'"
+              :fields="activeTabCustomFieldDefinitions"
+              :values="customFieldValues"
+            />
+
             <section
-              v-if="hasCustomFields"
+              v-if="activeTabKey !== 'ai' && hasCustomFields"
               data-testid="kanban-opportunity-custom-fields"
               class="grid"
             >
