@@ -1,17 +1,17 @@
 class Marketing::Meta::PageTokenService
   # Toda chamada de pagina passa por aqui; ninguem le o token direto.
-  # Se caiu do cache, busca de novo com o token do usuario.
+  # Se ainda nao temos o da pagina, buscamos com o token do usuario.
   def initialize(connection:, page_id:)
     @connection = connection
     @page_id = page_id
   end
 
   def token
-    cached = Marketing::Meta::SyncPagesService.page_token(connection, page_id)
-    return cached if cached.present?
+    stored = connection.page_token(page_id)
+    return stored if stored.present?
 
     Marketing::Meta::SyncPagesService.new(connection: connection).perform
-    Marketing::Meta::SyncPagesService.page_token(connection, page_id).presence ||
+    connection.reload.page_token(page_id) ||
       raise(Marketing::Meta::ApiError, 'Page token unavailable')
   end
 

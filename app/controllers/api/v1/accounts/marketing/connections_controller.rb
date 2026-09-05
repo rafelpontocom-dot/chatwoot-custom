@@ -21,7 +21,7 @@ class Api::V1::Accounts::Marketing::ConnectionsController < Api::V1::Accounts::B
   # Desconectar zera o token e para de receber; os leads que ja entraram ficam.
   def destroy
     authorize MarketingProviderConnection, :configure?
-    @connection.update!(access_token: nil, expires_at: nil, status: 'disconnected', settings: {})
+    @connection.update!(access_token: nil, page_tokens: nil, expires_at: nil, status: 'disconnected', settings: {})
     head :no_content
   end
 

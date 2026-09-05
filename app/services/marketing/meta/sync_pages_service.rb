@@ -1,8 +1,8 @@
 class Marketing::Meta::SyncPagesService
   # As paginas que o anunciante administra, e o token de cada uma.
   #
-  # O token de pagina fica no `settings` da conexao e nao numa coluna propria
-  # porque sao varios; a coluna guarda o do usuario, que e o que os renova.
+  # O token de pagina vai para a coluna cifrada `page_tokens`, nao para o
+  # `settings`, que sai inteiro no serializador.
   def initialize(connection:)
     @connection = connection
   end
@@ -11,24 +11,15 @@ class Marketing::Meta::SyncPagesService
     pages = fetch_pages
     connection.update!(
       settings: connection.settings.merge('pages' => pages.map { |page| page.except('access_token') }),
+      page_tokens: connection.stored_page_tokens.merge(page_tokens(pages)).to_json,
       last_verified_at: Time.current,
       status: 'connected',
       last_error: nil
     )
-    store_page_tokens(pages)
     pages
   rescue Marketing::Meta::ApiError => e
     connection.mark_attention!(e)
     raise
-  end
-
-  # O token de pagina nunca sai por serializador nenhum.
-  def self.page_token(connection, page_id)
-    Rails.cache.read(cache_key(connection, page_id))
-  end
-
-  def self.cache_key(connection, page_id)
-    "marketing_meta_page_token:#{connection.id}:#{page_id}"
   end
 
   private
@@ -43,13 +34,9 @@ class Marketing::Meta::SyncPagesService
     Array(response['data'])
   end
 
-  # Em cache e nao no banco: o token de pagina se recupera a qualquer momento
-  # com o token do usuario, e o que nao e guardado nao vaza.
-  def store_page_tokens(pages)
-    pages.each do |page|
-      next if page['access_token'].blank?
-
-      Rails.cache.write(self.class.cache_key(connection, page['id']), page['access_token'], expires_in: 1.day)
-    end
+  # Mesclado, nao substituido: uma pagina que sumiu do /me/accounts por perda
+  # temporaria de acesso nao deve levar junto o token que ainda funciona.
+  def page_tokens(pages)
+    pages.filter_map { |page| [page['id'].to_s, page['access_token']] if page['access_token'].present? }.to_h
   end
 end

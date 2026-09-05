@@ -62,7 +62,7 @@ RSpec.describe 'Marketing connections API', type: :request do
     delete "#{base_path}/#{connection.id}", headers: administrator.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:no_content)
-    expect(connection.reload).to have_attributes(status: 'disconnected', access_token: nil)
+    expect(connection.reload).to have_attributes(status: 'disconnected', access_token: nil, page_tokens: nil)
   end
 
   it 'turns a Meta failure into a 422 without leaking the provider text' do

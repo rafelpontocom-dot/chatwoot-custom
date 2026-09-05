@@ -9,6 +9,7 @@
 #  last_error          :string
 #  last_verified_at    :datetime
 #  lock_version        :integer          default(0), not null
+#  page_tokens         :text
 #  provider            :string           not null
 #  settings            :jsonb            not null
 #  status              :string           default("disconnected"), not null
@@ -32,6 +33,7 @@ class MarketingProviderConnection < ApplicationRecord
 
   # O token de pagina do Meta abre a caixa de leads de um anunciante.
   encrypts :access_token if Chatwoot.encryption_configured?
+  encrypts :page_tokens if Chatwoot.encryption_configured?
 
   belongs_to :account
   has_many :marketing_lead_forms, dependent: :destroy
@@ -69,6 +71,23 @@ class MarketingProviderConnection < ApplicationRecord
              else error.class.name
              end
     update!(status: 'attention', last_error: detail)
+  end
+
+  # Token de pagina obtido de um token de usuario de longa duracao nao expira.
+  # Por isso ele mora no banco, cifrado, e nao num cache de 24h: guardado, a
+  # chegada de leads sobrevive aos 60 dias do token de usuario, que e o unico
+  # que morre. O que exige token de usuario vivo passa a ser so descobrir
+  # pagina e formulario novos.
+  def page_token(page_id)
+    stored_page_tokens[page_id.to_s].presence
+  end
+
+  def store_page_tokens!(tokens)
+    update!(page_tokens: stored_page_tokens.merge(tokens).to_json)
+  end
+
+  def stored_page_tokens
+    JSON.parse(page_tokens.presence || '{}')
   end
 
   def public_payload

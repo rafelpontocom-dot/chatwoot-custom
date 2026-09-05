@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_03_150000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_04_200000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1918,6 +1918,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_03_150000) do
     t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "page_tokens"
     t.index ["account_id", "provider", "external_account_id"], name: "index_marketing_connections_on_account_provider_and_external", unique: true
     t.index ["account_id"], name: "index_marketing_provider_connections_on_account_id"
   end

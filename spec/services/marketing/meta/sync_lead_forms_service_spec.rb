@@ -15,8 +15,7 @@ RSpec.describe Marketing::Meta::SyncLeadFormsService do
   end
 
   before do
-    allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
-    Rails.cache.write(Marketing::Meta::SyncPagesService.cache_key(connection, '10'), 'page-token')
+    connection.store_page_tokens!('10' => 'page-token')
     stub_request(:get, %r{graph\.facebook\.com/.*/10/leadgen_forms})
       .to_return(status: 200, body: { data: forms }.to_json, headers: { 'Content-Type' => 'application/json' })
   end
