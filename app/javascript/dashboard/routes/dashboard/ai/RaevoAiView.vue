@@ -12,6 +12,7 @@ const { t } = useI18n();
 const overview = ref(null);
 const isLoading = ref(true);
 const hasError = ref(false);
+const isPreparing = ref(false);
 const { isAdmin } = useAdmin();
 const aiTabConfiguration = ref({ enabled: false, board_ids: [] });
 const aiTabBoardOptions = ref([]);
@@ -66,13 +67,15 @@ const selectedAiTabBoardIds = computed({
 const loadOverview = async () => {
   isLoading.value = true;
   hasError.value = false;
+  isPreparing.value = false;
 
   try {
     const { data } = await RaevoAiAPI.get();
     overview.value = data;
-  } catch {
+  } catch (error) {
     overview.value = null;
-    hasError.value = true;
+    isPreparing.value = error?.response?.status === 404;
+    hasError.value = !isPreparing.value;
   } finally {
     isLoading.value = false;
   }
@@ -203,6 +206,27 @@ const servicePackages = computed(() => [
           :key="index"
           class="h-20 animate-pulse rounded-xl bg-n-alpha-2"
         />
+      </div>
+
+      <div
+        v-else-if="isPreparing"
+        data-testid="ai-overview-setup"
+        class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+        role="status"
+      >
+        <span
+          class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+        >
+          <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
+        </span>
+        <div>
+          <p class="text-sm font-semibold text-n-slate-12">
+            {{ t('RAEVO_AI.OVERVIEW.SETUP.TITLE') }}
+          </p>
+          <p class="mt-1 text-sm text-n-slate-11">
+            {{ t('RAEVO_AI.OVERVIEW.SETUP.DESCRIPTION') }}
+          </p>
+        </div>
       </div>
 
       <div

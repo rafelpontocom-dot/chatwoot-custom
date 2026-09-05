@@ -18,6 +18,10 @@
         "DESCRIPTION": "A conexão com a Elis está temporariamente indisponível. Nenhuma configuração foi alterada.",
         "RETRY": "Tentar novamente"
       },
+      "SETUP": {
+        "TITLE": "A Elis está em preparação",
+        "DESCRIPTION": "A Elis não está conectada ou está pausada nesta conta. Ela não responderá às conversas."
+      },
       "METRICS": {
         "CONVERSATIONS": "Conversas nos últimos 30 dias",
         "HANDOFFS": "Handoffs nos últimos 30 dias",

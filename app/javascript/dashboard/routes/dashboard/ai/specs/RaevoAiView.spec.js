@@ -132,6 +132,20 @@ describe('RaevoAiView', () => {
     );
   });
 
+  it('explains that Elis is being prepared when the protected overview is unavailable by design', async () => {
+    RaevoAiAPI.get.mockRejectedValue({ response: { status: 404 } });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="ai-overview-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('[data-testid="ai-overview-setup"]').text()).toContain(
+      'RAEVO_AI.OVERVIEW.SETUP.DESCRIPTION'
+    );
+  });
+
   it('lets an administrator configure the CRM boards that expose the IA tab', async () => {
     adminMocks.isAdmin = true;
     RaevoAiAPI.getOpportunityTab.mockResolvedValue({
