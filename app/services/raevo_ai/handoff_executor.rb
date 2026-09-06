@@ -34,18 +34,32 @@ class RaevoAi::HandoffExecutor
     {
       'conversation_id' => context['conversation_id'],
       'reason' => @reason,
-      'note' => @note
+      'note' => @note,
+      'handoff_team_id' => context['handoff_team_id'],
+      'handoff_assignee_id' => context['handoff_assignee_id']
     }
   end
 
   def apply_handoff(command, context)
-    @conversation.update!(team_id: context['handoff_team_id'], assignee_id: nil)
+    apply_assignment!(context)
     @conversation.add_labels(context['handoff_labels'])
     note_message = Messages::MessageBuilder.new(nil, @conversation.reload, private_note_params).perform
     result = receipt(context, note_message)
 
     command.update!(state: 'applied', result: result)
     result
+  end
+
+  def apply_assignment!(context)
+    if context['handoff_team_id'].present?
+      @conversation.update!(team_id: context['handoff_team_id'], assignee_id: nil)
+    else
+      @conversation.update!(team_id: nil)
+      Conversations::AssignmentService.new(
+        conversation: @conversation,
+        assignee_id: context['handoff_assignee_id']
+      ).perform
+    end
   end
 
   def private_note_params
@@ -62,10 +76,17 @@ class RaevoAi::HandoffExecutor
       'status' => 'applied',
       'handoff_applied' => true,
       'receipts' => {
-        'assignment' => { 'status' => 'applied', 'team_id' => context['handoff_team_id'] },
+        'assignment' => assignment_receipt(context),
         'labels' => { 'status' => 'applied', 'added' => context['handoff_labels'] },
         'note' => { 'status' => 'applied', 'note_id' => note_message.id }
       }
     }
+  end
+
+  def assignment_receipt(context)
+    assignment = { 'status' => 'applied' }
+    assignment['team_id'] = context['handoff_team_id'] if context['handoff_team_id'].present?
+    assignment['assignee_id'] = context['handoff_assignee_id'] if context['handoff_assignee_id'].present?
+    assignment
   end
 end

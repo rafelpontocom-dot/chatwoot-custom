@@ -25,6 +25,31 @@ RSpec.describe RaevoAi::HandoffContext do
         'conversation_id' => conversation.display_id,
         'contact_id' => conversation.contact_id,
         'handoff_team_id' => team.id,
+        'handoff_assignee_id' => nil,
+        'handoff_labels' => ['intervencao-humana']
+      )
+    end
+
+    it 'accepts an account agent as the direct handoff destination' do
+      account = create(:account)
+      agent = create(:user, account: account)
+      conversation = create(:conversation, account: account)
+      integration = RaevoAiIntegration.create!(
+        account: account,
+        clinic_id: 'clinic-demo',
+        enabled: true,
+        settings: {
+          'handoff' => {
+            'assignee_id' => agent.id,
+            'allowed_inbox_ids' => [conversation.inbox_id],
+            'labels' => ['intervencao-humana']
+          }
+        }
+      )
+
+      expect(described_class.new(integration: integration, conversation: conversation).payload).to include(
+        'handoff_team_id' => nil,
+        'handoff_assignee_id' => agent.id,
         'handoff_labels' => ['intervencao-humana']
       )
     end
@@ -80,6 +105,52 @@ RSpec.describe RaevoAi::HandoffContext do
       expect do
         described_class.new(integration: integration, conversation: conversation).payload
       end.to raise_error(RaevoAi::HandoffContext::InvalidHandoffConfiguration)
+    end
+
+    it 'rejects an assignee outside the integration account' do
+      account = create(:account)
+      other_agent = create(:user, account: create(:account))
+      conversation = create(:conversation, account: account)
+      integration = RaevoAiIntegration.create!(
+        account: account,
+        clinic_id: 'clinic-demo',
+        enabled: true,
+        settings: {
+          'handoff' => {
+            'assignee_id' => other_agent.id,
+            'allowed_inbox_ids' => [conversation.inbox_id],
+            'labels' => ['intervencao-humana']
+          }
+        }
+      )
+
+      expect do
+        described_class.new(integration: integration, conversation: conversation).payload
+      end.to raise_error(RaevoAi::HandoffContext::InvalidHandoffConfiguration)
+    end
+
+    it 'requires exactly one handoff destination' do
+      account = create(:account)
+      team = create(:team, account: account)
+      agent = create(:user, account: account)
+      conversation = create(:conversation, account: account)
+      integration = RaevoAiIntegration.create!(
+        account: account,
+        clinic_id: 'clinic-demo',
+        enabled: true,
+        settings: {
+          'handoff' => {
+            'team_id' => team.id,
+            'assignee_id' => agent.id,
+            'allowed_inbox_ids' => [conversation.inbox_id],
+            'labels' => ['intervencao-humana']
+          }
+        }
+      )
+
+      expect do
+        described_class.new(integration: integration, conversation: conversation).payload
+      end.to raise_error(RaevoAi::HandoffContext::InvalidHandoffConfiguration, /exactly one/)
     end
   end
 end

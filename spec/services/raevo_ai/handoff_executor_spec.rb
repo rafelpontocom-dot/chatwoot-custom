@@ -34,6 +34,37 @@ RSpec.describe RaevoAi::HandoffExecutor do
     expect(conversation.messages.where(private: true).count).to eq(1)
   end
 
+  context 'when the clinic routes handoff to an individual agent' do
+    let(:agent) { create(:user, account: account) }
+    let(:integration) do
+      RaevoAiIntegration.create!(
+        account: account,
+        clinic_id: 'clinic-demo',
+        enabled: true,
+        settings: {
+          'handoff' => {
+            'assignee_id' => agent.id,
+            'allowed_inbox_ids' => [conversation.inbox_id],
+            'labels' => ['intervencao-humana']
+          }
+        }
+      )
+    end
+
+    it 'assigns the conversation directly to the agent and records the same handoff note once' do
+      result = execute_handoff
+
+      expect(conversation.reload.team_id).to be_nil
+      expect(conversation.assignee_id).to eq(agent.id)
+      expect(conversation.label_list).to include('intervencao-humana')
+      expect(conversation.messages.where(private: true).last.content).to include('O contato pediu uma pessoa da equipe.')
+      expect(result.dig('receipts', 'assignment')).to eq('status' => 'applied', 'assignee_id' => agent.id)
+
+      expect(execute_handoff).to eq(result)
+      expect(conversation.messages.where(private: true).count).to eq(1)
+    end
+  end
+
   private
 
   def execute_handoff
