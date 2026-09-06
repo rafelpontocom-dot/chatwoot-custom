@@ -75,6 +75,15 @@ describe('RaevoAiView', () => {
     expect(wrapper.find('iframe').exists()).toBe(false);
   });
 
+  it('owns a vertical scroll container inside the clipped dashboard shell', () => {
+    const wrapper = mountView();
+    const workspace = wrapper.get('[data-testid="ai-workspace"]');
+
+    expect(workspace.classes()).toEqual(
+      expect.arrayContaining(['h-full', 'min-h-0', 'overflow-y-auto'])
+    );
+  });
+
   it('keeps the native area behind the Raevo AI account feature', () => {
     expect(FEATURE_FLAGS.RAEVO_AI).toBe('raevo_ai');
     expect(routes[0].meta.featureFlag).toBe(FEATURE_FLAGS.RAEVO_AI);
