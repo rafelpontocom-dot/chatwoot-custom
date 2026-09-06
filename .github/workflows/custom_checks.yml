@@ -50,6 +50,7 @@ jobs:
             app/jobs/whatsapp \
             lib/tasks/kanban_cards.rake \
             app/models/channel/whatsapp.rb \
+            app/models/message.rb \
             app/services/whatsapp/providers/base_service.rb \
             app/services/whatsapp/providers/whatsapp_cloud_service.rb \
             app/dispatchers/async_dispatcher.rb \
@@ -150,6 +151,7 @@ jobs:
           # and a parity normalized_subject mismatch). Not relevant to this deployment.
           SPECS=$(find spec -path '*kanban*' -name '*_spec.rb' ! -path '*lib/tasks*' | sort)
           [ -f spec/models/channel/whatsapp_spec.rb ] && SPECS="$SPECS spec/models/channel/whatsapp_spec.rb"
+          [ -f spec/models/message_spec.rb ] && SPECS="$SPECS spec/models/message_spec.rb"
           [ -d spec/services/whatsapp ] && SPECS="$SPECS spec/services/whatsapp"
           echo "Running:"; echo "$SPECS" | tr ' ' '\n'
           bundle exec rspec --profile=10 --format progress $SPECS
