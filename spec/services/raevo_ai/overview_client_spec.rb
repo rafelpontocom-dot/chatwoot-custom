@@ -21,7 +21,19 @@ RSpec.describe RaevoAi::OverviewClient do
           active_prompt_version: 12,
           knowledge_count: 8,
           open_reviews: 2,
-          usage_30d: { conversations: 44, handoffs: 5, appointments: 9, payments: 3, internal_cost: 99 },
+          usage_30d: {
+            conversations: 44,
+            handoffs: 5,
+            appointments: 9,
+            payments: 3,
+            model_calls: 83,
+            prompt_tokens: 1200,
+            completion_tokens: 600,
+            provider_reported_cost_usd: 1.25,
+            catalog_estimated_cost_usd: 0.75,
+            cost_unavailable_calls: 2,
+            internal_cost: 99
+          },
           clinic_id: 'must-not-leak',
           service_token: 'must-not-leak'
         }.to_json
@@ -49,7 +61,13 @@ RSpec.describe RaevoAi::OverviewClient do
             'conversations' => 44,
             'handoffs' => 5,
             'appointments' => 9,
-            'payments' => 3
+            'payments' => 3,
+            'model_calls' => 83,
+            'prompt_tokens' => 1200,
+            'completion_tokens' => 600,
+            'provider_reported_cost_usd' => 1.25,
+            'catalog_estimated_cost_usd' => 0.75,
+            'cost_unavailable_calls' => 2
           }
         )
       end

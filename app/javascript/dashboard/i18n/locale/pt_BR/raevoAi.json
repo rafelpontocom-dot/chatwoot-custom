@@ -28,7 +28,9 @@
         "APPOINTMENTS": "Agendamentos nos últimos 30 dias",
         "PAYMENTS": "Pagamentos nos últimos 30 dias",
         "KNOWLEDGE": "Itens de conhecimento",
-        "PROMPT_VERSION": "Versão ativa do prompt"
+        "PROMPT_VERSION": "Versão ativa do prompt",
+        "TOKENS": "Tokens de IA nos últimos 30 dias",
+        "COST": "Custo de IA nos últimos 30 dias"
       }
     },
     "PACKAGES": {

@@ -110,6 +110,34 @@ describe('RaevoAiView', () => {
     expect(wrapper.text()).toContain('12');
   });
 
+  it('shows live token usage and separates reported from estimated cost', async () => {
+    RaevoAiAPI.get.mockResolvedValue({
+      data: {
+        status: 'active',
+        clinic_name: 'Dra. Anna Alice',
+        usage_30d: {
+          conversations: 1,
+          handoffs: 0,
+          appointments: 0,
+          payments: 0,
+          model_calls: 3,
+          prompt_tokens: 1200,
+          completion_tokens: 600,
+          provider_reported_cost_usd: 1.25,
+          catalog_estimated_cost_usd: 0.75,
+          cost_unavailable_calls: 2,
+        },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('1,800');
+    expect(wrapper.text()).toContain('US$ 1.25');
+    expect(wrapper.text()).toContain('US$ 0.75');
+  });
+
   it('shows a safe error and retries the overview request', async () => {
     RaevoAiAPI.get
       .mockRejectedValueOnce(new Error('upstream detail must not render'))

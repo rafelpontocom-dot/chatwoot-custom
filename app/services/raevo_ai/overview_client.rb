@@ -2,7 +2,11 @@ class RaevoAi::OverviewClient
   REQUEST_TIMEOUT_SECONDS = 10
   NETWORK_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED].freeze
   PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews].freeze
-  PUBLIC_USAGE_FIELDS = %w[conversations handoffs appointments payments].freeze
+  PUBLIC_USAGE_FIELDS = %w[
+    conversations handoffs appointments payments
+    model_calls prompt_tokens completion_tokens
+    provider_reported_cost_usd catalog_estimated_cost_usd cost_unavailable_calls
+  ].freeze
 
   def initialize(integration:)
     @integration = integration

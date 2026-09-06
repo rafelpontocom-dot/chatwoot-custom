@@ -20,6 +20,24 @@ const isLoadingAiTabConfiguration = ref(false);
 const isSavingAiTabConfiguration = ref(false);
 const aiTabConfigurationError = ref(false);
 
+const usage = computed(() => overview.value?.usage_30d || {});
+const formatTokens = value =>
+  Number.isFinite(Number(value))
+    ? new Intl.NumberFormat('en-US').format(Number(value))
+    : '—';
+const formatUsd = value => `US$ ${Number(value || 0).toFixed(2)}`;
+const usageCost = computed(() => {
+  const reported = Number(usage.value.provider_reported_cost_usd || 0);
+  const estimated = Number(usage.value.catalog_estimated_cost_usd || 0);
+  const unavailable = Number(usage.value.cost_unavailable_calls || 0);
+  const parts = [];
+
+  if (reported > 0) parts.push(formatUsd(reported));
+  if (estimated > 0) parts.push(`${formatUsd(estimated)} est.`);
+  if (unavailable > 0) parts.push(`${unavailable} indisponível`);
+
+  return parts.length ? parts.join(' · ') : '—';
+});
 const overviewMetrics = computed(() => [
   {
     key: 'CONVERSATIONS',
@@ -50,6 +68,19 @@ const overviewMetrics = computed(() => [
     key: 'PROMPT_VERSION',
     label: t('RAEVO_AI.OVERVIEW.METRICS.PROMPT_VERSION'),
     value: overview.value?.active_prompt_version,
+  },
+  {
+    key: 'TOKENS',
+    label: t('RAEVO_AI.OVERVIEW.METRICS.TOKENS'),
+    value: formatTokens(
+      Number(usage.value.prompt_tokens || 0) +
+        Number(usage.value.completion_tokens || 0)
+    ),
+  },
+  {
+    key: 'COST',
+    label: t('RAEVO_AI.OVERVIEW.METRICS.COST'),
+    value: usageCost.value,
   },
 ]);
 
