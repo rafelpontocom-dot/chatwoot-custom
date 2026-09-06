@@ -408,6 +408,12 @@ RSpec.describe Message do
       expect(webhook_data[:content]).to eq('Test **bold** content')
     end
 
+    it 'includes the delivery status so signed delivery receipts can be acknowledged' do
+      message = create(:message, status: :sent)
+
+      expect(message.webhook_data[:status]).to eq('sent')
+    end
+
     it 'includes CSAT survey link in webhook content for input_csat messages' do
       inbox = create(:inbox, channel: create(:channel_api))
       conversation = create(:conversation, inbox: inbox)
