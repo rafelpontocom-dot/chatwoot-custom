@@ -12,8 +12,10 @@ class RaevoAi::DemoContactPurge
     conversations = @account.conversations.where(contact: @contact).to_a
     cards = KanbanCard.where(account: @account, contact: @contact).to_a
     validate_card_dependencies!(cards)
+    canceled_payments = payments_for(cards).to_a
 
     ActiveRecord::Base.transaction do
+      canceled_payments.each { |payment| delete_canceled_payment!(payment) }
       cards.each { |card| delete_card!(card) }
       ConversationKanbanState.where(account: @account, conversation_id: conversations.map(&:id)).delete_all
       conversations.each { |conversation| delete_conversation!(conversation) }
@@ -23,7 +25,8 @@ class RaevoAi::DemoContactPurge
     {
       'contact_id' => @contact.id,
       'conversations_deleted' => conversations.length,
-      'opportunities_deleted' => cards.length
+      'opportunities_deleted' => cards.length,
+      'payments_deleted' => canceled_payments.length
     }
   end
 
@@ -44,7 +47,7 @@ class RaevoAi::DemoContactPurge
     return if card_ids.empty?
 
     protected_records = {
-      'payments' => FinancePayment.exists?(account: @account, kanban_card_id: card_ids),
+      'payments' => payments_for(cards).where.not(status: 'canceled').exists?,
       'appointments' => KanbanCalendarAppointment.exists?(account: @account, kanban_card_id: card_ids),
       'appointment_series' => KanbanCalendarAppointmentSeries.exists?(account: @account, kanban_card_id: card_ids),
       'form_invitations' => FormInvitation.exists?(account: @account, kanban_card_id: card_ids),
@@ -54,6 +57,15 @@ class RaevoAi::DemoContactPurge
     return if protected_records.empty?
 
     raise UnsafePurge, "demo contact has protected records: #{protected_records.join(', ')}"
+  end
+
+  def payments_for(cards)
+    FinancePayment.where(account: @account, kanban_card_id: cards.map(&:id))
+  end
+
+  def delete_canceled_payment!(payment)
+    FinancePaymentEvent.where(finance_payment: payment).delete_all
+    payment.destroy!
   end
 
   def delete_card!(card)

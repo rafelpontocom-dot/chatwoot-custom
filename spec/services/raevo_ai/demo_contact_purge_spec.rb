@@ -71,4 +71,37 @@ RSpec.describe RaevoAi::DemoContactPurge do
     expect(Conversation.where(id: conversation.id)).to exist
     expect(KanbanCard.where(id: card.id)).to exist
   end
+
+  it 'removes a locally canceled demonstration payment before deleting its card' do
+    connection = FinanceProviderConnection.create!(
+      account: account,
+      provider: 'manual',
+      environment: 'sandbox',
+      status: 'disconnected',
+      settings: {}
+    )
+    payment = FinancePayment.create!(
+      account: account,
+      contact: contact,
+      kanban_card: card,
+      finance_provider_connection: connection,
+      amount_cents: 100,
+      billing_type: 'undefined',
+      kind: 'charge',
+      status: 'canceled',
+      provider_payload: {}
+    )
+    event = payment.finance_payment_events.create!(
+      account: account,
+      finance_provider_connection: connection,
+      event_type: 'PAYMENT_DELETED',
+      occurred_at: Time.current,
+      metadata: {}
+    )
+
+    expect(purge.perform!).to include('opportunities_deleted' => 1, 'payments_deleted' => 1)
+    expect(FinancePayment.where(id: payment.id)).not_to exist
+    expect(FinancePaymentEvent.where(id: event.id)).not_to exist
+    expect(KanbanCard.where(id: card.id)).not_to exist
+  end
 end
