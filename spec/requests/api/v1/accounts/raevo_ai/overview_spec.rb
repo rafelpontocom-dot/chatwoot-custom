@@ -5,18 +5,28 @@ RSpec.describe 'Raevo AI overview API', type: :request do
   let(:administrator) { create(:user, account: account, role: :administrator) }
   let(:path) { "/api/v1/accounts/#{account.id}/raevo_ai/overview" }
 
-  it 'returns not found when the account has no enabled integration' do
+  it 'returns a safe not configured state when the account has no integration' do
     get path, headers: administrator.create_new_auth_token, as: :json
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to eq(
+      'connection_state' => 'not_configured',
+      'operational_state' => nil,
+      'overview' => nil
+    )
   end
 
-  it 'returns not found when the account integration is disabled' do
+  it 'returns a safe paused state without calling the ELIS service' do
     RaevoAiIntegration.create!(account: account, clinic_id: 'clinic-anna-alice', enabled: false)
 
     get path, headers: administrator.create_new_auth_token, as: :json
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to eq(
+      'connection_state' => 'paused',
+      'operational_state' => nil,
+      'overview' => nil
+    )
   end
 
   it 'returns the sanitized overview for the integration bound to the current account' do
@@ -29,7 +39,11 @@ RSpec.describe 'Raevo AI overview API', type: :request do
     get path, headers: administrator.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:success)
-    expect(response.parsed_body).to eq(payload)
+    expect(response.parsed_body).to eq(
+      'connection_state' => 'active',
+      'operational_state' => 'healthy',
+      'overview' => payload
+    )
   end
 
   it 'does not allow a user from another account to read the overview' do
@@ -50,7 +64,27 @@ RSpec.describe 'Raevo AI overview API', type: :request do
 
     get path, headers: administrator.create_new_auth_token, as: :json
 
-    expect(response).to have_http_status(:service_unavailable)
-    expect(response.parsed_body).to eq('error' => 'raevo_ai_not_configured')
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to eq(
+      'connection_state' => 'unavailable',
+      'operational_state' => 'unavailable',
+      'overview' => nil
+    )
+  end
+
+  it 'returns an unavailable state when the ELIS service cannot be reached' do
+    integration = RaevoAiIntegration.create!(account: account, clinic_id: 'clinic-anna-alice', enabled: true)
+    client = instance_double(RaevoAi::OverviewClient)
+    allow(client).to receive(:fetch).and_raise(RaevoAi::UpstreamError)
+    allow(RaevoAi::OverviewClient).to receive(:new).with(integration: integration).and_return(client)
+
+    get path, headers: administrator.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).to eq(
+      'connection_state' => 'unavailable',
+      'operational_state' => 'unavailable',
+      'overview' => nil
+    )
   end
 end

@@ -13,6 +13,7 @@ const overview = ref(null);
 const isLoading = ref(true);
 const hasError = ref(false);
 const isPreparing = ref(false);
+const isPaused = ref(false);
 const { isAdmin } = useAdmin();
 const aiTabConfiguration = ref({ enabled: false, board_ids: [] });
 const aiTabBoardOptions = ref([]);
@@ -99,10 +100,15 @@ const loadOverview = async () => {
   isLoading.value = true;
   hasError.value = false;
   isPreparing.value = false;
+  isPaused.value = false;
 
   try {
     const { data } = await RaevoAiAPI.get();
-    overview.value = data;
+    const connectionState = data?.connection_state;
+    overview.value = connectionState ? data.overview : data;
+    isPreparing.value = connectionState === 'not_configured';
+    isPaused.value = connectionState === 'paused';
+    hasError.value = connectionState === 'unavailable';
   } catch (error) {
     overview.value = null;
     isPreparing.value = error?.response?.status === 404;
@@ -261,6 +267,27 @@ const servicePackages = computed(() => [
       </div>
 
       <div
+        v-else-if="isPaused"
+        data-testid="ai-overview-paused"
+        class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+        role="status"
+      >
+        <span
+          class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
+        >
+          <i class="i-lucide-circle-pause size-4" aria-hidden="true" />
+        </span>
+        <div>
+          <p class="text-sm font-semibold text-n-slate-12">
+            {{ t('RAEVO_AI.OVERVIEW.PAUSED.TITLE') }}
+          </p>
+          <p class="mt-1 text-sm text-n-slate-11">
+            {{ t('RAEVO_AI.OVERVIEW.PAUSED.DESCRIPTION') }}
+          </p>
+        </div>
+      </div>
+
+      <div
         v-else-if="hasError"
         data-testid="ai-overview-error"
         class="mt-4 flex flex-col items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -277,7 +304,7 @@ const servicePackages = computed(() => [
         <button
           type="button"
           data-testid="ai-overview-retry"
-          class="rounded-lg border border-n-strong bg-n-solid-1 px-3 py-2 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
+          class="rounded-full border border-n-strong bg-n-solid-1 px-3 py-2 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
           @click="loadOverview"
         >
           {{ t('RAEVO_AI.OVERVIEW.ERROR.RETRY') }}

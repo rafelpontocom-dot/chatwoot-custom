@@ -84,17 +84,21 @@ describe('RaevoAiView', () => {
   it('loads the account overview through the Chatwoot BFF', async () => {
     RaevoAiAPI.get.mockResolvedValue({
       data: {
-        status: 'active',
-        clinic_name: 'Dra. Anna Alice',
-        package: 'complete',
-        active_prompt_version: 12,
-        knowledge_count: 8,
-        open_reviews: 2,
-        usage_30d: {
-          conversations: 44,
-          handoffs: 5,
-          appointments: 9,
-          payments: 3,
+        connection_state: 'active',
+        operational_state: 'healthy',
+        overview: {
+          status: 'active',
+          clinic_name: 'Dra. Anna Alice',
+          package: 'complete',
+          active_prompt_version: 12,
+          knowledge_count: 8,
+          open_reviews: 2,
+          usage_30d: {
+            conversations: 44,
+            handoffs: 5,
+            appointments: 9,
+            payments: 3,
+          },
         },
       },
     });
@@ -113,19 +117,23 @@ describe('RaevoAiView', () => {
   it('shows live token usage and separates reported from estimated cost', async () => {
     RaevoAiAPI.get.mockResolvedValue({
       data: {
-        status: 'active',
-        clinic_name: 'Dra. Anna Alice',
-        usage_30d: {
-          conversations: 1,
-          handoffs: 0,
-          appointments: 0,
-          payments: 0,
-          model_calls: 3,
-          prompt_tokens: 1200,
-          completion_tokens: 600,
-          provider_reported_cost_usd: 1.25,
-          catalog_estimated_cost_usd: 0.75,
-          cost_unavailable_calls: 2,
+        connection_state: 'active',
+        operational_state: 'healthy',
+        overview: {
+          status: 'active',
+          clinic_name: 'Dra. Anna Alice',
+          usage_30d: {
+            conversations: 1,
+            handoffs: 0,
+            appointments: 0,
+            payments: 0,
+            model_calls: 3,
+            prompt_tokens: 1200,
+            completion_tokens: 600,
+            provider_reported_cost_usd: 1.25,
+            catalog_estimated_cost_usd: 0.75,
+            cost_unavailable_calls: 2,
+          },
         },
       },
     });
@@ -160,8 +168,14 @@ describe('RaevoAiView', () => {
     );
   });
 
-  it('explains that Elis is being prepared when the protected overview is unavailable by design', async () => {
-    RaevoAiAPI.get.mockRejectedValue({ response: { status: 404 } });
+  it('explains that Elis is being prepared when the account is not configured', async () => {
+    RaevoAiAPI.get.mockResolvedValue({
+      data: {
+        connection_state: 'not_configured',
+        operational_state: null,
+        overview: null,
+      },
+    });
 
     const wrapper = mountView();
     await flushPromises();
@@ -171,6 +185,26 @@ describe('RaevoAiView', () => {
     );
     expect(wrapper.get('[data-testid="ai-overview-setup"]').text()).toContain(
       'RAEVO_AI.OVERVIEW.SETUP.DESCRIPTION'
+    );
+  });
+
+  it('shows a paused state without presenting it as a service failure', async () => {
+    RaevoAiAPI.get.mockResolvedValue({
+      data: {
+        connection_state: 'paused',
+        operational_state: null,
+        overview: null,
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="ai-overview-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('[data-testid="ai-overview-paused"]').text()).toContain(
+      'RAEVO_AI.OVERVIEW.PAUSED.DESCRIPTION'
     );
   });
 

@@ -22,6 +22,10 @@
         "TITLE": "Elis is being prepared",
         "DESCRIPTION": "Elis is not connected or is currently paused for this account. It will not respond to conversations."
       },
+      "PAUSED": {
+        "TITLE": "Elis is paused",
+        "DESCRIPTION": "No conversations are being answered while the service is paused."
+      },
       "METRICS": {
         "CONVERSATIONS": "Conversations in the last 30 days",
         "HANDOFFS": "Handoffs in the last 30 days",

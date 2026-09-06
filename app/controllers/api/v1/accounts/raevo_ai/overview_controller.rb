@@ -3,18 +3,35 @@ class Api::V1::Accounts::RaevoAi::OverviewController < Api::V1::Accounts::BaseCo
 
   def show
     integration = Current.account.raevo_ai_integration
-    return head :not_found unless integration&.enabled?
+    return render_state('not_configured') unless integration
+    return render_state('paused') unless integration.enabled?
 
-    render json: RaevoAi::OverviewClient.new(integration: integration).fetch
-  rescue RaevoAi::ConfigurationError
-    render json: { error: 'raevo_ai_not_configured' }, status: :service_unavailable
-  rescue RaevoAi::UpstreamError
-    render json: { error: 'raevo_ai_unavailable' }, status: :bad_gateway
+    overview = RaevoAi::OverviewClient.new(integration: integration).fetch
+    render json: {
+      connection_state: 'active',
+      operational_state: 'healthy',
+      overview: overview
+    }
+  rescue RaevoAi::ConfigurationError, RaevoAi::UpstreamError
+    render_state('unavailable')
   end
 
   private
 
   def authorize_account
     authorize Current.account, :show?
+  end
+
+  def render_state(connection_state)
+    operational_state = case connection_state
+                        when 'active' then 'healthy'
+                        when 'unavailable' then 'unavailable'
+                        end
+
+    render json: {
+      connection_state: connection_state,
+      operational_state: operational_state,
+      overview: nil
+    }
   end
 end
