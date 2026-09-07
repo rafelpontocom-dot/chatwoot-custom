@@ -1603,6 +1603,51 @@ const removeCustomFieldOption = (definition, option) => {
   syncCustomFieldDefinitionsText();
 };
 
+// Campos padrão de cada aba do card. Existem sem ninguém os criar, e por isso
+// não apareciam em lado nenhum desta página: quem procurava «Tipo de ação» na
+// aba onde ele aparece concluía que não era configurável. Só o tipo de ação
+// tem lista de opções; os restantes mostram-se para dizer que já lá estão.
+const STANDARD_FIELDS_BY_SECTION = {
+  details: [
+    {
+      key: 'next_action_type',
+      labelKey: 'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE',
+      options: true,
+    },
+    {
+      key: 'next_action_at',
+      labelKey: 'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT',
+    },
+    {
+      key: 'next_action_note',
+      labelKey: 'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE',
+    },
+    { key: 'owner', labelKey: 'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER' },
+    {
+      key: 'description',
+      labelKey: 'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT',
+    },
+    { key: 'amount', labelKey: 'KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT' },
+    {
+      key: 'expected_close_date',
+      labelKey: 'KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE',
+    },
+  ],
+};
+
+// Recolhido por omissão: a lista de opções é trabalho de configuração, não
+// coisa que se lê de passagem.
+const mostrarOpcoesTipoAcao = ref(false);
+
+const standardFieldsOfActiveSection = computed(() =>
+  (STANDARD_FIELDS_BY_SECTION[activeFieldSectionKey.value] || []).map(
+    field => ({
+      ...field,
+      label: t(field.labelKey),
+    })
+  )
+);
+
 const customFieldLayoutSections = computed(() => {
   const configuredSections = [];
   const seenKeys = new Set();
@@ -3854,32 +3899,6 @@ onMounted(async () => {
             {{ t('KANBAN.SETTINGS.SALES.TITLE') }}
           </h2>
           <details
-            data-testid="kanban-settings-next-action-types-group"
-            class="rounded-md border border-n-weak bg-n-surface-1"
-          >
-            <summary
-              class="cursor-pointer px-3 py-2 text-sm font-medium text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
-            >
-              {{ t('KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES') }}
-            </summary>
-            <label
-              class="grid gap-1 border-t border-n-weak p-3 text-sm font-medium text-n-slate-12"
-            >
-              <span class="sr-only">
-                {{ t('KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES') }}
-              </span>
-              <textarea
-                v-model="form.nextActionTypesText"
-                data-testid="kanban-settings-next-action-types"
-                rows="3"
-                class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                :placeholder="
-                  t('KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES_PLACEHOLDER')
-                "
-              />
-            </label>
-          </details>
-          <details
             data-testid="kanban-settings-lost-reason-options-group"
             class="rounded-md border border-n-weak bg-n-surface-1"
           >
@@ -4609,6 +4628,99 @@ onMounted(async () => {
                 tabindex="0"
                 class="grid min-w-0 content-start gap-2 outline-none focus-visible:ring-2 focus-visible:ring-n-brand/40"
               >
+                <!--
+                  Campos padrão da aba. Não são criados por ninguém e não
+                  apareciam aqui, então quem procurava «Tipo de ação» nesta
+                  página concluía que ele não era configurável — e a lista de
+                  opções vivia noutro item do menu, recolhida.
+                -->
+                <div
+                  v-if="standardFieldsOfActiveSection.length"
+                  data-testid="kanban-settings-standard-fields"
+                  class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+                >
+                  <div class="min-w-0">
+                    <p
+                      class="m-0 flex items-center gap-2 text-xs font-medium text-n-slate-12"
+                    >
+                      <i
+                        class="i-lucide-lock size-3.5 shrink-0 text-n-slate-10"
+                      />
+                      {{ t('KANBAN.SETTINGS.SALES.STANDARD_FIELDS') }}
+                    </p>
+                    <p class="m-0 mt-1 text-micro text-n-slate-11">
+                      {{
+                        t('KANBAN.SETTINGS.SALES.STANDARD_FIELDS_DESCRIPTION')
+                      }}
+                    </p>
+                  </div>
+                  <ul class="m-0 grid list-none gap-1 p-0">
+                    <li
+                      v-for="field in standardFieldsOfActiveSection"
+                      :key="field.key"
+                      class="grid gap-1 border-b border-n-weak py-1.5 last:border-b-0 last:pb-0"
+                    >
+                      <div
+                        class="flex flex-wrap items-center justify-between gap-2"
+                      >
+                        <span
+                          class="min-w-0 break-words text-xs text-n-slate-12"
+                        >
+                          {{ field.label }}
+                        </span>
+                        <button
+                          v-if="field.options"
+                          type="button"
+                          :data-testid="`kanban-settings-standard-field-options-${field.key}`"
+                          class="flex items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 py-1 text-micro font-medium text-n-slate-11 outline-none hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40"
+                          :aria-expanded="mostrarOpcoesTipoAcao"
+                          @click="
+                            mostrarOpcoesTipoAcao = !mostrarOpcoesTipoAcao
+                          "
+                        >
+                          <i
+                            class="size-3 shrink-0"
+                            :class="
+                              mostrarOpcoesTipoAcao
+                                ? 'i-lucide-chevron-up'
+                                : 'i-lucide-chevron-down'
+                            "
+                          />
+                          {{
+                            t('KANBAN.SETTINGS.SALES.STANDARD_FIELD_OPTIONS')
+                          }}
+                        </button>
+                        <span v-else class="text-micro text-n-slate-10">
+                          {{
+                            t('KANBAN.SETTINGS.SALES.STANDARD_FIELD_NO_OPTIONS')
+                          }}
+                        </span>
+                      </div>
+                      <label
+                        v-if="field.options && mostrarOpcoesTipoAcao"
+                        class="grid gap-1 text-micro font-medium text-n-slate-11"
+                      >
+                        {{
+                          t(
+                            'KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES_PLACEHOLDER'
+                          )
+                        }}
+                        <textarea
+                          v-model="form.nextActionTypesText"
+                          data-testid="kanban-settings-next-action-types"
+                          rows="4"
+                          class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                          :placeholder="
+                            t(
+                              'KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES_PLACEHOLDER'
+                            )
+                          "
+                        />
+                      </label>
+                    </li>
+                  </ul>
+                </div>
+
                 <!--
                   Marketing era um botão que só sabia somar: uma vez
                   carregado, os campos ficavam e não havia caminho de

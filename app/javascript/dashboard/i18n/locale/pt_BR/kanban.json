@@ -803,7 +803,11 @@
         "PREVIEW_EMPTY": "Adicione um campo para ver a aba ganhar forma.",
         "PREVIEW_HIDDEN": "{count} campos condicionais só aparecem quando a condição é atendida.",
         "PREVIEW_CALCULATED": "calculado",
-        "PREVIEW_HALF_MARK": "½"
+        "PREVIEW_HALF_MARK": "½",
+        "STANDARD_FIELDS": "Campos padrão",
+        "STANDARD_FIELDS_DESCRIPTION": "Toda oportunidade tem estes campos. Não dá para removê-los, e só alguns têm lista de opções que você escolhe.",
+        "STANDARD_FIELD_OPTIONS": "Opções",
+        "STANDARD_FIELD_NO_OPTIONS": "Sem opções a definir"
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",

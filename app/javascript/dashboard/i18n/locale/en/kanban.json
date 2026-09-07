@@ -800,7 +800,11 @@
         "PREVIEW_EMPTY": "Add a field to see the tab take shape.",
         "PREVIEW_HIDDEN": "{count} conditional fields appear only when their condition is met.",
         "PREVIEW_CALCULATED": "calculated",
-        "PREVIEW_HALF_MARK": "½"
+        "PREVIEW_HALF_MARK": "½",
+        "STANDARD_FIELDS": "Standard fields",
+        "STANDARD_FIELDS_DESCRIPTION": "Every opportunity has these. They cannot be removed, and only some carry a list of options you choose.",
+        "STANDARD_FIELD_OPTIONS": "Options",
+        "STANDARD_FIELD_NO_OPTIONS": "No options to set"
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",

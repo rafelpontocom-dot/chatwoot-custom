@@ -572,6 +572,11 @@ describe('KanbanBoardSettings', () => {
     expect(
       wrapper.find('[data-testid="kanban-settings-inbox-select"]').exists()
     ).toBe(true);
+    await wrapper
+      .find(
+        '[data-testid="kanban-settings-standard-field-options-next_action_type"]'
+      )
+      .trigger('click');
     expect(
       wrapper.find('[data-testid="kanban-settings-next-action-types"]').element
         .value
@@ -585,16 +590,36 @@ describe('KanbanBoardSettings', () => {
   it('keeps occasional commercial option lists collapsed by default', async () => {
     const { wrapper } = await mountSettings();
 
+    // Tipos de ação vive junto do campo que configura, na aba Geral, e abre a
+    // pedido: a lista é trabalho de configuração, não leitura de passagem.
     expect(
-      wrapper
-        .find('[data-testid="kanban-settings-next-action-types-group"]')
-        .attributes('open')
-    ).toBeUndefined();
+      wrapper.find('[data-testid="kanban-settings-next-action-types"]').exists()
+    ).toBe(false);
     expect(
       wrapper
         .find('[data-testid="kanban-settings-lost-reason-options-group"]')
         .attributes('open')
     ).toBeUndefined();
+  });
+
+  // Sem isto, quem procurava «Tipo de ação» na aba onde ele aparece concluía
+  // que o campo não era configurável — a lista vivia noutro item do menu.
+  it('shows the standard fields of the tab, with their options', async () => {
+    const { wrapper } = await mountSettings();
+
+    const rotulos = wrapper
+      .find('[data-testid="kanban-settings-standard-fields"]')
+      .text();
+
+    expect(rotulos).toContain('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE');
+    expect(rotulos).toContain('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER');
+    expect(
+      wrapper
+        .find(
+          '[data-testid="kanban-settings-standard-field-options-next_action_type"]'
+        )
+        .exists()
+    ).toBe(true);
   });
 
   it('toggles all_agents and selected_agents controls', async () => {
@@ -2154,6 +2179,11 @@ describe('KanbanBoardSettings', () => {
     await wrapper
       .find('[data-testid="kanban-settings-description"]')
       .setValue('Funil novo');
+    await wrapper
+      .find(
+        '[data-testid="kanban-settings-standard-field-options-next_action_type"]'
+      )
+      .trigger('click');
     await wrapper
       .find('[data-testid="kanban-settings-next-action-types"]')
       .setValue('Enviar proposta\nEnviar link de pagamento\nEnviar proposta');
