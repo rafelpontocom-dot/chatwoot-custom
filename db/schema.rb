@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_07_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_07_220719) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1438,6 +1438,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_07_120000) do
     t.jsonb "calendar_booking_stage_ids", default: [], null: false
     t.jsonb "calendar_procedure_ids", default: [], null: false
     t.string "calendar_legacy_next_appointment_field_key"
+    t.jsonb "contact_field_keys", default: [], null: false
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "archived_at"], name: "index_kanban_boards_on_account_id_and_archived_at"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"

@@ -316,7 +316,10 @@ const mountModal = async ({
   financeModule = { enabled: false },
   financeConnections = [],
   financePayments = [],
+  contactFieldKeys = [],
+  attributeDefinitions = [],
 } = {}) => {
+  storeMocks.attributeDefinitions = attributeDefinitions;
   storeMocks.labels = accountLabels;
   storeMocks.dispatch.mockResolvedValue();
   KanbanBoardsAPI.getCadences.mockResolvedValue({ data: [] });
@@ -359,6 +362,7 @@ const mountModal = async ({
       lostReasonOptions: ['Preço', 'Sem resposta'],
       customFieldDefinitions,
       customFieldSections,
+      contactFieldKeys,
       ownerOptions: [
         { value: 7, label: 'Jane Agent' },
         { value: 8, label: 'Ana Paula' },
@@ -972,6 +976,89 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).not.toContain('lg:grid-cols-[minmax(0,1fr)_18rem]');
   });
 
+  describe('contact fields', () => {
+    const atributos = [
+      {
+        attribute_key: 'data_nascimento',
+        attribute_display_name: 'Data de nascimento',
+        attribute_model: 'contact_attribute',
+        attribute_display_type: 'date',
+      },
+      {
+        attribute_key: 'waha_whatsapp_jid',
+        attribute_display_name: 'WAHA JID',
+        attribute_model: 'contact_attribute',
+        attribute_display_type: 'text',
+      },
+    ];
+
+    const irParaContato = async wrapper => {
+      await wrapper
+        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
+        .trigger('click');
+    };
+
+    it('no longer asks the user to add a field before filling it', async () => {
+      const wrapper = await mountModal({ attributeDefinitions: atributos });
+      await irParaContato(wrapper);
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-opportunity-add-attribute"]')
+          .exists()
+      ).toBe(false);
+    });
+
+    // Sem esta camada a aba mostrava qualquer atributo da conta — inclusive os
+    // técnicos do WAHA, lidos como se fossem dados de negócio.
+    it('shows only the contact fields the board places, in that order', async () => {
+      const wrapper = await mountModal({
+        attributeDefinitions: atributos,
+        contactFieldKeys: ['data_nascimento'],
+      });
+      await irParaContato(wrapper);
+
+      expect(
+        wrapper.find('[data-testid="kanban-row-attr-data_nascimento"]').exists()
+      ).toBe(true);
+      expect(
+        wrapper
+          .find('[data-testid="kanban-row-attr-waha_whatsapp_jid"]')
+          .exists()
+      ).toBe(false);
+    });
+
+    it('draws a placed but empty field as a dash instead of hiding it', async () => {
+      const wrapper = await mountModal({
+        attributeDefinitions: atributos,
+        contactFieldKeys: ['data_nascimento'],
+      });
+      await irParaContato(wrapper);
+
+      const linha = wrapper.find(
+        '[data-testid="kanban-row-attr-data_nascimento"]'
+      );
+      expect(linha.exists()).toBe(true);
+      // O traço é desenhado pelo RaevoFieldRow; aqui o i18n devolve a chave.
+      expect(linha.text()).toContain('RAEVO.FIELD_ROW.EMPTY');
+    });
+
+    // Board ainda não configurado não pode esvaziar de um dia para o outro.
+    it('falls back to whatever has a value while the board has no placement', async () => {
+      const wrapper = await mountModal({
+        attributeDefinitions: atributos,
+        contactFieldKeys: [],
+      });
+      await irParaContato(wrapper);
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-opportunity-add-attribute"]')
+          .exists()
+      ).toBe(false);
+    });
+  });
+
   it('renders title, compact description, and amount controls', async () => {
     const wrapper = await mountModal();
     await abrirLinhas(wrapper);
@@ -981,10 +1068,19 @@ describe('KanbanOpportunityDetailsModal', () => {
       .find('[data-testid="kanban-opportunity-edit-subject"]')
       .trigger('click');
     expect(subjectInput(wrapper).classes()).toContain('w-full');
-    // A casca do textarea agora vem do RaevoField, unica para todo o produto.
+    // Em ficha densa o campo não desenha casca: mesma tipografia da linha,
+    // sem fundo nem contorno. A pílula/`rounded-lg` do design system vale para
+    // formulário, não aqui. Ver docs/raevo-design-system.md §3.
     expect(descriptionInput(wrapper).classes()).toEqual(
-      expect.arrayContaining(['w-full', 'min-h-20', 'rounded-lg'])
+      expect.arrayContaining([
+        'w-full',
+        'min-h-20',
+        'bg-transparent',
+        'border-0',
+        'text-sm',
+      ])
     );
+    expect(descriptionInput(wrapper).classes()).not.toContain('rounded-lg');
     expect(descriptionInput(wrapper).attributes('rows')).toBe('3');
     expect(amountInput(wrapper).element.value).toBe('125.50');
   });

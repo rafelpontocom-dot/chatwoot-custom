@@ -12,9 +12,13 @@ import RaevoField from './RaevoField.vue';
  * o que deixava ~11 campos visíveis numa ficha que tem dezenas.
  *
  * A literatura abre exceção justamente para ficha densa de campos familiares,
- * que é o caso de quem preenche os mesmos 12 campos 40 vezes por dia. Então:
- * em repouso a linha é compacta e sem vão entre rótulo e valor; ao editar, vira
- * o `RaevoField` inteiro, com rótulo em cima e a geometria do design system.
+ * que é o caso de quem preenche os mesmos 12 campos 40 vezes por dia. Então a
+ * linha é compacta e sem vão entre rótulo e valor — e continua assim ao editar.
+ *
+ * Editar não abre caixa nenhuma: o controle herda a tipografia da linha, não
+ * pinta fundo nem contorno, e o foco se anuncia por um anel. Nada se move. A
+ * caixa do formulário dizia "isto é editável", que o hover da linha e o próprio
+ * `button` já diziam — e cobrava por isso um salto de geometria a cada clique.
  */
 const props = defineProps({
   label: { type: String, required: true },
@@ -101,19 +105,19 @@ defineExpose({ abrir, fechar });
     @mouseup="cliqueInterno = false"
   >
     <!--
-      Edição: o mesmo campo do design system, mas na geometria em que a linha
-      já se lia — rótulo à esquerda, controle à direita, mesma coluna e mesmo
-      degrau de texto. `px-2` repete o recuo do botão de repouso para o rótulo
-      não deslizar no instante em que o campo abre. Texto longo é a exceção:
-      várias linhas não cabem ao lado, então continua empilhado.
+      Edição na mesma geometria em que a linha já se lia: rótulo à esquerda,
+      controle à direita, mesma coluna, mesmo degrau de texto, mesmo recuo
+      (`px-2` repete o do botão de repouso). O controle não desenha casca — a
+      linha inteira continua parecendo o que era, só que agora aceita texto.
+      Texto longo também: o textarea cresce dentro da coluna do valor.
     -->
-    <div v-if="editando" class="px-2 py-1" @keydown="aoTeclar">
+    <div v-if="editando" class="px-2 py-1.5" @keydown="aoTeclar">
       <RaevoField
         :label="label"
         :variant="variant"
         :hint="hint"
         :error="error"
-        :inline="variant !== 'textarea'"
+        inline
       >
         <template #default="slotProps">
           <slot name="control" v-bind="slotProps" />

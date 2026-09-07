@@ -1316,6 +1316,22 @@
         "TITLE": "Excluir funil",
         "DESCRIPTION": "Remova este funil da navegação Kanban ativa. Os cartões históricos não são alterados.",
         "ACTION": "Excluir funil"
+      },
+      "CONTACT_FIELDS": {
+        "TITLE": "Campos do contato",
+        "DESCRIPTION": "Escolha quais campos do contato aparecem na oportunidade, e em que ordem. A definição vive no Chatwoot — criar um aqui cria lá também.",
+        "EMPTY": "Nenhum campo de contato colocado. Até colocar um, a ficha mostra o que o contato já tiver preenchido.",
+        "PLACE_EXISTING": "Colocar um campo existente",
+        "PLACE_PLACEHOLDER": "Selecione um campo",
+        "PLACE_ACTION": "Colocar",
+        "MOVE_UP": "Subir",
+        "MOVE_DOWN": "Descer",
+        "REMOVE": "Retirar da ficha",
+        "CREATE_HINT": "Um campo criado aqui passa a ser um atributo de contato do Chatwoot, visível também na barra lateral do contato.",
+        "CREATE_LABEL": "Novo campo de contato",
+        "CREATE_PLACEHOLDER": "Ex.: CPF",
+        "CREATE_ACTION": "Criar",
+        "CREATE_ERROR": "Não foi possível criar o campo de contato."
       }
     },
     "REMOVE_BOARD": {

@@ -12,6 +12,7 @@
 #  calendar_legacy_next_appointment_field_key :string
 #  calendar_procedure_ids                     :jsonb            not null
 #  compact_card_field_keys                    :jsonb            not null
+#  contact_field_keys                         :jsonb            not null
 #  custom_field_definitions                   :jsonb            not null
 #  custom_field_sections                      :jsonb            not null
 #  description                                :text
@@ -236,6 +237,7 @@ class KanbanBoard < ApplicationRecord
     self.custom_field_definitions = normalize_custom_field_definitions(custom_field_definitions)
     self.custom_field_sections = normalize_custom_field_sections(custom_field_sections)
     self.compact_card_field_keys = normalize_compact_card_field_keys(compact_card_field_keys)
+    self.contact_field_keys = normalize_contact_field_keys(contact_field_keys)
     self.stale_stage_thresholds = normalize_stale_stage_thresholds(stale_stage_thresholds)
     normalize_calendar_configuration
   end
@@ -377,6 +379,12 @@ class KanbanBoard < ApplicationRecord
 
   def normalize_compact_card_field_keys(field_keys)
     normalize_string_list(field_keys).map { |key| key.parameterize(separator: '_') }
+  end
+
+  # A chave é do Chatwoot, não nossa: preserva-se como veio, sem parameterize —
+  # `waha_whatsapp_jid` e afins têm de casar exatamente com a definição da conta.
+  def normalize_contact_field_keys(field_keys)
+    normalize_string_list(field_keys).uniq
   end
 
   def normalize_stale_stage_thresholds(thresholds)

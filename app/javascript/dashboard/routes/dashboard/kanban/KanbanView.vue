@@ -3162,6 +3162,7 @@ onUnmounted(() => {
           :lost-reason-options="selectedBoard.lostReasonOptions || []"
           :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           :custom-field-sections="selectedBoard.customFieldSections || []"
+          :contact-field-keys="selectedBoard.contactFieldKeys || []"
           :calendar-enabled="selectedBoard.calendarEnabled"
           :calendar-booking-stage-ids="
             selectedBoard.calendarBookingStageIds || []

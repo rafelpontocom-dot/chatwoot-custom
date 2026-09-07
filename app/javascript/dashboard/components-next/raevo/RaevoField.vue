@@ -2,6 +2,9 @@
 import { computed, useId } from 'vue';
 import {
   RAEVO_CONTROL_CLASS,
+  RAEVO_INLINE_CONTROL_CLASS,
+  RAEVO_INLINE_SELECT_CLASS,
+  RAEVO_INLINE_TEXTAREA_CLASS,
   RAEVO_SELECT_CLASS,
   RAEVO_TEXTAREA_CLASS,
 } from './raevoControl';
@@ -47,8 +50,10 @@ const props = defineProps({
    *
    * Numa ficha densa que se lê em linha, empilhar só ao editar reescreve a
    * geometria debaixo do cursor: o rótulo encolhe de 14px para 12px e o campo
-   * salta para baixo dele. Em linha, abrir o campo não move mais nada.
-   * Texto longo continua empilhado — várias linhas não cabem ao lado.
+   * salta para baixo dele. Em linha, abrir o campo não move mais nada — e o
+   * controle perde a casca, porque a caixa não diz nada que o hover da linha
+   * já não diga. Vale também para texto longo: o textarea cresce dentro da
+   * coluna do valor, com o rótulo alinhado ao topo.
    */
   inline: {
     type: Boolean,
@@ -58,7 +63,14 @@ const props = defineProps({
 
 const fieldId = useId();
 
+// Em linha a casca do formulário some: quem lê a ficha não precisa que o campo
+// se anuncie como caixa. Fora dela, a geometria do design system continua.
 const controlClass = computed(() => {
+  if (props.inline) {
+    if (props.variant === 'select') return RAEVO_INLINE_SELECT_CLASS;
+    if (props.variant === 'textarea') return RAEVO_INLINE_TEXTAREA_CLASS;
+    return RAEVO_INLINE_CONTROL_CLASS;
+  }
   if (props.variant === 'select') return RAEVO_SELECT_CLASS;
   if (props.variant === 'textarea') return RAEVO_TEXTAREA_CLASS;
   return RAEVO_CONTROL_CLASS;
@@ -76,7 +88,9 @@ const describedBy = computed(() => {
     class="grid"
     :class="
       inline
-        ? 'grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1'
+        ? `grid-cols-[8.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 ${
+            variant === 'textarea' ? 'items-start' : 'items-center'
+          }`
         : 'gap-1.5'
     "
   >
@@ -111,7 +125,8 @@ const describedBy = computed(() => {
       <i
         v-if="variant === 'select'"
         aria-hidden="true"
-        class="i-lucide-chevron-down pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-n-slate-10"
+        class="i-lucide-chevron-down pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 text-n-slate-10"
+        :class="inline ? 'right-0' : 'right-3'"
       />
     </div>
 

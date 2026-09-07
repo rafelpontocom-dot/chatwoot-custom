@@ -138,6 +138,41 @@ describe('RaevoFieldRow', () => {
     );
   });
 
+  // O salto que a ficha mostrava: ao abrir, o rótulo caía de 14px para 12px e
+  // a resposta passava a pesar mais que a pergunta.
+  it('keeps the label on the same type step when the field opens', async () => {
+    const wrapper = montar({ value: '480,00' });
+    const rotuloEmRepouso = wrapper.find('span').classes();
+    expect(rotuloEmRepouso).toContain('text-sm');
+
+    await wrapper.find('[data-testid="raevo-field-row-read"]').trigger('click');
+
+    const rotuloEmEdicao = wrapper.find('label').classes();
+    expect(rotuloEmEdicao).toContain('text-sm');
+    expect(rotuloEmEdicao).not.toContain('text-xs');
+  });
+
+  it('opens without drawing a box around the control', async () => {
+    const wrapper = montar();
+    await wrapper.find('[data-testid="raevo-field-row-read"]').trigger('click');
+
+    const classes = wrapper.find('input').classes();
+    expect(classes).toContain('bg-transparent');
+    expect(classes).toContain('border-0');
+    expect(classes).toContain('text-sm');
+    expect(classes).not.toContain('rounded-full');
+    expect(classes).not.toContain('bg-n-surface-1');
+  });
+
+  it('keeps long text in the value column instead of stacking it', async () => {
+    const wrapper = montar({ variant: 'textarea' });
+    await wrapper.find('[data-testid="raevo-field-row-read"]').trigger('click');
+
+    const grade = wrapper.find('label').element.parentElement.className;
+    expect(grade).toContain('grid-cols-[8.75rem_minmax(0,1fr)]');
+    expect(wrapper.find('label').classes()).toContain('text-sm');
+  });
+
   it('does not open when disabled', async () => {
     const wrapper = montar({ disabled: true });
 

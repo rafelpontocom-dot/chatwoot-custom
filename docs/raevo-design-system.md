@@ -99,6 +99,24 @@ Duas combinações já reprovaram e estão proibidas:
 | `.raevo-card` | mantém o raio declarado | o que é botão só por ser clicável — o chip de um agendamento. Um card alto com raio de pílula desenha uma elipse. |
 | `border` | 1px | contorno padrão |
 
+### Campo: dois contextos, duas regras
+
+Campo tem **duas** aparências, e só duas. Qualquer terceira é regressão.
+
+| Contexto | Onde | Rótulo | Controle |
+| --- | --- | --- | --- |
+| **Formulário** | criar, configurar, diálogo de ação | `text-xs`, acima do campo | pílula `rounded-full`, fundo `bg-n-surface-1`, contorno `border-n-strong` |
+| **Ficha densa** | ler e preencher registro — ficha da oportunidade, aba de contato | `text-sm`, à esquerda, na mesma linha | sem casca: `bg-transparent`, `border-0`, mesma tipografia do valor; foco por anel |
+
+A ficha densa é a exceção deliberada ao `rounded-full` e ao rótulo de 12px acima. Motivo: ali
+ler e preencher são o mesmo gesto, repetido dezenas de vezes por dia. A casca do formulário não
+informa nada que o `hover` da linha e o próprio `button` já não digam, e cobra por isso um salto
+de geometria a cada clique — o rótulo encolhia de 14px para 12px e o campo saltava para baixo dele.
+
+Ambas vivem em `raevoControl.js` (`RAEVO_*_CLASS` e `RAEVO_INLINE_*_CLASS`) e chegam à tela pelo
+slot do `RaevoField`. **Nenhuma tela escreve classe de campo à mão** — foi assim que o produto
+acumulou três tratamentos diferentes dentro do mesmo diálogo.
+
 **Sombra:** em repouso, nenhuma. O ar separa.
 - `shadow-sm` = `none` (deliberado)
 - `shadow` / `shadow-md` = `--raevo-shadow-hover`, só no hover
@@ -123,8 +141,8 @@ escala muda aqui primeiro.
 | Papel | Classe | Valor | Uso |
 | --- | --- | --- | --- |
 | Micro | `text-micro` | 11px | selo, contador, cabeçalho de tabela, eyebrow — **o piso** |
-| Apoio | `text-xs` | 12px | metadado secundário, rótulo de campo, texto de ajuda |
-| Corpo | `text-sm` | 14px | padrão de leitura, valor de campo |
+| Apoio | `text-xs` | 12px | metadado secundário, rótulo de campo **em formulário**, texto de ajuda |
+| Corpo | `text-sm` | 14px | padrão de leitura, valor de campo, rótulo de campo **em ficha densa** |
 | Título de item | `text-base` | 16px | nome de card, título de seção |
 | Título de tela | `text-xl` | 20px | cabeçalho de página |
 | Destaque | `text-3xl` | 30px | número grande, pergunta do formulário guiado |

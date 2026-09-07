@@ -8,7 +8,6 @@ import FinanceAPI from 'dashboard/api/finance';
 import FormsAPI from 'dashboard/api/forms';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
-import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -56,6 +55,15 @@ const props = defineProps({
     default: () => [],
   },
   customFieldSections: {
+    type: Array,
+    default: () => [],
+  },
+  /**
+   * Atributos de contato que este board mostra, na ordem em que os mostra.
+   * A definição continua a ser do Chatwoot; aqui só se decide a colocação.
+   * Vazio significa "nunca configurado" — ver `visibleContactAttributes`.
+   */
+  contactFieldKeys: {
     type: Array,
     default: () => [],
   },
@@ -341,33 +349,38 @@ const contactLabels = computed(() => {
 const hasAttributeValue = value =>
   value !== '' && value !== null && value !== undefined;
 
-// Campos abertos manualmente nesta sessao: sem isto, limpar um valor
-// faria a linha desaparecer e nao haveria como redigitar.
+// Linhas que já foram tocadas nesta sessão. Sem isto, num board ainda sem
+// configuração de campos de contato, limpar um valor faria a linha desaparecer
+// debaixo do cursor e não haveria como redigitar.
 const revealedAttributeKeys = ref(new Set());
 
-const visibleContactAttributes = computed(() =>
-  contactAttributeEntries.value.filter(
-    entry =>
-      hasAttributeValue(entry.value) ||
-      revealedAttributeKeys.value.has(entry.key)
-  )
+// Quem decide o que aparece é a configuração de campos do board, não o valor
+// gravado no contato: campo previsto aparece sempre, vazio desenha traço, como
+// já acontece com os campos da oportunidade. Preencher deixa de ser um gesto em
+// dois tempos ("adicionar" e depois escrever).
+//
+// Board ainda não configurado cai no comportamento anterior — mostra o que tem
+// valor — para nenhuma ficha existente esvaziar de um dia para o outro.
+const contactFieldsConfigured = computed(
+  () => props.contactFieldKeys.length > 0
 );
-const availableContactAttributes = computed(() =>
-  contactAttributeEntries.value.filter(
-    entry =>
-      !hasAttributeValue(entry.value) &&
-      !revealedAttributeKeys.value.has(entry.key)
-  )
-);
-const attributeToAdd = ref('');
-const revealContactAttribute = () => {
-  if (!attributeToAdd.value) return;
+const visibleContactAttributes = computed(() => {
+  if (!contactFieldsConfigured.value) {
+    return contactAttributeEntries.value.filter(
+      entry =>
+        hasAttributeValue(entry.value) ||
+        revealedAttributeKeys.value.has(entry.key)
+    );
+  }
 
-  revealedAttributeKeys.value = new Set(revealedAttributeKeys.value).add(
-    attributeToAdd.value
+  const byKey = new Map(
+    contactAttributeEntries.value.map(entry => [entry.key, entry])
   );
-  attributeToAdd.value = '';
-};
+
+  return props.contactFieldKeys
+    .map(key => byKey.get(key))
+    .filter(entry => entry !== undefined);
+});
 const formatContactAttributeValue = value => {
   // Um campo aberto e ainda vazio desenhava a string "undefined" na linha em
   // repouso. Vazio é ausência de valor, e quem desenha ausência é o RaevoFieldRow.
@@ -382,6 +395,9 @@ const formatContactAttributeValue = value => {
   return String(value);
 };
 const setContactAttributeValue = (entry, value) => {
+  revealedAttributeKeys.value = new Set(revealedAttributeKeys.value).add(
+    entry.key
+  );
   contactDraft.value = {
     ...contactDraft.value,
     [entry.source]: {
@@ -861,7 +877,6 @@ const setFormState = payload => {
     },
   };
   revealedAttributeKeys.value = new Set();
-  attributeToAdd.value = '';
   subject.value = card.value.subject || '';
   description.value = card.value.description || '';
   ownerId.value = card.value.ownerId ? String(card.value.ownerId) : '';
@@ -2141,10 +2156,7 @@ watch(invitationPendingRevocation, async invitation => {
                 </div>
               </section>
               <section
-                v-if="
-                  visibleContactAttributes.length ||
-                  availableContactAttributes.length
-                "
+                v-if="visibleContactAttributes.length"
                 class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
               >
                 <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
@@ -2214,56 +2226,6 @@ watch(invitationPendingRevocation, async invitation => {
                       />
                     </template>
                   </RaevoFieldRow>
-                </div>
-                <!--
-                  Divulgacao progressiva: os campos vazios ficam atras deste
-                  controlo para o bloco nao crescer com a conta, mas continuam
-                  todos alcancaveis, inclusive por teclado.
-                -->
-                <div
-                  v-if="availableContactAttributes.length"
-                  class="flex items-end gap-2"
-                >
-                  <RaevoField
-                    :label="t('KANBAN.OPPORTUNITY_DETAILS.ADD_ATTRIBUTE')"
-                    variant="select"
-                    class="flex-1"
-                  >
-                    <template #default="{ controlClass, fieldId }">
-                      <select
-                        :id="fieldId"
-                        v-model="attributeToAdd"
-                        data-testid="kanban-opportunity-add-attribute"
-                        :class="controlClass"
-                      >
-                        <option value="">
-                          {{
-                            t(
-                              'KANBAN.OPPORTUNITY_DETAILS.ADD_ATTRIBUTE_PLACEHOLDER'
-                            )
-                          }}
-                        </option>
-                        <option
-                          v-for="entry in availableContactAttributes"
-                          :key="`${entry.source}-${entry.key}`"
-                          :value="entry.key"
-                        >
-                          {{ entry.label }}
-                        </option>
-                      </select>
-                    </template>
-                  </RaevoField>
-                  <NextButton
-                    :label="
-                      t('KANBAN.OPPORTUNITY_DETAILS.ADD_ATTRIBUTE_ACTION')
-                    "
-                    :disabled="!attributeToAdd"
-                    data-testid="kanban-opportunity-add-attribute-action"
-                    faded
-                    slate
-                    sm
-                    @click="revealContactAttribute"
-                  />
                 </div>
               </section>
             </section>

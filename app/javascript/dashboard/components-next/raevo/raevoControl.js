@@ -42,3 +42,34 @@ export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-3 py-2.5
 /** `input[type=color]` — é uma amostra de cor, não um campo de texto: o
  * conteúdo é a própria cor, por isso não leva padding horizontal de texto. */
 export const RAEVO_SWATCH_CLASS = `h-10 cursor-pointer rounded-full p-1 ${BASE}`;
+
+/**
+ * Ficha densa — o controle que não desenha caixa.
+ *
+ * Em painel de registro, ler e preencher são o mesmo gesto repetido dezenas de
+ * vezes por dia: quem edita já sabe onde está. A casca do formulário (pílula,
+ * fundo próprio, contorno) aqui não informa nada que o `hover` da linha já não
+ * diga, e cobra o preço de redesenhar a geometria debaixo do cursor — o campo
+ * abria e o rótulo encolhia de 14px para 12px.
+ *
+ * Então o controle herda a tipografia da linha, não pinta fundo nem contorno em
+ * repouso, e anuncia o foco por um anel. Nada se move ao abrir.
+ *
+ * Isto é a exceção documentada ao §3/§4 do design system, que continua a valer
+ * para formulário (criar, configurar): lá o rótulo é 12px e o campo é pílula.
+ */
+const INLINE_BASE =
+  'reset-base mb-0 w-full border-0 bg-transparent px-0 ' +
+  'text-sm leading-5 text-n-slate-12 ' +
+  'outline-none placeholder:text-n-slate-9 ' +
+  'focus:ring-2 focus:ring-n-brand/30 focus:rounded-md ' +
+  'disabled:cursor-not-allowed disabled:opacity-60';
+
+/** input em ficha densa */
+export const RAEVO_INLINE_CONTROL_CLASS = `min-h-8 ${INLINE_BASE}`;
+
+/** select em ficha densa — o chevron continua a ser do RaevoField */
+export const RAEVO_INLINE_SELECT_CLASS = `min-h-8 appearance-none bg-none pr-6 ${INLINE_BASE}`;
+
+/** textarea em ficha densa — cresce para baixo, sem sair da coluna do valor */
+export const RAEVO_INLINE_TEXTAREA_CLASS = `min-h-20 resize-y py-0.5 ${INLINE_BASE}`;

@@ -1313,6 +1313,22 @@
         "TITLE": "Delete funnel",
         "DESCRIPTION": "Remove this funnel from active Kanban navigation. Historical cards are not changed.",
         "ACTION": "Delete funnel"
+      },
+      "CONTACT_FIELDS": {
+        "TITLE": "Contact fields",
+        "DESCRIPTION": "Choose which contact fields appear on the opportunity, and in what order. The definition lives in Chatwoot — creating one here creates it there too.",
+        "EMPTY": "No contact field placed yet. Until you place one, the card shows whatever the contact already has filled in.",
+        "PLACE_EXISTING": "Place an existing field",
+        "PLACE_PLACEHOLDER": "Select a field",
+        "PLACE_ACTION": "Place",
+        "MOVE_UP": "Move up",
+        "MOVE_DOWN": "Move down",
+        "REMOVE": "Remove from the card",
+        "CREATE_HINT": "A field created here becomes a Chatwoot contact attribute, visible in the contact sidebar as well.",
+        "CREATE_LABEL": "New contact field",
+        "CREATE_PLACEHOLDER": "E.g. Tax number",
+        "CREATE_ACTION": "Create",
+        "CREATE_ERROR": "Could not create the contact field."
       }
     },
     "REMOVE_BOARD": {

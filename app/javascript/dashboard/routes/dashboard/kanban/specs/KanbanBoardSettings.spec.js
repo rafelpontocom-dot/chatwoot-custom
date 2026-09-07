@@ -2398,6 +2398,7 @@ describe('KanbanBoardSettings', () => {
           },
         ],
         compact_card_field_keys: [],
+        contact_field_keys: [],
         stale_stage_thresholds: { 100: 3 },
         appointment_reminder_hours: null,
         calendar_enabled: false,

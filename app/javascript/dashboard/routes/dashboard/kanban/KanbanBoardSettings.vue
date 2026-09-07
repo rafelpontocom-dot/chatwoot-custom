@@ -30,6 +30,7 @@ import {
 } from 'dashboard/helper/kanbanStageIcons';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
+import KanbanContactFieldManager from './KanbanContactFieldManager.vue';
 import { RAEVO_CONTROL_CLASS } from 'dashboard/components-next/raevo/raevoControl';
 
 const raevoControlClass = RAEVO_CONTROL_CLASS;
@@ -66,6 +67,15 @@ const isDuplicating = ref(false);
 const isCreatingStage = ref(false);
 const isImportingConversations = ref(false);
 const activeSettingsSection = ref('general');
+
+// Campos da oportunidade e campos do contacto são sistemas diferentes: um é do
+// board, o outro é do Chatwoot. Ficam na mesma tela porque quem configura pensa
+// "quais campos esta ficha tem", não "de quem é a definição".
+const escopoDeCampo = ref('opportunity');
+const escoposDeCampo = computed(() => [
+  { key: 'opportunity', label: t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_TITLE') },
+  { key: 'contact', label: t('KANBAN.SETTINGS.CONTACT_FIELDS.TITLE') },
+]);
 const loadError = ref('');
 const saveError = ref('');
 const stageError = ref('');
@@ -217,6 +227,7 @@ const form = reactive({
   customFieldDefinitions: [],
   customFieldSections: [],
   compactCardFieldKeys: [],
+  contactFieldKeys: [],
   staleStageThresholds: {},
   appointmentReminderHours: '',
   calendarEnabled: false,
@@ -415,6 +426,7 @@ const settingsFingerprint = () =>
     customFieldDefinitionsText: form.customFieldDefinitionsText,
     customFieldSections: form.customFieldSections,
     compactCardFieldKeys: form.compactCardFieldKeys,
+    contactFieldKeys: form.contactFieldKeys,
     staleStageThresholds: form.staleStageThresholds,
     appointmentReminderHours: form.appointmentReminderHours,
     calendarEnabled: form.calendarEnabled,
@@ -1209,6 +1221,7 @@ const applySettings = payload => {
         ),
       ];
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
+  form.contactFieldKeys = settings.contactFieldKeys || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
   form.appointmentReminderHours = settings.appointmentReminderHours ?? '';
   form.calendarEnabled = Boolean(settings.calendarEnabled);
@@ -2362,6 +2375,7 @@ const buildPayload = () => ({
     ),
     custom_field_sections: customFieldSectionsPayload(),
     compact_card_field_keys: form.compactCardFieldKeys,
+    contact_field_keys: form.contactFieldKeys,
     stale_stage_thresholds: normalizedStaleStageThresholds(),
     appointment_reminder_hours:
       form.appointmentReminderHours === ''
@@ -4369,6 +4383,37 @@ onMounted(async () => {
           </div>
 
           <div
+            class="flex flex-wrap items-center gap-1"
+            role="tablist"
+            :aria-label="t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_TITLE')"
+          >
+            <button
+              v-for="escopo in escoposDeCampo"
+              :key="escopo.key"
+              type="button"
+              role="tab"
+              :aria-selected="escopoDeCampo === escopo.key"
+              :data-testid="`kanban-settings-field-scope-${escopo.key}`"
+              class="flex h-8 items-center gap-2 rounded-md border border-solid px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-n-brand/40"
+              :class="
+                escopoDeCampo === escopo.key
+                  ? 'border-n-brand bg-n-brand/10 font-semibold text-n-brand'
+                  : 'border-n-weak bg-n-surface-1 font-medium text-n-slate-11 hover:bg-n-alpha-1 hover:text-n-slate-12'
+              "
+              @click="escopoDeCampo = escopo.key"
+            >
+              {{ escopo.label }}
+            </button>
+          </div>
+
+          <KanbanContactFieldManager
+            v-show="escopoDeCampo === 'contact'"
+            v-model="form.contactFieldKeys"
+            :disabled="!canConfigure"
+          />
+
+          <div
+            v-show="escopoDeCampo === 'opportunity'"
             class="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
           >
             <section class="grid content-start gap-3">
