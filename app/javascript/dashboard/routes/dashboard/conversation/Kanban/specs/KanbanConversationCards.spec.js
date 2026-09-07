@@ -530,6 +530,39 @@ describe('KanbanConversationCards', () => {
     );
   });
 
+  // O cartão ligado só se lê em repouso quando o formulário de criação está
+  // aberto — de outro modo o primeiro entra em edição sozinho.
+  it('says the next action is unset once, not twice', async () => {
+    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
+      data: {
+        payload: [buildCard({ next_action_type: '', next_action_at: null })],
+      },
+    });
+
+    const wrapper = mountComponent();
+    await flushPromises();
+    await openForm(wrapper);
+
+    const cartao = wrapper.find('[data-testid="kanban-linked-card"]').text();
+
+    expect(cartao.match(/Not set/g)).toHaveLength(1);
+  });
+
+  it('shows the action type and its date on their own lines', async () => {
+    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
+      data: { payload: [buildCard()] },
+    });
+
+    const wrapper = mountComponent();
+    await flushPromises();
+    await openForm(wrapper);
+
+    const cartao = wrapper.find('[data-testid="kanban-linked-card"]').text();
+
+    expect(cartao).toContain('Cobrar retorno');
+    expect(cartao).not.toContain('Not set');
+  });
+
   it('renders an empty next action and labels in editable fields', async () => {
     KanbanBoardsAPI.getConversationCards.mockResolvedValue({
       data: {

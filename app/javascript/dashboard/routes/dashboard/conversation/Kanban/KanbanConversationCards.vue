@@ -209,10 +209,18 @@ const openCardInBoard = card => {
   });
 };
 
-const formatNextActionAt = value => {
-  if (!value) return t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET');
+const formatNextActionAt = value =>
+  messageStamp(new Date(value).getTime() / 1000, 'LLL d, yyyy h:mm a');
 
-  return messageStamp(new Date(value).getTime() / 1000, 'LLL d, yyyy h:mm a');
+// Tipo e data eram duas linhas independentes, e cada uma dizia «não definido»
+// por si: com a ação por preencher, o painel repetia-o duas vezes seguidas.
+const nextActionLines = card => {
+  const linhas = [
+    card.next_action_type || '',
+    card.next_action_at ? formatNextActionAt(card.next_action_at) : '',
+  ].filter(Boolean);
+
+  return linhas.length ? linhas : [t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET')];
 };
 
 const formatDateTimeInput = value => {
@@ -1294,14 +1302,21 @@ onBeforeUnmount(() => {
             <p class="mb-1 text-xs font-medium text-n-slate-11">
               {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION') }}
             </p>
-            <p class="m-0 truncate text-sm text-n-slate-12">
-              {{
-                card.next_action_type ||
-                t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET')
-              }}
-            </p>
-            <p class="m-0 truncate text-xs text-n-slate-11">
-              {{ formatNextActionAt(card.next_action_at) }}
+            <!--
+              `truncate` escondia o fim de «Enviar link de pagamento» nesta
+              barra estreita, sem o dizer a ninguém. A linha quebra.
+            -->
+            <p
+              v-for="(linha, indice) in nextActionLines(card)"
+              :key="linha"
+              class="m-0 break-words"
+              :class="
+                indice === 0
+                  ? 'text-sm text-n-slate-12'
+                  : 'text-xs text-n-slate-11'
+              "
+            >
+              {{ linha }}
             </p>
           </div>
 
