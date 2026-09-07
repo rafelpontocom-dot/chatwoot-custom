@@ -75,13 +75,14 @@ describe('RaevoAiView', () => {
     expect(wrapper.find('iframe').exists()).toBe(false);
   });
 
-  it('owns a vertical scroll container inside the clipped dashboard shell', () => {
+  it('owns a flexible vertical scroll container with room after the last section', () => {
     const wrapper = mountView();
     const workspace = wrapper.get('[data-testid="ai-workspace"]');
 
     expect(workspace.classes()).toEqual(
-      expect.arrayContaining(['h-full', 'min-h-0', 'overflow-y-auto'])
+      expect.arrayContaining(['min-h-0', 'overflow-y-auto', 'pb-10'])
     );
+    expect(workspace.classes()).not.toContain('h-full');
   });
 
   it('keeps the native area behind the Raevo AI account feature', () => {

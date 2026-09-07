@@ -198,7 +198,7 @@ const servicePackages = computed(() => [
 <template>
   <main
     data-testid="ai-workspace"
-    class="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto bg-n-background px-4 py-5 sm:px-6 lg:px-8"
+    class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto bg-n-background px-4 py-5 pb-10 sm:px-6 lg:px-8"
   >
     <div class="mx-auto flex w-full max-w-[96rem] flex-col gap-4">
       <RaevoPageHeader
