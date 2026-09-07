@@ -3739,20 +3739,27 @@ onMounted(async () => {
                         </span>
                       </div>
                     </label>
-                    <Button
-                      type="button"
-                      data-testid="kanban-settings-save-stage-rules"
-                      icon="i-lucide-save"
-                      :label="t('KANBAN.SETTINGS.STAGES.SAVE')"
-                      color="blue"
-                      size="sm"
-                      :disabled="Boolean(activeStageActionKey)"
-                      :is-loading="
-                        activeStageActionKey ===
-                        `update-stage-${selectedStage.id}`
-                      "
-                      @click="saveStageRules(selectedStage)"
-                    />
+                    <!--
+                      Guardar em linha própria: na última coluna da grelha o
+                      rótulo cabia mal e o componente cortava-o em «Save stage
+                      r…», que não diz o que o botão faz.
+                    -->
+                    <div class="flex justify-end lg:col-span-5">
+                      <Button
+                        type="button"
+                        data-testid="kanban-settings-save-stage-rules"
+                        icon="i-lucide-save"
+                        :label="t('KANBAN.SETTINGS.STAGES.SAVE')"
+                        color="blue"
+                        size="sm"
+                        :disabled="Boolean(activeStageActionKey)"
+                        :is-loading="
+                          activeStageActionKey ===
+                          `update-stage-${selectedStage.id}`
+                        "
+                        @click="saveStageRules(selectedStage)"
+                      />
+                    </div>
                   </section>
                 </div>
               </template>
