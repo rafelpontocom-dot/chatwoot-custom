@@ -10,7 +10,6 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
-import NextInput from 'dashboard/components-next/input/Input.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanCalendarAppointmentsSection from './KanbanCalendarAppointmentsSection.vue';
@@ -150,7 +149,6 @@ const formInvitationRevocationConfirmButton = ref(null);
 const copiedFinancePaymentId = ref(null);
 const isLoadingTimeline = ref(false);
 const timelineError = ref('');
-const startsAt = ref('');
 const nextActionType = ref('');
 const nextActionAt = ref('');
 const nextActionNote = ref('');
@@ -627,7 +625,6 @@ const normalizeCard = payload =>
         payload.expectedCloseDate ?? payload.expected_close_date,
       customFieldValues:
         payload.customFieldValues ?? payload.custom_field_values,
-      startsAt: payload.startsAt ?? payload.starts_at,
       nextActionType: payload.nextActionType ?? payload.next_action_type,
       nextActionAt: payload.nextActionAt ?? payload.next_action_at,
       nextActionNote: payload.nextActionNote ?? payload.next_action_note,
@@ -841,7 +838,6 @@ const currentFormState = () => ({
   amountCurrency: amountCurrency.value,
   expectedCloseDate: expectedCloseDate.value,
   customFieldValues: customFieldValues.value,
-  startsAt: startsAt.value,
   nextActionType: nextActionType.value,
   nextActionAt: nextActionAt.value,
   nextActionNote: nextActionNote.value,
@@ -876,7 +872,6 @@ const setFormState = payload => {
   amountCurrency.value = card.value.amountCurrency || accountCurrency.value;
   expectedCloseDate.value = card.value.expectedCloseDate || '';
   customFieldValues.value = card.value.customFieldValues || {};
-  startsAt.value = formatDateTimeInput(card.value.startsAt);
   nextActionType.value = card.value.nextActionType || '';
   nextActionAt.value = formatDateTimeInput(card.value.nextActionAt);
   nextActionNote.value = card.value.nextActionNote || '';
@@ -1194,7 +1189,6 @@ const buildCardPayload = extraPayload => ({
   amount_currency: amountCurrency.value || accountCurrency.value,
   expected_close_date: expectedCloseDate.value || null,
   custom_field_values: customFieldValues.value,
-  starts_at: toIso8601(startsAt.value),
   next_action_type: nextActionType.value || null,
   next_action_at: toIso8601(nextActionAt.value),
   next_action_note: nextActionNote.value.trim() ? nextActionNote.value : null,
@@ -2920,51 +2914,6 @@ watch(invitationPendingRevocation, async invitation => {
               "
               :allowed-procedure-ids="calendarProcedureIds"
             />
-
-            <section
-              v-if="activeTabKey === 'details'"
-              class="grid gap-3 border-b border-n-weak py-3"
-            >
-              <button
-                type="button"
-                class="flex items-center justify-between gap-3 text-left"
-                :aria-expanded="isGroupExpanded('organization')"
-                @click="toggleGroup('organization')"
-              >
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.INTERNAL_DATES') }}
-                </span>
-                <i
-                  class="size-4 text-n-slate-10"
-                  :class="
-                    isGroupExpanded('organization')
-                      ? 'i-lucide-chevron-up'
-                      : 'i-lucide-chevron-down'
-                  "
-                />
-              </button>
-              <div v-show="isGroupExpanded('organization')" class="grid gap-2">
-                <p class="mb-0 text-xs text-n-slate-11">
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.INTERNAL_DATES_HELP') }}
-                </p>
-                <div class="grid">
-                  <div
-                    class="grid grid-cols-[9rem_1fr] items-center gap-3 py-2"
-                  >
-                    <span class="text-xs text-n-slate-11">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.START_DATE') }}
-                    </span>
-                    <NextInput
-                      v-model="startsAt"
-                      type="datetime-local"
-                      data-testid="kanban-opportunity-starts-at"
-                      class="w-full [&_input]:h-8 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus:ring-2 [&_input]:focus:ring-n-brand/40"
-                      :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.START_DATE')"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
           </section>
         </div>
 

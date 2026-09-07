@@ -1395,10 +1395,6 @@
         "SCENARIO": "What is the commercial outlook?"
       },
       "DATES": "Dates",
-      "INTERNAL_DATES": "Internal planning",
-      "INTERNAL_DATES_HELP": "Only the appointment reminder rules read this date. The consultation itself is managed in the Calendar.",
-      "START_DATE": "Start date",
-      "DUE_DATE": "Due date",
       "NEXT_ACTION": "Next action",
       "NEXT_ACTION_TYPE": "Action type",
       "NEXT_ACTION_AT": "Action date",

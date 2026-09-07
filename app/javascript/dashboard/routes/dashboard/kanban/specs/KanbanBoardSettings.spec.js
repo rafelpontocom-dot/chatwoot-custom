@@ -440,6 +440,45 @@ describe('KanbanBoardSettings', () => {
     ).toBe(false);
   });
 
+  // Marcar consulta espelha a data neste campo sozinho. A data de início do
+  // card era digitada à mão e não acompanhava a remarcação: o lembrete saía na
+  // data errada, ou não saía.
+  it('points appointment reminders at the field the calendar keeps in sync', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          calendar_legacy_next_appointment_field_key: 'data_da_consulta',
+          custom_field_definitions: [
+            ...settingsPayload.custom_field_definitions,
+            {
+              key: 'data_da_consulta',
+              label: 'Data da consulta',
+              field_type: 'datetime',
+              options: [],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-settings-appointment-field"]').element
+        .value
+    ).toBe('data_da_consulta');
+  });
+
+  it('no longer offers the card start date as a reminder source', async () => {
+    const { wrapper } = await mountSettings();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-appointment-field"]')
+        .findAll('option')
+        .map(option => option.element.value)
+    ).not.toContain('system_starts_at');
+  });
+
   it('moves a stage up through an explicit keyboard-accessible control', async () => {
     const { wrapper } = await mountSettings();
 

@@ -54,8 +54,6 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.CONTACT': 'Contact',
         'KANBAN.OPPORTUNITY_DETAILS.NO_CONTACT': 'No contact linked',
         'KANBAN.OPPORTUNITY_DETAILS.DATES': 'Dates',
-        'KANBAN.OPPORTUNITY_DETAILS.START_DATE': 'Start date',
-        'KANBAN.OPPORTUNITY_DETAILS.DUE_DATE': 'Due date',
         'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION': 'Next action',
         'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE': 'Action type',
         'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT': 'Action date',
@@ -256,7 +254,6 @@ const buildCard = overrides => ({
   id: 501,
   subject: 'Enterprise expansion',
   description: 'Follow up with procurement next week.',
-  startsAt: '2026-06-01T09:00',
   amountCents: 12550,
   amountCurrency: 'BRL',
   customFieldValues: {
@@ -448,8 +445,6 @@ const customFieldInput = async (wrapper, key) => {
 
   return wrapper.find(`[data-testid="kanban-custom-field-${key}"]`);
 };
-const startsAtInput = wrapper =>
-  wrapper.find('[data-testid="kanban-opportunity-starts-at"]');
 const expectedCloseDateInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-expected-close-date"]');
 const nextActionTypeInput = wrapper =>
@@ -753,7 +748,6 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.find(`label[for="${closeId}"]`).text()).toContain(
       'Expected close date'
     );
-    expect(startsAtInput(wrapper).attributes('aria-label')).toBe('Start date');
   });
 
   it('offers contextual field management to administrators', async () => {
@@ -1095,19 +1089,16 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
-  it('loads startsAt', async () => {
-    const wrapper = await mountModal();
-
-    expect(startsAtInput(wrapper).element.value).toBe('2026-06-01T09:00');
-  });
-
-  // O vencimento não acendia atraso, não aparecia no quadro e não era lido por
-  // regra nenhuma: era um campo que só pedia preenchimento.
-  it('no longer offers a due date', async () => {
+  // Nenhuma das duas era lida por regra nenhuma. A consulta vive na Agenda, que
+  // espelha a data no campo do card sozinha — digitar à mão só desincronizava.
+  it('no longer offers internal planning dates', async () => {
     const wrapper = await mountModal();
 
     expect(
       wrapper.find('[data-testid="kanban-opportunity-due-at"]').exists()
+    ).toBe(false);
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-starts-at"]').exists()
     ).toBe(false);
   });
 
@@ -1335,25 +1326,6 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper.find('[data-testid="kanban-opportunity-save-error"]').text()
     ).toContain('Save failed');
-  });
-
-  it('saves optional date values', async () => {
-    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
-      data: buildCard(),
-    });
-    const wrapper = await mountModal();
-
-    await startsAtInput(wrapper).setValue('2026-06-02T10:30');
-    await wrapper.find('form').trigger('submit');
-    await flushPromises();
-
-    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
-      10,
-      501,
-      expect.objectContaining({
-        starts_at: new Date('2026-06-02T10:30').toISOString(),
-      })
-    );
   });
 
   it('saves amount and board-specific custom fields', async () => {
@@ -1654,23 +1626,6 @@ describe('KanbanOpportunityDetailsModal', () => {
         kanban_stage_id: 4,
         lost_reason: 'Preço',
       })
-    );
-  });
-
-  it('clears dates with null', async () => {
-    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
-      data: buildCard({ startsAt: null }),
-    });
-    const wrapper = await mountModal();
-
-    await startsAtInput(wrapper).setValue('');
-    await wrapper.find('form').trigger('submit');
-    await flushPromises();
-
-    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
-      10,
-      501,
-      expect.objectContaining({ starts_at: null })
     );
   });
 
@@ -2039,7 +1994,6 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(descriptionInput(wrapper).element.value).toBe(
       'Modified description'
     );
-    expect(startsAtInput(wrapper).element.value).toBe('2026-06-01T09:00');
   });
 
   it('does not render an add-note action', async () => {

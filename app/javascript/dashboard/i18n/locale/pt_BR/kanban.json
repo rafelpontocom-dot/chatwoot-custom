@@ -1398,10 +1398,6 @@
         "SCENARIO": "Qual é o cenário comercial?"
       },
       "DATES": "Datas",
-      "INTERNAL_DATES": "Planejamento interno",
-      "INTERNAL_DATES_HELP": "Só as regras de lembrete de consulta leem esta data. A consulta em si é gerida na Agenda.",
-      "START_DATE": "Data de início",
-      "DUE_DATE": "Data de vencimento",
       "NEXT_ACTION": "Próxima ação",
       "NEXT_ACTION_TYPE": "Tipo de ação",
       "NEXT_ACTION_AT": "Data da ação",

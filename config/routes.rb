@@ -122,6 +122,7 @@ Rails.application.routes.draw do
           namespace :raevo_ai do
             resource :integration, only: [:create], controller: 'integrations'
             resource :overview, only: [:show], controller: 'overview'
+            resource :assistant_draft, only: [:update], controller: 'assistant_drafts'
             resource :opportunity_tab, only: [:show, :update], controller: 'opportunity_tabs'
           end
           resources :callbacks, only: [] do

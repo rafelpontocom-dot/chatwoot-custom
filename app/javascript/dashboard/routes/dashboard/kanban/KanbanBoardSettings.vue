@@ -154,7 +154,10 @@ const cadenceForm = reactive({
 });
 const appointmentReminderForm = reactive({
   triggerStageId: '',
-  fieldKey: 'system_starts_at',
+  // Marcar consulta espelha a data neste campo sozinho. A data de início do
+  // card era digitada à mão e nunca acompanhava a remarcação: o lembrete saía
+  // na data errada, ou não saía.
+  fieldKey: '',
   offsets: '48,24,2',
   channels: ['whatsapp'],
   optInAttributeKey: 'appointment_reminders_opt_in',
@@ -1213,6 +1216,8 @@ const applySettings = payload => {
   form.calendarProcedureIds = settings.calendarProcedureIds || [];
   form.calendarLegacyNextAppointmentFieldKey =
     settings.calendarLegacyNextAppointmentFieldKey || '';
+  appointmentReminderForm.fieldKey =
+    form.calendarLegacyNextAppointmentFieldKey || '';
   form.lockVersion = settings.lockVersion ?? null;
   // Keep the editor's normalized view model and the API payload in sync.
   // eslint-disable-next-line no-use-before-define
@@ -5994,11 +5999,6 @@ onMounted(async () => {
                   data-testid="kanban-settings-appointment-field"
                   class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
                 >
-                  <option value="system_starts_at">
-                    {{
-                      t('KANBAN.SETTINGS.AUTOMATIONS.APPOINTMENT.SYSTEM_DATE')
-                    }}
-                  </option>
                   <option
                     v-for="field in form.customFieldDefinitions.filter(item =>
                       ['date', 'datetime'].includes(item.fieldType)
