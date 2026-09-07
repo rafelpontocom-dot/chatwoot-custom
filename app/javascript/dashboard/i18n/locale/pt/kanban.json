@@ -803,7 +803,8 @@
         "PREVIEW_EMPTY": "Acrescente um campo para ver a aba ganhar forma.",
         "PREVIEW_HIDDEN": "{count} campos condicionais só aparecem quando a condição se cumpre.",
         "PREVIEW_CALCULATED": "calculado",
-        "PREVIEW_HALF_MARK": "½"
+        "PREVIEW_HALF_MARK": "½",
+        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade"
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",

@@ -1226,6 +1226,37 @@ describe('KanbanBoardSettings', () => {
     ).toBe(true);
   });
 
+  // Um `disabled` ligado a uma variável que não existia nesta tela desenhava a
+  // secção inteira cinzenta: `!undefined` é `true`. Nada no ecrã dizia porquê.
+  it('leaves the contact field manager usable while nothing is being saved', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+
+    const gestor = wrapper.findComponent({ name: 'KanbanContactFieldManager' });
+    expect(gestor.exists()).toBe(true);
+    expect(gestor.props('disabled')).toBe(false);
+  });
+
+  it('names each field scope instead of repeating the section title', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-field-scope-opportunity"]')
+        .text()
+    ).toBe('KANBAN.SETTINGS.SALES.FIELD_SCOPE_OPPORTUNITY');
+    expect(
+      wrapper.find('[data-testid="kanban-settings-field-scope-contact"]').text()
+    ).toBe('KANBAN.SETTINGS.CONTACT_FIELDS.TITLE');
+  });
+
   it('reorders fields without dragging, and blocks the ends', async () => {
     const { wrapper } = await mountSettings({
       getSettingsResponse: {

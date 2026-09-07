@@ -73,7 +73,10 @@ const activeSettingsSection = ref('general');
 // "quais campos esta ficha tem", não "de quem é a definição".
 const escopoDeCampo = ref('opportunity');
 const escoposDeCampo = computed(() => [
-  { key: 'opportunity', label: t('KANBAN.SETTINGS.SALES.FIELD_MANAGER_TITLE') },
+  {
+    key: 'opportunity',
+    label: t('KANBAN.SETTINGS.SALES.FIELD_SCOPE_OPPORTUNITY'),
+  },
   { key: 'contact', label: t('KANBAN.SETTINGS.CONTACT_FIELDS.TITLE') },
 ]);
 const loadError = ref('');
@@ -4409,7 +4412,7 @@ onMounted(async () => {
           <KanbanContactFieldManager
             v-show="escopoDeCampo === 'contact'"
             v-model="form.contactFieldKeys"
-            :disabled="!canConfigure"
+            :disabled="isSaving"
           />
 
           <div

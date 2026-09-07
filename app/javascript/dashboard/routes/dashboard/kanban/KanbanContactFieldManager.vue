@@ -106,14 +106,10 @@ const criarCampo = async () => {
 
 <template>
   <section class="grid content-start gap-3" data-testid="kanban-contact-fields">
-    <div class="grid gap-1">
-      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-        {{ t('KANBAN.SETTINGS.CONTACT_FIELDS.TITLE') }}
-      </h3>
-      <p class="mb-0 text-xs leading-5 text-n-slate-11">
-        {{ t('KANBAN.SETTINGS.CONTACT_FIELDS.DESCRIPTION') }}
-      </p>
-    </div>
+    <!-- A aba já nomeia a secção; repetir o título desenhava-o duas vezes. -->
+    <p class="mb-0 text-xs leading-5 text-n-slate-11">
+      {{ t('KANBAN.SETTINGS.CONTACT_FIELDS.DESCRIPTION') }}
+    </p>
 
     <p
       v-if="!colocados.length"

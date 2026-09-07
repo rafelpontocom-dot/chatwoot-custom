@@ -809,7 +809,8 @@
         "STANDARD_FIELD_OPTIONS": "Opções",
         "STANDARD_FIELD_NO_OPTIONS": "Sem opções a definir",
         "LOST_REASON_WHERE": "Aparece ao marcar a oportunidade como perdida.",
-        "NATIVE_TABS_NOTE": "Contato, Agenda, Financeiro e Formulários também aparecem na oportunidade, mas mostram dados próprios e não têm campos a definir aqui."
+        "NATIVE_TABS_NOTE": "Contato, Agenda, Financeiro e Formulários também aparecem na oportunidade, mas mostram dados próprios e não têm campos a definir aqui.",
+        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade"
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
