@@ -22,9 +22,26 @@ RSpec.describe RaevoAi::OverviewClient do
       status: 'active',
       clinic_name: 'Dra. Anna Alice',
       package: 'complete',
+      capabilities: {
+        package: 'agenda',
+        capabilities: [
+          { id: 'atendimento', provider: nil, internal_id: 'must-not-leak' },
+          { id: 'crm', provider: 'chatwoot', command_token: 'must-not-leak' },
+          { id: 'agenda', provider: 'feegow', provider_config: { api_key: 'must-not-leak' } }
+        ]
+      },
       active_prompt_version: 12,
       knowledge_count: 8,
       open_reviews: 2,
+      operational_quality: {
+        post_delivery_actions_pending: 1,
+        post_delivery_actions_applied: 4,
+        post_delivery_actions_failed: 2,
+        manual_reconciliations: 3,
+        attention_level: 'action_required',
+        attention_reasons: %w[post_delivery_actions_failed post_delivery_actions_pending manual_reconciliations],
+        reconciliation_reason: 'must-not-leak'
+      },
       assistant_profile: assistant_profile,
       usage_30d: {
         conversations: 44,
@@ -45,7 +62,23 @@ RSpec.describe RaevoAi::OverviewClient do
   end
   let(:public_payload) do
     upstream_payload.except(:clinic_id, :service_token).merge(
+      capabilities: {
+        'package' => 'agenda',
+        'capabilities' => [
+          { 'id' => 'atendimento', 'provider' => nil },
+          { 'id' => 'crm', 'provider' => 'chatwoot' },
+          { 'id' => 'agenda', 'provider' => 'feegow' }
+        ]
+      },
       assistant_profile: sanitized_assistant_profile,
+      operational_quality: {
+        'post_delivery_actions_pending' => 1,
+        'post_delivery_actions_applied' => 4,
+        'post_delivery_actions_failed' => 2,
+        'manual_reconciliations' => 3,
+        'attention_level' => 'action_required',
+        'attention_reasons' => %w[post_delivery_actions_failed post_delivery_actions_pending manual_reconciliations]
+      },
       usage_30d: upstream_payload[:usage_30d].except(:internal_cost).stringify_keys
     ).stringify_keys
   end

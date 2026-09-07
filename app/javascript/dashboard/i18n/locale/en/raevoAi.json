@@ -45,6 +45,89 @@
         "VOICE_STYLE": "Voice and language"
       }
     },
+    "CAPABILITIES": {
+      "EYEBROW": "PUBLISHED CONFIGURATION",
+      "TITLE": "Active capabilities",
+      "DESCRIPTION": "This is a read-only view of the active runtime configuration.",
+      "ITEMS": {
+        "ATENDIMENTO": "Service",
+        "CRM": "CRM",
+        "AGENDA": "Scheduling",
+        "OBSERVABILITY": "Observability"
+      },
+      "PROVIDERS": {
+        "CHATWOOT": "Chatwoot",
+        "KOMMO": "Kommo",
+        "CALCOM": "Cal.com",
+        "GOOGLE_CALENDAR": "Google Calendar",
+        "FEEGOW": "Feegow",
+        "CHATWOOT_NATIVE": "Chatwoot native"
+      }
+    },
+    "QUALITY": {
+      "EYEBROW": "INVESTIGATION QUEUE",
+      "TITLE": "Items needing review",
+      "DESCRIPTION": "These counts help the team investigate operational inconsistencies. They do not change conversations, appointments, or the assistant.",
+      "POST_DELIVERY_ACTIONS_PENDING": "Post-delivery actions awaiting receipt",
+      "POST_DELIVERY_ACTIONS_APPLIED": "Post-delivery actions applied",
+      "POST_DELIVERY_ACTIONS_FAILED": "Post-delivery action failures",
+      "MANUAL_RECONCILIATIONS": "Manual reconciliations",
+      "ATTENTION_LEVELS": {
+        "CLEAR": "No operational investigation is currently needed",
+        "INVESTIGATE": "Operational investigation is recommended",
+        "ACTION_REQUIRED": "Operational investigation is required"
+      },
+      "ATTENTION_REASONS": {
+        "POST_DELIVERY_ACTIONS_FAILED": "Post-delivery action failures",
+        "POST_DELIVERY_ACTIONS_PENDING": "Post-delivery actions awaiting receipt",
+        "MANUAL_RECONCILIATIONS": "Manual reconciliations"
+      },
+      "ATTENTION_SEPARATOR": "·"
+    },
+    "ASSISTANT_DRAFT": {
+      "EYEBROW": "ASSISTANT DRAFT",
+      "TITLE": "Identity and voice",
+      "DESCRIPTION": "Edit only how Elis introduces itself and communicates. Saving creates a draft and does not change live conversations.",
+      "ACTIVE_VERSION": "Active version: {version}",
+      "LOADING": "Loading assistant draft",
+      "ENABLED": "Use this cluster in the next published version",
+      "SAVE": "Save draft",
+      "DRAFT_ONLY": "This draft is not published and does not change the active assistant.",
+      "CONFLICT": "This draft changed elsewhere. Reload it before saving your changes.",
+      "ERROR": "The draft could not be loaded or saved. No live configuration was changed.",
+      "FIELDS": {
+        "IDENTITY": "Identity and role",
+        "PERSONALITY": "Personality",
+        "VOICE_STYLE": "Voice and language"
+      }
+    },
+    "ASSISTANT_SIMULATION": {
+      "EYEBROW": "DRAFT REVIEW",
+      "TITLE": "Synthetic draft preview",
+      "DESCRIPTION": "Run an approved synthetic scenario against this saved draft. It never sends a message, changes CRM, creates an appointment, or publishes the draft.",
+      "FIXTURES_LABEL": "Approved synthetic scenarios",
+      "FIXTURES": {
+        "FIRST_CONTACT": "First contact",
+        "SCHEDULING_INTENT": "Scheduling intent",
+        "HUMAN_REQUEST": "Request for a person"
+      },
+      "DRAFT_REQUIRED": "Save this draft before running a preview.",
+      "ERROR": "The preview is temporarily unavailable. No message or configuration was changed.",
+      "RESULT_TITLE": "Synthetic result",
+      "REVIEW_ONLY": "This result is for human review only. It is not a publication decision.",
+      "VERDICT": "Review status: {verdict}",
+      "REVIEW_TITLE": "Approve this review",
+      "REVIEW_DESCRIPTION": "Elis reruns this same synthetic scenario on the server before recording your decision.",
+      "APPROVE_REVIEW": "Approve synthetic review",
+      "REVIEW_APPROVED": "Synthetic review approved. A separate confirmation is required before publishing.",
+      "REVIEW_ERROR": "The review could not be recorded. The draft remains unchanged.",
+      "PUBLICATION_TITLE": "Publish this reviewed draft",
+      "PUBLICATION_DESCRIPTION": "Publishing changes the assistant configuration for future conversations. It does not change past conversations, CRM records, appointments, or payments.",
+      "PUBLICATION_CONFIRMATION": "I reviewed this synthetic result and want to publish this draft for future conversations.",
+      "PUBLISH": "Publish reviewed draft",
+      "PUBLICATION_SUCCEEDED": "The reviewed draft was published for future conversations.",
+      "PUBLICATION_ERROR": "The draft could not be published. The active assistant configuration remains unchanged."
+    },
     "PACKAGES": {
       "EYEBROW": "SERVICE MODEL",
       "TITLE": "Supported Elis packages",

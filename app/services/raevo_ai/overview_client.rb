@@ -3,6 +3,18 @@ class RaevoAi::OverviewClient
   NETWORK_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED].freeze
   PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews].freeze
   PUBLIC_ASSISTANT_PROFILE_FIELDS = %w[identity personality voice_style].freeze
+  PUBLIC_OPERATIONAL_QUALITY_FIELDS = %w[
+    post_delivery_actions_pending post_delivery_actions_applied post_delivery_actions_failed manual_reconciliations
+  ].freeze
+  PUBLIC_ATTENTION_LEVELS = %w[clear investigate action_required].freeze
+  PUBLIC_ATTENTION_REASONS = %w[
+    post_delivery_actions_failed post_delivery_actions_pending manual_reconciliations
+  ].freeze
+  PUBLIC_CAPABILITY_IDS = %w[atendimento crm agenda observabilidade].freeze
+  PUBLIC_CAPABILITY_PROVIDERS = {
+    'crm' => %w[chatwoot kommo],
+    'agenda' => %w[calcom google_calendar feegow chatwoot_native]
+  }.freeze
   PUBLIC_USAGE_FIELDS = %w[
     conversations handoffs appointments payments
     model_calls prompt_tokens completion_tokens
@@ -63,6 +75,10 @@ class RaevoAi::OverviewClient
     )
     assistant_profile = sanitize_assistant_profile(payload['assistant_profile'])
     sanitized['assistant_profile'] = assistant_profile if assistant_profile
+    operational_quality = sanitize_operational_quality(payload['operational_quality'])
+    sanitized['operational_quality'] = operational_quality if operational_quality
+    capabilities = sanitize_capabilities(payload['capabilities'])
+    sanitized['capabilities'] = capabilities if capabilities
     sanitized
   end
 
@@ -72,5 +88,60 @@ class RaevoAi::OverviewClient
     value.slice(*PUBLIC_ASSISTANT_PROFILE_FIELDS).transform_values do |content|
       content.is_a?(String) ? content.slice(0, 500) : nil
     end
+  end
+
+  def sanitize_operational_quality(value)
+    return unless value.is_a?(Hash)
+
+    quality = value.slice(*PUBLIC_OPERATIONAL_QUALITY_FIELDS).transform_values do |count|
+      count.is_a?(Integer) && count >= 0 ? count : 0
+    end
+    quality.merge!(sanitize_attention_level(value['attention_level']))
+    quality.merge!(sanitize_attention_reasons(value['attention_reasons']))
+
+    quality
+  end
+
+  def sanitize_attention_level(value)
+    PUBLIC_ATTENTION_LEVELS.include?(value) ? { 'attention_level' => value } : {}
+  end
+
+  def sanitize_attention_reasons(value)
+    return {} unless value.is_a?(Array)
+
+    reasons = value.select { |reason| PUBLIC_ATTENTION_REASONS.include?(reason) }
+                   .uniq.first(PUBLIC_ATTENTION_REASONS.length)
+    { 'attention_reasons' => reasons }
+  end
+
+  def sanitize_capabilities(value)
+    return unless value.is_a?(Hash)
+
+    package = value['package']
+    capabilities = sanitize_capability_items(value['capabilities'])
+    return unless package.is_a?(String) && capabilities
+
+    { 'package' => package.slice(0, 80), 'capabilities' => capabilities }
+  end
+
+  def sanitize_capability_items(value)
+    return unless value.is_a?(Array)
+
+    value.filter_map do |capability|
+      next unless capability.is_a?(Hash)
+
+      id = capability['id']
+      provider = capability['provider']
+      next unless PUBLIC_CAPABILITY_IDS.include?(id)
+      next unless valid_capability_provider?(id, provider)
+
+      { 'id' => id, 'provider' => provider }
+    end.first(4)
+  end
+
+  def valid_capability_provider?(id, provider)
+    return provider.nil? if %w[atendimento observabilidade].include?(id)
+
+    PUBLIC_CAPABILITY_PROVIDERS.fetch(id, []).include?(provider)
   end
 end

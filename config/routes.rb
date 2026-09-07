@@ -122,7 +122,12 @@ Rails.application.routes.draw do
           namespace :raevo_ai do
             resource :integration, only: [:create], controller: 'integrations'
             resource :overview, only: [:show], controller: 'overview'
-            resource :assistant_draft, only: [:update], controller: 'assistant_drafts'
+            resource :assistant_draft, only: [:show, :update], controller: 'assistant_drafts' do
+              post :simulate
+              post :review
+              post :publish
+              post :rollback
+            end
             resource :opportunity_tab, only: [:show, :update], controller: 'opportunity_tabs'
           end
           resources :callbacks, only: [] do
@@ -798,6 +803,7 @@ Rails.application.routes.draw do
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
   post 'webhooks/kanban/:inbound_token', to: 'webhooks/kanban_automations#receive'
   post 'webhooks/finance/asaas/:connection_id', to: 'webhooks/finance/asaas#receive'
+  match 'webhooks/finance/ifthenpay/:connection_id', to: 'webhooks/finance/ifthenpay#receive', via: [:get, :post]
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'
   get 'webhooks/marketing/meta', to: 'webhooks/marketing/meta#verify'
