@@ -1544,6 +1544,27 @@ describe('KanbanBoardSettings', () => {
     ]);
   });
 
+  // O diálogo vivia dentro da secção «Vendas», que fica com `display:none`
+  // enquanto se está em «Campos»: o + criava-o e ele nascia escondido, e para
+  // quem clicava o botão simplesmente não fazia nada.
+  it('opens the new tab dialog where it can actually be seen', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-add-field-section"]')
+      .trigger('click');
+
+    const dialogo = wrapper.find(
+      '[data-testid="kanban-settings-new-field-section-dialog"]'
+    );
+
+    expect(dialogo.exists()).toBe(true);
+    expect(dialogo.element.closest('[style*="display: none"]')).toBeNull();
+  });
+
   it('creates a custom opportunity tab from the field manager', async () => {
     const { wrapper } = await mountSettings();
 

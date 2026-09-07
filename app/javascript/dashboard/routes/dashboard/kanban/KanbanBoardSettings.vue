@@ -3308,6 +3308,62 @@ onMounted(async () => {
         @close="closeCreateBoardDialog"
       />
 
+      <!--
+        Ao nível da página, não dentro de uma secção: vivia dentro de
+        «Vendas», que fica com `display:none` enquanto se está em «Campos» —
+        o + criava o diálogo e ele nascia escondido.
+      -->
+      <Modal
+        v-model:show="showNewFieldSectionForm"
+        :on-close="closeNewFieldSectionForm"
+      >
+        <section
+          v-if="showNewFieldSectionForm"
+          data-testid="kanban-settings-new-field-section-dialog"
+          class="grid w-[min(100vw-2rem,28rem)] gap-4 p-5"
+          :aria-label="t('KANBAN.SETTINGS.SALES.ADD_FIELD_SECTION')"
+        >
+          <div>
+            <h3 class="mb-0 text-base font-medium text-n-slate-12">
+              {{ t('KANBAN.SETTINGS.SALES.ADD_FIELD_SECTION') }}
+            </h3>
+            <p class="mb-0 mt-1 text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT_DESCRIPTION') }}
+            </p>
+          </div>
+          <label class="grid gap-1 text-sm font-medium text-n-slate-12">
+            {{ t('KANBAN.SETTINGS.SALES.FIELD_SECTION_NAME') }}
+            <input
+              v-model="newFieldSectionName"
+              data-testid="kanban-settings-new-field-section-name"
+              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
+              autofocus
+              @keydown.enter.prevent="createCustomFieldSection"
+            />
+          </label>
+          <div class="flex justify-end gap-2">
+            <Button
+              type="button"
+              icon="i-lucide-x"
+              :label="t('KANBAN.ACTIONS.CANCEL')"
+              color="slate"
+              size="sm"
+              @click="closeNewFieldSectionForm"
+            />
+            <Button
+              type="button"
+              data-testid="kanban-settings-create-field-section"
+              icon="i-lucide-check"
+              :label="t('KANBAN.SETTINGS.SALES.CREATE_FIELD_SECTION')"
+              color="blue"
+              size="sm"
+              :disabled="!newFieldSectionName.trim()"
+              @click="createCustomFieldSection"
+            />
+          </div>
+        </section>
+      </Modal>
+
       <div
         v-if="isLoading"
         data-testid="kanban-settings-loading"
@@ -4151,57 +4207,6 @@ onMounted(async () => {
                 "
               />
             </details>
-
-            <Modal
-              v-model:show="showNewFieldSectionForm"
-              :on-close="closeNewFieldSectionForm"
-            >
-              <section
-                v-if="showNewFieldSectionForm"
-                data-testid="kanban-settings-new-field-section-dialog"
-                class="grid w-[min(100vw-2rem,28rem)] gap-4 p-5"
-                :aria-label="t('KANBAN.SETTINGS.SALES.ADD_FIELD_SECTION')"
-              >
-                <div>
-                  <h3 class="mb-0 text-base font-medium text-n-slate-12">
-                    {{ t('KANBAN.SETTINGS.SALES.ADD_FIELD_SECTION') }}
-                  </h3>
-                  <p class="mb-0 mt-1 text-sm text-n-slate-11">
-                    {{ t('KANBAN.SETTINGS.SALES.TAB_LAYOUT_DESCRIPTION') }}
-                  </p>
-                </div>
-                <label class="grid gap-1 text-sm font-medium text-n-slate-12">
-                  {{ t('KANBAN.SETTINGS.SALES.FIELD_SECTION_NAME') }}
-                  <input
-                    v-model="newFieldSectionName"
-                    data-testid="kanban-settings-new-field-section-name"
-                    class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-                    autofocus
-                    @keydown.enter.prevent="createCustomFieldSection"
-                  />
-                </label>
-                <div class="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    icon="i-lucide-x"
-                    :label="t('KANBAN.ACTIONS.CANCEL')"
-                    color="slate"
-                    size="sm"
-                    @click="closeNewFieldSectionForm"
-                  />
-                  <Button
-                    type="button"
-                    data-testid="kanban-settings-create-field-section"
-                    icon="i-lucide-check"
-                    :label="t('KANBAN.SETTINGS.SALES.CREATE_FIELD_SECTION')"
-                    color="blue"
-                    size="sm"
-                    :disabled="!newFieldSectionName.trim()"
-                    @click="createCustomFieldSection"
-                  />
-                </div>
-              </section>
-            </Modal>
           </div>
 
           <section
