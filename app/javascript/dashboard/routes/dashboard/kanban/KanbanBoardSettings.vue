@@ -4429,6 +4429,19 @@ onMounted(async () => {
               </div>
 
               <!--
+                Contato, Agenda, Financeiro e Formulários aparecem no card mas
+                nunca aqui: mostram dados próprios e não têm campos a definir.
+                Sem esta linha, procura-se uma aba que nunca vai existir nesta
+                lista, e conclui-se que falta alguma coisa.
+              -->
+              <p
+                data-testid="kanban-settings-native-tabs-note"
+                class="mb-0 text-micro text-n-slate-10"
+              >
+                {{ t('KANBAN.SETTINGS.SALES.NATIVE_TABS_NOTE') }}
+              </p>
+
+              <!--
                 A barra da aba ativa. «Grupos» vivia numa linha própria e
                 permanente, com o contador a zero na maioria dos quadros: é uma
                 propriedade da aba, e é aqui que as propriedades da aba estão.

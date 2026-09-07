@@ -1544,6 +1544,20 @@ describe('KanbanBoardSettings', () => {
     ]);
   });
 
+  // Contato, Agenda, Financeiro e Formulários aparecem no card mas nunca nesta
+  // lista: sem o dizer, procura-se uma aba que nunca vai existir aqui.
+  it('says why the native opportunity tabs are not in this list', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-fields"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-settings-native-tabs-note"]').exists()
+    ).toBe(true);
+  });
+
   // O diálogo vivia dentro da secção «Vendas», que fica com `display:none`
   // enquanto se está em «Campos»: o + criava-o e ele nascia escondido, e para
   // quem clicava o botão simplesmente não fazia nada.

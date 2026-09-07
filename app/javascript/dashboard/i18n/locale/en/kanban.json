@@ -805,7 +805,8 @@
         "STANDARD_FIELDS_DESCRIPTION": "Every opportunity has these. They cannot be removed, and only some carry a list of options you choose.",
         "STANDARD_FIELD_OPTIONS": "Options",
         "STANDARD_FIELD_NO_OPTIONS": "No options to set",
-        "LOST_REASON_WHERE": "Appears when an opportunity is marked as lost."
+        "LOST_REASON_WHERE": "Appears when an opportunity is marked as lost.",
+        "NATIVE_TABS_NOTE": "Contact, Calendar, Finance and Forms also appear on the opportunity, but they show their own data and have no fields to define here."
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",
