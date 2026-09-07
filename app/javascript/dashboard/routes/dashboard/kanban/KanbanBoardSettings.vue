@@ -8,6 +8,8 @@ import Draggable from 'vuedraggable';
 import { useAlert } from 'dashboard/composables';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
+import KanbanCreateBoardDialog from './KanbanCreateBoardDialog.vue';
+import { useKanbanBoardCreation } from './useKanbanBoardCreation';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import CalendarAPI from 'dashboard/api/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -36,6 +38,19 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
+
+const boards = useMapGetter('kanbanBoards/kanbanBoards');
+// Criar funil só existia na visão geral. Quem está a configurar um funil é
+// exatamente quem quer criar o próximo, e daqui só havia «duplicar» — que
+// obriga a herdar etapas que talvez não sirvam.
+const {
+  showCreateBoardDialog,
+  createBoardError,
+  isCreatingBoard,
+  openCreateBoardDialog,
+  closeCreateBoardDialog,
+  createBoard,
+} = useKanbanBoardCreation({ boards, t });
 
 const agents = useMapGetter('agents/getAgents');
 const inboxes = useMapGetter('inboxes/getAllInboxes');
@@ -1605,14 +1620,15 @@ const removeCustomFieldOption = (definition, option) => {
 
 // Campos padrão de cada aba do card. Existem sem ninguém os criar, e por isso
 // não apareciam em lado nenhum desta página: quem procurava «Tipo de ação» na
-// aba onde ele aparece concluía que não era configurável. Só o tipo de ação
-// tem lista de opções; os restantes mostram-se para dizer que já lá estão.
+// aba onde ele aparece concluía que não era configurável. Os que têm lista de
+// opções dizem qual; os restantes mostram-se para dizer que já lá estão.
 const STANDARD_FIELDS_BY_SECTION = {
   details: [
     {
       key: 'next_action_type',
       labelKey: 'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE',
-      options: true,
+      optionsModel: 'nextActionTypesText',
+      optionsHintKey: 'KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES_PLACEHOLDER',
     },
     {
       key: 'next_action_at',
@@ -1632,18 +1648,30 @@ const STANDARD_FIELDS_BY_SECTION = {
       key: 'expected_close_date',
       labelKey: 'KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE',
     },
+    {
+      key: 'lost_reason',
+      labelKey: 'KANBAN.OPPORTUNITY_DETAILS.LOST_REASON',
+      noteKey: 'KANBAN.SETTINGS.SALES.LOST_REASON_WHERE',
+      optionsModel: 'lostReasonOptionsText',
+      optionsHintKey: 'KANBAN.SETTINGS.SALES.LOST_REASON_OPTIONS_PLACEHOLDER',
+    },
   ],
 };
 
-// Recolhido por omissão: a lista de opções é trabalho de configuração, não
-// coisa que se lê de passagem.
-const mostrarOpcoesTipoAcao = ref(false);
+// Uma lista de opções aberta de cada vez: são longas, e duas abertas empurram
+// o resto da página para fora do ecrã.
+const campoDeOpcoesAberto = ref('');
+const alternarOpcoes = key => {
+  campoDeOpcoesAberto.value = campoDeOpcoesAberto.value === key ? '' : key;
+};
 
 const standardFieldsOfActiveSection = computed(() =>
   (STANDARD_FIELDS_BY_SECTION[activeFieldSectionKey.value] || []).map(
     field => ({
       ...field,
       label: t(field.labelKey),
+      note: field.noteKey ? t(field.noteKey) : '',
+      optionsHint: field.optionsHintKey ? t(field.optionsHintKey) : '',
     })
   )
 );
@@ -2988,8 +3016,12 @@ const getStageCategoryLabel = stage => {
   return t('KANBAN.SETTINGS.STAGES.CATEGORY_OPEN');
 };
 
+// Abre e fecha na própria etapa. A configuração vivia depois da lista inteira:
+// com dez etapas, clicar na segunda mandava a configuração para fora do ecrã e
+// não havia forma de saber de que etapa ela era.
 const selectStage = stage => {
-  selectedStageId.value = stage?.id || null;
+  const id = stage?.id || null;
+  selectedStageId.value = selectedStageId.value === id ? null : id;
 };
 
 const openCreateStageForm = () => {
@@ -3230,6 +3262,16 @@ onMounted(async () => {
           <Button
             v-if="isAdmin"
             type="button"
+            data-testid="kanban-settings-create-board"
+            icon="i-lucide-plus"
+            :label="t('KANBAN.OVERVIEW.CREATE_BOARD')"
+            color="slate"
+            size="sm"
+            @click="openCreateBoardDialog"
+          />
+          <Button
+            v-if="isAdmin"
+            type="button"
             data-testid="kanban-settings-duplicate"
             icon="i-lucide-copy"
             :label="t('KANBAN.SETTINGS.DUPLICATE.ACTION')"
@@ -3252,6 +3294,14 @@ onMounted(async () => {
           />
         </template>
       </RaevoPageHeader>
+
+      <KanbanCreateBoardDialog
+        v-model="showCreateBoardDialog"
+        :is-creating="isCreatingBoard"
+        :error="createBoardError"
+        @create="createBoard"
+        @close="closeCreateBoardDialog"
+      />
 
       <div
         v-if="isLoading"
@@ -3500,206 +3550,208 @@ onMounted(async () => {
               @end="onStageDragEnd"
             >
               <template #item="{ element: stage }">
-                <div
-                  :data-stage-id="stage.id"
-                  data-testid="kanban-settings-stage-row"
-                  class="flex min-w-0 items-center gap-2 rounded-md border px-2 py-2 transition-colors"
-                  :class="
-                    selectedStageId === stage.id
-                      ? 'border-n-brand bg-n-brand/5'
-                      : 'border-n-weak bg-n-surface-2 hover:border-n-strong'
-                  "
-                >
+                <div class="grid gap-2">
                   <div
-                    class="stage-drag-handle flex size-8 flex-none cursor-grab items-center justify-center rounded text-n-slate-10 hover:bg-n-alpha-2"
-                    :aria-label="t('KANBAN.SETTINGS.STAGES.REORDER')"
+                    :data-stage-id="stage.id"
+                    data-testid="kanban-settings-stage-row"
+                    class="flex min-w-0 items-center gap-2 rounded-md border px-2 py-2 transition-colors"
+                    :class="
+                      selectedStageId === stage.id
+                        ? 'border-n-brand bg-n-brand/5'
+                        : 'border-n-weak bg-n-surface-2 hover:border-n-strong'
+                    "
                   >
-                    <span
-                      class="i-lucide-grip-vertical size-4 text-n-slate-10"
-                    />
+                    <div
+                      class="stage-drag-handle flex size-8 flex-none cursor-grab items-center justify-center rounded text-n-slate-10 hover:bg-n-alpha-2"
+                      :aria-label="t('KANBAN.SETTINGS.STAGES.REORDER')"
+                    >
+                      <span
+                        class="i-lucide-grip-vertical size-4 text-n-slate-10"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      data-testid="kanban-settings-stage-select"
+                      class="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left outline-none focus:ring-2 focus:ring-n-brand/40"
+                      :aria-pressed="selectedStageId === stage.id"
+                      @click="selectStage(stage)"
+                    >
+                      <span
+                        class="size-4 flex-none rounded-full"
+                        :class="getStageColorClass(stage)"
+                      />
+                      <i
+                        class="size-4 flex-none text-n-slate-11"
+                        :class="[getStageIconClass(stage)]"
+                        aria-hidden="true"
+                      />
+                      <span class="min-w-0 break-words text-sm text-n-slate-12">
+                        {{ stage.name }}
+                      </span>
+                      <span
+                        data-testid="kanban-settings-stage-card-count"
+                        class="flex-none rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs font-medium text-n-slate-11"
+                      >
+                        {{ getStageCardsCount(stage) }}
+                      </span>
+                      <span class="ml-auto flex-none text-xs text-n-slate-10">
+                        {{ getStageCategoryLabel(stage) }}
+                      </span>
+                    </button>
+                    <div class="flex flex-none items-center gap-0.5">
+                      <button
+                        v-if="stageOrderIndex(stage) > 0"
+                        type="button"
+                        :data-testid="`kanban-settings-stage-move-${stage.id}-up`"
+                        class="flex p-0 size-8 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                        :aria-label="t('KANBAN.SETTINGS.STAGES.MOVE_UP')"
+                        @click="moveStage(stage, -1)"
+                      >
+                        <i class="i-lucide-chevron-up size-4" />
+                      </button>
+                      <button
+                        v-if="stageOrderIndex(stage) < stages.length - 1"
+                        type="button"
+                        :data-testid="`kanban-settings-stage-move-${stage.id}-down`"
+                        class="flex p-0 size-8 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                        :aria-label="t('KANBAN.SETTINGS.STAGES.MOVE_DOWN')"
+                        @click="moveStage(stage, 1)"
+                      >
+                        <i class="i-lucide-chevron-down size-4" />
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    data-testid="kanban-settings-stage-select"
-                    class="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left outline-none focus:ring-2 focus:ring-n-brand/40"
-                    :aria-pressed="selectedStageId === stage.id"
-                    @click="selectStage(stage)"
+                  <section
+                    v-if="selectedStageId === stage.id"
+                    data-testid="kanban-settings-stage-editor"
+                    class="grid gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,0.55fr)_minmax(8rem,0.45fr)_minmax(8rem,0.45fr)_auto] lg:items-end"
                   >
-                    <span
-                      class="size-4 flex-none rounded-full"
-                      :class="getStageColorClass(stage)"
-                    />
-                    <i
-                      class="size-4 flex-none text-n-slate-11"
-                      :class="[getStageIconClass(stage)]"
-                      aria-hidden="true"
-                    />
-                    <span class="min-w-0 break-words text-sm text-n-slate-12">
-                      {{ stage.name }}
-                    </span>
-                    <span
-                      data-testid="kanban-settings-stage-card-count"
-                      class="flex-none rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs font-medium text-n-slate-11"
-                    >
-                      {{ getStageCardsCount(stage) }}
-                    </span>
-                    <span class="ml-auto flex-none text-xs text-n-slate-10">
-                      {{ getStageCategoryLabel(stage) }}
-                    </span>
-                  </button>
-                  <div class="flex flex-none items-center gap-0.5">
-                    <button
-                      v-if="stageOrderIndex(stage) > 0"
+                    <div class="lg:col-span-5">
+                      <p class="text-xs font-medium uppercase text-n-slate-10">
+                        {{ t('KANBAN.SETTINGS.STAGES.TITLE') }}
+                      </p>
+                      <label
+                        data-testid="kanban-settings-selected-stage-name"
+                        class="mt-2 grid gap-1 text-xs text-n-slate-11"
+                      >
+                        {{ t('KANBAN.ACTIONS.STAGE_NAME_PLACEHOLDER') }}
+                        <input
+                          v-model="selectedStage.name"
+                          data-testid="kanban-settings-stage-name"
+                          type="text"
+                          class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        />
+                      </label>
+                      <label class="mt-3 grid gap-1 text-xs text-n-slate-11">
+                        {{ t('KANBAN.SETTINGS.STAGES.DESCRIPTION') }}
+                        <textarea
+                          v-model="selectedStage.description"
+                          data-testid="kanban-settings-stage-description"
+                          rows="2"
+                          maxlength="240"
+                          class="resize-none rounded-md border border-n-weak bg-n-surface-1 px-2 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+                          :placeholder="
+                            t('KANBAN.SETTINGS.STAGES.DESCRIPTION_PLACEHOLDER')
+                          "
+                        />
+                      </label>
+                      <div class="mt-3 grid gap-1 text-xs text-n-slate-11">
+                        <span>{{ t('KANBAN.SETTINGS.STAGES.ICON') }}</span>
+                        <div class="flex flex-wrap gap-1.5" role="radiogroup">
+                          <button
+                            v-for="iconOption in KANBAN_STAGE_ICON_OPTIONS"
+                            :key="iconOption.value"
+                            type="button"
+                            :data-testid="`kanban-settings-stage-icon-${iconOption.value}`"
+                            class="flex p-0 size-8 items-center justify-center rounded border border-solid outline-none transition-colors focus:ring-2 focus:ring-n-brand/40"
+                            :class="
+                              (selectedStage.icon ||
+                                DEFAULT_KANBAN_STAGE_ICON) === iconOption.value
+                                ? 'border-n-brand bg-n-brand/10 text-n-brand'
+                                : 'border-n-weak text-n-slate-11 hover:border-n-strong hover:bg-n-alpha-2'
+                            "
+                            role="radio"
+                            :aria-checked="
+                              (selectedStage.icon ||
+                                DEFAULT_KANBAN_STAGE_ICON) === iconOption.value
+                            "
+                            :aria-label="getStageIconLabel(iconOption.value)"
+                            @click="selectedStage.icon = iconOption.value"
+                          >
+                            <i
+                              class="size-4"
+                              :class="[iconOption.iconClass]"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <label class="grid gap-1 text-xs text-n-slate-11">
+                      {{ t('KANBAN.SETTINGS.STAGES.CATEGORY') }}
+                      <select
+                        v-model="selectedStage.category"
+                        data-testid="kanban-settings-stage-category"
+                        class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                      >
+                        <option value="open">
+                          {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_OPEN') }}
+                        </option>
+                        <option value="won">
+                          {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_WON') }}
+                        </option>
+                        <option value="lost">
+                          {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_LOST') }}
+                        </option>
+                      </select>
+                    </label>
+                    <label class="grid gap-1 text-xs text-n-slate-11">
+                      {{ t('KANBAN.SETTINGS.STAGES.WIP_LIMIT') }}
+                      <input
+                        v-model="selectedStage.wipLimit"
+                        data-testid="kanban-settings-stage-wip-limit"
+                        type="number"
+                        min="1"
+                        class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                      />
+                    </label>
+                    <label class="grid gap-1 text-xs text-n-slate-11">
+                      {{ t('KANBAN.SETTINGS.STAGES.PROBABILITY') }}
+                      <div class="relative">
+                        <input
+                          v-model.number="selectedStage.probability"
+                          data-testid="kanban-settings-stage-probability"
+                          type="number"
+                          min="0"
+                          max="100"
+                          class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 pr-7 text-sm text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:bg-n-alpha-1 disabled:text-n-slate-10"
+                          :disabled="selectedStage.category !== 'open'"
+                        />
+                        <span
+                          class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-n-slate-10"
+                        >
+                          {{ t('KANBAN.SETTINGS.STAGES.PERCENT') }}
+                        </span>
+                      </div>
+                    </label>
+                    <Button
                       type="button"
-                      :data-testid="`kanban-settings-stage-move-${stage.id}-up`"
-                      class="flex p-0 size-8 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="t('KANBAN.SETTINGS.STAGES.MOVE_UP')"
-                      @click="moveStage(stage, -1)"
-                    >
-                      <i class="i-lucide-chevron-up size-4" />
-                    </button>
-                    <button
-                      v-if="stageOrderIndex(stage) < stages.length - 1"
-                      type="button"
-                      :data-testid="`kanban-settings-stage-move-${stage.id}-down`"
-                      class="flex p-0 size-8 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="t('KANBAN.SETTINGS.STAGES.MOVE_DOWN')"
-                      @click="moveStage(stage, 1)"
-                    >
-                      <i class="i-lucide-chevron-down size-4" />
-                    </button>
-                  </div>
+                      data-testid="kanban-settings-save-stage-rules"
+                      icon="i-lucide-save"
+                      :label="t('KANBAN.SETTINGS.STAGES.SAVE')"
+                      color="blue"
+                      size="sm"
+                      :disabled="Boolean(activeStageActionKey)"
+                      :is-loading="
+                        activeStageActionKey ===
+                        `update-stage-${selectedStage.id}`
+                      "
+                      @click="saveStageRules(selectedStage)"
+                    />
+                  </section>
                 </div>
               </template>
             </Draggable>
-
-            <section
-              v-if="selectedStage"
-              data-testid="kanban-settings-stage-editor"
-              class="grid gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,0.55fr)_minmax(8rem,0.45fr)_minmax(8rem,0.45fr)_auto] lg:items-end"
-            >
-              <div class="lg:col-span-5">
-                <p class="text-xs font-medium uppercase text-n-slate-10">
-                  {{ t('KANBAN.SETTINGS.STAGES.TITLE') }}
-                </p>
-                <label
-                  data-testid="kanban-settings-selected-stage-name"
-                  class="mt-2 grid gap-1 text-xs text-n-slate-11"
-                >
-                  {{ t('KANBAN.ACTIONS.STAGE_NAME_PLACEHOLDER') }}
-                  <input
-                    v-model="selectedStage.name"
-                    data-testid="kanban-settings-stage-name"
-                    type="text"
-                    class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                  />
-                </label>
-                <label class="mt-3 grid gap-1 text-xs text-n-slate-11">
-                  {{ t('KANBAN.SETTINGS.STAGES.DESCRIPTION') }}
-                  <textarea
-                    v-model="selectedStage.description"
-                    data-testid="kanban-settings-stage-description"
-                    rows="2"
-                    maxlength="240"
-                    class="resize-none rounded-md border border-n-weak bg-n-surface-1 px-2 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                    :placeholder="
-                      t('KANBAN.SETTINGS.STAGES.DESCRIPTION_PLACEHOLDER')
-                    "
-                  />
-                </label>
-                <div class="mt-3 grid gap-1 text-xs text-n-slate-11">
-                  <span>{{ t('KANBAN.SETTINGS.STAGES.ICON') }}</span>
-                  <div class="flex flex-wrap gap-1.5" role="radiogroup">
-                    <button
-                      v-for="iconOption in KANBAN_STAGE_ICON_OPTIONS"
-                      :key="iconOption.value"
-                      type="button"
-                      :data-testid="`kanban-settings-stage-icon-${iconOption.value}`"
-                      class="flex p-0 size-8 items-center justify-center rounded border border-solid outline-none transition-colors focus:ring-2 focus:ring-n-brand/40"
-                      :class="
-                        (selectedStage.icon || DEFAULT_KANBAN_STAGE_ICON) ===
-                        iconOption.value
-                          ? 'border-n-brand bg-n-brand/10 text-n-brand'
-                          : 'border-n-weak text-n-slate-11 hover:border-n-strong hover:bg-n-alpha-2'
-                      "
-                      role="radio"
-                      :aria-checked="
-                        (selectedStage.icon || DEFAULT_KANBAN_STAGE_ICON) ===
-                        iconOption.value
-                      "
-                      :aria-label="getStageIconLabel(iconOption.value)"
-                      @click="selectedStage.icon = iconOption.value"
-                    >
-                      <i
-                        class="size-4"
-                        :class="[iconOption.iconClass]"
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <label class="grid gap-1 text-xs text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.STAGES.CATEGORY') }}
-                <select
-                  v-model="selectedStage.category"
-                  data-testid="kanban-settings-stage-category"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                >
-                  <option value="open">
-                    {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_OPEN') }}
-                  </option>
-                  <option value="won">
-                    {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_WON') }}
-                  </option>
-                  <option value="lost">
-                    {{ t('KANBAN.SETTINGS.STAGES.CATEGORY_LOST') }}
-                  </option>
-                </select>
-              </label>
-              <label class="grid gap-1 text-xs text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.STAGES.WIP_LIMIT') }}
-                <input
-                  v-model="selectedStage.wipLimit"
-                  data-testid="kanban-settings-stage-wip-limit"
-                  type="number"
-                  min="1"
-                  class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                />
-              </label>
-              <label class="grid gap-1 text-xs text-n-slate-11">
-                {{ t('KANBAN.SETTINGS.STAGES.PROBABILITY') }}
-                <div class="relative">
-                  <input
-                    v-model.number="selectedStage.probability"
-                    data-testid="kanban-settings-stage-probability"
-                    type="number"
-                    min="0"
-                    max="100"
-                    class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 pr-7 text-sm text-n-slate-12 outline-none focus:border-n-brand disabled:cursor-not-allowed disabled:bg-n-alpha-1 disabled:text-n-slate-10"
-                    :disabled="selectedStage.category !== 'open'"
-                  />
-                  <span
-                    class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-n-slate-10"
-                  >
-                    {{ t('KANBAN.SETTINGS.STAGES.PERCENT') }}
-                  </span>
-                </div>
-              </label>
-              <Button
-                type="button"
-                data-testid="kanban-settings-save-stage-rules"
-                icon="i-lucide-save"
-                :label="t('KANBAN.SETTINGS.STAGES.SAVE')"
-                color="blue"
-                size="sm"
-                :disabled="Boolean(activeStageActionKey)"
-                :is-loading="
-                  activeStageActionKey === `update-stage-${selectedStage.id}`
-                "
-                @click="saveStageRules(selectedStage)"
-              />
-            </section>
           </div>
         </section>
 
@@ -3898,32 +3950,6 @@ onMounted(async () => {
           <h2 class="text-base font-medium text-n-slate-12">
             {{ t('KANBAN.SETTINGS.SALES.TITLE') }}
           </h2>
-          <details
-            data-testid="kanban-settings-lost-reason-options-group"
-            class="rounded-md border border-n-weak bg-n-surface-1"
-          >
-            <summary
-              class="cursor-pointer px-3 py-2 text-sm font-medium text-n-slate-12 outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
-            >
-              {{ t('KANBAN.SETTINGS.SALES.LOST_REASON_OPTIONS') }}
-            </summary>
-            <label
-              class="grid gap-1 border-t border-n-weak p-3 text-sm font-medium text-n-slate-12"
-            >
-              <span class="sr-only">
-                {{ t('KANBAN.SETTINGS.SALES.LOST_REASON_OPTIONS') }}
-              </span>
-              <textarea
-                v-model="form.lostReasonOptionsText"
-                data-testid="kanban-settings-lost-reason-options"
-                rows="3"
-                class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                :placeholder="
-                  t('KANBAN.SETTINGS.SALES.LOST_REASON_OPTIONS_PLACEHOLDER')
-                "
-              />
-            </label>
-          </details>
           <div class="grid gap-3">
             <!--
               A lista dos campos vivia aqui e na página «Campos»: dois sítios a
@@ -4669,19 +4695,17 @@ onMounted(async () => {
                           {{ field.label }}
                         </span>
                         <button
-                          v-if="field.options"
+                          v-if="field.optionsModel"
                           type="button"
                           :data-testid="`kanban-settings-standard-field-options-${field.key}`"
                           class="flex items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 py-1 text-micro font-medium text-n-slate-11 outline-none hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40"
-                          :aria-expanded="mostrarOpcoesTipoAcao"
-                          @click="
-                            mostrarOpcoesTipoAcao = !mostrarOpcoesTipoAcao
-                          "
+                          :aria-expanded="campoDeOpcoesAberto === field.key"
+                          @click="alternarOpcoes(field.key)"
                         >
                           <i
                             class="size-3 shrink-0"
                             :class="
-                              mostrarOpcoesTipoAcao
+                              campoDeOpcoesAberto === field.key
                                 ? 'i-lucide-chevron-up'
                                 : 'i-lucide-chevron-down'
                             "
@@ -4696,25 +4720,26 @@ onMounted(async () => {
                           }}
                         </span>
                       </div>
+                      <p
+                        v-if="field.note"
+                        class="m-0 text-micro text-n-slate-10"
+                      >
+                        {{ field.note }}
+                      </p>
                       <label
-                        v-if="field.options && mostrarOpcoesTipoAcao"
+                        v-if="
+                          field.optionsModel &&
+                          campoDeOpcoesAberto === field.key
+                        "
                         class="grid gap-1 text-micro font-medium text-n-slate-11"
                       >
-                        {{
-                          t(
-                            'KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES_PLACEHOLDER'
-                          )
-                        }}
+                        {{ field.optionsHint }}
                         <textarea
-                          v-model="form.nextActionTypesText"
-                          data-testid="kanban-settings-next-action-types"
+                          v-model="form[field.optionsModel]"
+                          :data-testid="`kanban-settings-options-${field.key}`"
                           rows="4"
                           class="rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                          :placeholder="
-                            t(
-                              'KANBAN.SETTINGS.SALES.NEXT_ACTION_TYPES_PLACEHOLDER'
-                            )
-                          "
+                          :placeholder="field.optionsHint"
                         />
                       </label>
                     </li>

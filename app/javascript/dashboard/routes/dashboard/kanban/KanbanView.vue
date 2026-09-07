@@ -1289,7 +1289,7 @@ const assistedFieldDefinition = fieldKey => {
   if (fieldKey === 'lost_reason') {
     return {
       key: fieldKey,
-      label: t('KANBAN.OPPORTUNITY.LOST_REASON'),
+      label: t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON'),
       fieldType: 'select',
       options: selectedBoard.value?.lostReasonOptions || [],
     };

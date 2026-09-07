@@ -807,7 +807,8 @@
         "STANDARD_FIELDS": "Campos padrão",
         "STANDARD_FIELDS_DESCRIPTION": "Toda oportunidade tem estes campos. Não dá para removê-los, e só alguns têm lista de opções que você escolhe.",
         "STANDARD_FIELD_OPTIONS": "Opções",
-        "STANDARD_FIELD_NO_OPTIONS": "Sem opções a definir"
+        "STANDARD_FIELD_NO_OPTIONS": "Sem opções a definir",
+        "LOST_REASON_WHERE": "Aparece ao marcar a oportunidade como perdida."
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",

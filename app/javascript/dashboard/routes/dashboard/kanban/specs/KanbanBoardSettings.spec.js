@@ -408,6 +408,38 @@ describe('KanbanBoardSettings', () => {
     ).toBe('Won');
   });
 
+  // A configuração vivia depois da lista inteira: com dez etapas, clicar na
+  // segunda mandava-a para fora do ecrã, sem dizer de que etapa era.
+  it('opens the stage configuration inside the stage that was clicked', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .findAll('[data-testid="kanban-settings-stage-select"]')[1]
+      .trigger('click');
+
+    const linhas = wrapper.findAll('[data-testid="kanban-settings-stage-row"]');
+    const editores = wrapper.findAll(
+      '[data-testid="kanban-settings-stage-editor"]'
+    );
+
+    expect(editores).toHaveLength(1);
+    expect(linhas[1].element.parentElement).toBe(
+      editores[0].element.parentElement
+    );
+  });
+
+  it('closes the stage configuration when the same stage is clicked again', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .findAll('[data-testid="kanban-settings-stage-select"]')[0]
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="kanban-settings-stage-editor"]').exists()
+    ).toBe(false);
+  });
+
   it('moves a stage up through an explicit keyboard-accessible control', async () => {
     const { wrapper } = await mountSettings();
 
@@ -578,11 +610,16 @@ describe('KanbanBoardSettings', () => {
       )
       .trigger('click');
     expect(
-      wrapper.find('[data-testid="kanban-settings-next-action-types"]').element
-        .value
+      wrapper.find('[data-testid="kanban-settings-options-next_action_type"]')
+        .element.value
     ).toBe('Enviar proposta\nCobrar retorno');
+    await wrapper
+      .find(
+        '[data-testid="kanban-settings-standard-field-options-lost_reason"]'
+      )
+      .trigger('click');
     expect(
-      wrapper.find('[data-testid="kanban-settings-lost-reason-options"]')
+      wrapper.find('[data-testid="kanban-settings-options-lost_reason"]')
         .element.value
     ).toBe('Preço\nSem resposta');
   });
@@ -590,16 +627,45 @@ describe('KanbanBoardSettings', () => {
   it('keeps occasional commercial option lists collapsed by default', async () => {
     const { wrapper } = await mountSettings();
 
-    // Tipos de ação vive junto do campo que configura, na aba Geral, e abre a
-    // pedido: a lista é trabalho de configuração, não leitura de passagem.
+    // Cada lista vive junto do campo que configura e abre a pedido: é trabalho
+    // de configuração, não leitura de passagem.
     expect(
-      wrapper.find('[data-testid="kanban-settings-next-action-types"]').exists()
+      wrapper
+        .find('[data-testid="kanban-settings-options-next_action_type"]')
+        .exists()
     ).toBe(false);
     expect(
       wrapper
-        .find('[data-testid="kanban-settings-lost-reason-options-group"]')
-        .attributes('open')
-    ).toBeUndefined();
+        .find('[data-testid="kanban-settings-options-lost_reason"]')
+        .exists()
+    ).toBe(false);
+  });
+
+  // Duas listas longas abertas empurram o resto da página para fora do ecrã.
+  it('keeps only one option list open at a time', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find(
+        '[data-testid="kanban-settings-standard-field-options-next_action_type"]'
+      )
+      .trigger('click');
+    await wrapper
+      .find(
+        '[data-testid="kanban-settings-standard-field-options-lost_reason"]'
+      )
+      .trigger('click');
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-options-next_action_type"]')
+        .exists()
+    ).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-options-lost_reason"]')
+        .exists()
+    ).toBe(true);
   });
 
   // Sem isto, quem procurava «Tipo de ação» na aba onde ele aparece concluía
@@ -613,6 +679,7 @@ describe('KanbanBoardSettings', () => {
 
     expect(rotulos).toContain('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE');
     expect(rotulos).toContain('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER');
+    expect(rotulos).toContain('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON');
     expect(
       wrapper
         .find(
@@ -2185,10 +2252,15 @@ describe('KanbanBoardSettings', () => {
       )
       .trigger('click');
     await wrapper
-      .find('[data-testid="kanban-settings-next-action-types"]')
+      .find('[data-testid="kanban-settings-options-next_action_type"]')
       .setValue('Enviar proposta\nEnviar link de pagamento\nEnviar proposta');
     await wrapper
-      .find('[data-testid="kanban-settings-lost-reason-options"]')
+      .find(
+        '[data-testid="kanban-settings-standard-field-options-lost_reason"]'
+      )
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-options-lost_reason"]')
       .setValue('Preço\n\nFechou com outro');
     await wrapper
       .find('[data-testid="kanban-settings-nav-fields"]')
