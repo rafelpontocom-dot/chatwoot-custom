@@ -121,7 +121,10 @@
         "PIX": "Pix",
         "CREDIT_CARD": "Credit card",
         "BOLETO": "Boleto",
-        "OTHER": "External charge"
+        "OTHER": "External charge",
+        "MULTIBANCO": "Multibanco",
+        "MBWAY": "MB WAY",
+        "PAYSHOP": "Payshop"
       },
       "STATUS": {
         "DRAFT": "Draft",
@@ -135,7 +138,10 @@
         "FAILED": "Failed"
       },
       "NEEDS_CONNECTION": "Charges start from opportunities and need an active payment connection. Connect a provider to start charging.",
-      "GO_TO_CONNECTIONS": "Open connections"
+      "GO_TO_CONNECTIONS": "Open connections",
+      "MOBILE_NUMBER": "Mobile number",
+      "MOBILE_NUMBER_PLACEHOLDER": "912345678",
+      "MOBILE_NUMBER_HINT": "Portuguese mobile that receives the MB WAY request. Leave blank to use the contact number."
     },
     "CONNECTIONS": {
       "EYEBROW": "Connections",
@@ -176,13 +182,27 @@
       "MANUAL_DESCRIPTION": "Record external charges while an automatic integration is not configured.",
       "MANUAL_CONNECTED": "External charges can be recorded for this account.",
       "MANUAL_ENABLE": "Enable manual control",
-      "PT_NOTICE": "The Portugal connector will use ifthenpay for payments and Moloni for invoicing in the next delivery.",
+      "PT_NOTICE": "The Portugal connector supports ifthenpay for payments. Moloni invoicing is not available yet.",
       "STATUS": {
         "PENDING": "Credential saved. Verification pending.",
         "CONNECTED": "Connected",
         "ATTENTION": "Needs attention",
         "ERROR": "Connection error",
         "DISCONNECTED": "Disconnected"
+      },
+      "IFTHENPAY": {
+        "TITLE": "ifthenpay",
+        "DESCRIPTION": "Charge in euros with Multibanco, MB WAY, Payshop or card, straight from the opportunity.",
+        "BACKOFFICE_KEY": "Backoffice key",
+        "ANTI_PHISHING_KEY": "Anti-phishing key",
+        "ANTI_PHISHING_HINT": "Payments are only marked as received when this key matches the callback.",
+        "KEY_STORED": "Stored on the server",
+        "MB_KEY": "Multibanco key",
+        "MBWAY_KEY": "MB WAY key",
+        "PAYSHOP_KEY": "Payshop key",
+        "CCARD_KEY": "Card key",
+        "METHODS_HINT": "Fill in only the methods you have contracted. A method without a key is not offered when creating a charge.",
+        "CALLBACK_HINT": "Register this URL in the ifthenpay backoffice, for every method you use."
       }
     },
     "ERROR": {

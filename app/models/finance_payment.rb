@@ -48,7 +48,7 @@
 #
 # rubocop:enable Layout/LineLength
 class FinancePayment < ApplicationRecord
-  BILLING_TYPES = %w[pix credit_card boleto undefined other].freeze
+  BILLING_TYPES = %w[pix credit_card boleto multibanco mbway payshop undefined other].freeze
   KINDS = %w[charge checkout subscription installment].freeze
   STATUSES = %w[draft pending confirmed received overdue refunded chargeback canceled failed].freeze
 

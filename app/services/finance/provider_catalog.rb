@@ -2,7 +2,7 @@ class Finance::ProviderCatalog
   PROVIDERS = {
     'asaas' => { markets: %w[BR], roles: %w[payment invoicing], available: true },
     'manual' => { markets: %w[BR PT OTHER], roles: %w[payment], available: true },
-    'ifthenpay' => { markets: %w[PT], roles: %w[payment], available: false },
+    'ifthenpay' => { markets: %w[PT], roles: %w[payment], available: true },
     'moloni' => { markets: %w[PT], roles: %w[invoicing], available: false },
     'easypay' => { markets: %w[PT], roles: %w[payment], available: false }
   }.freeze

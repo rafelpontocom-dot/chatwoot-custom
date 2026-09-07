@@ -30,6 +30,7 @@ const amount = ref('');
 const billingType = ref('pix');
 const dueOn = ref('');
 const cpfCnpj = ref('');
+const mobileNumber = ref('');
 const description = ref('');
 const isSaving = ref(false);
 const error = ref('');
@@ -45,21 +46,37 @@ const selectedConnection = computed(() =>
 const isManualConnection = computed(
   () => selectedConnection.value?.provider === 'manual'
 );
+const isIfthenpayConnection = computed(
+  () => selectedConnection.value?.provider === 'ifthenpay'
+);
+// ifthenpay only offers the methods the merchant actually has a key for.
+const ifthenpayBillingTypes = computed(() =>
+  (selectedConnection.value?.enabled_billing_types || []).map(value => ({
+    value,
+    label: t(`FINANCE.PAYMENTS.TYPES.${value.toUpperCase()}`),
+  }))
+);
+// MB WAY pushes the request to the customer's phone, so a mobile is mandatory.
+const requiresMobileNumber = computed(
+  () => isIfthenpayConnection.value && billingType.value === 'mbway'
+);
 const requiresTaxIdentifier = computed(
   () => selectedConnection.value?.provider === 'asaas'
 );
-const billingTypeOptions = computed(() =>
-  isManualConnection.value
-    ? [{ value: 'other', label: t('FINANCE.PAYMENTS.TYPES.OTHER') }]
-    : [
-        { value: 'pix', label: t('FINANCE.PAYMENTS.TYPES.PIX') },
-        {
-          value: 'credit_card',
-          label: t('FINANCE.PAYMENTS.TYPES.CREDIT_CARD'),
-        },
-        { value: 'boleto', label: t('FINANCE.PAYMENTS.TYPES.BOLETO') },
-      ]
-);
+const billingTypeOptions = computed(() => {
+  if (isManualConnection.value) {
+    return [{ value: 'other', label: t('FINANCE.PAYMENTS.TYPES.OTHER') }];
+  }
+  if (isIfthenpayConnection.value) return ifthenpayBillingTypes.value;
+  return [
+    { value: 'pix', label: t('FINANCE.PAYMENTS.TYPES.PIX') },
+    {
+      value: 'credit_card',
+      label: t('FINANCE.PAYMENTS.TYPES.CREDIT_CARD'),
+    },
+    { value: 'boleto', label: t('FINANCE.PAYMENTS.TYPES.BOLETO') },
+  ];
+});
 const paymentContact = computed(() => props.contact || selectedContact.value);
 const normalizedAmount = computed(() =>
   Number(amount.value.replace(',', '.').replace(/[^\d.]/g, ''))
@@ -81,6 +98,9 @@ const canSave = computed(
     !!dueOn.value &&
     (!requiresTaxIdentifier.value ||
       cpfCnpj.value.replace(/\D/g, '').length >= 11) &&
+    (!requiresMobileNumber.value ||
+      mobileNumber.value.replace(/\D/g, '').length >= 9 ||
+      !!paymentContact.value?.phone_number) &&
     !isSaving.value
 );
 
@@ -94,6 +114,7 @@ const resetForm = () => {
     activeConnections.value[0]?.provider === 'manual' ? 'other' : 'pix';
   dueOn.value = '';
   cpfCnpj.value = '';
+  mobileNumber.value = '';
   description.value = '';
   error.value = '';
 };
@@ -186,6 +207,9 @@ const save = async () => {
         currency: props.market === 'PT' ? 'EUR' : 'BRL',
         ...(requiresTaxIdentifier.value
           ? { cpf_cnpj: cpfCnpj.value.replace(/\D/g, '') }
+          : {}),
+        ...(requiresMobileNumber.value && mobileNumber.value.trim()
+          ? { mobile_number: mobileNumber.value.trim() }
           : {}),
         description: description.value.trim(),
       },
@@ -303,6 +327,24 @@ defineExpose({ open });
             type="date"
             class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           />
+        </label>
+        <label v-if="requiresMobileNumber" class="grid gap-1.5">
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ t('FINANCE.PAYMENTS.MOBILE_NUMBER') }}
+          </span>
+          <input
+            v-model="mobileNumber"
+            data-testid="finance-payment-mobile-number"
+            inputmode="tel"
+            :placeholder="
+              paymentContact?.phone_number ||
+              t('FINANCE.PAYMENTS.MOBILE_NUMBER_PLACEHOLDER')
+            "
+            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          />
+          <span class="text-xs text-n-slate-11">
+            {{ t('FINANCE.PAYMENTS.MOBILE_NUMBER_HINT') }}
+          </span>
         </label>
         <label v-if="requiresTaxIdentifier" class="grid gap-1.5">
           <span class="text-sm font-medium text-n-slate-12">

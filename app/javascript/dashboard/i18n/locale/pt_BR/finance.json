@@ -121,7 +121,10 @@
         "PIX": "Pix",
         "CREDIT_CARD": "Cartão de crédito",
         "BOLETO": "Boleto",
-        "OTHER": "Cobrança externa"
+        "OTHER": "Cobrança externa",
+        "MULTIBANCO": "Multibanco",
+        "MBWAY": "MB WAY",
+        "PAYSHOP": "Payshop"
       },
       "STATUS": {
         "DRAFT": "Rascunho",
@@ -135,7 +138,10 @@
         "FAILED": "Falhou"
       },
       "NEEDS_CONNECTION": "As cobranças nascem das oportunidades e precisam de uma conexão de pagamento ativa. Conecte um provedor para começar a cobrar.",
-      "GO_TO_CONNECTIONS": "Abrir conexões"
+      "GO_TO_CONNECTIONS": "Abrir conexões",
+      "MOBILE_NUMBER": "Telemóvel",
+      "MOBILE_NUMBER_PLACEHOLDER": "912345678",
+      "MOBILE_NUMBER_HINT": "Telemóvel português que recebe o pedido MB WAY. Deixe vazio para usar o número do contato."
     },
     "CONNECTIONS": {
       "EYEBROW": "Conexões",
@@ -176,13 +182,27 @@
       "MANUAL_DESCRIPTION": "Registre cobranças externas enquanto a integração automática não estiver configurada.",
       "MANUAL_CONNECTED": "Cobranças externas podem ser registradas nesta conta.",
       "MANUAL_ENABLE": "Ativar controle manual",
-      "PT_NOTICE": "O conector para Portugal usará ifthenpay para pagamentos e Moloni para faturação na próxima entrega.",
+      "PT_NOTICE": "O conector para Portugal suporta ifthenpay para pagamentos. A faturação Moloni ainda não está disponível.",
       "STATUS": {
         "PENDING": "Credencial salva. Validação pendente.",
         "CONNECTED": "Conectado",
         "ATTENTION": "Requer atenção",
         "ERROR": "Erro na conexão",
         "DISCONNECTED": "Desconectado"
+      },
+      "IFTHENPAY": {
+        "TITLE": "ifthenpay",
+        "DESCRIPTION": "Cobre em euros por Multibanco, MB WAY, Payshop ou cartão, direto da oportunidade.",
+        "BACKOFFICE_KEY": "Chave de backoffice",
+        "ANTI_PHISHING_KEY": "Chave anti-phishing",
+        "ANTI_PHISHING_HINT": "Os pagamentos só são marcados como recebidos quando esta chave confere com a do callback.",
+        "KEY_STORED": "Guardada no servidor",
+        "MB_KEY": "Chave Multibanco",
+        "MBWAY_KEY": "Chave MB WAY",
+        "PAYSHOP_KEY": "Chave Payshop",
+        "CCARD_KEY": "Chave de cartão",
+        "METHODS_HINT": "Preencha apenas os métodos contratados. Um método sem chave não aparece ao criar a cobrança.",
+        "CALLBACK_HINT": "Cadastre esta URL no backoffice do ifthenpay, para cada método utilizado."
       }
     },
     "ERROR": {

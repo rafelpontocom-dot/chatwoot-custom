@@ -32,7 +32,7 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
     render json: payment.public_payload, status: :created
   rescue ActiveRecord::RecordInvalid => e
     render json: { message: e.record.errors.full_messages.to_sentence, errors: e.record.errors }, status: :unprocessable_entity
-  rescue Finance::Asaas::ApiError => e
+  rescue Finance::Asaas::ApiError, Finance::Ifthenpay::ApiError => e
     render json: { message: e.message }, status: :unprocessable_entity
   end
 
@@ -46,7 +46,7 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
 
     events = canceled_payment.finance_payment_events.order(occurred_at: :desc).map(&:public_payload)
     render json: canceled_payment.public_payload.merge(events: events)
-  rescue Finance::Asaas::ApiError => e
+  rescue Finance::Asaas::ApiError, Finance::Ifthenpay::ApiError => e
     render json: { message: e.message }, status: :unprocessable_entity
   rescue ActiveRecord::RecordInvalid => e
     render json: { message: e.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
@@ -69,15 +69,10 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
   def refund
     authorize finance_module_setting, :refund_payments?
     payment = Current.account.finance_payments.find(params[:id])
-    refunded_payment = Finance::Asaas::RefundPaymentService.new(
-      payment: payment,
-      actor: Current.user,
-      description: refund_params[:description]
-    ).perform
+    refunded_payment = refund_payment(payment)
 
-    events = refunded_payment.finance_payment_events.order(occurred_at: :desc).map(&:public_payload)
-    render json: refunded_payment.public_payload.merge(events: events)
-  rescue Finance::Asaas::ApiError => e
+    render json: payload_with_events(refunded_payment)
+  rescue Finance::Asaas::ApiError, Finance::Ifthenpay::ApiError => e
     render json: { message: e.message }, status: :unprocessable_entity
   rescue ActiveRecord::RecordInvalid => e
     render json: { message: e.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
@@ -119,6 +114,7 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
       :due_on,
       :currency,
       :cpf_cnpj,
+      :mobile_number,
       :description
     )
   end
@@ -126,6 +122,7 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
   def payment_service_class
     {
       'asaas' => Finance::Asaas::CreatePaymentService,
+      'ifthenpay' => Finance::Ifthenpay::CreatePaymentService,
       'manual' => Finance::Manual::CreatePaymentService
     }.fetch(payment_connection.provider)
   end
@@ -157,11 +154,36 @@ class Api::V1::Accounts::Finance::PaymentsController < Api::V1::Accounts::BaseCo
   def payment_cancel_service_class(payment)
     {
       'asaas' => Finance::Asaas::CancelPaymentService,
+      'ifthenpay' => Finance::Ifthenpay::CancelPaymentService,
       'manual' => Finance::Manual::CancelPaymentService
     }.fetch(payment.finance_provider_connection.provider)
   end
 
+  def refund_payment(payment)
+    payment_refund_service_class(payment).new(
+      payment: payment,
+      actor: Current.user,
+      description: refund_params[:description]
+    ).perform
+  end
+
+  def payload_with_events(payment)
+    events = payment.finance_payment_events.order(occurred_at: :desc).map(&:public_payload)
+    payment.public_payload.merge(events: events)
+  end
+
+  def payment_refund_service_class(payment)
+    {
+      'asaas' => Finance::Asaas::RefundPaymentService,
+      'ifthenpay' => Finance::Ifthenpay::RefundPaymentService
+    }.fetch(payment.finance_provider_connection.provider) do
+      raise Finance::Asaas::ApiError, 'This provider does not support automatic refunds'
+    end
+  end
+
   def default_currency
+    return 'EUR' if payment_connection.provider == 'ifthenpay'
+
     payment_connection.provider == 'manual' && finance_module_setting.market == 'PT' ? 'EUR' : 'BRL'
   end
 

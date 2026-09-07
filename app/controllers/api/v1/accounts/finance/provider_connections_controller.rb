@@ -35,9 +35,9 @@ class Api::V1::Accounts::Finance::ProviderConnectionsController < Api::V1::Accou
 
   def verify
     authorize @connection, :configure?
-    connection = Finance::Asaas::VerifyConnectionService.new(connection: @connection).perform
+    connection = verify_service_class.new(connection: @connection).perform
     render json: connection.public_payload
-  rescue Finance::Asaas::ApiError => e
+  rescue Finance::Asaas::ApiError, Finance::Ifthenpay::ApiError => e
     render json: { message: e.message }, status: :unprocessable_entity
   end
 
@@ -68,6 +68,15 @@ class Api::V1::Accounts::Finance::ProviderConnectionsController < Api::V1::Accou
       :lock_version,
       settings: {}
     )
+  end
+
+  def verify_service_class
+    {
+      'asaas' => Finance::Asaas::VerifyConnectionService,
+      'ifthenpay' => Finance::Ifthenpay::VerifyConnectionService
+    }.fetch(@connection.provider) do
+      raise Finance::Asaas::ApiError, 'This provider does not support connection validation'
+    end
   end
 
   def apply_initial_connection_status(connection)

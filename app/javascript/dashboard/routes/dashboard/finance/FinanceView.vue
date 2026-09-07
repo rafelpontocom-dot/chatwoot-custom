@@ -62,12 +62,63 @@ const webhookDeliveriesError = ref('');
 const asaasConnection = computed(() =>
   connections.value.find(connection => connection.provider === 'asaas')
 );
+const ifthenpayBackofficeKey = ref('');
+const ifthenpayAntiPhishingKey = ref('');
+const ifthenpayDisplayName = ref('');
+const ifthenpayMethodKeys = ref({
+  mb_key: '',
+  mbway_key: '',
+  payshop_key: '',
+  ccard_key: '',
+});
+const ifthenpayWebhookUrlCopied = ref(false);
+
 const manualConnection = computed(() =>
   connections.value.find(connection => connection.provider === 'manual')
 );
 const isEnabled = computed(() => financeModule.value?.enabled === true);
 const isBrazil = computed(() => financeModule.value?.market === 'BR');
 const isPortugal = computed(() => financeModule.value?.market === 'PT');
+const ifthenpayConnection = computed(() =>
+  connections.value.find(connection => connection.provider === 'ifthenpay')
+);
+const ifthenpayMethodFields = [
+  { key: 'mb_key', labelKey: 'FINANCE.CONNECTIONS.IFTHENPAY.MB_KEY' },
+  { key: 'mbway_key', labelKey: 'FINANCE.CONNECTIONS.IFTHENPAY.MBWAY_KEY' },
+  { key: 'payshop_key', labelKey: 'FINANCE.CONNECTIONS.IFTHENPAY.PAYSHOP_KEY' },
+  { key: 'ccard_key', labelKey: 'FINANCE.CONNECTIONS.IFTHENPAY.CCARD_KEY' },
+];
+const hasIfthenpayMethodKey = computed(() =>
+  ifthenpayMethodFields.some(field =>
+    ifthenpayMethodKeys.value[field.key].trim()
+  )
+);
+// The backoffice key is only required the first time; afterwards it stays on the
+// server and the merchant can edit just the method keys.
+const canSaveIfthenpay = computed(
+  () =>
+    hasIfthenpayMethodKey.value &&
+    (ifthenpayConnection.value || ifthenpayBackofficeKey.value.trim())
+);
+const ifthenpayWebhookUrl = computed(() => {
+  if (!ifthenpayConnection.value) return '';
+  return `${window.location.origin}/webhooks/finance/ifthenpay/${ifthenpayConnection.value.id}`;
+});
+const ifthenpayStatusLabel = computed(() => {
+  if (!ifthenpayConnection.value) return t('FINANCE.CONNECTIONS.NOT_CONNECTED');
+  switch (ifthenpayConnection.value.status) {
+    case 'connected':
+      return t('FINANCE.CONNECTIONS.STATUS.CONNECTED');
+    case 'pending':
+      return t('FINANCE.CONNECTIONS.STATUS.PENDING');
+    case 'attention':
+      return t('FINANCE.CONNECTIONS.STATUS.ATTENTION');
+    case 'error':
+      return t('FINANCE.CONNECTIONS.STATUS.ERROR');
+    default:
+      return t('FINANCE.CONNECTIONS.STATUS.DISCONNECTED');
+  }
+});
 const accountPermissions = computed(
   () => currentAccount.value?.permissions || []
 );
@@ -476,6 +527,81 @@ const saveAsaasConnection = async () => {
   } finally {
     isSavingConnection.value = false;
   }
+};
+
+const saveIfthenpayConnection = async () => {
+  if (!canSaveIfthenpay.value) return;
+
+  isSavingConnection.value = true;
+  error.value = '';
+  const settings = { ...(ifthenpayConnection.value?.settings || {}) };
+  ifthenpayMethodFields.forEach(field => {
+    const value = ifthenpayMethodKeys.value[field.key].trim();
+    if (value) settings[field.key] = value;
+  });
+  const payload = {
+    provider_connection: {
+      provider: 'ifthenpay',
+      environment: 'production',
+      api_key: ifthenpayBackofficeKey.value.trim() || undefined,
+      webhook_token: ifthenpayAntiPhishingKey.value.trim() || undefined,
+      display_name: ifthenpayDisplayName.value.trim(),
+      settings,
+      lock_version: ifthenpayConnection.value?.lock_version,
+    },
+  };
+
+  try {
+    const response = ifthenpayConnection.value
+      ? await FinanceAPI.updateProviderConnection(
+          ifthenpayConnection.value.id,
+          payload
+        )
+      : await FinanceAPI.createProviderConnection(payload);
+    const savedConnection = response.data;
+    connections.value = [
+      ...connections.value.filter(
+        connection => connection.id !== savedConnection.id
+      ),
+      savedConnection,
+    ];
+    ifthenpayBackofficeKey.value = '';
+    ifthenpayAntiPhishingKey.value = '';
+  } catch (requestError) {
+    error.value =
+      requestError.response?.data?.message || t('FINANCE.ERROR.CONNECTION');
+  } finally {
+    isSavingConnection.value = false;
+  }
+};
+
+const verifyIfthenpayConnection = async () => {
+  if (!ifthenpayConnection.value) return;
+
+  isVerifyingConnection.value = true;
+  error.value = '';
+
+  try {
+    const { data } = await FinanceAPI.verifyProviderConnection(
+      ifthenpayConnection.value.id
+    );
+    connections.value = connections.value.map(connection =>
+      connection.id === data.id ? data : connection
+    );
+  } catch (requestError) {
+    error.value =
+      requestError.response?.data?.message || t('FINANCE.ERROR.VERIFY');
+  } finally {
+    isVerifyingConnection.value = false;
+  }
+};
+
+const copyIfthenpayWebhookUrl = async () => {
+  await copyTextToClipboard(ifthenpayWebhookUrl.value);
+  ifthenpayWebhookUrlCopied.value = true;
+  window.setTimeout(() => {
+    ifthenpayWebhookUrlCopied.value = false;
+  }, 2000);
 };
 
 const copyAsaasWebhookUrl = async () => {
@@ -1345,6 +1471,133 @@ onMounted(loadFinance);
           >
             {{ t('FINANCE.CONNECTIONS.PT_NOTICE') }}
           </p>
+          <div
+            v-if="isPortugal"
+            class="mt-5 rounded-md border border-n-weak p-4"
+            data-testid="finance-ifthenpay-card"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-n-slate-12">
+                  {{ t('FINANCE.CONNECTIONS.IFTHENPAY.TITLE') }}
+                </p>
+                <p class="mt-1 text-sm leading-6 text-n-slate-11">
+                  {{ t('FINANCE.CONNECTIONS.IFTHENPAY.DESCRIPTION') }}
+                </p>
+              </div>
+              <span class="text-sm text-n-slate-11">{{
+                ifthenpayStatusLabel
+              }}</span>
+            </div>
+            <p
+              v-if="ifthenpayConnection?.last_error"
+              class="mt-3 rounded-md bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
+              role="alert"
+            >
+              {{ ifthenpayConnection.last_error }}
+            </p>
+            <div v-if="canConfigure" class="mt-4 grid gap-4 sm:grid-cols-2">
+              <label
+                class="flex flex-col gap-2 text-sm font-medium text-n-slate-12"
+              >
+                {{ t('FINANCE.CONNECTIONS.IFTHENPAY.BACKOFFICE_KEY') }}
+                <input
+                  v-model="ifthenpayBackofficeKey"
+                  type="password"
+                  autocomplete="off"
+                  data-testid="finance-ifthenpay-backoffice-key"
+                  :placeholder="
+                    ifthenpayConnection
+                      ? t('FINANCE.CONNECTIONS.IFTHENPAY.KEY_STORED')
+                      : '0000-0000-0000-0000'
+                  "
+                  class="h-10 rounded-md border border-n-weak bg-n-alpha-1 px-3 text-sm"
+                />
+              </label>
+              <label
+                class="flex flex-col gap-2 text-sm font-medium text-n-slate-12"
+              >
+                {{ t('FINANCE.CONNECTIONS.IFTHENPAY.ANTI_PHISHING_KEY') }}
+                <input
+                  v-model="ifthenpayAntiPhishingKey"
+                  type="password"
+                  autocomplete="off"
+                  data-testid="finance-ifthenpay-anti-phishing-key"
+                  :placeholder="
+                    ifthenpayConnection?.status === 'connected'
+                      ? t('FINANCE.CONNECTIONS.IFTHENPAY.KEY_STORED')
+                      : ''
+                  "
+                  class="h-10 rounded-md border border-n-weak bg-n-alpha-1 px-3 text-sm"
+                />
+                <span class="text-xs font-normal text-n-slate-11">
+                  {{ t('FINANCE.CONNECTIONS.IFTHENPAY.ANTI_PHISHING_HINT') }}
+                </span>
+              </label>
+              <label
+                v-for="field in ifthenpayMethodFields"
+                :key="field.key"
+                class="flex flex-col gap-2 text-sm font-medium text-n-slate-12"
+              >
+                {{ t(field.labelKey) }}
+                <input
+                  v-model="ifthenpayMethodKeys[field.key]"
+                  type="text"
+                  autocomplete="off"
+                  :data-testid="`finance-ifthenpay-${field.key}`"
+                  :placeholder="
+                    ifthenpayConnection?.settings?.[field.key] || 'ITP-000000'
+                  "
+                  class="h-10 rounded-md border border-n-weak bg-n-alpha-1 px-3 text-sm"
+                />
+              </label>
+            </div>
+            <p class="mt-3 text-xs text-n-slate-11">
+              {{ t('FINANCE.CONNECTIONS.IFTHENPAY.METHODS_HINT') }}
+            </p>
+            <div v-if="canConfigure" class="mt-4 flex flex-wrap gap-2">
+              <Button
+                :label="t('FINANCE.CONNECTIONS.SAVE')"
+                :is-loading="isSavingConnection"
+                :disabled="!canSaveIfthenpay"
+                data-testid="finance-ifthenpay-save"
+                @click="saveIfthenpayConnection"
+              />
+              <Button
+                v-if="ifthenpayConnection"
+                :label="t('FINANCE.CONNECTIONS.VERIFY')"
+                :is-loading="isVerifyingConnection"
+                color="slate"
+                variant="outline"
+                data-testid="finance-ifthenpay-verify"
+                @click="verifyIfthenpayConnection"
+              />
+            </div>
+            <div v-if="ifthenpayConnection" class="mt-4 grid gap-2">
+              <span class="text-sm font-medium text-n-slate-12">
+                {{ t('FINANCE.CONNECTIONS.WEBHOOK_URL') }}
+              </span>
+              <code
+                class="overflow-x-auto rounded-md bg-n-alpha-2 px-3 py-2 text-xs text-n-slate-12"
+                >{{ ifthenpayWebhookUrl }}</code
+              >
+              <span class="text-xs text-n-slate-11">
+                {{ t('FINANCE.CONNECTIONS.IFTHENPAY.CALLBACK_HINT') }}
+              </span>
+              <Button
+                :label="
+                  ifthenpayWebhookUrlCopied
+                    ? t('FINANCE.CONNECTIONS.COPIED')
+                    : t('FINANCE.CONNECTIONS.COPY_URL')
+                "
+                color="slate"
+                variant="outline"
+                type="button"
+                class="w-fit"
+                @click="copyIfthenpayWebhookUrl"
+              />
+            </div>
+          </div>
         </section>
       </template>
     </div>

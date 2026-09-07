@@ -204,6 +204,84 @@ describe('FinanceView', () => {
     });
   });
 
+  it('offers ifthenpay setup for an enabled Portugal account', async () => {
+    FinanceAPI.getModule.mockResolvedValue({
+      data: { enabled: true, market: 'PT', lock_version: 0 },
+    });
+    const wrapper = mountFinance();
+    await flushPromises();
+    await openSettings(wrapper);
+
+    expect(
+      wrapper.find('[data-testid="finance-ifthenpay-card"]').exists()
+    ).toBe(true);
+  });
+
+  it('keeps the ifthenpay card out of a Brazilian account', async () => {
+    FinanceAPI.getModule.mockResolvedValue({
+      data: { enabled: true, market: 'BR', lock_version: 0 },
+    });
+    const wrapper = mountFinance();
+    await flushPromises();
+    await openSettings(wrapper);
+
+    expect(
+      wrapper.find('[data-testid="finance-ifthenpay-card"]').exists()
+    ).toBe(false);
+  });
+
+  it('saves the ifthenpay keys the merchant filled in, leaving the others alone', async () => {
+    FinanceAPI.getModule.mockResolvedValue({
+      data: { enabled: true, market: 'PT', lock_version: 0 },
+    });
+    FinanceAPI.createProviderConnection.mockResolvedValue({
+      data: { id: 9, provider: 'ifthenpay', status: 'pending', settings: {} },
+    });
+    const wrapper = mountFinance();
+    await flushPromises();
+    await openSettings(wrapper);
+
+    await wrapper
+      .get('[data-testid="finance-ifthenpay-backoffice-key"]')
+      .setValue('1111-1111-1111-1111');
+    await wrapper
+      .get('[data-testid="finance-ifthenpay-anti-phishing-key"]')
+      .setValue('anti-phishing-key');
+    await wrapper
+      .get('[data-testid="finance-ifthenpay-mbway_key"]')
+      .setValue('ITP-000222');
+    await wrapper.vm.saveIfthenpayConnection();
+    await flushPromises();
+
+    const payload = FinanceAPI.createProviderConnection.mock.calls.at(-1)[0];
+    expect(payload.provider_connection).toMatchObject({
+      provider: 'ifthenpay',
+      api_key: '1111-1111-1111-1111',
+      webhook_token: 'anti-phishing-key',
+      settings: { mbway_key: 'ITP-000222' },
+    });
+    expect(payload.provider_connection.settings.mb_key).toBeUndefined();
+  });
+
+  it('shows the callback URL to register in the ifthenpay backoffice', async () => {
+    FinanceAPI.getModule.mockResolvedValue({
+      data: { enabled: true, market: 'PT', lock_version: 0 },
+    });
+    FinanceAPI.getProviderConnections.mockResolvedValue({
+      data: [
+        { id: 9, provider: 'ifthenpay', status: 'connected', settings: {} },
+      ],
+    });
+    const wrapper = mountFinance();
+    await flushPromises();
+    await openSettings(wrapper);
+
+    expect(wrapper.text()).toContain('/webhooks/finance/ifthenpay/9');
+    expect(
+      wrapper.find('[data-testid="finance-ifthenpay-verify"]').exists()
+    ).toBe(true);
+  });
+
   it('offers credential verification after an Asaas connection is saved', async () => {
     FinanceAPI.getModule.mockResolvedValue({
       data: { enabled: true, market: 'BR', lock_version: 0 },

@@ -39,6 +39,89 @@ const mountDialog = props =>
   });
 
 describe('FinancePaymentDialog', () => {
+  const ifthenpayConnection = {
+    id: 9,
+    provider: 'ifthenpay',
+    display_name: 'ifthenpay',
+    status: 'connected',
+    enabled_billing_types: ['multibanco', 'mbway'],
+  };
+
+  it('offers only the ifthenpay methods the merchant has a key for', async () => {
+    const wrapper = mountDialog({ connections: [ifthenpayConnection] });
+    wrapper.vm.open();
+    await flushPromises();
+
+    expect(wrapper.vm.billingTypeOptions.map(option => option.value)).toEqual([
+      'multibanco',
+      'mbway',
+    ]);
+  });
+
+  it('asks for a mobile number only when charging by MB WAY', async () => {
+    const wrapper = mountDialog({ connections: [ifthenpayConnection] });
+    wrapper.vm.open();
+    await flushPromises();
+
+    wrapper.vm.billingType = 'multibanco';
+    await wrapper.vm.$nextTick();
+    expect(
+      wrapper.find('[data-testid="finance-payment-mobile-number"]').exists()
+    ).toBe(false);
+
+    wrapper.vm.billingType = 'mbway';
+    await wrapper.vm.$nextTick();
+    expect(
+      wrapper.find('[data-testid="finance-payment-mobile-number"]').exists()
+    ).toBe(true);
+  });
+
+  it('never asks a Portuguese charge for a CPF', async () => {
+    const wrapper = mountDialog({ connections: [ifthenpayConnection] });
+    wrapper.vm.open();
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="finance-payment-cpf-cnpj"]').exists()
+    ).toBe(false);
+  });
+
+  it('sends the MB WAY charge in euros with the mobile number', async () => {
+    FinanceAPI.createPayment.mockResolvedValue({ data: { id: 93 } });
+    const wrapper = mountDialog({
+      connections: [ifthenpayConnection],
+      contact: { id: 22, name: 'Cliente PT', phone_number: '+351912345678' },
+      market: 'PT',
+    });
+    wrapper.vm.open();
+    await flushPromises();
+
+    wrapper.vm.billingType = 'mbway';
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .get('[data-testid="finance-payment-amount"]')
+      .setValue('150,25');
+    await wrapper
+      .get('[data-testid="finance-payment-due-on"]')
+      .setValue('2026-09-30');
+    await wrapper
+      .get('[data-testid="finance-payment-mobile-number"]')
+      .setValue('912345678');
+    await wrapper
+      .get('[data-testid="finance-payment-submit"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(FinanceAPI.createPayment).toHaveBeenCalledWith({
+      payment: expect.objectContaining({
+        billing_type: 'mbway',
+        currency: 'EUR',
+        amount_cents: 15025,
+        mobile_number: '912345678',
+      }),
+    });
+  });
+
   it('creates a charge for the selected contact', async () => {
     vi.useFakeTimers();
     ContactAPI.search.mockResolvedValue({
