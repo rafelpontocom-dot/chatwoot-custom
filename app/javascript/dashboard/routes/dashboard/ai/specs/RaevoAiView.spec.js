@@ -103,6 +103,11 @@ describe('RaevoAiView', () => {
           active_prompt_version: 12,
           knowledge_count: 8,
           open_reviews: 2,
+          assistant_profile: {
+            identity: 'Secretária virtual da clínica.',
+            personality: 'Serena e objetiva.',
+            voice_style: 'Frases curtas e linguagem simples.',
+          },
           usage_30d: {
             conversations: 44,
             handoffs: 5,
@@ -122,6 +127,32 @@ describe('RaevoAiView', () => {
     );
     expect(wrapper.text()).toContain('44');
     expect(wrapper.text()).toContain('12');
+  });
+
+  it('shows only the active assistant identity and voice profile returned by the BFF', async () => {
+    RaevoAiAPI.get.mockResolvedValue({
+      data: {
+        connection_state: 'active',
+        operational_state: 'healthy',
+        overview: {
+          clinic_name: 'Clínica Exemplo',
+          assistant_profile: {
+            identity: 'Secretária virtual da clínica.',
+            personality: 'Serena e objetiva.',
+            voice_style: 'Frases curtas e linguagem simples.',
+          },
+          usage_30d: {},
+        },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const profile = wrapper.get('[data-testid="ai-assistant-profile"]');
+    expect(profile.text()).toContain('Secretária virtual da clínica.');
+    expect(profile.text()).toContain('Serena e objetiva.');
+    expect(profile.text()).toContain('Frases curtas e linguagem simples.');
   });
 
   it('shows live token usage and separates reported from estimated cost', async () => {

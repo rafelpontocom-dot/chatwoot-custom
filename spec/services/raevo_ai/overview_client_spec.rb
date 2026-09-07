@@ -8,35 +8,54 @@ RSpec.describe RaevoAi::OverviewClient do
       enabled: true
     )
   end
+  let(:assistant_profile) do
+    {
+      identity: 'Secretária virtual da clínica.',
+      personality: 'Serena e objetiva.',
+      voice_style: 'Frases curtas e linguagem simples.',
+      tool_policy: 'must-not-leak'
+    }
+  end
+  let(:sanitized_assistant_profile) { assistant_profile.except(:tool_policy).stringify_keys }
+  let(:upstream_payload) do
+    {
+      status: 'active',
+      clinic_name: 'Dra. Anna Alice',
+      package: 'complete',
+      active_prompt_version: 12,
+      knowledge_count: 8,
+      open_reviews: 2,
+      assistant_profile: assistant_profile,
+      usage_30d: {
+        conversations: 44,
+        handoffs: 5,
+        appointments: 9,
+        payments: 3,
+        model_calls: 83,
+        prompt_tokens: 1200,
+        completion_tokens: 600,
+        provider_reported_cost_usd: 1.25,
+        catalog_estimated_cost_usd: 0.75,
+        cost_unavailable_calls: 2,
+        internal_cost: 99
+      },
+      clinic_id: 'must-not-leak',
+      service_token: 'must-not-leak'
+    }
+  end
+  let(:public_payload) do
+    upstream_payload.except(:clinic_id, :service_token).merge(
+      assistant_profile: sanitized_assistant_profile,
+      usage_30d: upstream_payload[:usage_30d].except(:internal_cost).stringify_keys
+    ).stringify_keys
+  end
 
   describe '#fetch' do
     it 'uses the server-side clinic mapping and returns only the public contract' do
       response = instance_double(
         HTTParty::Response,
         success?: true,
-        body: {
-          status: 'active',
-          clinic_name: 'Dra. Anna Alice',
-          package: 'complete',
-          active_prompt_version: 12,
-          knowledge_count: 8,
-          open_reviews: 2,
-          usage_30d: {
-            conversations: 44,
-            handoffs: 5,
-            appointments: 9,
-            payments: 3,
-            model_calls: 83,
-            prompt_tokens: 1200,
-            completion_tokens: 600,
-            provider_reported_cost_usd: 1.25,
-            catalog_estimated_cost_usd: 0.75,
-            cost_unavailable_calls: 2,
-            internal_cost: 99
-          },
-          clinic_id: 'must-not-leak',
-          service_token: 'must-not-leak'
-        }.to_json
+        body: upstream_payload.to_json
       )
 
       with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'server-secret' do
@@ -50,26 +69,7 @@ RSpec.describe RaevoAi::OverviewClient do
           timeout: 10
         ).and_return(response)
 
-        expect(described_class.new(integration: integration).fetch).to eq(
-          'status' => 'active',
-          'clinic_name' => 'Dra. Anna Alice',
-          'package' => 'complete',
-          'active_prompt_version' => 12,
-          'knowledge_count' => 8,
-          'open_reviews' => 2,
-          'usage_30d' => {
-            'conversations' => 44,
-            'handoffs' => 5,
-            'appointments' => 9,
-            'payments' => 3,
-            'model_calls' => 83,
-            'prompt_tokens' => 1200,
-            'completion_tokens' => 600,
-            'provider_reported_cost_usd' => 1.25,
-            'catalog_estimated_cost_usd' => 0.75,
-            'cost_unavailable_calls' => 2
-          }
-        )
+        expect(described_class.new(integration: integration).fetch).to eq(public_payload)
       end
     end
 

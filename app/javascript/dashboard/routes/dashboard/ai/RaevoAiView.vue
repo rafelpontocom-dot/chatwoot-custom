@@ -84,6 +84,26 @@ const overviewMetrics = computed(() => [
     value: usageCost.value,
   },
 ]);
+const assistantProfileFields = computed(() => {
+  const profile = overview.value?.assistant_profile || {};
+  return [
+    {
+      key: 'IDENTITY',
+      label: t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.IDENTITY'),
+      value: profile.identity,
+    },
+    {
+      key: 'PERSONALITY',
+      label: t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.PERSONALITY'),
+      value: profile.personality,
+    },
+    {
+      key: 'VOICE_STYLE',
+      label: t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.VOICE_STYLE'),
+      value: profile.voice_style,
+    },
+  ].filter(field => typeof field.value === 'string' && field.value.trim());
+});
 
 const displayValue = value => value ?? '—';
 const selectedAiTabBoardIds = computed({
@@ -346,6 +366,29 @@ const servicePackages = computed(() => [
               </dd>
             </div>
           </dl>
+
+          <section
+            v-if="assistantProfileFields.length"
+            data-testid="ai-assistant-profile"
+            class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
+          >
+            <p class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.EYEBROW') }}
+            </p>
+            <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+              {{ t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.TITLE') }}
+            </h3>
+            <dl class="mt-3 grid gap-3 lg:grid-cols-3">
+              <div v-for="field in assistantProfileFields" :key="field.key">
+                <dt class="text-xs font-medium text-n-slate-10">
+                  {{ field.label }}
+                </dt>
+                <dd class="mt-1 text-sm leading-6 text-n-slate-12">
+                  {{ field.value }}
+                </dd>
+              </div>
+            </dl>
+          </section>
         </div>
       </section>
 

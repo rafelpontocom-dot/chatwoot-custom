@@ -31,6 +31,13 @@
         "PROMPT_VERSION": "Versão ativa do prompt",
         "TOKENS": "Tokens de IA nos últimos 30 dias",
         "COST": "Custo de IA nos últimos 30 dias"
+      },
+      "ASSISTANT_PROFILE": {
+        "EYEBROW": "CONFIGURAÇÃO ATIVA",
+        "TITLE": "Como a secretária se apresenta",
+        "IDENTITY": "Identidade e papel",
+        "PERSONALITY": "Personalidade",
+        "VOICE_STYLE": "Voz e linguagem"
       }
     },
     "PACKAGES": {

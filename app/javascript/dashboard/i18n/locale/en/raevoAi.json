@@ -35,6 +35,13 @@
         "PROMPT_VERSION": "Active prompt version",
         "TOKENS": "AI tokens in the last 30 days",
         "COST": "AI cost in the last 30 days"
+      },
+      "ASSISTANT_PROFILE": {
+        "EYEBROW": "ACTIVE CONFIGURATION",
+        "TITLE": "How the assistant presents itself",
+        "IDENTITY": "Identity and role",
+        "PERSONALITY": "Personality",
+        "VOICE_STYLE": "Voice and language"
       }
     },
     "PACKAGES": {

@@ -2,6 +2,7 @@ class RaevoAi::OverviewClient
   REQUEST_TIMEOUT_SECONDS = 10
   NETWORK_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED].freeze
   PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews].freeze
+  PUBLIC_ASSISTANT_PROFILE_FIELDS = %w[identity personality voice_style].freeze
   PUBLIC_USAGE_FIELDS = %w[
     conversations handoffs appointments payments
     model_calls prompt_tokens completion_tokens
@@ -57,8 +58,19 @@ class RaevoAi::OverviewClient
     usage = payload['usage_30d']
     usage = {} unless usage.is_a?(Hash)
 
-    payload.slice(*PUBLIC_FIELDS).merge(
+    sanitized = payload.slice(*PUBLIC_FIELDS).merge(
       'usage_30d' => usage.slice(*PUBLIC_USAGE_FIELDS)
     )
+    assistant_profile = sanitize_assistant_profile(payload['assistant_profile'])
+    sanitized['assistant_profile'] = assistant_profile if assistant_profile
+    sanitized
+  end
+
+  def sanitize_assistant_profile(value)
+    return unless value.is_a?(Hash)
+
+    value.slice(*PUBLIC_ASSISTANT_PROFILE_FIELDS).transform_values do |content|
+      content.is_a?(String) ? content.slice(0, 500) : nil
+    end
   end
 end
