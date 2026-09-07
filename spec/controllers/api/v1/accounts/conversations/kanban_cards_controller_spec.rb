@@ -218,18 +218,23 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
       expect(response.parsed_body['payload']['subject']).to eq('Enterprise renewal')
     end
 
-    it 'accepts due_at ISO8601' do
-      post_conversation_kanban_card(params: valid_card_payload.merge(due_at: '2026-06-07T18:00:00-03:00'))
+    it 'accepts the next action the agent scheduled' do
+      post_conversation_kanban_card(
+        params: valid_card_payload.merge(next_action_type: 'Cobrar retorno', next_action_at: '2026-06-07T18:00:00-03:00')
+      )
 
       expect(response).to have_http_status(:created)
-      expect(KanbanCard.last.due_at).to eq(Time.zone.parse('2026-06-07T18:00:00-03:00'))
+      expect(KanbanCard.last).to have_attributes(
+        next_action_type: 'Cobrar retorno',
+        next_action_at: Time.zone.parse('2026-06-07T18:00:00-03:00')
+      )
     end
 
-    it 'accepts due_at null' do
-      post_conversation_kanban_card(params: valid_card_payload.merge(due_at: nil))
+    it 'accepts a card with no next action' do
+      post_conversation_kanban_card(params: valid_card_payload.merge(next_action_type: nil, next_action_at: nil))
 
       expect(response).to have_http_status(:created)
-      expect(KanbanCard.last.due_at).to be_nil
+      expect(KanbanCard.last).to have_attributes(next_action_type: nil, next_action_at: nil)
     end
 
     it 'persists existing labels' do

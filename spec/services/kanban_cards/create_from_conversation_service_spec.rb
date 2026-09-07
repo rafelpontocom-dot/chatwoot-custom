@@ -9,7 +9,8 @@ RSpec.describe KanbanCards::CreateFromConversationService do
   let(:kanban_board) { create(:kanban_board, account: account) }
   let(:kanban_stage) { create(:kanban_stage, account: account, kanban_board: kanban_board) }
   let(:card_subject) { nil }
-  let(:due_at) { nil }
+  let(:next_action_type) { nil }
+  let(:next_action_at) { nil }
   let(:labels) { [] }
   let(:service) { build_service }
 
@@ -76,16 +77,21 @@ RSpec.describe KanbanCards::CreateFromConversationService do
       expect(card.subject).to eq('Enterprise renewal')
     end
 
-    it 'accepts due_at ISO8601' do
-      card = build_service(due_at: '2026-06-07T18:00:00-03:00').perform!
+    # A oportunidade nasce com o proximo passo marcado: e o campo que acende
+    # atraso no quadro, ao contrario do vencimento, que nao acendia nada.
+    it 'accepts the next action the agent scheduled' do
+      card = build_service(next_action_type: 'Cobrar retorno', next_action_at: '2026-06-07T18:00:00-03:00').perform!
 
-      expect(card.due_at).to eq(Time.zone.parse('2026-06-07T18:00:00-03:00'))
+      expect(card).to have_attributes(
+        next_action_type: 'Cobrar retorno',
+        next_action_at: Time.zone.parse('2026-06-07T18:00:00-03:00')
+      )
     end
 
-    it 'accepts due_at null' do
-      card = build_service(due_at: nil).perform!
+    it 'leaves the next action empty when none was chosen' do
+      card = build_service(next_action_type: '', next_action_at: nil).perform!
 
-      expect(card.due_at).to be_nil
+      expect(card).to have_attributes(next_action_type: nil, next_action_at: nil)
     end
 
     it 'persists existing labels' do
@@ -319,7 +325,8 @@ RSpec.describe KanbanCards::CreateFromConversationService do
       kanban_board: overrides.fetch(:kanban_board, kanban_board),
       kanban_stage: overrides.fetch(:kanban_stage, kanban_stage),
       subject: overrides.fetch(:subject, card_subject),
-      due_at: overrides.fetch(:due_at, due_at),
+      next_action_type: overrides.fetch(:next_action_type, next_action_type),
+      next_action_at: overrides.fetch(:next_action_at, next_action_at),
       labels: overrides.fetch(:labels, labels)
     )
   end

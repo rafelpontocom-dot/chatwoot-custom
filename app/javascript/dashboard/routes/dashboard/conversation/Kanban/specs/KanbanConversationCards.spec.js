@@ -31,7 +31,9 @@ vi.mock('vue-i18n', () => ({
         'CONVERSATION_SIDEBAR.KANBAN.BOARD': 'Board',
         'CONVERSATION_SIDEBAR.KANBAN.SUBJECT': 'Subject',
         'CONVERSATION_SIDEBAR.KANBAN.STAGE': 'Opportunity stage',
-        'CONVERSATION_SIDEBAR.KANBAN.DUE_DATE': 'Due date',
+        'CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION': 'Next action',
+        'CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_TYPE': 'Action type',
+        'CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_AT': 'Action date',
         'CONVERSATION_SIDEBAR.KANBAN.LABELS': 'Labels',
         'CONVERSATION_SIDEBAR.KANBAN.NOT_SET': 'Not set',
         'CONVERSATION_SIDEBAR.KANBAN.NO_LABELS': 'No labels',
@@ -139,7 +141,8 @@ const buildCard = overrides => ({
     name: 'New',
     color: 'blue',
   },
-  due_at: '2026-06-07T18:00:00-03:00',
+  next_action_type: 'Cobrar retorno',
+  next_action_at: '2026-06-07T18:00:00-03:00',
   labels: [
     { id: 1, title: 'urgente', color: '#ff0000', description: null },
     { id: 2, title: 'vendas', color: '#00ff00', description: 'Sales label' },
@@ -483,7 +486,8 @@ describe('KanbanConversationCards', () => {
       'Board',
       'Subject',
       'Opportunity stage',
-      'Due date',
+      'Action type',
+      'Action date',
       'Labels',
     ]);
   });
@@ -526,9 +530,13 @@ describe('KanbanConversationCards', () => {
     );
   });
 
-  it('renders empty due date and labels in editable fields', async () => {
+  it('renders an empty next action and labels in editable fields', async () => {
     KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard({ due_at: null, labels: [] })] },
+      data: {
+        payload: [
+          buildCard({ next_action_type: '', next_action_at: null, labels: [] }),
+        ],
+      },
     });
 
     const wrapper = mountComponent();
@@ -581,7 +589,8 @@ describe('KanbanConversationCards', () => {
       'Board',
       'Subject',
       'Opportunity stage',
-      'Due date',
+      'Action type',
+      'Action date',
       'Labels',
     ]);
   });
@@ -647,7 +656,7 @@ describe('KanbanConversationCards', () => {
     expect(input.element.value).toBe('Custom opportunity');
   });
 
-  it('submits null when due date is empty', async () => {
+  it('submits null when the action date is empty', async () => {
     const wrapper = mountComponent();
     await flushPromises();
     await openForm(wrapper);
@@ -657,13 +666,13 @@ describe('KanbanConversationCards', () => {
     expect(KanbanBoardsAPI.createConversationCard).toHaveBeenCalledWith(
       456,
       expect.objectContaining({
-        card: expect.objectContaining({ due_at: null }),
+        card: expect.objectContaining({ next_action_at: null }),
       }),
       { signal: expect.any(AbortSignal) }
     );
   });
 
-  it('submits ISO8601 when due date is filled', async () => {
+  it('submits ISO8601 when the action date is filled', async () => {
     const wrapper = mountComponent();
     await flushPromises();
     await openForm(wrapper);
@@ -677,7 +686,7 @@ describe('KanbanConversationCards', () => {
       456,
       expect.objectContaining({
         card: expect.objectContaining({
-          due_at: new Date('2026-06-07T18:00').toISOString(),
+          next_action_at: new Date('2026-06-07T18:00').toISOString(),
         }),
       }),
       { signal: expect.any(AbortSignal) }
@@ -705,7 +714,7 @@ describe('KanbanConversationCards', () => {
     );
   });
 
-  it('submits board, subject, stage, due_at, and labels', async () => {
+  it('submits board, subject, stage, next action, and labels', async () => {
     const wrapper = mountComponent();
     await flushPromises();
     await openForm(wrapper);
@@ -723,7 +732,8 @@ describe('KanbanConversationCards', () => {
           kanban_board_id: 10,
           kanban_stage_id: 20,
           subject: 'Enterprise renewal',
-          due_at: null,
+          next_action_type: null,
+          next_action_at: null,
           labels: ['urgente'],
         },
       },
@@ -853,7 +863,8 @@ describe('KanbanConversationCards', () => {
       {
         kanban_stage_id: 20,
         subject: 'Updated renewal',
-        due_at: new Date('2026-06-08T10:30').toISOString(),
+        next_action_type: 'Cobrar retorno',
+        next_action_at: new Date('2026-06-08T10:30').toISOString(),
         labels: ['vendas'],
         custom_field_values: {},
       }

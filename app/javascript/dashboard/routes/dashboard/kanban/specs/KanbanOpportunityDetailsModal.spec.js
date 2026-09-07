@@ -257,7 +257,6 @@ const buildCard = overrides => ({
   subject: 'Enterprise expansion',
   description: 'Follow up with procurement next week.',
   startsAt: '2026-06-01T09:00',
-  dueAt: '2026-06-05T18:00',
   amountCents: 12550,
   amountCurrency: 'BRL',
   customFieldValues: {
@@ -451,8 +450,6 @@ const customFieldInput = async (wrapper, key) => {
 };
 const startsAtInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-starts-at"]');
-const dueAtInput = wrapper =>
-  wrapper.find('[data-testid="kanban-opportunity-due-at"]');
 const expectedCloseDateInput = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-expected-close-date"]');
 const nextActionTypeInput = wrapper =>
@@ -1098,11 +1095,20 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
-  it('loads startsAt and dueAt', async () => {
+  it('loads startsAt', async () => {
     const wrapper = await mountModal();
 
     expect(startsAtInput(wrapper).element.value).toBe('2026-06-01T09:00');
-    expect(dueAtInput(wrapper).element.value).toBe('2026-06-05T18:00');
+  });
+
+  // O vencimento não acendia atraso, não aparecia no quadro e não era lido por
+  // regra nenhuma: era um campo que só pedia preenchimento.
+  it('no longer offers a due date', async () => {
+    const wrapper = await mountModal();
+
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-due-at"]').exists()
+    ).toBe(false);
   });
 
   it('loads board-specific custom fields', async () => {
@@ -1338,7 +1344,6 @@ describe('KanbanOpportunityDetailsModal', () => {
     const wrapper = await mountModal();
 
     await startsAtInput(wrapper).setValue('2026-06-02T10:30');
-    await dueAtInput(wrapper).setValue('2026-06-04T15:45');
     await wrapper.find('form').trigger('submit');
     await flushPromises();
 
@@ -1347,7 +1352,6 @@ describe('KanbanOpportunityDetailsModal', () => {
       501,
       expect.objectContaining({
         starts_at: new Date('2026-06-02T10:30').toISOString(),
-        due_at: new Date('2026-06-04T15:45').toISOString(),
       })
     );
   });
@@ -1655,19 +1659,18 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('clears dates with null', async () => {
     KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
-      data: buildCard({ startsAt: null, dueAt: null }),
+      data: buildCard({ startsAt: null }),
     });
     const wrapper = await mountModal();
 
     await startsAtInput(wrapper).setValue('');
-    await dueAtInput(wrapper).setValue('');
     await wrapper.find('form').trigger('submit');
     await flushPromises();
 
     expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
       10,
       501,
-      expect.objectContaining({ starts_at: null, due_at: null })
+      expect.objectContaining({ starts_at: null })
     );
   });
 
@@ -2037,7 +2040,6 @@ describe('KanbanOpportunityDetailsModal', () => {
       'Modified description'
     );
     expect(startsAtInput(wrapper).element.value).toBe('2026-06-01T09:00');
-    expect(dueAtInput(wrapper).element.value).toBe('2026-06-05T18:00');
   });
 
   it('does not render an add-note action', async () => {

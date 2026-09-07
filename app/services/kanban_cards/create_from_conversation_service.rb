@@ -2,14 +2,16 @@ class KanbanCards::CreateFromConversationService
   DUPLICATE_CONVERSATION_ERROR = 'Conversation already has an opportunity with this subject on this board'.freeze
 
   # rubocop:disable Metrics/ParameterLists
-  def initialize(account:, user:, conversation:, kanban_board:, kanban_stage:, subject:, due_at: nil, labels: [])
+  def initialize(account:, user:, conversation:, kanban_board:, kanban_stage:, subject:,
+                 next_action_type: nil, next_action_at: nil, labels: [])
     @account = account
     @user = user
     @conversation = conversation
     @kanban_board = kanban_board
     @kanban_stage = kanban_stage
     @subject = subject
-    @due_at = due_at
+    @next_action_type = next_action_type
+    @next_action_at = next_action_at
     @labels = labels
   end
   # rubocop:enable Metrics/ParameterLists
@@ -31,7 +33,8 @@ class KanbanCards::CreateFromConversationService
 
   private
 
-  attr_reader :account, :user, :conversation, :kanban_board, :kanban_stage, :subject, :due_at, :labels
+  attr_reader :account, :user, :conversation, :kanban_board, :kanban_stage, :subject,
+              :next_action_type, :next_action_at, :labels
 
   def validate_scope!
     validate_conversation!
@@ -102,7 +105,11 @@ class KanbanCards::CreateFromConversationService
       subject: normalized_card_subject,
       origin: 'conversation',
       position: 1,
-      due_at: due_at,
+      # A oportunidade nasce com o proximo passo marcado: e o campo que o
+      # quadro usa para avisar de atraso, ao contrario do vencimento, que nao
+      # acendia nada em lado nenhum.
+      next_action_type: next_action_type.presence,
+      next_action_at: next_action_at.presence,
       active: true
     }
   end

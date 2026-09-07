@@ -421,7 +421,6 @@
       "BOARD": "Funil",
       "SUBJECT": "Assunto",
       "STAGE": "Etapa da oportunidade",
-      "DUE_DATE": "Data de vencimento",
       "LABELS": "Etiquetas",
       "NOT_SET": "Não definido",
       "NO_LABELS": "Sem etiquetas",
@@ -439,7 +438,10 @@
       "UPDATED": "Oportunidade atualizada",
       "OPEN_IN_BOARD": "Abrir oportunidade no funil",
       "GENERAL_FIELDS": "Outros campos",
-      "MARKETING_FIELDS": "Marketing"
+      "MARKETING_FIELDS": "Marketing",
+      "NEXT_ACTION": "Próxima ação",
+      "NEXT_ACTION_TYPE": "Tipo de ação",
+      "NEXT_ACTION_AT": "Data da ação"
     },
     "SHARED_FILES": {
       "EMPTY": "Nenhum anexo ainda",

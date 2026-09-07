@@ -43,7 +43,8 @@ const stages = ref([]);
 const selectedBoardId = ref('');
 const selectedStageId = ref('');
 const subject = ref('');
-const dueAt = ref('');
+const nextActionType = ref('');
+const nextActionAt = ref('');
 const selectedLabelTitles = ref([]);
 const isLoadingBoards = ref(false);
 const isLoadingStages = ref(false);
@@ -55,7 +56,8 @@ const editingCardId = ref(null);
 const editStages = ref([]);
 const editSubject = ref('');
 const editStageId = ref('');
-const editDueAt = ref('');
+const editNextActionType = ref('');
+const editNextActionAt = ref('');
 const editLabelTitles = ref([]);
 const editCustomFieldDefinitions = ref([]);
 const editCustomFieldSections = ref([]);
@@ -90,6 +92,14 @@ const selectedBoard = computed(() =>
     board => Number(board.id) === Number(selectedBoardId.value)
   )
 );
+// O quadro decide os tipos de ação. Este payload não vem camelizado, ao
+// contrário do da tela do funil, e ler só uma das formas dava lista vazia.
+const nextActionTypeOptions = computed(() => {
+  const board = selectedBoard.value || {};
+
+  return board.nextActionTypes || board.next_action_types || [];
+});
+
 const selectedLabels = computed(() =>
   accountLabels.value.filter(label =>
     selectedLabelTitles.value.includes(label.title)
@@ -199,7 +209,7 @@ const openCardInBoard = card => {
   });
 };
 
-const formatDueAt = value => {
+const formatNextActionAt = value => {
   if (!value) return t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET');
 
   return messageStamp(new Date(value).getTime() / 1000, 'LLL d, yyyy h:mm a');
@@ -258,7 +268,8 @@ const resetFormState = () => {
   selectedBoardId.value = '';
   selectedStageId.value = '';
   subject.value = '';
-  dueAt.value = '';
+  nextActionType.value = '';
+  nextActionAt.value = '';
   selectedLabelTitles.value = [];
   isLoadingBoards.value = false;
   isLoadingStages.value = false;
@@ -274,7 +285,8 @@ const resetEditState = () => {
   editStages.value = [];
   editSubject.value = '';
   editStageId.value = '';
-  editDueAt.value = '';
+  editNextActionType.value = '';
+  editNextActionAt.value = '';
   editLabelTitles.value = [];
   editCustomFieldDefinitions.value = [];
   editCustomFieldSections.value = [];
@@ -513,7 +525,8 @@ const openForm = () => {
   resetEditState();
   isFormOpen.value = true;
   subject.value = defaultSubject.value;
-  dueAt.value = '';
+  nextActionType.value = '';
+  nextActionAt.value = '';
   selectedLabelTitles.value = [];
   createError.value = '';
   store.dispatch('labels/get');
@@ -543,16 +556,16 @@ const onRemoveLabel = title => {
   );
 };
 
-const dueAtPayload = () => {
-  if (!dueAt.value) return null;
+const nextActionAtPayload = () => {
+  if (!nextActionAt.value) return null;
 
-  return new Date(dueAt.value).toISOString();
+  return new Date(nextActionAt.value).toISOString();
 };
 
-const editDueAtPayload = () => {
-  if (!editDueAt.value) return null;
+const editNextActionAtPayload = () => {
+  if (!editNextActionAt.value) return null;
 
-  return new Date(editDueAt.value).toISOString();
+  return new Date(editNextActionAt.value).toISOString();
 };
 
 const startEdit = async card => {
@@ -561,7 +574,8 @@ const startEdit = async card => {
   editingCardId.value = card.id;
   editSubject.value = card.subject || '';
   editStageId.value = cardStageId(card) || '';
-  editDueAt.value = formatDateTimeInput(card.due_at);
+  editNextActionType.value = card.next_action_type || '';
+  editNextActionAt.value = formatDateTimeInput(card.next_action_at);
   editLabelTitles.value = (card.labels || []).map(label => label.title);
   editCustomFieldValues.value = {
     ...(card.customFieldValues || card.custom_field_values || {}),
@@ -589,7 +603,8 @@ const submitForm = async () => {
           kanban_board_id: selectedBoardId.value,
           kanban_stage_id: selectedStageId.value,
           subject: subject.value.trim(),
-          due_at: dueAtPayload(),
+          next_action_type: nextActionType.value || null,
+          next_action_at: nextActionAtPayload(),
           labels: selectedLabelTitles.value,
         },
       },
@@ -635,7 +650,8 @@ const submitEdit = async card => {
       {
         kanban_stage_id: editStageId.value,
         subject: editSubject.value.trim(),
-        due_at: editDueAtPayload(),
+        next_action_type: editNextActionType.value || null,
+        next_action_at: editNextActionAtPayload(),
         labels: editLabelTitles.value,
         custom_field_values: editCustomFieldValues.value,
       }
@@ -844,11 +860,34 @@ onBeforeUnmount(() => {
 
       <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-n-slate-11">
-          {{ t('CONVERSATION_SIDEBAR.KANBAN.DUE_DATE') }}
+          {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_TYPE') }}
+        </span>
+        <select
+          v-model="nextActionType"
+          data-testid="kanban-conversation-next-action-type"
+          class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
+        >
+          <option value="">
+            {{ t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET') }}
+          </option>
+          <option
+            v-for="type in nextActionTypeOptions"
+            :key="type"
+            :value="type"
+          >
+            {{ type }}
+          </option>
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-n-slate-11">
+          {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_AT') }}
         </span>
         <input
-          v-model="dueAt"
+          v-model="nextActionAt"
           type="datetime-local"
+          data-testid="kanban-conversation-next-action-at"
           class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
         />
       </label>
@@ -997,10 +1036,32 @@ onBeforeUnmount(() => {
 
           <label class="flex flex-col gap-1">
             <span class="text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.DUE_DATE') }}
+              {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_TYPE') }}
+            </span>
+            <select
+              v-model="editNextActionType"
+              class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
+              @change="submitEdit(card)"
+            >
+              <option value="">
+                {{ t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET') }}
+              </option>
+              <option
+                v-for="type in nextActionTypeOptions"
+                :key="type"
+                :value="type"
+              >
+                {{ type }}
+              </option>
+            </select>
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-medium text-n-slate-11">
+              {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_AT') }}
             </span>
             <input
-              v-model="editDueAt"
+              v-model="editNextActionAt"
               type="datetime-local"
               class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
               @change="submitEdit(card)"
@@ -1231,10 +1292,16 @@ onBeforeUnmount(() => {
 
           <div class="min-w-0">
             <p class="mb-1 text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.DUE_DATE') }}
+              {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION') }}
             </p>
             <p class="m-0 truncate text-sm text-n-slate-12">
-              {{ formatDueAt(card.due_at) }}
+              {{
+                card.next_action_type ||
+                t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET')
+              }}
+            </p>
+            <p class="m-0 truncate text-xs text-n-slate-11">
+              {{ formatNextActionAt(card.next_action_at) }}
             </p>
           </div>
 

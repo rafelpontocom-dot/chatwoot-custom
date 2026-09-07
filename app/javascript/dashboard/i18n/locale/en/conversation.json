@@ -421,7 +421,6 @@
       "BOARD": "Board",
       "SUBJECT": "Subject",
       "STAGE": "Opportunity stage",
-      "DUE_DATE": "Due date",
       "LABELS": "Labels",
       "NOT_SET": "Not set",
       "NO_LABELS": "No labels",
@@ -439,7 +438,10 @@
       "UPDATED": "Opportunity updated",
       "OPEN_IN_BOARD": "Open opportunity in board",
       "GENERAL_FIELDS": "Other fields",
-      "MARKETING_FIELDS": "Marketing"
+      "MARKETING_FIELDS": "Marketing",
+      "NEXT_ACTION": "Next action",
+      "NEXT_ACTION_TYPE": "Action type",
+      "NEXT_ACTION_AT": "Action date"
     },
     "SHARED_FILES": {
       "EMPTY": "No attachments yet",
