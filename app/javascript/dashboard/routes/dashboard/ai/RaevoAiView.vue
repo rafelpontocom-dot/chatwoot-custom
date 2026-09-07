@@ -71,6 +71,11 @@ const overviewMetrics = computed(() => [
     value: overview.value?.active_prompt_version,
   },
   {
+    key: 'OPEN_REVIEWS',
+    label: t('RAEVO_AI.OVERVIEW.METRICS.OPEN_REVIEWS'),
+    value: overview.value?.open_reviews,
+  },
+  {
     key: 'TOKENS',
     label: t('RAEVO_AI.OVERVIEW.METRICS.TOKENS'),
     value: formatTokens(

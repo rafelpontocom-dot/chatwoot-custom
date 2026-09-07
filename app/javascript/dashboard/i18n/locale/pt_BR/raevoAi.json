@@ -29,6 +29,7 @@
         "PAYMENTS": "Pagamentos nos últimos 30 dias",
         "KNOWLEDGE": "Itens de conhecimento",
         "PROMPT_VERSION": "Versão ativa do prompt",
+        "OPEN_REVIEWS": "Revisões abertas",
         "TOKENS": "Tokens de IA nos últimos 30 dias",
         "COST": "Custo de IA nos últimos 30 dias"
       },

@@ -127,6 +127,8 @@ describe('RaevoAiView', () => {
     );
     expect(wrapper.text()).toContain('44');
     expect(wrapper.text()).toContain('12');
+    expect(wrapper.text()).toContain('2');
+    expect(wrapper.text()).toContain('RAEVO_AI.OVERVIEW.METRICS.OPEN_REVIEWS');
   });
 
   it('shows only the active assistant identity and voice profile returned by the BFF', async () => {

@@ -33,6 +33,7 @@
         "PAYMENTS": "Payments in the last 30 days",
         "KNOWLEDGE": "Knowledge items",
         "PROMPT_VERSION": "Active prompt version",
+        "OPEN_REVIEWS": "Open reviews",
         "TOKENS": "AI tokens in the last 30 days",
         "COST": "AI cost in the last 30 days"
       },
