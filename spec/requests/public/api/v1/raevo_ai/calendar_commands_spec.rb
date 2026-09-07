@@ -56,6 +56,76 @@ RSpec.describe 'Raevo AI calendar commands API', type: :request do
   end
   let(:headers) { { 'X-Raevo-Clinic-Id' => integration.clinic_id, 'X-Raevo-Command-Token' => token } }
 
+  it 'lists slots only from the calendar resources published for the trusted conversation opportunity' do
+    card
+    date = Date.new(2026, 10, 1)
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window',
+      weekday: date.wday,
+      starts_at_local: '09:00',
+      ends_at_local: '11:00'
+    )
+
+    post '/public/api/v1/raevo_ai/calendar/availability', params: {
+      conversation_id: conversation.display_id,
+      board_key: 'acquisition',
+      booking_key: 'initial_consultation',
+      starts_on: date.iso8601,
+      ends_on: date.iso8601,
+      resource_ids: [999_999]
+    }, headers: headers, as: :json
+
+    expect(response).to have_http_status(:ok), response.body
+    expect(response.parsed_body).to eq(
+      'booking_key' => 'initial_consultation',
+      'timezone' => 'America/Sao_Paulo',
+      'slots' => [
+        '2026-10-01T09:00:00-03:00',
+        '2026-10-01T09:15:00-03:00',
+        '2026-10-01T09:30:00-03:00',
+        '2026-10-01T09:45:00-03:00',
+        '2026-10-01T10:00:00-03:00'
+      ]
+    )
+  end
+
+  it 'returns only the intersection when a published booking requires multiple calendar resources' do
+    card
+    date = Date.new(2026, 10, 1)
+    second_resource = KanbanCalendarResource.create!(
+      account: account,
+      name: 'Specialist',
+      resource_type: 'generic',
+      timezone: 'America/Sao_Paulo'
+    )
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window', weekday: date.wday, starts_at_local: '09:00', ends_at_local: '11:00'
+    )
+    second_resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window', weekday: date.wday, starts_at_local: '09:30', ends_at_local: '11:00'
+    )
+    settings = integration.settings.deep_dup
+    settings['calendar']['bookings']['initial_consultation']['resource_ids'] = [resource.id, second_resource.id]
+    integration.update!(settings: settings)
+
+    post '/public/api/v1/raevo_ai/calendar/availability', params: {
+      conversation_id: conversation.display_id,
+      board_key: 'acquisition',
+      booking_key: 'initial_consultation',
+      starts_on: date.iso8601,
+      ends_on: date.iso8601
+    }, headers: headers, as: :json
+
+    expect(response).to have_http_status(:ok), response.body
+    expect(response.parsed_body['slots']).to eq(
+      [
+        '2026-10-01T09:30:00-03:00',
+        '2026-10-01T09:45:00-03:00',
+        '2026-10-01T10:00:00-03:00'
+      ]
+    )
+  end
+
   it 'books only the catalog-published procedure and resource for the trusted conversation opportunity' do
     card
     before_count = KanbanCalendarAppointment.count

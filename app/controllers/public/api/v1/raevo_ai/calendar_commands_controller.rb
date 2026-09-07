@@ -13,6 +13,17 @@ class Public::Api::V1::RaevoAi::CalendarCommandsController < ActionController::A
     render json: { error: e.class.name.demodulize.underscore }, status: calendar_status(e)
   end
 
+  def availability
+    conversation = @integration.account.conversations.find_by!(display_id: availability_params[:conversation_id])
+    render json: RaevoAi::CalendarAvailabilityQuery.new(
+      integration: @integration,
+      conversation: conversation,
+      command: availability_params.to_h.symbolize_keys
+    ).call
+  rescue *calendar_errors => e
+    render json: { error: e.class.name.demodulize.underscore }, status: calendar_status(e)
+  end
+
   private
 
   def authenticate_integration!
@@ -34,9 +45,16 @@ class Public::Api::V1::RaevoAi::CalendarCommandsController < ActionController::A
     end
   end
 
+  def availability_params
+    @availability_params ||= params.permit(:conversation_id, :board_key, :booking_key, :starts_on, :ends_on).tap do |permitted|
+      %i[conversation_id board_key booking_key starts_on ends_on].each { |key| permitted.require(key) }
+    end
+  end
+
   def calendar_errors
     [ActiveRecord::RecordNotFound, ActiveRecord::RecordInvalid, RaevoAi::CalendarCatalog::InvalidCatalog,
-     RaevoAi::CalendarBookingExecutor::InvalidBooking, RaevoAi::CrmCatalog::InvalidCatalog,
+     RaevoAi::CalendarAvailabilityQuery::InvalidAvailability, RaevoAi::CalendarBookingExecutor::InvalidBooking,
+     RaevoAi::CrmCatalog::InvalidCatalog,
      RaevoAi::CrmCardResolver::AmbiguousCard, RaevoAi::CommandRecorder::Conflict, KanbanCalendar::ConflictError]
   end
 
