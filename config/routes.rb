@@ -749,6 +749,8 @@ Rails.application.routes.draw do
           post 'crm/stages', to: 'crm_commands#stages'
           post 'crm/labels', to: 'crm_commands#labels'
           post 'crm/contact_name', to: 'crm_commands#contact_name'
+          post 'calendar/bookings', to: 'calendar_commands#create'
+          post 'finance/charges', to: 'finance_commands#create'
         end
 
         resources :csat_survey, only: [:show, :update]

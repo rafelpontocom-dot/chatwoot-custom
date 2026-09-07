@@ -9,6 +9,7 @@ class Finance::Manual::CreatePaymentService
     @currency = attributes.fetch(:currency)
     @kanban_card = attributes[:kanban_card]
     @actor = attributes[:actor]
+    @external_reference = attributes[:external_reference]
   end
 
   def perform
@@ -24,6 +25,7 @@ class Finance::Manual::CreatePaymentService
       due_on: @due_on,
       description: @description,
       currency: @currency,
+      external_reference: @external_reference,
       status: 'pending'
     )
     Finance::PaymentCreatedEventService.new(payment: payment, source: 'manual_create', actor: @actor).perform

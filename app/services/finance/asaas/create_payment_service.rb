@@ -9,6 +9,8 @@ class Finance::Asaas::CreatePaymentService
     @description = attributes[:description]
     @kanban_card = attributes[:kanban_card]
     @actor = attributes[:actor]
+    @external_reference = attributes[:external_reference]
+    @currency = attributes.fetch(:currency, 'BRL')
   end
 
   def perform
@@ -41,9 +43,11 @@ class Finance::Asaas::CreatePaymentService
       kanban_card: @kanban_card,
       finance_provider_connection: @connection,
       amount_cents: @amount_cents,
+      currency: @currency,
       billing_type: @billing_type,
       due_on: @due_on,
-      description: @description
+      description: @description,
+      external_reference: @external_reference
     )
   end
 
