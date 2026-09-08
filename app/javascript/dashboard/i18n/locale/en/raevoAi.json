@@ -84,6 +84,37 @@
       },
       "ATTENTION_SEPARATOR": "·"
     },
+    "SERVICE_HOURS": {
+      "EYEBROW": "OPERATIONS",
+      "TITLE": "Elis service hours",
+      "DESCRIPTION": "Define when Elis may reply automatically. Messages received outside these hours wait for the next opening; clinical-risk situations follow the immediate protocol.",
+      "LOADING": "Loading service hours",
+      "RESTRICT": "Reply only during defined hours",
+      "RESTRICT_HINT": "Turn this off to allow automatic replies 24 hours a day.",
+      "TIMEZONE": "Time zone",
+      "TIMEZONE_HINT": "Use an IANA time zone, such as America/Sao_Paulo or Europe/Lisbon.",
+      "ADD_PERIOD": "Add period",
+      "REMOVE_PERIOD": "Remove period",
+      "START": "Start on {day}",
+      "END": "End on {day}",
+      "TO": "to",
+      "CLOSED": "No automatic service on this day.",
+      "ALWAYS_ON": "Elis is allowed to reply 24 hours a day.",
+      "SAVE": "Save service hours",
+      "SAVED": "Service hours saved. The rule applies to future messages.",
+      "INVALID": "Review the periods: at least one valid, non-overlapping interval is required.",
+      "CONFLICT": "Service hours changed elsewhere. Reload before saving.",
+      "ERROR": "Service hours could not be loaded or saved. The previous configuration remains active.",
+      "DAYS": {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday"
+      }
+    },
     "ASSISTANT_DRAFT": {
       "EYEBROW": "ASSISTANT DRAFT",
       "TITLE": "Identity and voice",

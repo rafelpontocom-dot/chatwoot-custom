@@ -14,6 +14,14 @@ class RaevoAiAPI extends ApiClient {
     return axios.get(`${this.baseUrl()}/raevo_ai/assistant_draft`);
   }
 
+  getServiceHours() {
+    return axios.get(`${this.baseUrl()}/raevo_ai/service_hours`);
+  }
+
+  saveServiceHours(data) {
+    return axios.put(`${this.baseUrl()}/raevo_ai/service_hours`, data);
+  }
+
   saveAssistantDraft(data) {
     return axios.put(`${this.baseUrl()}/raevo_ai/assistant_draft`, data);
   }

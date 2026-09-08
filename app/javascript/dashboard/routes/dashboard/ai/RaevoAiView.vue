@@ -7,6 +7,7 @@ import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoAiAPI from 'dashboard/api/raevoAi';
+import RaevoAiServiceHoursSettings from './RaevoAiServiceHoursSettings.vue';
 
 const { t } = useI18n();
 const overview = ref(null);
@@ -948,6 +949,8 @@ const servicePackages = computed(() => [
           </div>
         </div>
       </section>
+
+      <RaevoAiServiceHoursSettings v-if="isAdmin" />
 
       <section
         v-if="isAdmin"

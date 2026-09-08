@@ -80,6 +80,37 @@
       },
       "ATTENTION_SEPARATOR": "·"
     },
+    "SERVICE_HOURS": {
+      "EYEBROW": "OPERAÇÃO",
+      "TITLE": "Horários da Elis",
+      "DESCRIPTION": "Defina quando a Elis pode responder automaticamente. Mensagens fora do horário aguardam a próxima abertura; situações clínicas de risco seguem o protocolo imediato.",
+      "LOADING": "Carregando horários de atendimento",
+      "RESTRICT": "Responder apenas nos horários definidos",
+      "RESTRICT_HINT": "Desative para permitir atendimento automático 24 horas por dia.",
+      "TIMEZONE": "Fuso horário",
+      "TIMEZONE_HINT": "Use um fuso IANA, como America/Sao_Paulo ou Europe/Lisbon.",
+      "ADD_PERIOD": "Adicionar período",
+      "REMOVE_PERIOD": "Remover período",
+      "START": "Início em {day}",
+      "END": "Fim em {day}",
+      "TO": "até",
+      "CLOSED": "Sem atendimento automático neste dia.",
+      "ALWAYS_ON": "A Elis está autorizada a responder 24 horas por dia.",
+      "SAVE": "Salvar horários",
+      "SAVED": "Horários salvos. A regra vale para as próximas mensagens.",
+      "INVALID": "Revise os períodos: é necessário ao menos um horário válido, sem sobreposição.",
+      "CONFLICT": "Os horários foram alterados em outro lugar. Recarregue antes de salvar.",
+      "ERROR": "Não foi possível carregar ou salvar os horários. A configuração anterior continua ativa.",
+      "DAYS": {
+        "0": "Domingo",
+        "1": "Segunda-feira",
+        "2": "Terça-feira",
+        "3": "Quarta-feira",
+        "4": "Quinta-feira",
+        "5": "Sexta-feira",
+        "6": "Sábado"
+      }
+    },
     "ASSISTANT_DRAFT": {
       "EYEBROW": "RASCUNHO DA ASSISTENTE",
       "TITLE": "Identidade e voz",

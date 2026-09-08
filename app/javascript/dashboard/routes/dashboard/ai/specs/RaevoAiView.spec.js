@@ -17,6 +17,8 @@ vi.mock('dashboard/api/raevoAi', () => ({
     publishAssistantDraft: vi.fn(),
     getOpportunityTab: vi.fn(),
     updateOpportunityTab: vi.fn(),
+    getServiceHours: vi.fn(),
+    saveServiceHours: vi.fn(),
   },
 }));
 
@@ -52,6 +54,7 @@ const mountView = () =>
             '<button v-bind="$attrs" type="button" @click="$emit(\'click\')"><slot /></button>',
         },
         RaevoStamp: true,
+        RaevoAiServiceHoursSettings: true,
       },
     },
   });
