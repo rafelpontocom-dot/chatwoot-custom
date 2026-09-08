@@ -48,7 +48,7 @@ class RaevoAi::OpportunityAiTabProvisioner
   private
 
   def sanitized_crm_catalog
-    @integration.settings.fetch('crm', {}).fetch('boards', {}).filter_map do |board_key, board|
+    boards = @integration.settings.fetch('crm', {}).fetch('boards', {}).filter_map do |board_key, board|
       next unless board.is_a?(Hash) && board['board_id'].to_i.positive?
 
       {
@@ -59,11 +59,12 @@ class RaevoAi::OpportunityAiTabProvisioner
         'labels' => board.fetch('labels', {}).keys.sort,
         'fields' => board.fetch('fields', {}).keys.sort
       }
-    end.sort_by { |board| board['board_key'] }
+    end
+    boards.sort_by { |board| board['board_key'] }
   end
 
   def sanitized_catalog_events(stages)
-    stages.is_a?(Hash) ? stages.to_h { |key, value| [key, value['stage_id'].to_i] } : {}
+    stages.is_a?(Hash) ? stages.transform_values { |value| value['stage_id'].to_i } : {}
   end
 
   def selected_boards!(board_ids)
