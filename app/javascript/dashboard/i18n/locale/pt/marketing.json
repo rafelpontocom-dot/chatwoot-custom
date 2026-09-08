@@ -55,7 +55,33 @@
       "RECEIVED": "{count} leads",
       "ENDPOINT": "Envie um POST para",
       "SCHEMA_HINT": "Um GET em /schema lista todos os campos aceitos.",
-      "ERROR": "Não foi possível salvar a origem."
+      "ERROR": "Não foi possível salvar a origem.",
+      "DOCS": {
+        "OPEN": "Como enviar leads",
+        "TITLE": "Enviar leads",
+        "CLOSE": "Fechar",
+        "DESCRIPTION": "O que uma landing page, um fluxo do n8n ou um parceiro precisam para publicar um lead aqui.",
+        "LOADING": "A carregar…",
+        "LOAD_ERROR": "Não foi possível carregar a referência de integração.",
+        "AUTH_TITLE": "O header",
+        "AUTH_BODY": "Envie o token neste header. Não é Authorization: Bearer — um token válido no header errado responde 401, igual a um token inválido.",
+        "REQUEST_TITLE": "Uma chamada que funciona",
+        "COPY": "Copiar",
+        "COPIED": "Copiado",
+        "FIELDS_TITLE": "Campos",
+        "FIELDS_BODY": "Todos opcionais, menos a identidade. Cada valor aceita até {length} caracteres.",
+        "GROUPS": {
+          "CONTACT": "Contacto",
+          "OPPORTUNITY": "Oportunidade",
+          "CONTROL": "Controlo",
+          "ATTRIBUTION": "Atribuição"
+        },
+        "LIMITS_TITLE": "Vale saber",
+        "LIMIT_RATE": "Até {count} chamadas por minuto, por token — acima disso responde 429.",
+        "LIMIT_IDENTITY": "E-mail ou telefone é obrigatório; sem um dos dois o lead é recusado com 422.",
+        "LIMIT_IDEMPOTENCY": "Com idempotency_key, reenviar não duplica e responde 200 duplicate.",
+        "LIMIT_401": "Um 401 também significa origem desligada ou Marketing desativado — a resposta não distingue."
+      }
     },
     "CONNECTIONS": {
       "TITLE": "Contas de anúncio",

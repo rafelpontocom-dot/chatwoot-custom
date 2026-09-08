@@ -9,17 +9,8 @@ class Public::Api::V1::Marketing::IntakeController < ActionController::API
   def schema
     render json: {
       source: source.name,
-      fields: {
-        contact: %w[name email phone_number],
-        opportunity: %w[subject],
-        control: %w[idempotency_key],
-        attribution: Marketing::AttributionFields::ALL_KEYS
-      },
-      notes: {
-        identity: 'email or phone_number is required',
-        idempotency: 'send idempotency_key to make a retry a no-op',
-        max_value_length: Marketing::AttributionFields::MAX_VALUE_LENGTH
-      }
+      fields: Marketing::IntakeContract.fields,
+      notes: Marketing::IntakeContract.notes
     }
   end
 
@@ -37,7 +28,7 @@ class Public::Api::V1::Marketing::IntakeController < ActionController::API
   private
 
   def source
-    @source ||= MarketingIntakeSource.authenticate(request.headers['X-Raevo-Intake-Token'])
+    @source ||= MarketingIntakeSource.authenticate(request.headers[Marketing::IntakeContract::TOKEN_HEADER])
   end
 
   # Token invalido, origem desligada e conta sem o modulo respondem igual: nao

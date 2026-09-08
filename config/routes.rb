@@ -181,6 +181,7 @@ Rails.application.routes.draw do
             end
             resources :intake_sources, only: [:index, :create, :update, :destroy] do
               post :rotate, on: :member
+              get :reference, on: :collection
             end
             resources :connections, only: [:index, :destroy] do
               post :authorization_url, on: :collection

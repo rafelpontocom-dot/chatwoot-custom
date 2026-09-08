@@ -22,6 +22,10 @@ class MarketingAPI extends ApiClient {
     return axios.get(`${this.url}/touchpoints/summary`, { params });
   }
 
+  getIntakeReference() {
+    return axios.get(`${this.url}/intake_sources/reference`);
+  }
+
   getIntakeSources() {
     return axios.get(`${this.url}/intake_sources`);
   }

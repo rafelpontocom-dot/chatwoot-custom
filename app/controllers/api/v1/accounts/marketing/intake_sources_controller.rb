@@ -7,6 +7,14 @@ class Api::V1::Accounts::Marketing::IntakeSourcesController < Api::V1::Accounts:
     render json: { payload: sources.map(&:public_payload) }
   end
 
+  # A documentacao que o painel desenha sai daqui, nao de texto escrito a mao:
+  # o header e os campos vem do mesmo contrato que a porta publica usa, entao
+  # nao ha como a tela ensinar uma coisa e a API aceitar outra.
+  def reference
+    authorize MarketingIntakeSource, :view?
+    render json: Marketing::IntakeContract.reference
+  end
+
   # O token so aparece aqui, uma vez. Depois disso a tela mostra a origem sem
   # ele; quem perdeu gera outro.
   def create

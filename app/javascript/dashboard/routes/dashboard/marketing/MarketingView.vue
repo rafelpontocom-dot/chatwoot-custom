@@ -10,6 +10,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
+import MarketingIntakeDocs from './MarketingIntakeDocs.vue';
 
 // Raevo · Sereno — a tela operacional responde "de onde vieram os leads".
 // Ligar o módulo e conectar plataformas vivem atrás da engrenagem, como no
@@ -75,6 +76,7 @@ const isSavingSource = ref(false);
 const inboxes = useMapGetter('inboxes/getInboxes');
 
 const intakeEndpoint = `${window.location.origin}/public/api/v1/marketing/intake`;
+const intakeDocsRef = ref(null);
 const inboxOptions = computed(() =>
   (inboxes.value || []).filter(
     inbox =>
@@ -472,6 +474,8 @@ onMounted(async () => {
         Google e TikTok chegam com os relatórios de custo, e aparecem
         desabilitados para a ausência ser deliberada e não parecer falta.
       -->
+      <MarketingIntakeDocs ref="intakeDocsRef" />
+
       <section
         v-if="activeView === 'settings' && isEnabled"
         class="grid gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
@@ -857,9 +861,25 @@ onMounted(async () => {
         class="grid gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
       >
         <div class="grid gap-1">
-          <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-            {{ t('MARKETING.INTAKE.TITLE') }}
-          </h3>
+          <div class="flex items-center gap-1.5">
+            <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+              {{ t('MARKETING.INTAKE.TITLE') }}
+            </h3>
+            <!--
+              A documentação vive ao lado de onde se copia o token, não num link
+              que se procura depois de falhar.
+            -->
+            <NextButton
+              :aria-label="t('MARKETING.INTAKE.DOCS.OPEN')"
+              :title="t('MARKETING.INTAKE.DOCS.OPEN')"
+              data-testid="marketing-intake-docs-open"
+              icon="i-lucide-book-open"
+              faded
+              slate
+              xs
+              @click="intakeDocsRef?.open()"
+            />
+          </div>
           <p class="mb-0 text-sm text-n-slate-11">
             {{ t('MARKETING.INTAKE.DESCRIPTION') }}
           </p>

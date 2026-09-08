@@ -55,7 +55,33 @@
       "RECEIVED": "{count} leads",
       "ENDPOINT": "Send a POST to",
       "SCHEMA_HINT": "A GET on /schema lists every field it accepts.",
-      "ERROR": "Could not save the source."
+      "ERROR": "Could not save the source.",
+      "DOCS": {
+        "OPEN": "How to send leads",
+        "TITLE": "Sending leads",
+        "CLOSE": "Close",
+        "DESCRIPTION": "Everything a landing page, an n8n flow or a partner needs to post a lead here.",
+        "LOADING": "Loading…",
+        "LOAD_ERROR": "Could not load the integration reference.",
+        "AUTH_TITLE": "The header",
+        "AUTH_BODY": "Send the token in this header. It is not Authorization: Bearer — a valid token in the wrong header answers 401, the same as an invalid one.",
+        "REQUEST_TITLE": "A request that works",
+        "COPY": "Copy",
+        "COPIED": "Copied",
+        "FIELDS_TITLE": "Fields",
+        "FIELDS_BODY": "All optional except identity. Each value takes up to {length} characters.",
+        "GROUPS": {
+          "CONTACT": "Contact",
+          "OPPORTUNITY": "Opportunity",
+          "CONTROL": "Control",
+          "ATTRIBUTION": "Attribution"
+        },
+        "LIMITS_TITLE": "Worth knowing",
+        "LIMIT_RATE": "Up to {count} requests per minute, per token — over that answers 429.",
+        "LIMIT_IDENTITY": "Email or phone is required; without one the lead is rejected with 422.",
+        "LIMIT_IDEMPOTENCY": "With idempotency_key, resending is a no-op and answers 200 duplicate.",
+        "LIMIT_401": "A 401 also means the source is switched off or Marketing is disabled — the answer does not tell them apart."
+      }
     },
     "CONNECTIONS": {
       "TITLE": "Ad accounts",

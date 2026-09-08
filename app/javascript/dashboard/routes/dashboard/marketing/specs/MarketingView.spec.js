@@ -8,6 +8,7 @@ const apiMocks = vi.hoisted(() => ({
   getTouchpoints: vi.fn(),
   getSummary: vi.fn(),
   getIntakeSources: vi.fn(),
+  getIntakeReference: vi.fn(),
   createIntakeSource: vi.fn(),
   rotateIntakeSource: vi.fn(),
   deactivateIntakeSource: vi.fn(),
@@ -64,6 +65,20 @@ describe('MarketingView', () => {
     storeMocks.currentAccount = { id: 7, permissions: ['administrator'] };
     apiMocks.getModule.mockResolvedValue({ data: { enabled: true } });
     apiMocks.getIntakeSources.mockResolvedValue({ data: { payload: [] } });
+    apiMocks.getIntakeReference.mockResolvedValue({
+      data: {
+        token_header: 'X-Raevo-Intake-Token',
+        path: '/public/api/v1/marketing/intake',
+        rate_limit_per_minute: 60,
+        fields: {
+          contact: ['name', 'email', 'phone_number'],
+          opportunity: ['subject'],
+          control: ['idempotency_key'],
+          attribution: ['utm_source'],
+        },
+        notes: { max_value_length: 500 },
+      },
+    });
     apiMocks.getConnections.mockResolvedValue({ data: { payload: [] } });
     apiMocks.getLeadForms.mockResolvedValue({ data: { payload: [] } });
     boardsMocks.get.mockResolvedValue({
@@ -492,5 +507,19 @@ describe('MarketingView', () => {
       .trigger('click');
 
     expect(wrapper.text()).not.toContain('MARKETING.CONNECTIONS.PAGE_LIMITED');
+  });
+  // O painel dizia o endereço e mandava fazer um GET no /schema, mas nunca dizia
+  // o nome do header — e um token válido em `Authorization: Bearer` responde 401
+  // igual a um token inválido. A documentação passa a viver ao lado do token.
+  it('offers the integration reference where the token is copied', async () => {
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="marketing-intake-docs-open"]').exists()
+    ).toBe(true);
   });
 });
