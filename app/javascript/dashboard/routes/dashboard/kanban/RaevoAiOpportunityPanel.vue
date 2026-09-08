@@ -15,7 +15,7 @@ const props = defineProps({
   },
 });
 
-const { t, te, locale } = useI18n();
+const { t, locale } = useI18n();
 
 const STANDARD_FIELD_LABEL_KEYS = {
   raevo_ai_summary: 'RAEVO_AI.OPPORTUNITY.FIELDS.SUMMARY',
@@ -68,7 +68,10 @@ const displayLabel = field => {
 const displayEnumValue = value => {
   const normalized = String(value || '').trim();
   const key = `RAEVO_AI.OPPORTUNITY.VALUES.${normalized.toUpperCase()}`;
-  return normalized && te(key) ? t(key) : humanize(normalized);
+  if (!normalized) return '';
+
+  const translated = t(key);
+  return translated === key ? humanize(normalized) : translated;
 };
 const displaySummary = value => {
   const normalized = String(value || '').trim();
@@ -76,7 +79,8 @@ const displaySummary = value => {
 
   const phase = normalized.slice('journey.'.length).toUpperCase();
   const key = `RAEVO_AI.OPPORTUNITY.JOURNEY.${phase}`;
-  return te(key) ? t(key) : normalized;
+  const translated = t(key);
+  return translated === key ? normalized : translated;
 };
 const displayValue = field => {
   const value = props.values[field.key];
