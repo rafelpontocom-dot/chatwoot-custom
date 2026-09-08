@@ -590,6 +590,12 @@
       },
       "SALES": {
         "TITLE": "Comercial",
+        "STANDARD_FIELDS": "Campos padrão",
+        "STANDARD_FIELDS_DESCRIPTION": "Todas as oportunidades têm estes campos. Não podem ser removidos e apenas alguns têm opções configuráveis.",
+        "STANDARD_FIELD_OPTIONS": "Opções",
+        "STANDARD_FIELD_NO_OPTIONS": "Sem opções a definir",
+        "LOST_REASON_WHERE": "Aparece quando a oportunidade é marcada como perdida.",
+        "NATIVE_TABS_NOTE": "Contacto, Agenda, Financeiro e Formulários também aparecem na oportunidade, mas apresentam dados próprios e não têm campos configuráveis aqui.",
         "NEXT_ACTION_TYPES": "Tipos de próxima ação",
         "NEXT_ACTION_TYPES_PLACEHOLDER": "Um tipo de ação por linha",
         "LOST_REASON_OPTIONS": "Motivos de perda",

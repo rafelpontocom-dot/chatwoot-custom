@@ -7,6 +7,7 @@ class RaevoAi::FinanceChargeExecutor
     @action_id = command.fetch(:action_id)
     @board_key = command.fetch(:board_key)
     @charge_key = command.fetch(:charge_key)
+    @tax_id = command[:tax_id]
   end
 
   def perform
@@ -67,11 +68,16 @@ class RaevoAi::FinanceChargeExecutor
   end
 
   def configured_tax_id!(charge)
-    key = charge[:tax_id_attribute]
-    value = key && @conversation.contact.custom_attributes[key].to_s.strip
-    raise InvalidCharge, 'configured tax id is not available for the contact' if value.blank?
+    value = if charge[:tax_id_source] == 'command'
+              @tax_id
+            else
+              key = charge[:tax_id_attribute]
+              key && @conversation.contact.custom_attributes[key]
+            end
+    normalized = value.to_s.gsub(/\D/, '')
+    raise InvalidCharge, 'configured tax id is not available for the contact' unless normalized.length.in?([11, 14])
 
-    value
+    normalized
   end
 
   def external_reference
@@ -79,12 +85,14 @@ class RaevoAi::FinanceChargeExecutor
   end
 
   def command_payload(charge, card)
-    {
+    payload = {
       'conversation_id' => @conversation.display_id, 'card_id' => card.id, 'board_key' => @board_key,
       'charge_key' => charge[:key], 'connection_id' => charge[:connection].id, 'amount_cents' => charge[:amount_cents],
       'billing_type' => charge[:billing_type], 'currency' => charge[:currency], 'due_on' => charge[:due_on].iso8601,
       'external_reference' => external_reference
     }
+    payload['tax_id_digest'] = Digest::SHA256.hexdigest(configured_tax_id!(charge)) if charge[:connection].provider == 'asaas'
+    payload
   end
 
   def receipt(payment)

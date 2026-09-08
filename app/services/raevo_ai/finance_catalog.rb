@@ -17,6 +17,7 @@ class RaevoAi::FinanceCatalog
       connection: connection,
       **terms,
       description: configuration['description'].presence,
+      tax_id_source: configuration['tax_id_source'].presence || 'contact_attribute',
       tax_id_attribute: configuration['tax_id_attribute'].presence
     }
   end
@@ -35,6 +36,9 @@ class RaevoAi::FinanceCatalog
   def validate_charge_configuration!(configuration, board_key)
     raise InvalidCatalog, 'charge is not published in the tenant catalog' if configuration.blank?
     raise InvalidCatalog, 'charge is not authorized for the requested board' unless configuration['board_key'].to_s == board_key.to_s
+    return if configuration['tax_id_source'].blank? || configuration['tax_id_source'].in?(%w[contact_attribute command])
+
+    raise InvalidCatalog, 'configured tax id source is invalid'
   end
 
   def resolved_connection(configuration)

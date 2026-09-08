@@ -27,7 +27,7 @@ class Public::Api::V1::RaevoAi::FinanceCommandsController < ActionController::AP
   end
 
   def charge_params
-    @charge_params ||= params.permit(:action_id, :conversation_id, :board_key, :charge_key).tap do |permitted|
+    @charge_params ||= params.permit(:action_id, :conversation_id, :board_key, :charge_key, :tax_id).tap do |permitted|
       %i[action_id conversation_id board_key charge_key].each { |key| permitted.require(key) }
     end
   end

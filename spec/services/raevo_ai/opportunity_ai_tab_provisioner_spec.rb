@@ -1,6 +1,49 @@
 require 'rails_helper'
 
 RSpec.describe RaevoAi::OpportunityAiTabProvisioner do
+  describe '#configuration' do
+    let(:account) { create(:account) }
+    let(:board) { create(:kanban_board, account: account) }
+    let(:integration) do
+      RaevoAiIntegration.create!(
+        account: account,
+        clinic_id: 'clinic-demo',
+        enabled: true,
+        settings: {
+          'opportunity_ai_tab' => { 'enabled' => true, 'board_ids' => [board.id] },
+          'crm' => {
+            'boards' => {
+              'captacao' => {
+                'board_id' => board.id,
+                'initial_stage_id' => 10,
+                'stages' => { 'qualified' => { 'stage_id' => 11 } },
+                'labels' => { 'booking_confirmed' => { 'label' => 'AGENDADO_IA' } },
+                'fields' => { 'raevo_ai_status' => { 'field_key' => 'raevo_ai_status' } }
+              }
+            }
+          }
+        }
+      )
+    end
+
+    it 'returns a sanitized semantic CRM catalog for operational validation' do
+      expect(described_class.new(integration: integration).configuration).to include(
+        'enabled' => true,
+        'board_ids' => [board.id],
+        'crm_catalog' => [
+          {
+            'board_key' => 'captacao',
+            'board_id' => board.id,
+            'initial_stage_id' => 10,
+            'events' => { 'qualified' => 11 },
+            'labels' => ['booking_confirmed'],
+            'fields' => ['raevo_ai_status']
+          }
+        ]
+      )
+    end
+  end
+
   describe '#configure!' do
     let(:account) { create(:account) }
     let(:board) { create(:kanban_board, account: account) }

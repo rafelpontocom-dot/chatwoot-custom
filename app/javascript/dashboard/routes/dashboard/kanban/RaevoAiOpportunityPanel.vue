@@ -15,7 +15,20 @@ const props = defineProps({
   },
 });
 
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
+
+const STANDARD_FIELD_LABEL_KEYS = {
+  raevo_ai_summary: 'RAEVO_AI.OPPORTUNITY.FIELDS.SUMMARY',
+  raevo_ai_status: 'RAEVO_AI.OPPORTUNITY.FIELDS.STATUS',
+  raevo_ai_next_action: 'RAEVO_AI.OPPORTUNITY.FIELDS.NEXT_ACTION',
+  raevo_ai_handoff_reason: 'RAEVO_AI.OPPORTUNITY.FIELDS.HANDOFF_REASON',
+  raevo_ai_service_interest: 'RAEVO_AI.OPPORTUNITY.FIELDS.SERVICE_INTEREST',
+  raevo_ai_scheduling_preference:
+    'RAEVO_AI.OPPORTUNITY.FIELDS.SCHEDULING_PREFERENCE',
+  raevo_ai_last_action_at: 'RAEVO_AI.OPPORTUNITY.FIELDS.LAST_ACTION_AT',
+  raevo_ai_booking_status: 'RAEVO_AI.OPPORTUNITY.FIELDS.BOOKING_STATUS',
+  raevo_ai_payment_status: 'RAEVO_AI.OPPORTUNITY.FIELDS.PAYMENT_STATUS',
+};
 
 const summaryField = computed(() =>
   props.fields.find(field => field.key === 'raevo_ai_summary')
@@ -48,13 +61,30 @@ const humanize = value =>
     .replace(/^./, character => character.toUpperCase());
 const isBlank = value =>
   value === null || value === undefined || String(value).trim() === '';
+const displayLabel = field => {
+  const key = STANDARD_FIELD_LABEL_KEYS[field.key];
+  return key ? t(key) : field.label;
+};
+const displayEnumValue = value => {
+  const normalized = String(value || '').trim();
+  const key = `RAEVO_AI.OPPORTUNITY.VALUES.${normalized.toUpperCase()}`;
+  return normalized && te(key) ? t(key) : humanize(normalized);
+};
+const displaySummary = value => {
+  const normalized = String(value || '').trim();
+  if (!normalized.startsWith('journey.')) return normalized;
+
+  const phase = normalized.slice('journey.'.length).toUpperCase();
+  const key = `RAEVO_AI.OPPORTUNITY.JOURNEY.${phase}`;
+  return te(key) ? t(key) : normalized;
+};
 const displayValue = field => {
   const value = props.values[field.key];
   if (isBlank(value)) return t('RAEVO_AI.OPPORTUNITY.EMPTY_VALUE');
   if (field.fieldType === 'datetime' || field.field_type === 'datetime') {
     const date = new Date(value);
     if (!Number.isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat(undefined, {
+      return new Intl.DateTimeFormat(String(locale.value).replace('_', '-'), {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(date);
@@ -62,8 +92,8 @@ const displayValue = field => {
   }
 
   return Array.isArray(value)
-    ? value.map(humanize).join(', ')
-    : humanize(value);
+    ? value.map(displayEnumValue).join(', ')
+    : displayEnumValue(value);
 };
 </script>
 
@@ -79,11 +109,15 @@ const displayValue = field => {
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-          {{ summaryField?.label || t('RAEVO_AI.OPPORTUNITY.SUMMARY') }}
+          {{
+            summaryField
+              ? displayLabel(summaryField)
+              : t('RAEVO_AI.OPPORTUNITY.SUMMARY')
+          }}
         </h3>
         <RaevoStamp
           v-if="statusValue"
-          :label="humanize(statusValue)"
+          :label="displayEnumValue(statusValue)"
           :variant="statusVariant"
           size="sm"
         />
@@ -92,7 +126,7 @@ const displayValue = field => {
         {{
           isBlank(values.raevo_ai_summary)
             ? t('RAEVO_AI.OPPORTUNITY.SUMMARY_EMPTY')
-            : values.raevo_ai_summary
+            : displaySummary(values.raevo_ai_summary)
         }}
       </p>
     </div>
@@ -102,7 +136,7 @@ const displayValue = field => {
         <dt
           class="text-micro font-medium uppercase tracking-wide text-n-slate-10"
         >
-          {{ field.label }}
+          {{ displayLabel(field) }}
         </dt>
         <dd class="m-0 break-words text-sm text-n-slate-12">
           {{ displayValue(field) }}

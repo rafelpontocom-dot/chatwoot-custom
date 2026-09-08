@@ -116,4 +116,42 @@ RSpec.describe 'Raevo AI finance commands API', type: :request do
     expect(response.parsed_body).to eq('error' => 'invalid_catalog')
     expect(FinancePayment.all).to be_empty
   end
+
+  context 'with an Asaas charge' do
+    let(:connection) do
+      FinanceModuleSetting.create!(account: account, market: 'BR', enabled: true)
+      FinanceProviderConnection.create!(
+        account: account, provider: 'asaas', environment: 'sandbox', status: 'connected', api_key: 'sandbox-key'
+      )
+    end
+
+    before do
+      integration.settings['finance']['charges']['consultation_fee'].merge!(
+        'billing_type' => 'undefined', 'currency' => 'BRL', 'tax_id_source' => 'command'
+      )
+      integration.save!
+    end
+
+    it 'uses a validated inline tax id without persisting its plaintext in the command receipt' do
+      card
+      payment = instance_double(FinancePayment, id: 42, status: 'pending', invoice_url: 'https://sandbox.asaas.test/pay/42')
+      service = instance_double(Finance::Asaas::CreatePaymentService, perform: payment)
+      expect(Finance::Asaas::CreatePaymentService).to receive(:new)
+        .with(hash_including(cpf_cnpj: '12345678901'))
+        .and_return(service)
+
+      post '/public/api/v1/raevo_ai/finance/charges', params: {
+        action_id: 'turn-101:charge:consultation',
+        conversation_id: conversation.display_id,
+        board_key: 'acquisition',
+        charge_key: 'consultation_fee',
+        tax_id: '123.456.789-01'
+      }, headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok), response.body
+      command = integration.raevo_ai_commands.find_by!(action_id: 'turn-101:charge:consultation')
+      expect(command.result.to_json).not_to include('12345678901', '123.456.789-01')
+      expect(command.payload_digest).to be_present
+    end
+  end
 end

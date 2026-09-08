@@ -10,7 +10,7 @@ import path from 'node:path';
  * uma chave nova em pt_BR sem par em pt falha aqui, dizendo qual.
  */
 const BASE = path.resolve(__dirname, '..', 'locale');
-const MODULOS = ['calendar', 'finance', 'forms', 'kanban'];
+const MODULOS = ['calendar', 'finance', 'forms', 'kanban', 'raevoAi'];
 
 const ler = (locale, nome) =>
   JSON.parse(fs.readFileSync(path.join(BASE, locale, `${nome}.json`), 'utf8'));

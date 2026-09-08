@@ -41,6 +41,89 @@
         "VOICE_STYLE": "Voz e linguagem"
       }
     },
+    "CAPABILITIES": {
+      "EYEBROW": "CONFIGURAÇÃO PUBLICADA",
+      "TITLE": "Capacidades ativas",
+      "DESCRIPTION": "Esta é uma visualização somente leitura da configuração ativa.",
+      "ITEMS": {
+        "ATENDIMENTO": "Atendimento",
+        "CRM": "CRM",
+        "AGENDA": "Agenda",
+        "OBSERVABILITY": "Observabilidade"
+      },
+      "PROVIDERS": {
+        "CHATWOOT": "Chatwoot",
+        "KOMMO": "Kommo",
+        "CALCOM": "Cal.com",
+        "GOOGLE_CALENDAR": "Google Agenda",
+        "FEEGOW": "Feegow",
+        "CHATWOOT_NATIVE": "Chatwoot nativo"
+      }
+    },
+    "QUALITY": {
+      "EYEBROW": "FILA DE INVESTIGAÇÃO",
+      "TITLE": "Itens que precisam de revisão",
+      "DESCRIPTION": "Estes números ajudam a investigar inconsistências operacionais. Eles não alteram conversas, agendamentos ou a assistente.",
+      "POST_DELIVERY_ACTIONS_PENDING": "Ações pós-entrega aguardando confirmação",
+      "POST_DELIVERY_ACTIONS_APPLIED": "Ações pós-entrega aplicadas",
+      "POST_DELIVERY_ACTIONS_FAILED": "Falhas em ações pós-entrega",
+      "MANUAL_RECONCILIATIONS": "Reconciliações manuais",
+      "ATTENTION_LEVELS": {
+        "CLEAR": "Nenhuma investigação operacional é necessária agora",
+        "INVESTIGATE": "Recomenda-se uma investigação operacional",
+        "ACTION_REQUIRED": "É necessária uma investigação operacional"
+      },
+      "ATTENTION_REASONS": {
+        "POST_DELIVERY_ACTIONS_FAILED": "Falhas em ações pós-entrega",
+        "POST_DELIVERY_ACTIONS_PENDING": "Ações pós-entrega aguardando confirmação",
+        "MANUAL_RECONCILIATIONS": "Reconciliações manuais"
+      },
+      "ATTENTION_SEPARATOR": "·"
+    },
+    "ASSISTANT_DRAFT": {
+      "EYEBROW": "RASCUNHO DA ASSISTENTE",
+      "TITLE": "Identidade e voz",
+      "DESCRIPTION": "Edite apenas como a Elis se apresenta e se comunica. Salvar cria um rascunho e não altera as conversas ativas.",
+      "ACTIVE_VERSION": "Versão ativa: {version}",
+      "LOADING": "Carregando rascunho da assistente",
+      "ENABLED": "Usar este conjunto na próxima versão publicada",
+      "SAVE": "Salvar rascunho",
+      "DRAFT_ONLY": "Este rascunho não está publicado e não altera a assistente ativa.",
+      "CONFLICT": "Este rascunho foi alterado em outro lugar. Recarregue antes de salvar.",
+      "ERROR": "Não foi possível carregar ou salvar o rascunho. A configuração ativa não foi alterada.",
+      "FIELDS": {
+        "IDENTITY": "Identidade e papel",
+        "PERSONALITY": "Personalidade",
+        "VOICE_STYLE": "Voz e linguagem"
+      }
+    },
+    "ASSISTANT_SIMULATION": {
+      "EYEBROW": "REVISÃO DO RASCUNHO",
+      "TITLE": "Prévia sintética do rascunho",
+      "DESCRIPTION": "Execute um cenário sintético aprovado com este rascunho. Nenhuma mensagem é enviada e nada é alterado no CRM, agenda ou configuração publicada.",
+      "FIXTURES_LABEL": "Cenários sintéticos aprovados",
+      "FIXTURES": {
+        "FIRST_CONTACT": "Primeiro contato",
+        "SCHEDULING_INTENT": "Intenção de agendamento",
+        "HUMAN_REQUEST": "Pedido de atendimento humano"
+      },
+      "DRAFT_REQUIRED": "Salve este rascunho antes de executar uma prévia.",
+      "ERROR": "A prévia está temporariamente indisponível. Nenhuma mensagem ou configuração foi alterada.",
+      "RESULT_TITLE": "Resultado sintético",
+      "REVIEW_ONLY": "Este resultado serve apenas para revisão humana. Ele não publica a configuração.",
+      "VERDICT": "Status da revisão: {verdict}",
+      "REVIEW_TITLE": "Aprovar esta revisão",
+      "REVIEW_DESCRIPTION": "A Elis executa novamente o mesmo cenário no servidor antes de registrar sua decisão.",
+      "APPROVE_REVIEW": "Aprovar revisão sintética",
+      "REVIEW_APPROVED": "Revisão sintética aprovada. É necessária outra confirmação para publicar.",
+      "REVIEW_ERROR": "Não foi possível registrar a revisão. O rascunho permanece inalterado.",
+      "PUBLICATION_TITLE": "Publicar este rascunho revisado",
+      "PUBLICATION_DESCRIPTION": "A publicação altera a assistente nas próximas conversas. Conversas anteriores, CRM, agendamentos e pagamentos não são alterados.",
+      "PUBLICATION_CONFIRMATION": "Revisei este resultado sintético e quero publicar o rascunho para as próximas conversas.",
+      "PUBLISH": "Publicar rascunho revisado",
+      "PUBLICATION_SUCCEEDED": "O rascunho revisado foi publicado para as próximas conversas.",
+      "PUBLICATION_ERROR": "Não foi possível publicar o rascunho. A configuração ativa permanece inalterada."
+    },
     "PACKAGES": {
       "EYEBROW": "MODELO DE ATENDIMENTO",
       "TITLE": "Pacotes atendidos pela Elis",
@@ -56,6 +139,75 @@
       "COMPLETE": {
         "TITLE": "Atendimento completo + agendamento, pagamento e CRM",
         "DESCRIPTION": "A Elis conclui a jornada, incluindo agendamento confirmado e envio do link de pagamento, com histórico consistente no CRM."
+      }
+    },
+    "OPPORTUNITY": {
+      "PANEL_LABEL": "Detalhes operacionais da Elis",
+      "SUMMARY": "Resumo do atendimento da Elis",
+      "SUMMARY_EMPTY": "A Elis ainda não registrou uma atualização operacional.",
+      "EMPTY_VALUE": "Não informado",
+      "JOURNEY": {
+        "NEW": "Uma nova conversa de atendimento foi iniciada.",
+        "TRIAGE": "A Elis está identificando o motivo do contato.",
+        "QUALIFICATION": "A Elis está qualificando a necessidade de atendimento.",
+        "INFORMED": "As informações solicitadas foram respondidas e o interesse está sendo confirmado.",
+        "QUALIFIED": "A oportunidade está qualificada e pronta para o agendamento.",
+        "PRE_SCHEDULING": "O paciente está se preparando para agendar a consulta.",
+        "SCHEDULING": "A Elis está concluindo o agendamento.",
+        "BOOKED": "A consulta foi agendada.",
+        "PAYMENT_PENDING": "A consulta aguarda a confirmação do pagamento.",
+        "PAID": "A consulta e o pagamento foram confirmados.",
+        "HANDOFF": "A conversa foi transferida para um atendente humano.",
+        "CLOSED": "A Elis não está mais conduzindo esta conversa."
+      },
+      "FIELDS": {
+        "SUMMARY": "Resumo do atendimento",
+        "STATUS": "Status do atendimento",
+        "NEXT_ACTION": "Próxima ação da IA",
+        "HANDOFF_REASON": "Motivo do handoff",
+        "SERVICE_INTEREST": "Interesse ou serviço",
+        "SCHEDULING_PREFERENCE": "Preferência de agenda",
+        "LAST_ACTION_AT": "Última ação da IA",
+        "BOOKING_STATUS": "Status do agendamento",
+        "PAYMENT_STATUS": "Status do pagamento"
+      },
+      "VALUES": {
+        "EM_ATENDIMENTO": "Em atendimento",
+        "QUALIFICADO": "Qualificado",
+        "PRE_AGENDADO": "Pré-agendado",
+        "AGENDADO": "Agendado",
+        "HANDOFF_HUMANO": "Handoff humano",
+        "BLOQUEADO": "Bloqueado",
+        "NAO_SOLICITADO": "Não solicitado",
+        "EM_AGENDAMENTO": "Em agendamento",
+        "AGUARDANDO_CONFIRMACAO": "Aguardando confirmação",
+        "CANCELADO": "Cancelado",
+        "NAO_ENVIADO": "Não enviado",
+        "LINK_ENVIADO": "Link enviado",
+        "PENDENTE": "Pendente",
+        "PAGO": "Pago",
+        "FALHOU": "Falhou",
+        "REALIZAR_TRIAGEM": "Realizar triagem",
+        "CONCLUIR_QUALIFICACAO": "Concluir qualificação",
+        "CONFIRMAR_INTERESSE": "Confirmar interesse",
+        "OFERECER_AGENDAMENTO": "Oferecer agendamento",
+        "COLETAR_PREFERENCIA_DE_AGENDA": "Coletar preferência de agenda",
+        "CONCLUIR_AGENDAMENTO": "Concluir agendamento",
+        "ACOMPANHAR_CONFIRMACAO": "Acompanhar confirmação",
+        "CONFIRMAR_PAGAMENTO": "Confirmar pagamento",
+        "ATENDIMENTO_CONFIRMADO": "Atendimento confirmado",
+        "ATENDIMENTO_HUMANO": "Atendimento humano",
+        "NENHUMA": "Nenhuma ação"
+      },
+      "SETTINGS": {
+        "EYEBROW": "CONFIGURAÇÃO DO CRM",
+        "TITLE": "Aba da Elis na oportunidade",
+        "DESCRIPTION": "Escolha os funis em que a aba operacional da Elis ficará disponível. Somente funis publicados no catálogo de CRM da Elis podem ser salvos.",
+        "BOARDS": "Funis do CRM",
+        "ENABLED": "Exibir a aba IA nos funis selecionados",
+        "ENABLED_HINT": "Desativar oculta a aba sem apagar o histórico operacional anterior.",
+        "SAVE": "Salvar configuração",
+        "ERROR": "Não foi possível carregar ou salvar a configuração da aba IA. Nenhuma alteração foi aplicada."
       }
     }
   }

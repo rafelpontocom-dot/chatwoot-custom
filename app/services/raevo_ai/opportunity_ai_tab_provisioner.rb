@@ -40,11 +40,31 @@ class RaevoAi::OpportunityAiTabProvisioner
     configuration = @integration.settings.fetch('opportunity_ai_tab', {})
     {
       'enabled' => configuration['enabled'] == true,
-      'board_ids' => Array(configuration['board_ids']).map(&:to_i).select(&:positive?).uniq
+      'board_ids' => Array(configuration['board_ids']).map(&:to_i).select(&:positive?).uniq,
+      'crm_catalog' => sanitized_crm_catalog
     }
   end
 
   private
+
+  def sanitized_crm_catalog
+    @integration.settings.fetch('crm', {}).fetch('boards', {}).filter_map do |board_key, board|
+      next unless board.is_a?(Hash) && board['board_id'].to_i.positive?
+
+      {
+        'board_key' => board_key,
+        'board_id' => board['board_id'].to_i,
+        'initial_stage_id' => board['initial_stage_id']&.to_i,
+        'events' => sanitized_catalog_events(board['stages']),
+        'labels' => board.fetch('labels', {}).keys.sort,
+        'fields' => board.fetch('fields', {}).keys.sort
+      }
+    end.sort_by { |board| board['board_key'] }
+  end
+
+  def sanitized_catalog_events(stages)
+    stages.is_a?(Hash) ? stages.to_h { |key, value| [key, value['stage_id'].to_i] } : {}
+  end
 
   def selected_boards!(board_ids)
     ids = Array(board_ids).map(&:to_i).select(&:positive?).uniq
