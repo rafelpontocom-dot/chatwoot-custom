@@ -57,7 +57,6 @@ class RaevoAi::CrmLabelExecutor
     {
       'card_id' => @card.id,
       'board_key' => @board_key,
-      'expected_lock_version' => @expected_lock_version,
       'label' => @label
     }
   end

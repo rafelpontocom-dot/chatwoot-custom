@@ -47,6 +47,12 @@ class RaevoAi::CrmStageExecutor
     raise LockConflict, 'card lock_version does not match the expected version' unless @card.lock_version == @expected_lock_version
 
     target_stage = catalog.resolve_stage!(@board_key, @event_key, current_stage_id: @card.kanban_stage_id)
+    if target_stage.id == @card.kanban_stage_id
+      result = receipt(target_stage, status: 'already_applied')
+      command.update!(state: 'applied', result: result)
+      return result
+    end
+
     KanbanCards::TransferCardService.new(card: @card, target_board: board, target_stage: target_stage, actor: nil).perform!
 
     result = receipt(target_stage)
@@ -58,17 +64,16 @@ class RaevoAi::CrmStageExecutor
     {
       'card_id' => @card.id,
       'board_key' => @board_key,
-      'event_key' => @event_key,
-      'expected_lock_version' => @expected_lock_version
+      'event_key' => @event_key
     }
   end
 
-  def receipt(target_stage)
+  def receipt(target_stage, status: 'applied')
     {
       'action_id' => @action_id,
-      'status' => 'applied',
+      'status' => status,
       'receipts' => {
-        'stage' => { 'status' => 'applied', 'stage_id' => target_stage.id }
+        'stage' => { 'status' => status, 'stage_id' => target_stage.id }
       }
     }
   end

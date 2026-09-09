@@ -80,11 +80,21 @@ RSpec.describe RaevoAi::CrmCatalog do
   end
 
   it 'rejects a transition not allowed from the card current stage' do
+    unpublished_stage = create(:kanban_stage, account: account, kanban_board: board, name: 'Unpublished')
+
     expect do
+      described_class.new(integration: integration).resolve_stage!(
+        'acquisition', 'scheduling_requested', current_stage_id: unpublished_stage.id
+      )
+    end.to raise_error(RaevoAi::CrmCatalog::TransitionNotAllowed)
+  end
+
+  it 'treats a repeated semantic transition to the current stage as idempotent' do
+    expect(
       described_class.new(integration: integration).resolve_stage!(
         'acquisition', 'scheduling_requested', current_stage_id: scheduling.id
       )
-    end.to raise_error(RaevoAi::CrmCatalog::TransitionNotAllowed)
+    ).to eq(scheduling)
   end
 
   it 'rejects a published select field whose enum does not match the board' do

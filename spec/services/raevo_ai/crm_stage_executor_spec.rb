@@ -66,4 +66,49 @@ RSpec.describe RaevoAi::CrmStageExecutor do
 
     expect(card.reload.kanban_stage_id).to eq(new_lead.id)
   end
+
+  it 'returns an already-applied receipt without duplicating a stage event when the card is already there' do
+    card.update!(kanban_stage: scheduling)
+    existing_stage_events = card.kanban_card_events.where(event_type: 'stage_changed').count
+    result = described_class.new(
+      integration: integration,
+      card: card,
+      command: {
+        action_id: 'turn-102:stage:scheduling_requested',
+        board_key: 'acquisition',
+        event_key: 'scheduling_requested',
+        expected_lock_version: card.lock_version
+      }
+    ).perform
+
+    expect(result).to include('status' => 'already_applied')
+    expect(card.reload.kanban_card_events.where(event_type: 'stage_changed').count).to eq(existing_stage_events)
+  end
+
+  it 'returns the persisted receipt when a delivery retry refreshes the optimistic lock' do
+    first = described_class.new(
+      integration: integration,
+      card: card,
+      command: {
+        action_id: 'turn-103:stage:scheduling_requested',
+        board_key: 'acquisition',
+        event_key: 'scheduling_requested',
+        expected_lock_version: card.lock_version
+      }
+    ).perform
+
+    retry_result = described_class.new(
+      integration: integration,
+      card: card.reload,
+      command: {
+        action_id: 'turn-103:stage:scheduling_requested',
+        board_key: 'acquisition',
+        event_key: 'scheduling_requested',
+        expected_lock_version: card.lock_version
+      }
+    ).perform
+
+    expect(retry_result).to eq(first)
+    expect(card.kanban_card_events.where(event_type: 'stage_changed').count).to eq(1)
+  end
 end

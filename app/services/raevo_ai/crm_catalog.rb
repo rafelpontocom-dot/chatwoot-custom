@@ -34,6 +34,8 @@ class RaevoAi::CrmCatalog
     raise InvalidCatalog, 'stage event is not published in the tenant catalog' if target_configuration.blank?
 
     target_stage = configured_stage!(board, target_configuration)
+    return target_stage if target_stage.id == current_stage_id.to_i
+
     validate_stage_transition!(stages, target_configuration, current_stage_id)
     target_stage
   end

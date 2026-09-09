@@ -88,6 +88,33 @@ RSpec.describe RaevoAi::CrmFieldExecutor do
     expect(card.reload.custom_field_values).to include('preferred_period' => 'morning')
   end
 
+  it 'returns the persisted field receipt when a delivery retry refreshes the optimistic lock' do
+    first = described_class.new(
+      integration: integration,
+      card: card,
+      command: {
+        action_id: 'turn-104:field:next-action',
+        board_key: 'acquisition',
+        expected_lock_version: card.lock_version,
+        fields: [{ 'key' => 'raevo_ai_next_action', 'value' => 'confirm_interest' }]
+      }
+    ).perform
+
+    retry_result = described_class.new(
+      integration: integration,
+      card: card.reload,
+      command: {
+        action_id: 'turn-104:field:next-action',
+        board_key: 'acquisition',
+        expected_lock_version: card.lock_version,
+        fields: [{ 'key' => 'raevo_ai_next_action', 'value' => 'confirm_interest' }]
+      }
+    ).perform
+
+    expect(retry_result).to eq(first)
+    expect(RaevoAiCommand.where(action_id: 'turn-104:field:next-action').count).to eq(1)
+  end
+
   it 'rejects a structured value for a text field before it can reach the card' do
     expect do
       described_class.new(
