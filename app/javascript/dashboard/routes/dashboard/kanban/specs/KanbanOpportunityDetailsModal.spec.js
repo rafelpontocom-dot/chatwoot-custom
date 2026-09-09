@@ -45,6 +45,13 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.ENTERED_STAGE': 'Entered {stage}',
         'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CREATED_IN_STAGE':
           'Created in {stage}',
+        'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CUSTOM_FIELD_CHANGED':
+          '{field} changed',
+        'KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CHANGE_TRANSITION':
+          '{before} → {after}',
+        'KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY': 'Not filled in',
+        'RAEVO_AI.OPPORTUNITY.FIELDS.STATUS': 'Service status',
+        'RAEVO_AI.OPPORTUNITY.VALUES.EM_ATENDIMENTO': 'In service',
         'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER':
           'Add a single note for this card',
         'KANBAN.OPPORTUNITY_DETAILS.ASSIGNEE': 'Agent',
@@ -375,8 +382,9 @@ const mountModal = async ({
         NextInput: nextInputStub,
         NextButton: nextButtonStub,
         KanbanCalendarAppointmentsSection: {
+          props: ['contactName'],
           template:
-            '<section data-testid="kanban-opportunity-calendar-tab-content" />',
+            '<section data-testid="kanban-opportunity-calendar-tab-content" :data-contact-name="contactName" />',
         },
         FinancePaymentDialog: {
           template: '<section data-testid="finance-payment-dialog" />',
@@ -667,9 +675,15 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('saves basic contact details from the opportunity contact tab', async () => {
     ContactAPI.update.mockResolvedValue({
-      data: { id: 91, name: 'Acme Updated', phone_number: '+55 62 98888-0000' },
+      data: {
+        payload: {
+          id: 91,
+          name: 'Acme Updated',
+          phone_number: '+55 62 98888-0000',
+        },
+      },
     });
-    const wrapper = await mountModal();
+    const wrapper = await mountModal({ calendarEnabled: true });
 
     await openContactTab(wrapper);
     await (
@@ -684,6 +698,15 @@ describe('KanbanOpportunityDetailsModal', () => {
       91,
       expect.objectContaining({ name: 'Acme Updated' })
     );
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-calendar"]')
+      .trigger('click');
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-calendar-tab-content"]')
+        .attributes('data-contact-name')
+    ).toBe('Acme Updated');
   });
 
   it('shows Calendar as its own tab instead of rendering it in General', async () => {
@@ -945,6 +968,39 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       wrapper.find('[data-testid="kanban-opportunity-timeline"]').text()
     ).toContain('Entered Proposta enviada');
+  });
+
+  it('shows the localized field and before/after values for custom-field changes', async () => {
+    const wrapper = await mountModal({
+      customFieldDefinitions: [
+        {
+          key: 'raevo_ai_status',
+          label: 'Persisted label',
+          fieldType: 'select',
+          options: ['em_atendimento'],
+        },
+      ],
+      timeline: [
+        {
+          id: 11,
+          event_type: 'custom_fields_changed',
+          occurred_at: '2026-07-21T12:00:00Z',
+          actor: null,
+          changes: {
+            custom_field_values: [{}, { raevo_ai_status: 'em_atendimento' }],
+          },
+        },
+      ],
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .trigger('click');
+
+    const timeline = wrapper.get('[data-testid="kanban-opportunity-timeline"]');
+    expect(timeline.text()).toContain('Service status changed');
+    expect(timeline.text()).toContain('Not filled in → In service');
+    expect(timeline.text()).not.toContain('Custom fields changed');
   });
 
   it('renders a responsive single-column layout', async () => {

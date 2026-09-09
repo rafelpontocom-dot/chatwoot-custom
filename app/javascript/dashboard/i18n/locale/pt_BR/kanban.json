@@ -1359,6 +1359,9 @@
         "EMPTY": "Nenhuma alteração registrada.",
         "LOAD_ERROR": "Não foi possível carregar o histórico da oportunidade.",
         "SYSTEM": "Sistema",
+        "CUSTOM_FIELD_CHANGED": "Alteração em {field}",
+        "CUSTOM_FIELDS_CHANGED": "{count} campos alterados",
+        "CHANGE_TRANSITION": "{before} → {after}",
         "ENTERED_STAGE": "Entrou na etapa {stage}",
         "CREATED_IN_STAGE": "Criada na etapa {stage}"
       },

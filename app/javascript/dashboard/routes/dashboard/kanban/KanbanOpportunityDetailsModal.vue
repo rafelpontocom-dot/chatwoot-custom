@@ -13,6 +13,12 @@ import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanCalendarAppointmentsSection from './KanbanCalendarAppointmentsSection.vue';
 import RaevoAiOpportunityPanel from './RaevoAiOpportunityPanel.vue';
+import {
+  displayRaevoAiFieldLabel,
+  displayRaevoAiFieldValue,
+  humanizeRaevoAiValue,
+  RAEVO_AI_FIELD_LABEL_KEYS,
+} from './raevoAiOpportunityDisplay';
 import KanbanOpportunityPipelineMenu from './KanbanOpportunityPipelineMenu.vue';
 import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
@@ -103,7 +109,7 @@ const emit = defineEmits([
   'transferred',
 ]);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useStore();
 const accountLabels = useMapGetter('labels/getLabels');
 const currentAccount = useMapGetter('getCurrentAccount');
@@ -1170,6 +1176,46 @@ const sendFinancePaymentLink = payment => {
   emit('sendPaymentLink', { card: card.value, payment });
 };
 
+const timelineFieldDefinition = key =>
+  normalizedCustomFieldDefinitions.value.find(field => field.key === key) || {
+    key,
+    label: humanizeRaevoAiValue(key),
+  };
+const timelineFieldValue = (field, value) => {
+  if (RAEVO_AI_FIELD_LABEL_KEYS[field.key]) {
+    return displayRaevoAiFieldValue({
+      t,
+      locale: locale?.value || 'en',
+      field,
+      value,
+      emptyValue: t('KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY'),
+    });
+  }
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return t('KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY');
+  }
+  return Array.isArray(value) ? value.join(', ') : String(value);
+};
+function timelineEventChanges(event) {
+  if (event.event_type !== 'custom_fields_changed') return [];
+
+  const [before = {}, after = {}] = event.changes?.custom_field_values || [];
+  return [...new Set([...Object.keys(before), ...Object.keys(after)])]
+    .filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
+    .map(key => {
+      const field = timelineFieldDefinition(key);
+      return {
+        key,
+        label: RAEVO_AI_FIELD_LABEL_KEYS[key]
+          ? displayRaevoAiFieldLabel(t, field)
+          : field.label,
+        transition: t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CHANGE_TRANSITION', {
+          before: timelineFieldValue(field, before[key]),
+          after: timelineFieldValue(field, after[key]),
+        }),
+      };
+    });
+}
 const timelineEventLabel = event => {
   const enteredStage = event.metadata?.to_stage?.name;
   const createdStage = event.metadata?.entered_stage?.name;
@@ -1182,6 +1228,18 @@ const timelineEventLabel = event => {
   if (event.event_type === 'card_created' && createdStage) {
     return t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CREATED_IN_STAGE', {
       stage: createdStage,
+    });
+  }
+
+  const changes = timelineEventChanges(event);
+  if (event.event_type === 'custom_fields_changed' && changes.length === 1) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CUSTOM_FIELD_CHANGED', {
+      field: changes[0].label,
+    });
+  }
+  if (event.event_type === 'custom_fields_changed' && changes.length > 1) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.CUSTOM_FIELDS_CHANGED', {
+      count: changes.length,
     });
   }
 
@@ -1382,7 +1440,7 @@ const saveContact = async () => {
       custom_attributes: contactDraft.value.custom_attributes,
       additional_attributes: contactDraft.value.additional_attributes,
     });
-    const updatedContact = response.data || {};
+    const updatedContact = response.data?.payload ?? response.data ?? {};
     card.value = {
       ...card.value,
       contact: { ...card.value.contact, ...updatedContact },
@@ -2639,6 +2697,14 @@ watch(invitationPendingRevocation, async invitation => {
                   </strong>
                   <span class="text-xs text-n-slate-11">
                     {{ timelineEventMeta(event) }}
+                  </span>
+                  <span
+                    v-for="change in timelineEventChanges(event)"
+                    :key="change.key"
+                    data-testid="kanban-opportunity-timeline-change"
+                    class="text-xs text-n-slate-11"
+                  >
+                    {{ change.transition }}
                   </span>
                   <div
                     v-for="automation in event.automations || []"

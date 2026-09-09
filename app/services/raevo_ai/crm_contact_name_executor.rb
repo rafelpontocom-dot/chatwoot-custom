@@ -26,9 +26,9 @@ class RaevoAi::CrmContactNameExecutor
   private
 
   def validate_contact!
-    return if @contact.account_id == @integration.account_id && @name.present?
+    return if @contact.account_id == @integration.account_id && credible_name?(@name)
 
-    raise InvalidContact, 'contact does not belong to the integration account or name is blank'
+    raise InvalidContact, 'contact does not belong to the integration account or name is not a credible identity'
   end
 
   def apply_claim!(claimed_command, policy)
@@ -40,7 +40,7 @@ class RaevoAi::CrmContactNameExecutor
 
   def apply_pending_command!(command, policy)
     @contact.reload
-    updated = policy[:overwrite] == 'always' || @contact.name.blank?
+    updated = policy[:overwrite] == 'always' || replaceable_current_name?
     @contact.update!(name: @name) if updated
 
     result = receipt(updated)
@@ -50,6 +50,22 @@ class RaevoAi::CrmContactNameExecutor
 
   def command_payload
     { 'contact_id' => @contact.id, 'name' => @name }
+  end
+
+  def replaceable_current_name?
+    @contact.name.blank? || !credible_name?(@contact.name)
+  end
+
+  def credible_name?(value)
+    normalized = I18n.transliterate(value.to_s).downcase.strip.gsub(/\s+/, ' ')
+    return false unless value.to_s.strip.length.between?(2, 80)
+    return false unless value.to_s.strip.match?(/\A[\p{L}\p{M}.'’ -]+\z/u)
+    return false if value.to_s.split.size > 6
+
+    %w[
+      oi ola hello hi hey sim nao ok obrigado obrigada cliente contato contacto
+      lead whatsapp usuario user desconhecido
+    ].exclude?(normalized) && ['sem nome', 'nao informado'].exclude?(normalized)
   end
 
   def receipt(updated)

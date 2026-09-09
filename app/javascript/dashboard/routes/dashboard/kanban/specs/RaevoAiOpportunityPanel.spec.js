@@ -89,4 +89,21 @@ describe('RaevoAiOpportunityPanel', () => {
     expect(wrapper.text()).toContain('Collect scheduling preference');
     expect(wrapper.text()).not.toContain('journey.pre_scheduling');
   });
+
+  it('translates the commercial profile instead of exposing its persisted code', () => {
+    const wrapper = mount(RaevoAiOpportunityPanel, {
+      props: {
+        fields: [
+          {
+            key: 'raevo_ai_service_interest',
+            label: 'Interesse ou serviço',
+          },
+        ],
+        values: { raevo_ai_service_interest: 'private' },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Private consultation');
+    expect(wrapper.text()).not.toContain('>Private<');
+  });
 });

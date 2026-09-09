@@ -1356,6 +1356,9 @@
         "EMPTY": "No changes yet.",
         "LOAD_ERROR": "Could not load the opportunity timeline.",
         "SYSTEM": "System",
+        "CUSTOM_FIELD_CHANGED": "{field} changed",
+        "CUSTOM_FIELDS_CHANGED": "{count} fields changed",
+        "CHANGE_TRANSITION": "{before} → {after}",
         "ENTERED_STAGE": "Entered {stage}",
         "CREATED_IN_STAGE": "Created in {stage}"
       },

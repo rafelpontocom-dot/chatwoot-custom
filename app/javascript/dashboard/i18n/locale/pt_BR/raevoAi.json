@@ -203,6 +203,8 @@
         "PAYMENT_STATUS": "Status do pagamento"
       },
       "VALUES": {
+        "PRIVATE": "Consulta particular",
+        "PSYMEET": "PsyMeet",
         "EM_ATENDIMENTO": "Em atendimento",
         "QUALIFICADO": "Qualificado",
         "PRE_AGENDADO": "Pré-agendado",

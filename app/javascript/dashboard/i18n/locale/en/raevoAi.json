@@ -207,6 +207,8 @@
         "PAYMENT_STATUS": "Payment status"
       },
       "VALUES": {
+        "PRIVATE": "Private consultation",
+        "PSYMEET": "PsyMeet",
         "EM_ATENDIMENTO": "In service",
         "QUALIFICADO": "Qualified",
         "PRE_AGENDADO": "Pre-scheduled",
