@@ -103,7 +103,7 @@ en:
       invalid_request: Invalid form request
       rate_limited: Too many attempts. Wait a minute and try again.
     kanban_import:
-      contact_not_found: contact not found; import the contacts first
+      contact_identity_required: the row has no e-mail or phone to identify the contact
       subject_missing: the row has no subject and the contact has no name
       inbox_missing: the account has no inbox to attach the opportunity to
       file_missing: attach a CSV file to import

@@ -1607,7 +1607,7 @@
     "WORKSPACE_LABEL": "Funil",
     "IMPORT": {
       "TITLE": "Importar oportunidades",
-      "DESCRIPTION": "Um CSV do CRM antigo. Os contatos precisam ser importados primeiro — uma linha cujo contato não esteja aqui volta no arquivo de erros.",
+      "DESCRIPTION": "Um CSV do CRM antigo. Uma linha cujo contato ainda não existe cria o contato, desde que traga e-mail ou telefone.",
       "FILE": "Arquivo CSV",
       "FALLBACK_STAGE": "Etapa para linhas sem correspondência",
       "FALLBACK_STAGE_HELP": "A coluna de etapa é usada quando corresponde; o resto entra aqui em vez de perder a linha.",
@@ -1619,6 +1619,7 @@
       "NATIVE_SUBJECT": "Assunto",
       "NATIVE_STAGE": "Etapa",
       "NATIVE_AMOUNT": "Valor",
+      "NATIVE_CONTACT_NAME": "Nome do contato",
       "NATIVE_EMAIL": "E-mail do contato",
       "NATIVE_PHONE": "Telefone do contato",
       "SUBMIT": "Importar",

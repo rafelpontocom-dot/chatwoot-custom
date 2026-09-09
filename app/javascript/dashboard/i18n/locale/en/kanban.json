@@ -1609,7 +1609,7 @@
     "WORKSPACE_LABEL": "Pipeline",
     "IMPORT": {
       "TITLE": "Import opportunities",
-      "DESCRIPTION": "A CSV from your old CRM. Contacts have to be imported first — a row whose contact is not here comes back in the error file.",
+      "DESCRIPTION": "A CSV from your old CRM. A row whose contact is not here yet creates the contact, as long as it brings an e-mail or a phone.",
       "FILE": "CSV file",
       "FALLBACK_STAGE": "Stage for rows without a match",
       "FALLBACK_STAGE_HELP": "A stage column is used when it matches; anything else lands here instead of losing the row.",
@@ -1621,6 +1621,7 @@
       "NATIVE_SUBJECT": "Subject",
       "NATIVE_STAGE": "Stage",
       "NATIVE_AMOUNT": "Amount",
+      "NATIVE_CONTACT_NAME": "Contact name",
       "NATIVE_EMAIL": "Contact e-mail",
       "NATIVE_PHONE": "Contact phone",
       "SUBMIT": "Import",

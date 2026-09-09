@@ -59,6 +59,12 @@ const COLUNAS_NATIVAS = [
   'valor',
   'amount',
   'valor_orcado',
+  'nome',
+  'name',
+  'contacto',
+  'contato',
+  'cliente',
+  'paciente',
 ];
 
 // O reconhecimento por nome só cobre quem já usa o nosso vocabulário. «Valor da
@@ -71,6 +77,7 @@ const camposOportunidade = computed(() => [
   { key: 'native:amount', label: t('KANBAN.IMPORT.NATIVE_AMOUNT') },
 ]);
 const camposContacto = computed(() => [
+  { key: 'native:contact_name', label: t('KANBAN.IMPORT.NATIVE_CONTACT_NAME') },
   { key: 'native:email', label: t('KANBAN.IMPORT.NATIVE_EMAIL') },
   { key: 'native:phone', label: t('KANBAN.IMPORT.NATIVE_PHONE') },
 ]);

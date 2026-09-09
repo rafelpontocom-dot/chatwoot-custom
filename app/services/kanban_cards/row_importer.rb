@@ -5,16 +5,23 @@
 # ficou por importar. Por isso cada linha ou entra inteira, ou sai com a razão
 # escrita — nunca meia.
 #
-# Contactos não se criam aqui. O Chatwoot já tem importação de contactos, e
-# duplicá-la seria arranjar maneira de ficar com a mesma pessoa duas vezes na
-# base. A linha liga-se a quem já lá está; não encontrando, é rejeitada a dizer
-# o que fazer.
+# A linha liga-se ao contacto que já lá está e, não o encontrando, cria-o. Isto
+# reverte a decisão anterior de nunca criar: exigir a importação de contactos
+# primeiro obrigava a duas migrações em ordem certa, e quem trazia oportunidade
+# de outro CRM via metade das linhas recusada sem caminho óbvio.
+#
+# O risco de reverter é ficar com a mesma pessoa duas vezes na base, e ele mora
+# todo no casamento: um telefone que chega «11999998888» não casa com o
+# «+5511999998888» que está guardado, e o importador criaria a duplicata. Por
+# isso o número é normalizado ANTES de procurar, não só antes de gravar.
 class KanbanCards::RowImporter
   SUBJECT_KEYS = %w[assunto subject titulo title oportunidade].freeze
   EMAIL_KEYS = %w[email e-mail].freeze
   PHONE_KEYS = %w[telefone phone telemovel celular].freeze
+  CONTACT_NAME_KEYS = %w[nome name contacto contato cliente paciente].freeze
   STAGE_KEYS = %w[etapa stage fase status].freeze
   AMOUNT_KEYS = %w[valor amount valor_orcado].freeze
+  DEFAULT_LOCALE = 'pt_BR'.freeze
 
   # Os campos nativos resolvem-se pelo nome da coluna quando ele calha coincidir
   # com o nosso vocabulário. Só que um CRM antigo raramente chama «valor» ao
@@ -32,7 +39,8 @@ class KanbanCards::RowImporter
   NATIVE_AMOUNT = 'native:amount'.freeze
   NATIVE_EMAIL = 'native:email'.freeze
   NATIVE_PHONE = 'native:phone'.freeze
-  NATIVE_KEYS = [NATIVE_SUBJECT, NATIVE_STAGE, NATIVE_AMOUNT, NATIVE_EMAIL, NATIVE_PHONE].freeze
+  NATIVE_CONTACT_NAME = 'native:contact_name'.freeze
+  NATIVE_KEYS = [NATIVE_SUBJECT, NATIVE_STAGE, NATIVE_AMOUNT, NATIVE_EMAIL, NATIVE_PHONE, NATIVE_CONTACT_NAME].freeze
 
   Result = Struct.new(:card, :error, keyword_init: true) do
     def ok?
@@ -49,21 +57,33 @@ class KanbanCards::RowImporter
   def import(row)
     return Result.new(error: I18n.t('errors.kanban_import.inbox_missing')) if inbox.blank?
 
-    contact = find_contact(row)
-    return Result.new(error: I18n.t('errors.kanban_import.contact_not_found')) if contact.blank?
+    contact = resolve_contact(row)
+    return Result.new(error: I18n.t('errors.kanban_import.contact_identity_required')) if contact.blank?
 
-    subject = native_value(row, NATIVE_SUBJECT, SUBJECT_KEYS).presence || contact.name
+    subject = subject_for(row, contact)
     return Result.new(error: I18n.t('errors.kanban_import.subject_missing')) if subject.blank?
 
-    card = build_card(row, contact, subject)
-    return Result.new(card: card) if card.save
-
-    Result.new(error: card.errors.full_messages.join(', '))
+    guardar(build_card(row, contact, subject))
+  rescue ActiveRecord::RecordInvalid => e
+    # Um telefone que não chega a E.164 nem depois de normalizado derruba só a
+    # linha, com a razão escrita, em vez de abortar a migração inteira.
+    Result.new(error: e.record.errors.full_messages.join(', '))
   end
 
   private
 
   attr_reader :board, :fallback_stage, :mapping
+
+  # O contacto acabado de criar já traz nome; o que existia pode não trazer.
+  def subject_for(row, contact)
+    native_value(row, NATIVE_SUBJECT, SUBJECT_KEYS).presence || contact.name
+  end
+
+  def guardar(card)
+    return Result.new(card: card) if card.save
+
+    Result.new(error: card.errors.full_messages.join(', '))
+  end
 
   # O cartão exige caixa de entrada. Usa-se a do funil, se ele restringe; senão
   # a da conta. Sem nenhuma, a linha é rejeitada em vez de rebentar a meio.
@@ -96,14 +116,46 @@ class KanbanCards::RowImporter
     board.kanban_stages.active.find { |stage| stage.name.casecmp?(nome.strip) } || fallback_stage
   end
 
-  def find_contact(row)
-    contactos = board.account.contacts
-    email = native_value(row, NATIVE_EMAIL, EMAIL_KEYS)
+  # Sem e-mail nem telefone não há a quem ligar a oportunidade, e criar um
+  # contacto anónimo só encheria a base — a linha é recusada a dizer porquê.
+  def resolve_contact(row)
+    identidade = contact_identity(row)
+    return if identidade[:email].blank? && identidade[:phone_number].blank?
+
+    find_contact(identidade) || create_contact(row, identidade)
+  end
+
+  def contact_identity(row)
     telefone = native_value(row, NATIVE_PHONE, PHONE_KEYS)
+    {
+      email: native_value(row, NATIVE_EMAIL, EMAIL_KEYS).presence,
+      phone_number: normalized_phone(telefone)
+    }
+  end
 
-    return contactos.from_email(email) if email.present? && contactos.from_email(email).present?
+  def normalized_phone(telefone)
+    return if telefone.blank?
 
-    contactos.find_by(phone_number: telefone) if telefone.present?
+    Forms::PhoneNumberNormalizer.new(phone_number: telefone, locale: locale).call
+  end
+
+  def locale
+    board.account.locale.presence || DEFAULT_LOCALE
+  end
+
+  def find_contact(identidade)
+    contactos = board.account.contacts
+    por_email = contactos.from_email(identidade[:email]) if identidade[:email].present?
+    return por_email if por_email.present?
+
+    contactos.find_by(phone_number: identidade[:phone_number]) if identidade[:phone_number].present?
+  end
+
+  def create_contact(row, identidade)
+    board.account.contacts.create!(
+      name: native_value(row, NATIVE_CONTACT_NAME, CONTACT_NAME_KEYS).presence || identidade[:email] || identidade[:phone_number],
+      **identidade.compact
+    )
   end
 
   # Vírgula decimal é o normal em pt: «1.250,50» tem de chegar como 125050.
