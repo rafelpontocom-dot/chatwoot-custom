@@ -119,6 +119,8 @@
       "INBOX": "Inbox",
       "MAPPING_HINT": "Match each question to a CRM field. A question left blank keeps the name Meta gave it.",
       "FIELD_NONE": "Do not use",
+      "FIELD_GROUP_CONTACT": "Contact and opportunity",
+      "FIELD_GROUP_BOARD": "Board fields",
       "FIELDS": {
         "NAME": "Name",
         "EMAIL": "Email",

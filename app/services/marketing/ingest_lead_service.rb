@@ -74,7 +74,8 @@ class Marketing::IngestLeadService
   def ingest
     contact = find_or_create_contact
     card = Marketing::CreateLeadOpportunityService.new(
-      account: account, contact: contact, destination: source.crm_destination, subject: opportunity_subject(contact)
+      account: account, contact: contact, destination: source.crm_destination,
+      subject: opportunity_subject(contact), answers: payload
     ).perform
 
     Marketing::RecordTouchpointService.new(

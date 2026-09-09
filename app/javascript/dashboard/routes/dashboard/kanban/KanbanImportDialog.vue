@@ -27,6 +27,7 @@ const ficheiro = ref(null);
 const colunas = ref([]);
 const amostra = ref([]);
 const mapping = ref({});
+const definicoes = ref([]);
 const fallbackStageId = ref('');
 const aEnviar = ref(false);
 const erro = ref('');
@@ -57,7 +58,22 @@ const COLUNAS_NATIVAS = [
   'status',
   'valor',
   'amount',
+  'valor_orcado',
 ];
+
+// O reconhecimento por nome só cobre quem já usa o nosso vocabulário. «Valor da
+// Proposta» não bate com nada e, sem um destino aqui, o dado entrava mudo — o
+// ecrã dizia que faltavam campos e faltavam mesmo, só que não eram os
+// personalizados. Estas chaves são lidas pelo RowImporter.
+const camposOportunidade = computed(() => [
+  { key: 'native:subject', label: t('KANBAN.IMPORT.NATIVE_SUBJECT') },
+  { key: 'native:stage', label: t('KANBAN.IMPORT.NATIVE_STAGE') },
+  { key: 'native:amount', label: t('KANBAN.IMPORT.NATIVE_AMOUNT') },
+]);
+const camposContacto = computed(() => [
+  { key: 'native:email', label: t('KANBAN.IMPORT.NATIVE_EMAIL') },
+  { key: 'native:phone', label: t('KANBAN.IMPORT.NATIVE_PHONE') },
+]);
 
 const colunasPorMapear = computed(() =>
   colunas.value.filter(
@@ -65,14 +81,31 @@ const colunasPorMapear = computed(() =>
   )
 );
 
+// As definições chegam por propriedade, mas o quadro carrega-se uma vez e a
+// configuração de campos vive noutra rota — quem cria um campo num separador e
+// volta a este encontra a lista de antes, sem perceber porquê. Pedir a
+// configuração ao abrir custa um pedido leve, sem etapas nem cartões, e evita
+// ter de recarregar a página para ver o campo que se acabou de criar.
+const recarregarDefinicoes = async () => {
+  try {
+    const { data } = await KanbanBoardsAPI.getBoardSettings(props.boardId);
+    definicoes.value = data?.custom_field_definitions || definicoes.value;
+  } catch {
+    // A lista que veio por propriedade continua a servir: uma configuração
+    // desactualizada emparelha pior, mas ainda importa.
+  }
+};
+
 const abrir = () => {
   ficheiro.value = null;
   colunas.value = [];
   mapping.value = {};
+  definicoes.value = props.fieldDefinitions;
   fallbackStageId.value = props.stages[0]?.id || '';
   erro.value = '';
   resultado.value = null;
   mostrar.value = true;
+  recarregarDefinicoes();
 };
 
 // A sonda morre com o diálogo: deixá-la a bater no servidor depois de fechado
@@ -290,13 +323,36 @@ defineExpose({ abrir });
               class="reset-base mb-0 h-9 w-full rounded-full border border-solid border-n-strong bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
             >
               <option value="">{{ t('KANBAN.IMPORT.IGNORE') }}</option>
-              <option
-                v-for="definition in fieldDefinitions"
-                :key="definition.key"
-                :value="definition.key"
+              <optgroup :label="t('KANBAN.IMPORT.GROUP_OPPORTUNITY')">
+                <option
+                  v-for="nativo in camposOportunidade"
+                  :key="nativo.key"
+                  :value="nativo.key"
+                >
+                  {{ nativo.label }}
+                </option>
+              </optgroup>
+              <optgroup :label="t('KANBAN.IMPORT.GROUP_CONTACT')">
+                <option
+                  v-for="nativo in camposContacto"
+                  :key="nativo.key"
+                  :value="nativo.key"
+                >
+                  {{ nativo.label }}
+                </option>
+              </optgroup>
+              <optgroup
+                v-if="definicoes.length"
+                :label="t('KANBAN.IMPORT.GROUP_CUSTOM')"
               >
-                {{ definition.label || definition.key }}
-              </option>
+                <option
+                  v-for="definition in definicoes"
+                  :key="definition.key"
+                  :value="definition.key"
+                >
+                  {{ definition.label || definition.key }}
+                </option>
+              </optgroup>
             </select>
           </div>
         </div>

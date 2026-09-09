@@ -122,6 +122,7 @@ Rails.application.routes.draw do
           namespace :raevo_ai do
             resource :integration, only: [:create], controller: 'integrations'
             resource :overview, only: [:show], controller: 'overview'
+            resource :pause, only: [:show, :update], controller: 'pause'
             resource :service_hours, only: [:show, :update], controller: 'service_hours'
             resource :assistant_draft, only: [:show, :update], controller: 'assistant_drafts' do
               post :simulate

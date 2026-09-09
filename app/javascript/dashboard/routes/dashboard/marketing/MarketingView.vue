@@ -189,7 +189,11 @@ const toggleForm = (form, active) =>
 
 // Um formulário só liga depois de dizer onde o lead cai. Sem editor, o botão
 // de ligar existia sem caminho possível e devolvia a validação crua do Rails.
+// Contato e assunto existem em qualquer quadro; o resto é o que esta clínica
+// definiu. Oferecer só a lista fixa deixava a pergunta "qual procedimento?" sem
+// destino nenhum — o dado chegava do Meta e morria na porta.
 const CRM_FIELDS = ['name', 'email', 'phone_number', 'subject'];
+const destinoCampos = ref([]);
 
 const formEmEdicao = ref(null);
 const destino = ref({ board_id: '', stage_id: '', inbox_id: '', mapping: {} });
@@ -230,12 +234,18 @@ const carregarEtapas = async (boardId, limpar) => {
   destinoStages.value = [];
   destinoInboxIds.value = [];
   destinoOrigens.value = { ...OPCOES_VAZIAS };
+  destinoCampos.value = [];
   if (!boardId) return;
 
   const { data } = await KanbanBoardsAPI.getSettings(boardId);
   destinoStages.value = data.stages || [];
   destinoInboxIds.value = data.allowed_inbox_ids || [];
   destinoOrigens.value = opcoesDoQuadro(data.custom_field_definitions);
+  // Origem e sub-origem já viram `select` próprio acima; repeti-las aqui daria
+  // dois caminhos para gravar o mesmo dado.
+  destinoCampos.value = (data.custom_field_definitions || []).filter(
+    definition => !Object.keys(OPCOES_VAZIAS).includes(definition.key)
+  );
 };
 
 const configurarForm = async form => {
@@ -816,15 +826,33 @@ onMounted(async () => {
                     <option value="">
                       {{ t('MARKETING.CONNECTIONS.FIELD_NONE') }}
                     </option>
-                    <option
-                      v-for="field in CRM_FIELDS"
-                      :key="field"
-                      :value="field"
+                    <optgroup
+                      :label="t('MARKETING.CONNECTIONS.FIELD_GROUP_CONTACT')"
                     >
-                      {{
-                        t(`MARKETING.CONNECTIONS.FIELDS.${field.toUpperCase()}`)
-                      }}
-                    </option>
+                      <option
+                        v-for="field in CRM_FIELDS"
+                        :key="field"
+                        :value="field"
+                      >
+                        {{
+                          t(
+                            `MARKETING.CONNECTIONS.FIELDS.${field.toUpperCase()}`
+                          )
+                        }}
+                      </option>
+                    </optgroup>
+                    <optgroup
+                      v-if="destinoCampos.length"
+                      :label="t('MARKETING.CONNECTIONS.FIELD_GROUP_BOARD')"
+                    >
+                      <option
+                        v-for="definition in destinoCampos"
+                        :key="definition.key"
+                        :value="definition.key"
+                      >
+                        {{ definition.label || definition.key }}
+                      </option>
+                    </optgroup>
                   </select>
                 </template>
               </RaevoField>

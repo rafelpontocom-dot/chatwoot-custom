@@ -119,6 +119,8 @@
       "INBOX": "Caixa de entrada",
       "MAPPING_HINT": "Ligue cada pergunta a um campo do CRM. Pergunta deixada em branco mantém o nome que o Meta lhe deu.",
       "FIELD_NONE": "Não usar",
+      "FIELD_GROUP_CONTACT": "Contato e oportunidade",
+      "FIELD_GROUP_BOARD": "Campos do quadro",
       "FIELDS": {
         "NAME": "Nome",
         "EMAIL": "E-mail",

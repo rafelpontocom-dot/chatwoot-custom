@@ -13,6 +13,21 @@
       "LOADING": "A carregar o resumo da Elis",
       "CLINIC_FALLBACK": "Clínica",
       "STATUS_UNKNOWN": "estado indisponível",
+      "PAUSE_ACTION": "Pausar Elis",
+      "RESUME_ACTION": "Retomar Elis",
+      "PAUSED_BY": "Pausada por {actor} às {time}",
+      "PAUSE_CONFIRM_TITLE": "Pausar a Elis?",
+      "PAUSE_CONFIRM_BODY": "Ela deixa de responder a novas mensagens agora. As mensagens continuam a chegar no WhatsApp e ficam à espera da sua equipa — nada se perde.",
+      "PAUSE_CONFIRM_ACCEPT": "Pausar",
+      "PAUSE_CONFIRM_CANCEL": "Continuar a responder",
+      "PAUSED_TOAST": "Elis pausada.",
+      "RESUMED_TOAST": "A Elis voltou a responder.",
+      "PAUSE_CONFLICT": "Isto foi alterado noutro sítio. Recarregue antes de tentar de novo.",
+      "PAUSE_ERROR": "Não foi possível falar com a Elis. Nada foi alterado.",
+      "PAUSED": {
+        "TITLE": "Elis pausada",
+        "DESCRIPTION": "Nenhuma conversa está a ser respondida enquanto o serviço está pausado."
+      },
       "ERROR": {
         "TITLE": "Não foi possível carregar o resumo",
         "DESCRIPTION": "A ligação à Elis está temporariamente indisponível. Nenhuma configuração foi alterada.",
