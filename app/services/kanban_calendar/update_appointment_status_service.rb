@@ -34,10 +34,17 @@ class KanbanCalendar::UpdateAppointmentStatusService
   private
 
   def validate_action!
+    validate_external_authority!
     invalid_action!('is not supported') unless @action.in?(ACTIONS)
     invalid_action!('requires a reason') if @action == 'cancel' && @cancellation_reason.blank?
     invalid_action!('uses an unsupported cancellation scope') if @action == 'cancel' && !@scope.in?(CANCELLATION_SCOPES)
     invalid_action!('cannot be changed after it is finalized') unless @appointment.active_for_conflict?
+  end
+
+  def validate_external_authority!
+    return unless @appointment.externally_authoritative?
+
+    invalid_action!('is managed by Feegow and cannot be changed in Raevo')
   end
 
   def invalid_action!(message)

@@ -48,6 +48,7 @@ class KanbanCalendar::RescheduleAppointmentService
   end
 
   def validate_reschedulable_appointment!
+    invalid_appointment!('is managed by Feegow and cannot be changed in Raevo') if @appointment.externally_authoritative?
     invalid_appointment!('cannot be rescheduled after it is finalized') unless @appointment.active_for_conflict?
     invalid_appointment!('must have a future start time') if @starts_at.blank?
   end

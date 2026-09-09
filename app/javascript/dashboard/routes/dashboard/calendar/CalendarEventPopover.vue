@@ -102,10 +102,14 @@ const timeLabel = computed(() => {
 const resourceLabel = computed(() =>
   (props.appointment?.resources || []).map(item => item.name).join(', ')
 );
+const isExternalReadOnly = computed(
+  () => props.appointment?.source?.read_only === true
+);
 
 const isActive = computed(
   () =>
     props.appointment &&
+    !isExternalReadOnly.value &&
     !['canceled', 'completed', 'no_show'].includes(props.appointment.status)
 );
 
@@ -198,6 +202,20 @@ const primaryAction = computed(() => {
       </div>
 
       <dl class="grid gap-2 text-sm">
+        <div
+          v-if="isExternalReadOnly"
+          class="flex items-start gap-3"
+          data-testid="calendar-event-source"
+        >
+          <i
+            class="i-lucide-external-link mt-0.5 size-4 shrink-0 text-n-slate-10"
+            aria-hidden="true"
+          />
+          <dt class="sr-only">{{ t('CALENDAR.DETAIL.SOURCE_LABEL') }}</dt>
+          <dd class="mb-0 text-n-slate-12">
+            {{ t('CALENDAR.DETAIL.EXTERNAL_SOURCE', { provider: 'Feegow' }) }}
+          </dd>
+        </div>
         <div class="flex items-start gap-3">
           <i
             class="i-lucide-stethoscope mt-0.5 size-4 shrink-0 text-n-slate-10"

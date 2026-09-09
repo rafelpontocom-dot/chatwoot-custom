@@ -129,6 +129,26 @@ describe('CalendarAppointmentDetailsDialog', () => {
     });
   });
 
+  it('shows a Feegow projection without local mutation actions', async () => {
+    CalendarAPI.getAppointment.mockResolvedValue({
+      data: { ...appointment, source: { provider: 'feegow', read_only: true } },
+    });
+    const wrapper = mountDialog();
+
+    await wrapper.vm.open(appointment.id);
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="calendar-details-source"]').text()).toBe(
+      'CALENDAR.DETAIL.EXTERNAL_SOURCE'
+    );
+    expect(
+      wrapper.findAll('button').map(button => button.text())
+    ).not.toContain('CALENDAR.DETAIL.RESCHEDULE');
+    expect(
+      wrapper.findAll('button').map(button => button.text())
+    ).not.toContain('CALENDAR.DETAIL.CANCEL');
+  });
+
   it('offers to reload after a concurrent update conflict', async () => {
     CalendarAPI.getAppointment.mockResolvedValue({
       data: { ...appointment, status: 'confirmed' },

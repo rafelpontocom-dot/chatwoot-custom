@@ -27,8 +27,10 @@ const resources = ref([]);
 const rescheduleAvailabilitySlots = ref([]);
 const isLoadingRescheduleSlots = ref(false);
 
-const isActive = computed(() =>
-  ['scheduled', 'confirmed', 'checked_in'].includes(appointment.value?.status)
+const isActive = computed(
+  () =>
+    appointment.value?.source?.read_only !== true &&
+    ['scheduled', 'confirmed', 'checked_in'].includes(appointment.value?.status)
 );
 const rescheduleSelectedDate = computed(
   () => rescheduleStartsAt.value.split('T')[0] || ''
@@ -266,6 +268,13 @@ defineExpose({ open, openForReschedule });
           <span class="text-sm text-n-slate-11">{{
             appointment.contact.name
           }}</span>
+          <span
+            v-if="appointment.source?.read_only"
+            class="text-xs text-n-slate-11"
+            data-testid="calendar-details-source"
+          >
+            {{ t('CALENDAR.DETAIL.EXTERNAL_SOURCE', { provider: 'Feegow' }) }}
+          </span>
           <NextButton
             v-if="appointment.kanban_card"
             type="button"

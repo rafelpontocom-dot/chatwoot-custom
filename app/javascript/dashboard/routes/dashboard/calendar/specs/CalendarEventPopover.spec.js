@@ -91,6 +91,27 @@ describe('CalendarEventPopover', () => {
     );
   });
 
+  it('identifica projeção Feegow e não oferece mutações locais', () => {
+    const wrapper = monta({
+      appointment: agendamento({
+        source: { provider: 'feegow', external_id: '630', read_only: true },
+      }),
+    });
+
+    expect(
+      wrapper.find('[data-testid="calendar-event-source"]').text()
+    ).toContain('CALENDAR.DETAIL.EXTERNAL_SOURCE');
+    expect(
+      wrapper.find('[data-testid="calendar-event-primary"]').exists()
+    ).toBe(false);
+    expect(wrapper.find('[data-testid="calendar-event-cancel"]').exists()).toBe(
+      false
+    );
+    expect(
+      wrapper.find('[data-testid="calendar-event-reschedule"]').exists()
+    ).toBe(false);
+  });
+
   it('manda cancelar e remarcar para o diálogo, onde os campos existem', async () => {
     const wrapper = monta();
 

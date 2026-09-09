@@ -198,4 +198,77 @@ RSpec.describe 'Raevo AI calendar commands API', type: :request do
     expect(response.parsed_body).to eq('error' => 'invalid_catalog')
     expect(KanbanCalendarAppointment.all).to be_empty
   end
+
+  it 'projects one confirmed Feegow appointment idempotently as read only' do
+    card
+    params = {
+      action_id: 'feegow-sync:630:v1',
+      conversation_id: conversation.display_id,
+      board_key: 'acquisition',
+      booking_key: 'initial_consultation',
+      provider: 'feegow',
+      external_id: '630',
+      starts_at: '2026-10-01T13:00:00-03:00',
+      ends_at: '2026-10-01T13:50:00-03:00',
+      status: 'scheduled',
+      source_status: 'Agendado',
+      source_updated_at: '2026-09-09T12:00:00Z',
+      source_hash: 'source-v1'
+    }
+
+    expect do
+      post '/public/api/v1/raevo_ai/calendar/external_appointments', params: params, headers: headers, as: :json
+    end.to change(KanbanCalendarAppointment, :count).by(1)
+
+    appointment = KanbanCalendarAppointment.last
+    expect(appointment).to have_attributes(
+      source_provider: 'feegow',
+      source_external_id: '630',
+      source_read_only: true,
+      source_status: 'Agendado',
+      source_hash: 'source-v1'
+    )
+    expect(appointment.kanban_calendar_appointment_events.last.metadata).to include(
+      'provider' => 'feegow', 'operation' => 'created', 'action_id' => 'feegow-sync:630:v1'
+    )
+
+    params[:action_id] = 'feegow-sync:630:v2'
+    params[:starts_at] = '2026-10-02T14:00:00-03:00'
+    params[:ends_at] = '2026-10-02T14:50:00-03:00'
+    params[:source_hash] = 'source-v2'
+    params[:source_updated_at] = '2026-09-09T13:00:00Z'
+
+    expect do
+      post '/public/api/v1/raevo_ai/calendar/external_appointments', params: params, headers: headers, as: :json
+    end.not_to change(KanbanCalendarAppointment, :count)
+
+    expect(response).to have_http_status(:ok), response.body
+    expect(appointment.reload).to have_attributes(
+      starts_at: Time.iso8601('2026-10-02T14:00:00-03:00'),
+      source_hash: 'source-v2'
+    )
+  end
+
+  it 'does not regress a Feegow projection with an older source event' do
+    card
+    current = {
+      action_id: 'feegow-sync:630:current', conversation_id: conversation.display_id,
+      board_key: 'acquisition', booking_key: 'initial_consultation', provider: 'feegow', external_id: '630',
+      starts_at: '2026-10-02T14:00:00-03:00', ends_at: '2026-10-02T14:50:00-03:00', status: 'scheduled',
+      source_updated_at: '2026-09-09T13:00:00Z', source_hash: 'source-current'
+    }
+    post '/public/api/v1/raevo_ai/calendar/external_appointments', params: current, headers: headers, as: :json
+
+    stale = current.merge(
+      action_id: 'feegow-sync:630:stale', starts_at: '2026-10-03T15:00:00-03:00',
+      ends_at: '2026-10-03T15:50:00-03:00', source_updated_at: '2026-09-09T12:30:00Z', source_hash: 'source-stale'
+    )
+    post '/public/api/v1/raevo_ai/calendar/external_appointments', params: stale, headers: headers, as: :json
+
+    appointment = KanbanCalendarAppointment.last
+    expect(response).to have_http_status(:ok), response.body
+    expect(appointment).to have_attributes(
+      starts_at: Time.iso8601('2026-10-02T14:00:00-03:00'), source_hash: 'source-current'
+    )
+  end
 end

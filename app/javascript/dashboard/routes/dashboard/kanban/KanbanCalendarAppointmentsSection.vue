@@ -176,6 +176,16 @@ onMounted(loadAppointments);
       >
         <strong class="text-sm text-n-slate-12">
           {{ appointment.procedure.name }}
+          <span
+            v-if="appointment.source?.read_only"
+            class="ms-1 rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-xs font-medium text-n-slate-11"
+          >
+            {{
+              appointment.source.provider === 'feegow'
+                ? t('CALENDAR.DETAIL.SOURCE_FEEGOW')
+                : appointment.source.provider
+            }}
+          </span>
         </strong>
         <span class="text-xs text-n-slate-11">
           {{ formatAppointmentTime(appointment) }}

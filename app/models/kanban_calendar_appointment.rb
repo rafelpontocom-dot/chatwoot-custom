@@ -63,6 +63,7 @@ class KanbanCalendarAppointment < ApplicationRecord
   has_many :kanban_calendar_appointment_events, dependent: :restrict_with_error
 
   validates :status, inclusion: { in: STATUSES }
+  validates :source_provider, :source_external_id, presence: true, if: :source_read_only?
   validates :starts_at, :ends_at, :timezone, presence: true
   validates :occurrence_number, :appointment_version, numericality: { only_integer: true, greater_than: 0 }
   validate :ends_after_starts
@@ -75,6 +76,10 @@ class KanbanCalendarAppointment < ApplicationRecord
 
   def active_for_conflict?
     status.in?(ACTIVE_STATUSES)
+  end
+
+  def externally_authoritative?
+    source_read_only? && source_provider.present? && source_external_id.present?
   end
 
   private

@@ -759,6 +759,7 @@ Rails.application.routes.draw do
           post 'crm/contact_name', to: 'crm_commands#contact_name'
           post 'calendar/availability', to: 'calendar_commands#availability'
           post 'calendar/bookings', to: 'calendar_commands#create'
+          post 'calendar/external_appointments', to: 'calendar_commands#project_external'
           post 'finance/charges', to: 'finance_commands#create'
         end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_07_220719) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1517,7 +1517,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_07_220719) do
     t.datetime "updated_at", null: false
     t.index ["kanban_calendar_appointment_id", "kanban_calendar_resource_id"], name: "index_calendar_appointment_resources_on_appointment_resource", unique: true
     t.index ["kanban_calendar_resource_id", "starts_at", "ends_at"], name: "index_calendar_appointment_resources_on_resource_and_range"
-    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY ((ARRAY['scheduled'::character varying, 'confirmed'::character varying, 'checked_in'::character varying])::text[])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
+    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY (ARRAY[('scheduled'::character varying)::text, ('confirmed'::character varying)::text, ('checked_in'::character varying)::text])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
   end
 
   create_table "kanban_calendar_appointment_series", force: :cascade do |t|
@@ -1565,6 +1565,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_07_220719) do
     t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "source_provider"
+    t.string "source_external_id"
+    t.boolean "source_read_only", default: false, null: false
+    t.string "source_status"
+    t.datetime "source_updated_at"
+    t.datetime "source_synced_at"
+    t.string "source_hash"
+    t.index ["account_id", "source_provider", "source_external_id"], name: "idx_calendar_appointments_on_external_source", unique: true, where: "((source_provider IS NOT NULL) AND (source_external_id IS NOT NULL))"
     t.index ["account_id", "starts_at", "status"], name: "index_calendar_appointments_on_account_starts_status"
     t.index ["account_id"], name: "index_kanban_calendar_appointments_on_account_id"
     t.index ["canceled_by_id"], name: "index_kanban_calendar_appointments_on_canceled_by_id"

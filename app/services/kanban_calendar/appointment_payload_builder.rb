@@ -28,7 +28,21 @@ class KanbanCalendar::AppointmentPayloadBuilder
       timezone: @appointment.timezone,
       occurrence_number: @appointment.occurrence_number,
       appointment_version: @appointment.appointment_version,
-      lock_version: @appointment.lock_version
+      lock_version: @appointment.lock_version,
+      source: source_payload
+    }
+  end
+
+  def source_payload
+    return { provider: 'raevo', read_only: false } unless @appointment.externally_authoritative?
+
+    {
+      provider: @appointment.source_provider,
+      external_id: @appointment.source_external_id,
+      status: @appointment.source_status,
+      read_only: true,
+      updated_at: @appointment.source_updated_at&.iso8601,
+      synced_at: @appointment.source_synced_at&.iso8601
     }
   end
 
