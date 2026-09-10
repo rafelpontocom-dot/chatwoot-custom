@@ -42,8 +42,16 @@ const mountView = () =>
     global: {
       stubs: {
         RaevoPageHeader: {
-          template: '<header><slot name="actions" /><slot /></header>',
+          template:
+            '<header><slot name="tabs" /><slot name="actions" /><slot /></header>',
         },
+        TabBar: {
+          props: ['tabs'],
+          emits: ['tabChanged'],
+          template:
+            '<nav><button v-for="tab in tabs" :key="tab.key" type="button" :data-testid="\'tab-\' + tab.key" @click="$emit(\'tabChanged\', tab)">{{ tab.label }}</button></nav>',
+        },
+        RaevoAiKnowledgePanel: true,
         RaevoField: {
           template:
             '<div><slot control-class="control" field-id="ai-tab-board-ids" /></div>',
@@ -58,6 +66,11 @@ const mountView = () =>
       },
     },
   });
+
+// A configuração da Elis vive agora atrás de uma aba. Sem a abrir, o que estes
+// testes procuram simplesmente não está montado.
+const abrirAba = (wrapper, chave) =>
+  wrapper.find(`[data-testid="tab-${chave}"]`).trigger('click');
 
 describe('RaevoAiView', () => {
   beforeEach(() => {
@@ -74,8 +87,9 @@ describe('RaevoAiView', () => {
     KanbanBoardsAPI.getBoards.mockResolvedValue({ data: [] });
   });
 
-  it('presents the three supported Elis service packages', () => {
+  it('presents the three supported Elis service packages', async () => {
     const wrapper = mountView();
+    await abrirAba(wrapper, 'assistant');
 
     expect(wrapper.findAll('[data-testid="ai-service-package"]')).toHaveLength(
       3
@@ -387,6 +401,7 @@ describe('RaevoAiView', () => {
 
     const wrapper = mountView();
     await flushPromises();
+    await abrirAba(wrapper, 'assistant');
 
     expect(
       wrapper.find('[data-testid="ai-opportunity-tab-configuration"]').exists()
@@ -427,6 +442,7 @@ describe('RaevoAiView', () => {
 
     const wrapper = mountView();
     await flushPromises();
+    await abrirAba(wrapper, 'assistant');
 
     await wrapper
       .get('[data-testid="ai-assistant-draft-identity"] textarea')
@@ -455,6 +471,7 @@ describe('RaevoAiView', () => {
 
     const wrapper = mountView();
     await flushPromises();
+    await abrirAba(wrapper, 'assistant');
     await wrapper
       .get('[data-testid="ai-assistant-draft-save"]')
       .trigger('click');
@@ -473,6 +490,7 @@ describe('RaevoAiView', () => {
 
     const wrapper = mountView();
     await flushPromises();
+    await abrirAba(wrapper, 'assistant');
 
     expect(wrapper.get('[data-testid="ai-assistant-draft"]').text()).toContain(
       '7'
@@ -507,6 +525,7 @@ describe('RaevoAiView', () => {
 
     const wrapper = mountView();
     await flushPromises();
+    await abrirAba(wrapper, 'assistant');
     await wrapper
       .get('[data-testid="ai-assistant-simulation-first_contact"]')
       .trigger('click');
@@ -566,6 +585,7 @@ describe('RaevoAiView', () => {
 
     const wrapper = mountView();
     await flushPromises();
+    await abrirAba(wrapper, 'assistant');
     await wrapper
       .get('[data-testid="ai-assistant-simulation-first_contact"]')
       .trigger('click');
@@ -602,5 +622,36 @@ describe('RaevoAiView', () => {
       expected_active_version_id: '00000000-0000-0000-0000-000000000008',
       review_id: '00000000-0000-0000-0000-000000000013',
     });
+  });
+
+  it('opens on the panel, which is what the clinic comes to see', async () => {
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="ai-knowledge"]').exists()).toBe(false);
+  });
+
+  it('keeps the configuration out of the way until asked for', async () => {
+    // Antes das abas vivia tudo numa coluna só, e o que a clínica vinha ver
+    // ficava abaixo do que ela configura uma vez e nunca mais.
+    const wrapper = mountView();
+    await flushPromises();
+    await abrirAba(wrapper, 'assistant');
+
+    expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="ai-assistant-draft"]').exists()).toBe(
+      true
+    );
+  });
+
+  it('mounts the knowledge panel only on its own tab', async () => {
+    const wrapper = mountView();
+    await flushPromises();
+    await abrirAba(wrapper, 'knowledge');
+
+    expect(
+      wrapper.findComponent({ name: 'RaevoAiKnowledgePanel' }).exists()
+    ).toBe(true);
   });
 });

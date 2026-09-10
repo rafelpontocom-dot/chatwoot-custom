@@ -4,12 +4,32 @@ import { useI18n } from 'vue-i18n';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
+import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
+import RaevoAiKnowledgePanel from './RaevoAiKnowledgePanel.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoAiAPI from 'dashboard/api/raevoAi';
 import RaevoAiServiceHoursSettings from './RaevoAiServiceHoursSettings.vue';
 
 const { t } = useI18n();
+
+// Três abas, e a separação não é arbitrária: «Painel» é o que a clínica vem
+// ver, «A Elis» é o que ela configura, «Conhecimento» é o que a Elis sabe
+// responder. Antes disto vivia tudo numa coluna só e o que importava ficava
+// abaixo da dobra.
+const abaAtiva = ref('panel');
+const abas = computed(() => [
+  { key: 'panel', label: t('RAEVO_AI.TABS.PANEL') },
+  { key: 'assistant', label: t('RAEVO_AI.TABS.ASSISTANT') },
+  { key: 'knowledge', label: t('RAEVO_AI.TABS.KNOWLEDGE') },
+]);
+const indiceDaAba = computed(() =>
+  abas.value.findIndex(aba => aba.key === abaAtiva.value)
+);
+const mudarAba = aba => {
+  abaAtiva.value = aba.key;
+};
+
 const overview = ref(null);
 const isLoading = ref(true);
 const hasError = ref(false);
@@ -503,7 +523,16 @@ const servicePackages = computed(() => [
         :eyebrow="t('RAEVO_AI.EYEBROW')"
         :title="t('RAEVO_AI.TITLE')"
         :subtitle="t('RAEVO_AI.SUBTITLE')"
-      />
+      >
+        <template #tabs>
+          <TabBar
+            data-testid="ai-tabs"
+            :tabs="abas"
+            :initial-active-tab="indiceDaAba"
+            @tab-changed="mudarAba"
+          />
+        </template>
+      </RaevoPageHeader>
 
       <section
         class="flex items-start gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-4"
@@ -524,653 +553,674 @@ const servicePackages = computed(() => [
         </div>
       </section>
 
-      <section class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5">
-        <div>
-          <p class="text-micro font-semibold uppercase text-n-slate-10">
-            {{ t('RAEVO_AI.OVERVIEW.EYEBROW') }}
-          </p>
-          <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-            {{ t('RAEVO_AI.OVERVIEW.TITLE') }}
-          </h2>
-        </div>
-
-        <div
-          v-if="isLoading"
-          class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-          role="status"
-          :aria-label="t('RAEVO_AI.OVERVIEW.LOADING')"
-        >
-          <div
-            v-for="index in 3"
-            :key="index"
-            class="h-20 animate-pulse rounded-xl bg-n-alpha-2"
-          />
-        </div>
-
-        <div
-          v-else-if="isPreparing"
-          data-testid="ai-overview-setup"
-          class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
-          role="status"
-        >
-          <span
-            class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
-          >
-            <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
-          </span>
-          <div>
-            <p class="text-sm font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.OVERVIEW.SETUP.TITLE') }}
-            </p>
-            <p class="mt-1 text-sm text-n-slate-11">
-              {{ t('RAEVO_AI.OVERVIEW.SETUP.DESCRIPTION') }}
-            </p>
-          </div>
-        </div>
-
-        <div
-          v-else-if="isPaused"
-          data-testid="ai-overview-paused"
-          class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
-          role="status"
-        >
-          <span
-            class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
-          >
-            <i class="i-lucide-circle-pause size-4" aria-hidden="true" />
-          </span>
-          <div>
-            <p class="text-sm font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.OVERVIEW.PAUSED.TITLE') }}
-            </p>
-            <p class="mt-1 text-sm text-n-slate-11">
-              {{ t('RAEVO_AI.OVERVIEW.PAUSED.DESCRIPTION') }}
-            </p>
-          </div>
-        </div>
-
-        <div
-          v-else-if="hasError"
-          data-testid="ai-overview-error"
-          class="mt-4 flex flex-col items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4 sm:flex-row sm:items-center sm:justify-between"
-          role="alert"
+      <template v-if="abaAtiva === 'panel'">
+        <section
+          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
         >
           <div>
-            <p class="text-sm font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.OVERVIEW.ERROR.TITLE') }}
-            </p>
-            <p class="mt-1 text-sm text-n-slate-11">
-              {{ t('RAEVO_AI.OVERVIEW.ERROR.DESCRIPTION') }}
-            </p>
-          </div>
-          <button
-            type="button"
-            data-testid="ai-overview-retry"
-            class="rounded-full border border-n-strong bg-n-solid-1 px-3 py-2 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-            @click="loadOverview"
-          >
-            {{ t('RAEVO_AI.OVERVIEW.ERROR.RETRY') }}
-          </button>
-        </div>
-
-        <div v-else data-testid="ai-overview" class="mt-4">
-          <div class="flex flex-wrap items-center gap-2">
-            <p class="text-sm font-semibold text-n-slate-12">
-              {{
-                overview?.clinic_name || t('RAEVO_AI.OVERVIEW.CLINIC_FALLBACK')
-              }}
-            </p>
-            <span
-              class="rounded-full bg-n-teal-3 px-2 py-0.5 text-xs font-medium text-n-teal-11"
-            >
-              {{ overview?.status || t('RAEVO_AI.OVERVIEW.STATUS_UNKNOWN') }}
-            </span>
-            <span v-if="overview?.package" class="text-xs text-n-slate-10">
-              {{ overview.package }}
-            </span>
-          </div>
-
-          <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div
-              v-for="metric in overviewMetrics"
-              :key="metric.key"
-              class="rounded-xl border border-n-weak bg-n-background p-3"
-            >
-              <dt class="text-xs font-medium text-n-slate-10">
-                {{ metric.label }}
-              </dt>
-              <dd class="mt-1 text-xl font-semibold text-n-slate-12">
-                {{ displayValue(metric.value) }}
-              </dd>
-            </div>
-          </dl>
-
-          <section
-            v-if="assistantProfileFields.length"
-            data-testid="ai-assistant-profile"
-            class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
-          >
             <p class="text-micro font-semibold uppercase text-n-slate-10">
-              {{ t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.EYEBROW') }}
+              {{ t('RAEVO_AI.OVERVIEW.EYEBROW') }}
             </p>
-            <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.TITLE') }}
-            </h3>
-            <dl class="mt-3 grid gap-3 lg:grid-cols-3">
-              <div v-for="field in assistantProfileFields" :key="field.key">
+            <h2 class="mt-1 text-base font-semibold text-n-slate-12">
+              {{ t('RAEVO_AI.OVERVIEW.TITLE') }}
+            </h2>
+          </div>
+
+          <div
+            v-if="isLoading"
+            class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            role="status"
+            :aria-label="t('RAEVO_AI.OVERVIEW.LOADING')"
+          >
+            <div
+              v-for="index in 3"
+              :key="index"
+              class="h-20 animate-pulse rounded-xl bg-n-alpha-2"
+            />
+          </div>
+
+          <div
+            v-else-if="isPreparing"
+            data-testid="ai-overview-setup"
+            class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+            role="status"
+          >
+            <span
+              class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+            >
+              <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
+            </span>
+            <div>
+              <p class="text-sm font-semibold text-n-slate-12">
+                {{ t('RAEVO_AI.OVERVIEW.SETUP.TITLE') }}
+              </p>
+              <p class="mt-1 text-sm text-n-slate-11">
+                {{ t('RAEVO_AI.OVERVIEW.SETUP.DESCRIPTION') }}
+              </p>
+            </div>
+          </div>
+
+          <div
+            v-else-if="isPaused"
+            data-testid="ai-overview-paused"
+            class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+            role="status"
+          >
+            <span
+              class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
+            >
+              <i class="i-lucide-circle-pause size-4" aria-hidden="true" />
+            </span>
+            <div>
+              <p class="text-sm font-semibold text-n-slate-12">
+                {{ t('RAEVO_AI.OVERVIEW.PAUSED.TITLE') }}
+              </p>
+              <p class="mt-1 text-sm text-n-slate-11">
+                {{ t('RAEVO_AI.OVERVIEW.PAUSED.DESCRIPTION') }}
+              </p>
+            </div>
+          </div>
+
+          <div
+            v-else-if="hasError"
+            data-testid="ai-overview-error"
+            class="mt-4 flex flex-col items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4 sm:flex-row sm:items-center sm:justify-between"
+            role="alert"
+          >
+            <div>
+              <p class="text-sm font-semibold text-n-slate-12">
+                {{ t('RAEVO_AI.OVERVIEW.ERROR.TITLE') }}
+              </p>
+              <p class="mt-1 text-sm text-n-slate-11">
+                {{ t('RAEVO_AI.OVERVIEW.ERROR.DESCRIPTION') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              data-testid="ai-overview-retry"
+              class="rounded-full border border-n-strong bg-n-solid-1 px-3 py-2 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
+              @click="loadOverview"
+            >
+              {{ t('RAEVO_AI.OVERVIEW.ERROR.RETRY') }}
+            </button>
+          </div>
+
+          <div v-else data-testid="ai-overview" class="mt-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="text-sm font-semibold text-n-slate-12">
+                {{
+                  overview?.clinic_name ||
+                  t('RAEVO_AI.OVERVIEW.CLINIC_FALLBACK')
+                }}
+              </p>
+              <span
+                class="rounded-full bg-n-teal-3 px-2 py-0.5 text-xs font-medium text-n-teal-11"
+              >
+                {{ overview?.status || t('RAEVO_AI.OVERVIEW.STATUS_UNKNOWN') }}
+              </span>
+              <span v-if="overview?.package" class="text-xs text-n-slate-10">
+                {{ overview.package }}
+              </span>
+            </div>
+
+            <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                v-for="metric in overviewMetrics"
+                :key="metric.key"
+                class="rounded-xl border border-n-weak bg-n-background p-3"
+              >
                 <dt class="text-xs font-medium text-n-slate-10">
-                  {{ field.label }}
+                  {{ metric.label }}
                 </dt>
-                <dd class="mt-1 text-sm leading-6 text-n-slate-12">
-                  {{ field.value }}
+                <dd class="mt-1 text-xl font-semibold text-n-slate-12">
+                  {{ displayValue(metric.value) }}
                 </dd>
               </div>
             </dl>
-          </section>
 
-          <section
-            v-if="activeCapabilities.length"
-            data-testid="ai-capabilities"
-            class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
-          >
-            <p class="text-micro font-semibold uppercase text-n-slate-10">
-              {{ t('RAEVO_AI.CAPABILITIES.EYEBROW') }}
-            </p>
-            <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.CAPABILITIES.TITLE') }}
-            </h3>
-            <p class="mt-1 text-sm leading-6 text-n-slate-11">
-              {{ t('RAEVO_AI.CAPABILITIES.DESCRIPTION') }}
-            </p>
-            <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <li
-                v-for="capability in activeCapabilities"
-                :key="capability.id"
-                class="rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2"
-              >
-                <p class="text-sm font-medium text-n-slate-12">
-                  {{ capability.label }}
-                </p>
-                <p
-                  v-if="capability.provider"
-                  class="mt-0.5 text-xs text-n-slate-10"
+            <section
+              v-if="assistantProfileFields.length"
+              data-testid="ai-assistant-profile"
+              class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
+            >
+              <p class="text-micro font-semibold uppercase text-n-slate-10">
+                {{ t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.EYEBROW') }}
+              </p>
+              <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                {{ t('RAEVO_AI.OVERVIEW.ASSISTANT_PROFILE.TITLE') }}
+              </h3>
+              <dl class="mt-3 grid gap-3 lg:grid-cols-3">
+                <div v-for="field in assistantProfileFields" :key="field.key">
+                  <dt class="text-xs font-medium text-n-slate-10">
+                    {{ field.label }}
+                  </dt>
+                  <dd class="mt-1 text-sm leading-6 text-n-slate-12">
+                    {{ field.value }}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section
+              v-if="activeCapabilities.length"
+              data-testid="ai-capabilities"
+              class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
+            >
+              <p class="text-micro font-semibold uppercase text-n-slate-10">
+                {{ t('RAEVO_AI.CAPABILITIES.EYEBROW') }}
+              </p>
+              <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                {{ t('RAEVO_AI.CAPABILITIES.TITLE') }}
+              </h3>
+              <p class="mt-1 text-sm leading-6 text-n-slate-11">
+                {{ t('RAEVO_AI.CAPABILITIES.DESCRIPTION') }}
+              </p>
+              <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <li
+                  v-for="capability in activeCapabilities"
+                  :key="capability.id"
+                  class="rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2"
                 >
-                  {{ capability.provider }}
-                </p>
-              </li>
-            </ul>
-          </section>
+                  <p class="text-sm font-medium text-n-slate-12">
+                    {{ capability.label }}
+                  </p>
+                  <p
+                    v-if="capability.provider"
+                    class="mt-0.5 text-xs text-n-slate-10"
+                  >
+                    {{ capability.provider }}
+                  </p>
+                </li>
+              </ul>
+            </section>
 
-          <section
-            v-if="operationalQualityItems.length"
-            data-testid="ai-operational-quality"
+            <section
+              v-if="operationalQualityItems.length"
+              data-testid="ai-operational-quality"
+              class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
+            >
+              <div class="flex items-start gap-3">
+                <span
+                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
+                >
+                  <i class="i-lucide-search-check size-4" aria-hidden="true" />
+                </span>
+                <div>
+                  <p class="text-micro font-semibold uppercase text-n-slate-10">
+                    {{ t('RAEVO_AI.QUALITY.EYEBROW') }}
+                  </p>
+                  <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                    {{ t('RAEVO_AI.QUALITY.TITLE') }}
+                  </h3>
+                  <p class="mt-1 text-sm leading-6 text-n-slate-11">
+                    {{ t('RAEVO_AI.QUALITY.DESCRIPTION') }}
+                  </p>
+                  <p
+                    v-if="operationalQualityAttention"
+                    data-testid="ai-operational-quality-attention"
+                    class="mt-3 flex items-start gap-2 rounded-lg bg-n-slate-3 px-3 py-2 text-sm text-n-slate-11"
+                    role="status"
+                  >
+                    <i
+                      class="i-lucide-circle-alert mt-0.5 size-4 shrink-0 text-n-slate-12"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      {{ operationalQualityAttention.label }}
+                      <span v-if="operationalQualityAttention.reasons.length">
+                        {{ t('RAEVO_AI.QUALITY.ATTENTION_SEPARATOR') }}
+                        {{
+                          operationalQualityAttention.reasons.join(
+                            ` ${t('RAEVO_AI.QUALITY.ATTENTION_SEPARATOR')} `
+                          )
+                        }}
+                      </span>
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <dl class="mt-3 grid gap-2 sm:grid-cols-3">
+                <div
+                  v-for="item in operationalQualityItems"
+                  :key="item.key"
+                  class="rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2"
+                >
+                  <dt class="text-xs text-n-slate-10">{{ item.label }}</dt>
+                  <dd class="mt-1 text-xl font-semibold text-n-slate-12">
+                    {{ item.value }}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+        </section>
+      </template>
+
+      <template v-if="abaAtiva === 'assistant'">
+        <section
+          v-if="isAdmin"
+          data-testid="ai-assistant-simulation"
+          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
+        >
+          <div class="max-w-3xl">
+            <p class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.EYEBROW') }}
+            </p>
+            <h2 class="mt-1 text-base font-semibold text-n-slate-12">
+              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.TITLE') }}
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-n-slate-11">
+              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.DESCRIPTION') }}
+            </p>
+          </div>
+
+          <div
+            class="mt-4 flex flex-wrap gap-2"
+            role="group"
+            :aria-label="t('RAEVO_AI.ASSISTANT_SIMULATION.FIXTURES_LABEL')"
+          >
+            <NextButton
+              v-for="fixture in assistantDraftSimulationFixtures"
+              :key="fixture.id"
+              type="button"
+              :data-testid="`ai-assistant-simulation-${fixture.id}`"
+              :label="fixture.label"
+              :disabled="isSimulatingAssistantDraft || !assistantDraft?.id"
+              :is-loading="isSimulatingAssistantDraft"
+              @click="runAssistantDraftSimulation(fixture.id)"
+            />
+          </div>
+
+          <p
+            v-if="
+              !assistantDraft?.id ||
+              assistantDraftSimulationError === 'draft_required'
+            "
+            class="mt-3 flex items-center gap-2 text-sm text-n-amber-11"
+            role="status"
+          >
+            <i class="i-lucide-save size-4" aria-hidden="true" />
+            {{ t('RAEVO_AI.ASSISTANT_SIMULATION.DRAFT_REQUIRED') }}
+          </p>
+          <p
+            v-else-if="assistantDraftSimulationError === 'unavailable'"
+            class="mt-3 flex items-center gap-2 text-sm text-n-ruby-11"
+            role="alert"
+          >
+            <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
+            {{ t('RAEVO_AI.ASSISTANT_SIMULATION.ERROR') }}
+          </p>
+
+          <div
+            v-if="assistantDraftSimulation?.simulation"
+            data-testid="ai-assistant-simulation-result"
             class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
           >
             <div class="flex items-start gap-3">
               <span
-                class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
+                class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
               >
-                <i class="i-lucide-search-check size-4" aria-hidden="true" />
+                <i class="i-lucide-flask-conical size-4" aria-hidden="true" />
               </span>
-              <div>
-                <p class="text-micro font-semibold uppercase text-n-slate-10">
-                  {{ t('RAEVO_AI.QUALITY.EYEBROW') }}
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-n-slate-12">
+                  {{ t('RAEVO_AI.ASSISTANT_SIMULATION.RESULT_TITLE') }}
                 </p>
-                <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-                  {{ t('RAEVO_AI.QUALITY.TITLE') }}
-                </h3>
-                <p class="mt-1 text-sm leading-6 text-n-slate-11">
-                  {{ t('RAEVO_AI.QUALITY.DESCRIPTION') }}
-                </p>
-                <p
-                  v-if="operationalQualityAttention"
-                  data-testid="ai-operational-quality-attention"
-                  class="mt-3 flex items-start gap-2 rounded-lg bg-n-slate-3 px-3 py-2 text-sm text-n-slate-11"
-                  role="status"
-                >
-                  <i
-                    class="i-lucide-circle-alert mt-0.5 size-4 shrink-0 text-n-slate-12"
-                    aria-hidden="true"
-                  />
-                  <span>
-                    {{ operationalQualityAttention.label }}
-                    <span v-if="operationalQualityAttention.reasons.length">
-                      {{ t('RAEVO_AI.QUALITY.ATTENTION_SEPARATOR') }}
-                      {{
-                        operationalQualityAttention.reasons.join(
-                          ` ${t('RAEVO_AI.QUALITY.ATTENTION_SEPARATOR')} `
-                        )
-                      }}
-                    </span>
-                  </span>
+                <p class="mt-1 text-sm text-n-slate-11">
+                  {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_ONLY') }}
                 </p>
               </div>
             </div>
-            <dl class="mt-3 grid gap-2 sm:grid-cols-3">
-              <div
-                v-for="item in operationalQualityItems"
-                :key="item.key"
-                class="rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2"
+            <div class="mt-3 grid gap-2">
+              <p
+                v-for="(bubble, index) in assistantDraftSimulation.simulation
+                  .response_bubbles"
+                :key="`${index}-${bubble}`"
+                class="rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2 text-sm leading-6 text-n-slate-12"
               >
-                <dt class="text-xs text-n-slate-10">{{ item.label }}</dt>
-                <dd class="mt-1 text-xl font-semibold text-n-slate-12">
-                  {{ item.value }}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        </div>
-      </section>
+                {{ bubble }}
+              </p>
+            </div>
+            <p class="mt-3 text-xs text-n-slate-10">
+              {{
+                t('RAEVO_AI.ASSISTANT_SIMULATION.VERDICT', {
+                  verdict:
+                    assistantDraftSimulation.evaluation?.verdict || 'blocked',
+                })
+              }}
+            </p>
 
-      <section
-        v-if="isAdmin"
-        data-testid="ai-assistant-simulation"
-        class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
-      >
-        <div class="max-w-3xl">
-          <p class="text-micro font-semibold uppercase text-n-slate-10">
-            {{ t('RAEVO_AI.ASSISTANT_SIMULATION.EYEBROW') }}
-          </p>
-          <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-            {{ t('RAEVO_AI.ASSISTANT_SIMULATION.TITLE') }}
-          </h2>
-          <p class="mt-1 text-sm leading-6 text-n-slate-11">
-            {{ t('RAEVO_AI.ASSISTANT_SIMULATION.DESCRIPTION') }}
-          </p>
-        </div>
-
-        <div
-          class="mt-4 flex flex-wrap gap-2"
-          role="group"
-          :aria-label="t('RAEVO_AI.ASSISTANT_SIMULATION.FIXTURES_LABEL')"
-        >
-          <NextButton
-            v-for="fixture in assistantDraftSimulationFixtures"
-            :key="fixture.id"
-            type="button"
-            :data-testid="`ai-assistant-simulation-${fixture.id}`"
-            :label="fixture.label"
-            :disabled="isSimulatingAssistantDraft || !assistantDraft?.id"
-            :is-loading="isSimulatingAssistantDraft"
-            @click="runAssistantDraftSimulation(fixture.id)"
-          />
-        </div>
-
-        <p
-          v-if="
-            !assistantDraft?.id ||
-            assistantDraftSimulationError === 'draft_required'
-          "
-          class="mt-3 flex items-center gap-2 text-sm text-n-amber-11"
-          role="status"
-        >
-          <i class="i-lucide-save size-4" aria-hidden="true" />
-          {{ t('RAEVO_AI.ASSISTANT_SIMULATION.DRAFT_REQUIRED') }}
-        </p>
-        <p
-          v-else-if="assistantDraftSimulationError === 'unavailable'"
-          class="mt-3 flex items-center gap-2 text-sm text-n-ruby-11"
-          role="alert"
-        >
-          <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
-          {{ t('RAEVO_AI.ASSISTANT_SIMULATION.ERROR') }}
-        </p>
-
-        <div
-          v-if="assistantDraftSimulation?.simulation"
-          data-testid="ai-assistant-simulation-result"
-          class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
-        >
-          <div class="flex items-start gap-3">
-            <span
-              class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+            <div
+              v-if="canReviewAssistantDraft"
+              class="mt-4 border-t border-n-weak pt-4"
             >
-              <i class="i-lucide-flask-conical size-4" aria-hidden="true" />
-            </span>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-n-slate-12">
-                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.RESULT_TITLE') }}
+              <p class="text-sm font-medium text-n-slate-12">
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_TITLE') }}
               </p>
               <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_ONLY') }}
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_DESCRIPTION') }}
+              </p>
+              <NextButton
+                v-if="!assistantDraftReview?.id"
+                type="button"
+                data-testid="ai-assistant-draft-review"
+                class="mt-3"
+                :label="t('RAEVO_AI.ASSISTANT_SIMULATION.APPROVE_REVIEW')"
+                :is-loading="isReviewingAssistantDraft"
+                :disabled="isReviewingAssistantDraft"
+                @click="reviewAssistantDraft"
+              />
+              <p
+                v-else
+                class="mt-3 flex items-center gap-2 text-sm text-n-teal-11"
+                role="status"
+              >
+                <i class="i-lucide-circle-check size-4" aria-hidden="true" />
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_APPROVED') }}
+              </p>
+              <p
+                v-if="assistantDraftReviewError"
+                class="mt-3 flex items-center gap-2 text-sm text-n-ruby-11"
+                role="alert"
+              >
+                <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_ERROR') }}
+              </p>
+            </div>
+
+            <div
+              v-if="canPublishAssistantDraft"
+              class="mt-4 border-t border-n-weak pt-4"
+            >
+              <p class="text-sm font-medium text-n-slate-12">
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_TITLE') }}
+              </p>
+              <p class="mt-1 text-sm text-n-slate-11">
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_DESCRIPTION') }}
+              </p>
+              <label
+                class="mt-3 flex items-start gap-2 text-sm text-n-slate-11"
+              >
+                <input
+                  v-model="assistantDraftPublicationConfirmed"
+                  data-testid="ai-assistant-draft-publication-confirmation"
+                  type="checkbox"
+                  :disabled="
+                    isPublishingAssistantDraft || assistantDraftPublication?.id
+                  "
+                  class="mt-0.5 size-4 rounded border-n-strong text-n-brand focus:ring-n-brand"
+                />
+                <span>{{
+                  t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_CONFIRMATION')
+                }}</span>
+              </label>
+              <NextButton
+                v-if="!assistantDraftPublication?.id"
+                type="button"
+                data-testid="ai-assistant-draft-publish"
+                class="mt-3"
+                :label="t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLISH')"
+                :is-loading="isPublishingAssistantDraft"
+                :disabled="
+                  isPublishingAssistantDraft ||
+                  !assistantDraftPublicationConfirmed
+                "
+                @click="publishAssistantDraft"
+              />
+              <p
+                v-else
+                class="mt-3 flex items-center gap-2 text-sm text-n-teal-11"
+                role="status"
+              >
+                <i class="i-lucide-circle-check size-4" aria-hidden="true" />
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_SUCCEEDED') }}
+              </p>
+              <p
+                v-if="assistantDraftPublicationError"
+                class="mt-3 flex items-center gap-2 text-sm text-n-ruby-11"
+                role="alert"
+              >
+                <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
+                {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_ERROR') }}
               </p>
             </div>
           </div>
-          <div class="mt-3 grid gap-2">
-            <p
-              v-for="(bubble, index) in assistantDraftSimulation.simulation
-                .response_bubbles"
-              :key="`${index}-${bubble}`"
-              class="rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2 text-sm leading-6 text-n-slate-12"
-            >
-              {{ bubble }}
-            </p>
-          </div>
-          <p class="mt-3 text-xs text-n-slate-10">
-            {{
-              t('RAEVO_AI.ASSISTANT_SIMULATION.VERDICT', {
-                verdict:
-                  assistantDraftSimulation.evaluation?.verdict || 'blocked',
-              })
-            }}
-          </p>
+        </section>
 
-          <div
-            v-if="canReviewAssistantDraft"
-            class="mt-4 border-t border-n-weak pt-4"
-          >
-            <p class="text-sm font-medium text-n-slate-12">
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_TITLE') }}
-            </p>
-            <p class="mt-1 text-sm text-n-slate-11">
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_DESCRIPTION') }}
-            </p>
-            <NextButton
-              v-if="!assistantDraftReview?.id"
-              type="button"
-              data-testid="ai-assistant-draft-review"
-              class="mt-3"
-              :label="t('RAEVO_AI.ASSISTANT_SIMULATION.APPROVE_REVIEW')"
-              :is-loading="isReviewingAssistantDraft"
-              :disabled="isReviewingAssistantDraft"
-              @click="reviewAssistantDraft"
-            />
-            <p
-              v-else
-              class="mt-3 flex items-center gap-2 text-sm text-n-teal-11"
-              role="status"
-            >
-              <i class="i-lucide-circle-check size-4" aria-hidden="true" />
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_APPROVED') }}
-            </p>
-            <p
-              v-if="assistantDraftReviewError"
-              class="mt-3 flex items-center gap-2 text-sm text-n-ruby-11"
-              role="alert"
-            >
-              <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_ERROR') }}
-            </p>
-          </div>
+        <RaevoAiServiceHoursSettings v-if="isAdmin" />
 
-          <div
-            v-if="canPublishAssistantDraft"
-            class="mt-4 border-t border-n-weak pt-4"
-          >
-            <p class="text-sm font-medium text-n-slate-12">
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_TITLE') }}
-            </p>
-            <p class="mt-1 text-sm text-n-slate-11">
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_DESCRIPTION') }}
-            </p>
-            <label class="mt-3 flex items-start gap-2 text-sm text-n-slate-11">
-              <input
-                v-model="assistantDraftPublicationConfirmed"
-                data-testid="ai-assistant-draft-publication-confirmation"
-                type="checkbox"
-                :disabled="
-                  isPublishingAssistantDraft || assistantDraftPublication?.id
-                "
-                class="mt-0.5 size-4 rounded border-n-strong text-n-brand focus:ring-n-brand"
-              />
-              <span>{{
-                t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_CONFIRMATION')
-              }}</span>
-            </label>
-            <NextButton
-              v-if="!assistantDraftPublication?.id"
-              type="button"
-              data-testid="ai-assistant-draft-publish"
-              class="mt-3"
-              :label="t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLISH')"
-              :is-loading="isPublishingAssistantDraft"
-              :disabled="
-                isPublishingAssistantDraft ||
-                !assistantDraftPublicationConfirmed
-              "
-              @click="publishAssistantDraft"
-            />
-            <p
-              v-else
-              class="mt-3 flex items-center gap-2 text-sm text-n-teal-11"
-              role="status"
-            >
-              <i class="i-lucide-circle-check size-4" aria-hidden="true" />
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_SUCCEEDED') }}
-            </p>
-            <p
-              v-if="assistantDraftPublicationError"
-              class="mt-3 flex items-center gap-2 text-sm text-n-ruby-11"
-              role="alert"
-            >
-              <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
-              {{ t('RAEVO_AI.ASSISTANT_SIMULATION.PUBLICATION_ERROR') }}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <RaevoAiServiceHoursSettings v-if="isAdmin" />
-
-      <section
-        v-if="isAdmin"
-        data-testid="ai-assistant-draft"
-        class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
-      >
-        <div class="max-w-3xl">
-          <p class="text-micro font-semibold uppercase text-n-slate-10">
-            {{ t('RAEVO_AI.ASSISTANT_DRAFT.EYEBROW') }}
-          </p>
-          <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-            {{ t('RAEVO_AI.ASSISTANT_DRAFT.TITLE') }}
-          </h2>
-          <p class="mt-1 text-sm leading-6 text-n-slate-11">
-            {{ t('RAEVO_AI.ASSISTANT_DRAFT.DESCRIPTION') }}
-          </p>
-          <p v-if="activeAssistantVersion" class="mt-2 text-xs text-n-slate-10">
-            {{
-              t('RAEVO_AI.ASSISTANT_DRAFT.ACTIVE_VERSION', {
-                version: activeAssistantVersion.version_number,
-              })
-            }}
-          </p>
-        </div>
-
-        <p
-          v-if="assistantDraftError === 'conflict'"
-          data-testid="ai-assistant-draft-conflict"
-          class="mt-4 flex items-center gap-2 text-sm text-n-amber-11"
-          role="alert"
+        <section
+          v-if="isAdmin"
+          data-testid="ai-assistant-draft"
+          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
         >
-          <i class="i-lucide-refresh-cw size-4" aria-hidden="true" />
-          {{ t('RAEVO_AI.ASSISTANT_DRAFT.CONFLICT') }}
-        </p>
-        <p
-          v-else-if="assistantDraftError === 'unavailable'"
-          data-testid="ai-assistant-draft-error"
-          class="mt-4 flex items-center gap-2 text-sm text-n-ruby-11"
-          role="alert"
-        >
-          <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
-          {{ t('RAEVO_AI.ASSISTANT_DRAFT.ERROR') }}
-        </p>
+          <div class="max-w-3xl">
+            <p class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.ASSISTANT_DRAFT.EYEBROW') }}
+            </p>
+            <h2 class="mt-1 text-base font-semibold text-n-slate-12">
+              {{ t('RAEVO_AI.ASSISTANT_DRAFT.TITLE') }}
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-n-slate-11">
+              {{ t('RAEVO_AI.ASSISTANT_DRAFT.DESCRIPTION') }}
+            </p>
+            <p
+              v-if="activeAssistantVersion"
+              class="mt-2 text-xs text-n-slate-10"
+            >
+              {{
+                t('RAEVO_AI.ASSISTANT_DRAFT.ACTIVE_VERSION', {
+                  version: activeAssistantVersion.version_number,
+                })
+              }}
+            </p>
+          </div>
 
-        <div v-if="isLoadingAssistantDraft" class="mt-4" role="status">
-          <p class="text-sm text-n-slate-11">
-            {{ t('RAEVO_AI.ASSISTANT_DRAFT.LOADING') }}
-          </p>
-        </div>
-
-        <div v-else class="mt-4 grid max-w-3xl gap-4">
-          <RaevoField
-            v-for="field in assistantDraftFields"
-            :key="field.key"
-            :label="field.label"
+          <p
+            v-if="assistantDraftError === 'conflict'"
+            data-testid="ai-assistant-draft-conflict"
+            class="mt-4 flex items-center gap-2 text-sm text-n-amber-11"
+            role="alert"
           >
-            <template #default="{ controlClass, fieldId }">
-              <div :data-testid="`ai-assistant-draft-${field.key}`">
-                <textarea
-                  :id="fieldId"
-                  v-model="assistantDraftClusters[field.key].content"
-                  class="min-h-24 resize-y rounded-lg"
-                  :class="controlClass"
-                  :disabled="isSavingAssistantDraft"
-                  maxlength="500"
-                  rows="3"
-                />
-                <label
-                  class="mt-2 flex items-center gap-2 text-sm text-n-slate-11"
-                >
-                  <input
-                    v-model="assistantDraftClusters[field.key].enabled"
-                    type="checkbox"
+            <i class="i-lucide-refresh-cw size-4" aria-hidden="true" />
+            {{ t('RAEVO_AI.ASSISTANT_DRAFT.CONFLICT') }}
+          </p>
+          <p
+            v-else-if="assistantDraftError === 'unavailable'"
+            data-testid="ai-assistant-draft-error"
+            class="mt-4 flex items-center gap-2 text-sm text-n-ruby-11"
+            role="alert"
+          >
+            <i class="i-lucide-circle-alert size-4" aria-hidden="true" />
+            {{ t('RAEVO_AI.ASSISTANT_DRAFT.ERROR') }}
+          </p>
+
+          <div v-if="isLoadingAssistantDraft" class="mt-4" role="status">
+            <p class="text-sm text-n-slate-11">
+              {{ t('RAEVO_AI.ASSISTANT_DRAFT.LOADING') }}
+            </p>
+          </div>
+
+          <div v-else class="mt-4 grid max-w-3xl gap-4">
+            <RaevoField
+              v-for="field in assistantDraftFields"
+              :key="field.key"
+              :label="field.label"
+            >
+              <template #default="{ controlClass, fieldId }">
+                <div :data-testid="`ai-assistant-draft-${field.key}`">
+                  <textarea
+                    :id="fieldId"
+                    v-model="assistantDraftClusters[field.key].content"
+                    class="min-h-24 resize-y rounded-lg"
+                    :class="controlClass"
                     :disabled="isSavingAssistantDraft"
-                    class="size-4 rounded border-n-strong text-n-brand focus:ring-n-brand"
+                    maxlength="500"
+                    rows="3"
                   />
-                  {{ t('RAEVO_AI.ASSISTANT_DRAFT.ENABLED') }}
-                </label>
-              </div>
-            </template>
-          </RaevoField>
+                  <label
+                    class="mt-2 flex items-center gap-2 text-sm text-n-slate-11"
+                  >
+                    <input
+                      v-model="assistantDraftClusters[field.key].enabled"
+                      type="checkbox"
+                      :disabled="isSavingAssistantDraft"
+                      class="size-4 rounded border-n-strong text-n-brand focus:ring-n-brand"
+                    />
+                    {{ t('RAEVO_AI.ASSISTANT_DRAFT.ENABLED') }}
+                  </label>
+                </div>
+              </template>
+            </RaevoField>
 
-          <div class="flex flex-wrap items-center gap-3">
-            <NextButton
-              type="button"
-              data-testid="ai-assistant-draft-save"
-              :label="t('RAEVO_AI.ASSISTANT_DRAFT.SAVE')"
-              :is-loading="isSavingAssistantDraft"
-              :disabled="isSavingAssistantDraft"
-              @click="saveAssistantDraft"
-            />
-            <p class="text-xs text-n-slate-10">
-              {{ t('RAEVO_AI.ASSISTANT_DRAFT.DRAFT_ONLY') }}
+            <div class="flex flex-wrap items-center gap-3">
+              <NextButton
+                type="button"
+                data-testid="ai-assistant-draft-save"
+                :label="t('RAEVO_AI.ASSISTANT_DRAFT.SAVE')"
+                :is-loading="isSavingAssistantDraft"
+                :disabled="isSavingAssistantDraft"
+                @click="saveAssistantDraft"
+              />
+              <p class="text-xs text-n-slate-10">
+                {{ t('RAEVO_AI.ASSISTANT_DRAFT.DRAFT_ONLY') }}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          v-if="isAdmin"
+          data-testid="ai-opportunity-tab-configuration"
+          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
+        >
+          <div class="max-w-3xl">
+            <p class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.EYEBROW') }}
+            </p>
+            <h2 class="mt-1 text-base font-semibold text-n-slate-12">
+              {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.TITLE') }}
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-n-slate-11">
+              {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.DESCRIPTION') }}
             </p>
           </div>
-        </div>
-      </section>
 
-      <section
-        v-if="isAdmin"
-        data-testid="ai-opportunity-tab-configuration"
-        class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
-      >
-        <div class="max-w-3xl">
-          <p class="text-micro font-semibold uppercase text-n-slate-10">
-            {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.EYEBROW') }}
-          </p>
-          <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-            {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.TITLE') }}
-          </h2>
-          <p class="mt-1 text-sm leading-6 text-n-slate-11">
-            {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.DESCRIPTION') }}
-          </p>
-        </div>
-
-        <p
-          v-if="aiTabConfigurationError"
-          class="mt-4 text-sm text-n-ruby-11"
-          role="alert"
-        >
-          {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.ERROR') }}
-        </p>
-
-        <div v-else class="mt-4 grid gap-4 max-w-2xl">
-          <RaevoField
-            :label="t('RAEVO_AI.OPPORTUNITY.SETTINGS.BOARDS')"
-            variant="select"
+          <p
+            v-if="aiTabConfigurationError"
+            class="mt-4 text-sm text-n-ruby-11"
+            role="alert"
           >
-            <template #default="{ controlClass, fieldId }">
-              <select
-                :id="fieldId"
-                v-model="selectedAiTabBoardIds"
-                multiple
+            {{ t('RAEVO_AI.OPPORTUNITY.SETTINGS.ERROR') }}
+          </p>
+
+          <div v-else class="mt-4 grid gap-4 max-w-2xl">
+            <RaevoField
+              :label="t('RAEVO_AI.OPPORTUNITY.SETTINGS.BOARDS')"
+              variant="select"
+            >
+              <template #default="{ controlClass, fieldId }">
+                <select
+                  :id="fieldId"
+                  v-model="selectedAiTabBoardIds"
+                  multiple
+                  :disabled="
+                    isLoadingAiTabConfiguration || isSavingAiTabConfiguration
+                  "
+                  class="min-h-32"
+                  :class="[controlClass]"
+                >
+                  <option
+                    v-for="board in aiTabBoardOptions"
+                    :key="board.id"
+                    :value="String(board.id)"
+                  >
+                    {{ board.name }}
+                  </option>
+                </select>
+              </template>
+            </RaevoField>
+
+            <label class="flex items-start gap-3 text-sm text-n-slate-12">
+              <input
+                v-model="aiTabConfiguration.enabled"
+                type="checkbox"
                 :disabled="
                   isLoadingAiTabConfiguration || isSavingAiTabConfiguration
                 "
-                class="min-h-32"
-                :class="[controlClass]"
-              >
-                <option
-                  v-for="board in aiTabBoardOptions"
-                  :key="board.id"
-                  :value="String(board.id)"
-                >
-                  {{ board.name }}
-                </option>
-              </select>
-            </template>
-          </RaevoField>
-
-          <label class="flex items-start gap-3 text-sm text-n-slate-12">
-            <input
-              v-model="aiTabConfiguration.enabled"
-              type="checkbox"
-              :disabled="
-                isLoadingAiTabConfiguration || isSavingAiTabConfiguration
-              "
-              class="mt-0.5 size-4 rounded border-n-strong text-n-brand focus:ring-n-brand"
-            />
-            <span>
-              <span class="block font-medium">{{
-                t('RAEVO_AI.OPPORTUNITY.SETTINGS.ENABLED')
-              }}</span>
-              <span class="mt-0.5 block text-n-slate-11">{{
-                t('RAEVO_AI.OPPORTUNITY.SETTINGS.ENABLED_HINT')
-              }}</span>
-            </span>
-          </label>
-
-          <div>
-            <NextButton
-              type="button"
-              data-testid="ai-opportunity-tab-save"
-              :label="t('RAEVO_AI.OPPORTUNITY.SETTINGS.SAVE')"
-              :is-loading="isSavingAiTabConfiguration"
-              :disabled="isLoadingAiTabConfiguration"
-              @click="saveAiTabConfiguration"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5">
-        <div class="max-w-3xl">
-          <p class="text-micro font-semibold uppercase text-n-slate-10">
-            {{ t('RAEVO_AI.PACKAGES.EYEBROW') }}
-          </p>
-          <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-            {{ t('RAEVO_AI.PACKAGES.TITLE') }}
-          </h2>
-          <p class="mt-1 text-sm leading-6 text-n-slate-11">
-            {{ t('RAEVO_AI.PACKAGES.DESCRIPTION') }}
-          </p>
-        </div>
-
-        <div class="mt-4 grid gap-3 lg:grid-cols-3">
-          <article
-            v-for="servicePackage in servicePackages"
-            :key="servicePackage.key"
-            data-testid="ai-service-package"
-            class="rounded-xl border border-n-weak bg-n-background p-4"
-          >
-            <span
-              class="grid size-9 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
-            >
-              <i
-                :class="servicePackage.icon"
-                class="size-4"
-                aria-hidden="true"
+                class="mt-0.5 size-4 rounded border-n-strong text-n-brand focus:ring-n-brand"
               />
-            </span>
-            <h3 class="mt-3 break-words text-sm font-semibold text-n-slate-12">
-              {{ servicePackage.title }}
-            </h3>
-            <p class="mt-1 text-sm leading-6 text-n-slate-11">
-              {{ servicePackage.description }}
+              <span>
+                <span class="block font-medium">{{
+                  t('RAEVO_AI.OPPORTUNITY.SETTINGS.ENABLED')
+                }}</span>
+                <span class="mt-0.5 block text-n-slate-11">{{
+                  t('RAEVO_AI.OPPORTUNITY.SETTINGS.ENABLED_HINT')
+                }}</span>
+              </span>
+            </label>
+
+            <div>
+              <NextButton
+                type="button"
+                data-testid="ai-opportunity-tab-save"
+                :label="t('RAEVO_AI.OPPORTUNITY.SETTINGS.SAVE')"
+                :is-loading="isSavingAiTabConfiguration"
+                :disabled="isLoadingAiTabConfiguration"
+                @click="saveAiTabConfiguration"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
+        >
+          <div class="max-w-3xl">
+            <p class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.PACKAGES.EYEBROW') }}
             </p>
-          </article>
-        </div>
-      </section>
+            <h2 class="mt-1 text-base font-semibold text-n-slate-12">
+              {{ t('RAEVO_AI.PACKAGES.TITLE') }}
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-n-slate-11">
+              {{ t('RAEVO_AI.PACKAGES.DESCRIPTION') }}
+            </p>
+          </div>
+
+          <div class="mt-4 grid gap-3 lg:grid-cols-3">
+            <article
+              v-for="servicePackage in servicePackages"
+              :key="servicePackage.key"
+              data-testid="ai-service-package"
+              class="rounded-xl border border-n-weak bg-n-background p-4"
+            >
+              <span
+                class="grid size-9 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+              >
+                <i
+                  :class="servicePackage.icon"
+                  class="size-4"
+                  aria-hidden="true"
+                />
+              </span>
+              <h3
+                class="mt-3 break-words text-sm font-semibold text-n-slate-12"
+              >
+                {{ servicePackage.title }}
+              </h3>
+              <p class="mt-1 text-sm leading-6 text-n-slate-11">
+                {{ servicePackage.description }}
+              </p>
+            </article>
+          </div>
+        </section>
+      </template>
+
+      <RaevoAiKnowledgePanel
+        v-if="abaAtiva === 'knowledge'"
+        :is-admin="isAdmin"
+      />
     </div>
   </main>
 </template>
