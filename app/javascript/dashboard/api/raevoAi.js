@@ -59,6 +59,22 @@ class RaevoAiAPI extends ApiClient {
     );
   }
 
+  getKnowledge() {
+    return axios.get(`${this.baseUrl()}/raevo_ai/knowledge`);
+  }
+
+  saveKnowledgeDraft(data) {
+    return axios.patch(`${this.baseUrl()}/raevo_ai/knowledge`, data);
+  }
+
+  publishKnowledge(data) {
+    return axios.post(`${this.baseUrl()}/raevo_ai/knowledge/publish`, data);
+  }
+
+  rollbackKnowledge(data) {
+    return axios.post(`${this.baseUrl()}/raevo_ai/knowledge/rollback`, data);
+  }
+
   updateOpportunityTab(data) {
     return axios.patch(`${this.baseUrl()}/raevo_ai/opportunity_tab`, data);
   }

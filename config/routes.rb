@@ -131,6 +131,10 @@ Rails.application.routes.draw do
               post :publish
               post :rollback
             end
+            resource :knowledge, only: [:show, :update], controller: 'knowledge' do
+              post :publish
+              post :rollback
+            end
             resource :opportunity_tab, only: [:show, :update], controller: 'opportunity_tabs'
           end
           resources :callbacks, only: [] do
