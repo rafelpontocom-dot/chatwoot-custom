@@ -310,9 +310,12 @@ onMounted(carregar);
         {{ notice }}
       </p>
 
-      <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div
+        class="mt-4 grid gap-4"
+        :class="emEdicao ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : ''"
+      >
         <div class="min-w-0">
-          <div class="flex flex-wrap gap-2">
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label class="sr-only" for="knowledge-search">
               {{ t('RAEVO_AI.KNOWLEDGE.SEARCH_PLACEHOLDER') }}
             </label>
@@ -321,7 +324,7 @@ onMounted(carregar);
               v-model="busca"
               type="search"
               :placeholder="t('RAEVO_AI.KNOWLEDGE.SEARCH_PLACEHOLDER')"
-              class="min-w-0 flex-1 rounded-full border border-n-weak bg-n-solid-1 px-3 py-2 text-sm text-n-slate-12"
+              class="min-w-0 rounded-full border border-n-weak bg-n-solid-1 px-3 py-2 text-sm text-n-slate-12"
             />
             <label class="sr-only" for="knowledge-topic">
               {{ t('RAEVO_AI.KNOWLEDGE.FIELD_TOPIC') }}
@@ -329,7 +332,7 @@ onMounted(carregar);
             <select
               id="knowledge-topic"
               v-model="assuntoFiltrado"
-              class="rounded-full border border-n-weak bg-n-solid-1 px-3 py-2 text-sm text-n-slate-12"
+              class="rounded-full border border-n-weak bg-n-solid-1 py-2 pl-3 pr-8 text-sm text-n-slate-12"
             >
               <option value="">{{ t('RAEVO_AI.KNOWLEDGE.FILTER_ALL') }}</option>
               <option
@@ -353,11 +356,11 @@ onMounted(carregar);
             {{ t('RAEVO_AI.KNOWLEDGE.EMPTY_DESCRIPTION') }}
           </p>
 
-          <ul v-else class="mt-3 flex flex-col gap-2">
+          <ul v-else class="mt-3 flex list-none flex-col gap-2 p-0">
             <li v-for="item in itensFiltrados" :key="item.id ?? item.title">
               <button
                 type="button"
-                class="w-full rounded-xl border border-n-weak bg-n-solid-1 p-3 text-left hover:bg-n-alpha-1"
+                class="raevo-card w-full bg-n-alpha-1 p-3 text-left hover:bg-n-alpha-2"
                 @click="editar(item)"
               >
                 <span
@@ -448,7 +451,7 @@ onMounted(carregar);
               <NextButton
                 size="sm"
                 variant="faded"
-                :label="t('RAEVO_AI.KNOWLEDGE.SENSITIVE_CANCEL')"
+                :label="t('RAEVO_AI.KNOWLEDGE.CANCEL')"
                 @click="cancelarEdicao"
               />
             </div>
@@ -466,7 +469,7 @@ onMounted(carregar);
         <ul
           v-else
           data-testid="ai-knowledge-versions"
-          class="mt-2 flex flex-col gap-2"
+          class="mt-2 flex list-none flex-col gap-2 p-0"
         >
           <li
             v-for="version in versions"
