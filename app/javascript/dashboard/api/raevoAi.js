@@ -14,6 +14,10 @@ class RaevoAiAPI extends ApiClient {
     return axios.get(`${this.baseUrl()}/raevo_ai/assistant_draft`);
   }
 
+  getActivity() {
+    return axios.get(`${this.baseUrl()}/raevo_ai/activity`);
+  }
+
   getPauseState() {
     return axios.get(`${this.baseUrl()}/raevo_ai/pause`);
   }
