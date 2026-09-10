@@ -126,6 +126,26 @@ RSpec.describe RaevoAi::OverviewClient do
       end
     end
 
+    it 'lets the commercial journey and the freshness stamps through' do
+      payload = {
+        'status' => 'active',
+        'generated_at' => '2026-09-09T22:00:00.000Z',
+        'last_delivered_at' => '2026-09-09T21:56:00.000Z',
+        'usage_30d' => { 'conversations' => 308, 'pre_scheduled' => 27, 'appointments' => 18 }
+      }
+      response = instance_double(HTTParty::Response, success?: true, body: payload.to_json)
+
+      with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'server-secret' do
+        allow(HTTParty).to receive(:get).and_return(response)
+
+        result = described_class.new(integration: integration).fetch
+
+        expect(result['generated_at']).to eq('2026-09-09T22:00:00.000Z')
+        expect(result['last_delivered_at']).to eq('2026-09-09T21:56:00.000Z')
+        expect(result['usage_30d']['pre_scheduled']).to eq(27)
+      end
+    end
+
     it 'rejects a successful response outside the public object contract' do
       response = instance_double(HTTParty::Response, success?: true, body: ['unexpected'].to_json)
 

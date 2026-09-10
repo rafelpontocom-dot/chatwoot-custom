@@ -1,7 +1,7 @@
 class RaevoAi::OverviewClient
   REQUEST_TIMEOUT_SECONDS = 10
   NETWORK_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED].freeze
-  PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews].freeze
+  PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews generated_at last_delivered_at].freeze
   PUBLIC_ASSISTANT_PROFILE_FIELDS = %w[identity personality voice_style].freeze
   PUBLIC_OPERATIONAL_QUALITY_FIELDS = %w[
     post_delivery_actions_pending post_delivery_actions_applied post_delivery_actions_failed manual_reconciliations
@@ -16,7 +16,7 @@ class RaevoAi::OverviewClient
     'agenda' => %w[calcom google_calendar feegow chatwoot_native]
   }.freeze
   PUBLIC_USAGE_FIELDS = %w[
-    conversations handoffs appointments payments
+    conversations handoffs pre_scheduled appointments payments
     model_calls prompt_tokens completion_tokens
     provider_reported_cost_usd catalog_estimated_cost_usd cost_unavailable_calls
   ].freeze
