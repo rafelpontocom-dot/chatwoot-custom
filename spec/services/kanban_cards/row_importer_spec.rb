@@ -59,6 +59,31 @@ RSpec.describe KanbanCards::RowImporter do
     end
   end
 
+  describe 'a row whose e-mail and phone point to different people' do
+    let!(:outro) { create(:contact, account: account, name: 'Joana', phone_number: '+5562999990000') }
+
+    it 'refuses the row instead of guessing which contact is the right one' do
+      resultado = importar({ 'email' => 'maria@clinica.pt', 'telefone' => '+5562999990000', 'assunto' => 'X' })
+
+      expect(resultado).not_to be_ok
+      expect(resultado.error).to include('different contacts')
+    end
+
+    it 'does not create a card for it' do
+      expect { importar({ 'email' => 'maria@clinica.pt', 'telefone' => '+5562999990000', 'assunto' => 'X' }) }
+        .not_to change(KanbanCard, :count)
+    end
+
+    it 'still imports when both point at the same person' do
+      outro.update!(phone_number: '+5562911110000')
+      contact.update!(phone_number: '+5562999990000')
+      resultado = importar({ 'email' => 'maria@clinica.pt', 'telefone' => '+5562999990000', 'assunto' => 'X' })
+
+      expect(resultado).to be_ok
+      expect(resultado.card.contact).to eq(contact)
+    end
+  end
+
   describe 'not creating the same person twice' do
     it 'matches a phone written without the country code against the stored one' do
       contact.update!(phone_number: '+5562999990000')

@@ -42,6 +42,10 @@ class KanbanCards::RowImporter
   NATIVE_CONTACT_NAME = 'native:contact_name'.freeze
   NATIVE_KEYS = [NATIVE_SUBJECT, NATIVE_STAGE, NATIVE_AMOUNT, NATIVE_EMAIL, NATIVE_PHONE, NATIVE_CONTACT_NAME].freeze
 
+  # Sinaliza a linha ambígua de dentro da resolução do contacto até ao `import`,
+  # que é onde uma linha se transforma em erro escrito em vez de rebentar.
+  IdentityConflict = Class.new(StandardError)
+
   Result = Struct.new(:card, :error, keyword_init: true) do
     def ok?
       error.blank?
@@ -64,6 +68,8 @@ class KanbanCards::RowImporter
     return Result.new(error: I18n.t('errors.kanban_import.subject_missing')) if subject.blank?
 
     guardar(build_card(row, contact, subject))
+  rescue IdentityConflict
+    Result.new(error: I18n.t('errors.kanban_import.contact_identity_conflict'))
   rescue ActiveRecord::RecordInvalid => e
     # Um telefone que não chega a E.164 nem depois de normalizado derruba só a
     # linha, com a razão escrita, em vez de abortar a migração inteira.
@@ -122,7 +128,32 @@ class KanbanCards::RowImporter
     identidade = contact_identity(row)
     return if identidade[:email].blank? && identidade[:phone_number].blank?
 
-    find_contact(identidade) || create_contact(row, identidade)
+    # Dentro do mesmo ficheiro, a segunda linha da mesma pessoa já encontra o
+    # contacto que a primeira criou. O que escapava eram duas importações a
+    # decorrer ao mesmo tempo — dois ficheiros que se sobrepõem: ambas
+    # procuravam antes de qualquer uma criar, e criavam a pessoa duas vezes.
+    #
+    # O lock é por conta e identidade, não pela importação: duas migrações de
+    # clínicas diferentes, ou da mesma clínica com pessoas diferentes, continuam
+    # a correr lado a lado. Só espera quem fala da mesma pessoa.
+    ActiveRecord::Base.transaction do
+      bloquear_identidade(identidade)
+      find_contact(identidade) || create_contact(row, identidade)
+    end
+  end
+
+  # As chaves vão ordenadas de propósito. Uma linha com e-mail e telefone pega
+  # em dois locks, e duas linhas a pegá-los por ordens opostas dariam impasse.
+  def bloquear_identidade(identidade)
+    identidade.values_at(:email, :phone_number).compact_blank.sort.each do |valor|
+      ActiveRecord::Base.connection.exec_query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 1))',
+        'kanban_import_identity_lock',
+        [ActiveRecord::Relation::QueryAttribute.new(
+          'chave', "kanban-import:#{board.account_id}:#{valor}", ActiveRecord::Type::String.new
+        )]
+      )
+    end
   end
 
   def contact_identity(row)
@@ -143,12 +174,28 @@ class KanbanCards::RowImporter
     board.account.locale.presence || DEFAULT_LOCALE
   end
 
+  # O e-mail e o telefone da mesma linha podem apontar a pessoas diferentes: um
+  # ficheiro antigo traz o e-mail de quem marcou e o telemóvel de quem foi
+  # atendido. Devolver o primeiro que aparecesse ligava a oportunidade a meio
+  # palpite, em silêncio, e ninguém tinha como notar. A linha é recusada para
+  # alguém olhar — o mesmo que o formulário público já faz.
   def find_contact(identidade)
-    contactos = board.account.contacts
-    por_email = contactos.from_email(identidade[:email]) if identidade[:email].present?
-    return por_email if por_email.present?
+    correspondencias = [contact_by_email(identidade), contact_by_phone(identidade)].compact.uniq
+    raise IdentityConflict if correspondencias.many?
 
-    contactos.find_by(phone_number: identidade[:phone_number]) if identidade[:phone_number].present?
+    correspondencias.first
+  end
+
+  def contact_by_email(identidade)
+    return if identidade[:email].blank?
+
+    board.account.contacts.from_email(identidade[:email])
+  end
+
+  def contact_by_phone(identidade)
+    return if identidade[:phone_number].blank?
+
+    board.account.contacts.find_by(phone_number: identidade[:phone_number])
   end
 
   def create_contact(row, identidade)

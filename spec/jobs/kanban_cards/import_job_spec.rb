@@ -20,21 +20,23 @@ RSpec.describe KanbanCards::ImportJob do
   end
 
   it 'imports the rows it can and reports the ones it cannot' do
+    # A segunda linha não tem por onde identificar a pessoa. A terceira traz um
+    # e-mail que ainda não está na conta, e essa entra: o contacto é criado.
     resultado = importar(
-      "email,assunto\nmaria@clinica.pt,Botox\nninguem@clinica.pt,Preenchimento\n"
+      "email,assunto\nmaria@clinica.pt,Botox\n,Preenchimento\nninguem@clinica.pt,Peeling\n"
     )
 
     expect(resultado).to be_completed
-    expect(resultado.processed_records).to eq(1)
-    expect(resultado.total_records).to eq(2)
-    expect(board.kanban_cards.pluck(:subject)).to eq(['Botox'])
+    expect(resultado.processed_records).to eq(2)
+    expect(resultado.total_records).to eq(3)
+    expect(board.kanban_cards.pluck(:subject)).to match_array(%w[Botox Peeling])
   end
 
   it 'hands the rejected rows back with the reason' do
-    resultado = importar("email,assunto\nninguem@clinica.pt,X\n")
+    resultado = importar("email,assunto\n,X\n")
 
     expect(resultado.failed_records).to be_attached
-    expect(resultado.failed_records.download).to include('import the contacts first')
+    expect(resultado.failed_records.download).to include('no e-mail or phone')
   end
 
   it 'attaches nothing when every row went in' do
