@@ -46,6 +46,7 @@ class RaevoAi::CrmOpportunityExecutor
 
   def apply_pending_command!(command, board, initial_stage)
     @conversation = Conversation.lock.find(@conversation.id)
+    @conversation.contact.lock!
     status = existing_opportunity_status(board) || create_opportunity!(board, initial_stage)
 
     result = receipt(status)
@@ -54,10 +55,22 @@ class RaevoAi::CrmOpportunityExecutor
   end
 
   def existing_opportunity_status(board)
-    cards = board.kanban_cards.active.where(account_id: @integration.account_id, conversation_id: @conversation.id).to_a
-    raise RaevoAi::CrmCardResolver::AmbiguousCard, 'multiple active cards are linked to the conversation' if cards.many?
+    conversation_cards = board.kanban_cards.active.where(account_id: @integration.account_id, conversation_id: @conversation.id).to_a
+    raise RaevoAi::CrmCardResolver::AmbiguousCard, 'multiple active cards are linked to the conversation' if conversation_cards.many?
 
-    'already_exists' if cards.one?
+    return 'already_exists' if conversation_cards.one?
+
+    contact_cards = board.kanban_cards.open_opportunities
+                         .where(account_id: @integration.account_id, contact_id: @conversation.contact_id)
+                         .lock
+                         .to_a
+    raise RaevoAi::CrmCardResolver::AmbiguousCard, 'multiple open cards belong to the conversation contact' if contact_cards.many?
+
+    card = contact_cards.first
+    return unless card
+
+    card.update!(conversation: @conversation) if card.conversation_id.nil?
+    'reused'
   end
 
   def create_opportunity!(board, initial_stage)

@@ -64,4 +64,22 @@ RSpec.describe RaevoAi::CrmOpportunityExecutor do
     expect { result = execute }.not_to change(KanbanCard.conversation, :count)
     expect(result.dig('receipts', 'opportunity', 'status')).to eq('already_exists')
   end
+
+  it 'reuses the contact open opportunity created before the conversation existed' do
+    landing_card = create(
+      :kanban_card,
+      account: account,
+      contact: contact,
+      inbox: inbox,
+      kanban_board: board,
+      kanban_stage: initial_stage,
+      origin: 'manual'
+    )
+    result = nil
+
+    expect { result = execute }.not_to change(KanbanCard, :count)
+
+    expect(landing_card.reload.conversation).to eq(conversation)
+    expect(result.dig('receipts', 'opportunity', 'status')).to eq('reused')
+  end
 end
