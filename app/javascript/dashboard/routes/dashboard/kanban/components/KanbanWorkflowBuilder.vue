@@ -569,7 +569,7 @@ const defaultData = type => {
   if (type === 'send_message') {
     return {
       channel: 'whatsapp',
-      opt_in_attribute_key: 'marketing_messages_opt_in',
+      opt_in_attribute_key: '',
       content: '',
       frequency_limit_hours: '',
       quiet_hours: { start: '', end: '', timezone: 'America/Sao_Paulo' },
@@ -617,7 +617,7 @@ const defaultData = type => {
   if (type === 'message_eligibility') {
     return {
       channel: 'whatsapp',
-      opt_in_attribute_key: 'marketing_messages_opt_in',
+      opt_in_attribute_key: '',
     };
   }
   if (type === 'round_robin') {

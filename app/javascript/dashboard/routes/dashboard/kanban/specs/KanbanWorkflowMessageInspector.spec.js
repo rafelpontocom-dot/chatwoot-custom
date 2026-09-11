@@ -77,4 +77,37 @@ describe('KanbanWorkflowMessageInspector', () => {
 
     expect(wrapper.emitted('update')).toHaveLength(1);
   });
+
+  it('does not show the legacy channel selector when an inbox routes the message', () => {
+    const wrapper = mount(KanbanWorkflowMessageInspector, {
+      props: {
+        node: {
+          data: {
+            channel: 'whatsapp',
+            inbox_id: 3,
+            content: 'Olá',
+            opt_in_attribute_key: '',
+            failure_mode: 'stop',
+            message_attachment: {},
+            whatsapp_template_params: {},
+            quiet_hours: {},
+          },
+        },
+        t,
+        variables: [],
+        timezones: [],
+        inboxes: [{ id: 3, name: 'WhatsApp Business' }],
+      },
+    });
+
+    expect(
+      wrapper
+        .findAll('select')
+        .some(select =>
+          select
+            .text()
+            .includes('KANBAN.SETTINGS.AUTOMATIONS.BIRTHDAY.WHATSAPP')
+        )
+    ).toBe(false);
+  });
 });

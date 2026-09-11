@@ -277,6 +277,21 @@ RSpec.describe KanbanAutomationRule do
     expect(rule.errors[:flow_definition]).to be_present
   end
 
+  it 'accepts a message node without a contact consent attribute' do
+    rule = build(
+      :kanban_automation_rule,
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger' },
+          { id: 'message', type: 'send_message', data: { channel: 'whatsapp', content: 'Olá' } }
+        ],
+        edges: [{ source: 'trigger', target: 'message' }]
+      }
+    )
+
+    expect(rule).to be_valid
+  end
+
   it 'rejects incomplete quiet hours on a message node' do
     rule = build(
       :kanban_automation_rule,

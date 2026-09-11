@@ -244,7 +244,7 @@ class KanbanAutomations::FlowDefinitionValidator
     return unless node[:type] == 'send_message'
 
     valid_channel = KanbanAppointmentReminderRule::CHANNELS.include?(data[:channel].to_s)
-    valid_message = data[:content].present? && data[:opt_in_attribute_key].present?
+    valid_message = data[:content].present?
     valid_policy = message_policy_valid?(data)
     valid_attachment = KanbanAutomations::MessageAttachmentService.new(data: data).valid?
     add_error("Message node #{node[:id]} is incomplete") unless valid_channel && valid_message && valid_policy && valid_attachment
@@ -399,7 +399,7 @@ class KanbanAutomations::FlowDefinitionValidator
     return unless node[:type] == 'message_eligibility'
 
     valid_channel = KanbanAppointmentReminderRule::CHANNELS.include?(data[:channel].to_s)
-    add_error("Message eligibility node #{node[:id]} is incomplete") unless valid_channel && data[:opt_in_attribute_key].present?
+    add_error("Message eligibility node #{node[:id]} is incomplete") unless valid_channel
   end
 
   def validate_human_handoff_node(node, data)

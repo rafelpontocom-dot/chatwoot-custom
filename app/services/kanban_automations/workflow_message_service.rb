@@ -46,7 +46,9 @@ class KanbanAutomations::WorkflowMessageService
 
   def opted_in?
     key = data['opt_in_attribute_key'].to_s
-    key.present? && ActiveModel::Type::Boolean.new.cast(card.contact.custom_attributes[key])
+    return true if key.blank?
+
+    ActiveModel::Type::Boolean.new.cast(card.contact.custom_attributes[key])
   end
 
   def compatible_selected_inbox_conversation

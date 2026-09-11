@@ -2126,6 +2126,7 @@ describe('KanbanWorkflowBuilder', () => {
       expect.objectContaining({
         type: 'send_message',
         position: { x: 320, y: 180 },
+        data: expect.objectContaining({ opt_in_attribute_key: '' }),
       })
     );
   });

@@ -108,7 +108,10 @@ const insert = value => {
           </select>
         </template>
       </RaevoField>
-      <label class="grid gap-1 text-xs font-medium text-n-slate-11">
+      <label
+        v-if="!data.inbox_id"
+        class="grid gap-1 text-xs font-medium text-n-slate-11"
+      >
         {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CHANNEL') }}
         <select
           v-model="data.channel"
@@ -123,15 +126,17 @@ const insert = value => {
           </option>
         </select>
       </label>
-      <label class="grid gap-1 text-xs font-medium text-n-slate-11">
-        {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPT_IN') }}
-        <input
-          v-model="data.opt_in_attribute_key"
-          type="text"
-          class="h-9 rounded-md border border-n-weak bg-n-surface-2 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-          @change="emit('update')"
-        />
-      </label>
+      <RaevoField :label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPT_IN')">
+        <template #default="{ controlClass, fieldId }">
+          <input
+            :id="fieldId"
+            v-model="data.opt_in_attribute_key"
+            type="text"
+            :class="controlClass"
+            @change="emit('update')"
+          />
+        </template>
+      </RaevoField>
     </div>
 
     <div class="grid gap-2 rounded-lg border border-n-weak bg-n-surface-2 p-3">

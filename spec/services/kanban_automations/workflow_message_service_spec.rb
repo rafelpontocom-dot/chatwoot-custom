@@ -29,6 +29,13 @@ RSpec.describe KanbanAutomations::WorkflowMessageService do
     )
   end
 
+  it 'does not require marketing opt-in when no consent attribute is configured' do
+    service = build_service({ opt_in_attribute_key: '' })
+    allow(service).to receive_messages(compatible_conversation: conversation, whatsapp_outside_window?: false)
+
+    expect(service.eligibility).to include('status' => 'eligible', 'conversation' => conversation)
+  end
+
   it 'uses an explicitly selected API inbox for a WAHA conversation' do
     api_channel = create(:channel_api, account: card.account)
     api_inbox = api_channel.inbox
