@@ -48,6 +48,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  inboxes: {
+    type: Array,
+    default: () => [],
+  },
   customFields: {
     type: Array,
     default: () => [],
@@ -2362,6 +2366,7 @@ const handleBuilderKeydown = event => {
             v-else-if="selectedNode.type === 'send_message'"
             :node="selectedNode"
             :variables="messageVariables"
+            :inboxes="inboxes"
             :timezones="quietHoursTimezoneOptions"
             :t="t"
             @update="updateNode"

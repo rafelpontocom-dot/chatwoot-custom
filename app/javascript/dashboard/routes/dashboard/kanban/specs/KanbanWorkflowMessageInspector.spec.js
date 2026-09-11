@@ -43,4 +43,38 @@ describe('KanbanWorkflowMessageInspector', () => {
       wrapper.find('[data-testid="kanban-message-emoji-button"]').exists()
     ).toBe(true);
   });
+
+  it('lists the board inboxes and persists the selected inbox id', async () => {
+    const wrapper = mount(KanbanWorkflowMessageInspector, {
+      props: {
+        node: {
+          data: {
+            channel: 'whatsapp',
+            inbox_id: 3,
+            content: 'Olá',
+            opt_in_attribute_key: 'marketing_messages_opt_in',
+            failure_mode: 'stop',
+            message_attachment: {},
+            whatsapp_template_params: {},
+            quiet_hours: {},
+          },
+        },
+        t,
+        variables: [],
+        timezones: [],
+        inboxes: [{ id: 3, name: 'WhatsApp Business' }],
+      },
+    });
+
+    expect(
+      wrapper.get('[data-testid="kanban-workflow-message-inbox"]').element.value
+    ).toBe('3');
+    expect(wrapper.text()).toContain('WhatsApp Business');
+
+    await wrapper
+      .get('[data-testid="kanban-workflow-message-inbox"]')
+      .setValue('');
+
+    expect(wrapper.emitted('update')).toHaveLength(1);
+  });
 });

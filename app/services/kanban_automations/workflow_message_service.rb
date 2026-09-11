@@ -36,6 +36,8 @@ class KanbanAutomations::WorkflowMessageService
   attr_reader :card, :data, :event_data, :now
 
   def compatible_conversation
+    return compatible_selected_inbox_conversation if selected_inbox_id.present?
+
     inbox_type = data.fetch('channel') == 'email' ? 'Email' : 'Whatsapp'
     card.contact.conversations.where(account_id: card.account_id).includes(:inbox).order(last_activity_at: :desc, id: :desc).find do |conversation|
       conversation.inbox&.inbox_type == inbox_type
@@ -45,6 +47,17 @@ class KanbanAutomations::WorkflowMessageService
   def opted_in?
     key = data['opt_in_attribute_key'].to_s
     key.present? && ActiveModel::Type::Boolean.new.cast(card.contact.custom_attributes[key])
+  end
+
+  def compatible_selected_inbox_conversation
+    return unless card.kanban_board.inbox_allowed?(selected_inbox_id)
+
+    card.contact.conversations.where(account_id: card.account_id, inbox_id: selected_inbox_id)
+        .includes(:inbox).order(last_activity_at: :desc, id: :desc).first
+  end
+
+  def selected_inbox_id
+    @selected_inbox_id ||= Integer(data['inbox_id'], exception: false)
   end
 
   def whatsapp_outside_window?(conversation)

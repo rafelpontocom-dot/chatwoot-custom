@@ -29,6 +29,16 @@ RSpec.describe KanbanAutomations::WorkflowMessageService do
     )
   end
 
+  it 'uses an explicitly selected API inbox for a WAHA conversation' do
+    api_channel = create(:channel_api, account: card.account)
+    api_inbox = api_channel.inbox
+    create(:conversation, account: card.account, contact: card.contact, inbox: api_inbox)
+
+    service = build_service({ inbox_id: api_inbox.id })
+
+    expect(service.send(:compatible_conversation).inbox_id).to eq(api_inbox.id)
+  end
+
   it 'defers a message until the configured frequency window expires' do
     now = Time.zone.parse('2026-08-01 15:00:00')
     service = build_service({ frequency_limit_hours: 24 }, now: now)

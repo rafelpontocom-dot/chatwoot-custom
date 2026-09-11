@@ -33,6 +33,7 @@ const route = useRoute();
 const router = useRouter();
 const agents = useMapGetter('agents/getAgents');
 const teams = useMapGetter('teams/getTeams');
+const inboxes = useMapGetter('inboxes/getAllInboxes');
 
 const boardId = computed(() => Number(route.params.boardId));
 const activeTab = ref('flows');
@@ -882,6 +883,13 @@ const customFields = computed(
   () => settings.value.customFieldDefinitions || []
 );
 const nextActionTypes = computed(() => settings.value.nextActionTypes || []);
+const messageInboxes = computed(() => {
+  if (settings.value.inboxScopeMode !== 'selected_inboxes')
+    return inboxes.value;
+
+  const allowedInboxIds = new Set(settings.value.allowedInboxIds || []);
+  return inboxes.value.filter(inbox => allowedInboxIds.has(inbox.id));
+});
 const agentOptions = computed(() =>
   agents.value.map(agent => ({
     value: agent.id,
@@ -3091,6 +3099,7 @@ onMounted(load);
         :stages="stages"
         :agents="agentOptions"
         :teams="teams"
+        :inboxes="messageInboxes"
         :custom-fields="customFields"
         :next-action-types="nextActionTypes"
         :lost-reason-options="lostReasonOptions"

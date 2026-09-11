@@ -1,9 +1,11 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 
 const props = defineProps({
   node: { type: Object, required: true },
   variables: { type: Array, default: () => [] },
+  inboxes: { type: Array, default: () => [] },
   timezones: { type: Array, default: () => [] },
   t: { type: Function, required: true },
 });
@@ -85,6 +87,27 @@ const insert = value => {
     </div>
 
     <div class="grid gap-3 sm:grid-cols-2">
+      <RaevoField
+        :label="t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.INBOX')"
+        variant="select"
+      >
+        <template #default="{ controlClass, fieldId }">
+          <select
+            :id="fieldId"
+            v-model="data.inbox_id"
+            data-testid="kanban-workflow-message-inbox"
+            :class="controlClass"
+            @change="emit('update')"
+          >
+            <option value="">
+              {{ t('KANBAN.NO_INBOX') }}
+            </option>
+            <option v-for="inbox in inboxes" :key="inbox.id" :value="inbox.id">
+              {{ inbox.name }}
+            </option>
+          </select>
+        </template>
+      </RaevoField>
       <label class="grid gap-1 text-xs font-medium text-n-slate-11">
         {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.CHANNEL') }}
         <select

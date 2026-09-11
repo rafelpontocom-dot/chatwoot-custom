@@ -6589,6 +6589,7 @@ onMounted(async () => {
               v-model="automationRuleForm.flowDefinition"
               :stages="stages"
               :agents="agentOptions"
+              :inboxes="inboxes"
               :custom-fields="form.customFieldDefinitions"
               :next-action-types="linesFromText(form.nextActionTypesText)"
               :condition-fields="automationFieldOptions"
