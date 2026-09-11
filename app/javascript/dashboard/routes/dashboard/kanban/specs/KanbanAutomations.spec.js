@@ -667,6 +667,67 @@ describe('KanbanAutomations', () => {
     ).toEqual(['message']);
   });
 
+  it('saves a workflow message without a contact consent attribute', async () => {
+    KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+      data: {
+        id: 46,
+        name: 'Mensagem operacional',
+        event_name: 'kanban.card.stage_changed',
+        active: false,
+        position: 0,
+        conditions: {},
+        actions: [],
+        flow_definition: {},
+      },
+    });
+    const wrapper = await mountWorkspace();
+
+    await wrapper
+      .find('[data-testid="kanban-automations-new-flow"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-automations-flow-name"]')
+      .setValue('Mensagem operacional');
+    wrapper.vm.form.flowDefinition = {
+      nodes: [
+        { id: 'trigger', type: 'trigger', data: {} },
+        {
+          id: 'message',
+          type: 'send_message',
+          data: {
+            channel: 'whatsapp',
+            content: 'Olá',
+            opt_in_attribute_key: '',
+          },
+        },
+      ],
+      edges: [{ source: 'trigger', target: 'message' }],
+    };
+
+    await wrapper
+      .find('[data-testid="kanban-automations-save-flow"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createAutomationRule).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_automation_rule: expect.objectContaining({
+          flow_definition: expect.objectContaining({
+            nodes: expect.arrayContaining([
+              expect.objectContaining({
+                id: 'message',
+                data: expect.objectContaining({
+                  opt_in_attribute_key: '',
+                }),
+              }),
+            ]),
+          }),
+        }),
+      })
+    );
+  });
+
   it('keeps an incomplete response wait in the editor before it reaches the API', async () => {
     const wrapper = await mountWorkspace();
 

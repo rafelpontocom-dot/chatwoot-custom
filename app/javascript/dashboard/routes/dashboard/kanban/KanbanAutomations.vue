@@ -1906,7 +1906,6 @@ const visualFlowValidationError = () => {
       return (
         !['whatsapp', 'email'].includes(data.channel) ||
         !data.content?.trim() ||
-        !data.opt_in_attribute_key?.trim() ||
         !validMessagePolicy(data)
       );
     }
