@@ -76,27 +76,10 @@ describe('RaevoAiView', () => {
   beforeEach(() => {
     adminMocks.isAdmin = false;
     RaevoAiAPI.get.mockResolvedValue({ data: {} });
-    RaevoAiAPI.getAssistantDraft.mockResolvedValue({ data: { draft: null } });
-    RaevoAiAPI.saveAssistantDraft.mockResolvedValue({ data: { draft: null } });
-    RaevoAiAPI.simulateAssistantDraft.mockResolvedValue({ data: {} });
-    RaevoAiAPI.reviewAssistantDraft.mockResolvedValue({ data: {} });
-    RaevoAiAPI.publishAssistantDraft.mockResolvedValue({ data: {} });
     RaevoAiAPI.getOpportunityTab.mockResolvedValue({
       data: { enabled: false, board_ids: [] },
     });
     KanbanBoardsAPI.getBoards.mockResolvedValue({ data: [] });
-  });
-
-  it('presents the three supported Elis service packages', async () => {
-    const wrapper = mountView();
-    await abrirAba(wrapper, 'assistant');
-
-    expect(wrapper.findAll('[data-testid="ai-service-package"]')).toHaveLength(
-      3
-    );
-    expect(wrapper.text()).toContain('RAEVO_AI.PACKAGES.QUALIFY_HANDOFF.TITLE');
-    expect(wrapper.text()).toContain('RAEVO_AI.PACKAGES.SCHEDULE.TITLE');
-    expect(wrapper.text()).toContain('RAEVO_AI.PACKAGES.COMPLETE.TITLE');
   });
 
   it('does not embed the legacy customer panel', () => {
@@ -179,118 +162,6 @@ describe('RaevoAiView', () => {
     expect(wrapper.text()).toContain('12');
     expect(wrapper.text()).toContain('2');
     expect(wrapper.text()).toContain('RAEVO_AI.OVERVIEW.METRICS.OPEN_REVIEWS');
-  });
-
-  it('shows the published capabilities as read-only operational context', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
-      data: {
-        connection_state: 'active',
-        operational_state: 'healthy',
-        overview: {
-          clinic_name: 'Clínica Exemplo',
-          capabilities: {
-            package: 'agenda',
-            capabilities: [
-              { id: 'atendimento', provider: null },
-              { id: 'crm', provider: 'chatwoot' },
-              { id: 'agenda', provider: 'feegow' },
-            ],
-          },
-          usage_30d: {},
-        },
-      },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-
-    const capabilities = wrapper.get('[data-testid="ai-capabilities"]');
-    expect(capabilities.text()).toContain('RAEVO_AI.CAPABILITIES.TITLE');
-    expect(capabilities.text()).toContain(
-      'RAEVO_AI.CAPABILITIES.ITEMS.ATENDIMENTO'
-    );
-    expect(capabilities.text()).toContain('RAEVO_AI.CAPABILITIES.ITEMS.CRM');
-    expect(capabilities.text()).toContain(
-      'RAEVO_AI.CAPABILITIES.PROVIDERS.CHATWOOT'
-    );
-    expect(capabilities.text()).toContain(
-      'RAEVO_AI.CAPABILITIES.PROVIDERS.FEEGOW'
-    );
-    expect(capabilities.find('button').exists()).toBe(false);
-  });
-
-  it('shows quality counts as investigation context without corrective controls', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
-      data: {
-        connection_state: 'active',
-        operational_state: 'healthy',
-        overview: {
-          clinic_name: 'Clínica Exemplo',
-          operational_quality: {
-            post_delivery_actions_pending: 1,
-            post_delivery_actions_applied: 4,
-            post_delivery_actions_failed: 2,
-            manual_reconciliations: 3,
-            attention_level: 'action_required',
-            attention_reasons: [
-              'post_delivery_actions_failed',
-              'post_delivery_actions_pending',
-              'manual_reconciliations',
-            ],
-          },
-          usage_30d: {},
-        },
-      },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-
-    const quality = wrapper.get('[data-testid="ai-operational-quality"]');
-    expect(quality.text()).toContain('RAEVO_AI.QUALITY.TITLE');
-    expect(quality.text()).toContain(
-      'RAEVO_AI.QUALITY.POST_DELIVERY_ACTIONS_PENDING'
-    );
-    expect(quality.text()).toContain('1');
-    expect(quality.text()).toContain('4');
-    expect(quality.text()).toContain('2');
-    expect(quality.text()).toContain('3');
-    expect(quality.text()).toContain(
-      'RAEVO_AI.QUALITY.POST_DELIVERY_ACTIONS_APPLIED'
-    );
-    expect(quality.text()).toContain(
-      'RAEVO_AI.QUALITY.ATTENTION_LEVELS.ACTION_REQUIRED'
-    );
-    expect(quality.text()).toContain(
-      'RAEVO_AI.QUALITY.ATTENTION_REASONS.POST_DELIVERY_ACTIONS_FAILED'
-    );
-    expect(quality.find('button').exists()).toBe(false);
-  });
-
-  it('shows only the active assistant identity and voice profile returned by the BFF', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
-      data: {
-        connection_state: 'active',
-        operational_state: 'healthy',
-        overview: {
-          clinic_name: 'Clínica Exemplo',
-          assistant_profile: {
-            identity: 'Secretária virtual da clínica.',
-            personality: 'Serena e objetiva.',
-            voice_style: 'Frases curtas e linguagem simples.',
-          },
-          usage_30d: {},
-        },
-      },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-
-    const profile = wrapper.get('[data-testid="ai-assistant-profile"]');
-    expect(profile.text()).toContain('Secretária virtual da clínica.');
-    expect(profile.text()).toContain('Serena e objetiva.');
-    expect(profile.text()).toContain('Frases curtas e linguagem simples.');
   });
 
   it('shows live token usage and separates reported from estimated cost', async () => {
@@ -387,262 +258,12 @@ describe('RaevoAiView', () => {
     );
   });
 
-  it('lets an administrator configure the CRM boards that expose the IA tab', async () => {
-    adminMocks.isAdmin = true;
-    RaevoAiAPI.getOpportunityTab.mockResolvedValue({
-      data: { enabled: false, board_ids: [] },
-    });
-    KanbanBoardsAPI.getBoards.mockResolvedValue({
-      data: [{ id: 14, name: 'Captação' }],
-    });
-    RaevoAiAPI.updateOpportunityTab.mockResolvedValue({
-      data: { enabled: true, board_ids: [14] },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-    await abrirAba(wrapper, 'assistant');
-
-    expect(
-      wrapper.find('[data-testid="ai-opportunity-tab-configuration"]').exists()
-    ).toBe(true);
-    const configuration = wrapper.get(
-      '[data-testid="ai-opportunity-tab-configuration"]'
-    );
-    await configuration.find('select[multiple]').setValue(['14']);
-    await configuration.find('input[type="checkbox"]').setValue(true);
-    await configuration
-      .find('[data-testid="ai-opportunity-tab-save"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(RaevoAiAPI.updateOpportunityTab).toHaveBeenCalledWith({
-      enabled: true,
-      board_ids: [14],
-    });
-  });
-
-  it('lets an administrator save only the three editable assistant clusters with its revision', async () => {
-    adminMocks.isAdmin = true;
-    RaevoAiAPI.getAssistantDraft.mockResolvedValue({
-      data: {
-        draft: {
-          revision: '2026-09-07T12:00:00.000Z',
-          editable_clusters: {
-            identity: { enabled: true, content: 'Secretária virtual.' },
-            personality: { enabled: true, content: 'Serena.' },
-            voice_style: { enabled: false, content: '' },
-          },
-        },
-      },
-    });
-    RaevoAiAPI.saveAssistantDraft.mockResolvedValue({
-      data: { draft: { revision: '2026-09-07T12:05:00.000Z' } },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-    await abrirAba(wrapper, 'assistant');
-
-    await wrapper
-      .get('[data-testid="ai-assistant-draft-identity"] textarea')
-      .setValue('Secretária virtual da clínica.');
-    await wrapper
-      .get('[data-testid="ai-assistant-draft-save"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(RaevoAiAPI.saveAssistantDraft).toHaveBeenCalledWith({
-      expected_revision: '2026-09-07T12:00:00.000Z',
-      editable_clusters: {
-        identity: { enabled: true, content: 'Secretária virtual da clínica.' },
-        personality: { enabled: true, content: 'Serena.' },
-        voice_style: { enabled: false, content: '' },
-      },
-    });
-  });
-
-  it('asks the administrator to reload instead of overwriting a conflicted draft', async () => {
-    adminMocks.isAdmin = true;
-    RaevoAiAPI.getAssistantDraft.mockResolvedValue({ data: { draft: null } });
-    RaevoAiAPI.saveAssistantDraft.mockRejectedValue({
-      response: { status: 409 },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-    await abrirAba(wrapper, 'assistant');
-    await wrapper
-      .get('[data-testid="ai-assistant-draft-save"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(
-      wrapper.get('[data-testid="ai-assistant-draft-conflict"]').text()
-    ).toContain('RAEVO_AI.ASSISTANT_DRAFT.CONFLICT');
-  });
-
-  it('shows the active version as read-only context beside the draft', async () => {
-    adminMocks.isAdmin = true;
-    RaevoAiAPI.getAssistantDraft.mockResolvedValue({
-      data: { draft: null, active_version: { version_number: 7 } },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-    await abrirAba(wrapper, 'assistant');
-
-    expect(wrapper.get('[data-testid="ai-assistant-draft"]').text()).toContain(
-      '7'
-    );
-  });
-
-  it('runs only an approved synthetic fixture against a saved draft and displays it as review-only', async () => {
-    adminMocks.isAdmin = true;
-    RaevoAiAPI.getAssistantDraft.mockResolvedValue({
-      data: {
-        draft: {
-          id: 'a0d18e55-64b1-4d93-a264-c02986186590',
-          revision: '2026-09-07T12:00:00.000Z',
-          editable_clusters: {
-            identity: { enabled: true, content: 'Secretária virtual.' },
-            personality: { enabled: true, content: 'Serena.' },
-            voice_style: { enabled: false, content: '' },
-          },
-        },
-      },
-    });
-    RaevoAiAPI.simulateAssistantDraft.mockResolvedValue({
-      data: {
-        simulation: {
-          response_bubbles: ['Olá! Sou a Elis.'],
-          intent: 'information_request',
-          execution: { delivery_disposition: 'discard' },
-        },
-        evaluation: { verdict: 'ready_for_human_review' },
-      },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-    await abrirAba(wrapper, 'assistant');
-    await wrapper
-      .get('[data-testid="ai-assistant-simulation-first_contact"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(RaevoAiAPI.simulateAssistantDraft).toHaveBeenCalledWith({
-      draft_id: 'a0d18e55-64b1-4d93-a264-c02986186590',
-      fixture_id: 'first_contact',
-    });
-    expect(
-      wrapper.get('[data-testid="ai-assistant-simulation-result"]').text()
-    ).toContain('Olá! Sou a Elis.');
-    expect(
-      wrapper.get('[data-testid="ai-assistant-simulation-result"]').text()
-    ).toContain('RAEVO_AI.ASSISTANT_SIMULATION.REVIEW_ONLY');
-  });
-
-  it('requires a fresh approved synthetic review before exposing the explicit publication action', async () => {
-    adminMocks.isAdmin = true;
-    RaevoAiAPI.getAssistantDraft.mockResolvedValue({
-      data: {
-        draft: {
-          id: 'a0d18e55-64b1-4d93-a264-c02986186590',
-          revision: '2026-09-07T12:00:00.000Z',
-          editable_clusters: {
-            identity: { enabled: true, content: 'Secretária virtual.' },
-            personality: { enabled: true, content: 'Serena.' },
-            voice_style: { enabled: false, content: '' },
-          },
-        },
-        active_version: {
-          id: '00000000-0000-0000-0000-000000000008',
-          version_number: 8,
-        },
-      },
-    });
-    RaevoAiAPI.simulateAssistantDraft.mockResolvedValue({
-      data: {
-        simulation: {
-          response_bubbles: ['Olá!'],
-          execution: { delivery_disposition: 'discard' },
-        },
-        evaluation: { verdict: 'ready_for_human_review' },
-      },
-    });
-    RaevoAiAPI.reviewAssistantDraft.mockResolvedValue({
-      data: { review: { id: '00000000-0000-0000-0000-000000000013' } },
-    });
-    RaevoAiAPI.publishAssistantDraft.mockResolvedValue({
-      data: {
-        publication: {
-          id: '00000000-0000-0000-0000-000000000014',
-          version_number: 9,
-        },
-      },
-    });
-
-    const wrapper = mountView();
-    await flushPromises();
-    await abrirAba(wrapper, 'assistant');
-    await wrapper
-      .get('[data-testid="ai-assistant-simulation-first_contact"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(
-      wrapper.find('[data-testid="ai-assistant-draft-publish"]').exists()
-    ).toBe(false);
-
-    await wrapper
-      .get('[data-testid="ai-assistant-draft-review"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(RaevoAiAPI.reviewAssistantDraft).toHaveBeenCalledWith({
-      draft_id: 'a0d18e55-64b1-4d93-a264-c02986186590',
-      fixture_id: 'first_contact',
-      expected_revision: '2026-09-07T12:00:00.000Z',
-      decision: 'approved',
-    });
-
-    await wrapper
-      .get('[data-testid="ai-assistant-draft-publication-confirmation"]')
-      .setValue(true);
-
-    await wrapper
-      .get('[data-testid="ai-assistant-draft-publish"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(RaevoAiAPI.publishAssistantDraft).toHaveBeenCalledWith({
-      draft_id: 'a0d18e55-64b1-4d93-a264-c02986186590',
-      expected_revision: '2026-09-07T12:00:00.000Z',
-      expected_active_version_id: '00000000-0000-0000-0000-000000000008',
-      review_id: '00000000-0000-0000-0000-000000000013',
-    });
-  });
-
   it('opens on the panel, which is what the clinic comes to see', async () => {
     const wrapper = mountView();
     await flushPromises();
 
     expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="ai-knowledge"]').exists()).toBe(false);
-  });
-
-  it('keeps the configuration out of the way until asked for', async () => {
-    // Antes das abas vivia tudo numa coluna só, e o que a clínica vinha ver
-    // ficava abaixo do que ela configura uma vez e nunca mais.
-    const wrapper = mountView();
-    await flushPromises();
-    await abrirAba(wrapper, 'assistant');
-
-    expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="ai-assistant-draft"]').exists()).toBe(
-      true
-    );
   });
 
   it('mounts the knowledge panel only on its own tab', async () => {
@@ -653,5 +274,78 @@ describe('RaevoAiView', () => {
     expect(
       wrapper.findComponent({ name: 'RaevoAiKnowledgePanel' }).exists()
     ).toBe(true);
+  });
+
+  it('shows only the contracted package, not a catalogue of what was not bought', async () => {
+    RaevoAiAPI.get.mockResolvedValue({
+      data: { status: 'active', package: 'agenda', usage_30d: {} },
+    });
+    const wrapper = mountView();
+    await flushPromises();
+    await abrirAba(wrapper, 'assistant');
+
+    const pacotes = wrapper.findAll('[data-testid="ai-service-package"]');
+    expect(pacotes).toHaveLength(1);
+    expect(pacotes[0].text()).toContain('RAEVO_AI.PACKAGES.SCHEDULE.TITLE');
+    expect(wrapper.text()).not.toContain('RAEVO_AI.PACKAGES.COMPLETE.TITLE');
+  });
+
+  it('says nothing rather than guessing when the package is unknown', async () => {
+    RaevoAiAPI.get.mockResolvedValue({
+      data: {
+        status: 'active',
+        package: 'pacote-que-nao-conhecemos',
+        usage_30d: {},
+      },
+    });
+    const wrapper = mountView();
+    await flushPromises();
+    await abrirAba(wrapper, 'assistant');
+
+    expect(wrapper.find('[data-testid="ai-service-package"]').exists()).toBe(
+      false
+    );
+    expect(
+      wrapper.find('[data-testid="ai-service-package-empty"]').exists()
+    ).toBe(true);
+  });
+
+  it('keeps the configuration out of the panel, which is only results', async () => {
+    RaevoAiAPI.get.mockResolvedValue({
+      data: { status: 'active', package: 'agenda', usage_30d: {} },
+    });
+    const wrapper = mountView();
+    await flushPromises();
+    await abrirAba(wrapper, 'assistant');
+
+    expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="ai-service-package"]').exists()).toBe(
+      true
+    );
+  });
+
+  describe('o que a clínica pediu para tirar do ecrã', () => {
+    // Estes seis cortes foram pedidos e ficaram por aplicar durante muito tempo.
+    // Ficam fixados aqui para não regressarem por distração.
+    const cortados = [
+      'ai-assistant-draft',
+      'ai-assistant-simulation',
+      'ai-opportunity-tab-configuration',
+      'ai-operational-quality',
+      'ai-assistant-profile',
+    ];
+
+    it.each(cortados)('não mostra %s em aba nenhuma', async testid => {
+      const wrapper = mountView();
+      await flushPromises();
+
+      const ausente = () => wrapper.find(`[data-testid="${testid}"]`).exists();
+
+      expect(ausente()).toBe(false);
+      await abrirAba(wrapper, 'assistant');
+      expect(ausente()).toBe(false);
+      await abrirAba(wrapper, 'knowledge');
+      expect(ausente()).toBe(false);
+    });
   });
 });

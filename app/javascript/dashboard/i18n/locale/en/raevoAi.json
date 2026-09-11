@@ -172,8 +172,8 @@
     },
     "PACKAGES": {
       "EYEBROW": "SERVICE MODEL",
-      "TITLE": "Supported Elis packages",
-      "DESCRIPTION": "Qualification-only is no longer offered. Every package includes CRM and a clear path to human handoff.",
+      "TITLE": "Your package",
+      "EMPTY": "Your plan does not name a package yet. Talk to Raevo.",
       "QUALIFY_HANDOFF": {
         "TITLE": "Service + qualification and handoff + CRM",
         "DESCRIPTION": "Elis qualifies the contact, keeps the CRM updated, and transfers the conversation to the team when needed."

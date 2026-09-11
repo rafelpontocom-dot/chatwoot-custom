@@ -172,8 +172,8 @@
     },
     "PACKAGES": {
       "EYEBROW": "MODELO DE ATENDIMENTO",
-      "TITLE": "Pacotes suportados pela Elis",
-      "DESCRIPTION": "A modalidade apenas de qualificação deixa de existir. Todos os pacotes incluem CRM e um caminho claro para transferência humana.",
+      "TITLE": "O seu pacote",
+      "EMPTY": "O seu plano ainda não indica um pacote. Fale com a Raevo.",
       "QUALIFY_HANDOFF": {
         "TITLE": "Atendimento, qualificação, transferência e CRM",
         "DESCRIPTION": "A Elis qualifica o contacto, mantém o CRM atualizado e transfere a conversa para a equipa quando necessário."
