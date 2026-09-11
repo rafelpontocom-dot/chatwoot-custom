@@ -245,6 +245,11 @@ const tailwindConfig = {
       'modal-backdrop-dark': 'rgba(0, 0, 0, 0.6)',
       current: 'currentColor',
       ...colors,
+      // Placa escura do painel da Elis — token em _raevo-tokens.scss.
+      'raevo-plate': 'rgb(var(--raevo-plate) / <alpha-value>)',
+      'raevo-plate-soft': 'rgb(var(--raevo-plate-soft) / <alpha-value>)',
+      'raevo-plate-fg': 'rgb(var(--raevo-plate-fg) / <alpha-value>)',
+      'raevo-plate-muted': 'rgb(var(--raevo-plate-muted) / <alpha-value>)',
       body: slateDark.slate7,
     },
     keyframes: {

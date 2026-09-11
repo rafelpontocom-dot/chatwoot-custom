@@ -93,7 +93,7 @@ RSpec.describe RaevoAi::OverviewClient do
 
       with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'server-secret' do
         expect(HTTParty).to receive(:get).with(
-          'https://elis.internal/internal/chatwoot/overview',
+          'https://elis.internal/internal/chatwoot/overview?days=30',
           headers: {
             'Accept' => 'application/json',
             'Authorization' => 'Bearer server-secret',
@@ -155,6 +155,30 @@ RSpec.describe RaevoAi::OverviewClient do
         expect { described_class.new(integration: integration).fetch }
           .to raise_error(RaevoAi::UpstreamError, 'Raevo AI service unavailable')
       end
+    end
+  end
+
+  it 'asks the bridge for the window the clinic chose' do
+    response = instance_double(HTTParty::Response, success?: true, body: { 'status' => 'active' }.to_json)
+
+    with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'server-secret' do
+      expect(HTTParty).to receive(:get).with(
+        'https://elis.internal/internal/chatwoot/overview?days=7', anything
+      ).and_return(response)
+
+      described_class.new(integration: integration).fetch(window_days: 7)
+    end
+  end
+
+  it 'falls back to thirty days instead of forwarding a window nobody offers' do
+    response = instance_double(HTTParty::Response, success?: true, body: { 'status' => 'active' }.to_json)
+
+    with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'server-secret' do
+      expect(HTTParty).to receive(:get).with(
+        'https://elis.internal/internal/chatwoot/overview?days=30', anything
+      ).and_return(response)
+
+      described_class.new(integration: integration).fetch(window_days: 4000)
     end
   end
 end

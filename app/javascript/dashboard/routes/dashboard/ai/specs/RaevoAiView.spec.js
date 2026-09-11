@@ -1,33 +1,25 @@
+import { computed } from 'vue';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import RaevoAiView from '../RaevoAiView.vue';
 import { routes } from '../routes';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import RaevoAiAPI from 'dashboard/api/raevoAi';
-import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 
 const adminMocks = vi.hoisted(() => ({ isAdmin: false }));
 
 vi.mock('dashboard/api/raevoAi', () => ({
   default: {
-    get: vi.fn(),
-    getAssistantDraft: vi.fn(),
-    saveAssistantDraft: vi.fn(),
-    simulateAssistantDraft: vi.fn(),
-    reviewAssistantDraft: vi.fn(),
-    publishAssistantDraft: vi.fn(),
-    getOpportunityTab: vi.fn(),
-    updateOpportunityTab: vi.fn(),
+    getOverview: vi.fn(),
+    getPauseState: vi.fn(),
+    savePauseState: vi.fn(),
+    getActivity: vi.fn(),
     getServiceHours: vi.fn(),
     saveServiceHours: vi.fn(),
   },
 }));
 
-vi.mock('dashboard/api/kanbanBoards', () => ({
-  default: { getBoards: vi.fn() },
-}));
-
 vi.mock('dashboard/composables/useAdmin', () => ({
-  useAdmin: () => ({ isAdmin: { value: adminMocks.isAdmin } }),
+  useAdmin: () => ({ isAdmin: computed(() => adminMocks.isAdmin) }),
 }));
 
 vi.mock('vue-i18n', () => ({
@@ -57,9 +49,10 @@ const mountView = () =>
             '<div><slot control-class="control" field-id="ai-tab-board-ids" /></div>',
         },
         NextButton: {
+          props: ['label'],
           emits: ['click'],
           template:
-            '<button v-bind="$attrs" type="button" @click="$emit(\'click\')"><slot /></button>',
+            '<button v-bind="$attrs" type="button" @click="$emit(\'click\')">{{ label }}<slot /></button>',
         },
         RaevoStamp: true,
         RaevoAiServiceHoursSettings: true,
@@ -75,11 +68,20 @@ const abrirAba = (wrapper, chave) =>
 describe('RaevoAiView', () => {
   beforeEach(() => {
     adminMocks.isAdmin = false;
-    RaevoAiAPI.get.mockResolvedValue({ data: {} });
-    RaevoAiAPI.getOpportunityTab.mockResolvedValue({
-      data: { enabled: false, board_ids: [] },
+    RaevoAiAPI.getOverview.mockResolvedValue({ data: {} });
+    RaevoAiAPI.getPauseState.mockResolvedValue({
+      data: {
+        state: { paused: false, paused_at: null, paused_by: null, revision: 1 },
+      },
     });
-    KanbanBoardsAPI.getBoards.mockResolvedValue({ data: [] });
+    RaevoAiAPI.savePauseState.mockResolvedValue({
+      data: {
+        state: { paused: true, paused_at: null, paused_by: null, revision: 2 },
+      },
+    });
+    RaevoAiAPI.getActivity.mockResolvedValue({
+      data: { recent: [], attention: { failed: 0, pending: 0 } },
+    });
   });
 
   it('does not embed the legacy customer panel', () => {
@@ -105,7 +107,7 @@ describe('RaevoAiView', () => {
   });
 
   it('loads the account overview through the Chatwoot BFF', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
+    RaevoAiAPI.getOverview.mockResolvedValue({
       data: {
         connection_state: 'active',
         operational_state: 'healthy',
@@ -154,7 +156,7 @@ describe('RaevoAiView', () => {
     const wrapper = mountView();
     await flushPromises();
 
-    expect(RaevoAiAPI.get).toHaveBeenCalledOnce();
+    expect(RaevoAiAPI.getOverview).toHaveBeenCalledOnce();
     expect(wrapper.get('[data-testid="ai-overview"]').text()).toContain(
       'Dra. Anna Alice'
     );
@@ -165,7 +167,7 @@ describe('RaevoAiView', () => {
   });
 
   it('shows live token usage and separates reported from estimated cost', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
+    RaevoAiAPI.getOverview.mockResolvedValue({
       data: {
         connection_state: 'active',
         operational_state: 'healthy',
@@ -197,7 +199,7 @@ describe('RaevoAiView', () => {
   });
 
   it('shows a safe error and retries the overview request', async () => {
-    RaevoAiAPI.get
+    RaevoAiAPI.getOverview
       .mockRejectedValueOnce(new Error('upstream detail must not render'))
       .mockResolvedValueOnce({ data: { clinic_name: 'Dra. Anna Alice' } });
 
@@ -212,14 +214,14 @@ describe('RaevoAiView', () => {
     await wrapper.get('[data-testid="ai-overview-retry"]').trigger('click');
     await flushPromises();
 
-    expect(RaevoAiAPI.get).toHaveBeenCalledTimes(2);
+    expect(RaevoAiAPI.getOverview).toHaveBeenCalledTimes(2);
     expect(wrapper.get('[data-testid="ai-overview"]').text()).toContain(
       'Dra. Anna Alice'
     );
   });
 
   it('explains that Elis is being prepared when the account is not configured', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
+    RaevoAiAPI.getOverview.mockResolvedValue({
       data: {
         connection_state: 'not_configured',
         operational_state: null,
@@ -239,7 +241,7 @@ describe('RaevoAiView', () => {
   });
 
   it('shows a paused state without presenting it as a service failure', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
+    RaevoAiAPI.getOverview.mockResolvedValue({
       data: {
         connection_state: 'paused',
         operational_state: null,
@@ -277,7 +279,7 @@ describe('RaevoAiView', () => {
   });
 
   it('shows only the contracted package, not a catalogue of what was not bought', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
+    RaevoAiAPI.getOverview.mockResolvedValue({
       data: { status: 'active', package: 'agenda', usage_30d: {} },
     });
     const wrapper = mountView();
@@ -291,7 +293,7 @@ describe('RaevoAiView', () => {
   });
 
   it('says nothing rather than guessing when the package is unknown', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
+    RaevoAiAPI.getOverview.mockResolvedValue({
       data: {
         status: 'active',
         package: 'pacote-que-nao-conhecemos',
@@ -311,7 +313,7 @@ describe('RaevoAiView', () => {
   });
 
   it('keeps the configuration out of the panel, which is only results', async () => {
-    RaevoAiAPI.get.mockResolvedValue({
+    RaevoAiAPI.getOverview.mockResolvedValue({
       data: { status: 'active', package: 'agenda', usage_30d: {} },
     });
     const wrapper = mountView();
@@ -346,6 +348,146 @@ describe('RaevoAiView', () => {
       expect(ausente()).toBe(false);
       await abrirAba(wrapper, 'knowledge');
       expect(ausente()).toBe(false);
+    });
+  });
+
+  describe('o botão de pausa', () => {
+    it('mostra o estado e a acção contrária a ele', async () => {
+      adminMocks.isAdmin = true;
+      const wrapper = mountView();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="ai-pause-state"]').text()).toContain(
+        'RAEVO_AI.PAUSE.STATE_ACTIVE'
+      );
+      expect(wrapper.find('[data-testid="ai-pause-toggle"]').text()).toContain(
+        'RAEVO_AI.PAUSE.PAUSE'
+      );
+    });
+
+    it('pede confirmação antes de calar a Elis, e desiste se disserem que não', async () => {
+      adminMocks.isAdmin = true;
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const wrapper = mountView();
+      await flushPromises();
+
+      await wrapper.find('[data-testid="ai-pause-toggle"]').trigger('click');
+      await flushPromises();
+
+      expect(confirmar).toHaveBeenCalled();
+      expect(RaevoAiAPI.savePauseState).not.toHaveBeenCalled();
+      confirmar.mockRestore();
+    });
+
+    it('pausa com a revisão que leu, para não escrever por cima de outra pessoa', async () => {
+      adminMocks.isAdmin = true;
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const wrapper = mountView();
+      await flushPromises();
+
+      await wrapper.find('[data-testid="ai-pause-toggle"]').trigger('click');
+      await flushPromises();
+
+      expect(RaevoAiAPI.savePauseState).toHaveBeenCalledWith({
+        paused: true,
+        expected_revision: 1,
+      });
+      confirmar.mockRestore();
+    });
+
+    it('retomar não pede confirmação: voltar a atender não é a decisão arriscada', async () => {
+      adminMocks.isAdmin = true;
+      RaevoAiAPI.getPauseState.mockResolvedValue({
+        data: {
+          state: {
+            paused: true,
+            paused_at: null,
+            paused_by: null,
+            revision: 3,
+          },
+        },
+      });
+      const confirmar = vi.spyOn(window, 'confirm');
+      const wrapper = mountView();
+      await flushPromises();
+
+      await wrapper.find('[data-testid="ai-pause-toggle"]').trigger('click');
+      await flushPromises();
+
+      expect(confirmar).not.toHaveBeenCalled();
+      expect(RaevoAiAPI.savePauseState).toHaveBeenCalledWith({
+        paused: false,
+        expected_revision: 3,
+      });
+      confirmar.mockRestore();
+    });
+
+    it('não oferece o botão a quem só atende conversas', async () => {
+      adminMocks.isAdmin = false;
+      const wrapper = mountView();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="ai-pause-state"]').exists()).toBe(
+        true
+      );
+      expect(wrapper.find('[data-testid="ai-pause-toggle"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('esconde o controlo em vez de derrubar o painel quando o estado não vem', async () => {
+      adminMocks.isAdmin = true;
+      RaevoAiAPI.getPauseState.mockRejectedValue(new Error('ponte em baixo'));
+      const wrapper = mountView();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="ai-pause-state"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(true);
+    });
+  });
+
+  describe('o filtro de período', () => {
+    it('começa em trinta dias, que é a pergunta que a clínica traz', async () => {
+      mountView();
+      await flushPromises();
+
+      expect(RaevoAiAPI.getOverview).toHaveBeenCalledWith(30);
+    });
+
+    it('volta a perguntar ao serviço quando muda a janela', async () => {
+      const wrapper = mountView();
+      await flushPromises();
+
+      await wrapper
+        .findAll('[data-testid="ai-window-filter"] button')[0]
+        .trigger('click');
+      await flushPromises();
+
+      expect(RaevoAiAPI.getOverview).toHaveBeenLastCalledWith(7);
+    });
+  });
+
+  describe('o que precisa de uma pessoa', () => {
+    it('só aparece quando há mesmo algo parado', async () => {
+      const wrapper = mountView();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="ai-needs-you"]').exists()).toBe(false);
+    });
+
+    it('conta as falhas e as acções que ficaram por concluir', async () => {
+      RaevoAiAPI.getActivity.mockResolvedValue({
+        data: { recent: [], attention: { failed: 2, pending: 1 } },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+
+      const bloco = wrapper.find('[data-testid="ai-needs-you"]');
+      expect(bloco.exists()).toBe(true);
+      expect(bloco.text()).toContain('RAEVO_AI.ACTIVITY.FAILED');
+      expect(bloco.text()).toContain('RAEVO_AI.ACTIVITY.PENDING');
     });
   });
 });

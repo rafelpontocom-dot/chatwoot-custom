@@ -6,7 +6,7 @@ class Api::V1::Accounts::RaevoAi::OverviewController < Api::V1::Accounts::BaseCo
     return render_state('not_configured') unless integration
     return render_state('paused') unless integration.enabled?
 
-    overview = RaevoAi::OverviewClient.new(integration: integration).fetch
+    overview = RaevoAi::OverviewClient.new(integration: integration).fetch(window_days: window_days)
     render json: {
       connection_state: 'active',
       operational_state: 'healthy',
@@ -20,6 +20,13 @@ class Api::V1::Accounts::RaevoAi::OverviewController < Api::V1::Accounts::BaseCo
 
   def authorize_account
     authorize Current.account, :show?
+  end
+
+  # Janela fora das três oferecidas cai em 30 em vez de recusar: um filtro
+  # estragado não deve deixar a clínica sem painel.
+  def window_days
+    dias = params[:days].to_i
+    RaevoAi::OverviewClient::WINDOW_DAYS.include?(dias) ? dias : 30
   end
 
   def render_state(connection_state)

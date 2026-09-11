@@ -9,6 +9,10 @@
     },
     "OVERVIEW": {
       "EYEBROW": "OPERAÇÃO",
+      "PLATE_ACTIVE": "A Elis está a atender normalmente.",
+      "PLATE_PAUSED": "A Elis está pausada e não responde a ninguém.",
+      "WINDOW_LABEL": "Período mostrado",
+      "WINDOW_DAYS": "Últimos %{days} dias",
       "TITLE": "Resumo da Elis",
       "LOADING": "A carregar o resumo da Elis",
       "CLINIC_FALLBACK": "Clínica",
@@ -38,15 +42,15 @@
         "DESCRIPTION": "A Elis não está ligada ou está em pausa nesta conta. Não responderá às conversas."
       },
       "METRICS": {
-        "CONVERSATIONS": "Conversas nos últimos 30 dias",
-        "HANDOFFS": "Transferências nos últimos 30 dias",
-        "APPOINTMENTS": "Marcações nos últimos 30 dias",
-        "PAYMENTS": "Pagamentos nos últimos 30 dias",
+        "CONVERSATIONS": "Conversas nos últimos %{days} dias",
+        "HANDOFFS": "Passagens para humano nos últimos %{days} dias",
+        "APPOINTMENTS": "Agendamentos nos últimos %{days} dias",
+        "PAYMENTS": "Pagamentos nos últimos %{days} dias",
         "KNOWLEDGE": "Itens de conhecimento",
         "PROMPT_VERSION": "Versão ativa do prompt",
         "OPEN_REVIEWS": "Revisões abertas",
-        "TOKENS": "Tokens de IA nos últimos 30 dias",
-        "COST": "Custo de IA nos últimos 30 dias"
+        "TOKENS": "Tokens de IA nos últimos %{days} dias",
+        "COST": "Custo de IA nos últimos %{days} dias"
       },
       "ASSISTANT_PROFILE": {
         "EYEBROW": "CONFIGURAÇÃO ATIVA",
@@ -169,6 +173,20 @@
       "PUBLISH": "Publicar rascunho revisto",
       "PUBLICATION_SUCCEEDED": "O rascunho revisto foi publicado para as próximas conversas.",
       "PUBLICATION_ERROR": "Não foi possível publicar o rascunho. A configuração ativa permanece inalterada."
+    },
+    "PAUSE": {
+      "STATE_ACTIVE": "A atender",
+      "STATE_PAUSED": "Pausada",
+      "PAUSE": "Pausar",
+      "RESUME": "Retomar",
+      "CONFIRM": "A Elis deixa de responder aos doentes até retomar. Continuar?",
+      "CONFLICT": "Outra pessoa alterou isto. Recarregue para ver o estado actual.",
+      "UNAVAILABLE": "Não foi possível falar com o serviço da assistente."
+    },
+    "ACTIVITY": {
+      "EYEBROW": "PRECISA DE SI",
+      "FAILED": "%{count} acção falhou e não foi aplicada",
+      "PENDING": "%{count} acção reservada e nunca concluída"
     },
     "PACKAGES": {
       "EYEBROW": "MODELO DE ATENDIMENTO",

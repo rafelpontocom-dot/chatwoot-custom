@@ -1,7 +1,12 @@
 class RaevoAi::OverviewClient
   REQUEST_TIMEOUT_SECONDS = 10
   NETWORK_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED].freeze
-  PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews generated_at last_delivered_at].freeze
+  PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews generated_at last_delivered_at
+                     usage_window_days].freeze
+
+  # As três janelas que o painel oferece. Fechada de propósito: um número vindo
+  # do browser não deve escolher o alcance de uma varredura na base da clínica.
+  WINDOW_DAYS = [7, 30, 90].freeze
   PUBLIC_ASSISTANT_PROFILE_FIELDS = %w[identity personality voice_style].freeze
   PUBLIC_OPERATIONAL_QUALITY_FIELDS = %w[
     post_delivery_actions_pending post_delivery_actions_applied post_delivery_actions_failed manual_reconciliations
@@ -25,10 +30,10 @@ class RaevoAi::OverviewClient
     @integration = integration
   end
 
-  def fetch
+  def fetch(window_days: 30)
     validate_configuration!
 
-    response = HTTParty.get(endpoint, headers: headers, timeout: REQUEST_TIMEOUT_SECONDS)
+    response = HTTParty.get(endpoint(window_days), headers: headers, timeout: REQUEST_TIMEOUT_SECONDS)
     raise RaevoAi::UpstreamError, 'Raevo AI service unavailable' unless response.success?
 
     sanitize(JSON.parse(response.body))
@@ -44,8 +49,9 @@ class RaevoAi::OverviewClient
     raise RaevoAi::ConfigurationError, 'Raevo AI service is not configured'
   end
 
-  def endpoint
-    "#{service_url.delete_suffix('/')}/internal/chatwoot/overview"
+  def endpoint(window_days)
+    dias = WINDOW_DAYS.include?(window_days) ? window_days : 30
+    "#{service_url.delete_suffix('/')}/internal/chatwoot/overview?days=#{dias}"
   end
 
   def headers

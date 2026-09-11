@@ -2,10 +2,10 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAdmin } from 'dashboard/composables/useAdmin';
-import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import RaevoAiKnowledgePanel from './RaevoAiKnowledgePanel.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoAiAPI from 'dashboard/api/raevoAi';
 import RaevoAiServiceHoursSettings from './RaevoAiServiceHoursSettings.vue';
 
@@ -28,16 +28,26 @@ const mudarAba = aba => {
   abaAtiva.value = aba.key;
 };
 
+// A janela que a clínica escolheu ver. Trinta dias por omissão porque é o que
+// responde «como foi o mês», que é a pergunta que ela traz.
+const windowDays = ref(30);
+const windowOptions = [7, 30, 90];
+
+// Pausa: o estado vem do serviço, e é ele que o botão altera. Sem isto o botão
+// existia no ecrã e não parava nada — foi assim durante toda a construção.
+const pauseState = ref(null);
+const isSavingPause = ref(false);
+const pauseError = ref(null);
+
+// O que a Elis fez e o que ficou por resolver.
+const activity = ref({ recent: [], attention: { failed: 0, pending: 0 } });
+
 const overview = ref(null);
 const isLoading = ref(true);
 const hasError = ref(false);
 const isPreparing = ref(false);
 const isPaused = ref(false);
 const { isAdmin } = useAdmin();
-const aiTabConfiguration = ref({ enabled: false, board_ids: [] });
-const aiTabBoardOptions = ref([]);
-const isLoadingAiTabConfiguration = ref(false);
-const aiTabConfigurationError = ref(false);
 const formatTokens = value =>
   Number.isFinite(Number(value))
     ? new Intl.NumberFormat('en-US').format(Number(value))
@@ -62,22 +72,26 @@ const usageCost = computed(() => {
 const overviewMetrics = computed(() => [
   {
     key: 'CONVERSATIONS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.CONVERSATIONS'),
+    label: t('RAEVO_AI.OVERVIEW.METRICS.CONVERSATIONS', {
+      days: windowDays.value,
+    }),
     value: overview.value?.usage_30d?.conversations,
   },
   {
     key: 'HANDOFFS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.HANDOFFS'),
+    label: t('RAEVO_AI.OVERVIEW.METRICS.HANDOFFS', { days: windowDays.value }),
     value: overview.value?.usage_30d?.handoffs,
   },
   {
     key: 'APPOINTMENTS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.APPOINTMENTS'),
+    label: t('RAEVO_AI.OVERVIEW.METRICS.APPOINTMENTS', {
+      days: windowDays.value,
+    }),
     value: overview.value?.usage_30d?.appointments,
   },
   {
     key: 'PAYMENTS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.PAYMENTS'),
+    label: t('RAEVO_AI.OVERVIEW.METRICS.PAYMENTS', { days: windowDays.value }),
     value: overview.value?.usage_30d?.payments,
   },
   {
@@ -97,7 +111,7 @@ const overviewMetrics = computed(() => [
   },
   {
     key: 'TOKENS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.TOKENS'),
+    label: t('RAEVO_AI.OVERVIEW.METRICS.TOKENS', { days: windowDays.value }),
     value: formatTokens(
       Number(usage.value.prompt_tokens || 0) +
         Number(usage.value.completion_tokens || 0)
@@ -105,7 +119,7 @@ const overviewMetrics = computed(() => [
   },
   {
     key: 'COST',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.COST'),
+    label: t('RAEVO_AI.OVERVIEW.METRICS.COST', { days: windowDays.value }),
     value: usageCost.value,
   },
 ]);
@@ -145,7 +159,7 @@ const loadOverview = async () => {
   isPaused.value = false;
 
   try {
-    const { data } = await RaevoAiAPI.get();
+    const { data } = await RaevoAiAPI.getOverview(windowDays.value);
     const connectionState = data?.connection_state;
     overview.value = connectionState ? data.overview : data;
     isPreparing.value = connectionState === 'not_configured';
@@ -160,42 +174,59 @@ const loadOverview = async () => {
   }
 };
 
-onMounted(loadOverview);
-
-const normalizeCollection = response => {
-  const data = response?.data;
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.payload)) return data.payload;
-  return [];
-};
-const loadAiTabConfiguration = async () => {
-  if (!isAdmin.value) return;
-
-  isLoadingAiTabConfiguration.value = true;
-  aiTabConfigurationError.value = false;
+const loadPauseState = async () => {
   try {
-    const [{ data }, boardsResponse] = await Promise.all([
-      RaevoAiAPI.getOpportunityTab(),
-      KanbanBoardsAPI.getBoards(),
-    ]);
-    aiTabConfiguration.value = {
-      enabled: data?.enabled === true,
-      board_ids: Array(data?.board_ids).map(Number),
-    };
-    aiTabBoardOptions.value = normalizeCollection(boardsResponse).map(
-      board => ({
-        id: Number(board.id),
-        name: board.name,
-      })
-    );
+    const { data } = await RaevoAiAPI.getPauseState();
+    pauseState.value = data.state;
   } catch {
-    aiTabConfigurationError.value = true;
-  } finally {
-    isLoadingAiTabConfiguration.value = false;
+    // O painel não fica refém do estado de pausa: sem ele o botão esconde-se,
+    // em vez de o ecrã inteiro falhar por causa de um controlo.
+    pauseState.value = null;
   }
 };
 
-onMounted(loadAiTabConfiguration);
+const loadActivity = async () => {
+  try {
+    const { data } = await RaevoAiAPI.getActivity();
+    activity.value = data;
+  } catch {
+    activity.value = { recent: [], attention: { failed: 0, pending: 0 } };
+  }
+};
+
+const togglePause = async () => {
+  const queroPausar = !pauseState.value?.paused;
+  // Pausar faz a clínica deixar de responder ao paciente: pede confirmação.
+  // Retomar não pede — voltar a atender não é a decisão arriscada.
+  // eslint-disable-next-line no-alert
+  if (queroPausar && !window.confirm(t('RAEVO_AI.PAUSE.CONFIRM'))) return;
+
+  isSavingPause.value = true;
+  pauseError.value = null;
+  try {
+    const { data } = await RaevoAiAPI.savePauseState({
+      paused: queroPausar,
+      expected_revision: pauseState.value?.revision ?? null,
+    });
+    pauseState.value = data.state;
+  } catch (e) {
+    pauseError.value =
+      e?.response?.status === 409
+        ? t('RAEVO_AI.PAUSE.CONFLICT')
+        : t('RAEVO_AI.PAUSE.UNAVAILABLE');
+  } finally {
+    isSavingPause.value = false;
+  }
+};
+
+const changeWindow = async dias => {
+  windowDays.value = dias;
+  await loadOverview();
+};
+
+onMounted(loadOverview);
+onMounted(loadPauseState);
+onMounted(loadActivity);
 
 const servicePackages = computed(() => [
   {
@@ -248,6 +279,48 @@ const contractedPackage = computed(() => {
         :title="t('RAEVO_AI.TITLE')"
         :subtitle="t('RAEVO_AI.SUBTITLE')"
       >
+        <template #actions>
+          <div v-if="pauseState" class="flex items-center gap-2">
+            <span
+              data-testid="ai-pause-state"
+              class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+              :class="
+                pauseState.paused
+                  ? 'bg-n-amber-3 text-n-amber-11'
+                  : 'bg-n-teal-3 text-n-teal-11'
+              "
+            >
+              <i
+                :class="
+                  pauseState.paused
+                    ? 'i-lucide-circle-pause'
+                    : 'i-lucide-circle-check'
+                "
+                class="size-3.5"
+                aria-hidden="true"
+              />
+              {{
+                pauseState.paused
+                  ? t('RAEVO_AI.PAUSE.STATE_PAUSED')
+                  : t('RAEVO_AI.PAUSE.STATE_ACTIVE')
+              }}
+            </span>
+            <NextButton
+              v-if="isAdmin"
+              data-testid="ai-pause-toggle"
+              size="sm"
+              :variant="pauseState.paused ? 'solid' : 'faded'"
+              :is-loading="isSavingPause"
+              :label="
+                pauseState.paused
+                  ? t('RAEVO_AI.PAUSE.RESUME')
+                  : t('RAEVO_AI.PAUSE.PAUSE')
+              "
+              @click="togglePause"
+            />
+          </div>
+        </template>
+
         <template #tabs>
           <TabBar
             data-testid="ai-tabs"
@@ -370,22 +443,96 @@ const contractedPackage = computed(() => {
           </div>
 
           <div v-else data-testid="ai-overview" class="mt-4">
-            <div class="flex flex-wrap items-center gap-2">
-              <p class="text-sm font-semibold text-n-slate-12">
+            <!-- A placa. Existe para responder de relance à única pergunta
+                 que a clínica traz ao abrir isto: a Elis está a atender? -->
+            <section
+              data-testid="ai-plate"
+              class="rounded-xl bg-raevo-plate p-4 lg:p-5"
+            >
+              <h3 class="mt-1 text-xl font-semibold text-raevo-plate-fg">
+                {{
+                  pauseState?.paused
+                    ? t('RAEVO_AI.OVERVIEW.PLATE_PAUSED')
+                    : t('RAEVO_AI.OVERVIEW.PLATE_ACTIVE')
+                }}
+              </h3>
+              <p class="mt-1 text-sm text-raevo-plate-muted">
                 {{
                   overview?.clinic_name ||
                   t('RAEVO_AI.OVERVIEW.CLINIC_FALLBACK')
                 }}
+                <span v-if="contractedPackage">
+                  {{ ` · ${contractedPackage.title}` }}
+                </span>
               </p>
-              <span
-                class="rounded-full bg-n-teal-3 px-2 py-0.5 text-xs font-medium text-n-teal-11"
+
+              <div
+                data-testid="ai-window-filter"
+                class="mt-4 flex flex-wrap gap-1.5"
+                role="group"
+                :aria-label="t('RAEVO_AI.OVERVIEW.WINDOW_LABEL')"
               >
-                {{ overview?.status || t('RAEVO_AI.OVERVIEW.STATUS_UNKNOWN') }}
-              </span>
-              <span v-if="overview?.package" class="text-xs text-n-slate-10">
-                {{ overview.package }}
-              </span>
-            </div>
+                <button
+                  v-for="dias in windowOptions"
+                  :key="dias"
+                  type="button"
+                  :aria-pressed="windowDays === dias"
+                  class="px-3 py-1 text-xs font-medium"
+                  :class="
+                    windowDays === dias
+                      ? 'bg-raevo-plate-fg text-raevo-plate'
+                      : 'bg-raevo-plate-soft text-raevo-plate-muted'
+                  "
+                  @click="changeWindow(dias)"
+                >
+                  {{ t('RAEVO_AI.OVERVIEW.WINDOW_DAYS', { days: dias }) }}
+                </button>
+              </div>
+            </section>
+
+            <!-- O que precisa de uma pessoa. Vem do registo de comandos do
+                 próprio Chatwoot, não do serviço: é dado que já está aqui. -->
+            <section
+              v-if="activity.attention.failed || activity.attention.pending"
+              data-testid="ai-needs-you"
+              class="mt-3 rounded-xl border border-n-amber-8 bg-n-amber-2 p-4"
+              role="status"
+            >
+              <p class="text-micro font-semibold uppercase text-n-slate-10">
+                {{ t('RAEVO_AI.ACTIVITY.EYEBROW') }}
+              </p>
+              <ul class="mt-2 flex list-none flex-col gap-1 p-0">
+                <li
+                  v-if="activity.attention.failed"
+                  class="text-sm text-n-slate-12"
+                >
+                  {{
+                    t('RAEVO_AI.ACTIVITY.FAILED', {
+                      count: activity.attention.failed,
+                    })
+                  }}
+                </li>
+                <li
+                  v-if="activity.attention.pending"
+                  class="text-sm text-n-slate-12"
+                >
+                  {{
+                    t('RAEVO_AI.ACTIVITY.PENDING', {
+                      count: activity.attention.pending,
+                    })
+                  }}
+                </li>
+              </ul>
+            </section>
+
+            <p
+              v-if="pauseError"
+              data-testid="ai-pause-error"
+              class="mt-3 text-sm text-n-ruby-11"
+              role="alert"
+            >
+              {{ pauseError }}
+            </p>
 
             <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div

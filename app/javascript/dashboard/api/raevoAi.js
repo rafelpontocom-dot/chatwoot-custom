@@ -6,6 +6,10 @@ class RaevoAiAPI extends ApiClient {
     super('raevo_ai/overview', { accountScoped: true });
   }
 
+  getOverview(days) {
+    return axios.get(`${this.url}`, { params: { days } });
+  }
+
   getOpportunityTab() {
     return axios.get(`${this.baseUrl()}/raevo_ai/opportunity_tab`);
   }

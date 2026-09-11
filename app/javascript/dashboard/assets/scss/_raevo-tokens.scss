@@ -173,6 +173,15 @@
   --raevo-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, system-ui,
     BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
+  // A placa escura do painel da Elis: o bloco que diz, de relance, se ela está
+  // a atender. É deliberadamente escura nos dois temas — não é uma superfície
+  // neutra que inverte, é uma peça de destaque. Por isso não usa `--slate-12`,
+  // que troca de lado no tema escuro e deixaria a placa branca.
+  --raevo-plate: 17 24 39;
+  --raevo-plate-soft: 31 41 55;
+  --raevo-plate-fg: 249 250 251;
+  --raevo-plate-muted: 156 163 175;
+
   --raevo-radius-card: 13px;
   --raevo-radius-item: 11px;
   --raevo-radius-control: 9999px;   // controles são pílulas

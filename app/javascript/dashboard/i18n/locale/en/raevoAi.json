@@ -9,6 +9,10 @@
     },
     "OVERVIEW": {
       "EYEBROW": "OPERATIONS",
+      "PLATE_ACTIVE": "Elis is answering normally.",
+      "PLATE_PAUSED": "Elis is paused and answering nobody.",
+      "WINDOW_LABEL": "Period shown",
+      "WINDOW_DAYS": "Last %{days} days",
       "TITLE": "Elis overview",
       "LOADING": "Loading Elis overview",
       "CLINIC_FALLBACK": "Clinic",
@@ -38,15 +42,15 @@
         "DESCRIPTION": "No conversations are being answered while the service is paused."
       },
       "METRICS": {
-        "CONVERSATIONS": "Conversations in the last 30 days",
-        "HANDOFFS": "Handoffs in the last 30 days",
-        "APPOINTMENTS": "Appointments in the last 30 days",
-        "PAYMENTS": "Payments in the last 30 days",
+        "CONVERSATIONS": "Conversations in the last %{days} days",
+        "HANDOFFS": "Handoffs in the last %{days} days",
+        "APPOINTMENTS": "Appointments in the last %{days} days",
+        "PAYMENTS": "Payments in the last %{days} days",
         "KNOWLEDGE": "Knowledge items",
         "PROMPT_VERSION": "Active prompt version",
         "OPEN_REVIEWS": "Open reviews",
-        "TOKENS": "AI tokens in the last 30 days",
-        "COST": "AI cost in the last 30 days"
+        "TOKENS": "AI tokens in the last %{days} days",
+        "COST": "AI cost in the last %{days} days"
       },
       "ASSISTANT_PROFILE": {
         "EYEBROW": "ACTIVE CONFIGURATION",
@@ -169,6 +173,20 @@
       "PUBLISH": "Publish reviewed draft",
       "PUBLICATION_SUCCEEDED": "The reviewed draft was published for future conversations.",
       "PUBLICATION_ERROR": "The draft could not be published. The active assistant configuration remains unchanged."
+    },
+    "PAUSE": {
+      "STATE_ACTIVE": "Answering",
+      "STATE_PAUSED": "Paused",
+      "PAUSE": "Pause",
+      "RESUME": "Resume",
+      "CONFIRM": "Elis stops answering patients until you resume. Continue?",
+      "CONFLICT": "Someone else changed this. Reload to see the current state.",
+      "UNAVAILABLE": "Could not reach the assistant service."
+    },
+    "ACTIVITY": {
+      "EYEBROW": "NEEDS YOU",
+      "FAILED": "%{count} action failed and was not applied",
+      "PENDING": "%{count} action claimed and never finished"
     },
     "PACKAGES": {
       "EYEBROW": "SERVICE MODEL",
