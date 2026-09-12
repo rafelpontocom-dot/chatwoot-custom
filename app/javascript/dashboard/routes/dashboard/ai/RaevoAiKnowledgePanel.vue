@@ -248,9 +248,9 @@ onMounted(carregar);
 <template>
   <section
     data-testid="ai-knowledge"
-    class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
+    class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-6"
   >
-    <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0">
         <h2 class="text-base font-semibold text-n-slate-12">
           {{ t('RAEVO_AI.KNOWLEDGE.TITLE') }}
@@ -268,7 +268,7 @@ onMounted(carregar);
       />
     </div>
 
-    <div v-if="isLoading" class="mt-4 grid gap-3 sm:grid-cols-3" role="status">
+    <div v-if="isLoading" class="mt-4 grid gap-4 sm:grid-cols-3" role="status">
       <div
         v-for="index in 3"
         :key="index"
@@ -279,7 +279,7 @@ onMounted(carregar);
     <div
       v-else-if="error"
       data-testid="ai-knowledge-error"
-      class="mt-4 flex items-start gap-3 rounded-xl border border-n-ruby-8 bg-n-ruby-2 p-4"
+      class="mt-4 flex items-start gap-4 rounded-xl border border-n-ruby-8 bg-n-ruby-2 p-4"
       role="alert"
     >
       <i
@@ -307,9 +307,9 @@ onMounted(carregar);
         </p>
 
         <div
-          class="mt-3 grid gap-px overflow-hidden rounded-xl bg-n-weak sm:grid-cols-2"
+          class="mt-4 grid gap-px overflow-hidden rounded-xl bg-n-weak sm:grid-cols-2"
         >
-          <div class="bg-n-teal-2 p-3">
+          <div class="bg-n-teal-2 p-4">
             <span class="text-micro font-semibold uppercase text-n-slate-10">
               {{ t('RAEVO_AI.KNOWLEDGE.ACTIVE_BASE') }}
             </span>
@@ -324,7 +324,7 @@ onMounted(carregar);
             </strong>
             <small
               v-if="versaoActiva"
-              class="mt-0.5 block text-xs text-n-slate-10"
+              class="mt-1 block text-xs text-n-slate-10"
             >
               {{
                 t('RAEVO_AI.KNOWLEDGE.PUBLISHED_BY', {
@@ -334,7 +334,7 @@ onMounted(carregar);
             </small>
           </div>
 
-          <div class="flex items-center gap-3 bg-n-solid-1 p-3">
+          <div class="flex items-center gap-4 bg-n-solid-1 p-4">
             <span class="min-w-0 flex-1">
               <span class="text-micro font-semibold uppercase text-n-slate-10">
                 {{ t('RAEVO_AI.KNOWLEDGE.DRAFT') }}
@@ -350,7 +350,7 @@ onMounted(carregar);
               </strong>
               <small
                 v-if="temRascunhoPorPublicar"
-                class="mt-0.5 block text-xs text-n-slate-10"
+                class="mt-1 block text-xs text-n-slate-10"
               >
                 {{ t('RAEVO_AI.KNOWLEDGE.DRAFT_NOT_LIVE') }}
               </small>
@@ -379,7 +379,7 @@ onMounted(carregar);
 
           <ul
             data-testid="ai-knowledge-coverage"
-            class="mt-2 flex list-none flex-wrap gap-1.5 p-0"
+            class="mt-2 flex list-none flex-wrap gap-2 p-0"
           >
             <li
               v-for="assunto in coberturaPorAssunto"
@@ -408,7 +408,7 @@ onMounted(carregar);
       <div
         v-if="temRascunhoPorPublicar"
         data-testid="ai-knowledge-draft-pending"
-        class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-n-amber-8 bg-n-amber-2 p-4"
+        class="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-n-amber-8 bg-n-amber-2 p-4"
         role="status"
       >
         <span class="flex items-center gap-2 text-sm text-n-slate-12">
@@ -431,7 +431,7 @@ onMounted(carregar);
       <div
         v-if="temasPorConfirmar.length"
         data-testid="ai-knowledge-sensitive"
-        class="mt-3 rounded-xl border border-n-amber-8 bg-n-solid-1 p-4"
+        class="mt-4 rounded-xl border border-n-amber-8 bg-n-solid-1 p-4"
         role="alertdialog"
         :aria-label="t('RAEVO_AI.KNOWLEDGE.SENSITIVE_TITLE')"
       >
@@ -450,7 +450,7 @@ onMounted(carregar);
             {{ rotuloDoAssunto(tema) }}
           </li>
         </ul>
-        <div class="mt-3 flex flex-wrap gap-2">
+        <div class="mt-4 flex flex-wrap gap-2">
           <NextButton
             data-testid="ai-knowledge-sensitive-confirm"
             size="sm"
@@ -470,7 +470,7 @@ onMounted(carregar);
       <p
         v-if="notice"
         data-testid="ai-knowledge-notice"
-        class="mt-3 text-sm text-n-teal-11"
+        class="mt-4 text-sm text-n-teal-11"
         role="status"
       >
         {{ notice }}
@@ -496,7 +496,7 @@ onMounted(carregar);
                assuntos atrás de um clique; assim vê-se o que há. -->
           <div
             data-testid="ai-knowledge-filters"
-            class="mt-2 flex flex-wrap gap-1.5"
+            class="mt-2 flex flex-wrap gap-2"
             role="group"
             :aria-label="t('RAEVO_AI.KNOWLEDGE.FIELD_TOPIC')"
           >
@@ -528,11 +528,11 @@ onMounted(carregar);
             {{ t('RAEVO_AI.KNOWLEDGE.EMPTY_DESCRIPTION') }}
           </p>
 
-          <ul v-else class="mt-3 flex list-none flex-col gap-2 p-0">
+          <ul v-else class="mt-4 flex list-none flex-col gap-2 p-0">
             <li v-for="item in itensFiltrados" :key="item.id ?? item.title">
               <button
                 type="button"
-                class="raevo-card w-full bg-n-alpha-1 p-3 text-left hover:bg-n-alpha-2"
+                class="raevo-card w-full bg-n-alpha-1 p-4 text-left hover:bg-n-alpha-2"
                 @click="editar(item)"
               >
                 <span
@@ -553,7 +553,7 @@ onMounted(carregar);
 
         <div v-if="emEdicao" data-testid="ai-knowledge-editor" class="min-w-0">
           <div
-            class="flex flex-col gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+            class="flex flex-col gap-4 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
           >
             <RaevoField :label="t('RAEVO_AI.KNOWLEDGE.FIELD_TITLE')">
               <template #default="{ controlClass, fieldId }">
@@ -619,7 +619,7 @@ onMounted(carregar);
                  passou, que seria pior. -->
             <ul
               data-testid="ai-knowledge-checks"
-              class="mb-3 flex list-none flex-col gap-1.5 rounded-lg border border-n-amber-8 bg-n-amber-2 p-3"
+              class="mb-3 flex list-none flex-col gap-2 rounded-lg border border-n-amber-8 bg-n-amber-2 p-4"
             >
               <li
                 v-for="aviso in avisos"
@@ -627,7 +627,7 @@ onMounted(carregar);
                 class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 text-xs leading-5"
               >
                 <i
-                  class="mt-0.5 size-3.5"
+                  class="mt-1 size-3.5"
                   :class="{
                     'i-lucide-check text-n-teal-11': aviso.state === 'pass',
                     'i-lucide-circle-alert text-n-ruby-11':
@@ -677,7 +677,7 @@ onMounted(carregar);
           <li
             v-for="version in historico"
             :key="version.id"
-            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-3"
+            class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
           >
             <div class="min-w-0">
               <p class="text-sm font-semibold text-n-slate-12">
@@ -720,7 +720,7 @@ onMounted(carregar);
         <!-- Voltar não é desfazer uma edição: troca a base inteira pelo que
                estava naquela data. O aviso é vermelho de propósito. -->
         <p
-          class="mt-3 rounded-lg border border-n-ruby-8 bg-n-ruby-2 px-3 py-2 text-xs leading-5 text-n-ruby-11"
+          class="mt-4 rounded-lg border border-n-ruby-8 bg-n-ruby-2 px-3 py-2 text-xs leading-5 text-n-ruby-11"
         >
           {{ t('RAEVO_AI.KNOWLEDGE.ROLLBACK_WARNING') }}
         </p>

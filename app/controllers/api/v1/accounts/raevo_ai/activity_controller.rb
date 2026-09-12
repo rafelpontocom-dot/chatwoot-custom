@@ -51,22 +51,39 @@ class Api::V1::Accounts::RaevoAi::ActivityController < Api::V1::Accounts::BaseCo
       command_type: known_command_type(command.command_type),
       state: command.state,
       occurred_at: command.created_at.iso8601,
-      conversation_id: conversation_reference(command)
+      target: target_reference(command)
     }
   end
 
-  # O botão «Abrir» precisa de um destino, e o destino está dentro do `result` —
-  # que continua a nunca sair daqui. Extrai-se só o número da conversa, e
-  # confirma-se que ela é mesmo desta conta antes de a devolver: o `result` é
-  # escrito pelo executor e não deve ser tratado como referência de confiança.
+  # O destino do botão «Abrir». Sem ele, cada linha do feed é um facto que não
+  # leva a lado nenhum — a clínica lê «moveu a etapa da oportunidade» e não tem
+  # como ver qual.
   #
-  # Sem conversa conhecida devolve nulo, e o ecrã não mostra botão — melhor do
-  # que um botão que não abre nada.
-  def conversation_reference(command)
+  # Metade dos executores grava a conversa e a outra metade grava o cartão; os
+  # dois servem, e é por isso que se aceitam ambos em vez de exigir conversa.
+  # A conversa vem primeiro por ser onde a história aconteceu.
+  #
+  # O `result` continua a nunca sair daqui: extrai-se só o identificador, e
+  # confirma-se que ele é mesmo desta conta antes de o devolver — o `result` é
+  # escrito pelo executor e não é referência de confiança.
+  def target_reference(command)
+    conversation_target(command) || card_target(command)
+  end
+
+  def conversation_target(command)
     display_id = command.result['conversation_id']
     return if display_id.blank?
 
-    Current.account.conversations.find_by(display_id: display_id)&.display_id
+    conversation = Current.account.conversations.find_by(display_id: display_id)
+    { type: 'conversation', id: conversation.display_id } if conversation
+  end
+
+  def card_target(command)
+    card_id = command.result['card_id']
+    return if card_id.blank?
+
+    card = KanbanCard.find_by(id: card_id, account_id: Current.account.id)
+    { type: 'card', id: card.id, board_id: card.kanban_board_id } if card
   end
 
   # O modelo já recusa tipo fora da lista, mas o que está gravado de antes disso

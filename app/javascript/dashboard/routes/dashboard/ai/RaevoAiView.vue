@@ -432,6 +432,24 @@ const APARENCIA_POR_ESTADO = {
   },
 };
 
+const destinoDoItem = alvo => {
+  if (alvo?.type === 'conversation') {
+    return {
+      name: 'home',
+      params: { accountId: accountId.value },
+      query: { conversation_id: alvo.id },
+    };
+  }
+  if (alvo?.type === 'card') {
+    return {
+      name: 'kanban_board_show',
+      params: { accountId: accountId.value, boardId: alvo.board_id },
+      query: { card_id: alvo.id },
+    };
+  }
+  return null;
+};
+
 const activityRows = computed(() =>
   activity.value.recent.map(item => ({
     id: item.id,
@@ -442,16 +460,9 @@ const activityRows = computed(() =>
       .icon,
     tone: (APARENCIA_POR_ESTADO[item.state] ?? APARENCIA_POR_ESTADO.claimed)
       .tone,
-    // Sem destino conhecido não há botão, em vez de um botão que não abre nada.
-    to: item.conversation_id
-      ? {
-          name: 'inbox_conversation',
-          params: {
-            accountId: accountId.value,
-            conversationId: item.conversation_id,
-          },
-        }
-      : null,
+    // A conversa e o cartão servem os dois como destino. Sem nenhum não há
+    // botão — melhor do que um botão que não abre nada.
+    to: destinoDoItem(item.target),
   }))
 );
 
@@ -570,7 +581,7 @@ const setupRows = computed(() => [
           <div v-if="pauseState" class="flex items-center gap-2">
             <span
               data-testid="ai-pause-state"
-              class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+              class="flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium"
               :class="
                 pauseState.paused
                   ? 'bg-n-amber-3 text-n-amber-11'
@@ -619,7 +630,7 @@ const setupRows = computed(() => [
       </RaevoPageHeader>
 
       <section
-        class="flex items-start gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-4"
+        class="flex items-start gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
         role="status"
       >
         <span
@@ -631,7 +642,7 @@ const setupRows = computed(() => [
           <h2 class="text-sm font-semibold text-n-slate-12">
             {{ t('RAEVO_AI.NATIVE_AREA.TITLE') }}
           </h2>
-          <p class="mt-1 text-sm leading-6 text-n-slate-11">
+          <p class="mt-1 max-w-prose text-sm leading-6 text-n-slate-11">
             {{ t('RAEVO_AI.NATIVE_AREA.DESCRIPTION') }}
           </p>
         </div>
@@ -639,7 +650,7 @@ const setupRows = computed(() => [
 
       <template v-if="abaAtiva === 'panel'">
         <section
-          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
+          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-6"
         >
           <div>
             <p class="text-micro font-semibold uppercase text-n-slate-10">
@@ -652,7 +663,7 @@ const setupRows = computed(() => [
 
           <div
             v-if="isLoading"
-            class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             role="status"
             :aria-label="t('RAEVO_AI.OVERVIEW.LOADING')"
           >
@@ -666,7 +677,7 @@ const setupRows = computed(() => [
           <div
             v-else-if="isPreparing"
             data-testid="ai-overview-setup"
-            class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+            class="mt-4 flex items-start gap-4 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
             role="status"
           >
             <span
@@ -687,7 +698,7 @@ const setupRows = computed(() => [
           <div
             v-else-if="isDisabled"
             data-testid="ai-overview-disabled"
-            class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+            class="mt-4 flex items-start gap-4 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
             role="status"
           >
             <span
@@ -708,7 +719,7 @@ const setupRows = computed(() => [
           <div
             v-else-if="hasError"
             data-testid="ai-overview-error"
-            class="mt-4 flex flex-col items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4 sm:flex-row sm:items-center sm:justify-between"
+            class="mt-4 flex flex-col items-start gap-4 rounded-xl border border-n-weak bg-n-alpha-1 p-4 sm:flex-row sm:items-center sm:justify-between"
             role="alert"
           >
             <div>
@@ -734,7 +745,7 @@ const setupRows = computed(() => [
                  que a clínica traz ao abrir isto: a Elis está a atender? -->
             <section
               data-testid="ai-plate"
-              class="rounded-xl bg-raevo-plate p-4 lg:p-5"
+              class="rounded-xl bg-raevo-plate p-4 lg:p-6"
             >
               <h3 class="mt-1 text-xl font-semibold text-raevo-plate-fg">
                 {{
@@ -743,7 +754,7 @@ const setupRows = computed(() => [
                     : t('RAEVO_AI.OVERVIEW.PLATE_ACTIVE')
                 }}
               </h3>
-              <p class="mt-1 text-sm text-raevo-plate-muted">
+              <p class="mt-1 max-w-prose text-sm text-raevo-plate-muted">
                 {{
                   overview?.clinic_name ||
                   t('RAEVO_AI.OVERVIEW.CLINIC_FALLBACK')
@@ -755,7 +766,7 @@ const setupRows = computed(() => [
 
               <div
                 data-testid="ai-window-filter"
-                class="mt-4 flex flex-wrap gap-1.5"
+                class="mt-4 flex flex-wrap gap-2"
                 role="group"
                 :aria-label="t('RAEVO_AI.OVERVIEW.WINDOW_LABEL')"
               >
@@ -787,7 +798,7 @@ const setupRows = computed(() => [
                   v-for="etapa in journeySteps"
                   :key="etapa.key"
                   data-testid="ai-journey-step"
-                  class="bg-raevo-plate p-3"
+                  class="bg-raevo-plate p-4"
                   :class="
                     etapa.outcome ? 'ring-1 ring-inset ring-n-teal-9' : ''
                   "
@@ -828,7 +839,7 @@ const setupRows = computed(() => [
             <p
               v-if="pauseError"
               data-testid="ai-pause-error"
-              class="mt-3 text-sm text-n-ruby-11"
+              class="mt-4 text-sm text-n-ruby-11"
               role="alert"
             >
               {{ pauseError }}
@@ -838,7 +849,7 @@ const setupRows = computed(() => [
                  o volume ocupa menos porque são três números, e o custo mais
                  porque são quatro em grelha. -->
             <div
-              class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]"
+              class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]"
             >
               <section
                 data-testid="ai-attendance"
@@ -852,12 +863,12 @@ const setupRows = computed(() => [
                 </h3>
 
                 <dl
-                  class="mt-3 grid gap-px overflow-hidden rounded-xl bg-n-weak"
+                  class="mt-4 grid gap-px overflow-hidden rounded-xl bg-n-weak"
                 >
                   <div
                     v-for="item in attendanceMetrics"
                     :key="item.key"
-                    class="bg-n-solid-1 p-3"
+                    class="bg-n-solid-1 p-4"
                   >
                     <dt class="text-xs text-n-slate-10">
                       {{ item.label }}
@@ -881,7 +892,7 @@ const setupRows = computed(() => [
                 </dl>
 
                 <p
-                  class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                  class="mt-4 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
                 >
                   {{ t('RAEVO_AI.ATTENDANCE.HANDOFF_NOTE') }}
                 </p>
@@ -912,12 +923,12 @@ const setupRows = computed(() => [
                 </div>
 
                 <dl
-                  class="mt-3 grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-n-weak sm:grid-cols-2"
+                  class="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-n-weak sm:grid-cols-2"
                 >
                   <div
                     v-for="item in costMetrics"
                     :key="item.key"
-                    class="bg-n-solid-1 p-3"
+                    class="bg-n-solid-1 p-4"
                   >
                     <dt class="text-xs text-n-slate-10">
                       {{ item.label }}
@@ -935,7 +946,7 @@ const setupRows = computed(() => [
 
                 <p
                   data-testid="ai-cost-split"
-                  class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                  class="mt-4 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
                 >
                   {{ t('RAEVO_AI.COSTS.SPLIT', { split: usageCost }) }}
                 </p>
@@ -948,8 +959,8 @@ const setupRows = computed(() => [
       <template v-if="abaAtiva === 'assistant'">
         <!-- Proporção do artefato: o que a Elis fez ocupa o espaço, a ficha de
              como ela está montada é uma coluna estreita de leitura. -->
-        <div class="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
-          <div class="flex flex-col gap-3">
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
+          <div class="flex flex-col gap-4">
             <section
               data-testid="ai-activity"
               class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
@@ -967,17 +978,17 @@ const setupRows = computed(() => [
 
               <p
                 v-if="!activity.recent.length"
-                class="mt-3 rounded-lg border border-dashed border-n-weak p-4 text-center text-sm text-n-slate-11"
+                class="mt-4 rounded-lg border border-dashed border-n-weak p-4 text-center text-sm text-n-slate-11"
               >
                 {{ t('RAEVO_AI.ACTIVITY.RECENT_EMPTY') }}
               </p>
 
-              <ul v-else class="mt-3 flex list-none flex-col gap-1.5 p-0">
+              <ul v-else class="mt-4 flex list-none flex-col gap-2 p-0">
                 <li
                   v-for="item in activityRows"
                   :key="item.id"
                   data-testid="ai-activity-item"
-                  class="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-n-weak p-2.5"
+                  class="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-4 rounded-lg border border-n-weak p-2.5"
                 >
                   <span
                     class="w-16 text-right text-xs tabular-nums text-n-slate-10"
@@ -994,7 +1005,7 @@ const setupRows = computed(() => [
                     <strong class="block text-sm font-semibold text-n-slate-12">
                       {{ item.label }}
                     </strong>
-                    <small class="mt-0.5 block text-xs text-n-slate-10">
+                    <small class="mt-1 block text-xs text-n-slate-10">
                       {{ item.state }}
                     </small>
                   </span>
@@ -1009,7 +1020,7 @@ const setupRows = computed(() => [
               </ul>
 
               <p
-                class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                class="mt-4 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
               >
                 {{ t('RAEVO_AI.ACTIVITY.PRIVACY_NOTE') }}
               </p>
@@ -1028,17 +1039,17 @@ const setupRows = computed(() => [
 
               <p
                 v-if="!attentionRows.length"
-                class="mt-3 text-sm text-n-slate-11"
+                class="mt-4 text-sm text-n-slate-11"
               >
                 {{ t('RAEVO_AI.ACTIVITY.ATTENTION_EMPTY') }}
               </p>
 
-              <ul v-else class="mt-3 flex list-none flex-col gap-1.5 p-0">
+              <ul v-else class="mt-4 flex list-none flex-col gap-2 p-0">
                 <li
                   v-for="linha in attentionRows"
                   :key="linha.key"
                   data-testid="ai-attention-row"
-                  class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg border border-n-amber-8 bg-n-amber-2 p-3"
+                  class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-lg border border-n-amber-8 bg-n-amber-2 p-4"
                 >
                   <span
                     class="grid size-7 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
@@ -1049,7 +1060,7 @@ const setupRows = computed(() => [
                     <strong class="block text-sm font-semibold text-n-slate-12">
                       {{ linha.title }}
                     </strong>
-                    <small class="mt-0.5 block text-xs text-n-slate-11">
+                    <small class="mt-1 block text-xs text-n-slate-11">
                       {{ linha.detail }}
                     </small>
                   </span>
@@ -1069,10 +1080,10 @@ const setupRows = computed(() => [
               {{ t('RAEVO_AI.SETUP.TITLE') }}
             </h3>
 
-            <dl class="mt-3 flex list-none flex-col p-0">
+            <dl class="mt-4 flex list-none flex-col p-0">
               <!-- Editável tira o `dt`: o rótulo é do RaevoField, como manda o
                    sistema, e dois rótulos seguidos liam-se «Nome / Nome». -->
-              <div class="border-b border-n-weak py-2.5">
+              <div class="border-b border-n-weak py-2">
                 <div v-if="isAdmin">
                   <RaevoField
                     :label="t('RAEVO_AI.SETUP.NAME')"
@@ -1098,7 +1109,7 @@ const setupRows = computed(() => [
                   <dt class="text-xs font-medium text-n-slate-10">
                     {{ t('RAEVO_AI.SETUP.NAME') }}
                   </dt>
-                  <dd class="mt-0.5 text-sm font-medium text-n-slate-12">
+                  <dd class="mt-1 text-sm font-medium text-n-slate-12">
                     {{ assistantName || t('RAEVO_AI.SETUP.NAME_VALUE') }}
                   </dd>
                 </template>
@@ -1107,16 +1118,16 @@ const setupRows = computed(() => [
               <div
                 v-for="linha in setupRows"
                 :key="linha.key"
-                class="border-b border-n-weak py-2.5 last:border-b-0"
+                class="border-b border-n-weak py-2 last:border-b-0"
               >
                 <dt class="text-xs font-medium text-n-slate-10">
                   {{ linha.label }}
                 </dt>
-                <dd class="mt-0.5 text-sm font-medium text-n-slate-12">
+                <dd class="mt-1 text-sm font-medium text-n-slate-12">
                   {{ linha.value }}
                   <small
                     v-if="linha.detail"
-                    class="mt-0.5 block text-xs font-normal text-n-slate-10"
+                    class="mt-1 block text-xs font-normal text-n-slate-10"
                   >
                     {{ linha.detail }}
                   </small>
@@ -1124,7 +1135,7 @@ const setupRows = computed(() => [
               </div>
             </dl>
 
-            <RaevoAiServiceHoursSettings v-if="isAdmin" class="mt-3" />
+            <RaevoAiServiceHoursSettings v-if="isAdmin" class="mt-4" />
           </section>
         </div>
       </template>

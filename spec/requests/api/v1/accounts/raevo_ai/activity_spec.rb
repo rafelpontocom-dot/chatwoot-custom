@@ -35,7 +35,7 @@ RSpec.describe 'Raevo AI activity API', type: :request do
 
     get path, headers: administrator.create_new_auth_token, as: :json
 
-    expect(response.parsed_body['recent'].first.keys).to match_array(%w[id command_type state occurred_at conversation_id])
+    expect(response.parsed_body['recent'].first.keys).to match_array(%w[id command_type state occurred_at target])
   end
 
   it 'counts what needs a person: failures and commands left claimed' do
@@ -101,7 +101,7 @@ RSpec.describe 'Raevo AI activity API', type: :request do
     get path, headers: administrator.create_new_auth_token, as: :json
 
     linha = response.parsed_body['recent'].first
-    expect(linha['conversation_id']).to eq(conversation.display_id)
+    expect(linha['target']).to eq('type' => 'conversation', 'id' => conversation.display_id)
     expect(linha).not_to have_key('result')
     expect(response.body).not_to include('board_key')
   end
@@ -113,6 +113,38 @@ RSpec.describe 'Raevo AI activity API', type: :request do
 
     get path, headers: administrator.create_new_auth_token, as: :json
 
-    expect(response.parsed_body['recent'].first['conversation_id']).to be_nil
+    expect(response.parsed_body['recent'].first['target']).to be_nil
+  end
+
+  it 'opens the opportunity when the command recorded a card instead of a conversation' do
+    # Metade dos executores grava o cartão e não a conversa. Sem aceitar os
+    # dois, metade do feed ficava sem botão e a linha não levava a lado nenhum.
+    board = create(:kanban_board, account: account)
+    stage = create(:kanban_stage, account: account, kanban_board: board, name: 'Novo', position: 1)
+    inbox = create(:inbox, account: account)
+    card = create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage,
+                                contact: create(:contact, account: account), inbox: inbox)
+    comando = record_command('crm.move_stage', 'applied', 'a1')
+    comando.update!(result: { 'card_id' => card.id, 'receipts' => { 'stage' => { 'status' => 'applied' } } })
+
+    get path, headers: administrator.create_new_auth_token, as: :json
+
+    linha = response.parsed_body['recent'].first
+    expect(linha['target']).to eq('type' => 'card', 'id' => card.id, 'board_id' => board.id)
+    expect(response.body).not_to include('receipts')
+  end
+
+  it 'offers no destination when the card belongs to another account' do
+    outra = create(:account)
+    board = create(:kanban_board, account: outra)
+    stage = create(:kanban_stage, account: outra, kanban_board: board, name: 'Novo', position: 1)
+    alheio = create(:kanban_card, account: outra, kanban_board: board, kanban_stage: stage,
+                                  contact: create(:contact, account: outra), inbox: create(:inbox, account: outra))
+    comando = record_command('crm.move_stage', 'applied', 'a1')
+    comando.update!(result: { 'card_id' => alheio.id })
+
+    get path, headers: administrator.create_new_auth_token, as: :json
+
+    expect(response.parsed_body['recent'].first['target']).to be_nil
   end
 end
