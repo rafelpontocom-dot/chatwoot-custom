@@ -54,7 +54,7 @@ const formatTokens = value =>
     : '—';
 const formatUsd = value => `US$ ${Number(value || 0).toFixed(2)}`;
 
-const usage = computed(() => overview.value?.usage_30d || {});
+const usage = computed(() => overview.value?.usage || {});
 
 const usageCost = computed(() => {
   const reported = Number(usage.value.provider_reported_cost_usd || 0);
@@ -75,24 +75,24 @@ const overviewMetrics = computed(() => [
     label: t('RAEVO_AI.OVERVIEW.METRICS.CONVERSATIONS', {
       days: windowDays.value,
     }),
-    value: overview.value?.usage_30d?.conversations,
+    value: overview.value?.usage?.conversations,
   },
   {
     key: 'HANDOFFS',
     label: t('RAEVO_AI.OVERVIEW.METRICS.HANDOFFS', { days: windowDays.value }),
-    value: overview.value?.usage_30d?.handoffs,
+    value: overview.value?.usage?.handoffs,
   },
   {
     key: 'APPOINTMENTS',
     label: t('RAEVO_AI.OVERVIEW.METRICS.APPOINTMENTS', {
       days: windowDays.value,
     }),
-    value: overview.value?.usage_30d?.appointments,
+    value: overview.value?.usage?.appointments,
   },
   {
     key: 'PAYMENTS',
     label: t('RAEVO_AI.OVERVIEW.METRICS.PAYMENTS', { days: windowDays.value }),
-    value: overview.value?.usage_30d?.payments,
+    value: overview.value?.usage?.payments,
   },
   {
     key: 'KNOWLEDGE',

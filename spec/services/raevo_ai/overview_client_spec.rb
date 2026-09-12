@@ -43,7 +43,7 @@ RSpec.describe RaevoAi::OverviewClient do
         reconciliation_reason: 'must-not-leak'
       },
       assistant_profile: assistant_profile,
-      usage_30d: {
+      usage: {
         conversations: 44,
         handoffs: 5,
         appointments: 9,
@@ -79,7 +79,7 @@ RSpec.describe RaevoAi::OverviewClient do
         'attention_level' => 'action_required',
         'attention_reasons' => %w[post_delivery_actions_failed post_delivery_actions_pending manual_reconciliations]
       },
-      usage_30d: upstream_payload[:usage_30d].except(:internal_cost).stringify_keys
+      usage: upstream_payload[:usage].except(:internal_cost).stringify_keys
     ).stringify_keys
   end
 
@@ -131,7 +131,7 @@ RSpec.describe RaevoAi::OverviewClient do
         'status' => 'active',
         'generated_at' => '2026-09-09T22:00:00.000Z',
         'last_delivered_at' => '2026-09-09T21:56:00.000Z',
-        'usage_30d' => { 'conversations' => 308, 'pre_scheduled' => 27, 'appointments' => 18 }
+        'usage' => { 'conversations' => 308, 'pre_scheduled' => 27, 'appointments' => 18 }
       }
       response = instance_double(HTTParty::Response, success?: true, body: payload.to_json)
 
@@ -142,7 +142,7 @@ RSpec.describe RaevoAi::OverviewClient do
 
         expect(result['generated_at']).to eq('2026-09-09T22:00:00.000Z')
         expect(result['last_delivered_at']).to eq('2026-09-09T21:56:00.000Z')
-        expect(result['usage_30d']['pre_scheduled']).to eq(27)
+        expect(result['usage']['pre_scheduled']).to eq(27)
       end
     end
 
@@ -179,6 +179,38 @@ RSpec.describe RaevoAi::OverviewClient do
       ).and_return(response)
 
       described_class.new(integration: integration).fetch(window_days: 4000)
+    end
+  end
+
+  it 'still reads a runtime that has not been renamed yet' do
+    # Os dois serviços implantam separadamente. Um Chatwoot novo a falar com um
+    # runtime antigo não pode deixar a clínica sem números.
+    corpo = { 'status' => 'active', 'usage_30d' => { 'conversations' => 12 } }.to_json
+    response = instance_double(HTTParty::Response, success?: true, body: corpo)
+
+    with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'server-secret' do
+      allow(HTTParty).to receive(:get).and_return(response)
+
+      resultado = described_class.new(integration: integration).fetch
+
+      expect(resultado['usage']).to eq('conversations' => 12)
+    end
+  end
+
+  it 'prefers the new name when the runtime sends both during the rollout' do
+    corpo = {
+      'status' => 'active',
+      'usage' => { 'conversations' => 7 },
+      'usage_30d' => { 'conversations' => 12 }
+    }.to_json
+    response = instance_double(HTTParty::Response, success?: true, body: corpo)
+
+    with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'server-secret' do
+      allow(HTTParty).to receive(:get).and_return(response)
+
+      resultado = described_class.new(integration: integration).fetch
+
+      expect(resultado['usage']).to eq('conversations' => 7)
     end
   end
 end

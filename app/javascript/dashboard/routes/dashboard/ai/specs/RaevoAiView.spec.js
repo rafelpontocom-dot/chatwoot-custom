@@ -143,7 +143,7 @@ describe('RaevoAiView', () => {
               'manual_reconciliations',
             ],
           },
-          usage_30d: {
+          usage: {
             conversations: 44,
             handoffs: 5,
             appointments: 9,
@@ -174,7 +174,7 @@ describe('RaevoAiView', () => {
         overview: {
           status: 'active',
           clinic_name: 'Dra. Anna Alice',
-          usage_30d: {
+          usage: {
             conversations: 1,
             handoffs: 0,
             appointments: 0,
@@ -280,7 +280,7 @@ describe('RaevoAiView', () => {
 
   it('shows only the contracted package, not a catalogue of what was not bought', async () => {
     RaevoAiAPI.getOverview.mockResolvedValue({
-      data: { status: 'active', package: 'agenda', usage_30d: {} },
+      data: { status: 'active', package: 'agenda', usage: {} },
     });
     const wrapper = mountView();
     await flushPromises();
@@ -297,7 +297,7 @@ describe('RaevoAiView', () => {
       data: {
         status: 'active',
         package: 'pacote-que-nao-conhecemos',
-        usage_30d: {},
+        usage: {},
       },
     });
     const wrapper = mountView();
@@ -314,7 +314,7 @@ describe('RaevoAiView', () => {
 
   it('keeps the configuration out of the panel, which is only results', async () => {
     RaevoAiAPI.getOverview.mockResolvedValue({
-      data: { status: 'active', package: 'agenda', usage_30d: {} },
+      data: { status: 'active', package: 'agenda', usage: {} },
     });
     const wrapper = mountView();
     await flushPromises();
