@@ -50,8 +50,23 @@ class Api::V1::Accounts::RaevoAi::ActivityController < Api::V1::Accounts::BaseCo
       id: command.id,
       command_type: known_command_type(command.command_type),
       state: command.state,
-      occurred_at: command.created_at.iso8601
+      occurred_at: command.created_at.iso8601,
+      conversation_id: conversation_reference(command)
     }
+  end
+
+  # O botão «Abrir» precisa de um destino, e o destino está dentro do `result` —
+  # que continua a nunca sair daqui. Extrai-se só o número da conversa, e
+  # confirma-se que ela é mesmo desta conta antes de a devolver: o `result` é
+  # escrito pelo executor e não deve ser tratado como referência de confiança.
+  #
+  # Sem conversa conhecida devolve nulo, e o ecrã não mostra botão — melhor do
+  # que um botão que não abre nada.
+  def conversation_reference(command)
+    display_id = command.result['conversation_id']
+    return if display_id.blank?
+
+    Current.account.conversations.find_by(display_id: display_id)&.display_id
   end
 
   # O modelo já recusa tipo fora da lista, mas o que está gravado de antes disso

@@ -35,7 +35,7 @@ RSpec.describe 'Raevo AI activity API', type: :request do
 
     get path, headers: administrator.create_new_auth_token, as: :json
 
-    expect(response.parsed_body['recent'].first.keys).to match_array(%w[id command_type state occurred_at])
+    expect(response.parsed_body['recent'].first.keys).to match_array(%w[id command_type state occurred_at conversation_id])
   end
 
   it 'counts what needs a person: failures and commands left claimed' do
@@ -91,5 +91,28 @@ RSpec.describe 'Raevo AI activity API', type: :request do
     get path, headers: agent.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:success)
+  end
+
+  it 'gives the feed somewhere to open without ever exposing the receipt' do
+    conversation = create(:conversation, account: account)
+    comando = record_command('crm.ensure_opportunity', 'applied', 'a1')
+    comando.update!(result: { 'conversation_id' => conversation.display_id, 'board_key' => 'vendas' })
+
+    get path, headers: administrator.create_new_auth_token, as: :json
+
+    linha = response.parsed_body['recent'].first
+    expect(linha['conversation_id']).to eq(conversation.display_id)
+    expect(linha).not_to have_key('result')
+    expect(response.body).not_to include('board_key')
+  end
+
+  it 'offers no destination when the receipt names a conversation of another account' do
+    alheia = create(:conversation, account: create(:account))
+    comando = record_command('crm.ensure_opportunity', 'applied', 'a1')
+    comando.update!(result: { 'conversation_id' => alheia.display_id })
+
+    get path, headers: administrator.create_new_auth_token, as: :json
+
+    expect(response.parsed_body['recent'].first['conversation_id']).to be_nil
   end
 end

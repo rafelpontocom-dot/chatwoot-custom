@@ -22,6 +22,13 @@ vi.mock('dashboard/composables/useAdmin', () => ({
   useAdmin: () => ({ isAdmin: computed(() => adminMocks.isAdmin) }),
 }));
 
+const routerMocks = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: '1' } }),
+  useRouter: () => routerMocks,
+}));
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key, params = {}) =>
@@ -44,6 +51,7 @@ const mountView = () =>
             '<nav><button v-for="tab in tabs" :key="tab.key" type="button" :data-testid="\'tab-\' + tab.key" @click="$emit(\'tabChanged\', tab)">{{ tab.label }}</button></nav>',
         },
         RaevoAiKnowledgePanel: true,
+        RouterLink: { props: ['to'], template: '<a><slot /></a>' },
         RaevoField: {
           template:
             '<div><slot control-class="control" field-id="ai-tab-board-ids" /></div>',
@@ -160,10 +168,11 @@ describe('RaevoAiView', () => {
     expect(wrapper.get('[data-testid="ai-overview"]').text()).toContain(
       'Dra. Anna Alice'
     );
-    expect(wrapper.text()).toContain('44');
-    expect(wrapper.text()).toContain('12');
-    expect(wrapper.text()).toContain('2');
-    expect(wrapper.text()).toContain('RAEVO_AI.OVERVIEW.METRICS.OPEN_REVIEWS');
+    // A jornada é o coração do painel: os números da etapa e a evidência.
+    const jornada = wrapper.find('[data-testid="ai-journey"]');
+    expect(jornada.text()).toContain('44');
+    expect(jornada.text()).toContain('RAEVO_AI.JOURNEY.LINK_CONVERSATIONS');
+    expect(wrapper.find('[data-testid="ai-attendance"]').text()).toContain('5');
   });
 
   it('shows live token usage and separates reported from estimated cost', async () => {
@@ -193,9 +202,10 @@ describe('RaevoAiView', () => {
     const wrapper = mountView();
     await flushPromises();
 
-    expect(wrapper.text()).toContain('1,800');
-    expect(wrapper.text()).toContain('US$ 1.25');
-    expect(wrapper.text()).toContain('US$ 0.75');
+    // Entrada e saída separadas, como o artefato pede — não um total só.
+    const custos = wrapper.find('[data-testid="ai-costs"]');
+    expect(custos.text()).toContain('1,200 / 600');
+    expect(wrapper.find('[data-testid="ai-cost-split"]').exists()).toBe(true);
   });
 
   it('shows a safe error and retries the overview request', async () => {
@@ -278,7 +288,7 @@ describe('RaevoAiView', () => {
     ).toBe(true);
   });
 
-  it('shows only the contracted package, not a catalogue of what was not bought', async () => {
+  it('shows the contracted package as one row, not a card of its own', async () => {
     RaevoAiAPI.getOverview.mockResolvedValue({
       data: { status: 'active', package: 'agenda', usage: {} },
     });
@@ -286,10 +296,9 @@ describe('RaevoAiView', () => {
     await flushPromises();
     await abrirAba(wrapper, 'assistant');
 
-    const pacotes = wrapper.findAll('[data-testid="ai-service-package"]');
-    expect(pacotes).toHaveLength(1);
-    expect(pacotes[0].text()).toContain('RAEVO_AI.PACKAGES.SCHEDULE.TITLE');
-    expect(wrapper.text()).not.toContain('RAEVO_AI.PACKAGES.COMPLETE.TITLE');
+    const ficha = wrapper.find('[data-testid="ai-setup"]');
+    expect(ficha.text()).toContain('RAEVO_AI.PACKAGES.SCHEDULE.TITLE');
+    expect(ficha.text()).not.toContain('RAEVO_AI.PACKAGES.COMPLETE.TITLE');
   });
 
   it('says nothing rather than guessing when the package is unknown', async () => {
@@ -304,12 +313,8 @@ describe('RaevoAiView', () => {
     await flushPromises();
     await abrirAba(wrapper, 'assistant');
 
-    expect(wrapper.find('[data-testid="ai-service-package"]').exists()).toBe(
-      false
-    );
-    expect(
-      wrapper.find('[data-testid="ai-service-package-empty"]').exists()
-    ).toBe(true);
+    // Pacote desconhecido: a linha mostra um traço em vez de adivinhar qual é.
+    expect(wrapper.find('[data-testid="ai-setup"]').text()).toContain('—');
   });
 
   it('keeps the configuration out of the panel, which is only results', async () => {
@@ -321,9 +326,7 @@ describe('RaevoAiView', () => {
     await abrirAba(wrapper, 'assistant');
 
     expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="ai-service-package"]').exists()).toBe(
-      true
-    );
+    expect(wrapper.find('[data-testid="ai-setup"]').exists()).toBe(true);
   });
 
   describe('o que a clínica pediu para tirar do ecrã', () => {
@@ -470,11 +473,17 @@ describe('RaevoAiView', () => {
   });
 
   describe('o que precisa de uma pessoa', () => {
-    it('só aparece quando há mesmo algo parado', async () => {
+    it('diz que está tudo em dia em vez de mostrar uma lista vazia', async () => {
       const wrapper = mountView();
       await flushPromises();
+      await abrirAba(wrapper, 'assistant');
 
-      expect(wrapper.find('[data-testid="ai-needs-you"]').exists()).toBe(false);
+      expect(wrapper.findAll('[data-testid="ai-attention-row"]')).toHaveLength(
+        0
+      );
+      expect(wrapper.find('[data-testid="ai-needs-you"]').text()).toContain(
+        'RAEVO_AI.ACTIVITY.ATTENTION_EMPTY'
+      );
     });
 
     it('conta as falhas e as acções que ficaram por concluir', async () => {
@@ -483,11 +492,12 @@ describe('RaevoAiView', () => {
       });
       const wrapper = mountView();
       await flushPromises();
+      await abrirAba(wrapper, 'assistant');
 
-      const bloco = wrapper.find('[data-testid="ai-needs-you"]');
-      expect(bloco.exists()).toBe(true);
-      expect(bloco.text()).toContain('RAEVO_AI.ACTIVITY.FAILED');
-      expect(bloco.text()).toContain('RAEVO_AI.ACTIVITY.PENDING');
+      const linhas = wrapper.findAll('[data-testid="ai-attention-row"]');
+      expect(linhas).toHaveLength(2);
+      expect(linhas[0].text()).toContain('RAEVO_AI.ACTIVITY.FAILED');
+      expect(linhas[1].text()).toContain('RAEVO_AI.ACTIVITY.PENDING');
     });
   });
 
@@ -509,6 +519,7 @@ describe('RaevoAiView', () => {
       });
       const wrapper = mountView();
       await flushPromises();
+      await abrirAba(wrapper, 'assistant');
 
       const itens = wrapper.findAll('[data-testid="ai-activity-item"]');
       expect(itens).toHaveLength(1);
@@ -534,6 +545,7 @@ describe('RaevoAiView', () => {
       });
       const wrapper = mountView();
       await flushPromises();
+      await abrirAba(wrapper, 'assistant');
 
       const texto = wrapper.find('[data-testid="ai-activity-item"]').text();
       expect(texto).toContain('RAEVO_AI.ACTIVITY.COMMANDS.UNKNOWN');
@@ -544,6 +556,7 @@ describe('RaevoAiView', () => {
     it('diz que não há nada em vez de mostrar uma lista vazia', async () => {
       const wrapper = mountView();
       await flushPromises();
+      await abrirAba(wrapper, 'assistant');
 
       expect(wrapper.find('[data-testid="ai-activity"]').text()).toContain(
         'RAEVO_AI.ACTIVITY.RECENT_EMPTY'

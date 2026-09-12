@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
@@ -10,6 +11,9 @@ import RaevoAiAPI from 'dashboard/api/raevoAi';
 import RaevoAiServiceHoursSettings from './RaevoAiServiceHoursSettings.vue';
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+const accountId = computed(() => route.params.accountId);
 
 // Três abas, e a separação não é arbitrária: «Painel» é o que a clínica vem
 // ver, «A Elis» é o que ela configura, «Conhecimento» é o que a Elis sabe
@@ -69,60 +73,157 @@ const usageCost = computed(() => {
   return parts.length ? parts.join(' · ') : '—';
 });
 
-const overviewMetrics = computed(() => [
+const numero = valor =>
+  Number.isFinite(Number(valor))
+    ? new Intl.NumberFormat(undefined).format(Number(valor))
+    : null;
+
+// Taxa de uma etapa sobre a anterior. É isto que transforma cinco números
+// soltos num funil: 112 oportunidades só quer dizer alguma coisa ao lado das
+// 308 conversas de onde saíram.
+const taxa = (parte, total) => {
+  if (!Number.isFinite(Number(parte)) || !Number(total)) return null;
+  return `${((Number(parte) / Number(total)) * 100).toFixed(1).replace('.', ',')}%`;
+};
+
+const journeySteps = computed(() => {
+  const conversas = usage.value.conversations;
+  const criadas = overview.value?.opportunities_created;
+  const qualificadas = overview.value?.opportunities_qualified;
+  const preAgendadas = usage.value.pre_scheduled;
+  const agendadas = usage.value.appointments;
+
+  return [
+    {
+      key: 'CONVERSATIONS',
+      label: t('RAEVO_AI.JOURNEY.CONVERSATIONS'),
+      linkLabel: t('RAEVO_AI.JOURNEY.LINK_CONVERSATIONS'),
+      value: numero(conversas),
+      rate: null,
+      link: { name: 'home' },
+    },
+    {
+      key: 'OPPORTUNITIES',
+      label: t('RAEVO_AI.JOURNEY.OPPORTUNITIES'),
+      linkLabel: t('RAEVO_AI.JOURNEY.LINK_KANBAN'),
+      value: numero(criadas),
+      rate: taxa(criadas, conversas),
+      link: { name: 'kanban_boards' },
+    },
+    {
+      key: 'QUALIFIED',
+      label: t('RAEVO_AI.JOURNEY.QUALIFIED'),
+      linkLabel: t('RAEVO_AI.JOURNEY.LINK_KANBAN'),
+      value: numero(qualificadas),
+      // Nulo aqui não é zero: é «ninguém escolheu ainda a etapa que qualifica».
+      hint:
+        qualificadas === null ? t('RAEVO_AI.JOURNEY.QUALIFIED_UNSET') : null,
+      rate: taxa(qualificadas, criadas),
+      link: { name: 'kanban_boards' },
+    },
+    {
+      key: 'PRE_SCHEDULED',
+      label: t('RAEVO_AI.JOURNEY.PRE_SCHEDULED'),
+      linkLabel: t('RAEVO_AI.JOURNEY.LINK_KANBAN'),
+      value: numero(preAgendadas),
+      rate: taxa(preAgendadas, qualificadas),
+      link: { name: 'kanban_boards' },
+    },
+    {
+      key: 'SCHEDULED',
+      label: t('RAEVO_AI.JOURNEY.SCHEDULED'),
+      linkLabel: t('RAEVO_AI.JOURNEY.LINK_CALENDAR'),
+      value: numero(agendadas),
+      rate: taxa(agendadas, preAgendadas),
+      link: { name: 'calendar_index' },
+      outcome: true,
+    },
+  ];
+});
+
+// Quanto tempo a paciente esperou pela primeira resposta. Em minutos abaixo de
+// uma hora, porque é a unidade em que a clínica pensa.
+const firstResponse = computed(() => {
+  const segundos = usage.value.first_response_seconds;
+  if (!Number.isFinite(Number(segundos))) return null;
+  const minutos = Math.round(Number(segundos) / 60);
+  return minutos < 60
+    ? t('RAEVO_AI.ATTENDANCE.MINUTES', { count: minutos })
+    : t('RAEVO_AI.ATTENDANCE.HOURS', { count: Math.round(minutos / 6) / 10 });
+});
+
+const attendanceMetrics = computed(() => [
   {
-    key: 'CONVERSATIONS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.CONVERSATIONS', {
-      days: windowDays.value,
-    }),
-    value: overview.value?.usage?.conversations,
+    key: 'RESPONSES',
+    label: t('RAEVO_AI.ATTENDANCE.RESPONSES'),
+    value: numero(usage.value.responses_delivered),
+    caption:
+      usage.value.conversations && usage.value.responses_delivered
+        ? t('RAEVO_AI.ATTENDANCE.PER_CONVERSATION', {
+            rate: (usage.value.responses_delivered / usage.value.conversations)
+              .toFixed(1)
+              .replace('.', ','),
+          })
+        : null,
+    link: { name: 'home' },
   },
   {
     key: 'HANDOFFS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.HANDOFFS', { days: windowDays.value }),
-    value: overview.value?.usage?.handoffs,
+    label: t('RAEVO_AI.ATTENDANCE.HANDOFFS'),
+    value: numero(usage.value.handoffs),
+    caption: taxa(usage.value.handoffs, usage.value.conversations)
+      ? t('RAEVO_AI.ATTENDANCE.OF_CONVERSATIONS', {
+          rate: taxa(usage.value.handoffs, usage.value.conversations),
+        })
+      : null,
+    link: { name: 'home' },
   },
   {
-    key: 'APPOINTMENTS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.APPOINTMENTS', {
-      days: windowDays.value,
-    }),
-    value: overview.value?.usage?.appointments,
-  },
-  {
-    key: 'PAYMENTS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.PAYMENTS', { days: windowDays.value }),
-    value: overview.value?.usage?.payments,
-  },
-  {
-    key: 'KNOWLEDGE',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.KNOWLEDGE'),
-    value: overview.value?.knowledge_count,
-  },
-  {
-    key: 'PROMPT_VERSION',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.PROMPT_VERSION'),
-    value: overview.value?.active_prompt_version,
-  },
-  {
-    key: 'OPEN_REVIEWS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.OPEN_REVIEWS'),
-    value: overview.value?.open_reviews,
-  },
-  {
-    key: 'TOKENS',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.TOKENS', { days: windowDays.value }),
-    value: formatTokens(
-      Number(usage.value.prompt_tokens || 0) +
-        Number(usage.value.completion_tokens || 0)
-    ),
-  },
-  {
-    key: 'COST',
-    label: t('RAEVO_AI.OVERVIEW.METRICS.COST', { days: windowDays.value }),
-    value: usageCost.value,
+    key: 'FIRST_RESPONSE',
+    label: t('RAEVO_AI.ATTENDANCE.FIRST_RESPONSE'),
+    value: firstResponse.value,
+    caption: t('RAEVO_AI.ATTENDANCE.MEDIAN'),
   },
 ]);
+
+const costMetrics = computed(() => {
+  const total =
+    Number(usage.value.provider_reported_cost_usd || 0) +
+    Number(usage.value.catalog_estimated_cost_usd || 0);
+  const conversas = Number(usage.value.conversations || 0);
+  const agendadas = Number(usage.value.appointments || 0);
+  const entrada = Number(usage.value.prompt_tokens || 0);
+  const saida = Number(usage.value.completion_tokens || 0);
+
+  return [
+    {
+      key: 'TOTAL',
+      label: t('RAEVO_AI.COSTS.TOTAL'),
+      value: formatUsd(total),
+      caption: null,
+    },
+    {
+      key: 'PER_CONVERSATION',
+      label: t('RAEVO_AI.COSTS.PER_CONVERSATION'),
+      value: conversas ? `US$ ${(total / conversas).toFixed(3)}` : '—',
+      caption: t('RAEVO_AI.COSTS.CONVERSATIONS', { count: conversas }),
+    },
+    {
+      key: 'PER_APPOINTMENT',
+      label: t('RAEVO_AI.COSTS.PER_APPOINTMENT'),
+      value: agendadas ? formatUsd(total / agendadas) : '—',
+      caption: t('RAEVO_AI.COSTS.APPOINTMENTS', { count: agendadas }),
+    },
+    {
+      key: 'TOKENS',
+      label: t('RAEVO_AI.COSTS.TOKENS'),
+      value: `${formatTokens(entrada)} / ${formatTokens(saida)}`,
+      caption: t('RAEVO_AI.COSTS.TOKENS_TOTAL', {
+        total: formatTokens(entrada + saida),
+      }),
+    },
+  ];
+});
 const capabilityLabels = {
   atendimento: t('RAEVO_AI.CAPABILITIES.ITEMS.ATENDIMENTO'),
   crm: t('RAEVO_AI.CAPABILITIES.ITEMS.CRM'),
@@ -185,19 +286,6 @@ const commandLabel = tipo =>
 
 const stateLabel = estado =>
   stateLabels.value[estado] ?? t('RAEVO_AI.ACTIVITY.STATE_UNKNOWN');
-
-const formatMoment = iso => {
-  if (!iso) return '—';
-  const quando = new Date(iso);
-  return Number.isNaN(quando.getTime())
-    ? '—'
-    : new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      }).format(quando);
-};
-
-const displayValue = value => value ?? '—';
 
 const loadOverview = async () => {
   isLoading.value = true;
@@ -313,6 +401,130 @@ const contractedPackage = computed(() => {
   const key = PACKAGE_BY_RUNTIME[overview.value?.package];
   return servicePackages.value.find(item => item.key === key) ?? null;
 });
+// Quanto tempo passou, em palavras. O artefato mostra «há 4 min» e não a hora
+// cheia: o que interessa numa lista de atividade é a recência.
+const desdeEntao = iso => {
+  if (!iso) return '—';
+  const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (!Number.isFinite(minutos)) return '—';
+  if (minutos < 60)
+    return t('RAEVO_AI.ACTIVITY.AGO_MINUTES', { count: Math.max(minutos, 0) });
+  if (minutos < 1440)
+    return t('RAEVO_AI.ACTIVITY.AGO_HOURS', {
+      count: Math.round(minutos / 60),
+    });
+  return t('RAEVO_AI.ACTIVITY.AGO_DAYS', { count: Math.round(minutos / 1440) });
+};
+
+// Ícone e cor por desfecho. Cor sozinha não comunica estado — vai sempre com
+// ícone e com o texto do estado por baixo.
+const APARENCIA_POR_ESTADO = {
+  applied: { icon: 'i-lucide-check', tone: 'bg-n-teal-3 text-n-teal-11' },
+  claimed: { icon: 'i-lucide-loader', tone: 'bg-n-blue-3 text-n-blue-11' },
+  failed_retryable: {
+    icon: 'i-lucide-rotate-ccw',
+    tone: 'bg-n-amber-3 text-n-amber-11',
+  },
+  failed_terminal: {
+    icon: 'i-lucide-triangle-alert',
+    tone: 'bg-n-ruby-3 text-n-ruby-11',
+  },
+};
+
+const activityRows = computed(() =>
+  activity.value.recent.map(item => ({
+    id: item.id,
+    ago: desdeEntao(item.occurred_at),
+    label: commandLabel(item.command_type),
+    state: stateLabel(item.state),
+    icon: (APARENCIA_POR_ESTADO[item.state] ?? APARENCIA_POR_ESTADO.claimed)
+      .icon,
+    tone: (APARENCIA_POR_ESTADO[item.state] ?? APARENCIA_POR_ESTADO.claimed)
+      .tone,
+    // Sem destino conhecido não há botão, em vez de um botão que não abre nada.
+    to: item.conversation_id
+      ? {
+          name: 'inbox_conversation',
+          params: {
+            accountId: accountId.value,
+            conversationId: item.conversation_id,
+          },
+        }
+      : null,
+  }))
+);
+
+const abrirRegisto = item => {
+  if (item.to) router.push(item.to);
+};
+
+const attentionRows = computed(() => {
+  const linhas = [];
+  if (activity.value.attention.failed) {
+    linhas.push({
+      key: 'failed',
+      icon: 'i-lucide-triangle-alert',
+      title: t('RAEVO_AI.ACTIVITY.FAILED', {
+        count: activity.value.attention.failed,
+      }),
+      detail: t('RAEVO_AI.ACTIVITY.FAILED_DETAIL'),
+    });
+  }
+  if (activity.value.attention.pending) {
+    linhas.push({
+      key: 'pending',
+      icon: 'i-lucide-clock',
+      title: t('RAEVO_AI.ACTIVITY.PENDING', {
+        count: activity.value.attention.pending,
+      }),
+      detail: t('RAEVO_AI.ACTIVITY.PENDING_DETAIL'),
+    });
+  }
+  return linhas;
+});
+
+const attentionTitle = computed(() =>
+  attentionRows.value.length
+    ? t('RAEVO_AI.ACTIVITY.ATTENTION_TITLE', {
+        count: attentionRows.value.length,
+      })
+    : t('RAEVO_AI.ACTIVITY.ATTENTION_TITLE_EMPTY')
+);
+
+// Leitura, exceto o nome e o horário. O resto muda-se com a Raevo, e dizê-lo é
+// mais honesto do que oferecer um campo que não grava.
+const setupRows = computed(() => [
+  {
+    // Em leitura, e não campo: o nome da assistente não existe em coluna
+    // nenhuma hoje, e um campo que só mudasse o rótulo sem mudar o que ela diz
+    // na conversa seria pior do que não haver campo. Precisa de decidir-se
+    // onde o nome vive e se entra no prompt.
+    key: 'name',
+    label: t('RAEVO_AI.SETUP.NAME'),
+    value: t('RAEVO_AI.SETUP.NAME_VALUE'),
+    detail: t('RAEVO_AI.SETUP.NAME_HINT'),
+  },
+  {
+    key: 'package',
+    label: t('RAEVO_AI.SETUP.PACKAGE'),
+    value: contractedPackage.value?.title ?? '—',
+    detail: contractedPackage.value?.description ?? null,
+  },
+  {
+    key: 'capabilities',
+    label: t('RAEVO_AI.SETUP.CAPABILITIES'),
+    value: activeCapabilities.value.length
+      ? activeCapabilities.value.map(c => c.label).join(' · ')
+      : '—',
+    detail: null,
+  },
+  {
+    key: 'language',
+    label: t('RAEVO_AI.SETUP.LANGUAGE'),
+    value: t('RAEVO_AI.SETUP.LANGUAGE_VALUE'),
+    detail: null,
+  },
+]);
 </script>
 
 <template>
@@ -535,77 +747,54 @@ const contractedPackage = computed(() => {
                   {{ t('RAEVO_AI.OVERVIEW.WINDOW_DAYS', { days: dias }) }}
                 </button>
               </div>
-            </section>
 
-            <!-- O que precisa de uma pessoa. Vem do registo de comandos do
-                 próprio Chatwoot, não do serviço: é dado que já está aqui. -->
-            <section
-              v-if="activity.attention.failed || activity.attention.pending"
-              data-testid="ai-needs-you"
-              class="mt-3 rounded-xl border border-n-amber-8 bg-n-amber-2 p-4"
-              role="status"
-            >
-              <p class="text-micro font-semibold uppercase text-n-slate-10">
-                {{ t('RAEVO_AI.ACTIVITY.EYEBROW') }}
-              </p>
-              <ul class="mt-2 flex list-none flex-col gap-1 p-0">
-                <li
-                  v-if="activity.attention.failed"
-                  class="text-sm text-n-slate-12"
-                >
-                  {{
-                    t('RAEVO_AI.ACTIVITY.FAILED', {
-                      count: activity.attention.failed,
-                    })
-                  }}
-                </li>
-                <li
-                  v-if="activity.attention.pending"
-                  class="text-sm text-n-slate-12"
-                >
-                  {{
-                    t('RAEVO_AI.ACTIVITY.PENDING', {
-                      count: activity.attention.pending,
-                    })
-                  }}
-                </li>
-              </ul>
-            </section>
-
-            <!-- O que a Elis fez. Vinha da API desde o início e nunca era
-                 mostrado: o painel pedia os vinte últimos comandos e deitava-os
-                 fora. É o registo do próprio Chatwoot, não do serviço. -->
-            <section
-              data-testid="ai-activity"
-              class="mt-3 rounded-xl border border-n-weak bg-n-solid-1 p-4"
-            >
-              <h3 class="text-sm font-semibold text-n-slate-12">
-                {{ t('RAEVO_AI.ACTIVITY.RECENT_TITLE') }}
-              </h3>
-
-              <p
-                v-if="!activity.recent.length"
-                class="mt-2 text-sm text-n-slate-11"
+              <!-- A jornada. Cinco números soltos não são um funil: cada etapa
+                   mostra a taxa sobre a anterior, que é o que diz se a Elis
+                   está a converter ou só a conversar. -->
+              <dl
+                data-testid="ai-journey"
+                class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-raevo-plate-soft sm:grid-cols-3 lg:grid-cols-5"
               >
-                {{ t('RAEVO_AI.ACTIVITY.RECENT_EMPTY') }}
-              </p>
-
-              <ul v-else class="mt-3 flex list-none flex-col gap-2 p-0">
-                <li
-                  v-for="item in activity.recent"
-                  :key="item.id"
-                  data-testid="ai-activity-item"
-                  class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg bg-n-alpha-1 px-3 py-2"
+                <div
+                  v-for="etapa in journeySteps"
+                  :key="etapa.key"
+                  data-testid="ai-journey-step"
+                  class="bg-raevo-plate p-3"
+                  :class="
+                    etapa.outcome ? 'ring-1 ring-inset ring-n-teal-9' : ''
+                  "
                 >
-                  <span class="text-sm text-n-slate-12">
-                    {{ commandLabel(item.command_type) }}
+                  <span
+                    v-if="etapa.outcome"
+                    class="mb-1 inline-flex rounded-full bg-n-teal-9 px-2 py-0.5 text-micro font-semibold uppercase text-raevo-plate"
+                  >
+                    {{ t('RAEVO_AI.JOURNEY.OUTCOME') }}
                   </span>
-                  <span class="text-xs text-n-slate-10">
-                    {{ stateLabel(item.state) }} ·
-                    {{ formatMoment(item.occurred_at) }}
-                  </span>
-                </li>
-              </ul>
+                  <dt
+                    class="text-micro font-semibold uppercase text-raevo-plate-muted"
+                  >
+                    {{ etapa.label }}
+                  </dt>
+                  <dd
+                    class="mt-2 text-xl font-semibold tabular-nums"
+                    :class="
+                      etapa.outcome ? 'text-n-teal-9' : 'text-raevo-plate-fg'
+                    "
+                  >
+                    {{ etapa.value ?? '—' }}
+                  </dd>
+                  <p class="mt-1 text-micro text-raevo-plate-muted">
+                    {{ etapa.hint || etapa.rate || '&nbsp;' }}
+                  </p>
+                  <router-link
+                    v-if="etapa.link"
+                    :to="{ ...etapa.link, params: { accountId } }"
+                    class="mt-2 inline-flex text-micro font-semibold text-n-teal-9"
+                  >
+                    {{ etapa.linkLabel }}
+                  </router-link>
+                </div>
+              </dl>
             </section>
 
             <p
@@ -617,91 +806,265 @@ const contractedPackage = computed(() => {
               {{ pauseError }}
             </p>
 
-            <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div
-                v-for="metric in overviewMetrics"
-                :key="metric.key"
-                class="rounded-xl border border-n-weak bg-n-background p-3"
+            <!-- Atendimento e custos, lado a lado. A proporção é do artefato:
+                 o volume ocupa menos porque são três números, e o custo mais
+                 porque são quatro em grelha. -->
+            <div
+              class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]"
+            >
+              <section
+                data-testid="ai-attendance"
+                class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
               >
-                <dt class="text-xs font-medium text-n-slate-10">
-                  {{ metric.label }}
-                </dt>
-                <dd class="mt-1 text-xl font-semibold text-n-slate-12">
-                  {{ displayValue(metric.value) }}
-                </dd>
-              </div>
-            </dl>
+                <p class="text-micro font-semibold uppercase text-n-slate-10">
+                  {{ t('RAEVO_AI.ATTENDANCE.EYEBROW') }}
+                </p>
+                <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ t('RAEVO_AI.ATTENDANCE.TITLE') }}
+                </h3>
+
+                <dl
+                  class="mt-3 grid gap-px overflow-hidden rounded-xl bg-n-weak"
+                >
+                  <div
+                    v-for="item in attendanceMetrics"
+                    :key="item.key"
+                    class="bg-n-solid-1 p-3"
+                  >
+                    <dt class="text-xs text-n-slate-10">
+                      {{ item.label }}
+                    </dt>
+                    <dd
+                      class="mt-1 text-xl font-semibold tabular-nums text-n-slate-12"
+                    >
+                      {{ item.value ?? '—' }}
+                    </dd>
+                    <p v-if="item.caption" class="mt-1 text-xs text-n-slate-10">
+                      {{ item.caption }}
+                    </p>
+                    <router-link
+                      v-if="item.link"
+                      :to="{ ...item.link, params: { accountId } }"
+                      class="mt-1 inline-flex text-xs font-semibold text-n-blue-11"
+                    >
+                      {{ t('RAEVO_AI.ATTENDANCE.OPEN_LIST') }}
+                    </router-link>
+                  </div>
+                </dl>
+
+                <p
+                  class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                >
+                  {{ t('RAEVO_AI.ATTENDANCE.HANDOFF_NOTE') }}
+                </p>
+              </section>
+
+              <section
+                data-testid="ai-costs"
+                class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
+              >
+                <div
+                  class="flex flex-wrap items-baseline justify-between gap-2"
+                >
+                  <div>
+                    <p
+                      class="text-micro font-semibold uppercase text-n-slate-10"
+                    >
+                      {{ t('RAEVO_AI.COSTS.EYEBROW') }}
+                    </p>
+                    <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                      {{ t('RAEVO_AI.COSTS.TITLE') }}
+                    </h3>
+                  </div>
+                  <p class="text-xs text-n-slate-10">
+                    {{
+                      t('RAEVO_AI.OVERVIEW.WINDOW_DAYS', { days: windowDays })
+                    }}
+                  </p>
+                </div>
+
+                <dl
+                  class="mt-3 grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-n-weak sm:grid-cols-2"
+                >
+                  <div
+                    v-for="item in costMetrics"
+                    :key="item.key"
+                    class="bg-n-solid-1 p-3"
+                  >
+                    <dt class="text-xs text-n-slate-10">
+                      {{ item.label }}
+                    </dt>
+                    <dd
+                      class="mt-1 text-base font-semibold tabular-nums text-n-slate-12"
+                    >
+                      {{ item.value }}
+                    </dd>
+                    <p v-if="item.caption" class="mt-1 text-xs text-n-slate-10">
+                      {{ item.caption }}
+                    </p>
+                  </div>
+                </dl>
+
+                <p
+                  data-testid="ai-cost-split"
+                  class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                >
+                  {{ t('RAEVO_AI.COSTS.SPLIT', { split: usageCost }) }}
+                </p>
+              </section>
+            </div>
           </div>
         </section>
       </template>
 
       <template v-if="abaAtiva === 'assistant'">
-        <section
-          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-5"
-        >
-          <div class="max-w-3xl">
-            <p class="text-micro font-semibold uppercase text-n-slate-10">
-              {{ t('RAEVO_AI.PACKAGES.EYEBROW') }}
-            </p>
-            <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.PACKAGES.TITLE') }}
-            </h2>
+        <!-- Proporção do artefato: o que a Elis fez ocupa o espaço, a ficha de
+             como ela está montada é uma coluna estreita de leitura. -->
+        <div class="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
+          <div class="flex flex-col gap-3">
+            <section
+              data-testid="ai-activity"
+              class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
+            >
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <div>
+                  <p class="text-micro font-semibold uppercase text-n-slate-10">
+                    {{ t('RAEVO_AI.ACTIVITY.EYEBROW_RECENT') }}
+                  </p>
+                  <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                    {{ t('RAEVO_AI.ACTIVITY.RECENT_TITLE') }}
+                  </h3>
+                </div>
+              </div>
+
+              <p
+                v-if="!activity.recent.length"
+                class="mt-3 rounded-lg border border-dashed border-n-weak p-4 text-center text-sm text-n-slate-11"
+              >
+                {{ t('RAEVO_AI.ACTIVITY.RECENT_EMPTY') }}
+              </p>
+
+              <ul v-else class="mt-3 flex list-none flex-col gap-1.5 p-0">
+                <li
+                  v-for="item in activityRows"
+                  :key="item.id"
+                  data-testid="ai-activity-item"
+                  class="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-n-weak p-2.5"
+                >
+                  <span
+                    class="w-16 text-right text-xs tabular-nums text-n-slate-10"
+                  >
+                    {{ item.ago }}
+                  </span>
+                  <span
+                    class="grid size-7 place-items-center rounded-lg"
+                    :class="item.tone"
+                  >
+                    <i :class="item.icon" class="size-4" aria-hidden="true" />
+                  </span>
+                  <span class="min-w-0">
+                    <strong class="block text-sm font-semibold text-n-slate-12">
+                      {{ item.label }}
+                    </strong>
+                    <small class="mt-0.5 block text-xs text-n-slate-10">
+                      {{ item.state }}
+                    </small>
+                  </span>
+                  <NextButton
+                    v-if="item.to"
+                    size="sm"
+                    variant="faded"
+                    :label="t('RAEVO_AI.ACTIVITY.OPEN')"
+                    @click="abrirRegisto(item)"
+                  />
+                </li>
+              </ul>
+
+              <p
+                class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+              >
+                {{ t('RAEVO_AI.ACTIVITY.PRIVACY_NOTE') }}
+              </p>
+            </section>
+
+            <section
+              data-testid="ai-needs-you"
+              class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
+            >
+              <p class="text-micro font-semibold uppercase text-n-slate-10">
+                {{ t('RAEVO_AI.ACTIVITY.EYEBROW') }}
+              </p>
+              <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                {{ attentionTitle }}
+              </h3>
+
+              <p
+                v-if="!attentionRows.length"
+                class="mt-3 text-sm text-n-slate-11"
+              >
+                {{ t('RAEVO_AI.ACTIVITY.ATTENTION_EMPTY') }}
+              </p>
+
+              <ul v-else class="mt-3 flex list-none flex-col gap-1.5 p-0">
+                <li
+                  v-for="linha in attentionRows"
+                  :key="linha.key"
+                  data-testid="ai-attention-row"
+                  class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg border border-n-amber-8 bg-n-amber-2 p-3"
+                >
+                  <span
+                    class="grid size-7 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
+                  >
+                    <i :class="linha.icon" class="size-4" aria-hidden="true" />
+                  </span>
+                  <span>
+                    <strong class="block text-sm font-semibold text-n-slate-12">
+                      {{ linha.title }}
+                    </strong>
+                    <small class="mt-0.5 block text-xs text-n-slate-11">
+                      {{ linha.detail }}
+                    </small>
+                  </span>
+                </li>
+              </ul>
+            </section>
           </div>
 
-          <article
-            v-if="contractedPackage"
-            data-testid="ai-service-package"
-            class="mt-4 rounded-xl border border-n-weak bg-n-background p-4"
+          <section
+            data-testid="ai-setup"
+            class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
           >
-            <span
-              class="grid size-9 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
-            >
-              <i
-                :class="contractedPackage.icon"
-                class="size-4"
-                aria-hidden="true"
-              />
-            </span>
-            <h3 class="mt-3 break-words text-sm font-semibold text-n-slate-12">
-              {{ contractedPackage.title }}
-            </h3>
-            <p class="mt-1 text-sm leading-6 text-n-slate-11">
-              {{ contractedPackage.description }}
+            <p class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.SETUP.EYEBROW') }}
             </p>
+            <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+              {{ t('RAEVO_AI.SETUP.TITLE') }}
+            </h3>
 
-            <ul
-              v-if="activeCapabilities.length"
-              data-testid="ai-capabilities"
-              class="mt-4 grid list-none gap-2 p-0 sm:grid-cols-2"
-            >
-              <li
-                v-for="capability in activeCapabilities"
-                :key="capability.id"
-                class="rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2"
+            <dl class="mt-3 flex list-none flex-col p-0">
+              <div
+                v-for="linha in setupRows"
+                :key="linha.key"
+                class="border-b border-n-weak py-2.5 last:border-b-0"
               >
-                <p class="text-sm font-medium text-n-slate-12">
-                  {{ capability.label }}
-                </p>
-                <p
-                  v-if="capability.provider"
-                  class="mt-0.5 text-xs text-n-slate-10"
-                >
-                  {{ capability.provider }}
-                </p>
-              </li>
-            </ul>
-          </article>
+                <dt class="text-xs font-medium text-n-slate-10">
+                  {{ linha.label }}
+                </dt>
+                <dd class="mt-0.5 text-sm font-medium text-n-slate-12">
+                  {{ linha.value }}
+                  <small
+                    v-if="linha.detail"
+                    class="mt-0.5 block text-xs font-normal text-n-slate-10"
+                  >
+                    {{ linha.detail }}
+                  </small>
+                </dd>
+              </div>
+            </dl>
 
-          <p
-            v-else
-            data-testid="ai-service-package-empty"
-            class="mt-4 text-sm text-n-slate-11"
-          >
-            {{ t('RAEVO_AI.PACKAGES.EMPTY') }}
-          </p>
-        </section>
-
-        <RaevoAiServiceHoursSettings v-if="isAdmin" />
+            <RaevoAiServiceHoursSettings v-if="isAdmin" class="mt-3" />
+          </section>
+        </div>
       </template>
 
       <RaevoAiKnowledgePanel
