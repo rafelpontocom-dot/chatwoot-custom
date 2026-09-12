@@ -59,6 +59,83 @@ const itensFiltrados = computed(() => {
   });
 });
 
+// Cobertura por assunto, não só quantos estão preenchidos. Uma pastilha por
+// assunto com a contagem: o que está vazio é o que faz a Elis não saber
+// responder, e ver isso de relance é o ponto do bloco.
+const coberturaPorAssunto = computed(() =>
+  topics.value.map(topic => ({
+    key: topic.key,
+    label: topic.label,
+    count: itensVisiveis.value.filter(item => item.topic_key === topic.key)
+      .length,
+    sensitive: topic.sensitive === true,
+  }))
+);
+
+const versaoActiva = computed(
+  () => versions.value.find(v => v.status === 'published') ?? null
+);
+
+const proximaVersao = computed(() => {
+  const maior = versions.value.reduce(
+    (max, v) => Math.max(max, v.version_number ?? 0),
+    0
+  );
+  return maior + 1;
+});
+
+const historico = computed(() =>
+  versions.value.filter(v => v.status === 'published')
+);
+
+// Filtros em pastilha, como no artefato: todos, só rascunho, ou um assunto.
+const filtroActivo = ref('todos');
+
+const filtros = computed(() => [
+  { key: 'todos', label: t('RAEVO_AI.KNOWLEDGE.FILTER_ALL') },
+  ...coberturaPorAssunto.value
+    .filter(a => a.count > 0)
+    .map(a => ({ key: a.key, label: a.label })),
+]);
+
+const aplicarFiltro = chave => {
+  filtroActivo.value = chave;
+  assuntoFiltrado.value = chave === 'todos' ? '' : chave;
+};
+
+// Os avisos de impacto. Os dois primeiros são reais; o de contradição entre
+// itens não existe como serviço — os guardrails de hoje validam a resposta que
+// a Elis escreve, não um item de base. Fica visivelmente por implementar em vez
+// de fingir que passou.
+const avisos = computed(() => {
+  if (!emEdicao.value) return [];
+  const item = emEdicao.value;
+  const tocaAssuntoDelicado =
+    topics.value.find(tp => tp.key === item.topic_key)?.sensitive === true;
+
+  return [
+    {
+      key: 'format',
+      state: item.title?.trim() && item.content?.trim() ? 'pass' : 'fail',
+      label: t('RAEVO_AI.KNOWLEDGE.CHECK_FORMAT'),
+    },
+    {
+      key: 'contradiction',
+      state: 'pending',
+      label: t('RAEVO_AI.KNOWLEDGE.CHECK_CONTRADICTION'),
+    },
+    ...(tocaAssuntoDelicado
+      ? [
+          {
+            key: 'impact',
+            state: 'warn',
+            label: t('RAEVO_AI.KNOWLEDGE.CHECK_IMPACT'),
+          },
+        ]
+      : []),
+  ];
+});
+
 const rotuloDoAssunto = chave => {
   const topic = topics.value.find(item => item.key === chave);
   return topic ? topic.label : chave;
@@ -213,31 +290,120 @@ onMounted(carregar);
     </div>
 
     <template v-else>
-      <div
-        data-testid="ai-knowledge-coverage"
-        class="mt-4 flex items-center gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+      <!-- Editar não publica. É a regra central do artefato, e tem de estar
+           visível antes de qualquer campo — não escondida num aviso. -->
+      <section
+        data-testid="ai-knowledge-versions"
+        class="mt-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
       >
-        <span
-          class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+        <p class="text-micro font-semibold uppercase text-n-slate-10">
+          {{ t('RAEVO_AI.KNOWLEDGE.VERSIONS_EYEBROW') }}
+        </p>
+        <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+          {{ t('RAEVO_AI.KNOWLEDGE.VERSIONS_TITLE') }}
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm leading-6 text-n-slate-11">
+          {{ t('RAEVO_AI.KNOWLEDGE.VERSIONS_DESCRIPTION') }}
+        </p>
+
+        <div
+          class="mt-3 grid gap-px overflow-hidden rounded-xl bg-n-weak sm:grid-cols-2"
         >
-          <i class="i-lucide-library size-4" aria-hidden="true" />
-        </span>
-        <div class="min-w-0">
-          <p class="text-micro font-semibold uppercase text-n-slate-10">
-            {{ t('RAEVO_AI.KNOWLEDGE.COVERAGE_TITLE') }}
-          </p>
-          <p class="mt-1 text-sm text-n-slate-12">
-            {{
-              topics.length
-                ? t('RAEVO_AI.KNOWLEDGE.COVERAGE_SUMMARY', {
-                    covered: assuntosCobertos,
-                    total: topics.length,
-                  })
-                : t('RAEVO_AI.KNOWLEDGE.COVERAGE_EMPTY')
-            }}
+          <div class="bg-n-teal-2 p-3">
+            <span class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.KNOWLEDGE.ACTIVE_BASE') }}
+            </span>
+            <strong class="mt-1 block text-sm font-semibold text-n-slate-12">
+              {{
+                versaoActiva
+                  ? t('RAEVO_AI.KNOWLEDGE.VERSION_NUMBER', {
+                      number: versaoActiva.version_number,
+                    })
+                  : '—'
+              }}
+            </strong>
+            <small
+              v-if="versaoActiva"
+              class="mt-0.5 block text-xs text-n-slate-10"
+            >
+              {{
+                t('RAEVO_AI.KNOWLEDGE.PUBLISHED_BY', {
+                  who: versaoActiva.published_by || '—',
+                })
+              }}
+            </small>
+          </div>
+
+          <div class="flex items-center gap-3 bg-n-solid-1 p-3">
+            <span class="min-w-0 flex-1">
+              <span class="text-micro font-semibold uppercase text-n-slate-10">
+                {{ t('RAEVO_AI.KNOWLEDGE.DRAFT') }}
+              </span>
+              <strong class="mt-1 block text-sm font-semibold text-n-slate-12">
+                {{
+                  temRascunhoPorPublicar
+                    ? t('RAEVO_AI.KNOWLEDGE.VERSION_NUMBER', {
+                        number: proximaVersao,
+                      })
+                    : t('RAEVO_AI.KNOWLEDGE.NO_DRAFT')
+                }}
+              </strong>
+              <small
+                v-if="temRascunhoPorPublicar"
+                class="mt-0.5 block text-xs text-n-slate-10"
+              >
+                {{ t('RAEVO_AI.KNOWLEDGE.DRAFT_NOT_LIVE') }}
+              </small>
+            </span>
+          </div>
+        </div>
+
+        <!-- Cobertura por assunto. Um assunto vazio é o que faz a Elis não
+             saber responder, e é isso que a pastilha tracejada mostra. -->
+        <div class="mt-4">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <p class="text-micro font-semibold uppercase text-n-slate-10">
+              {{ t('RAEVO_AI.KNOWLEDGE.COVERAGE_TITLE') }}
+            </p>
+            <p class="text-xs text-n-slate-10">
+              {{
+                topics.length
+                  ? t('RAEVO_AI.KNOWLEDGE.COVERAGE_SUMMARY', {
+                      covered: assuntosCobertos,
+                      total: topics.length,
+                    })
+                  : t('RAEVO_AI.KNOWLEDGE.COVERAGE_EMPTY')
+              }}
+            </p>
+          </div>
+
+          <ul
+            data-testid="ai-knowledge-coverage"
+            class="mt-2 flex list-none flex-wrap gap-1.5 p-0"
+          >
+            <li
+              v-for="assunto in coberturaPorAssunto"
+              :key="assunto.key"
+              data-testid="ai-knowledge-topic"
+              class="rounded-full border px-3 py-1 text-xs font-semibold"
+              :class="
+                assunto.count
+                  ? 'border-n-teal-8 bg-n-teal-2 text-n-teal-11'
+                  : 'border-dashed border-n-amber-8 bg-n-amber-2 text-n-amber-11'
+              "
+            >
+              {{ assunto.label }}
+              <span class="ml-1 font-normal tabular-nums">
+                {{ assunto.count || '—' }}
+              </span>
+            </li>
+          </ul>
+
+          <p class="mt-2 text-xs leading-5 text-n-slate-10">
+            {{ t('RAEVO_AI.KNOWLEDGE.TAXONOMY_NOTE') }}
           </p>
         </div>
-      </div>
+      </section>
 
       <div
         v-if="temRascunhoPorPublicar"
@@ -315,34 +481,40 @@ onMounted(carregar);
         :class="emEdicao ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : ''"
       >
         <div class="min-w-0">
-          <div class="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <label class="sr-only" for="knowledge-search">
-              {{ t('RAEVO_AI.KNOWLEDGE.SEARCH_PLACEHOLDER') }}
-            </label>
-            <input
-              id="knowledge-search"
-              v-model="busca"
-              type="search"
-              :placeholder="t('RAEVO_AI.KNOWLEDGE.SEARCH_PLACEHOLDER')"
-              class="min-w-0 rounded-full border border-n-weak bg-n-solid-1 px-3 py-2 text-sm text-n-slate-12"
-            />
-            <label class="sr-only" for="knowledge-topic">
-              {{ t('RAEVO_AI.KNOWLEDGE.FIELD_TOPIC') }}
-            </label>
-            <select
-              id="knowledge-topic"
-              v-model="assuntoFiltrado"
-              class="rounded-full border border-n-weak bg-n-solid-1 py-2 pl-3 pr-8 text-sm text-n-slate-12"
+          <label class="sr-only" for="knowledge-search">
+            {{ t('RAEVO_AI.KNOWLEDGE.SEARCH_PLACEHOLDER') }}
+          </label>
+          <input
+            id="knowledge-search"
+            v-model="busca"
+            type="search"
+            :placeholder="t('RAEVO_AI.KNOWLEDGE.SEARCH_PLACEHOLDER')"
+            class="w-full rounded-full border border-n-weak bg-n-solid-1 px-3 py-2 text-sm text-n-slate-12"
+          />
+
+          <!-- Filtros em pastilha, como no artefato. O select escondia os
+               assuntos atrás de um clique; assim vê-se o que há. -->
+          <div
+            data-testid="ai-knowledge-filters"
+            class="mt-2 flex flex-wrap gap-1.5"
+            role="group"
+            :aria-label="t('RAEVO_AI.KNOWLEDGE.FIELD_TOPIC')"
+          >
+            <button
+              v-for="filtro in filtros"
+              :key="filtro.key"
+              type="button"
+              :aria-pressed="filtroActivo === filtro.key"
+              class="border px-3 py-1 text-xs font-semibold"
+              :class="
+                filtroActivo === filtro.key
+                  ? 'border-n-blue-9 bg-n-blue-2 text-n-blue-11'
+                  : 'border-n-weak bg-n-solid-1 text-n-slate-11'
+              "
+              @click="aplicarFiltro(filtro.key)"
             >
-              <option value="">{{ t('RAEVO_AI.KNOWLEDGE.FILTER_ALL') }}</option>
-              <option
-                v-for="topic in topics"
-                :key="topic.key"
-                :value="topic.key"
-              >
-                {{ topic.label }}
-              </option>
-            </select>
+              {{ filtro.label }}
+            </button>
           </div>
 
           <p
@@ -440,6 +612,37 @@ onMounted(carregar);
               </template>
             </RaevoField>
 
+            <!-- Avisos de impacto. Os dois primeiros são reais; o de
+                 contradição entre itens não existe como serviço — os guardrails
+                 de hoje validam a resposta que a Elis escreve, não um item de
+                 base. Fica visivelmente por implementar em vez de fingir que
+                 passou, que seria pior. -->
+            <ul
+              data-testid="ai-knowledge-checks"
+              class="mb-3 flex list-none flex-col gap-1.5 rounded-lg border border-n-amber-8 bg-n-amber-2 p-3"
+            >
+              <li
+                v-for="aviso in avisos"
+                :key="aviso.key"
+                class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 text-xs leading-5"
+              >
+                <i
+                  class="mt-0.5 size-3.5"
+                  :class="{
+                    'i-lucide-check text-n-teal-11': aviso.state === 'pass',
+                    'i-lucide-circle-alert text-n-ruby-11':
+                      aviso.state === 'fail',
+                    'i-lucide-triangle-alert text-n-amber-11':
+                      aviso.state === 'warn',
+                    'i-lucide-circle-dashed text-n-slate-10':
+                      aviso.state === 'pending',
+                  }"
+                  aria-hidden="true"
+                />
+                <span class="text-n-slate-12">{{ aviso.label }}</span>
+              </li>
+            </ul>
+
             <div class="flex flex-wrap gap-2">
               <NextButton
                 data-testid="ai-knowledge-save-draft"
@@ -472,7 +675,7 @@ onMounted(carregar);
           class="mt-2 flex list-none flex-col gap-2 p-0"
         >
           <li
-            v-for="version in versions"
+            v-for="version in historico"
             :key="version.id"
             class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-3"
           >
@@ -495,15 +698,32 @@ onMounted(carregar);
                 </span>
               </p>
             </div>
+            <span
+              v-if="version.id === versaoActiva?.id"
+              data-testid="ai-knowledge-active-tag"
+              class="rounded-full bg-n-teal-3 px-2 py-0.5 text-micro font-semibold uppercase text-n-teal-11"
+            >
+              {{ t('RAEVO_AI.KNOWLEDGE.ACTIVE_TAG') }}
+            </span>
             <NextButton
-              v-if="isAdmin && version.status === 'published'"
+              v-else-if="isAdmin && version.status === 'published'"
+              data-testid="ai-knowledge-rollback"
               size="sm"
               variant="faded"
+              color="ruby"
               :label="t('RAEVO_AI.KNOWLEDGE.ROLLBACK')"
               @click="reporVersao(version.id)"
             />
           </li>
         </ul>
+
+        <!-- Voltar não é desfazer uma edição: troca a base inteira pelo que
+               estava naquela data. O aviso é vermelho de propósito. -->
+        <p
+          class="mt-3 rounded-lg border border-n-ruby-8 bg-n-ruby-2 px-3 py-2 text-xs leading-5 text-n-ruby-11"
+        >
+          {{ t('RAEVO_AI.KNOWLEDGE.ROLLBACK_WARNING') }}
+        </p>
       </div>
     </template>
   </section>

@@ -56,13 +56,16 @@ beforeEach(() => {
 });
 
 describe('RaevoAiKnowledgePanel', () => {
-  it('shows how many subjects have content, which is what tells the clinic where Elis is blind', async () => {
+  it('shows one chip per subject, so an empty one is visible at a glance', async () => {
+    // Um assunto vazio é o que faz a Elis não saber responder. A frase única
+    // dizia «1 de 2»; a pastilha diz qual é o que falta.
     const wrapper = montar();
     await flushPromises();
 
-    expect(
-      wrapper.find('[data-testid="ai-knowledge-coverage"]').text()
-    ).toContain('"covered":1');
+    const pastilhas = wrapper.findAll('[data-testid="ai-knowledge-topic"]');
+    expect(pastilhas).toHaveLength(2);
+    expect(pastilhas[0].text()).toContain('1');
+    expect(pastilhas[1].text()).toContain('—');
   });
 
   it('does not announce an unpublished draft when there is none', async () => {
@@ -191,7 +194,9 @@ describe('RaevoAiKnowledgePanel', () => {
         topics,
         published: [item],
         draft: null,
+        // Duas versões: a activa não oferece «Voltar», só as anteriores.
         versions: [
+          { id: 'v2', version_number: 2, status: 'published', item_count: 4 },
           { id: 'v1', version_number: 1, status: 'published', item_count: 3 },
         ],
       },
