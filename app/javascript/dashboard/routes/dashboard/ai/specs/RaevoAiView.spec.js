@@ -183,6 +183,89 @@ describe('RaevoAiView', () => {
     expect(wrapper.find('[data-testid="ai-attendance"]').text()).toContain('5');
   });
 
+  it('follows the clinic board: opportunity, pre-booked, booked, won', async () => {
+    // Não há degrau de «qualificada»: nesta clínica o lead qualifica-se ao
+    // marcar, e um degrau que conta a mesma gente que o seguinte não informa.
+    // O desfecho é o ganho — o purchase —, não o agendamento.
+    RaevoAiAPI.getOverview.mockResolvedValue({
+      data: {
+        status: 'active',
+        opportunities_created: 112,
+        usage: {
+          conversations: 308,
+          pre_scheduled: 27,
+          appointments: 18,
+          payments: 11,
+        },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const etapas = wrapper.findAll('[data-testid="ai-journey-step"]');
+    expect(
+      etapas.map(e => [
+        e.find('dt a').text(),
+        e.find('dt span').exists() ? e.find('dt span').text() : null,
+        e.find('dd').text().trim(),
+      ])
+    ).toEqual([
+      ['RAEVO_AI.JOURNEY.CONVERSATIONS', null, '308'],
+      [
+        'RAEVO_AI.JOURNEY.OPPORTUNITIES',
+        'RAEVO_AI.JOURNEY.OF_CONVERSATIONS',
+        '112',
+      ],
+      [
+        'RAEVO_AI.JOURNEY.PRE_SCHEDULED',
+        'RAEVO_AI.JOURNEY.OF_CONVERSATIONS',
+        '27',
+      ],
+      ['RAEVO_AI.JOURNEY.SCHEDULED', 'RAEVO_AI.JOURNEY.OF_PRE_SCHEDULED', '18'],
+      [
+        'RAEVO_AI.JOURNEY.WON',
+        'RAEVO_AI.JOURNEY.OUTCOME · RAEVO_AI.JOURNEY.OF_SCHEDULED',
+        '11',
+      ],
+    ]);
+    expect(wrapper.text()).not.toContain('RAEVO_AI.JOURNEY.QUALIFIED');
+  });
+
+  it('says nothing rather than printing a rate above 100%', async () => {
+    // A secretária pode pré-agendar numa conversa cuja oportunidade já existia
+    // e nunca precisou de ser criada. Quando as contas discordam, a linha fica
+    // sem legenda em vez de anunciar «2700,0% das oportunidades».
+    RaevoAiAPI.getOverview.mockResolvedValue({
+      data: {
+        status: 'active',
+        opportunities_created: 1,
+        usage: { conversations: 4, pre_scheduled: 27 },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const preAgendadas = wrapper.findAll('[data-testid="ai-journey-step"]')[2];
+    expect(preAgendadas.find('dd').text()).toContain('27');
+    expect(preAgendadas.find('dt span').exists()).toBe(false);
+  });
+
+  it('sends the won step to finance, which is where the purchase lives', async () => {
+    RaevoAiAPI.getOverview.mockResolvedValue({
+      data: { status: 'active', usage: { payments: 11 } },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const ganho = wrapper.findAll('[data-testid="ai-journey-step"]').at(-1);
+    expect(ganho.find('a').attributes('aria-label')).toBe(
+      'RAEVO_AI.JOURNEY.LINK_FINANCE'
+    );
+  });
+
   it('shows live token usage and separates reported from estimated cost', async () => {
     RaevoAiAPI.getOverview.mockResolvedValue({
       data: {

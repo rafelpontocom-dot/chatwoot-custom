@@ -13,6 +13,12 @@
 #  no_show_at                            :datetime
 #  notes                                 :text
 #  occurrence_number                     :integer          default(1), not null
+#  source_hash                           :string
+#  source_provider                       :string
+#  source_read_only                      :boolean          default(FALSE), not null
+#  source_status                         :string
+#  source_synced_at                      :datetime
+#  source_updated_at                     :datetime
 #  starts_at                             :datetime         not null
 #  status                                :string           default("scheduled"), not null
 #  timezone                              :string           not null
@@ -25,9 +31,11 @@
 #  kanban_calendar_procedure_id          :bigint           not null
 #  kanban_card_id                        :bigint
 #  rescheduled_from_id                   :bigint
+#  source_external_id                    :string
 #
 # Indexes
 #
+#  idx_calendar_appointments_on_external_source               (account_id,source_provider,source_external_id) UNIQUE WHERE ((source_provider IS NOT NULL) AND (source_external_id IS NOT NULL))
 #  index_calendar_appointments_on_account_starts_status       (account_id,starts_at,status)
 #  index_calendar_appointments_on_series_and_occurrence       (kanban_calendar_appointment_series_id,occurrence_number) UNIQUE
 #  index_kanban_calendar_appointments_on_account_id           (account_id)

@@ -97,17 +97,37 @@ const taxa = (parte, total) => {
 // A chave chega inteira e não montada por interpolação, pela mesma razão que o
 // mapa de comandos: uma tradução em falta tem de ser encontrada pelas
 // ferramentas, e não descoberta como texto cru no ecrã da clínica.
+//
+// Acima de 100% não se mostra nada. Os degraus não vêm todos da mesma base —
+// «oportunidades criadas» conta comandos no Chatwoot e os restantes contam
+// desfechos no runtime —, e as duas contas podem discordar de boa-fé: a
+// secretária pré-agenda numa conversa cuja oportunidade já existia e não
+// precisou de ser criada. Escrever «2700,0% das oportunidades» destrói a
+// confiança no ecrã inteiro; não escrever nada só deixa a linha mais sóbria.
 const sobre = (parte, total, chave) => {
   const valor = taxa(parte, total);
-  return valor ? t(chave, { rate: valor }) : null;
+  if (!valor || Number(parte) > Number(total)) return null;
+  return t(chave, { rate: valor });
 };
 
+// A jornada segue o quadro da clínica: Leads de entrada e Qualificação dão a
+// oportunidade, «Agendar» é o pré-agendado, «Agendado» é o agendado e «Ganho»
+// é o desfecho. «Não responde» e «Perdido» ficam de fora de propósito — são
+// ramos terminais, não degraus, e contá-los subia o funil quando ele piorava.
+//
+// Não há degrau de «qualificada» porque nesta clínica qualificar e agendar são
+// o mesmo momento: o lead qualificou-se ao marcar. Um degrau que mede a mesma
+// gente que o seguinte não informa, ocupa espaço.
 const journeySteps = computed(() => {
   const conversas = usage.value.conversations;
   const criadas = overview.value?.opportunities_created;
-  const qualificadas = overview.value?.opportunities_qualified;
   const preAgendadas = usage.value.pre_scheduled;
   const agendadas = usage.value.appointments;
+  const ganhas = usage.value.payments;
+
+  // O desfecho mostra as duas coisas: que é o resultado do pacote e quanto do
+  // degrau anterior sobreviveu até aqui.
+  const desfecho = sobre(ganhas, agendadas, 'RAEVO_AI.JOURNEY.OF_SCHEDULED');
 
   return [
     {
@@ -127,29 +147,17 @@ const journeySteps = computed(() => {
       link: { name: 'kanban_boards' },
     },
     {
-      key: 'QUALIFIED',
-      label: t('RAEVO_AI.JOURNEY.QUALIFIED'),
-      linkLabel: t('RAEVO_AI.JOURNEY.LINK_KANBAN'),
-      value: numero(qualificadas),
-      // Nulo aqui não é zero: é «ninguém escolheu ainda a etapa que qualifica».
-      hint:
-        qualificadas === null ? t('RAEVO_AI.JOURNEY.QUALIFIED_UNSET') : null,
-      caption: sobre(
-        qualificadas,
-        criadas,
-        'RAEVO_AI.JOURNEY.OF_OPPORTUNITIES'
-      ),
-      link: { name: 'kanban_boards' },
-    },
-    {
       key: 'PRE_SCHEDULED',
       label: t('RAEVO_AI.JOURNEY.PRE_SCHEDULED'),
       linkLabel: t('RAEVO_AI.JOURNEY.LINK_KANBAN'),
       value: numero(preAgendadas),
+      // Medido contra as conversas, e não contra as oportunidades criadas: é
+      // aqui que o funil atravessa a fronteira entre o Chatwoot e o runtime, e
+      // a conversa é a única base que os dois lados partilham.
       caption: sobre(
         preAgendadas,
-        qualificadas,
-        'RAEVO_AI.JOURNEY.OF_QUALIFIED'
+        conversas,
+        'RAEVO_AI.JOURNEY.OF_CONVERSATIONS'
       ),
       link: { name: 'kanban_boards' },
     },
@@ -158,8 +166,22 @@ const journeySteps = computed(() => {
       label: t('RAEVO_AI.JOURNEY.SCHEDULED'),
       linkLabel: t('RAEVO_AI.JOURNEY.LINK_CALENDAR'),
       value: numero(agendadas),
-      caption: t('RAEVO_AI.JOURNEY.OUTCOME'),
+      caption: sobre(
+        agendadas,
+        preAgendadas,
+        'RAEVO_AI.JOURNEY.OF_PRE_SCHEDULED'
+      ),
       link: { name: 'calendar_index' },
+    },
+    {
+      key: 'WON',
+      label: t('RAEVO_AI.JOURNEY.WON'),
+      linkLabel: t('RAEVO_AI.JOURNEY.LINK_FINANCE'),
+      value: numero(ganhas),
+      caption: desfecho
+        ? `${t('RAEVO_AI.JOURNEY.OUTCOME')} · ${desfecho}`
+        : t('RAEVO_AI.JOURNEY.OUTCOME'),
+      link: { name: 'finance_index' },
       outcome: true,
     },
   ];

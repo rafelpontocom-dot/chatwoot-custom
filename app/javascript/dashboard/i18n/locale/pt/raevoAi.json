@@ -236,8 +236,6 @@
       "OUTCOME": "Resultado do pacote",
       "CONVERSATIONS": "Conversas atendidas",
       "OPPORTUNITIES": "Oportunidades criadas",
-      "QUALIFIED": "Qualificadas",
-      "QUALIFIED_UNSET": "Escolha a etapa que qualifica no funil",
       "PRE_SCHEDULED": "Pré-marcadas",
       "SCHEDULED": "Marcadas",
       "LINK_CONVERSATIONS": "Ver conversas",
@@ -247,7 +245,10 @@
       "NOTE": "Cada linha abre a lista com o mesmo período e o mesmo significado do número.",
       "OF_CONVERSATIONS": "%{rate} das conversas",
       "OF_OPPORTUNITIES": "%{rate} das oportunidades",
-      "OF_QUALIFIED": "%{rate} das qualificadas"
+      "WON": "Ganhas",
+      "LINK_FINANCE": "Ver financeiro",
+      "OF_PRE_SCHEDULED": "%{rate} das pré-agendadas",
+      "OF_SCHEDULED": "%{rate} das agendadas"
     },
     "ATTENDANCE": {
       "EYEBROW": "ATENDIMENTO",

@@ -236,8 +236,6 @@
       "OUTCOME": "Package outcome",
       "CONVERSATIONS": "Conversations handled",
       "OPPORTUNITIES": "Opportunities created",
-      "QUALIFIED": "Qualified",
-      "QUALIFIED_UNSET": "Pick the qualifying stage on the board",
       "PRE_SCHEDULED": "Pre-booked",
       "SCHEDULED": "Booked",
       "LINK_CONVERSATIONS": "See conversations",
@@ -247,7 +245,10 @@
       "NOTE": "Each line opens the list for the same period and the same meaning as the number.",
       "OF_CONVERSATIONS": "%{rate} of conversations",
       "OF_OPPORTUNITIES": "%{rate} of opportunities",
-      "OF_QUALIFIED": "%{rate} of qualified"
+      "WON": "Won",
+      "LINK_FINANCE": "See finance",
+      "OF_PRE_SCHEDULED": "%{rate} of pre-booked",
+      "OF_SCHEDULED": "%{rate} of booked"
     },
     "ATTENDANCE": {
       "EYEBROW": "SERVICE",

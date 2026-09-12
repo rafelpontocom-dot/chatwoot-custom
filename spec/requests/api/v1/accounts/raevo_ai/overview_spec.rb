@@ -42,9 +42,9 @@ RSpec.describe 'Raevo AI overview API', type: :request do
     expect(response.parsed_body).to eq(
       'connection_state' => 'active',
       'operational_state' => 'healthy',
-      # As duas etapas do funil que o Chatwoot responde sozinho entram ao lado
-      # do que a ponte devolve.
-      'overview' => payload.merge('opportunities_created' => 0, 'opportunities_qualified' => nil)
+      # A etapa do funil que o Chatwoot responde sozinho entra ao lado do que a
+      # ponte devolve.
+      'overview' => payload.merge('opportunities_created' => 0)
     )
   end
 

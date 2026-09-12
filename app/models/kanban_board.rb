@@ -29,7 +29,6 @@
 #  updated_at                                 :datetime         not null
 #  account_id                                 :bigint           not null
 #  archived_by_id                             :bigint
-#  qualified_stage_id                         :bigint
 #
 # Indexes
 #
@@ -39,12 +38,10 @@
 #  index_kanban_boards_on_account_id_and_archived_at  (account_id,archived_at)
 #  index_kanban_boards_on_account_id_and_position     (account_id,position)
 #  index_kanban_boards_on_archived_by_id              (archived_by_id)
-#  index_kanban_boards_on_qualified_stage_id          (qualified_stage_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (archived_by_id => users.id)
-#  fk_rails_...  (qualified_stage_id => kanban_stages.id)
 #
 # The board owns the normalized sales configuration used by cards and settings.
 # rubocop:disable Metrics/ClassLength
@@ -79,7 +76,6 @@ class KanbanBoard < ApplicationRecord
   # Qual etapa deste funil conta como "qualificada" no painel da Elis. Nula
   # enquanto ninguém escolher — o painel diz que falta configurar em vez de
   # inventar um número.
-  belongs_to :qualified_stage, class_name: 'KanbanStage', optional: true
 
   has_many :kanban_stages, dependent: :destroy_async
   has_many :conversation_kanban_states, dependent: :destroy_async
@@ -109,7 +105,6 @@ class KanbanBoard < ApplicationRecord
   validates :appointment_reminder_hours,
             numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 168 },
             allow_nil: true
-  validate :qualified_stage_belongs_to_board
 
   scope :active, -> { where(active: true) }
   scope :archived, -> { where(active: false).where.not(archived_at: nil) }
@@ -223,15 +218,6 @@ class KanbanBoard < ApplicationRecord
   end
 
   private
-
-  # Apontar para uma etapa de outro funil daria um número de "qualificadas" que
-  # não tem nada a ver com este quadro, e ninguém veria o engano.
-  def qualified_stage_belongs_to_board
-    return if qualified_stage_id.blank?
-    return if kanban_stages.exists?(id: qualified_stage_id)
-
-    errors.add(:qualified_stage, I18n.t('errors.kanban_board.qualified_stage_outside_board'))
-  end
 
   def swap_position_with!(neighbour)
     neighbour_position = neighbour.position

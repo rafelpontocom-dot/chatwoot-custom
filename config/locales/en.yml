@@ -102,8 +102,6 @@ en:
         revoked: This form link was cancelled. Ask the clinic for a new one.
       invalid_request: Invalid form request
       rate_limited: Too many attempts. Wait a minute and try again.
-    kanban_board:
-      qualified_stage_outside_board: must be a stage of this board
     kanban_import:
       contact_identity_required: the row has no e-mail or phone to identify the contact
       contact_identity_conflict: the e-mail and the phone on the row belong to different contacts
