@@ -21,7 +21,7 @@ class RaevoAi::OverviewClient
     'agenda' => %w[calcom google_calendar feegow chatwoot_native]
   }.freeze
   PUBLIC_USAGE_FIELDS = %w[
-    conversations handoffs pre_scheduled appointments payments
+    conversations responses_delivered first_response_seconds handoffs pre_scheduled appointments payments
     model_calls prompt_tokens completion_tokens
     provider_reported_cost_usd catalog_estimated_cost_usd cost_unavailable_calls
   ].freeze

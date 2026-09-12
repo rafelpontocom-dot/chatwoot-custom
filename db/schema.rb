@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_11_100000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1439,12 +1439,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
     t.jsonb "calendar_procedure_ids", default: [], null: false
     t.string "calendar_legacy_next_appointment_field_key"
     t.jsonb "contact_field_keys", default: [], null: false
+    t.bigint "qualified_stage_id"
     t.index ["account_id", "active"], name: "index_kanban_boards_on_account_id_and_active"
     t.index ["account_id", "archived_at"], name: "index_kanban_boards_on_account_id_and_archived_at"
     t.index ["account_id", "name"], name: "index_active_kanban_boards_on_account_id_and_name", unique: true, where: "(active = true)"
     t.index ["account_id", "position"], name: "index_kanban_boards_on_account_id_and_position"
     t.index ["account_id"], name: "index_kanban_boards_on_account_id"
     t.index ["archived_by_id"], name: "index_kanban_boards_on_archived_by_id"
+    t.index ["qualified_stage_id"], name: "index_kanban_boards_on_qualified_stage_id"
   end
 
   create_table "kanban_cadence_enrollments", force: :cascade do |t|
@@ -1517,7 +1519,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
     t.datetime "updated_at", null: false
     t.index ["kanban_calendar_appointment_id", "kanban_calendar_resource_id"], name: "index_calendar_appointment_resources_on_appointment_resource", unique: true
     t.index ["kanban_calendar_resource_id", "starts_at", "ends_at"], name: "index_calendar_appointment_resources_on_resource_and_range"
-    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY (ARRAY[('scheduled'::character varying)::text, ('confirmed'::character varying)::text, ('checked_in'::character varying)::text])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
+    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY ((ARRAY['scheduled'::character varying, 'confirmed'::character varying, 'checked_in'::character varying])::text[])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
   end
 
   create_table "kanban_calendar_appointment_series", force: :cascade do |t|
@@ -2436,6 +2438,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
   add_foreign_key "kanban_board_members", "accounts"
   add_foreign_key "kanban_board_members", "kanban_boards"
   add_foreign_key "kanban_board_members", "users"
+  add_foreign_key "kanban_boards", "kanban_stages", column: "qualified_stage_id"
   add_foreign_key "kanban_boards", "users", column: "archived_by_id"
   add_foreign_key "kanban_cadence_enrollments", "accounts"
   add_foreign_key "kanban_cadence_enrollments", "kanban_boards"

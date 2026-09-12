@@ -13,7 +13,9 @@ class Api::V1::Accounts::RaevoAi::OverviewController < Api::V1::Accounts::BaseCo
     render json: {
       connection_state: 'active',
       operational_state: 'healthy',
-      overview: overview
+      # As duas etapas do funil que são dado do Chatwoot entram aqui, ao lado do
+      # que a ponte devolve. Ir buscá-las lá fora seria pedir o que está cá.
+      overview: overview.merge(funnel(integration))
     }
   rescue RaevoAi::ConfigurationError, RaevoAi::UpstreamError
     render_state('unavailable')
@@ -23,6 +25,10 @@ class Api::V1::Accounts::RaevoAi::OverviewController < Api::V1::Accounts::BaseCo
 
   def authorize_account
     authorize Current.account, :show?
+  end
+
+  def funnel(integration)
+    RaevoAi::FunnelMetrics.new(integration: integration, window_days: window_days).call.stringify_keys
   end
 
   # Janela fora das três oferecidas cai em 30 em vez de recusar: um filtro
