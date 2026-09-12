@@ -8,14 +8,11 @@
       "DESCRIPTION": "Esta área substituirá gradualmente o painel externo do cliente. O acesso e as permissões ficam no Chatwoot; as configurações e o conhecimento da IA permanecem protegidos pelo backend Raevo."
     },
     "OVERVIEW": {
-      "EYEBROW": "OPERAÇÃO",
       "PLATE_ACTIVE": "A secretária está a atender normalmente.",
       "PLATE_PAUSED": "A secretária está pausada e não responde a ninguém.",
       "WINDOW_LABEL": "Período mostrado",
       "WINDOW_DAYS": "Últimos %{days} dias",
-      "TITLE": "Resumo da secretária",
       "LOADING": "A carregar o resumo da secretária",
-      "CLINIC_FALLBACK": "Clínica",
       "STATUS_UNKNOWN": "Estado indisponível",
       "PAUSE_ACTION": "Pausar secretária",
       "RESUME_ACTION": "Retomar secretária",
@@ -58,7 +55,12 @@
         "IDENTITY": "Identidade e função",
         "PERSONALITY": "Personalidade",
         "VOICE_STYLE": "Voz e linguagem"
-      }
+      },
+      "STATE_EYEBROW": "ESTADO",
+      "LAST_DELIVERED": "Última resposta entregue %{ago}",
+      "LAST_DELIVERED_NONE": "Nenhuma resposta entregue ainda",
+      "UPDATED_AT": "Atualizado às %{time}",
+      "WINDOW_DAYS_SHORT": "%{days} dias"
     },
     "CAPABILITIES": {
       "EYEBROW": "CONFIGURAÇÃO PUBLICADA",
@@ -185,8 +187,6 @@
     },
     "ACTIVITY": {
       "EYEBROW": "PRECISA DE SI",
-      "FAILED": "%{count} acção falhou e não foi aplicada",
-      "PENDING": "%{count} acção reservada e nunca concluída",
       "RECENT_TITLE": "O que a secretária fez",
       "RECENT_EMPTY": "Nada registado ainda.",
       "EYEBROW_RECENT": "ACTIVIDADE RECENTE",
@@ -195,8 +195,6 @@
       "AGO_MINUTES": "Há %{count} min",
       "AGO_HOURS": "Há %{count} h",
       "AGO_DAYS": "Há %{count} d",
-      "FAILED_DETAIL": "A secretária tentou e não foi aplicada",
-      "PENDING_DETAIL": "Reservada e nunca concluída",
       "ATTENTION_TITLE": "%{count} itens à espera de uma pessoa",
       "ATTENTION_TITLE_EMPTY": "Nada precisa de uma pessoa",
       "ATTENTION_EMPTY": "Nenhuma acção da secretária precisa da sua atenção agora.",
@@ -215,7 +213,10 @@
         "FINANCE_CREATE_CHARGE": "Criou uma cobrança",
         "HANDOFF_APPLY": "Passou para uma pessoa",
         "UNKNOWN": "Acção não reconhecida"
-      }
+      },
+      "ATTENTION_REMAINDER": "Mais %{count} estão fora das 20 acções mais recentes.",
+      "TARGET_CONVERSATION": "Conversa #%{id}",
+      "TARGET_CARD": "Cartão #%{id}"
     },
     "SETUP": {
       "EYEBROW": "COMO ESTÁ MONTADA",
@@ -239,9 +240,14 @@
       "QUALIFIED_UNSET": "Escolha a etapa que qualifica no funil",
       "PRE_SCHEDULED": "Pré-marcadas",
       "SCHEDULED": "Marcadas",
-      "LINK_CONVERSATIONS": "Ver conversas →",
-      "LINK_KANBAN": "Ver no Kanban →",
-      "LINK_CALENDAR": "Ver agenda →"
+      "LINK_CONVERSATIONS": "Ver conversas",
+      "LINK_KANBAN": "Ver no Kanban",
+      "LINK_CALENDAR": "Ver agenda",
+      "LABEL": "Jornada da conversa ao agendamento",
+      "NOTE": "Cada linha abre a lista com o mesmo período e o mesmo significado do número.",
+      "OF_CONVERSATIONS": "%{rate} das conversas",
+      "OF_OPPORTUNITIES": "%{rate} das oportunidades",
+      "OF_QUALIFIED": "%{rate} das qualificadas"
     },
     "ATTENDANCE": {
       "EYEBROW": "ATENDIMENTO",

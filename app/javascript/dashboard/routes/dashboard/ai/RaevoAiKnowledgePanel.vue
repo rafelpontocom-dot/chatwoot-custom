@@ -505,7 +505,7 @@ onMounted(carregar);
               :key="filtro.key"
               type="button"
               :aria-pressed="filtroActivo === filtro.key"
-              class="border px-3 py-1 text-xs font-semibold"
+              class="border border-solid px-3 py-1 text-xs font-semibold"
               :class="
                 filtroActivo === filtro.key
                   ? 'border-n-blue-9 bg-n-blue-2 text-n-blue-11'

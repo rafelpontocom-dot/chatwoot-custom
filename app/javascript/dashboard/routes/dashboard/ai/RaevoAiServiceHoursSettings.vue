@@ -313,7 +313,7 @@ onMounted(load);
               />
               <button
                 type="button"
-                class="grid size-8 place-items-center rounded-full text-n-slate-10 hover:bg-n-alpha-2 hover:text-n-ruby-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+                class="grid size-8 place-items-center rounded-full p-0 text-n-slate-10 hover:bg-n-alpha-2 hover:text-n-ruby-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
                 :aria-label="t('RAEVO_AI.SERVICE_HOURS.REMOVE_PERIOD')"
                 :disabled="isSaving"
                 @click="removePeriod(day, index)"

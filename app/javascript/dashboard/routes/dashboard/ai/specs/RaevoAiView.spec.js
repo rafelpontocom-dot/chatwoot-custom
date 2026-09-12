@@ -170,13 +170,16 @@ describe('RaevoAiView', () => {
     await flushPromises();
 
     expect(RaevoAiAPI.getOverview).toHaveBeenCalledOnce();
-    expect(wrapper.get('[data-testid="ai-overview"]').text()).toContain(
-      'Dra. Anna Alice'
-    );
-    // A jornada é o coração do painel: os números da etapa e a evidência.
+    expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(true);
+    // A jornada é o coração do painel: os números da etapa e a evidência. Na
+    // calha o destino é o próprio rótulo, e o nome do destino vive no
+    // `aria-label` — sem ele a linha seria «Conversas atendidas» para toda a
+    // gente menos para quem usa leitor de ecrã.
     const jornada = wrapper.find('[data-testid="ai-journey"]');
     expect(jornada.text()).toContain('44');
-    expect(jornada.text()).toContain('RAEVO_AI.JOURNEY.LINK_CONVERSATIONS');
+    expect(jornada.findAll('a')[0].attributes('aria-label')).toBe(
+      'RAEVO_AI.JOURNEY.LINK_CONVERSATIONS'
+    );
     expect(wrapper.find('[data-testid="ai-attendance"]').text()).toContain('5');
   });
 
@@ -230,8 +233,9 @@ describe('RaevoAiView', () => {
     await flushPromises();
 
     expect(RaevoAiAPI.getOverview).toHaveBeenCalledTimes(2);
-    expect(wrapper.get('[data-testid="ai-overview"]').text()).toContain(
-      'Dra. Anna Alice'
+    expect(wrapper.find('[data-testid="ai-overview"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="ai-overview-error"]').exists()).toBe(
+      false
     );
   });
 
@@ -478,10 +482,14 @@ describe('RaevoAiView', () => {
   });
 
   describe('o que precisa de uma pessoa', () => {
+    // Abre o Painel, e não a aba da secretária: quem só abre o Painel nunca
+    // chegava a ver o que tinha falhado.
+    const haMinutos = minutos =>
+      new Date(Date.now() - minutos * 60000).toISOString();
+
     it('diz que está tudo em dia em vez de mostrar uma lista vazia', async () => {
       const wrapper = mountView();
       await flushPromises();
-      await abrirAba(wrapper, 'assistant');
 
       expect(wrapper.findAll('[data-testid="ai-attention-row"]')).toHaveLength(
         0
@@ -491,21 +499,90 @@ describe('RaevoAiView', () => {
       );
     });
 
-    it('conta as falhas e as acções que ficaram por concluir', async () => {
-      RaevoAiAPI.saveAssistantName.mockResolvedValue({
-        data: { state: { assistant_name: 'Sofia', effective_name: 'Sofia' } },
-      });
+    it('lista a falha e a acção parada, cada uma com para onde ir', async () => {
       RaevoAiAPI.getActivity.mockResolvedValue({
-        data: { recent: [], attention: { failed: 2, pending: 1 } },
+        data: {
+          recent: [
+            {
+              id: 1,
+              command_type: 'calendar.book_appointment',
+              state: 'failed_terminal',
+              occurred_at: haMinutos(51),
+              target: { type: 'conversation', id: 4821 },
+            },
+            {
+              id: 2,
+              command_type: 'crm.move_stage',
+              state: 'claimed',
+              occurred_at: haMinutos(30),
+              target: { type: 'card', id: 7, board_id: 3 },
+            },
+          ],
+          attention: { failed: 1, pending: 1 },
+        },
       });
       const wrapper = mountView();
       await flushPromises();
-      await abrirAba(wrapper, 'assistant');
 
       const linhas = wrapper.findAll('[data-testid="ai-attention-row"]');
       expect(linhas).toHaveLength(2);
-      expect(linhas[0].text()).toContain('RAEVO_AI.ACTIVITY.FAILED');
-      expect(linhas[1].text()).toContain('RAEVO_AI.ACTIVITY.PENDING');
+      expect(linhas[0].text()).toContain(
+        'RAEVO_AI.ACTIVITY.STATE_FAILED_TERMINAL'
+      );
+      expect(linhas[1].text()).toContain('RAEVO_AI.ACTIVITY.STATE_CLAIMED');
+      // Sem botão, cada linha é um facto que não leva a lado nenhum.
+      linhas.forEach(linha =>
+        expect(linha.text()).toContain('RAEVO_AI.ACTIVITY.OPEN')
+      );
+    });
+
+    it('não acusa como parado o que foi reclamado agora mesmo', async () => {
+      // Cinco minutos é o mesmo limiar do servidor. Sem ele o painel acusava
+      // pendências que se resolviam sozinhas, e o aviso perdia o crédito.
+      RaevoAiAPI.getActivity.mockResolvedValue({
+        data: {
+          recent: [
+            {
+              id: 1,
+              command_type: 'crm.move_stage',
+              state: 'claimed',
+              occurred_at: haMinutos(1),
+            },
+          ],
+          attention: { failed: 0, pending: 0 },
+        },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+
+      expect(wrapper.findAll('[data-testid="ai-attention-row"]')).toHaveLength(
+        0
+      );
+    });
+
+    it('avisa quando o servidor conta mais do que as linhas mostram', async () => {
+      RaevoAiAPI.getActivity.mockResolvedValue({
+        data: {
+          recent: [
+            {
+              id: 1,
+              command_type: 'crm.move_stage',
+              state: 'failed_retryable',
+              occurred_at: haMinutos(10),
+            },
+          ],
+          attention: { failed: 6, pending: 0 },
+        },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+
+      expect(wrapper.findAll('[data-testid="ai-attention-row"]')).toHaveLength(
+        1
+      );
+      expect(
+        wrapper.find('[data-testid="ai-needs-you-remainder"]').text()
+      ).toContain('RAEVO_AI.ACTIVITY.ATTENTION_REMAINDER');
     });
   });
 

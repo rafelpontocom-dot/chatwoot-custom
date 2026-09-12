@@ -17,9 +17,8 @@ const router = useRouter();
 const accountId = computed(() => route.params.accountId);
 
 // Três abas, e a separação não é arbitrária: «Painel» é o que a clínica vem
-// ver, «A Elis» é o que ela configura, «Conhecimento» é o que a Elis sabe
-// responder. Antes disto vivia tudo numa coluna só e o que importava ficava
-// abaixo da dobra.
+// ver, «A secretária» é o que ela configura, «Conhecimento» é o que a
+// secretária sabe responder.
 const abaAtiva = ref('panel');
 const abas = computed(() => [
   { key: 'panel', label: t('RAEVO_AI.TABS.PANEL') },
@@ -33,18 +32,23 @@ const mudarAba = aba => {
   abaAtiva.value = aba.key;
 };
 
+// A calha encolhe no Conhecimento. Ali o trabalho é editar texto lado a lado
+// com a lista, e uma coluna fixa de 18rem dava três colunas a 1280px — que é
+// exactamente a largura onde isto se parte. O estado continua no ecrã, numa
+// faixa; é a promessa da bancada cumprida com a forma que a aba comporta.
+const calhaCompacta = computed(() => abaAtiva.value === 'knowledge');
+
 // A janela que a clínica escolheu ver. Trinta dias por omissão porque é o que
 // responde «como foi o mês», que é a pergunta que ela traz.
 const windowDays = ref(30);
 const windowOptions = [7, 30, 90];
 
-// Pausa: o estado vem do serviço, e é ele que o botão altera. Sem isto o botão
-// existia no ecrã e não parava nada — foi assim durante toda a construção.
+// Pausa: o estado vem do serviço, e é ele que o botão altera.
 const pauseState = ref(null);
 const isSavingPause = ref(false);
 const pauseError = ref(null);
 
-// O que a Elis fez e o que ficou por resolver.
+// O que a secretária fez e o que ficou por resolver.
 const activity = ref({ recent: [], attention: { failed: 0, pending: 0 } });
 
 const overview = ref(null);
@@ -87,6 +91,17 @@ const taxa = (parte, total) => {
   return `${((Number(parte) / Number(total)) * 100).toFixed(1).replace('.', ',')}%`;
 };
 
+// A taxa sozinha é ambígua: «57,1%» de quê? Na calha, onde o número está
+// encostado ao rótulo e não há espaço para uma coluna de contexto, a legenda
+// tem de dizer sobre que etapa a percentagem foi calculada.
+// A chave chega inteira e não montada por interpolação, pela mesma razão que o
+// mapa de comandos: uma tradução em falta tem de ser encontrada pelas
+// ferramentas, e não descoberta como texto cru no ecrã da clínica.
+const sobre = (parte, total, chave) => {
+  const valor = taxa(parte, total);
+  return valor ? t(chave, { rate: valor }) : null;
+};
+
 const journeySteps = computed(() => {
   const conversas = usage.value.conversations;
   const criadas = overview.value?.opportunities_created;
@@ -100,7 +115,7 @@ const journeySteps = computed(() => {
       label: t('RAEVO_AI.JOURNEY.CONVERSATIONS'),
       linkLabel: t('RAEVO_AI.JOURNEY.LINK_CONVERSATIONS'),
       value: numero(conversas),
-      rate: null,
+      caption: null,
       link: { name: 'home' },
     },
     {
@@ -108,7 +123,7 @@ const journeySteps = computed(() => {
       label: t('RAEVO_AI.JOURNEY.OPPORTUNITIES'),
       linkLabel: t('RAEVO_AI.JOURNEY.LINK_KANBAN'),
       value: numero(criadas),
-      rate: taxa(criadas, conversas),
+      caption: sobre(criadas, conversas, 'RAEVO_AI.JOURNEY.OF_CONVERSATIONS'),
       link: { name: 'kanban_boards' },
     },
     {
@@ -119,7 +134,11 @@ const journeySteps = computed(() => {
       // Nulo aqui não é zero: é «ninguém escolheu ainda a etapa que qualifica».
       hint:
         qualificadas === null ? t('RAEVO_AI.JOURNEY.QUALIFIED_UNSET') : null,
-      rate: taxa(qualificadas, criadas),
+      caption: sobre(
+        qualificadas,
+        criadas,
+        'RAEVO_AI.JOURNEY.OF_OPPORTUNITIES'
+      ),
       link: { name: 'kanban_boards' },
     },
     {
@@ -127,7 +146,11 @@ const journeySteps = computed(() => {
       label: t('RAEVO_AI.JOURNEY.PRE_SCHEDULED'),
       linkLabel: t('RAEVO_AI.JOURNEY.LINK_KANBAN'),
       value: numero(preAgendadas),
-      rate: taxa(preAgendadas, qualificadas),
+      caption: sobre(
+        preAgendadas,
+        qualificadas,
+        'RAEVO_AI.JOURNEY.OF_QUALIFIED'
+      ),
       link: { name: 'kanban_boards' },
     },
     {
@@ -135,11 +158,55 @@ const journeySteps = computed(() => {
       label: t('RAEVO_AI.JOURNEY.SCHEDULED'),
       linkLabel: t('RAEVO_AI.JOURNEY.LINK_CALENDAR'),
       value: numero(agendadas),
-      rate: taxa(agendadas, preAgendadas),
+      caption: t('RAEVO_AI.JOURNEY.OUTCOME'),
       link: { name: 'calendar_index' },
       outcome: true,
     },
   ];
+});
+
+// Quanto tempo passou, em palavras. Numa lista de atividade o que interessa é
+// a recência, não a hora cheia.
+const desdeEntao = iso => {
+  if (!iso) return null;
+  const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (!Number.isFinite(minutos)) return null;
+  if (minutos < 60)
+    return t('RAEVO_AI.ACTIVITY.AGO_MINUTES', { count: Math.max(minutos, 0) });
+  if (minutos < 1440)
+    return t('RAEVO_AI.ACTIVITY.AGO_HOURS', {
+      count: Math.round(minutos / 60),
+    });
+  return t('RAEVO_AI.ACTIVITY.AGO_DAYS', { count: Math.round(minutos / 1440) });
+};
+
+const estadoTitulo = computed(() => {
+  if (!pauseState.value) return t('RAEVO_AI.OVERVIEW.STATUS_UNKNOWN');
+  return pauseState.value.paused
+    ? t('RAEVO_AI.OVERVIEW.PLATE_PAUSED')
+    : t('RAEVO_AI.OVERVIEW.PLATE_ACTIVE');
+});
+
+// A prova de que ela está viva não é o estado guardado: é a última resposta que
+// chegou mesmo ao paciente.
+const ultimaResposta = computed(() => {
+  const quando = desdeEntao(overview.value?.last_delivered_at);
+  return quando
+    ? t('RAEVO_AI.OVERVIEW.LAST_DELIVERED', { ago: quando })
+    : t('RAEVO_AI.OVERVIEW.LAST_DELIVERED_NONE');
+});
+
+const atualizadoEm = computed(() => {
+  const iso = overview.value?.generated_at;
+  if (!iso) return null;
+  const data = new Date(iso);
+  if (Number.isNaN(data.getTime())) return null;
+  return t('RAEVO_AI.OVERVIEW.UPDATED_AT', {
+    time: new Intl.DateTimeFormat(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(data),
+  });
 });
 
 // Quanto tempo a paciente esperou pela primeira resposta. Em minutos abaixo de
@@ -402,20 +469,6 @@ const contractedPackage = computed(() => {
   const key = PACKAGE_BY_RUNTIME[overview.value?.package];
   return servicePackages.value.find(item => item.key === key) ?? null;
 });
-// Quanto tempo passou, em palavras. O artefato mostra «há 4 min» e não a hora
-// cheia: o que interessa numa lista de atividade é a recência.
-const desdeEntao = iso => {
-  if (!iso) return '—';
-  const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (!Number.isFinite(minutos)) return '—';
-  if (minutos < 60)
-    return t('RAEVO_AI.ACTIVITY.AGO_MINUTES', { count: Math.max(minutos, 0) });
-  if (minutos < 1440)
-    return t('RAEVO_AI.ACTIVITY.AGO_HOURS', {
-      count: Math.round(minutos / 60),
-    });
-  return t('RAEVO_AI.ACTIVITY.AGO_DAYS', { count: Math.round(minutos / 1440) });
-};
 
 // Ícone e cor por desfecho. Cor sozinha não comunica estado — vai sempre com
 // ícone e com o texto do estado por baixo.
@@ -430,6 +483,17 @@ const APARENCIA_POR_ESTADO = {
     icon: 'i-lucide-triangle-alert',
     tone: 'bg-n-ruby-3 text-n-ruby-11',
   },
+};
+
+// Para onde o «Abrir» leva, dito antes de se carregar. Sem isto a linha tinha
+// setecentos pixéis vazios entre o que ela fez e o botão, e a clínica só
+// descobria o destino depois de sair do ecrã.
+const nomeDoDestino = alvo => {
+  if (alvo?.type === 'conversation')
+    return t('RAEVO_AI.ACTIVITY.TARGET_CONVERSATION', { id: alvo.id });
+  if (alvo?.type === 'card')
+    return t('RAEVO_AI.ACTIVITY.TARGET_CARD', { id: alvo.id });
+  return null;
 };
 
 const destinoDoItem = alvo => {
@@ -453,7 +517,9 @@ const destinoDoItem = alvo => {
 const activityRows = computed(() =>
   activity.value.recent.map(item => ({
     id: item.id,
-    ago: desdeEntao(item.occurred_at),
+    ago: desdeEntao(item.occurred_at) ?? '—',
+    occurredAt: item.occurred_at,
+    rawState: item.state,
     label: commandLabel(item.command_type),
     state: stateLabel(item.state),
     icon: (APARENCIA_POR_ESTADO[item.state] ?? APARENCIA_POR_ESTADO.claimed)
@@ -463,6 +529,7 @@ const activityRows = computed(() =>
     // A conversa e o cartão servem os dois como destino. Sem nenhum não há
     // botão — melhor do que um botão que não abre nada.
     to: destinoDoItem(item.target),
+    destino: nomeDoDestino(item.target),
   }))
 );
 
@@ -470,37 +537,37 @@ const abrirRegisto = item => {
   if (item.to) router.push(item.to);
 };
 
-const attentionRows = computed(() => {
-  const linhas = [];
-  if (activity.value.attention.failed) {
-    linhas.push({
-      key: 'failed',
-      icon: 'i-lucide-triangle-alert',
-      title: t('RAEVO_AI.ACTIVITY.FAILED', {
-        count: activity.value.attention.failed,
-      }),
-      detail: t('RAEVO_AI.ACTIVITY.FAILED_DETAIL'),
-    });
-  }
-  if (activity.value.attention.pending) {
-    linhas.push({
-      key: 'pending',
-      icon: 'i-lucide-clock',
-      title: t('RAEVO_AI.ACTIVITY.PENDING', {
-        count: activity.value.attention.pending,
-      }),
-      detail: t('RAEVO_AI.ACTIVITY.PENDING_DETAIL'),
-    });
-  }
-  return linhas;
-});
+// O mesmo limiar que o servidor usa em `activity_controller.rb`: reclamado há
+// menos de cinco minutos é trabalho a decorrer, não trabalho parado. Repetido
+// aqui porque as contagens vêm prontas e as linhas não.
+const PARADO_DEPOIS_DE_MS = 5 * 60 * 1000;
+const ESTADOS_FALHADOS = ['failed_retryable', 'failed_terminal'];
 
-const attentionTitle = computed(() =>
-  attentionRows.value.length
-    ? t('RAEVO_AI.ACTIVITY.ATTENTION_TITLE', {
-        count: attentionRows.value.length,
-      })
+const precisaDePessoa = linha => {
+  if (ESTADOS_FALHADOS.includes(linha.rawState)) return true;
+  if (linha.rawState !== 'claimed') return false;
+  const quando = new Date(linha.occurredAt).getTime();
+  return Number.isFinite(quando) && Date.now() - quando >= PARADO_DEPOIS_DE_MS;
+};
+
+// As contagens do servidor cobrem tudo; as linhas só as vinte mais recentes. A
+// contagem é que manda no título, e as linhas são o que dá para agir agora.
+const needsYouRows = computed(() => activityRows.value.filter(precisaDePessoa));
+
+const needsYouTotal = computed(
+  () => activity.value.attention.failed + activity.value.attention.pending
+);
+
+const needsYouTitle = computed(() =>
+  needsYouTotal.value
+    ? t('RAEVO_AI.ACTIVITY.ATTENTION_TITLE', { count: needsYouTotal.value })
     : t('RAEVO_AI.ACTIVITY.ATTENTION_TITLE_EMPTY')
+);
+
+// Quando o servidor conta mais do que as vinte linhas mostram, dizê-lo é a
+// diferença entre «resolvi tudo» e «resolvi o que via».
+const needsYouRemainder = computed(() =>
+  Math.max(needsYouTotal.value - needsYouRows.value.length, 0)
 );
 
 // Leitura, exceto o nome e o horário. O resto muda-se com a Raevo, e dizê-lo é
@@ -629,374 +696,455 @@ const setupRows = computed(() => [
         </template>
       </RaevoPageHeader>
 
-      <section
-        class="flex items-start gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
-        role="status"
+      <p
+        v-if="pauseError"
+        data-testid="ai-pause-error"
+        class="text-sm text-n-ruby-11"
+        role="alert"
       >
-        <span
-          class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
-        >
-          <i class="i-lucide-sparkles size-4" aria-hidden="true" />
-        </span>
-        <div class="min-w-0">
-          <h2 class="text-sm font-semibold text-n-slate-12">
-            {{ t('RAEVO_AI.NATIVE_AREA.TITLE') }}
-          </h2>
-          <p class="mt-1 max-w-prose text-sm leading-6 text-n-slate-11">
-            {{ t('RAEVO_AI.NATIVE_AREA.DESCRIPTION') }}
-          </p>
-        </div>
-      </section>
+        {{ pauseError }}
+      </p>
 
-      <template v-if="abaAtiva === 'panel'">
-        <section
-          class="rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:p-6"
+      <!-- A bancada. O estado e a jornada ficam numa calha fixa à esquerda e
+           não saem do ecrã enquanto se trabalha à direita; era a rolar até aos
+           custos que a clínica perdia de vista se a secretária estava pausada. -->
+      <div
+        class="grid items-start gap-4"
+        :class="
+          calhaCompacta ? '' : 'lg:grid-cols-[minmax(0,18.5rem)_minmax(0,1fr)]'
+        "
+      >
+        <aside
+          data-testid="ai-rail"
+          class="flex flex-col gap-3"
+          :class="calhaCompacta ? '' : 'lg:sticky lg:top-0'"
         >
-          <div>
-            <p class="text-micro font-semibold uppercase text-n-slate-10">
-              {{ t('RAEVO_AI.OVERVIEW.EYEBROW') }}
-            </p>
-            <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.OVERVIEW.TITLE') }}
-            </h2>
-          </div>
-
-          <div
-            v-if="isLoading"
-            class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-            role="status"
-            :aria-label="t('RAEVO_AI.OVERVIEW.LOADING')"
+          <!-- Compacta, a placa é uma linha: o estado à esquerda e o período à
+               direita. Empilhada ocuparia a largura toda para deixar metade
+               vazia, que foi o que o primeiro ensaio mostrou. -->
+          <section
+            data-testid="ai-plate"
+            class="rounded-xl bg-raevo-plate p-4"
+            :class="
+              calhaCompacta
+                ? 'flex flex-wrap items-center justify-between gap-x-6 gap-y-3'
+                : ''
+            "
           >
+            <div>
+              <p
+                class="text-micro font-semibold uppercase text-raevo-plate-muted"
+              >
+                {{ t('RAEVO_AI.OVERVIEW.STATE_EYEBROW') }}
+              </p>
+              <h2 class="mt-1 text-base font-semibold text-raevo-plate-fg">
+                {{ estadoTitulo }}
+              </h2>
+              <p class="mt-1 text-xs leading-5 text-raevo-plate-muted">
+                {{ ultimaResposta }}
+              </p>
+            </div>
+
             <div
-              v-for="index in 3"
-              :key="index"
-              class="h-20 animate-pulse rounded-xl bg-n-alpha-2"
+              data-testid="ai-window-filter"
+              class="flex flex-wrap items-center gap-1.5"
+              :class="calhaCompacta ? '' : 'mt-3'"
+              role="group"
+              :aria-label="t('RAEVO_AI.OVERVIEW.WINDOW_LABEL')"
+            >
+              <button
+                v-for="dias in windowOptions"
+                :key="dias"
+                type="button"
+                :aria-pressed="windowDays === dias"
+                :aria-label="t('RAEVO_AI.OVERVIEW.WINDOW_DAYS', { days: dias })"
+                class="rounded-full px-2.5 py-1 text-micro font-semibold"
+                :class="
+                  windowDays === dias
+                    ? 'bg-raevo-plate-fg text-raevo-plate'
+                    : 'bg-raevo-plate-soft text-raevo-plate-muted'
+                "
+                @click="changeWindow(dias)"
+              >
+                <!-- Abreviado porque a calha tem 296px e «Últimos 30 dias»
+                     vezes três quebrava para duas linhas. O rótulo por extenso
+                     fica no `aria-label`, que é onde faz falta. -->
+                {{ t('RAEVO_AI.OVERVIEW.WINDOW_DAYS_SHORT', { days: dias }) }}
+              </button>
+              <span
+                v-if="atualizadoEm"
+                class="text-micro text-raevo-plate-muted"
+              >
+                {{ atualizadoEm }}
+              </span>
+            </div>
+
+            <!-- A jornada em calha: rótulo à esquerda, número à direita, e a
+                 legenda a dizer sobre que etapa a percentagem foi calculada —
+                 «57,1%» sozinho não diz de quê. -->
+            <div
+              v-if="isLoading && !calhaCompacta"
+              class="mt-3 h-48 animate-pulse rounded-lg bg-raevo-plate-soft"
+              role="status"
+              :aria-label="t('RAEVO_AI.OVERVIEW.LOADING')"
             />
-          </div>
-
-          <div
-            v-else-if="isPreparing"
-            data-testid="ai-overview-setup"
-            class="mt-4 flex items-start gap-4 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
-            role="status"
-          >
-            <span
-              class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+            <dl
+              v-else-if="!calhaCompacta"
+              data-testid="ai-journey"
+              class="mt-3 flex flex-col gap-px overflow-hidden rounded-lg bg-raevo-plate-soft"
+              :aria-label="t('RAEVO_AI.JOURNEY.LABEL')"
             >
-              <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
-            </span>
-            <div>
-              <p class="text-sm font-semibold text-n-slate-12">
-                {{ t('RAEVO_AI.OVERVIEW.SETUP.TITLE') }}
-              </p>
-              <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('RAEVO_AI.OVERVIEW.SETUP.DESCRIPTION') }}
-              </p>
-            </div>
-          </div>
-
-          <div
-            v-else-if="isDisabled"
-            data-testid="ai-overview-disabled"
-            class="mt-4 flex items-start gap-4 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
-            role="status"
-          >
-            <span
-              class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
-            >
-              <i class="i-lucide-circle-pause size-4" aria-hidden="true" />
-            </span>
-            <div>
-              <p class="text-sm font-semibold text-n-slate-12">
-                {{ t('RAEVO_AI.OVERVIEW.DISABLED.TITLE') }}
-              </p>
-              <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('RAEVO_AI.OVERVIEW.DISABLED.DESCRIPTION') }}
-              </p>
-            </div>
-          </div>
-
-          <div
-            v-else-if="hasError"
-            data-testid="ai-overview-error"
-            class="mt-4 flex flex-col items-start gap-4 rounded-xl border border-n-weak bg-n-alpha-1 p-4 sm:flex-row sm:items-center sm:justify-between"
-            role="alert"
-          >
-            <div>
-              <p class="text-sm font-semibold text-n-slate-12">
-                {{ t('RAEVO_AI.OVERVIEW.ERROR.TITLE') }}
-              </p>
-              <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('RAEVO_AI.OVERVIEW.ERROR.DESCRIPTION') }}
-              </p>
-            </div>
-            <button
-              type="button"
-              data-testid="ai-overview-retry"
-              class="rounded-full border border-n-strong bg-n-solid-1 px-3 py-2 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-              @click="loadOverview"
-            >
-              {{ t('RAEVO_AI.OVERVIEW.ERROR.RETRY') }}
-            </button>
-          </div>
-
-          <div v-else data-testid="ai-overview" class="mt-4">
-            <!-- A placa. Existe para responder de relance à única pergunta
-                 que a clínica traz ao abrir isto: a Elis está a atender? -->
-            <section
-              data-testid="ai-plate"
-              class="rounded-xl bg-raevo-plate p-4 lg:p-6"
-            >
-              <h3 class="mt-1 text-xl font-semibold text-raevo-plate-fg">
-                {{
-                  pauseState?.paused
-                    ? t('RAEVO_AI.OVERVIEW.PLATE_PAUSED')
-                    : t('RAEVO_AI.OVERVIEW.PLATE_ACTIVE')
-                }}
-              </h3>
-              <p class="mt-1 max-w-prose text-sm text-raevo-plate-muted">
-                {{
-                  overview?.clinic_name ||
-                  t('RAEVO_AI.OVERVIEW.CLINIC_FALLBACK')
-                }}
-                <span v-if="contractedPackage">
-                  {{ ` · ${contractedPackage.title}` }}
-                </span>
-              </p>
-
               <div
-                data-testid="ai-window-filter"
-                class="mt-4 flex flex-wrap gap-2"
-                role="group"
-                :aria-label="t('RAEVO_AI.OVERVIEW.WINDOW_LABEL')"
+                v-for="etapa in journeySteps"
+                :key="etapa.key"
+                data-testid="ai-journey-step"
+                class="group relative flex items-baseline justify-between gap-3 px-3 py-2.5"
+                :class="
+                  etapa.outcome
+                    ? 'border-l-2 border-solid border-n-teal-9 bg-raevo-plate-soft'
+                    : 'bg-raevo-plate'
+                "
               >
-                <button
-                  v-for="dias in windowOptions"
-                  :key="dias"
-                  type="button"
-                  :aria-pressed="windowDays === dias"
-                  class="px-3 py-1 text-xs font-medium"
-                  :class="
-                    windowDays === dias
-                      ? 'bg-raevo-plate-fg text-raevo-plate'
-                      : 'bg-raevo-plate-soft text-raevo-plate-muted'
-                  "
-                  @click="changeWindow(dias)"
-                >
-                  {{ t('RAEVO_AI.OVERVIEW.WINDOW_DAYS', { days: dias }) }}
-                </button>
-              </div>
-
-              <!-- A jornada. Cinco números soltos não são um funil: cada etapa
-                   mostra a taxa sobre a anterior, que é o que diz se a Elis
-                   está a converter ou só a conversar. -->
-              <dl
-                data-testid="ai-journey"
-                class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-raevo-plate-soft sm:grid-cols-3 lg:grid-cols-5"
-              >
-                <div
-                  v-for="etapa in journeySteps"
-                  :key="etapa.key"
-                  data-testid="ai-journey-step"
-                  class="bg-raevo-plate p-4"
-                  :class="
-                    etapa.outcome ? 'ring-1 ring-inset ring-n-teal-9' : ''
-                  "
-                >
-                  <span
-                    v-if="etapa.outcome"
-                    class="mb-1 inline-flex rounded-full bg-n-teal-9 px-2 py-0.5 text-micro font-semibold uppercase text-raevo-plate"
-                  >
-                    {{ t('RAEVO_AI.JOURNEY.OUTCOME') }}
-                  </span>
-                  <dt
-                    class="text-micro font-semibold uppercase text-raevo-plate-muted"
+                <dt class="min-w-0">
+                  <router-link
+                    :to="{ ...etapa.link, params: { accountId } }"
+                    :aria-label="etapa.linkLabel"
+                    class="text-xs font-semibold text-raevo-plate-fg after:absolute after:inset-0 after:content-[''] group-hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-teal-9"
                   >
                     {{ etapa.label }}
-                  </dt>
-                  <dd
-                    class="mt-2 text-xl font-semibold tabular-nums"
-                    :class="
-                      etapa.outcome ? 'text-n-teal-9' : 'text-raevo-plate-fg'
-                    "
-                  >
-                    {{ etapa.value ?? '—' }}
-                  </dd>
-                  <p class="mt-1 text-micro text-raevo-plate-muted">
-                    {{ etapa.hint || etapa.rate || '&nbsp;' }}
-                  </p>
-                  <router-link
-                    v-if="etapa.link"
-                    :to="{ ...etapa.link, params: { accountId } }"
-                    class="mt-2 inline-flex text-micro font-semibold text-n-teal-9"
-                  >
-                    {{ etapa.linkLabel }}
                   </router-link>
-                </div>
-              </dl>
-            </section>
+                  <span
+                    v-if="etapa.hint || etapa.caption"
+                    class="mt-0.5 block text-micro text-raevo-plate-muted"
+                  >
+                    {{ etapa.hint || etapa.caption }}
+                  </span>
+                </dt>
+                <dd
+                  class="flex shrink-0 items-center gap-1 text-base font-semibold tabular-nums"
+                  :class="
+                    etapa.outcome ? 'text-n-teal-9' : 'text-raevo-plate-fg'
+                  "
+                >
+                  {{ etapa.value ?? '—' }}
+                  <i
+                    class="i-lucide-chevron-right size-3.5 text-raevo-plate-muted"
+                    aria-hidden="true"
+                  />
+                </dd>
+              </div>
+            </dl>
 
             <p
-              v-if="pauseError"
-              data-testid="ai-pause-error"
-              class="mt-4 text-sm text-n-ruby-11"
+              v-if="!calhaCompacta"
+              class="mt-2 text-micro leading-4 text-raevo-plate-muted"
+            >
+              {{ t('RAEVO_AI.JOURNEY.NOTE') }}
+            </p>
+          </section>
+
+          <!-- Nota técnica, e é por isso que está aqui em baixo e não em cima:
+               ocupava o espaço nobre das três abas para dizer uma coisa que se
+               lê uma vez. -->
+          <p class="text-micro leading-4 text-n-slate-10">
+            {{ t('RAEVO_AI.NATIVE_AREA.DESCRIPTION') }}
+          </p>
+        </aside>
+
+        <div class="flex min-w-0 flex-col gap-4">
+          <template v-if="abaAtiva === 'panel'">
+            <div
+              v-if="isLoading"
+              class="grid gap-4 sm:grid-cols-2"
+              role="status"
+              :aria-label="t('RAEVO_AI.OVERVIEW.LOADING')"
+            >
+              <div
+                v-for="index in 2"
+                :key="index"
+                class="h-64 animate-pulse rounded-xl bg-n-alpha-2"
+              />
+            </div>
+
+            <section
+              v-else-if="isPreparing"
+              data-testid="ai-overview-setup"
+              class="flex items-start gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
+              role="status"
+            >
+              <span
+                class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+              >
+                <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <h3 class="text-sm font-semibold text-n-slate-12">
+                  {{ t('RAEVO_AI.OVERVIEW.SETUP.TITLE') }}
+                </h3>
+                <p class="mt-1 text-sm leading-6 text-n-slate-11">
+                  {{ t('RAEVO_AI.OVERVIEW.SETUP.DESCRIPTION') }}
+                </p>
+              </div>
+            </section>
+
+            <section
+              v-else-if="isDisabled"
+              data-testid="ai-overview-disabled"
+              class="flex items-start gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
+              role="status"
+            >
+              <span
+                class="grid size-9 shrink-0 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
+              >
+                <i class="i-lucide-circle-pause size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <h3 class="text-sm font-semibold text-n-slate-12">
+                  {{ t('RAEVO_AI.OVERVIEW.DISABLED.TITLE') }}
+                </h3>
+                <p class="mt-1 text-sm leading-6 text-n-slate-11">
+                  {{ t('RAEVO_AI.OVERVIEW.DISABLED.DESCRIPTION') }}
+                </p>
+              </div>
+            </section>
+
+            <section
+              v-else-if="hasError"
+              data-testid="ai-overview-error"
+              class="flex flex-col items-start gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4 sm:flex-row sm:items-center sm:justify-between"
               role="alert"
             >
-              {{ pauseError }}
-            </p>
+              <div>
+                <h3 class="text-sm font-semibold text-n-slate-12">
+                  {{ t('RAEVO_AI.OVERVIEW.ERROR.TITLE') }}
+                </h3>
+                <p class="mt-1 text-sm leading-6 text-n-slate-11">
+                  {{ t('RAEVO_AI.OVERVIEW.ERROR.DESCRIPTION') }}
+                </p>
+              </div>
+              <NextButton
+                data-testid="ai-overview-retry"
+                size="sm"
+                variant="faded"
+                :label="t('RAEVO_AI.OVERVIEW.ERROR.RETRY')"
+                @click="loadOverview"
+              />
+            </section>
 
-            <!-- Atendimento e custos, lado a lado. A proporção é do artefato:
-                 o volume ocupa menos porque são três números, e o custo mais
-                 porque são quatro em grelha. -->
-            <div
-              class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]"
-            >
+            <div v-else data-testid="ai-overview" class="flex flex-col gap-4">
+              <!-- O que precisa de uma pessoa abre o trabalho. Antes vivia na
+                   outra aba, abaixo da atividade: quem só abre o Painel nunca
+                   o via. -->
               <section
-                data-testid="ai-attendance"
+                data-testid="ai-needs-you"
                 class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
               >
                 <p class="text-micro font-semibold uppercase text-n-slate-10">
-                  {{ t('RAEVO_AI.ATTENDANCE.EYEBROW') }}
+                  {{ t('RAEVO_AI.ACTIVITY.EYEBROW') }}
                 </p>
                 <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-                  {{ t('RAEVO_AI.ATTENDANCE.TITLE') }}
+                  {{ needsYouTitle }}
                 </h3>
 
-                <dl
-                  class="mt-4 grid gap-px overflow-hidden rounded-xl bg-n-weak"
+                <p
+                  v-if="!needsYouRows.length"
+                  class="mt-3 text-sm leading-6 text-n-slate-11"
                 >
-                  <div
-                    v-for="item in attendanceMetrics"
-                    :key="item.key"
-                    class="bg-n-solid-1 p-4"
+                  {{ t('RAEVO_AI.ACTIVITY.ATTENTION_EMPTY') }}
+                </p>
+
+                <ul v-else class="mt-3 flex list-none flex-col gap-2 p-0">
+                  <li
+                    v-for="item in needsYouRows"
+                    :key="item.id"
+                    data-testid="ai-attention-row"
+                    class="grid grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg border border-n-weak p-2.5"
                   >
-                    <dt class="text-xs text-n-slate-10">
-                      {{ item.label }}
-                    </dt>
-                    <dd
-                      class="mt-1 text-xl font-semibold tabular-nums text-n-slate-12"
+                    <span
+                      class="w-14 shrink-0 text-right text-micro tabular-nums text-n-slate-10"
                     >
-                      {{ item.value ?? '—' }}
-                    </dd>
-                    <p v-if="item.caption" class="mt-1 text-xs text-n-slate-10">
-                      {{ item.caption }}
-                    </p>
-                    <router-link
-                      v-if="item.link"
-                      :to="{ ...item.link, params: { accountId } }"
-                      class="mt-1 inline-flex text-xs font-semibold text-n-blue-11"
+                      {{ item.ago }}
+                    </span>
+                    <span
+                      class="grid size-7 shrink-0 place-items-center rounded-lg"
+                      :class="item.tone"
                     >
-                      {{ t('RAEVO_AI.ATTENDANCE.OPEN_LIST') }}
-                    </router-link>
-                  </div>
-                </dl>
+                      <i :class="item.icon" class="size-4" aria-hidden="true" />
+                    </span>
+                    <!-- Aqui o desfecho lidera e a acção fica por baixo. Ao
+                         contrário do registo, «Agendou uma consulta» com
+                         «Falhou» em letra pequena lia-se como se tivesse
+                         agendado — e esta é a lista de quem precisa de agir. -->
+                    <span class="min-w-0">
+                      <strong
+                        class="block text-sm font-semibold text-n-slate-12"
+                      >
+                        {{ item.state }}
+                      </strong>
+                      <small class="mt-0.5 block text-xs text-n-slate-10">
+                        {{ item.label }}
+                      </small>
+                    </span>
+                    <span
+                      v-if="item.destino"
+                      class="hidden shrink-0 text-xs text-n-slate-10 sm:block"
+                    >
+                      {{ item.destino }}
+                    </span>
+                    <NextButton
+                      v-if="item.to"
+                      size="sm"
+                      variant="faded"
+                      :label="t('RAEVO_AI.ACTIVITY.OPEN')"
+                      @click="abrirRegisto(item)"
+                    />
+                  </li>
+                </ul>
 
                 <p
-                  class="mt-4 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                  v-if="needsYouRemainder"
+                  data-testid="ai-needs-you-remainder"
+                  class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
                 >
-                  {{ t('RAEVO_AI.ATTENDANCE.HANDOFF_NOTE') }}
+                  {{
+                    t('RAEVO_AI.ACTIVITY.ATTENTION_REMAINDER', {
+                      count: needsYouRemainder,
+                    })
+                  }}
                 </p>
               </section>
 
-              <section
-                data-testid="ai-costs"
-                class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
-              >
-                <div
-                  class="flex flex-wrap items-baseline justify-between gap-2"
+              <div class="grid gap-4 md:grid-cols-2">
+                <section
+                  data-testid="ai-attendance"
+                  class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
                 >
-                  <div>
-                    <p
-                      class="text-micro font-semibold uppercase text-n-slate-10"
-                    >
-                      {{ t('RAEVO_AI.COSTS.EYEBROW') }}
-                    </p>
-                    <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-                      {{ t('RAEVO_AI.COSTS.TITLE') }}
-                    </h3>
-                  </div>
-                  <p class="text-xs text-n-slate-10">
-                    {{
-                      t('RAEVO_AI.OVERVIEW.WINDOW_DAYS', { days: windowDays })
-                    }}
+                  <p class="text-micro font-semibold uppercase text-n-slate-10">
+                    {{ t('RAEVO_AI.ATTENDANCE.EYEBROW') }}
                   </p>
-                </div>
+                  <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                    {{ t('RAEVO_AI.ATTENDANCE.TITLE') }}
+                  </h3>
 
-                <dl
-                  class="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-n-weak sm:grid-cols-2"
-                >
-                  <div
-                    v-for="item in costMetrics"
-                    :key="item.key"
-                    class="bg-n-solid-1 p-4"
+                  <dl
+                    class="mt-3 flex flex-col gap-px overflow-hidden rounded-lg bg-n-weak"
                   >
-                    <dt class="text-xs text-n-slate-10">
-                      {{ item.label }}
-                    </dt>
-                    <dd
-                      class="mt-1 text-base font-semibold tabular-nums text-n-slate-12"
+                    <div
+                      v-for="item in attendanceMetrics"
+                      :key="item.key"
+                      class="bg-n-solid-1 px-3 py-2.5"
                     >
-                      {{ item.value }}
-                    </dd>
-                    <p v-if="item.caption" class="mt-1 text-xs text-n-slate-10">
-                      {{ item.caption }}
-                    </p>
-                  </div>
-                </dl>
+                      <dt class="text-xs text-n-slate-10">
+                        {{ item.label }}
+                      </dt>
+                      <dd
+                        class="mt-0.5 text-base font-semibold tabular-nums text-n-slate-12"
+                      >
+                        {{ item.value ?? '—' }}
+                        <small
+                          v-if="item.caption"
+                          class="mt-0.5 block text-micro font-normal text-n-slate-10"
+                        >
+                          {{ item.caption }}
+                        </small>
+                        <router-link
+                          v-if="item.link"
+                          :to="{ ...item.link, params: { accountId } }"
+                          class="mt-1 inline-flex text-micro font-semibold text-n-blue-11"
+                        >
+                          {{ t('RAEVO_AI.ATTENDANCE.OPEN_LIST') }}
+                        </router-link>
+                      </dd>
+                    </div>
+                  </dl>
 
-                <p
-                  data-testid="ai-cost-split"
-                  class="mt-4 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                  <p
+                    class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                  >
+                    {{ t('RAEVO_AI.ATTENDANCE.HANDOFF_NOTE') }}
+                  </p>
+                </section>
+
+                <section
+                  data-testid="ai-costs"
+                  class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
                 >
-                  {{ t('RAEVO_AI.COSTS.SPLIT', { split: usageCost }) }}
-                </p>
-              </section>
-            </div>
-          </div>
-        </section>
-      </template>
+                  <p class="text-micro font-semibold uppercase text-n-slate-10">
+                    {{ t('RAEVO_AI.COSTS.EYEBROW') }}
+                  </p>
+                  <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                    {{ t('RAEVO_AI.COSTS.TITLE') }}
+                  </h3>
 
-      <template v-if="abaAtiva === 'assistant'">
-        <!-- Proporção do artefato: o que a Elis fez ocupa o espaço, a ficha de
-             como ela está montada é uma coluna estreita de leitura. -->
-        <div class="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
-          <div class="flex flex-col gap-4">
+                  <dl
+                    class="mt-3 flex flex-col gap-px overflow-hidden rounded-lg bg-n-weak"
+                  >
+                    <div
+                      v-for="item in costMetrics"
+                      :key="item.key"
+                      class="bg-n-solid-1 px-3 py-2.5"
+                    >
+                      <dt class="text-xs text-n-slate-10">
+                        {{ item.label }}
+                      </dt>
+                      <dd
+                        class="mt-0.5 text-base font-semibold tabular-nums text-n-slate-12"
+                      >
+                        {{ item.value }}
+                        <small
+                          v-if="item.caption"
+                          class="mt-0.5 block text-micro font-normal text-n-slate-10"
+                        >
+                          {{ item.caption }}
+                        </small>
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <p
+                    data-testid="ai-cost-split"
+                    class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                  >
+                    {{ t('RAEVO_AI.COSTS.SPLIT', { split: usageCost }) }}
+                  </p>
+                </section>
+              </div>
+            </div>
+          </template>
+
+          <template v-if="abaAtiva === 'assistant'">
             <section
               data-testid="ai-activity"
               class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
             >
-              <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <div>
-                  <p class="text-micro font-semibold uppercase text-n-slate-10">
-                    {{ t('RAEVO_AI.ACTIVITY.EYEBROW_RECENT') }}
-                  </p>
-                  <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-                    {{ t('RAEVO_AI.ACTIVITY.RECENT_TITLE') }}
-                  </h3>
-                </div>
-              </div>
+              <p class="text-micro font-semibold uppercase text-n-slate-10">
+                {{ t('RAEVO_AI.ACTIVITY.EYEBROW_RECENT') }}
+              </p>
+              <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
+                {{ t('RAEVO_AI.ACTIVITY.RECENT_TITLE') }}
+              </h3>
 
               <p
                 v-if="!activity.recent.length"
-                class="mt-4 rounded-lg border border-dashed border-n-weak p-4 text-center text-sm text-n-slate-11"
+                class="mt-3 rounded-lg border border-dashed border-n-weak p-4 text-center text-sm text-n-slate-11"
               >
                 {{ t('RAEVO_AI.ACTIVITY.RECENT_EMPTY') }}
               </p>
 
-              <ul v-else class="mt-4 flex list-none flex-col gap-2 p-0">
+              <ul v-else class="mt-3 flex list-none flex-col gap-2 p-0">
                 <li
                   v-for="item in activityRows"
                   :key="item.id"
                   data-testid="ai-activity-item"
-                  class="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-4 rounded-lg border border-n-weak p-2.5"
+                  class="grid grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg border border-n-weak p-2.5"
                 >
                   <span
-                    class="w-16 text-right text-xs tabular-nums text-n-slate-10"
+                    class="w-14 shrink-0 text-right text-micro tabular-nums text-n-slate-10"
                   >
                     {{ item.ago }}
                   </span>
                   <span
-                    class="grid size-7 place-items-center rounded-lg"
+                    class="grid size-7 shrink-0 place-items-center rounded-lg"
                     :class="item.tone"
                   >
                     <i :class="item.icon" class="size-4" aria-hidden="true" />
@@ -1005,9 +1153,15 @@ const setupRows = computed(() => [
                     <strong class="block text-sm font-semibold text-n-slate-12">
                       {{ item.label }}
                     </strong>
-                    <small class="mt-1 block text-xs text-n-slate-10">
+                    <small class="mt-0.5 block text-xs text-n-slate-10">
                       {{ item.state }}
                     </small>
+                  </span>
+                  <span
+                    v-if="item.destino"
+                    class="hidden shrink-0 text-xs text-n-slate-10 sm:block"
+                  >
+                    {{ item.destino }}
                   </span>
                   <NextButton
                     v-if="item.to"
@@ -1020,130 +1174,91 @@ const setupRows = computed(() => [
               </ul>
 
               <p
-                class="mt-4 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
+                class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"
               >
                 {{ t('RAEVO_AI.ACTIVITY.PRIVACY_NOTE') }}
               </p>
             </section>
 
             <section
-              data-testid="ai-needs-you"
+              data-testid="ai-setup"
               class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
             >
               <p class="text-micro font-semibold uppercase text-n-slate-10">
-                {{ t('RAEVO_AI.ACTIVITY.EYEBROW') }}
+                {{ t('RAEVO_AI.SETUP.EYEBROW') }}
               </p>
               <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-                {{ attentionTitle }}
+                {{ t('RAEVO_AI.SETUP.TITLE') }}
               </h3>
 
-              <p
-                v-if="!attentionRows.length"
-                class="mt-4 text-sm text-n-slate-11"
-              >
-                {{ t('RAEVO_AI.ACTIVITY.ATTENTION_EMPTY') }}
-              </p>
-
-              <ul v-else class="mt-4 flex list-none flex-col gap-2 p-0">
-                <li
-                  v-for="linha in attentionRows"
-                  :key="linha.key"
-                  data-testid="ai-attention-row"
-                  class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-lg border border-n-amber-8 bg-n-amber-2 p-4"
-                >
-                  <span
-                    class="grid size-7 place-items-center rounded-lg bg-n-amber-3 text-n-amber-11"
-                  >
-                    <i :class="linha.icon" class="size-4" aria-hidden="true" />
-                  </span>
-                  <span>
-                    <strong class="block text-sm font-semibold text-n-slate-12">
-                      {{ linha.title }}
-                    </strong>
-                    <small class="mt-1 block text-xs text-n-slate-11">
-                      {{ linha.detail }}
-                    </small>
-                  </span>
-                </li>
-              </ul>
-            </section>
-          </div>
-
-          <section
-            data-testid="ai-setup"
-            class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
-          >
-            <p class="text-micro font-semibold uppercase text-n-slate-10">
-              {{ t('RAEVO_AI.SETUP.EYEBROW') }}
-            </p>
-            <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-              {{ t('RAEVO_AI.SETUP.TITLE') }}
-            </h3>
-
-            <dl class="mt-4 flex list-none flex-col p-0">
-              <!-- Editável tira o `dt`: o rótulo é do RaevoField, como manda o
-                   sistema, e dois rótulos seguidos liam-se «Nome / Nome». -->
-              <div class="border-b border-n-weak py-2">
-                <div v-if="isAdmin">
-                  <RaevoField
-                    :label="t('RAEVO_AI.SETUP.NAME')"
-                    :hint="t('RAEVO_AI.SETUP.NAME_HINT')"
-                    :error="nameError || ''"
-                  >
-                    <template #default="{ controlClass, fieldId }">
-                      <input
-                        :id="fieldId"
-                        v-model="assistantName"
-                        data-testid="ai-assistant-name"
-                        type="text"
-                        maxlength="40"
-                        :placeholder="t('RAEVO_AI.SETUP.NAME_PLACEHOLDER')"
-                        :disabled="isSavingName"
-                        :class="controlClass"
-                        @change="saveAssistantName"
-                      />
+              <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                <dl class="flex list-none flex-col p-0">
+                  <!-- Editável tira o `dt`: o rótulo é do RaevoField, como
+                       manda o sistema, e dois rótulos seguidos liam-se
+                       «Nome / Nome». -->
+                  <div class="border-b border-n-weak py-2">
+                    <div v-if="isAdmin">
+                      <RaevoField
+                        :label="t('RAEVO_AI.SETUP.NAME')"
+                        :hint="t('RAEVO_AI.SETUP.NAME_HINT')"
+                        :error="nameError || ''"
+                      >
+                        <template #default="{ controlClass, fieldId }">
+                          <input
+                            :id="fieldId"
+                            v-model="assistantName"
+                            data-testid="ai-assistant-name"
+                            type="text"
+                            maxlength="40"
+                            :placeholder="t('RAEVO_AI.SETUP.NAME_PLACEHOLDER')"
+                            :disabled="isSavingName"
+                            :class="controlClass"
+                            @change="saveAssistantName"
+                          />
+                        </template>
+                      </RaevoField>
+                    </div>
+                    <template v-else>
+                      <dt class="text-xs font-medium text-n-slate-10">
+                        {{ t('RAEVO_AI.SETUP.NAME') }}
+                      </dt>
+                      <dd class="mt-1 text-sm font-medium text-n-slate-12">
+                        {{ assistantName || t('RAEVO_AI.SETUP.NAME_VALUE') }}
+                      </dd>
                     </template>
-                  </RaevoField>
-                </div>
-                <template v-else>
-                  <dt class="text-xs font-medium text-n-slate-10">
-                    {{ t('RAEVO_AI.SETUP.NAME') }}
-                  </dt>
-                  <dd class="mt-1 text-sm font-medium text-n-slate-12">
-                    {{ assistantName || t('RAEVO_AI.SETUP.NAME_VALUE') }}
-                  </dd>
-                </template>
-              </div>
+                  </div>
 
-              <div
-                v-for="linha in setupRows"
-                :key="linha.key"
-                class="border-b border-n-weak py-2 last:border-b-0"
-              >
-                <dt class="text-xs font-medium text-n-slate-10">
-                  {{ linha.label }}
-                </dt>
-                <dd class="mt-1 text-sm font-medium text-n-slate-12">
-                  {{ linha.value }}
-                  <small
-                    v-if="linha.detail"
-                    class="mt-1 block text-xs font-normal text-n-slate-10"
+                  <div
+                    v-for="linha in setupRows"
+                    :key="linha.key"
+                    class="border-b border-n-weak py-2 last:border-b-0"
                   >
-                    {{ linha.detail }}
-                  </small>
-                </dd>
+                    <dt class="text-xs font-medium text-n-slate-10">
+                      {{ linha.label }}
+                    </dt>
+                    <dd class="mt-1 text-sm font-medium text-n-slate-12">
+                      {{ linha.value }}
+                      <small
+                        v-if="linha.detail"
+                        class="mt-1 block text-xs font-normal leading-5 text-n-slate-10"
+                      >
+                        {{ linha.detail }}
+                      </small>
+                    </dd>
+                  </div>
+                </dl>
+
+                <RaevoAiServiceHoursSettings v-if="isAdmin" />
               </div>
-            </dl>
+            </section>
+          </template>
 
-            <RaevoAiServiceHoursSettings v-if="isAdmin" class="mt-4" />
-          </section>
+          <RaevoAiKnowledgePanel
+            v-if="abaAtiva === 'knowledge'"
+            :is-admin="isAdmin"
+          />
         </div>
-      </template>
-
-      <RaevoAiKnowledgePanel
-        v-if="abaAtiva === 'knowledge'"
-        :is-admin="isAdmin"
-      />
+      </div>
     </div>
   </main>
 </template>

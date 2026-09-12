@@ -14,6 +14,7 @@ import { globSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const ESCOPO_RAEVO = [
+  'app/javascript/dashboard/routes/dashboard/ai',
   'app/javascript/dashboard/routes/dashboard/kanban',
   'app/javascript/dashboard/routes/dashboard/calendar',
   'app/javascript/dashboard/routes/dashboard/finance',

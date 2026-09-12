@@ -8,14 +8,11 @@
       "DESCRIPTION": "This area will progressively replace the external customer panel. Account access and permissions remain inside Chatwoot; AI configuration and knowledge stay protected by the Raevo backend."
     },
     "OVERVIEW": {
-      "EYEBROW": "OPERATIONS",
       "PLATE_ACTIVE": "The assistant is answering normally.",
       "PLATE_PAUSED": "The assistant is paused and answering nobody.",
       "WINDOW_LABEL": "Period shown",
       "WINDOW_DAYS": "Last %{days} days",
-      "TITLE": "Assistant overview",
       "LOADING": "Loading the assistant overview",
-      "CLINIC_FALLBACK": "Clinic",
       "STATUS_UNKNOWN": "Status unavailable",
       "PAUSE_ACTION": "Pause assistant",
       "RESUME_ACTION": "Resume assistant",
@@ -30,7 +27,7 @@
       "PAUSE_ERROR": "We could not reach the assistant. Nothing was changed.",
       "ERROR": {
         "TITLE": "The overview could not be loaded",
-        "DESCRIPTION": "The the assistant connection is temporarily unavailable. No settings were changed.",
+        "DESCRIPTION": "The assistant connection is temporarily unavailable. No settings were changed.",
         "RETRY": "Try again"
       },
       "SETUP": {
@@ -39,7 +36,7 @@
       },
       "DISABLED": {
         "TITLE": "The assistant is not enabled",
-        "DESCRIPTION": "This account does not have the the assistant service switched on. Talk to Raevo."
+        "DESCRIPTION": "This account does not have the assistant service switched on. Talk to Raevo."
       },
       "METRICS": {
         "CONVERSATIONS": "Conversations in the last %{days} days",
@@ -58,7 +55,12 @@
         "IDENTITY": "Identity and role",
         "PERSONALITY": "Personality",
         "VOICE_STYLE": "Voice and language"
-      }
+      },
+      "STATE_EYEBROW": "STATUS",
+      "LAST_DELIVERED": "Last reply delivered %{ago}",
+      "LAST_DELIVERED_NONE": "No reply delivered yet",
+      "UPDATED_AT": "Updated at %{time}",
+      "WINDOW_DAYS_SHORT": "Last %{days} d"
     },
     "CAPABILITIES": {
       "EYEBROW": "PUBLISHED CONFIGURATION",
@@ -185,8 +187,6 @@
     },
     "ACTIVITY": {
       "EYEBROW": "NEEDS YOU",
-      "FAILED": "%{count} action failed and was not applied",
-      "PENDING": "%{count} action claimed and never finished",
       "RECENT_TITLE": "What the assistant did",
       "RECENT_EMPTY": "Nothing recorded yet.",
       "EYEBROW_RECENT": "RECENT ACTIVITY",
@@ -195,11 +195,9 @@
       "AGO_MINUTES": "%{count} min ago",
       "AGO_HOURS": "%{count} h ago",
       "AGO_DAYS": "%{count} d ago",
-      "FAILED_DETAIL": "The assistant tried and it was not applied",
-      "PENDING_DETAIL": "Claimed and never finished",
       "ATTENTION_TITLE": "%{count} items waiting for a person",
       "ATTENTION_TITLE_EMPTY": "Nothing needs a person",
-      "ATTENTION_EMPTY": "No the assistant action needs your attention right now.",
+      "ATTENTION_EMPTY": "No assistant action needs your attention right now.",
       "STATE_APPLIED": "Applied",
       "STATE_CLAIMED": "In progress",
       "STATE_FAILED_RETRYABLE": "Failed, will retry",
@@ -215,7 +213,10 @@
         "FINANCE_CREATE_CHARGE": "Created a charge",
         "HANDOFF_APPLY": "Handed off to a person",
         "UNKNOWN": "Unrecognised action"
-      }
+      },
+      "ATTENTION_REMAINDER": "%{count} more are outside the 20 most recent actions.",
+      "TARGET_CONVERSATION": "Conversation #%{id}",
+      "TARGET_CARD": "Card #%{id}"
     },
     "SETUP": {
       "EYEBROW": "HOW SHE IS SET UP",
@@ -239,9 +240,14 @@
       "QUALIFIED_UNSET": "Pick the qualifying stage on the board",
       "PRE_SCHEDULED": "Pre-booked",
       "SCHEDULED": "Booked",
-      "LINK_CONVERSATIONS": "See conversations →",
-      "LINK_KANBAN": "See on the board →",
-      "LINK_CALENDAR": "See calendar →"
+      "LINK_CONVERSATIONS": "See conversations",
+      "LINK_KANBAN": "See on the board",
+      "LINK_CALENDAR": "See calendar",
+      "LABEL": "Journey from conversation to booking",
+      "NOTE": "Each line opens the list for the same period and the same meaning as the number.",
+      "OF_CONVERSATIONS": "%{rate} of conversations",
+      "OF_OPPORTUNITIES": "%{rate} of opportunities",
+      "OF_QUALIFIED": "%{rate} of qualified"
     },
     "ATTENDANCE": {
       "EYEBROW": "SERVICE",
@@ -293,7 +299,7 @@
     },
     "KNOWLEDGE": {
       "TITLE": "What the assistant knows",
-      "DESCRIPTION": "Editing saves a draft. the assistant only changes what she says when you publish.",
+      "DESCRIPTION": "Editing saves a draft. The assistant only changes what she says when you publish.",
       "VERSIONS_EYEBROW": "VERSIONS",
       "VERSIONS_TITLE": "Editing does not publish",
       "VERSIONS_DESCRIPTION": "The assistant keeps using the published base until you publish on purpose. Saving stores the draft without changing anything in production.",
@@ -327,7 +333,7 @@
       "SAVED": "Draft saved. Nothing published yet.",
       "DRAFT_PENDING": "You have unpublished changes",
       "PUBLISH": "Publish",
-      "PUBLISHED": "Published. the assistant is already using it.",
+      "PUBLISHED": "Published. The assistant is already using it.",
       "CONFLICT": "Someone else edited this. Reload to see the current version.",
       "UNAVAILABLE": "Could not reach the assistant service.",
       "INVALID": "Check the fields before saving.",
@@ -417,7 +423,7 @@
       "SETTINGS": {
         "EYEBROW": "CRM CONFIGURATION",
         "TITLE": "The assistant opportunity tab",
-        "DESCRIPTION": "Choose the CRM boards where the read-only the assistant operational tab is available. Only boards published in the the assistant CRM catalog can be saved.",
+        "DESCRIPTION": "Choose the CRM boards where the read-only assistant operational tab is available. Only boards published in the assistant CRM catalog can be saved.",
         "BOARDS": "CRM boards",
         "ENABLED": "Show the IA tab on selected boards",
         "ENABLED_HINT": "Disabling it hides the tab without deleting the previous operational history.",
