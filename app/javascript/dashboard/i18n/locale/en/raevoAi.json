@@ -1,7 +1,7 @@
 {
   "RAEVO_AI": {
     "EYEBROW": "RAEVO AI",
-    "TITLE": "My Elis",
+    "TITLE": "My assistant",
     "SUBTITLE": "Manage your AI service in the same workspace as conversations and CRM.",
     "NATIVE_AREA": {
       "TITLE": "Native Chatwoot area",
@@ -13,7 +13,7 @@
       "PLATE_PAUSED": "Elis is paused and answering nobody.",
       "WINDOW_LABEL": "Period shown",
       "WINDOW_DAYS": "Last %{days} days",
-      "TITLE": "Elis overview",
+      "TITLE": "Assistant overview",
       "LOADING": "Loading Elis overview",
       "CLINIC_FALLBACK": "Clinic",
       "STATUS_UNKNOWN": "status unavailable",
@@ -222,11 +222,14 @@
       "TITLE": "Reading, not configuration",
       "NAME": "Name",
       "NAME_VALUE": "Elis",
-      "NAME_HINT": "To change the name, talk to Raevo",
+      "NAME_HINT": "This is the name she uses when introducing herself. Leave it empty to use the default.",
       "PACKAGE": "Contracted package",
       "CAPABILITIES": "Active capabilities",
       "LANGUAGE": "Language",
-      "LANGUAGE_VALUE": "Brazilian Portuguese"
+      "LANGUAGE_VALUE": "Brazilian Portuguese",
+      "NAME_PLACEHOLDER": "Elis",
+      "NAME_CONFLICT": "Someone else changed this. Reload to see the current name.",
+      "NAME_UNAVAILABLE": "Could not reach the assistant service."
     },
     "JOURNEY": {
       "OUTCOME": "Package outcome",

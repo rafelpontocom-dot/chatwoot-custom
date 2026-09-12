@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import RaevoAiKnowledgePanel from './RaevoAiKnowledgePanel.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoAiAPI from 'dashboard/api/raevoAi';
 import RaevoAiServiceHoursSettings from './RaevoAiServiceHoursSettings.vue';
@@ -493,17 +494,44 @@ const attentionTitle = computed(() =>
 
 // Leitura, exceto o nome e o horário. O resto muda-se com a Raevo, e dizê-lo é
 // mais honesto do que oferecer um campo que não grava.
-const setupRows = computed(() => [
-  {
-    // Em leitura, e não campo: o nome da assistente não existe em coluna
-    // nenhuma hoje, e um campo que só mudasse o rótulo sem mudar o que ela diz
-    // na conversa seria pior do que não haver campo. Precisa de decidir-se
-    // onde o nome vive e se entra no prompt.
-    key: 'name',
-    label: t('RAEVO_AI.SETUP.NAME'),
-    value: t('RAEVO_AI.SETUP.NAME_VALUE'),
-    detail: t('RAEVO_AI.SETUP.NAME_HINT'),
+// O nome em uso vem do overview; nulo ali significa que a clínica não escolheu
+// e o runtime usa o padrão.
+const assistantName = ref('');
+const isSavingName = ref(false);
+const nameError = ref(null);
+
+watch(
+  () => overview.value?.assistant_name,
+  valor => {
+    assistantName.value = valor ?? '';
   },
+  { immediate: true }
+);
+
+const saveAssistantName = async () => {
+  isSavingName.value = true;
+  nameError.value = null;
+  try {
+    const { data } = await RaevoAiAPI.saveAssistantName(
+      assistantName.value.trim()
+    );
+    // Vazio repõe o padrão, e é o serviço que diz qual é — o ecrã não o inventa.
+    assistantName.value = data.state.assistant_name ?? '';
+    if (overview.value) {
+      overview.value.assistant_name = data.state.assistant_name;
+      overview.value.effective_assistant_name = data.state.effective_name;
+    }
+  } catch (e) {
+    nameError.value =
+      e?.response?.status === 409
+        ? t('RAEVO_AI.SETUP.NAME_CONFLICT')
+        : t('RAEVO_AI.SETUP.NAME_UNAVAILABLE');
+  } finally {
+    isSavingName.value = false;
+  }
+};
+
+const setupRows = computed(() => [
   {
     key: 'package',
     label: t('RAEVO_AI.SETUP.PACKAGE'),
@@ -1042,6 +1070,40 @@ const setupRows = computed(() => [
             </h3>
 
             <dl class="mt-3 flex list-none flex-col p-0">
+              <!-- Editável tira o `dt`: o rótulo é do RaevoField, como manda o
+                   sistema, e dois rótulos seguidos liam-se «Nome / Nome». -->
+              <div class="border-b border-n-weak py-2.5">
+                <div v-if="isAdmin">
+                  <RaevoField
+                    :label="t('RAEVO_AI.SETUP.NAME')"
+                    :hint="t('RAEVO_AI.SETUP.NAME_HINT')"
+                    :error="nameError || ''"
+                  >
+                    <template #default="{ controlClass, fieldId }">
+                      <input
+                        :id="fieldId"
+                        v-model="assistantName"
+                        data-testid="ai-assistant-name"
+                        type="text"
+                        maxlength="40"
+                        :placeholder="t('RAEVO_AI.SETUP.NAME_PLACEHOLDER')"
+                        :disabled="isSavingName"
+                        :class="controlClass"
+                        @change="saveAssistantName"
+                      />
+                    </template>
+                  </RaevoField>
+                </div>
+                <template v-else>
+                  <dt class="text-xs font-medium text-n-slate-10">
+                    {{ t('RAEVO_AI.SETUP.NAME') }}
+                  </dt>
+                  <dd class="mt-0.5 text-sm font-medium text-n-slate-12">
+                    {{ assistantName || t('RAEVO_AI.SETUP.NAME_VALUE') }}
+                  </dd>
+                </template>
+              </div>
+
               <div
                 v-for="linha in setupRows"
                 :key="linha.key"

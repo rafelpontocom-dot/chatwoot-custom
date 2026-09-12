@@ -13,6 +13,7 @@ vi.mock('dashboard/api/raevoAi', () => ({
     getPauseState: vi.fn(),
     savePauseState: vi.fn(),
     getActivity: vi.fn(),
+    saveAssistantName: vi.fn(),
     getServiceHours: vi.fn(),
     saveServiceHours: vi.fn(),
   },
@@ -53,8 +54,9 @@ const mountView = () =>
         RaevoAiKnowledgePanel: true,
         RouterLink: { props: ['to'], template: '<a><slot /></a>' },
         RaevoField: {
+          props: ['label', 'hint', 'error'],
           template:
-            '<div><slot control-class="control" field-id="ai-tab-board-ids" /></div>',
+            '<div><slot control-class="control" field-id="ai-tab-board-ids" /><p v-if="error" data-testid="ai-field-error">{{ error }}</p></div>',
         },
         NextButton: {
           props: ['label'],
@@ -86,6 +88,9 @@ describe('RaevoAiView', () => {
       data: {
         state: { paused: true, paused_at: null, paused_by: null, revision: 2 },
       },
+    });
+    RaevoAiAPI.saveAssistantName.mockResolvedValue({
+      data: { state: { assistant_name: 'Sofia', effective_name: 'Sofia' } },
     });
     RaevoAiAPI.getActivity.mockResolvedValue({
       data: { recent: [], attention: { failed: 0, pending: 0 } },
@@ -487,6 +492,9 @@ describe('RaevoAiView', () => {
     });
 
     it('conta as falhas e as acções que ficaram por concluir', async () => {
+      RaevoAiAPI.saveAssistantName.mockResolvedValue({
+        data: { state: { assistant_name: 'Sofia', effective_name: 'Sofia' } },
+      });
       RaevoAiAPI.getActivity.mockResolvedValue({
         data: { recent: [], attention: { failed: 2, pending: 1 } },
       });
@@ -504,6 +512,9 @@ describe('RaevoAiView', () => {
   describe('o que a Elis fez', () => {
     it('mostra o registo em vez de o pedir e deitar fora', async () => {
       // A chamada existia desde o início e nada no ecrã a usava.
+      RaevoAiAPI.saveAssistantName.mockResolvedValue({
+        data: { state: { assistant_name: 'Sofia', effective_name: 'Sofia' } },
+      });
       RaevoAiAPI.getActivity.mockResolvedValue({
         data: {
           recent: [
@@ -530,6 +541,9 @@ describe('RaevoAiView', () => {
     });
 
     it('não mostra identificador de sistema quando o tipo não é conhecido', async () => {
+      RaevoAiAPI.saveAssistantName.mockResolvedValue({
+        data: { state: { assistant_name: 'Sofia', effective_name: 'Sofia' } },
+      });
       RaevoAiAPI.getActivity.mockResolvedValue({
         data: {
           recent: [
@@ -560,6 +574,87 @@ describe('RaevoAiView', () => {
 
       expect(wrapper.find('[data-testid="ai-activity"]').text()).toContain(
         'RAEVO_AI.ACTIVITY.RECENT_EMPTY'
+      );
+    });
+  });
+
+  describe('o nome da secretária', () => {
+    it('mostra o que a clínica escolheu, não um valor fixo', async () => {
+      adminMocks.isAdmin = true;
+      RaevoAiAPI.getOverview.mockResolvedValue({
+        data: { status: 'active', assistant_name: 'Sofia', usage: {} },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+      await abrirAba(wrapper, 'assistant');
+
+      expect(
+        wrapper.find('[data-testid="ai-assistant-name"]').element.value
+      ).toBe('Sofia');
+    });
+
+    it('grava ao sair do campo', async () => {
+      adminMocks.isAdmin = true;
+      const wrapper = mountView();
+      await flushPromises();
+      await abrirAba(wrapper, 'assistant');
+
+      const campo = wrapper.find('[data-testid="ai-assistant-name"]');
+      await campo.setValue('Sofia');
+      await campo.trigger('change');
+      await flushPromises();
+
+      expect(RaevoAiAPI.saveAssistantName).toHaveBeenCalledWith('Sofia');
+    });
+
+    it('vazio repõe o padrão em vez de a deixar sem nome', async () => {
+      adminMocks.isAdmin = true;
+      RaevoAiAPI.saveAssistantName.mockResolvedValue({
+        data: { state: { assistant_name: null, effective_name: 'Elis' } },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+      await abrirAba(wrapper, 'assistant');
+
+      const campo = wrapper.find('[data-testid="ai-assistant-name"]');
+      await campo.setValue('   ');
+      await campo.trigger('change');
+      await flushPromises();
+
+      expect(RaevoAiAPI.saveAssistantName).toHaveBeenCalledWith('');
+      expect(campo.element.value).toBe('');
+    });
+
+    it('quem só atende conversas vê o nome, mas não o campo', async () => {
+      adminMocks.isAdmin = false;
+      const wrapper = mountView();
+      await flushPromises();
+      await abrirAba(wrapper, 'assistant');
+
+      expect(wrapper.find('[data-testid="ai-assistant-name"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid="ai-setup"]').text()).toContain(
+        'RAEVO_AI.SETUP.NAME'
+      );
+    });
+
+    it('avisa em vez de fingir que gravou quando o serviço recusa', async () => {
+      adminMocks.isAdmin = true;
+      RaevoAiAPI.saveAssistantName.mockRejectedValue({
+        response: { status: 409 },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+      await abrirAba(wrapper, 'assistant');
+
+      const campo = wrapper.find('[data-testid="ai-assistant-name"]');
+      await campo.setValue('Sofia');
+      await campo.trigger('change');
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="ai-field-error"]').text()).toContain(
+        'RAEVO_AI.SETUP.NAME_CONFLICT'
       );
     });
   });

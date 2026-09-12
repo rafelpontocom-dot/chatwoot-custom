@@ -1,7 +1,7 @@
 {
   "RAEVO_AI": {
     "EYEBROW": "RAEVO IA",
-    "TITLE": "Minha Elis",
+    "TITLE": "Minha secretária",
     "SUBTITLE": "Gerencie sua IA no mesmo ambiente das conversas e do CRM.",
     "NATIVE_AREA": {
       "TITLE": "Área nativa no Chatwoot",
@@ -13,7 +13,7 @@
       "PLATE_PAUSED": "A Elis está pausada e não responde a ninguém.",
       "WINDOW_LABEL": "Período exibido",
       "WINDOW_DAYS": "Últimos %{days} dias",
-      "TITLE": "Resumo da Elis",
+      "TITLE": "Resumo da secretária",
       "LOADING": "Carregando resumo da Elis",
       "CLINIC_FALLBACK": "Clínica",
       "STATUS_UNKNOWN": "status indisponível",
@@ -222,11 +222,14 @@
       "TITLE": "Leitura, não configuração",
       "NAME": "Nome",
       "NAME_VALUE": "Elis",
-      "NAME_HINT": "Para mudar o nome, fale com a Raevo",
+      "NAME_HINT": "É este o nome que ela usa ao se apresentar. Deixe vazio para usar o padrão.",
       "PACKAGE": "Pacote contratado",
       "CAPABILITIES": "Capacidades ativas",
       "LANGUAGE": "Idioma",
-      "LANGUAGE_VALUE": "Português do Brasil"
+      "LANGUAGE_VALUE": "Português do Brasil",
+      "NAME_PLACEHOLDER": "Elis",
+      "NAME_CONFLICT": "Outra pessoa alterou isto. Recarregue para ver o nome atual.",
+      "NAME_UNAVAILABLE": "Não foi possível falar com o serviço da assistente."
     },
     "JOURNEY": {
       "OUTCOME": "Resultado do pacote",

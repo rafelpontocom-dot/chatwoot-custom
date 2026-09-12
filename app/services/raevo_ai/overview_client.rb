@@ -2,6 +2,7 @@ class RaevoAi::OverviewClient
   REQUEST_TIMEOUT_SECONDS = 10
   NETWORK_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED].freeze
   PUBLIC_FIELDS = %w[status clinic_name package active_prompt_version knowledge_count open_reviews generated_at last_delivered_at
+                     assistant_name
                      usage_window_days].freeze
 
   # As três janelas que o painel oferece. Fechada de propósito: um número vindo

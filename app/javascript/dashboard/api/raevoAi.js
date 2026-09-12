@@ -18,6 +18,12 @@ class RaevoAiAPI extends ApiClient {
     return axios.get(`${this.baseUrl()}/raevo_ai/assistant_draft`);
   }
 
+  saveAssistantName(assistantName) {
+    return axios.put(`${this.baseUrl()}/raevo_ai/assistant_name`, {
+      assistant_name: assistantName,
+    });
+  }
+
   getActivity() {
     return axios.get(`${this.baseUrl()}/raevo_ai/activity`);
   }

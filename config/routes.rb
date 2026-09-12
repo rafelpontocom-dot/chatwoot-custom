@@ -123,6 +123,8 @@ Rails.application.routes.draw do
             resource :integration, only: [:create], controller: 'integrations'
             resource :overview, only: [:show], controller: 'overview'
             resource :pause, only: [:show, :update], controller: 'pause'
+            # Só escrita: o nome em uso já chega no overview.
+            resource :assistant_name, only: [:update], controller: 'assistant_name'
             resource :activity, only: [:show], controller: 'activity'
             resource :service_hours, only: [:show, :update], controller: 'service_hours'
             resource :assistant_draft, only: [:show, :update], controller: 'assistant_drafts' do
