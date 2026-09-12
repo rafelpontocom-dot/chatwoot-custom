@@ -528,11 +528,19 @@ onMounted(carregar);
             {{ t('RAEVO_AI.KNOWLEDGE.EMPTY_DESCRIPTION') }}
           </p>
 
-          <ul v-else class="mt-4 flex list-none flex-col gap-2 p-0">
+          <!-- Fora de edição a lista ocupa a largura toda, e uma coluna só dava
+               linhas de texto com o dobro da medida legível. Em duas colunas a
+               medida volta ao sítio e vê-se o dobro dos factos sem rolar. A
+               editar volta a uma coluna, porque o editor ocupa a outra. -->
+          <ul
+            v-else
+            class="mt-4 grid list-none gap-2 p-0"
+            :class="emEdicao ? '' : 'lg:grid-cols-2'"
+          >
             <li v-for="item in itensFiltrados" :key="item.id ?? item.title">
               <button
                 type="button"
-                class="raevo-card w-full bg-n-alpha-1 p-4 text-left hover:bg-n-alpha-2"
+                class="raevo-card h-full w-full bg-n-alpha-1 p-4 text-left hover:bg-n-alpha-2"
                 @click="editar(item)"
               >
                 <span
@@ -543,7 +551,11 @@ onMounted(carregar);
                 <span class="mt-1 block text-sm font-semibold text-n-slate-12">
                   {{ item.title }}
                 </span>
-                <span class="mt-1 block text-sm leading-6 text-n-slate-11">
+                <!-- Duas linhas, como no artefato: a lista é para percorrer, e
+                     um facto comprido despejado por inteiro afogava os outros. -->
+                <span
+                  class="mt-1 line-clamp-2 block text-sm leading-6 text-n-slate-11"
+                >
                   {{ item.content }}
                 </span>
               </button>
