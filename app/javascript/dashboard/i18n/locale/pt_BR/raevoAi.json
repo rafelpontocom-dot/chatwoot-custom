@@ -28,9 +28,9 @@
       "RESUMED_TOAST": "A Elis voltou a responder.",
       "PAUSE_CONFLICT": "Isso foi alterado em outro lugar. Recarregue antes de tentar de novo.",
       "PAUSE_ERROR": "Não foi possível falar com a Elis. Nada foi alterado.",
-      "PAUSED": {
-        "TITLE": "Elis pausada",
-        "DESCRIPTION": "Nenhuma conversa está sendo respondida enquanto o serviço está pausado."
+      "DISABLED": {
+        "TITLE": "A Elis não está ativada",
+        "DESCRIPTION": "Esta conta não tem o serviço da Elis ligado. Fale com a Raevo."
       },
       "ERROR": {
         "TITLE": "Não foi possível carregar o resumo",
@@ -186,7 +186,25 @@
     "ACTIVITY": {
       "EYEBROW": "PRECISA DE VOCÊ",
       "FAILED": "%{count} ação falhou e não foi aplicada",
-      "PENDING": "%{count} ação reservada e nunca concluída"
+      "PENDING": "%{count} ação reservada e nunca concluída",
+      "RECENT_TITLE": "O que a Elis fez",
+      "RECENT_EMPTY": "Nada registrado ainda.",
+      "STATE_APPLIED": "aplicado",
+      "STATE_CLAIMED": "em andamento",
+      "STATE_FAILED_RETRYABLE": "falhou, vai tentar de novo",
+      "STATE_FAILED_TERMINAL": "falhou",
+      "STATE_UNKNOWN": "desconhecido",
+      "COMMANDS": {
+        "CALENDAR_BOOK_APPOINTMENT": "Agendou uma consulta",
+        "CRM_ADD_LABEL": "Marcou o contato",
+        "CRM_ENSURE_OPPORTUNITY": "Criou uma oportunidade",
+        "CRM_MOVE_STAGE": "Moveu a etapa da oportunidade",
+        "CRM_UPDATE_CONTACT_NAME": "Atualizou o nome do contato",
+        "CRM_UPDATE_FIELDS": "Preencheu campos da oportunidade",
+        "FINANCE_CREATE_CHARGE": "Criou uma cobrança",
+        "HANDOFF_APPLY": "Passou para uma pessoa",
+        "UNKNOWN": "Ação não reconhecida"
+      }
     },
     "PACKAGES": {
       "EYEBROW": "MODELO DE ATENDIMENTO",

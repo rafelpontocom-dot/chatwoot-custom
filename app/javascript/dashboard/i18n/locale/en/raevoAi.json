@@ -37,9 +37,9 @@
         "TITLE": "Elis is being prepared",
         "DESCRIPTION": "Elis is not connected or is currently paused for this account. It will not respond to conversations."
       },
-      "PAUSED": {
-        "TITLE": "Elis is paused",
-        "DESCRIPTION": "No conversations are being answered while the service is paused."
+      "DISABLED": {
+        "TITLE": "Elis is not enabled",
+        "DESCRIPTION": "This account does not have the Elis service switched on. Talk to Raevo."
       },
       "METRICS": {
         "CONVERSATIONS": "Conversations in the last %{days} days",
@@ -186,7 +186,25 @@
     "ACTIVITY": {
       "EYEBROW": "NEEDS YOU",
       "FAILED": "%{count} action failed and was not applied",
-      "PENDING": "%{count} action claimed and never finished"
+      "PENDING": "%{count} action claimed and never finished",
+      "RECENT_TITLE": "What Elis did",
+      "RECENT_EMPTY": "Nothing recorded yet.",
+      "STATE_APPLIED": "applied",
+      "STATE_CLAIMED": "in progress",
+      "STATE_FAILED_RETRYABLE": "failed, will retry",
+      "STATE_FAILED_TERMINAL": "failed",
+      "STATE_UNKNOWN": "unknown",
+      "COMMANDS": {
+        "CALENDAR_BOOK_APPOINTMENT": "Booked an appointment",
+        "CRM_ADD_LABEL": "Tagged the contact",
+        "CRM_ENSURE_OPPORTUNITY": "Created an opportunity",
+        "CRM_MOVE_STAGE": "Moved the opportunity stage",
+        "CRM_UPDATE_CONTACT_NAME": "Updated the contact name",
+        "CRM_UPDATE_FIELDS": "Filled opportunity fields",
+        "FINANCE_CREATE_CHARGE": "Created a charge",
+        "HANDOFF_APPLY": "Handed off to a person",
+        "UNKNOWN": "Unrecognised action"
+      }
     },
     "PACKAGES": {
       "EYEBROW": "SERVICE MODEL",

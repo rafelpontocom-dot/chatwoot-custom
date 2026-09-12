@@ -16,14 +16,14 @@ RSpec.describe 'Raevo AI overview API', type: :request do
     )
   end
 
-  it 'returns a safe paused state without calling the ELIS service' do
+  it 'returns a safe disabled state without calling the ELIS service' do
     RaevoAiIntegration.create!(account: account, clinic_id: 'clinic-anna-alice', enabled: false)
 
     get path, headers: administrator.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:success)
     expect(response.parsed_body).to eq(
-      'connection_state' => 'paused',
+      'connection_state' => 'disabled',
       'operational_state' => nil,
       'overview' => nil
     )

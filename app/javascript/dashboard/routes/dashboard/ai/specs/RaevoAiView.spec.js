@@ -240,10 +240,10 @@ describe('RaevoAiView', () => {
     );
   });
 
-  it('shows a paused state without presenting it as a service failure', async () => {
+  it('shows the account is not enabled without presenting it as a service failure', async () => {
     RaevoAiAPI.getOverview.mockResolvedValue({
       data: {
-        connection_state: 'paused',
+        connection_state: 'disabled',
         operational_state: null,
         overview: null,
       },
@@ -255,9 +255,9 @@ describe('RaevoAiView', () => {
     expect(wrapper.find('[data-testid="ai-overview-error"]').exists()).toBe(
       false
     );
-    expect(wrapper.get('[data-testid="ai-overview-paused"]').text()).toContain(
-      'RAEVO_AI.OVERVIEW.PAUSED.DESCRIPTION'
-    );
+    expect(
+      wrapper.get('[data-testid="ai-overview-disabled"]').text()
+    ).toContain('RAEVO_AI.OVERVIEW.DISABLED.DESCRIPTION');
   });
 
   it('opens on the panel, which is what the clinic comes to see', async () => {
@@ -488,6 +488,66 @@ describe('RaevoAiView', () => {
       expect(bloco.exists()).toBe(true);
       expect(bloco.text()).toContain('RAEVO_AI.ACTIVITY.FAILED');
       expect(bloco.text()).toContain('RAEVO_AI.ACTIVITY.PENDING');
+    });
+  });
+
+  describe('o que a Elis fez', () => {
+    it('mostra o registo em vez de o pedir e deitar fora', async () => {
+      // A chamada existia desde o início e nada no ecrã a usava.
+      RaevoAiAPI.getActivity.mockResolvedValue({
+        data: {
+          recent: [
+            {
+              id: 1,
+              command_type: 'crm.move_stage',
+              state: 'applied',
+              occurred_at: '2026-09-10T12:00:00Z',
+            },
+          ],
+          attention: { failed: 0, pending: 0 },
+        },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+
+      const itens = wrapper.findAll('[data-testid="ai-activity-item"]');
+      expect(itens).toHaveLength(1);
+      expect(itens[0].text()).toContain(
+        'RAEVO_AI.ACTIVITY.COMMANDS.CRM_MOVE_STAGE'
+      );
+      expect(itens[0].text()).toContain('RAEVO_AI.ACTIVITY.STATE_APPLIED');
+    });
+
+    it('não mostra identificador de sistema quando o tipo não é conhecido', async () => {
+      RaevoAiAPI.getActivity.mockResolvedValue({
+        data: {
+          recent: [
+            {
+              id: 1,
+              command_type: 'algo.que.nao.conhecemos',
+              state: 'inventado',
+              occurred_at: null,
+            },
+          ],
+          attention: { failed: 0, pending: 0 },
+        },
+      });
+      const wrapper = mountView();
+      await flushPromises();
+
+      const texto = wrapper.find('[data-testid="ai-activity-item"]').text();
+      expect(texto).toContain('RAEVO_AI.ACTIVITY.COMMANDS.UNKNOWN');
+      expect(texto).toContain('RAEVO_AI.ACTIVITY.STATE_UNKNOWN');
+      expect(texto).not.toContain('algo.que.nao.conhecemos');
+    });
+
+    it('diz que não há nada em vez de mostrar uma lista vazia', async () => {
+      const wrapper = mountView();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="ai-activity"]').text()).toContain(
+        'RAEVO_AI.ACTIVITY.RECENT_EMPTY'
+      );
     });
   });
 });

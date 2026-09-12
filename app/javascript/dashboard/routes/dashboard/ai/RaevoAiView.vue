@@ -46,7 +46,7 @@ const overview = ref(null);
 const isLoading = ref(true);
 const hasError = ref(false);
 const isPreparing = ref(false);
-const isPaused = ref(false);
+const isDisabled = ref(false);
 const { isAdmin } = useAdmin();
 const formatTokens = value =>
   Number.isFinite(Number(value))
@@ -150,20 +150,67 @@ const activeCapabilities = computed(() => {
     .filter(capability => capability.label);
 });
 
+// `command_type` chega como `crm.move_stage`; o ecrã da clínica não mostra
+// identificadores de sistema. O mapa é explícito, e não uma chave montada por
+// interpolação, para uma tradução em falta ser encontrada pelas ferramentas em
+// vez de aparecer como texto cru ao cliente.
+const commandLabels = computed(() => ({
+  'calendar.book_appointment': t(
+    'RAEVO_AI.ACTIVITY.COMMANDS.CALENDAR_BOOK_APPOINTMENT'
+  ),
+  'crm.add_label': t('RAEVO_AI.ACTIVITY.COMMANDS.CRM_ADD_LABEL'),
+  'crm.ensure_opportunity': t(
+    'RAEVO_AI.ACTIVITY.COMMANDS.CRM_ENSURE_OPPORTUNITY'
+  ),
+  'crm.move_stage': t('RAEVO_AI.ACTIVITY.COMMANDS.CRM_MOVE_STAGE'),
+  'crm.update_contact_name': t(
+    'RAEVO_AI.ACTIVITY.COMMANDS.CRM_UPDATE_CONTACT_NAME'
+  ),
+  'crm.update_fields': t('RAEVO_AI.ACTIVITY.COMMANDS.CRM_UPDATE_FIELDS'),
+  'finance.create_charge': t(
+    'RAEVO_AI.ACTIVITY.COMMANDS.FINANCE_CREATE_CHARGE'
+  ),
+  'handoff.apply': t('RAEVO_AI.ACTIVITY.COMMANDS.HANDOFF_APPLY'),
+}));
+
+const stateLabels = computed(() => ({
+  applied: t('RAEVO_AI.ACTIVITY.STATE_APPLIED'),
+  claimed: t('RAEVO_AI.ACTIVITY.STATE_CLAIMED'),
+  failed_retryable: t('RAEVO_AI.ACTIVITY.STATE_FAILED_RETRYABLE'),
+  failed_terminal: t('RAEVO_AI.ACTIVITY.STATE_FAILED_TERMINAL'),
+}));
+
+const commandLabel = tipo =>
+  commandLabels.value[tipo] ?? t('RAEVO_AI.ACTIVITY.COMMANDS.UNKNOWN');
+
+const stateLabel = estado =>
+  stateLabels.value[estado] ?? t('RAEVO_AI.ACTIVITY.STATE_UNKNOWN');
+
+const formatMoment = iso => {
+  if (!iso) return '—';
+  const quando = new Date(iso);
+  return Number.isNaN(quando.getTime())
+    ? '—'
+    : new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(quando);
+};
+
 const displayValue = value => value ?? '—';
 
 const loadOverview = async () => {
   isLoading.value = true;
   hasError.value = false;
   isPreparing.value = false;
-  isPaused.value = false;
+  isDisabled.value = false;
 
   try {
     const { data } = await RaevoAiAPI.getOverview(windowDays.value);
     const connectionState = data?.connection_state;
     overview.value = connectionState ? data.overview : data;
     isPreparing.value = connectionState === 'not_configured';
-    isPaused.value = connectionState === 'paused';
+    isDisabled.value = connectionState === 'disabled';
     hasError.value = connectionState === 'unavailable';
   } catch (error) {
     overview.value = null;
@@ -398,8 +445,8 @@ const contractedPackage = computed(() => {
           </div>
 
           <div
-            v-else-if="isPaused"
-            data-testid="ai-overview-paused"
+            v-else-if="isDisabled"
+            data-testid="ai-overview-disabled"
             class="mt-4 flex items-start gap-3 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
             role="status"
           >
@@ -410,10 +457,10 @@ const contractedPackage = computed(() => {
             </span>
             <div>
               <p class="text-sm font-semibold text-n-slate-12">
-                {{ t('RAEVO_AI.OVERVIEW.PAUSED.TITLE') }}
+                {{ t('RAEVO_AI.OVERVIEW.DISABLED.TITLE') }}
               </p>
               <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('RAEVO_AI.OVERVIEW.PAUSED.DESCRIPTION') }}
+                {{ t('RAEVO_AI.OVERVIEW.DISABLED.DESCRIPTION') }}
               </p>
             </div>
           </div>
@@ -521,6 +568,42 @@ const contractedPackage = computed(() => {
                       count: activity.attention.pending,
                     })
                   }}
+                </li>
+              </ul>
+            </section>
+
+            <!-- O que a Elis fez. Vinha da API desde o início e nunca era
+                 mostrado: o painel pedia os vinte últimos comandos e deitava-os
+                 fora. É o registo do próprio Chatwoot, não do serviço. -->
+            <section
+              data-testid="ai-activity"
+              class="mt-3 rounded-xl border border-n-weak bg-n-solid-1 p-4"
+            >
+              <h3 class="text-sm font-semibold text-n-slate-12">
+                {{ t('RAEVO_AI.ACTIVITY.RECENT_TITLE') }}
+              </h3>
+
+              <p
+                v-if="!activity.recent.length"
+                class="mt-2 text-sm text-n-slate-11"
+              >
+                {{ t('RAEVO_AI.ACTIVITY.RECENT_EMPTY') }}
+              </p>
+
+              <ul v-else class="mt-3 flex list-none flex-col gap-2 p-0">
+                <li
+                  v-for="item in activity.recent"
+                  :key="item.id"
+                  data-testid="ai-activity-item"
+                  class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg bg-n-alpha-1 px-3 py-2"
+                >
+                  <span class="text-sm text-n-slate-12">
+                    {{ commandLabel(item.command_type) }}
+                  </span>
+                  <span class="text-xs text-n-slate-10">
+                    {{ stateLabel(item.state) }} ·
+                    {{ formatMoment(item.occurred_at) }}
+                  </span>
                 </li>
               </ul>
             </section>
