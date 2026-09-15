@@ -42,6 +42,9 @@ const mountDialog = () =>
           template:
             '<div><slot :control-class="\'\'" :field-id="\'f\'" :described-by="undefined" /></div>',
         },
+        // Os campos por tipo de recurso são o que se testa aqui: renderiza-se o
+        // componente verdadeiro em vez do stub do shallowMount.
+        CalendarResourceFields: false,
       },
     },
   });
@@ -60,7 +63,10 @@ describe('KanbanCalendarBookingDialog', () => {
       ],
     });
     CalendarAPI.getResources.mockResolvedValue({
-      data: [{ id: 3, name: 'Dra. Ana', active: true }],
+      data: [
+        { id: 3, name: 'Dra. Ana', resource_type: 'user', active: true },
+        { id: 5, name: 'Sala 1', resource_type: 'room', active: true },
+      ],
     });
     CalendarAPI.getAvailability.mockResolvedValue({
       data: {
@@ -85,7 +91,7 @@ describe('KanbanCalendarBookingDialog', () => {
       .find('[data-testid="kanban-calendar-procedure"]')
       .setValue('2');
     await wrapper
-      .find('[data-testid="kanban-calendar-resource"]')
+      .find('[data-testid="kanban-calendar-resource-professional"]')
       .setValue('3');
     await wrapper
       .find('[data-testid="kanban-calendar-starts-at"]')
@@ -102,5 +108,59 @@ describe('KanbanCalendarBookingDialog', () => {
     expect(
       wrapper.findAll('[data-testid="calendar-availability-slot"]')
     ).toHaveLength(1);
+  });
+
+  it('books the professional and the room together, and asks for both', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 2,
+          name: 'Toxina',
+          active: true,
+          recurrence_allowed: false,
+          resource_ids: [3, 5],
+        },
+      ],
+    });
+    CalendarAPI.createAppointment.mockResolvedValue({ data: { id: 11 } });
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="kanban-calendar-procedure"]')
+      .setValue('2');
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-calendar-starts-at"]')
+      .setValue('2026-08-10T13:00');
+    // A verificação de disponibilidade tem debounce de 250ms.
+    await new Promise(resolve => {
+      setTimeout(resolve, 300);
+    });
+    await flushPromises();
+
+    // O procedimento aceita uma de cada: vêm as duas escolhidas, e a
+    // disponibilidade pergunta pelas duas ao mesmo tempo.
+    expect(
+      wrapper.find('[data-testid="kanban-calendar-resource-professional"]')
+        .element.value
+    ).toBe('3');
+    expect(
+      wrapper.find('[data-testid="kanban-calendar-resource-room"]').element
+        .value
+    ).toBe('5');
+    expect(CalendarAPI.getAvailability).toHaveBeenCalledWith(
+      expect.objectContaining({ resource_ids: [3, 5] })
+    );
+
+    await wrapper
+      .find('[data-testid="calendar-confirm-booking"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.createAppointment).toHaveBeenCalledWith({
+      appointment: expect.objectContaining({ resource_ids: [3, 5] }),
+    });
   });
 });

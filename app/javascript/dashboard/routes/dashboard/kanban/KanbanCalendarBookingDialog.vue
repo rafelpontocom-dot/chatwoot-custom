@@ -9,6 +9,8 @@ import ContactAPI from 'dashboard/api/contacts';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
+import CalendarResourceFields from 'dashboard/routes/dashboard/calendar/CalendarResourceFields.vue';
+import { useAppointmentResources } from 'dashboard/routes/dashboard/calendar/useAppointmentResources';
 
 const props = defineProps({
   cardId: { type: [Number, String], default: null },
@@ -16,6 +18,9 @@ const props = defineProps({
   contactName: { type: String, default: '' },
   selectContact: { type: Boolean, default: false },
   allowedProcedureIds: { type: Array, default: () => [] },
+  // Agendas à vista na agenda que abriu o diálogo: se só uma profissional está
+  // à vista, é ela que vem escolhida.
+  preferredResourceIds: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['created']);
@@ -25,7 +30,7 @@ const dialog = ref(null);
 const procedures = ref([]);
 const resources = ref([]);
 const procedureId = ref('');
-const resourceId = ref('');
+const triedToSave = ref(false);
 const startsAt = ref('');
 const occurrenceCount = ref('1');
 const intervalKind = ref('weekly');
@@ -60,12 +65,19 @@ const bookingDescription = computed(() =>
 const selectedProcedure = computed(() =>
   procedures.value.find(procedure => String(procedure.id) === procedureId.value)
 );
-const availableResources = computed(() => {
-  const allowedIds = selectedProcedure.value?.resource_ids || [];
-
-  if (!allowedIds.length) return resources.value;
-
-  return resources.value.filter(resource => allowedIds.includes(resource.id));
+// Um campo por tipo de recurso, com a regra do procedimento. Antes era um só
+// «profissional ou recurso», e uma consulta com profissional e sala só
+// conseguia ocupar uma das duas.
+const {
+  selection: resourceSelection,
+  fields: resourceFields,
+  resourceIds,
+  isComplete: resourcesComplete,
+  selectResourceIds,
+} = useAppointmentResources({
+  procedure: selectedProcedure,
+  resources,
+  preferredResourceIds: computed(() => props.preferredResourceIds),
 });
 const recurrenceIntervals = computed(() => {
   const allowedIntervals = selectedProcedure.value?.allowed_intervals || [];
@@ -125,7 +137,6 @@ const canSave = computed(
   () =>
     !!bookingContactId.value &&
     !!procedureId.value &&
-    !!resourceId.value &&
     !!startsAt.value &&
     !hasAvailabilityConflict.value &&
     !isCheckingAvailability.value &&
@@ -137,7 +148,8 @@ const canSave = computed(
 
 const resetForm = () => {
   procedureId.value = '';
-  resourceId.value = '';
+  selectResourceIds([]);
+  triedToSave.value = false;
   startsAt.value = '';
   occurrenceCount.value = '1';
   intervalKind.value = 'weekly';
@@ -208,7 +220,7 @@ const onContactInput = () => {
 };
 
 const checkAvailability = async () => {
-  if (!resourceId.value || !startsAt.value || !procedureId.value) {
+  if (!resourceIds.value.length || !startsAt.value || !procedureId.value) {
     availabilityResult.value = null;
     return;
   }
@@ -219,7 +231,7 @@ const checkAvailability = async () => {
     const response = await CalendarAPI.getAvailability({
       starts_at: new Date(startsAt.value).toISOString(),
       procedure_id: Number(procedureId.value),
-      resource_id: Number(resourceId.value),
+      resource_ids: resourceIds.value,
     });
     availabilityResult.value = response.data || null;
   } catch {
@@ -232,7 +244,7 @@ const checkAvailability = async () => {
 const debouncedCheckAvailability = debounce(checkAvailability, 250, false);
 
 const loadAvailabilitySlots = async () => {
-  if (!resourceId.value || !selectedDate.value || !procedureId.value) {
+  if (!resourceIds.value.length || !selectedDate.value || !procedureId.value) {
     availabilitySlots.value = [];
     return;
   }
@@ -242,7 +254,7 @@ const loadAvailabilitySlots = async () => {
     const response = await CalendarAPI.getAvailability({
       date: selectedDate.value,
       procedure_id: Number(procedureId.value),
-      resource_id: Number(resourceId.value),
+      resource_ids: resourceIds.value,
     });
     availabilitySlots.value = response.data?.slots || [];
   } catch {
@@ -323,7 +335,10 @@ const open = async ({ startsAt: initialStartsAt } = {}) => {
 const close = () => dialog.value?.close();
 
 const save = async () => {
-  if (!canSave.value) return;
+  triedToSave.value = true;
+  // Os recursos ficam fora de `canSave`, que desliga o botão: são os campos que
+  // sabem dizer o que falta, e com o botão desligado nunca chegavam a dizê-lo.
+  if (!canSave.value || !resourcesComplete.value) return;
 
   isSaving.value = true;
   error.value = '';
@@ -332,7 +347,7 @@ const save = async () => {
     const appointment = {
       contact_id: Number(bookingContactId.value),
       procedure_id: Number(procedureId.value),
-      resource_ids: [Number(resourceId.value)],
+      resource_ids: resourceIds.value,
       starts_at: new Date(startsAt.value).toISOString(),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
@@ -360,16 +375,6 @@ const save = async () => {
   }
 };
 
-watch(availableResources, nextResources => {
-  if (
-    nextResources.some(resource => String(resource.id) === resourceId.value)
-  ) {
-    return;
-  }
-
-  resourceId.value = '';
-});
-
 watch(procedureId, () => {
   if (!selectedProcedure.value?.recurrence_allowed) {
     occurrenceCount.value = '1';
@@ -379,8 +384,8 @@ watch(procedureId, () => {
   }
 });
 
-watch([procedureId, resourceId, startsAt], debouncedCheckAvailability);
-watch([procedureId, resourceId, selectedDate], debouncedLoadAvailabilitySlots);
+watch([procedureId, resourceIds, startsAt], debouncedCheckAvailability);
+watch([procedureId, resourceIds, selectedDate], debouncedLoadAvailabilitySlots);
 
 onUnmounted(abortContactSearch);
 
@@ -532,31 +537,13 @@ defineExpose({ open });
           </RaevoField>
         </div>
 
-        <RaevoField
-          :label="t('CALENDAR.OPPORTUNITY.RESOURCE')"
-          variant="select"
-        >
-          <template #default="{ controlClass, fieldId }">
-            <select
-              :id="fieldId"
-              v-model="resourceId"
-              data-testid="kanban-calendar-resource"
-              :disabled="!procedureId"
-              :class="controlClass"
-            >
-              <option value="">
-                {{ t('CALENDAR.OPPORTUNITY.SELECT_RESOURCE') }}
-              </option>
-              <option
-                v-for="resource in availableResources"
-                :key="resource.id"
-                :value="String(resource.id)"
-              >
-                {{ resource.name }}
-              </option>
-            </select>
-          </template>
-        </RaevoField>
+        <CalendarResourceFields
+          v-model="resourceSelection"
+          :fields="resourceFields"
+          :disabled="!procedureId"
+          :show-errors="triedToSave"
+          testid-prefix="kanban-calendar-resource"
+        />
 
         <RaevoField :label="t('CALENDAR.OPPORTUNITY.STARTS_AT')">
           <template #default="{ controlClass, fieldId }">
@@ -611,7 +598,7 @@ defineExpose({ open });
           {{ availabilityErrorMessage }}
         </p>
         <div
-          v-if="selectedDate && resourceId && procedureId"
+          v-if="selectedDate && resourceIds.length && procedureId"
           class="grid gap-1.5 rounded-md bg-n-surface-2 p-2.5"
         >
           <div class="flex items-center justify-between gap-2">

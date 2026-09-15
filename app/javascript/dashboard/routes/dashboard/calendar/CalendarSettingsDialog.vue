@@ -158,28 +158,77 @@ const procedureFormElement = ref(null);
 const canCreateProcedure = computed(
   () => !Object.keys(procedureErrors.value).length && !isSaving.value
 );
+// Um profissional já não precisa de ser utilizador do CRM: quem atende na
+// clínica pode não ter login. Só o nome é obrigatório.
 const canCreateResource = computed(
-  () =>
-    resourceForm.value.name.trim() &&
-    (resourceForm.value.resourceType !== 'user' || resourceForm.value.userId) &&
-    !isSaving.value
+  () => !!resourceForm.value.name.trim() && !isSaving.value
 );
+const triedToSaveResource = ref(false);
+const resourceNameError = computed(() =>
+  triedToSaveResource.value && !resourceForm.value.name.trim()
+    ? t('CALENDAR.SETTINGS.VALIDATION.RESOURCE_NAME_REQUIRED')
+    : ''
+);
+
+// A aba separa o que é cada coisa. Estava tudo numa lista e num formulário com
+// um seletor de tipo, e profissionais, salas e equipamentos misturavam-se.
+// «Outros» são as agendas antigas sem tipo: só aparece quando há alguma, e
+// editar deixa reclassificá-las — nada some do ecrã de ninguém.
+const RESOURCE_SECTIONS = [
+  {
+    key: 'professional',
+    type: 'user',
+    title: 'CALENDAR.SETTINGS.SECTIONS.PROFESSIONAL.TITLE',
+    add: 'CALENDAR.SETTINGS.SECTIONS.PROFESSIONAL.ADD',
+    empty: 'CALENDAR.SETTINGS.SECTIONS.PROFESSIONAL.EMPTY',
+  },
+  {
+    key: 'room',
+    type: 'room',
+    title: 'CALENDAR.SETTINGS.SECTIONS.ROOM.TITLE',
+    add: 'CALENDAR.SETTINGS.SECTIONS.ROOM.ADD',
+    empty: 'CALENDAR.SETTINGS.SECTIONS.ROOM.EMPTY',
+  },
+  {
+    key: 'equipment',
+    type: 'equipment',
+    title: 'CALENDAR.SETTINGS.SECTIONS.EQUIPMENT.TITLE',
+    add: 'CALENDAR.SETTINGS.SECTIONS.EQUIPMENT.ADD',
+    empty: 'CALENDAR.SETTINGS.SECTIONS.EQUIPMENT.EMPTY',
+  },
+  {
+    key: 'other',
+    type: 'generic',
+    title: 'CALENDAR.SETTINGS.SECTIONS.OTHER.TITLE',
+    help: 'CALENDAR.SETTINGS.SECTIONS.OTHER.HELP',
+  },
+];
+const resourceSections = computed(() =>
+  RESOURCE_SECTIONS.map(section => ({
+    ...section,
+    resources: resources.value.filter(
+      resource => resource.resource_type === section.type
+    ),
+  })).filter(section => section.key !== 'other' || section.resources.length)
+);
+const sectionKeyOfType = type =>
+  RESOURCE_SECTIONS.find(section => section.type === type)?.key || 'other';
+// O formulário abre dentro da secção onde se carregou, e não no topo da aba.
+const resourceEditorSection = ref(null);
 const procedureSubmitLabel = computed(() =>
   editingProcedureId.value
     ? t('CALENDAR.SETTINGS.SAVE_PROCEDURE')
     : t('CALENDAR.SETTINGS.ADD_PROCEDURE')
 );
-const resourceSubmitLabel = computed(() =>
-  editingResourceId.value
-    ? t('CALENDAR.SETTINGS.SAVE_RESOURCE')
-    : t('CALENDAR.SETTINGS.ADD_RESOURCE')
-);
-const resourceTypeLabel = resourceType =>
-  ({
-    room: t('CALENDAR.SETTINGS.RESOURCE_TYPES.ROOM'),
-    equipment: t('CALENDAR.SETTINGS.RESOURCE_TYPES.EQUIPMENT'),
-    generic: t('CALENDAR.SETTINGS.RESOURCE_TYPES.GENERIC'),
-  })[resourceType] || t('CALENDAR.SETTINGS.RESOURCE_TYPES.GENERIC');
+// Ao criar, o botão fala a língua da secção — «Adicionar profissional», e não
+// «Adicionar recurso» dentro da secção dos profissionais.
+const resourceSubmitLabel = computed(() => {
+  if (editingResourceId.value) return t('CALENDAR.SETTINGS.SAVE_RESOURCE');
+  const secao = RESOURCE_SECTIONS.find(
+    section => section.key === resourceEditorSection.value
+  );
+  return t(secao?.add || 'CALENDAR.SETTINGS.SECTIONS.PROFESSIONAL.ADD');
+});
 const resourceToggleLabel = resource =>
   resource.active
     ? t('CALENDAR.SETTINGS.DEACTIVATE_RESOURCE')
@@ -344,8 +393,15 @@ const resetProcedureForm = () => {
 const resetResourceForm = () => {
   resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
   editingResourceId.value = null;
+  triedToSaveResource.value = false;
+  resourceEditorSection.value = null;
   isResourceEditorOpen.value = false;
 };
+
+// Quem usa o CRM aparece com o nome da conta, para se saber que agenda é de quem.
+const resourceUserName = resource =>
+  agentOptions.value.find(agent => agent.value === resource.user_id)?.label ||
+  '';
 
 const loadGoogleCalendarConnection = async resourceId => {
   if (!resourceId) return;
@@ -413,8 +469,18 @@ const retryGoogleCalendar = async () => {
   }
 };
 
+const openAddResource = section => {
+  resourceForm.value = { name: '', resourceType: section.type, userId: '' };
+  editingResourceId.value = null;
+  triedToSaveResource.value = false;
+  resourceEditorSection.value = section.key;
+  isResourceEditorOpen.value = true;
+};
+
 const editResource = async resource => {
   isResourceEditorOpen.value = true;
+  triedToSaveResource.value = false;
+  resourceEditorSection.value = sectionKeyOfType(resource.resource_type);
   editingResourceId.value = resource.id;
   resourceForm.value = {
     name: resource.name,
@@ -700,6 +766,7 @@ const createProcedure = async () => {
 };
 
 const createResource = async () => {
+  triedToSaveResource.value = true;
   if (!canCreateResource.value) return;
 
   isSaving.value = true;
@@ -717,7 +784,9 @@ const createResource = async () => {
       active: existingResource?.active ?? true,
       user_id: null,
     };
-    if (resource.resource_type === 'user')
+    // Sem utilizador escolhido vai `null`, e não `Number('')`: com o utilizador
+    // opcional, `user_id: 0` partia a chave estrangeira com um 500.
+    if (resource.resource_type === 'user' && resourceForm.value.userId)
       resource.user_id = Number(resourceForm.value.userId);
     const response = editingResourceId.value
       ? await CalendarAPI.updateResource(editingResourceId.value, { resource })
@@ -1463,184 +1532,240 @@ defineExpose({ open });
           class="grid gap-4"
         >
           <div
-            class="flex items-start justify-between gap-4"
-            :class="
-              inline ? '' : 'rounded-lg border border-n-weak bg-n-surface-2 p-4'
-            "
+            v-if="!inline"
+            class="grid gap-1 rounded-lg border border-n-weak bg-n-surface-2 p-4"
           >
-            <div v-if="!inline" class="grid gap-1">
-              <h4 class="text-sm font-semibold text-n-slate-12">
-                {{ t('CALENDAR.SETTINGS.RESOURCES') }}
-              </h4>
-              <p class="mb-0 text-sm text-n-slate-11">
-                {{ t('CALENDAR.SETTINGS.RESOURCES_DESCRIPTION') }}
-              </p>
-            </div>
-            <NextButton
-              type="button"
-              size="sm"
-              data-testid="calendar-add-resource"
-              :label="t('CALENDAR.SETTINGS.ADD_RESOURCE')"
-              @click="isResourceEditorOpen = true"
-            />
+            <h4 class="text-sm font-semibold text-n-slate-12">
+              {{ t('CALENDAR.SETTINGS.RESOURCES') }}
+            </h4>
+            <p class="mb-0 text-sm text-n-slate-11">
+              {{ t('CALENDAR.SETTINGS.RESOURCES_DESCRIPTION') }}
+            </p>
           </div>
-          <form
-            v-if="isResourceEditorOpen"
-            data-testid="calendar-resource-form"
-            class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
-            @submit.prevent="createResource"
+
+          <section
+            v-for="section in resourceSections"
+            :key="section.key"
+            :data-testid="`calendar-resource-section-${section.key}`"
+            :aria-labelledby="`calendar-resource-section-${section.key}-title`"
+            class="grid gap-2"
           >
-            <div
-              class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_auto] sm:items-end"
-            >
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.RESOURCE_NAME') }}
-                </span>
-                <input
-                  v-model="resourceForm.name"
-                  data-testid="calendar-resource-name"
-                  type="text"
-                  :class="RAEVO_CONTROL_CLASS"
-                />
-              </label>
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.RESOURCE_TYPE') }}
-                </span>
-                <select
-                  v-model="resourceForm.resourceType"
-                  :class="RAEVO_SELECT_STANDALONE_CLASS"
+            <div class="flex items-center justify-between gap-3">
+              <div class="grid min-w-0 gap-0.5">
+                <h4
+                  :id="`calendar-resource-section-${section.key}-title`"
+                  class="mb-0 text-sm font-semibold text-n-slate-12"
                 >
-                  <option value="room">
-                    {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.ROOM') }}
-                  </option>
-                  <option value="equipment">
-                    {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.EQUIPMENT') }}
-                  </option>
-                  <option value="user">
-                    {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.USER') }}
-                  </option>
-                  <option value="generic">
-                    {{ t('CALENDAR.SETTINGS.RESOURCE_TYPES.GENERIC') }}
-                  </option>
-                </select>
-              </label>
-              <label
-                v-if="resourceForm.resourceType === 'user'"
-                class="grid gap-1"
-              >
-                <span class="text-sm font-medium text-n-slate-12">{{
-                  t('CALENDAR.SETTINGS.PROFESSIONAL')
-                }}</span>
-                <select
-                  v-model="resourceForm.userId"
-                  :class="RAEVO_SELECT_STANDALONE_CLASS"
-                  @change="selectProfessional(resourceForm.userId)"
-                >
-                  <option value="">
-                    {{ t('CALENDAR.SETTINGS.SELECT_PROFESSIONAL') }}
-                  </option>
-                  <option
-                    v-for="agent in agentOptions"
-                    :key="agent.value"
-                    :value="String(agent.value)"
-                  >
-                    {{ agent.label }}
-                  </option>
-                </select>
-              </label>
+                  {{ t(section.title) }}
+                </h4>
+                <p v-if="section.help" class="mb-0 text-xs text-n-slate-11">
+                  {{ t(section.help) }}
+                </p>
+              </div>
               <NextButton
-                type="submit"
-                size="sm"
-                :label="resourceSubmitLabel"
-                :disabled="!canCreateResource"
-                :is-loading="isSaving"
-              />
-              <NextButton
+                v-if="section.add"
                 type="button"
                 size="sm"
-                outline
-                data-testid="calendar-resource-cancel"
-                :label="t('CALENDAR.SETTINGS.CANCEL_EDIT')"
-                @click="resetResourceForm"
+                variant="outline"
+                icon="i-lucide-plus"
+                :data-testid="`calendar-add-resource-${section.key}`"
+                :label="t(section.add)"
+                @click="openAddResource(section)"
               />
             </div>
-            <section
-              v-if="editingResourceId"
-              class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+
+            <!--
+              `novalidate` pela mesma razão do procedimento: quem diz o que
+              falta é a mensagem junto do campo, não o balão do browser.
+            -->
+            <form
+              v-if="
+                isResourceEditorOpen && resourceEditorSection === section.key
+              "
+              data-testid="calendar-resource-form"
+              class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
+              novalidate
+              @submit.prevent="createResource"
             >
-              <div class="flex items-start justify-between gap-3">
-                <div class="grid gap-0.5">
-                  <h4 class="mb-0 text-sm font-medium text-n-slate-12">
-                    {{ t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.TITLE') }}
-                  </h4>
-                  <p class="mb-0 text-xs text-n-slate-11">
-                    {{ t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.HELP') }}
-                  </p>
-                </div>
-                <span
-                  class="text-xs font-medium text-n-slate-11"
-                  :class="
-                    googleCalendarConnection?.connected
-                      ? 'text-n-teal-11'
-                      : 'text-n-slate-11'
-                  "
+              <div class="grid items-start gap-3 sm:grid-cols-2">
+                <RaevoField
+                  :label="t('CALENDAR.SETTINGS.RESOURCE_NAME')"
+                  :error="resourceNameError"
+                  error-testid="calendar-resource-name-error"
+                  required
                 >
-                  {{
-                    isLoadingGoogleCalendarConnection
-                      ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.LOADING')
-                      : googleCalendarConnection?.connected
-                        ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.CONNECTED')
-                        : t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.DISCONNECTED')
-                  }}
-                </span>
+                  <template #default="{ controlClass, fieldId, describedBy }">
+                    <input
+                      :id="fieldId"
+                      v-model="resourceForm.name"
+                      data-testid="calendar-resource-name"
+                      type="text"
+                      :aria-invalid="!!resourceNameError"
+                      :aria-describedby="describedBy"
+                      :class="controlClass"
+                    />
+                  </template>
+                </RaevoField>
+                <!--
+                  Opcional: quem atende pode não usar o CRM. Escolher alguém só
+                  liga a agenda à conta dessa pessoa e sugere-lhe o nome.
+                -->
+                <RaevoField
+                  v-if="resourceForm.resourceType === 'user'"
+                  :label="t('CALENDAR.SETTINGS.CRM_USER')"
+                  :hint="t('CALENDAR.SETTINGS.CRM_USER_HINT')"
+                  variant="select"
+                >
+                  <template #default="{ controlClass, fieldId, describedBy }">
+                    <select
+                      :id="fieldId"
+                      v-model="resourceForm.userId"
+                      data-testid="calendar-resource-user"
+                      :aria-describedby="describedBy"
+                      :class="controlClass"
+                      @change="selectProfessional(resourceForm.userId)"
+                    >
+                      <option value="">
+                        {{ t('CALENDAR.SETTINGS.NO_CRM_USER') }}
+                      </option>
+                      <option
+                        v-for="agent in agentOptions"
+                        :key="agent.value"
+                        :value="String(agent.value)"
+                      >
+                        {{ agent.label }}
+                      </option>
+                    </select>
+                  </template>
+                </RaevoField>
+                <!-- Só ao editar: é por aqui que uma agenda de «Outros» ganha tipo. -->
+                <RaevoField
+                  v-if="editingResourceId"
+                  :label="t('CALENDAR.SETTINGS.RESOURCE_TYPE')"
+                  :hint="t('CALENDAR.SETTINGS.RESOURCE_TYPE_HINT')"
+                  variant="select"
+                >
+                  <template #default="{ controlClass, fieldId, describedBy }">
+                    <select
+                      :id="fieldId"
+                      v-model="resourceForm.resourceType"
+                      data-testid="calendar-resource-type"
+                      :aria-describedby="describedBy"
+                      :class="controlClass"
+                    >
+                      <option value="user">
+                        {{ t('CALENDAR.RESOURCE_FIELDS.PROFESSIONAL') }}
+                      </option>
+                      <option value="room">
+                        {{ t('CALENDAR.RESOURCE_FIELDS.ROOM') }}
+                      </option>
+                      <option value="equipment">
+                        {{ t('CALENDAR.RESOURCE_FIELDS.EQUIPMENT') }}
+                      </option>
+                      <option value="generic">
+                        {{ t('CALENDAR.RESOURCE_FIELDS.OTHER') }}
+                      </option>
+                    </select>
+                  </template>
+                </RaevoField>
               </div>
-              <p
-                v-if="googleCalendarConnection?.last_error"
-                class="mb-0 text-xs text-n-ruby-11"
-              >
-                {{ googleCalendarConnection.last_error }}
-              </p>
-              <div class="flex flex-wrap gap-2">
+              <div class="flex items-center justify-end gap-2">
                 <NextButton
-                  v-if="googleCalendarConnection?.retryable"
                   type="button"
                   size="sm"
                   outline
-                  data-testid="calendar-retry-google-calendar"
-                  :label="t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.RETRY')"
-                  :disabled="isLoadingGoogleCalendarConnection || isSaving"
-                  @click="retryGoogleCalendar"
+                  data-testid="calendar-resource-cancel"
+                  :label="t('CALENDAR.SETTINGS.CANCEL_EDIT')"
+                  @click="resetResourceForm"
                 />
                 <NextButton
-                  v-if="!googleCalendarConnection?.connected"
-                  type="button"
+                  type="submit"
                   size="sm"
-                  outline
-                  :label="t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.CONNECT')"
-                  :disabled="isLoadingGoogleCalendarConnection || isSaving"
-                  @click="connectGoogleCalendar"
-                />
-                <NextButton
-                  v-else
-                  type="button"
-                  size="sm"
-                  outline
-                  :label="t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.DISCONNECT')"
+                  data-testid="calendar-resource-submit"
+                  :label="resourceSubmitLabel"
                   :disabled="isSaving"
-                  @click="disconnectGoogleCalendar"
+                  :is-loading="isSaving"
                 />
               </div>
-            </section>
-          </form>
-          <div class="grid gap-2">
-            <p v-if="!resources.length" class="mb-0 text-sm text-n-slate-11">
-              {{ t('CALENDAR.SETTINGS.NO_RESOURCES') }}
+              <section
+                v-if="editingResourceId"
+                class="grid gap-2 rounded-md border border-n-weak bg-n-surface-1 p-3"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="grid gap-0.5">
+                    <h4 class="mb-0 text-sm font-medium text-n-slate-12">
+                      {{ t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.TITLE') }}
+                    </h4>
+                    <p class="mb-0 text-xs text-n-slate-11">
+                      {{ t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.HELP') }}
+                    </p>
+                  </div>
+                  <span
+                    class="text-xs font-medium text-n-slate-11"
+                    :class="
+                      googleCalendarConnection?.connected
+                        ? 'text-n-teal-11'
+                        : 'text-n-slate-11'
+                    "
+                  >
+                    {{
+                      isLoadingGoogleCalendarConnection
+                        ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.LOADING')
+                        : googleCalendarConnection?.connected
+                          ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.CONNECTED')
+                          : t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.DISCONNECTED')
+                    }}
+                  </span>
+                </div>
+                <p
+                  v-if="googleCalendarConnection?.last_error"
+                  class="mb-0 text-xs text-n-ruby-11"
+                >
+                  {{ googleCalendarConnection.last_error }}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <NextButton
+                    v-if="googleCalendarConnection?.retryable"
+                    type="button"
+                    size="sm"
+                    outline
+                    data-testid="calendar-retry-google-calendar"
+                    :label="t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.RETRY')"
+                    :disabled="isLoadingGoogleCalendarConnection || isSaving"
+                    @click="retryGoogleCalendar"
+                  />
+                  <NextButton
+                    v-if="!googleCalendarConnection?.connected"
+                    type="button"
+                    size="sm"
+                    outline
+                    :label="t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.CONNECT')"
+                    :disabled="isLoadingGoogleCalendarConnection || isSaving"
+                    @click="connectGoogleCalendar"
+                  />
+                  <NextButton
+                    v-else
+                    type="button"
+                    size="sm"
+                    outline
+                    :label="t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.DISCONNECT')"
+                    :disabled="isSaving"
+                    @click="disconnectGoogleCalendar"
+                  />
+                </div>
+              </section>
+            </form>
+
+            <p
+              v-if="!section.resources.length"
+              class="mb-0 text-sm text-n-slate-11"
+            >
+              {{ t(section.empty) }}
             </p>
             <article
-              v-for="resource in resources"
+              v-for="resource in section.resources"
               :key="resource.id"
+              data-testid="calendar-resource-row"
               class="flex items-center justify-between gap-3 rounded-md border border-n-weak px-3 py-2"
             >
               <div class="grid min-w-0 gap-0.5">
@@ -1660,16 +1785,17 @@ defineExpose({ open });
                     {{ t('CALENDAR.SETTINGS.ARCHIVED') }}
                   </span>
                 </span>
-                <span class="text-xs text-n-slate-11">
-                  {{ resourceTypeLabel(resource.resource_type) }}
+                <span
+                  v-if="resourceUserName(resource)"
+                  class="text-xs text-n-slate-11"
+                >
+                  {{
+                    t('CALENDAR.SETTINGS.LINKED_TO_CRM_USER', {
+                      name: resourceUserName(resource),
+                    })
+                  }}
                 </span>
               </div>
-              <!--
-                As ações vivem num grupo próprio. Soltas como filhos diretos do
-                `justify-between`, o espaço era repartido entre as cinco peças e
-                os botões espalhavam-se pela linha, cada um a uma distância.
-                Apagar fica afastado dos outros por ser o único destrutivo.
-              -->
               <div class="flex shrink-0 items-center gap-1">
                 <NextButton
                   type="button"
@@ -1724,7 +1850,7 @@ defineExpose({ open });
                 />
               </div>
             </article>
-          </div>
+          </section>
 
           <section
             v-if="availabilityResource"

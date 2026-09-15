@@ -45,8 +45,6 @@
       "LOADING_OPTIONS": "Carregando procedimentos e profissionais...",
       "PROCEDURE": "Procedimento",
       "SELECT_PROCEDURE": "Selecione um procedimento",
-      "RESOURCE": "Profissional ou recurso",
-      "SELECT_RESOURCE": "Selecione um profissional ou recurso",
       "STARTS_AT": "Data e horário",
       "CHECKING_AVAILABILITY": "Verificando disponibilidade...",
       "AVAILABILITY_CONFLICT": "Este recurso já possui um agendamento nesse horário. Escolha outro horário ou recurso.",
@@ -156,9 +154,6 @@
       "DURATION_VALUE": "{minutes} min",
       "RESOURCE_NAME": "Nome da agenda",
       "RESOURCE_TYPE": "Tipo",
-      "PROFESSIONAL": "Profissional",
-      "SELECT_PROFESSIONAL": "Selecione o profissional",
-      "ADD_RESOURCE": "Adicionar recurso",
       "EDIT_RESOURCE": "Editar",
       "SAVE_RESOURCE": "Salvar recurso",
       "ACTIVATE_RESOURCE": "Ativar",
@@ -208,12 +203,6 @@
         "FRIDAY": "Sexta-feira",
         "SATURDAY": "Sábado"
       },
-      "RESOURCE_TYPES": {
-        "ROOM": "Sala",
-        "EQUIPMENT": "Equipamento",
-        "USER": "Profissional",
-        "GENERIC": "Profissional ou outro recurso"
-      },
       "LOCATION_TYPES": {
         "IN_PERSON": "Presencial",
         "VIDEO": "Vídeo",
@@ -236,7 +225,34 @@
         "BUFFER_RANGE": "Use um número inteiro entre 0 e 120 minutos.",
         "MAX_SESSIONS_RANGE": "Use um número inteiro entre 1 e 100.",
         "PUBLIC_SLUG_REQUIRED": "Dê um endereço ao link público, com letras ou números.",
-        "FIX_MARKED_FIELDS": "Corrija os campos marcados para salvar."
+        "FIX_MARKED_FIELDS": "Corrija os campos marcados para salvar.",
+        "RESOURCE_NAME_REQUIRED": "Dê um nome."
+      },
+      "CRM_USER": "Usuário do CRM",
+      "CRM_USER_HINT": "Opcional. Só se a pessoa também usa o CRM.",
+      "NO_CRM_USER": "Nenhum",
+      "RESOURCE_TYPE_HINT": "Mude para mover esta agenda para outra seção.",
+      "LINKED_TO_CRM_USER": "Usa o CRM como {name}",
+      "SECTIONS": {
+        "PROFESSIONAL": {
+          "TITLE": "Profissionais",
+          "ADD": "Adicionar profissional",
+          "EMPTY": "Nenhum profissional ainda."
+        },
+        "ROOM": {
+          "TITLE": "Salas",
+          "ADD": "Adicionar sala",
+          "EMPTY": "Nenhuma sala ainda."
+        },
+        "EQUIPMENT": {
+          "TITLE": "Equipamentos",
+          "ADD": "Adicionar equipamento",
+          "EMPTY": "Nenhum equipamento ainda."
+        },
+        "OTHER": {
+          "TITLE": "Outros",
+          "HELP": "Agendas sem tipo. Edite para indicar se é profissional, sala ou equipamento."
+        }
       }
     },
     "DETAIL": {
@@ -244,7 +260,7 @@
       "LOADING": "Carregando agendamento...",
       "SAVE_ERROR": "Não foi possível atualizar o agendamento.",
       "DATE_TIME": "Data e horário",
-      "RESOURCE": "Profissional ou recurso",
+      "RESOURCE": "Agendas",
       "STATUS_LABEL": "Situação",
       "SOURCE_LABEL": "Origem",
       "SOURCE_FEEGOW": "Feegow",
@@ -305,12 +321,26 @@
       "TITLE": "Nova consulta",
       "CONTACT": "Buscar paciente",
       "PROCEDURE": "Procedimento",
-      "RESOURCE": "Profissional",
       "SEARCHING": "Buscando...",
       "SAVE": "Guardar",
       "MORE_OPTIONS": "Mais opções",
       "NO_RESOURCE": "Nenhum profissional disponível para este procedimento.",
       "ERROR": "Não foi possível marcar. Tente de novo."
+    },
+    "RESOURCE_FIELDS": {
+      "PROFESSIONAL": "Profissional",
+      "ROOM": "Sala",
+      "EQUIPMENT": "Equipamento",
+      "OTHER": "Outra agenda",
+      "SELECT": "Selecione…",
+      "MISSING": "Falta escolher: {kinds}.",
+      "CHOOSE_ONE": "Escolha pelo menos uma agenda.",
+      "REQUIRED": {
+        "PROFESSIONAL": "Escolha o profissional.",
+        "ROOM": "Escolha a sala.",
+        "EQUIPMENT": "Escolha o equipamento.",
+        "OTHER": "Escolha a agenda."
+      }
     }
   }
 }

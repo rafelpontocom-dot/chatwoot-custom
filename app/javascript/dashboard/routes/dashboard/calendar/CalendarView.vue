@@ -220,6 +220,12 @@ const visibleResourceIds = computed(() =>
     .map(resource => resource.id)
 );
 
+// Só há «agenda à vista» quando alguém escondeu as outras. Com todas visíveis,
+// nenhuma é preferida e nada vem escolhido de antemão.
+const preferredResourceIds = computed(() =>
+  hiddenResourceIds.value.length ? visibleResourceIds.value : []
+);
+
 const isResourceVisible = resource =>
   !hiddenResourceIds.value.includes(resource.id);
 
@@ -998,6 +1004,7 @@ onMounted(() => {
     <KanbanCalendarBookingDialog
       ref="bookingDialog"
       select-contact
+      :preferred-resource-ids="preferredResourceIds"
       @created="handleAppointmentCreated"
     />
     <CalendarQuickCreate
@@ -1005,6 +1012,7 @@ onMounted(() => {
       :anchor="quickAnchor"
       :procedures="procedures"
       :resources="resources"
+      :preferred-resource-ids="preferredResourceIds"
       @close="closeQuickCreate"
       @created="loadAppointments"
       @open-full-dialog="openFullDialogFromQuick"

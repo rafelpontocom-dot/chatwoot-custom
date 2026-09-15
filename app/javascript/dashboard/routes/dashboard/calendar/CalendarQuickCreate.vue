@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, toRef, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { debounce } from '@chatwoot/utils';
@@ -10,19 +10,25 @@ import {
   RAEVO_CONTROL_CLASS,
   RAEVO_SELECT_CLASS,
 } from 'dashboard/components-next/raevo/raevoControl';
+import CalendarResourceFields from './CalendarResourceFields.vue';
+import { useAppointmentResources } from './useAppointmentResources';
 
 /**
  * Raevo — balão de criação rápida, no formato do Google Calendar.
  *
  * Clicar num horário vazio abria o diálogo inteiro. O Google abre um balão
  * ancorado no clique, com o mínimo, e manda para "Mais opções" quem precisa do
- * resto. Aqui o mínimo é paciente e procedimento: sem eles a API não marca, e o
- * profissional é escolhido sozinho quando o procedimento só admite um.
+ * resto. Aqui o mínimo é paciente e procedimento: sem eles a API não marca.
+ *
+ * Depois do procedimento aparecem os recursos, um campo por tipo — quem atende,
+ * a sala, o equipamento —, com a regra de `useAppointmentResources`.
  */
 const props = defineProps({
   startsAt: { type: Date, default: null },
   procedures: { type: Array, default: () => [] },
   resources: { type: Array, default: () => [] },
+  // Agendas à vista na agenda: estando só a de uma profissional, ela vem já.
+  preferredResourceIds: { type: Array, default: () => [] },
   anchor: { type: Object, default: null },
 });
 
@@ -34,7 +40,6 @@ const contactResults = ref([]);
 const selectedContact = ref(null);
 const isSearching = ref(false);
 const procedureId = ref('');
-const resourceId = ref('');
 const isSaving = ref(false);
 const error = ref('');
 const buscaInput = ref(null);
@@ -49,14 +54,24 @@ const selectedProcedure = computed(() =>
   props.procedures.find(item => String(item.id) === procedureId.value)
 );
 
-/** Recursos que o procedimento admite; se só houver um, não se pergunta. */
-const allowedResources = computed(() => {
-  const permitidos = selectedProcedure.value?.resource_ids || [];
-  if (!permitidos.length) return props.resources;
-  return props.resources.filter(item => permitidos.includes(item.id));
+const {
+  selection: resourceSelection,
+  fields: resourceFields,
+  resourceIds,
+  missingKinds,
+  isComplete: resourcesComplete,
+} = useAppointmentResources({
+  procedure: selectedProcedure,
+  resources: toRef(props, 'resources'),
+  preferredResourceIds: toRef(props, 'preferredResourceIds'),
 });
 
-const needsResourceChoice = computed(() => allowedResources.value.length > 1);
+const RESOURCE_LABELS = {
+  professional: 'CALENDAR.RESOURCE_FIELDS.PROFESSIONAL',
+  room: 'CALENDAR.RESOURCE_FIELDS.ROOM',
+  equipment: 'CALENDAR.RESOURCE_FIELDS.EQUIPMENT',
+  other: 'CALENDAR.RESOURCE_FIELDS.OTHER',
+};
 
 const timeLabel = computed(() => {
   if (!props.startsAt) return '';
@@ -112,14 +127,6 @@ const pickContact = contact => {
 };
 
 watch(
-  () => allowedResources.value,
-  lista => {
-    if (lista.length === 1) resourceId.value = String(lista[0].id);
-  },
-  { immediate: true }
-);
-
-watch(
   () => props.startsAt,
   async valor => {
     if (!valor) return;
@@ -135,9 +142,20 @@ watch(
 
 const save = async () => {
   if (!canSave.value) return;
-  const alvo = resourceId.value || allowedResources.value[0]?.id;
-  if (!alvo) {
+  // No balão não há espaço para uma mensagem por campo: diz-se numa linha o
+  // que falta, pelo nome dos campos que estão à vista.
+  if (!resourceFields.value.length) {
     error.value = t('CALENDAR.QUICK.NO_RESOURCE');
+    return;
+  }
+  if (!resourcesComplete.value) {
+    error.value = missingKinds.value.length
+      ? t('CALENDAR.RESOURCE_FIELDS.MISSING', {
+          kinds: missingKinds.value
+            .map(kind => t(RESOURCE_LABELS[kind]))
+            .join(', '),
+        })
+      : t('CALENDAR.RESOURCE_FIELDS.CHOOSE_ONE');
     return;
   }
 
@@ -147,7 +165,7 @@ const save = async () => {
     await calendarAPI.createAppointment({
       contact_id: Number(selectedContact.value.id),
       procedure_id: Number(procedureId.value),
-      resource_ids: [Number(alvo)],
+      resource_ids: resourceIds.value,
       starts_at: props.startsAt.toISOString(),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
@@ -240,23 +258,14 @@ const estilo = computed(() => {
       </option>
     </select>
 
-    <select
-      v-if="needsResourceChoice"
-      v-model="resourceId"
-      data-testid="calendar-quick-resource"
+    <CalendarResourceFields
+      v-if="procedureId"
+      v-model="resourceSelection"
       class="mt-2"
-      :class="RAEVO_SELECT_CLASS"
-      :aria-label="t('CALENDAR.QUICK.RESOURCE')"
-    >
-      <option value="">{{ t('CALENDAR.QUICK.RESOURCE') }}</option>
-      <option
-        v-for="resource in allowedResources"
-        :key="resource.id"
-        :value="String(resource.id)"
-      >
-        {{ resource.name }}
-      </option>
-    </select>
+      compact
+      :fields="resourceFields"
+      testid-prefix="calendar-quick-resource"
+    />
 
     <p v-if="error" class="mb-0 mt-2 text-xs text-n-ruby-11" role="alert">
       {{ error }}

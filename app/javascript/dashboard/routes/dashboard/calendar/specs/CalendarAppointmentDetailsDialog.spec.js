@@ -15,6 +15,7 @@ vi.mock('dashboard/api/calendar', () => ({
   default: {
     getAppointment: vi.fn(),
     getResources: vi.fn(),
+    getProcedures: vi.fn(),
     getAvailability: vi.fn(),
     rescheduleAppointment: vi.fn(),
     updateAppointment: vi.fn(),
@@ -51,8 +52,15 @@ const mountDialog = () =>
 describe('CalendarAppointmentDetailsDialog', () => {
   beforeEach(() => {
     CalendarAPI.getAppointment.mockResolvedValue({ data: appointment });
+    // A API devolve sempre o tipo: é por ele que cada recurso vai para o seu campo.
     CalendarAPI.getResources.mockResolvedValue({
-      data: [{ id: 3, name: 'Dra. Ana', active: true }],
+      data: [
+        { id: 3, name: 'Dra. Ana', resource_type: 'user', active: true },
+        { id: 5, name: 'Sala 1', resource_type: 'room', active: true },
+      ],
+    });
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [{ id: 4, name: 'Consulta', resource_ids: [] }],
     });
     CalendarAPI.getAvailability.mockResolvedValue({
       data: { slots: ['2026-08-10T13:00:00-03:00'] },
@@ -102,6 +110,48 @@ describe('CalendarAppointmentDetailsDialog', () => {
       appointment.id,
       expect.objectContaining({
         appointment: expect.objectContaining({ resource_ids: [3] }),
+      })
+    );
+  });
+
+  it('keeps the room when rescheduling an appointment with a professional and a room', async () => {
+    // Remarcar gravava só `resources[0]`: a sala caía em silêncio.
+    CalendarAPI.getAppointment.mockResolvedValue({
+      data: {
+        ...appointment,
+        resources: [
+          { id: 3, name: 'Dra. Ana' },
+          { id: 5, name: 'Sala 1' },
+        ],
+      },
+    });
+    const wrapper = mountDialog();
+    await wrapper.vm.open(appointment.id);
+    await flushPromises();
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.DETAIL.RESCHEDULE')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.getAvailability).toHaveBeenCalledWith(
+      expect.objectContaining({ resource_ids: [3, 5] })
+    );
+
+    await wrapper
+      .find('[data-testid="reschedule-available-slot"]')
+      .trigger('click');
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CALENDAR.DETAIL.SAVE_RESCHEDULE')
+      .trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.rescheduleAppointment).toHaveBeenCalledWith(
+      appointment.id,
+      expect.objectContaining({
+        appointment: expect.objectContaining({ resource_ids: [3, 5] }),
       })
     );
   });

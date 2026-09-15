@@ -173,16 +173,14 @@ describe('CalendarSettingsDialog', () => {
     await wrapper.vm.open();
     await flushPromises();
 
+    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
     await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
+      .find('[data-testid="calendar-add-resource-professional"]')
       .trigger('click');
+    await wrapper.find('[data-testid="calendar-resource-user"]').setValue('12');
     await wrapper
-      .find('[data-testid="calendar-add-resource"]')
-      .trigger('click');
-    await wrapper.find('select').setValue('user');
-    await wrapper.findAll('select')[1].setValue('12');
-    await wrapper.find('form').trigger('submit');
+      .find('[data-testid="calendar-resource-form"]')
+      .trigger('submit');
     await flushPromises();
 
     expect(CalendarAPI.createResource).toHaveBeenCalledWith({
@@ -573,12 +571,165 @@ describe('CalendarSettingsDialog', () => {
 
     await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
     await wrapper
-      .find('[data-testid="calendar-add-resource"]')
+      .find('[data-testid="calendar-add-resource-room"]')
       .trigger('click');
     expect(wrapper.html()).not.toContain('GENERAL.CANCEL');
     expect(
       wrapper.find('[data-testid="calendar-resource-cancel"]').text()
     ).toBe('CALENDAR.SETTINGS.CANCEL_EDIT');
+  });
+
+  describe('agendas separadas por tipo', () => {
+    const agendas = [
+      {
+        id: 1,
+        name: 'Dra. Ana',
+        resource_type: 'user',
+        user_id: 12,
+        active: true,
+      },
+      { id: 2, name: 'Sala 1', resource_type: 'room', active: true },
+      { id: 3, name: 'Laser CO2', resource_type: 'equipment', active: true },
+    ];
+
+    it('mostra profissionais, salas e equipamentos em secções próprias', async () => {
+      CalendarAPI.getResources.mockResolvedValue({ data: agendas });
+      const wrapper = mountDialog();
+      await wrapper.vm.open();
+      await flushPromises();
+      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+
+      const nomesEm = chave =>
+        wrapper
+          .find(`[data-testid="calendar-resource-section-${chave}"]`)
+          .findAll('[data-testid="calendar-resource-row"]')
+          .map(linha => linha.text());
+
+      expect(nomesEm('professional')).toEqual([
+        expect.stringContaining('Dra. Ana'),
+      ]);
+      expect(nomesEm('room')).toEqual([expect.stringContaining('Sala 1')]);
+      expect(nomesEm('equipment')).toEqual([
+        expect.stringContaining('Laser CO2'),
+      ]);
+      // Quem usa o CRM aparece com o nome da conta.
+      expect(nomesEm('professional')[0]).toContain(
+        'CALENDAR.SETTINGS.LINKED_TO_CRM_USER'
+      );
+      // Sem agendas antigas sem tipo, a secção «Outros» nem existe.
+      expect(
+        wrapper.find('[data-testid="calendar-resource-section-other"]').exists()
+      ).toBe(false);
+    });
+
+    it('mantém à vista as agendas antigas sem tipo, numa secção «Outros»', async () => {
+      CalendarAPI.getResources.mockResolvedValue({
+        data: [
+          {
+            id: 8,
+            name: 'Agenda antiga',
+            resource_type: 'generic',
+            active: true,
+          },
+        ],
+      });
+      const wrapper = mountDialog();
+      await wrapper.vm.open();
+      await flushPromises();
+      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+
+      expect(
+        wrapper.find('[data-testid="calendar-resource-section-other"]').text()
+      ).toContain('Agenda antiga');
+    });
+
+    it('cria um profissional que não usa o CRM, sem user_id inventado', async () => {
+      // Com o utilizador opcional, `Number('')` mandava `user_id: 0` e partia a
+      // chave estrangeira no servidor.
+      const wrapper = mountDialog();
+      await wrapper.vm.open();
+      await flushPromises();
+      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+
+      await wrapper
+        .find('[data-testid="calendar-add-resource-professional"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="calendar-resource-name"]')
+        .setValue('Dr. Bruno');
+      await wrapper
+        .find('[data-testid="calendar-resource-form"]')
+        .trigger('submit');
+      await flushPromises();
+
+      expect(CalendarAPI.createResource).toHaveBeenCalledWith({
+        resource: expect.objectContaining({
+          name: 'Dr. Bruno',
+          resource_type: 'user',
+          user_id: null,
+        }),
+      });
+    });
+
+    it('abre o formulário na secção onde se carregou, já com o tipo dela', async () => {
+      CalendarAPI.createResource.mockResolvedValue({
+        data: { id: 9, name: 'Sala 2', resource_type: 'room', active: true },
+      });
+      const wrapper = mountDialog();
+      await wrapper.vm.open();
+      await flushPromises();
+      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+
+      await wrapper
+        .find('[data-testid="calendar-add-resource-room"]')
+        .trigger('click');
+
+      const salas = wrapper.find(
+        '[data-testid="calendar-resource-section-room"]'
+      );
+      expect(
+        salas.find('[data-testid="calendar-resource-form"]').exists()
+      ).toBe(true);
+      // Uma sala não tem utilizador do CRM para escolher.
+      expect(
+        salas.find('[data-testid="calendar-resource-user"]').exists()
+      ).toBe(false);
+
+      await salas
+        .find('[data-testid="calendar-resource-name"]')
+        .setValue('Sala 2');
+      await salas
+        .find('[data-testid="calendar-resource-form"]')
+        .trigger('submit');
+      await flushPromises();
+
+      expect(CalendarAPI.createResource).toHaveBeenCalledWith({
+        resource: expect.objectContaining({
+          resource_type: 'room',
+          user_id: null,
+        }),
+      });
+    });
+
+    it('diz que falta o nome, junto do campo', async () => {
+      const wrapper = mountDialog();
+      await wrapper.vm.open();
+      await flushPromises();
+      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+
+      await wrapper
+        .find('[data-testid="calendar-add-resource-equipment"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="calendar-resource-form"]')
+        .trigger('submit');
+      await flushPromises();
+
+      expect(CalendarAPI.createResource).not.toHaveBeenCalled();
+      expect(
+        wrapper.find('[data-testid="calendar-resource-name-error"]').text()
+      ).toBe('CALENDAR.SETTINGS.VALIDATION.RESOURCE_NAME_REQUIRED');
+    });
   });
 
   it('agrupa as ações de cada agenda em ícones com nome acessível', async () => {

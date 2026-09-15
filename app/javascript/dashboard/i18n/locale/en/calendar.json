@@ -45,8 +45,6 @@
       "LOADING_OPTIONS": "Loading procedures and professionals...",
       "PROCEDURE": "Procedure",
       "SELECT_PROCEDURE": "Select a procedure",
-      "RESOURCE": "Professional or resource",
-      "SELECT_RESOURCE": "Select a professional or resource",
       "STARTS_AT": "Date and time",
       "CHECKING_AVAILABILITY": "Checking availability...",
       "AVAILABILITY_CONFLICT": "This resource already has an appointment at this time. Choose another time or resource.",
@@ -156,9 +154,6 @@
       "DURATION_VALUE": "{minutes} min",
       "RESOURCE_NAME": "Calendar name",
       "RESOURCE_TYPE": "Type",
-      "PROFESSIONAL": "Professional",
-      "SELECT_PROFESSIONAL": "Select professional",
-      "ADD_RESOURCE": "Add resource",
       "EDIT_RESOURCE": "Edit",
       "SAVE_RESOURCE": "Save resource",
       "ACTIVATE_RESOURCE": "Activate",
@@ -208,12 +203,6 @@
         "FRIDAY": "Friday",
         "SATURDAY": "Saturday"
       },
-      "RESOURCE_TYPES": {
-        "ROOM": "Room",
-        "EQUIPMENT": "Equipment",
-        "USER": "Professional",
-        "GENERIC": "Professional or other resource"
-      },
       "LOCATION_TYPES": {
         "IN_PERSON": "In person",
         "VIDEO": "Video",
@@ -236,7 +225,34 @@
         "BUFFER_RANGE": "Use a whole number between 0 and 120 minutes.",
         "MAX_SESSIONS_RANGE": "Use a whole number between 1 and 100.",
         "PUBLIC_SLUG_REQUIRED": "Give the public link an address using letters or numbers.",
-        "FIX_MARKED_FIELDS": "Fix the marked fields to save."
+        "FIX_MARKED_FIELDS": "Fix the marked fields to save.",
+        "RESOURCE_NAME_REQUIRED": "Give it a name."
+      },
+      "CRM_USER": "CRM user",
+      "CRM_USER_HINT": "Optional. Only if this person also uses the CRM.",
+      "NO_CRM_USER": "None",
+      "RESOURCE_TYPE_HINT": "Change it to move this calendar to another section.",
+      "LINKED_TO_CRM_USER": "Uses the CRM as {name}",
+      "SECTIONS": {
+        "PROFESSIONAL": {
+          "TITLE": "Professionals",
+          "ADD": "Add professional",
+          "EMPTY": "No professionals yet."
+        },
+        "ROOM": {
+          "TITLE": "Rooms",
+          "ADD": "Add room",
+          "EMPTY": "No rooms yet."
+        },
+        "EQUIPMENT": {
+          "TITLE": "Equipment",
+          "ADD": "Add equipment",
+          "EMPTY": "No equipment yet."
+        },
+        "OTHER": {
+          "TITLE": "Other",
+          "HELP": "Calendars without a type. Edit one to say whether it is a professional, a room or equipment."
+        }
       }
     },
     "DETAIL": {
@@ -244,7 +260,7 @@
       "LOADING": "Loading appointment...",
       "SAVE_ERROR": "Could not update the appointment.",
       "DATE_TIME": "Date and time",
-      "RESOURCE": "Professional or resource",
+      "RESOURCE": "Calendars",
       "STATUS_LABEL": "Status",
       "SOURCE_LABEL": "Source",
       "SOURCE_FEEGOW": "Feegow",
@@ -305,12 +321,26 @@
       "TITLE": "New appointment",
       "CONTACT": "Search patient",
       "PROCEDURE": "Procedure",
-      "RESOURCE": "Professional",
       "SEARCHING": "Searching...",
       "SAVE": "Save",
       "MORE_OPTIONS": "More options",
       "NO_RESOURCE": "No professional available for this procedure.",
       "ERROR": "Could not book. Please try again."
+    },
+    "RESOURCE_FIELDS": {
+      "PROFESSIONAL": "Professional",
+      "ROOM": "Room",
+      "EQUIPMENT": "Equipment",
+      "OTHER": "Other calendar",
+      "SELECT": "Select…",
+      "MISSING": "Still to choose: {kinds}.",
+      "CHOOSE_ONE": "Choose at least one calendar.",
+      "REQUIRED": {
+        "PROFESSIONAL": "Choose the professional.",
+        "ROOM": "Choose the room.",
+        "EQUIPMENT": "Choose the equipment.",
+        "OTHER": "Choose the calendar."
+      }
     }
   }
 }

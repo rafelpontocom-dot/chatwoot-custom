@@ -6,6 +6,8 @@ import { useRoute, useRouter } from 'vue-router';
 import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import CalendarResourceFields from './CalendarResourceFields.vue';
+import { useAppointmentResources } from './useAppointmentResources';
 
 const emit = defineEmits(['updated']);
 
@@ -21,11 +23,30 @@ const isSaving = ref(false);
 const error = ref('');
 const isRescheduling = ref(false);
 const rescheduleStartsAt = ref('');
-const rescheduleResourceId = ref('');
 const rescheduleScope = ref('this_occurrence');
 const resources = ref([]);
+const procedures = ref([]);
+const triedToSaveReschedule = ref(false);
 const rescheduleAvailabilitySlots = ref([]);
 const isLoadingRescheduleSlots = ref(false);
+
+// O procedimento completo, e não o resumo da consulta: é ele que diz que
+// recursos aceita, e daí que campos aparecem ao remarcar.
+const rescheduleProcedure = computed(() =>
+  procedures.value.find(
+    procedure => procedure.id === appointment.value?.procedure?.id
+  )
+);
+const {
+  selection: rescheduleSelection,
+  fields: rescheduleResourceFields,
+  resourceIds: rescheduleResourceIds,
+  isComplete: rescheduleResourcesComplete,
+  selectResourceIds,
+} = useAppointmentResources({
+  procedure: rescheduleProcedure,
+  resources,
+});
 
 const isActive = computed(
   () =>
@@ -77,7 +98,7 @@ const open = async appointmentId => {
   cancellationScope.value = 'this_occurrence';
   isRescheduling.value = false;
   rescheduleStartsAt.value = '';
-  rescheduleResourceId.value = '';
+  triedToSaveReschedule.value = false;
   rescheduleScope.value = 'this_occurrence';
   rescheduleAvailabilitySlots.value = [];
   isLoadingRescheduleSlots.value = false;
@@ -89,9 +110,6 @@ const open = async appointmentId => {
     const response = await CalendarAPI.getAppointment(appointmentId);
     appointment.value = response.data;
     rescheduleStartsAt.value = formatDateTimeInput(appointment.value.starts_at);
-    rescheduleResourceId.value = String(
-      appointment.value.resources[0]?.id || ''
-    );
   } catch (loadError) {
     error.value = getErrorMessage(loadError);
   } finally {
@@ -105,8 +123,17 @@ const openReschedule = async () => {
   isRescheduling.value = true;
   error.value = '';
   try {
-    const response = await CalendarAPI.getResources();
-    resources.value = (response.data || []).filter(resource => resource.active);
+    const [resourcesResponse, proceduresResponse] = await Promise.all([
+      CalendarAPI.getResources(),
+      CalendarAPI.getProcedures(),
+    ]);
+    resources.value = (resourcesResponse.data || []).filter(
+      resource => resource.active
+    );
+    procedures.value = proceduresResponse.data || [];
+    // Parte de todos os recursos que a consulta ocupa, um por tipo. Antes era
+    // só `resources[0]`, e uma consulta com profissional e sala perdia a sala.
+    selectResourceIds(appointment.value.resources.map(resource => resource.id));
   } catch (loadError) {
     error.value = getErrorMessage(loadError);
   }
@@ -122,7 +149,7 @@ async function loadRescheduleAvailabilitySlots() {
   if (
     !isRescheduling.value ||
     !appointment.value?.procedure?.id ||
-    !rescheduleResourceId.value ||
+    !rescheduleResourceIds.value.length ||
     !rescheduleSelectedDate.value
   ) {
     rescheduleAvailabilitySlots.value = [];
@@ -134,7 +161,7 @@ async function loadRescheduleAvailabilitySlots() {
     const response = await CalendarAPI.getAvailability({
       date: rescheduleSelectedDate.value,
       procedure_id: Number(appointment.value.procedure.id),
-      resource_id: Number(rescheduleResourceId.value),
+      resource_ids: rescheduleResourceIds.value,
     });
     rescheduleAvailabilitySlots.value = response.data?.slots || [];
   } catch {
@@ -155,15 +182,16 @@ const formatSlot = slot =>
   }).format(new Date(slot));
 
 watch(
-  [isRescheduling, rescheduleResourceId, rescheduleSelectedDate],
+  [isRescheduling, rescheduleResourceIds, rescheduleSelectedDate],
   loadRescheduleAvailabilitySlots
 );
 
 const saveReschedule = async () => {
+  triedToSaveReschedule.value = true;
   if (
     !appointment.value ||
     !rescheduleStartsAt.value ||
-    !rescheduleResourceId.value
+    !rescheduleResourcesComplete.value
   )
     return;
 
@@ -175,7 +203,7 @@ const saveReschedule = async () => {
       {
         appointment: {
           starts_at: new Date(rescheduleStartsAt.value).toISOString(),
-          resource_ids: [Number(rescheduleResourceId.value)],
+          resource_ids: rescheduleResourceIds.value,
           scope: rescheduleScope.value,
           lock_version: appointment.value.lock_version,
         },
@@ -409,23 +437,13 @@ defineExpose({ open, openForReschedule });
               </option>
             </select>
           </label>
-          <label class="grid gap-1.5">
-            <span class="text-sm font-medium text-n-slate-12">{{
-              t('CALENDAR.DETAIL.RESOURCE')
-            }}</span>
-            <select
-              v-model="rescheduleResourceId"
-              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            >
-              <option
-                v-for="resource in resources"
-                :key="resource.id"
-                :value="String(resource.id)"
-              >
-                {{ resource.name }}
-              </option>
-            </select>
-          </label>
+          <CalendarResourceFields
+            v-model="rescheduleSelection"
+            class="sm:col-span-2"
+            :fields="rescheduleResourceFields"
+            :show-errors="triedToSaveReschedule"
+            testid-prefix="reschedule-resource"
+          />
           <div class="grid gap-1.5">
             <span class="text-sm font-medium text-n-slate-12">{{
               t('CALENDAR.DETAIL.AVAILABLE_TIMES')
