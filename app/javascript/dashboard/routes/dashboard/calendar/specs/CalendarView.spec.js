@@ -69,6 +69,12 @@ const mountCalendar = () =>
   });
 
 describe('CalendarView', () => {
+  // Um teste que pare o relógio não o deixa parado para os seguintes, mesmo
+  // que falhe a meio.
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     CalendarAPI.getAppointments.mockResolvedValue({ data: [] });
     CalendarAPI.getResources.mockResolvedValue({ data: [] });
@@ -339,6 +345,13 @@ describe('CalendarView', () => {
   it('opens the anchored popover, not the dialog, when an appointment is clicked', async () => {
     // A queixa era o diálogo de 543 linhas a abrir por cima da agenda. Agora o
     // clique responde no sítio, e o diálogo fica atrás do ⋮.
+    //
+    // O relógio fica parado na semana da consulta. A agenda abre na semana de
+    // hoje; com a data da consulta fixa e o relógio a andar, o teste passou
+    // enquanto 31/08 estava na semana corrente e partiu sozinho em setembro.
+    // Só a data é falsa: timers falsos travariam o `flushPromises`.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-08-31T08:00:00.000Z'));
     CalendarAPI.getAppointments.mockResolvedValue({
       data: [
         {
