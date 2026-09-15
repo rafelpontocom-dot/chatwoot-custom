@@ -157,12 +157,13 @@ Rails.application.routes.draw do
                        controller: 'google_calendar_connections',
                        only: [:show, :destroy] do
                 post :authorization_url
-                post :retry
+                post :sync
               end
               resources :availability_rules,
                         controller: 'resource_availability_rules',
                         only: [:index, :create, :update, :destroy]
             end
+            resources :busy_blocks, only: [:index]
             resources :appointments, only: [:index, :show, :create, :update] do
               get :availability, on: :collection
               post :reschedule, on: :member

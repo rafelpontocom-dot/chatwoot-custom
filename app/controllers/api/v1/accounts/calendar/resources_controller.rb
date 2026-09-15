@@ -3,7 +3,8 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
 
   def index
     authorize KanbanCalendarResource, :index?
-    render json: policy_scope(KanbanCalendarResource).order(:name).map { |resource| resource_payload(resource) }
+    resources = policy_scope(KanbanCalendarResource).includes(:kanban_calendar_google_connection).order(:name)
+    render json: resources.map { |resource| resource_payload(resource) }
   end
 
   def show
@@ -68,7 +69,8 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
       timezone: resource.timezone,
       capacity: resource.capacity,
       settings: resource.settings,
-      active: resource.active
+      active: resource.active,
+      google_calendar_status: resource.kanban_calendar_google_connection&.status || 'disconnected'
     }
   end
 

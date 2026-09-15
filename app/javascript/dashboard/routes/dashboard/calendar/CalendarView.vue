@@ -28,6 +28,9 @@ const currentAccountId = useMapGetter('getCurrentAccountId');
 const selectedDate = ref(new Date());
 const view = ref('week');
 const appointments = ref([]);
+// Horários ocupados na agenda Google de quem ligou a sua agenda. Só o
+// intervalo: o título do compromisso nunca sai do Google.
+const busyBlocks = ref([]);
 const resources = ref([]);
 const selectedStatus = ref('all');
 const searchQuery = ref('');
@@ -270,18 +273,33 @@ const miniMonthLabel = computed(() =>
   }).format(selectedDate.value)
 );
 
+const loadBusyBlocks = async params => {
+  try {
+    const { data } = await calendarAPI.getBusyBlocks(params);
+    busyBlocks.value = data || [];
+  } catch {
+    // Sem os ocupados do Google a agenda continua útil; a marcação é recusada
+    // no servidor de qualquer forma.
+    busyBlocks.value = [];
+  }
+};
+
 const loadAppointments = async () => {
   isLoading.value = true;
   loadError.value = false;
   const { startsAt, endsAt } = visibleRange.value;
+  const periodo = {
+    starts_at: isoDate(startsAt),
+    ends_at: isoDate(endsAt),
+    resource_ids: hiddenResourceIds.value.length
+      ? visibleResourceIds.value
+      : undefined,
+  };
+  const ocupados = loadBusyBlocks(periodo);
 
   try {
     const { data } = await calendarAPI.getAppointments({
-      starts_at: isoDate(startsAt),
-      ends_at: isoDate(endsAt),
-      resource_ids: hiddenResourceIds.value.length
-        ? visibleResourceIds.value
-        : undefined,
+      ...periodo,
       status:
         selectedStatus.value && selectedStatus.value !== 'all'
           ? selectedStatus.value
@@ -293,6 +311,7 @@ const loadAppointments = async () => {
     appointments.value = [];
     loadError.value = true;
   } finally {
+    await ocupados;
     isLoading.value = false;
   }
 };
@@ -345,17 +364,55 @@ const minutesOfDay = date => date.getHours() * 60 + date.getMinutes();
  * coluna livre. Todas as consultas do mesmo bloco partilham a largura, para as
  * arestas ficarem alinhadas.
  */
+const inicioDoDia = day => {
+  const inicio = new Date(day);
+  inicio.setHours(0, 0, 0, 0);
+  return inicio;
+};
+
+/**
+ * O pedaço do compromisso do Google que cai neste dia, recortado às horas da
+ * grade. A grade não cresce por causa dele: o ginásio das 6h de alguém não
+ * deve empurrar a agenda da clínica para a madrugada.
+ */
+const busySliceForDay = (block, day) => {
+  if (block.all_day) return null;
+
+  const abertura = inicioDoDia(day);
+  abertura.setHours(hourSlots.value[0]);
+  const fecho = inicioDoDia(day);
+  fecho.setHours(hourSlots.value.at(-1) + 1);
+  const inicio = new Date(Math.max(new Date(block.starts_at), abertura));
+  const fim = new Date(Math.min(new Date(block.ends_at), fecho));
+  return fim > inicio ? { inicio, fim } : null;
+};
+
 const layoutForDay = day => {
-  const doDia = appointments.value
+  const consultas = appointments.value
     .filter(appointment => isSameDay(new Date(appointment.starts_at), day))
     .map(appointment => ({
-      appointment,
+      chave: `consulta-${appointment.id}`,
       inicio: minutesOfDay(new Date(appointment.starts_at)),
       fim:
         minutesOfDay(new Date(appointment.starts_at)) +
         durationOf(appointment, new Date(appointment.starts_at)).minutos,
-    }))
-    .sort((first, second) => first.inicio - second.inicio);
+    }));
+  // Os ocupados do Google disputam o espaço como uma consulta: sobrepostos,
+  // ficam lado a lado em vez de um tapar o outro.
+  const doGoogle = busyBlocks.value.flatMap(block => {
+    const fatia = busySliceForDay(block, day);
+    if (!fatia) return [];
+    return [
+      {
+        chave: `google-${block.id}`,
+        inicio: minutesOfDay(fatia.inicio),
+        fim: (fatia.fim - inicioDoDia(day)) / 60000,
+      },
+    ];
+  });
+  const doDia = [...consultas, ...doGoogle].sort(
+    (first, second) => first.inicio - second.inicio
+  );
 
   const posicoes = new Map();
   let bloco = [];
@@ -365,7 +422,7 @@ const layoutForDay = day => {
     if (!bloco.length) return;
     const colunas = Math.max(...bloco.map(item => item.coluna)) + 1;
     bloco.forEach(item =>
-      posicoes.set(item.appointment.id, { coluna: item.coluna, colunas })
+      posicoes.set(item.chave, { coluna: item.coluna, colunas })
     );
     bloco = [];
     fimDoBloco = -1;
@@ -410,7 +467,8 @@ const appointmentsForSlot = (day, hour) => {
     .map(appointment => {
       const startsAt = new Date(appointment.starts_at);
       const { minutos: duracao, conhecida } = durationOf(appointment, startsAt);
-      const { coluna = 0, colunas = 1 } = posicoes.get(appointment.id) || {};
+      const { coluna = 0, colunas = 1 } =
+        posicoes.get(`consulta-${appointment.id}`) || {};
       const largura = 100 / colunas;
 
       return {
@@ -454,6 +512,64 @@ const formatTime = value =>
     minute: '2-digit',
   }).format(new Date(value));
 
+const resourceName = resourceId =>
+  resources.value.find(resource => resource.id === resourceId)?.name || '';
+
+const busyBlocksForSlot = (day, hour) => {
+  const posicoes = layoutForDay(day);
+
+  return busyBlocks.value.flatMap(block => {
+    const fatia = busySliceForDay(block, day);
+    if (!fatia || fatia.inicio.getHours() !== hour) return [];
+
+    const duracao = (fatia.fim - fatia.inicio) / 60000;
+    const { coluna = 0, colunas = 1 } =
+      posicoes.get(`google-${block.id}`) || {};
+    const largura = 100 / colunas;
+    const horario = `${formatTime(fatia.inicio)}–${formatTime(fatia.fim)}`;
+
+    return [
+      {
+        block,
+        horario,
+        compacto: duracao < 45,
+        estilo: {
+          top: `${(fatia.inicio.getMinutes() / 60) * 100}%`,
+          height: `${(duracao / 60) * 100}%`,
+          minHeight: MIN_APPOINTMENT_HEIGHT,
+          left: `${coluna * largura}%`,
+          width: `${largura}%`,
+        },
+      },
+    ];
+  });
+};
+
+const busyBlocksOverlappingDay = day => {
+  const inicio = inicioDoDia(day);
+  const fim = new Date(inicio);
+  fim.setDate(fim.getDate() + 1);
+  return busyBlocks.value.filter(
+    block => new Date(block.starts_at) < fim && new Date(block.ends_at) > inicio
+  );
+};
+
+// Férias e congressos: o dia inteiro fica no cabeçalho, como no Google, em vez
+// de uma coluna cinzenta a tapar a grade toda.
+const allDayBusyForDay = day =>
+  busyBlocksOverlappingDay(day).filter(block => block.all_day);
+
+const allDayBusyLabel = day =>
+  t('CALENDAR.BUSY.ALL_DAY_ARIA', {
+    resources: [
+      ...new Set(
+        allDayBusyForDay(day).map(block => resourceName(block.resource_id))
+      ),
+    ]
+      .filter(Boolean)
+      .join(', '),
+  });
+
 const statusLabel = status =>
   ({
     scheduled: t('CALENDAR.DETAIL.STATUS.SCHEDULED'),
@@ -482,6 +598,41 @@ const isCurrentMonth = day => day.getMonth() === selectedDate.value.getMonth();
 
 const goToToday = () => {
   selectedDate.value = new Date();
+};
+
+// Volta do ecrã de permissões do Google: diz o que aconteceu, que antes a agenda
+// abria como se nada fosse e uma ligação falhada passava despercebida.
+const googleCalendarNotice = computed(() => {
+  const avisos = {
+    connected: {
+      text: t('CALENDAR.GOOGLE_NOTICE.CONNECTED'),
+      tone: 'bg-n-teal-3 text-n-teal-11',
+      icon: 'i-lucide-calendar-check',
+      role: 'status',
+    },
+    permission_denied: {
+      text: t('CALENDAR.GOOGLE_NOTICE.PERMISSION_DENIED'),
+      tone: 'bg-n-amber-3 text-n-amber-11',
+      icon: 'i-lucide-alert-triangle',
+      role: 'alert',
+    },
+    error: {
+      text: t('CALENDAR.GOOGLE_NOTICE.ERROR'),
+      tone: 'bg-n-ruby-3 text-n-ruby-11',
+      icon: 'i-lucide-alert-circle',
+      role: 'alert',
+    },
+  };
+  return avisos[route.query?.google_calendar] || null;
+});
+
+const dismissGoogleCalendarNotice = () => {
+  const query = Object.fromEntries(
+    Object.entries(route.query || {}).filter(
+      ([key]) => key !== 'google_calendar'
+    )
+  );
+  router.replace({ query });
 };
 
 const openBooking = () => bookingDialog.value?.open();
@@ -603,11 +754,17 @@ watch(
 );
 watch(searchQuery, debouncedLoadAppointments);
 watch(() => route.query?.appointmentId, openRequestedAppointment);
+// A primeira importação do Google corre em segundo plano logo a seguir a ligar.
+const GOOGLE_FIRST_IMPORT_DELAY = 5000;
+
 onMounted(() => {
   loadAppointments();
   loadResources();
   loadProcedures();
   openRequestedAppointment(route.query?.appointmentId);
+  if (route.query?.google_calendar === 'connected') {
+    setTimeout(loadAppointments, GOOGLE_FIRST_IMPORT_DELAY);
+  }
 });
 </script>
 
@@ -713,6 +870,31 @@ onMounted(() => {
         <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
       </button>
     </header>
+
+    <div
+      v-if="googleCalendarNotice"
+      data-testid="calendar-google-notice"
+      :role="googleCalendarNotice.role"
+      class="mx-4 mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
+      :class="googleCalendarNotice.tone"
+    >
+      <i
+        class="mt-0.5 size-4 shrink-0"
+        :class="googleCalendarNotice.icon"
+        aria-hidden="true"
+      />
+      <p class="mb-0 flex-1">{{ googleCalendarNotice.text }}</p>
+      <button
+        type="button"
+        data-testid="calendar-google-notice-dismiss"
+        class="flex p-0 size-6 shrink-0 items-center justify-center rounded-full outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        :aria-label="t('CALENDAR.GOOGLE_NOTICE.DISMISS')"
+        :title="t('CALENDAR.GOOGLE_NOTICE.DISMISS')"
+        @click="dismissGoogleCalendarNotice"
+      >
+        <i class="i-lucide-x size-4" aria-hidden="true" />
+      </button>
+    </div>
 
     <div class="flex min-h-0 flex-1">
       <!-- Lateral do Google: mini-calendário e as agendas em caixas de seleção -->
@@ -824,6 +1006,25 @@ onMounted(() => {
             <span class="text-xs font-medium text-n-slate-11">
               {{ formatDay(day) }}
             </span>
+            <!--
+              Uma etiqueta por dia, numa linha: o cabeçalho tem altura fixa, e o
+              texto inteiro quebrado em três linhas vazava para baixo da grade.
+              O que não cabe vai no título e no rótulo acessível.
+            -->
+            <span
+              v-if="allDayBusyForDay(day).length"
+              data-testid="calendar-busy-all-day"
+              role="note"
+              class="mt-1 flex w-fit max-w-full items-center gap-1 whitespace-nowrap rounded border border-dashed border-n-slate-8 bg-n-slate-2 px-1.5 py-px text-micro text-n-slate-11"
+              :title="allDayBusyLabel(day)"
+              :aria-label="allDayBusyLabel(day)"
+            >
+              <i
+                class="i-lucide-calendar-x size-3 shrink-0"
+                aria-hidden="true"
+              />
+              {{ t('CALENDAR.BUSY.ALL_DAY_SHORT') }}
+            </span>
           </div>
           <template v-for="hour in hourSlots" :key="hour">
             <div
@@ -919,6 +1120,48 @@ onMounted(() => {
                   </span>
                 </span>
               </button>
+              <div
+                v-for="{
+                  block,
+                  estilo,
+                  compacto,
+                  horario,
+                } in busyBlocksForSlot(day, hour)"
+                :key="`google-${block.id}`"
+                data-testid="calendar-busy-block"
+                role="note"
+                :aria-label="
+                  t('CALENDAR.BUSY.ARIA', {
+                    time: horario,
+                    resource: resourceName(block.resource_id),
+                  })
+                "
+                :title="t('CALENDAR.BUSY.HINT')"
+                class="absolute z-10 flex cursor-not-allowed flex-col overflow-hidden rounded-md border border-dashed border-n-slate-8 bg-n-slate-2 px-2 py-1 text-left"
+                :style="estilo"
+              >
+                <span
+                  class="flex items-center gap-1 truncate text-xs font-semibold text-n-slate-11"
+                >
+                  <i
+                    class="i-lucide-calendar-x size-3 shrink-0"
+                    aria-hidden="true"
+                  />
+                  {{ t('CALENDAR.BUSY.LABEL') }}
+                </span>
+                <span
+                  v-if="!compacto"
+                  class="block truncate text-xs text-n-slate-11"
+                >
+                  {{ horario }}
+                </span>
+                <span
+                  v-if="!compacto && resourceName(block.resource_id)"
+                  class="block truncate text-micro text-n-slate-10"
+                >
+                  {{ resourceName(block.resource_id) }}
+                </span>
+              </div>
             </div>
           </template>
         </div>
@@ -951,6 +1194,24 @@ onMounted(() => {
               {{ formatTime(appointment.starts_at) }}
               {{ appointment.contact.name }}
             </button>
+            <span
+              v-for="block in busyBlocksOverlappingDay(day)"
+              :key="`google-${block.id}`"
+              data-testid="calendar-month-busy"
+              class="mb-1 flex items-center gap-1 rounded border border-dashed border-n-slate-8 bg-n-slate-2 px-1.5 py-0.5 text-xs text-n-slate-11"
+            >
+              <i
+                class="i-lucide-calendar-x size-3 shrink-0"
+                aria-hidden="true"
+              />
+              <span class="min-w-0 truncate">
+                {{
+                  block.all_day
+                    ? t('CALENDAR.BUSY.ALL_DAY')
+                    : `${formatTime(block.starts_at)} ${t('CALENDAR.BUSY.LABEL')}`
+                }}
+              </span>
+            </span>
           </div>
         </div>
 
@@ -980,7 +1241,7 @@ onMounted(() => {
           </div>
         </div>
         <div
-          v-else-if="appointments.length === 0"
+          v-else-if="appointments.length === 0 && busyBlocks.length === 0"
           class="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
           <div

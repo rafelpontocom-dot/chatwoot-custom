@@ -161,13 +161,21 @@
       "NO_RESOURCES": "Nenhuma agenda cadastrada.",
       "GOOGLE_CALENDAR": {
         "TITLE": "Google Agenda",
-        "HELP": "Exporte os agendamentos desta agenda para um calendário Google. O RAEVO continua sendo a fonte de verdade.",
+        "HELP": "As consultas desta agenda vão para a Google Agenda, e os compromissos do Google bloqueiam estes horários aqui.",
         "LOADING": "Verificando conexão...",
         "CONNECTED": "Conectado",
         "DISCONNECTED": "Não conectado",
         "CONNECT": "Conectar Google Agenda",
-        "RETRY": "Tentar novamente",
-        "DISCONNECT": "Desconectar"
+        "DISCONNECT": "Desconectar",
+        "STATUS_ERROR": "Com erro",
+        "SYNC_NOW": "Sincronizar agora",
+        "SYNCING": "Sincronizando...",
+        "LAST_IMPORT": "Compromissos do Google trazidos em {time}",
+        "NEVER_IMPORTED": "Ainda não trouxe compromissos do Google",
+        "LAST_EXPORT": "Última consulta enviada ao Google em {time}",
+        "MISSING_PERMISSION": "Falta a permissão da agenda. Desconecte, conecte de novo e marque a caixa da agenda na tela do Google.",
+        "ROW_CONNECTED": "Google",
+        "ROW_ERROR": "Google com erro"
       },
       "AVAILABILITY": {
         "OPEN": "Horários",
@@ -341,6 +349,20 @@
         "EQUIPMENT": "Escolha o equipamento.",
         "OTHER": "Escolha a agenda."
       }
+    },
+    "BUSY": {
+      "LABEL": "Ocupado no Google",
+      "ALL_DAY": "Dia ocupado no Google",
+      "ARIA": "Ocupado no Google Agenda, {time}, {resource}",
+      "HINT": "Este horário está ocupado na Google Agenda ligada a esta agenda. Altere no Google.",
+      "ALL_DAY_SHORT": "Ocupado",
+      "ALL_DAY_ARIA": "Dia ocupado na Google Agenda: {resources}"
+    },
+    "GOOGLE_NOTICE": {
+      "CONNECTED": "Google Agenda conectada. Os compromissos do Google aparecem aqui como ocupado em instantes, e as novas consultas vão para o Google.",
+      "PERMISSION_DENIED": "O Google não liberou o acesso à agenda. Conecte de novo e marque a caixa que permite ao Raevo ver e editar os eventos da agenda.",
+      "ERROR": "Não foi possível conectar a Google Agenda. Tente de novo em Configurações › Agendas.",
+      "DISMISS": "Fechar aviso"
     }
   }
 }

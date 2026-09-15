@@ -28,13 +28,11 @@ class KanbanCalendar::GoogleCalendarOauthService
     )
   end
 
-  def self.connect!(code:, state:)
-    new(resource: resource_from_state!(state)).connect!(code)
-  end
-
   def connect!(code)
     token = oauth_client.auth_code.get_token(code, redirect_uri: callback_url)
     attributes = token.to_hash.with_indifferent_access
+    ensure_calendar_permission!(attributes[:scope])
+
     connection = @resource.kanban_calendar_google_connection || @resource.build_kanban_calendar_google_connection(account: @resource.account)
     connection.update!(
       access_token: attributes.fetch(:access_token),
@@ -44,6 +42,7 @@ class KanbanCalendar::GoogleCalendarOauthService
       last_error: nil
     )
     KanbanCalendar::BackfillGoogleCalendarConnectionJob.perform_later(connection.id)
+    KanbanCalendar::ImportGoogleCalendarEventsJob.perform_later(connection.id)
     connection
   end
 
@@ -63,6 +62,12 @@ class KanbanCalendar::GoogleCalendarOauthService
   end
 
   private
+
+  def ensure_calendar_permission!(granted_scopes)
+    return if granted_scopes.to_s.split.include?(SCOPE)
+
+    raise KanbanCalendar::GoogleCalendarPermissionError, 'Google Calendar permission was not granted'
+  end
 
   def oauth_client
     @oauth_client ||= OAuth2::Client.new(

@@ -6,6 +6,7 @@
 #  access_token                :string
 #  expires_at                  :datetime
 #  last_error                  :text
+#  last_imported_at            :datetime
 #  last_synced_at              :datetime
 #  refresh_token               :string
 #  status                      :string           default("disconnected"), not null
@@ -30,6 +31,7 @@ class KanbanCalendarGoogleConnection < ApplicationRecord
 
   belongs_to :account
   belongs_to :kanban_calendar_resource
+  has_many :kanban_calendar_external_busy_blocks, dependent: :destroy
 
   encrypts :access_token if Chatwoot.encryption_configured?
   encrypts :refresh_token if Chatwoot.encryption_configured?

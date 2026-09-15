@@ -18,17 +18,40 @@ class KanbanCalendar::GoogleCalendarClient
     request(:patch, "#{events_path}/#{CGI.escape(event_id)}", { status: 'cancelled' })
   end
 
+  # Eventos da janela já expandidos (`singleEvents`): uma série semanal vem como
+  # uma ocorrência por semana, cada uma com o seu id, que é o que a agenda precisa.
+  def list_events(time_min:, time_max:)
+    items = []
+    time_zone = nil
+    page_token = nil
+
+    loop do
+      body = JSON.parse(request(:get, events_path, nil, params: list_params(time_min, time_max, page_token)).body)
+      items.concat(body.fetch('items', []))
+      time_zone ||= body['timeZone']
+      page_token = body['nextPageToken']
+      break if page_token.blank?
+    end
+
+    { items: items, time_zone: time_zone }
+  end
+
   private
 
   def events_path
     "calendars/#{CGI.escape(@connection.calendar_id)}/events"
   end
 
-  def request(method, path, payload)
+  def list_params(time_min, time_max, page_token)
+    { singleEvents: true, timeMin: time_min.iso8601, timeMax: time_max.iso8601, maxResults: 2500, pageToken: page_token }.compact
+  end
+
+  def request(method, path, payload, params: {})
     response = Faraday.public_send(method, "#{API_URL}/#{path}") do |request|
+      request.params.update(params)
       request.headers['Authorization'] = "Bearer #{access_token}"
       request.headers['Content-Type'] = 'application/json'
-      request.body = payload.to_json
+      request.body = payload.to_json if payload
     end
     return response if response.success?
 

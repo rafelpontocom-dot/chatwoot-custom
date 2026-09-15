@@ -49,6 +49,27 @@ RSpec.describe KanbanCalendar::AvailabilitySlotsQuery do
       .to eq(['09:10', '09:25', '09:40', '09:55'])
   end
 
+  it 'omits starts that overlap a busy time imported from Google Calendar' do
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window',
+      weekday: date.wday,
+      starts_at_local: '09:00',
+      ends_at_local: '11:00'
+    )
+    connection = KanbanCalendarGoogleConnection.create!(
+      account: account, kanban_calendar_resource: resource, status: 'connected',
+      access_token: 'token', refresh_token: 'refresh', expires_at: 1.hour.from_now
+    )
+    KanbanCalendarExternalBusyBlock.create!(
+      account: account, kanban_calendar_resource: resource, kanban_calendar_google_connection: connection,
+      external_event_id: 'dentista', starts_at: resource_timezone.local(2026, 8, 10, 9, 30), ends_at: resource_timezone.local(2026, 8, 10, 10, 0)
+    )
+
+    slots = described_class.new(resource: resource, procedure: procedure, date: date).call
+
+    expect(slots.map { |slot| slot.in_time_zone(resource.timezone).strftime('%H:%M') }).to eq(['10:00'])
+  end
+
   it 'omits starts occupied by an active appointment' do
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window',

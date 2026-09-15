@@ -15,26 +15,34 @@ class Api::V1::Accounts::Calendar::GoogleCalendarConnectionsController < Api::V1
 
   def destroy
     authorize @calendar_resource, :configure?
-    @calendar_resource.kanban_calendar_google_connection&.update!(
+    connection = @calendar_resource.kanban_calendar_google_connection
+    connection&.update!(
       access_token: nil,
       refresh_token: nil,
       expires_at: nil,
       status: 'disconnected',
       last_error: nil
     )
+    # Desligada a agenda, os compromissos do Google deixam de travar horários.
+    connection&.kanban_calendar_external_busy_blocks&.delete_all
     head :no_content
   end
 
-  def retry
+  # «Sincronizar agora»: importa já, à espera, para a resposta dizer se o Google
+  # aceitou — é o que permite a quem configura ver o motivo de uma falha.
+  def sync
     authorize @calendar_resource, :configure?
     connection = @calendar_resource.kanban_calendar_google_connection
-    unless connection&.status == 'error'
-      return render json: { message: 'Google Calendar does not have a recoverable error' }, status: :unprocessable_entity
-    end
+    return render json: { message: 'Google Calendar is not connected' }, status: :unprocessable_entity if connection&.access_token.blank?
 
     connection.update!(status: 'connected', last_error: nil)
+    KanbanCalendar::GoogleCalendarImportService.new(connection: connection).perform!
+    connection.reload
     KanbanCalendar::BackfillGoogleCalendarConnectionJob.perform_later(connection.id)
     render json: connection_payload
+  rescue KanbanCalendar::GoogleCalendarApiError
+    connection.reload
+    render json: connection_payload, status: :unprocessable_entity
   end
 
   private
@@ -51,7 +59,8 @@ class Api::V1::Accounts::Calendar::GoogleCalendarConnectionsController < Api::V1
       calendar_id: connection&.calendar_id,
       status: connection&.status || 'disconnected',
       last_error: connection&.last_error,
-      last_synced_at: connection&.last_synced_at
+      last_synced_at: connection&.last_synced_at,
+      last_imported_at: connection&.last_imported_at
     }
   end
 end

@@ -11,15 +11,18 @@ vi.mock('vue-i18n', () => ({
 }));
 
 const empurraRota = vi.fn();
+const trocaRota = vi.fn();
+const rota = vi.hoisted(() => ({ query: {} }));
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: {} }),
-  useRouter: () => ({ push: empurraRota, replace: vi.fn() }),
+  useRoute: () => rota,
+  useRouter: () => ({ push: empurraRota, replace: trocaRota }),
 }));
 
 vi.mock('dashboard/api/calendar', () => ({
   default: {
     getAppointments: vi.fn(),
+    getBusyBlocks: vi.fn(),
     getResources: vi.fn(),
     getProcedures: vi.fn(),
     createAppointment: vi.fn(),
@@ -76,7 +79,9 @@ describe('CalendarView', () => {
   });
 
   beforeEach(() => {
+    rota.query = {};
     CalendarAPI.getAppointments.mockResolvedValue({ data: [] });
+    CalendarAPI.getBusyBlocks.mockResolvedValue({ data: [] });
     CalendarAPI.getResources.mockResolvedValue({ data: [] });
   });
 
@@ -566,5 +571,110 @@ describe('CalendarView', () => {
     expect(ultima).toBeGreaterThanOrEqual(
       new Date('2026-08-31T19:00:00.000Z').getHours() - 1
     );
+  });
+
+  describe('compromissos da agenda Google', () => {
+    const quartaAs = (hora, minuto = 0) =>
+      new Date(2026, 8, 16, hora, minuto).toISOString();
+    const bloqueio = (id, inicio, fim, extra = {}) => ({
+      id,
+      resource_id: 3,
+      starts_at: inicio,
+      ends_at: fim,
+      all_day: false,
+      source: 'google_calendar',
+      ...extra,
+    });
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 8, 16, 9, 0));
+      CalendarAPI.getResources.mockResolvedValue({
+        data: [{ id: 3, name: 'Dra. Ana', active: true }],
+      });
+    });
+
+    it('pede os horários ocupados do mesmo período e os desenha como ocupado', async () => {
+      CalendarAPI.getBusyBlocks.mockResolvedValue({
+        data: [bloqueio(40, quartaAs(10), quartaAs(11, 30))],
+      });
+
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const [pedido] = CalendarAPI.getBusyBlocks.mock.calls.at(-1);
+      const [pedidoConsultas] = CalendarAPI.getAppointments.mock.calls.at(-1);
+      expect(pedido.starts_at).toBe(pedidoConsultas.starts_at);
+      expect(pedido.ends_at).toBe(pedidoConsultas.ends_at);
+
+      const bloco = wrapper.find('[data-testid="calendar-busy-block"]');
+      expect(bloco.text()).toContain('CALENDAR.BUSY.LABEL');
+      expect(bloco.text()).toContain('Dra. Ana');
+      // Não é um botão: não se abre nem se arrasta o que é do Google.
+      expect(bloco.element.tagName).not.toBe('BUTTON');
+    });
+
+    it('divide a largura com a consulta com que se sobrepõe', async () => {
+      CalendarAPI.getAppointments.mockResolvedValue({
+        data: [consulta(1, quartaAs(10), quartaAs(11))],
+      });
+      CalendarAPI.getBusyBlocks.mockResolvedValue({
+        data: [bloqueio(40, quartaAs(10, 30), quartaAs(11, 30))],
+      });
+
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const dia = new Date(2026, 8, 16);
+      const [daConsulta] = wrapper.vm.appointmentsForSlot(dia, 10);
+      const [doGoogle] = wrapper.vm.busyBlocksForSlot(dia, 10);
+      expect(daConsulta.estilo).toMatchObject({ width: '50%', left: '0%' });
+      expect(doGoogle.estilo).toMatchObject({
+        width: '50%',
+        left: '50%',
+        top: '50%',
+      });
+    });
+
+    it('põe o dia inteiro ocupado no cabeçalho do dia, não na grade', async () => {
+      CalendarAPI.getBusyBlocks.mockResolvedValue({
+        data: [
+          bloqueio(41, quartaAs(0), new Date(2026, 8, 17).toISOString(), {
+            all_day: true,
+          }),
+        ],
+      });
+
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="calendar-busy-block"]').exists()).toBe(
+        false
+      );
+      const colunas = wrapper.findAll('[data-testid="calendar-day-column"]');
+      const quarta = colunas.find(coluna =>
+        coluna.find('[data-testid="calendar-busy-all-day"]').exists()
+      );
+      const etiqueta = quarta.find('[data-testid="calendar-busy-all-day"]');
+      expect(etiqueta.text()).toContain('CALENDAR.BUSY.ALL_DAY_SHORT');
+      expect(etiqueta.attributes('aria-label')).toBe(
+        'CALENDAR.BUSY.ALL_DAY_ARIA'
+      );
+    });
+  });
+
+  it('avisa, ao voltar do Google, que a permissão da agenda não foi dada', async () => {
+    rota.query = { google_calendar: 'permission_denied' };
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    const aviso = wrapper.find('[data-testid="calendar-google-notice"]');
+    expect(aviso.text()).toContain('CALENDAR.GOOGLE_NOTICE.PERMISSION_DENIED');
+
+    await aviso
+      .find('[data-testid="calendar-google-notice-dismiss"]')
+      .trigger('click');
+    expect(trocaRota).toHaveBeenCalledWith({ query: {} });
   });
 });

@@ -55,43 +55,60 @@ RSpec.describe 'Calendar Google connections API', type: :request do
     )
   end
 
-  it 'reprocesses future exports after a recoverable Google failure' do
+  it 'imports the Google busy times now and reports the time of the import' do
     connection = KanbanCalendarGoogleConnection.create!(
-      account: account,
-      kanban_calendar_resource: resource,
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
-      expires_at: 1.hour.from_now,
-      status: 'error',
-      last_error: 'Google timeout'
+      account: account, kanban_calendar_resource: resource, access_token: 'access-token',
+      refresh_token: 'refresh-token', expires_at: 1.hour.from_now, status: 'error', last_error: 'Google timeout'
     )
+    import = instance_double(KanbanCalendar::GoogleCalendarImportService)
+    allow(import).to receive(:perform!) { connection.update!(last_imported_at: Time.current) }
+    allow(KanbanCalendar::GoogleCalendarImportService).to receive(:new).with(connection: connection).and_return(import)
     allow(KanbanCalendar::BackfillGoogleCalendarConnectionJob).to receive(:perform_later)
 
-    post "/api/v1/accounts/#{account.id}/calendar/resources/#{resource.id}/google_calendar_connection/retry",
+    post "/api/v1/accounts/#{account.id}/calendar/resources/#{resource.id}/google_calendar_connection/sync",
          headers: administrator.create_new_auth_token,
          as: :json
 
     expect(response).to have_http_status(:success)
-    expect(connection.reload).to have_attributes(status: 'connected', last_error: nil)
+    expect(response.parsed_body).to include('connected' => true, 'last_error' => nil)
+    expect(response.parsed_body['last_imported_at']).to be_present
     expect(KanbanCalendar::BackfillGoogleCalendarConnectionJob).to have_received(:perform_later).with(connection.id)
   end
 
-  it 'does not retry an agenda that is not in an error state' do
-    KanbanCalendarGoogleConnection.create!(
-      account: account,
-      kanban_calendar_resource: resource,
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
-      expires_at: 1.hour.from_now,
-      status: 'connected'
+  it 'answers with the Google message when the import fails, so the settings can show why' do
+    connection = KanbanCalendarGoogleConnection.create!(
+      account: account, kanban_calendar_resource: resource, access_token: 'access-token',
+      refresh_token: 'refresh-token', expires_at: 1.hour.from_now, status: 'connected'
     )
-    allow(KanbanCalendar::BackfillGoogleCalendarConnectionJob).to receive(:perform_later)
+    import = instance_double(KanbanCalendar::GoogleCalendarImportService)
+    allow(import).to receive(:perform!) do
+      connection.update!(status: 'error', last_error: 'Request had insufficient authentication scopes.')
+      raise KanbanCalendar::GoogleCalendarApiError, 'Request had insufficient authentication scopes.'
+    end
+    allow(KanbanCalendar::GoogleCalendarImportService).to receive(:new).and_return(import)
 
-    post "/api/v1/accounts/#{account.id}/calendar/resources/#{resource.id}/google_calendar_connection/retry",
+    post "/api/v1/accounts/#{account.id}/calendar/resources/#{resource.id}/google_calendar_connection/sync",
          headers: administrator.create_new_auth_token,
          as: :json
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(KanbanCalendar::BackfillGoogleCalendarConnectionJob).not_to have_received(:perform_later)
+    expect(response.parsed_body).to include('status' => 'error', 'last_error' => 'Request had insufficient authentication scopes.')
+  end
+
+  it 'stops blocking the agenda with Google busy times after disconnecting' do
+    connection = KanbanCalendarGoogleConnection.create!(
+      account: account, kanban_calendar_resource: resource, access_token: 'access-token',
+      refresh_token: 'refresh-token', expires_at: 1.hour.from_now, status: 'connected'
+    )
+    KanbanCalendarExternalBusyBlock.create!(
+      account: account, kanban_calendar_resource: resource, kanban_calendar_google_connection: connection,
+      external_event_id: 'dentista', starts_at: 1.day.from_now, ends_at: 1.day.from_now + 1.hour
+    )
+
+    delete "/api/v1/accounts/#{account.id}/calendar/resources/#{resource.id}/google_calendar_connection",
+           headers: administrator.create_new_auth_token,
+           as: :json
+
+    expect(resource.kanban_calendar_external_busy_blocks).to be_empty
   end
 end

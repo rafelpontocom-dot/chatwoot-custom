@@ -1,0 +1,2 @@
+class KanbanCalendarExternalBusyBlockPolicy < KanbanCalendarPolicy
+end

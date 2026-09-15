@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_15_120000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1517,7 +1517,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
     t.datetime "updated_at", null: false
     t.index ["kanban_calendar_appointment_id", "kanban_calendar_resource_id"], name: "index_calendar_appointment_resources_on_appointment_resource", unique: true
     t.index ["kanban_calendar_resource_id", "starts_at", "ends_at"], name: "index_calendar_appointment_resources_on_resource_and_range"
-    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY ((ARRAY['scheduled'::character varying, 'confirmed'::character varying, 'checked_in'::character varying])::text[])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
+    t.exclusion_constraint "kanban_calendar_resource_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "(appointment_status)::text = ANY (ARRAY[('scheduled'::character varying)::text, ('confirmed'::character varying)::text, ('checked_in'::character varying)::text])", using: :gist, name: "exclude_calendar_resource_appointment_overlaps"
   end
 
   create_table "kanban_calendar_appointment_series", force: :cascade do |t|
@@ -1638,6 +1638,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
     t.index ["public_token"], name: "index_kanban_calendar_booking_pages_on_public_token", unique: true
   end
 
+  create_table "kanban_calendar_external_busy_blocks", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_calendar_resource_id", null: false
+    t.bigint "kanban_calendar_google_connection_id", null: false
+    t.string "external_event_id", null: false
+    t.datetime "starts_at", null: false
+    t.datetime "ends_at", null: false
+    t.boolean "all_day", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_calendar_external_busy_blocks_on_account_id"
+    t.index ["kanban_calendar_google_connection_id", "external_event_id"], name: "idx_calendar_busy_blocks_on_connection_event", unique: true
+    t.index ["kanban_calendar_resource_id", "starts_at", "ends_at"], name: "idx_calendar_busy_blocks_on_resource_range"
+  end
+
   create_table "kanban_calendar_google_connections", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "kanban_calendar_resource_id", null: false
@@ -1650,6 +1665,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
     t.datetime "last_synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "last_imported_at"
     t.index ["account_id"], name: "index_kanban_calendar_google_connections_on_account_id"
     t.index ["kanban_calendar_resource_id"], name: "idx_on_kanban_calendar_resource_id_82d8f650ee", unique: true
   end
@@ -2469,6 +2485,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_09_120000) do
   add_foreign_key "kanban_calendar_booking_pages", "inboxes"
   add_foreign_key "kanban_calendar_booking_pages", "kanban_boards"
   add_foreign_key "kanban_calendar_booking_pages", "kanban_stages"
+  add_foreign_key "kanban_calendar_external_busy_blocks", "accounts"
+  add_foreign_key "kanban_calendar_external_busy_blocks", "kanban_calendar_google_connections"
+  add_foreign_key "kanban_calendar_external_busy_blocks", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_google_connections", "accounts"
   add_foreign_key "kanban_calendar_google_connections", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_procedures"

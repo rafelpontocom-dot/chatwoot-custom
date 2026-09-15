@@ -161,13 +161,21 @@
       "NO_RESOURCES": "No calendars registered.",
       "GOOGLE_CALENDAR": {
         "TITLE": "Google Calendar",
-        "HELP": "Export this calendar's appointments to Google Calendar. RAEVO remains the source of truth.",
+        "HELP": "Appointments in this agenda go to Google Calendar, and Google events block these times here.",
         "LOADING": "Checking connection...",
         "CONNECTED": "Connected",
         "DISCONNECTED": "Not connected",
         "CONNECT": "Connect Google Calendar",
-        "RETRY": "Try again",
-        "DISCONNECT": "Disconnect"
+        "DISCONNECT": "Disconnect",
+        "STATUS_ERROR": "Needs attention",
+        "SYNC_NOW": "Sync now",
+        "SYNCING": "Syncing...",
+        "LAST_IMPORT": "Google events brought in {time}",
+        "NEVER_IMPORTED": "No Google events brought in yet",
+        "LAST_EXPORT": "Last appointment sent to Google {time}",
+        "MISSING_PERMISSION": "Calendar access is missing. Disconnect, connect again and tick the calendar box on the Google screen.",
+        "ROW_CONNECTED": "Google",
+        "ROW_ERROR": "Google needs attention"
       },
       "AVAILABILITY": {
         "OPEN": "Hours",
@@ -341,6 +349,20 @@
         "EQUIPMENT": "Choose the equipment.",
         "OTHER": "Choose the calendar."
       }
+    },
+    "BUSY": {
+      "LABEL": "Busy in Google",
+      "ALL_DAY": "Busy all day in Google",
+      "ARIA": "Busy in Google Calendar, {time}, {resource}",
+      "HINT": "This time is taken in the Google Calendar linked to this agenda. Change it in Google.",
+      "ALL_DAY_SHORT": "Busy",
+      "ALL_DAY_ARIA": "Busy all day in Google Calendar: {resources}"
+    },
+    "GOOGLE_NOTICE": {
+      "CONNECTED": "Google Calendar connected. Google events will show up here as busy in a few moments, and new appointments go to Google.",
+      "PERMISSION_DENIED": "Google did not grant access to the calendar. Connect again and tick the box that lets Raevo see and edit your calendar events.",
+      "ERROR": "Google Calendar could not be connected. Try again from Settings › Agendas.",
+      "DISMISS": "Dismiss"
     }
   }
 }

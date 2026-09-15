@@ -139,13 +139,15 @@ class KanbanCalendar::BookAppointmentService
 
   def conflicting_resource_ids
     appointment_starts.flat_map do |occurrence_starts_at|
+      window = [reservation_starts_at(occurrence_starts_at), reservation_ends_at(occurrence_starts_at)]
       KanbanCalendarAppointmentResource.where(kanban_calendar_resource_id: @resource_ids)
                                        .where(appointment_status: KanbanCalendarAppointment::ACTIVE_STATUSES)
-                                       .where(
-                                         'starts_at < ? AND ends_at > ?',
-                                         reservation_ends_at(occurrence_starts_at),
-                                         reservation_starts_at(occurrence_starts_at)
-                                       )
+                                       .where('starts_at < ? AND ends_at > ?', window.last, window.first)
+                                       .distinct
+                                       .pluck(:kanban_calendar_resource_id) +
+        # Horário ocupado na agenda Google de quem está ligado ao recurso.
+        KanbanCalendarExternalBusyBlock.where(kanban_calendar_resource_id: @resource_ids)
+                                       .overlapping(*window)
                                        .distinct
                                        .pluck(:kanban_calendar_resource_id)
     end.uniq

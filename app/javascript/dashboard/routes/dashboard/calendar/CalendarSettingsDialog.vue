@@ -434,6 +434,16 @@ const connectGoogleCalendar = async () => {
   }
 };
 
+// A etiqueta «Google» da lista acompanha o que a conexão acabou de dizer.
+const setGoogleCalendarConnection = connection => {
+  googleCalendarConnection.value = connection;
+  resources.value = resources.value.map(item =>
+    item.id === editingResourceId.value
+      ? { ...item, google_calendar_status: connection.status }
+      : item
+  );
+};
+
 const disconnectGoogleCalendar = async () => {
   if (!editingResourceId.value || isSaving.value) return;
 
@@ -441,10 +451,7 @@ const disconnectGoogleCalendar = async () => {
   error.value = '';
   try {
     await CalendarAPI.disconnectGoogleCalendar(editingResourceId.value);
-    googleCalendarConnection.value = {
-      connected: false,
-      status: 'disconnected',
-    };
+    setGoogleCalendarConnection({ connected: false, status: 'disconnected' });
   } catch (saveError) {
     error.value = getErrorMessage(saveError);
   } finally {
@@ -452,22 +459,51 @@ const disconnectGoogleCalendar = async () => {
   }
 };
 
-const retryGoogleCalendar = async () => {
+const syncGoogleCalendar = async () => {
   if (!editingResourceId.value || isSaving.value) return;
 
   isSaving.value = true;
   error.value = '';
   try {
-    const response = await CalendarAPI.retryGoogleCalendar(
+    const response = await CalendarAPI.syncGoogleCalendar(
       editingResourceId.value
     );
-    googleCalendarConnection.value = response.data;
-  } catch (saveError) {
-    error.value = getErrorMessage(saveError);
+    setGoogleCalendarConnection(response.data);
+  } catch (syncError) {
+    // A resposta de erro traz a conexão com o motivo que o Google deu.
+    if (syncError?.response?.data?.status) {
+      setGoogleCalendarConnection(syncError.response.data);
+    } else {
+      error.value = getErrorMessage(syncError);
+    }
   } finally {
     isSaving.value = false;
   }
 };
+
+const canSyncGoogleCalendar = computed(
+  () =>
+    googleCalendarConnection.value?.connected ||
+    googleCalendarConnection.value?.retryable
+);
+
+// O Google devolve isto quando a caixa da agenda ficou por marcar no ecrã de
+// permissões. A frase dele não diz o que fazer; a nossa diz.
+const GOOGLE_MISSING_PERMISSION = /insufficient authentication scopes/i;
+
+const googleCalendarError = computed(() => {
+  const message = googleCalendarConnection.value?.last_error;
+  if (!message) return '';
+  return GOOGLE_MISSING_PERMISSION.test(message)
+    ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.MISSING_PERMISSION')
+    : message;
+});
+
+const formatSyncTime = value =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
 
 const openAddResource = section => {
   resourceForm.value = { name: '', resourceType: section.type, userId: '' };
@@ -1705,7 +1741,9 @@ defineExpose({ open });
                     :class="
                       googleCalendarConnection?.connected
                         ? 'text-n-teal-11'
-                        : 'text-n-slate-11'
+                        : googleCalendarConnection?.retryable
+                          ? 'text-n-ruby-11'
+                          : 'text-n-slate-11'
                     "
                   >
                     {{
@@ -1713,26 +1751,69 @@ defineExpose({ open });
                         ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.LOADING')
                         : googleCalendarConnection?.connected
                           ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.CONNECTED')
-                          : t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.DISCONNECTED')
+                          : googleCalendarConnection?.retryable
+                            ? t(
+                                'CALENDAR.SETTINGS.GOOGLE_CALENDAR.STATUS_ERROR'
+                              )
+                            : t(
+                                'CALENDAR.SETTINGS.GOOGLE_CALENDAR.DISCONNECTED'
+                              )
                     }}
                   </span>
                 </div>
                 <p
-                  v-if="googleCalendarConnection?.last_error"
-                  class="mb-0 text-xs text-n-ruby-11"
+                  v-if="googleCalendarError"
+                  data-testid="calendar-google-error"
+                  role="alert"
+                  class="mb-0 flex items-start gap-1.5 text-xs text-n-ruby-11"
                 >
-                  {{ googleCalendarConnection.last_error }}
+                  <i
+                    class="i-lucide-alert-triangle mt-0.5 size-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  {{ googleCalendarError }}
                 </p>
+                <dl
+                  v-if="canSyncGoogleCalendar"
+                  class="mb-0 grid gap-0.5 text-xs text-n-slate-11"
+                >
+                  <div data-testid="calendar-google-last-import">
+                    {{
+                      googleCalendarConnection.last_imported_at
+                        ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.LAST_IMPORT', {
+                            time: formatSyncTime(
+                              googleCalendarConnection.last_imported_at
+                            ),
+                          })
+                        : t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.NEVER_IMPORTED')
+                    }}
+                  </div>
+                  <div v-if="googleCalendarConnection.last_synced_at">
+                    {{
+                      t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.LAST_EXPORT', {
+                        time: formatSyncTime(
+                          googleCalendarConnection.last_synced_at
+                        ),
+                      })
+                    }}
+                  </div>
+                </dl>
                 <div class="flex flex-wrap gap-2">
                   <NextButton
-                    v-if="googleCalendarConnection?.retryable"
+                    v-if="canSyncGoogleCalendar"
                     type="button"
                     size="sm"
                     outline
-                    data-testid="calendar-retry-google-calendar"
-                    :label="t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.RETRY')"
+                    icon="i-lucide-refresh-cw"
+                    data-testid="calendar-sync-google-calendar"
+                    :label="
+                      isSaving
+                        ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.SYNCING')
+                        : t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.SYNC_NOW')
+                    "
                     :disabled="isLoadingGoogleCalendarConnection || isSaving"
-                    @click="retryGoogleCalendar"
+                    :is-loading="isSaving"
+                    @click="syncGoogleCalendar"
                   />
                   <NextButton
                     v-if="!googleCalendarConnection?.connected"
@@ -1777,6 +1858,34 @@ defineExpose({ open });
                     Agenda inativa era idêntica a uma ativa na lista, o que fazia
                     parecer que desativar não tinha funcionado.
                   -->
+                  <span
+                    v-if="
+                      resource.google_calendar_status === 'connected' ||
+                      resource.google_calendar_status === 'error'
+                    "
+                    data-testid="calendar-resource-google-status"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-semibold"
+                    :class="
+                      resource.google_calendar_status === 'connected'
+                        ? 'bg-n-teal-3 text-n-teal-11'
+                        : 'bg-n-ruby-3 text-n-ruby-11'
+                    "
+                  >
+                    <i
+                      class="size-3"
+                      :class="
+                        resource.google_calendar_status === 'connected'
+                          ? 'i-lucide-calendar-check'
+                          : 'i-lucide-alert-triangle'
+                      "
+                      aria-hidden="true"
+                    />
+                    {{
+                      resource.google_calendar_status === 'connected'
+                        ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.ROW_CONNECTED')
+                        : t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.ROW_ERROR')
+                    }}
+                  </span>
                   <span
                     v-if="!resource.active"
                     data-testid="calendar-resource-archived"

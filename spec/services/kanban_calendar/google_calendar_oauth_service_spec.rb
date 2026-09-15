@@ -57,11 +57,12 @@ RSpec.describe KanbanCalendar::GoogleCalendarOauthService do
     expect(described_class.resource_from_state!(query['state'])).to eq(resource)
   end
 
-  it 'queues a backfill after connecting an agenda' do
+  it 'queues the export and the Google import after connecting an agenda' do
     connection = instance_double(KanbanCalendarGoogleConnection, refresh_token: 'old-refresh-token')
     token = instance_double(
       OAuth2::AccessToken,
-      to_hash: { access_token: 'access-token', refresh_token: 'refresh-token', expires_at: 1.hour.from_now.to_i }
+      to_hash: { access_token: 'access-token', refresh_token: 'refresh-token', expires_at: 1.hour.from_now.to_i,
+                 scope: 'https://www.googleapis.com/auth/calendar.events' }
     )
     client = instance_double(OAuth2::Client)
     authorization = instance_double(OAuth2::Strategy::AuthCode)
@@ -71,11 +72,30 @@ RSpec.describe KanbanCalendar::GoogleCalendarOauthService do
     allow(connection).to receive(:update!)
     allow(connection).to receive(:id).and_return(16)
     allow(KanbanCalendar::BackfillGoogleCalendarConnectionJob).to receive(:perform_later)
+    allow(KanbanCalendar::ImportGoogleCalendarEventsJob).to receive(:perform_later)
     service = described_class.new(resource: resource)
     allow(service).to receive(:oauth_client).and_return(client)
 
     service.connect!('authorization-code')
 
     expect(KanbanCalendar::BackfillGoogleCalendarConnectionJob).to have_received(:perform_later).with(16)
+    expect(KanbanCalendar::ImportGoogleCalendarEventsJob).to have_received(:perform_later).with(16)
+  end
+
+  # O Google mostra a permissão da agenda como uma caixa de seleção. Desmarcada, a
+  # ligação parecia feita e cada envio falhava depois, longe de quem ligou.
+  it 'refuses to connect when the calendar permission was left unchecked on Google' do
+    token = instance_double(
+      OAuth2::AccessToken,
+      to_hash: { access_token: 'access-token', refresh_token: 'refresh-token', expires_at: 1.hour.from_now.to_i, scope: 'openid' }
+    )
+    client = instance_double(OAuth2::Client)
+    authorization = instance_double(OAuth2::Strategy::AuthCode, get_token: token)
+    allow(client).to receive(:auth_code).and_return(authorization)
+    service = described_class.new(resource: resource)
+    allow(service).to receive(:oauth_client).and_return(client)
+
+    expect { service.connect!('authorization-code') }.to raise_error(KanbanCalendar::GoogleCalendarPermissionError)
+    expect(resource.reload.kanban_calendar_google_connection).to be_nil
   end
 end

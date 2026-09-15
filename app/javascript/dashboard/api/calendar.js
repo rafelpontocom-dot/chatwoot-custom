@@ -85,10 +85,15 @@ class CalendarAPI extends ApiClient {
     );
   }
 
-  retryGoogleCalendar(resourceId) {
+  // Importa já os compromissos do Google e volta a enviar as consultas futuras.
+  syncGoogleCalendar(resourceId) {
     return axios.post(
-      `${this.url}/resources/${resourceId}/google_calendar_connection/retry`
+      `${this.url}/resources/${resourceId}/google_calendar_connection/sync`
     );
+  }
+
+  getBusyBlocks(params) {
+    return axios.get(`${this.url}/busy_blocks`, { params });
   }
 
   getAvailabilityRules(resourceId) {

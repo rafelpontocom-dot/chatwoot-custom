@@ -22,9 +22,22 @@ class KanbanCalendar::AvailabilityCheckService
   end
 
   def conflict?
-    @conflict ||= KanbanCalendarAppointmentResource.where(kanban_calendar_resource: @resource)
-                                                   .where(appointment_status: KanbanCalendarAppointment::ACTIVE_STATUSES)
-                                                   .exists?(['starts_at < ? AND ends_at > ?', reservation_ends_at, reservation_starts_at])
+    return @conflict if defined?(@conflict)
+
+    @conflict = appointment_conflict? || external_busy_conflict?
+  end
+
+  def appointment_conflict?
+    KanbanCalendarAppointmentResource.where(kanban_calendar_resource: @resource)
+                                     .where(appointment_status: KanbanCalendarAppointment::ACTIVE_STATUSES)
+                                     .exists?(['starts_at < ? AND ends_at > ?', reservation_ends_at, reservation_starts_at])
+  end
+
+  # Compromisso que só existe na agenda Google de quem está ligado a este recurso.
+  def external_busy_conflict?
+    KanbanCalendarExternalBusyBlock.where(kanban_calendar_resource: @resource)
+                                   .overlapping(reservation_starts_at, reservation_ends_at)
+                                   .exists?
   end
 
   def resource_allowed?

@@ -23,7 +23,7 @@ vi.mock('dashboard/api/calendar', () => ({
     getGoogleCalendarConnection: vi.fn(),
     getGoogleCalendarAuthorizationUrl: vi.fn(),
     disconnectGoogleCalendar: vi.fn(),
-    retryGoogleCalendar: vi.fn(),
+    syncGoogleCalendar: vi.fn(),
     updateBookingPage: vi.fn(),
     createProcedure: vi.fn(),
     updateProcedure: vi.fn(),
@@ -96,8 +96,13 @@ describe('CalendarSettingsDialog', () => {
     CalendarAPI.getGoogleCalendarConnection.mockResolvedValue({
       data: { connected: false, status: 'disconnected' },
     });
-    CalendarAPI.retryGoogleCalendar.mockResolvedValue({
-      data: { connected: true, status: 'connected', retryable: false },
+    CalendarAPI.syncGoogleCalendar.mockResolvedValue({
+      data: {
+        connected: true,
+        status: 'connected',
+        retryable: false,
+        last_imported_at: '2026-09-15T12:00:00Z',
+      },
     });
     CalendarAPI.createResource.mockResolvedValue({
       data: { id: 4, name: 'Dra. Ana', resource_type: 'user', active: true },
@@ -224,7 +229,7 @@ describe('CalendarSettingsDialog', () => {
     );
   });
 
-  it('reprocesses an agenda after a recoverable Google Calendar error', async () => {
+  const editarAgendaDaAna = async connection => {
     CalendarAPI.getResources.mockResolvedValue({
       data: [
         {
@@ -233,38 +238,99 @@ describe('CalendarSettingsDialog', () => {
           resource_type: 'generic',
           user_id: null,
           active: true,
+          google_calendar_status: connection.status,
         },
       ],
     });
     CalendarAPI.getGoogleCalendarConnection.mockResolvedValue({
-      data: {
-        connected: false,
-        retryable: true,
-        status: 'error',
-        last_error: 'Google timeout',
-      },
+      data: connection,
     });
     const wrapper = mountDialog();
     await wrapper.vm.open();
     await flushPromises();
-
-    await wrapper
-      .findAll('[role="tab"]')
-      .find(tab => tab.text() === 'CALENDAR.SETTINGS.RESOURCES')
-      .trigger('click');
+    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
     await wrapper
       .find('[data-testid="calendar-edit-resource"]')
       .trigger('click');
     await flushPromises();
+    return wrapper;
+  };
+
+  it('syncs an agenda now and says when Google was last read', async () => {
+    const wrapper = await editarAgendaDaAna({
+      connected: false,
+      retryable: true,
+      status: 'error',
+      last_error: 'Google timeout',
+    });
+
     await wrapper
-      .find('[data-testid="calendar-retry-google-calendar"]')
+      .find('[data-testid="calendar-sync-google-calendar"]')
       .trigger('click');
     await flushPromises();
 
-    expect(CalendarAPI.retryGoogleCalendar).toHaveBeenCalledWith(8);
+    expect(CalendarAPI.syncGoogleCalendar).toHaveBeenCalledWith(8);
     expect(wrapper.text()).toContain(
       'CALENDAR.SETTINGS.GOOGLE_CALENDAR.CONNECTED'
     );
+    expect(
+      wrapper.find('[data-testid="calendar-google-last-import"]').text()
+    ).toContain('CALENDAR.SETTINGS.GOOGLE_CALENDAR.LAST_IMPORT');
+    expect(wrapper.text()).not.toContain('Google timeout');
+  });
+
+  it('shows why Google refused when syncing fails', async () => {
+    CalendarAPI.syncGoogleCalendar.mockRejectedValue({
+      response: {
+        data: {
+          connected: false,
+          retryable: true,
+          status: 'error',
+          last_error: 'Google timeout',
+        },
+      },
+    });
+    const wrapper = await editarAgendaDaAna({
+      connected: true,
+      status: 'connected',
+    });
+
+    await wrapper
+      .find('[data-testid="calendar-sync-google-calendar"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-google-error"]').text()
+    ).toContain('Google timeout');
+  });
+
+  // A mensagem crua do Google não diz o que fazer; a causa conhecida é a caixa
+  // da agenda deixada por marcar no ecrã de permissões.
+  it('explains a missing calendar permission instead of the raw Google message', async () => {
+    const wrapper = await editarAgendaDaAna({
+      connected: false,
+      retryable: true,
+      status: 'error',
+      last_error: 'Request had insufficient authentication scopes.',
+    });
+
+    const aviso = wrapper.find('[data-testid="calendar-google-error"]').text();
+    expect(aviso).toContain(
+      'CALENDAR.SETTINGS.GOOGLE_CALENDAR.MISSING_PERMISSION'
+    );
+    expect(aviso).not.toContain('insufficient authentication scopes');
+  });
+
+  it('marks in the list which agendas are linked to Google', async () => {
+    const wrapper = await editarAgendaDaAna({
+      connected: true,
+      status: 'connected',
+    });
+
+    expect(
+      wrapper.find('[data-testid="calendar-resource-google-status"]').text()
+    ).toContain('CALENDAR.SETTINGS.GOOGLE_CALENDAR.ROW_CONNECTED');
   });
 
   it('updates an existing procedure instead of creating a duplicate', async () => {
