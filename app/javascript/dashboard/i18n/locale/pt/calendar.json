@@ -102,7 +102,6 @@
       "COPY_EMBED": "Copiar embed",
       "PUBLISHED_PROCEDURES": "Links por procedimento",
       "PUBLISHED_PROCEDURES_HELP": "Compartilhe um link direto para já abrir o procedimento escolhido.",
-      "NO_PUBLISHED_PROCEDURES": "Publique um procedimento na aba Procedimentos para gerar um link individual.",
       "PRIVATE_LINKS": "Convites privados",
       "PRIVATE_LINKS_HELP": "Use para um paciente específico, com validade e quantidade de usos controladas.",
       "PRIVATE_LINK_PROCEDURE": "Procedimento",
@@ -226,7 +225,19 @@
       "REMOVE_RESOURCE_CONFIRM": "Apagar a agenda \"{name}\"? Se já houver consultas marcadas, ela será arquivada em vez de apagada.",
       "BACK_TO_CALENDAR": "Voltar para a agenda",
       "REMOVE_PROCEDURE": "Apagar",
-      "REMOVE_PROCEDURE_CONFIRM": "Apagar o procedimento \"{name}\"? Se já houver consultas marcadas, ele será arquivado em vez de apagado."
+      "REMOVE_PROCEDURE_CONFIRM": "Apagar o procedimento \"{name}\"? Se já houver consultas marcadas, ele será arquivado em vez de apagado.",
+      "CANCEL_EDIT": "Cancelar",
+      "NO_PROCEDURES_FOR_LINKS": "Crie um procedimento na aba Procedimentos para gerar o link dele.",
+      "PUBLIC_BOOKING_OFF": "Autoagendamento desligado",
+      "ENABLE_PUBLIC_BOOKING": "Ativar autoagendamento",
+      "VALIDATION": {
+        "NAME_REQUIRED": "Dê um nome ao procedimento.",
+        "DURATION_RANGE": "Use um número inteiro entre 5 e 480 minutos.",
+        "BUFFER_RANGE": "Use um número inteiro entre 0 e 120 minutos.",
+        "MAX_SESSIONS_RANGE": "Use um número inteiro entre 1 e 100.",
+        "PUBLIC_SLUG_REQUIRED": "Dê um endereço ao link público, com letras ou números.",
+        "FIX_MARKED_FIELDS": "Corrija os campos assinalados para guardar."
+      }
     },
     "DETAIL": {
       "TITLE": "Detalhes do marcação",

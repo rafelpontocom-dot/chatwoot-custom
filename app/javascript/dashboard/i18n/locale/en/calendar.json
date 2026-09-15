@@ -102,7 +102,6 @@
       "COPY_EMBED": "Copy embed",
       "PUBLISHED_PROCEDURES": "Procedure links",
       "PUBLISHED_PROCEDURES_HELP": "Share a direct link that opens the selected procedure.",
-      "NO_PUBLISHED_PROCEDURES": "Publish a procedure in the Procedures tab to generate an individual link.",
       "PRIVATE_LINKS": "Private invitations",
       "PRIVATE_LINKS_HELP": "Use this for a specific patient, with an expiration and controlled uses.",
       "PRIVATE_LINK_PROCEDURE": "Procedure",
@@ -226,7 +225,19 @@
       "REMOVE_RESOURCE_CONFIRM": "Delete the agenda \"{name}\"? If it already has appointments it will be archived instead.",
       "BACK_TO_CALENDAR": "Back to calendar",
       "REMOVE_PROCEDURE": "Delete",
-      "REMOVE_PROCEDURE_CONFIRM": "Delete the procedure \"{name}\"? If appointments already exist, it will be archived instead of deleted."
+      "REMOVE_PROCEDURE_CONFIRM": "Delete the procedure \"{name}\"? If appointments already exist, it will be archived instead of deleted.",
+      "CANCEL_EDIT": "Cancel",
+      "NO_PROCEDURES_FOR_LINKS": "Create a procedure in the Procedures tab to get a booking link for it.",
+      "PUBLIC_BOOKING_OFF": "Public booking is off",
+      "ENABLE_PUBLIC_BOOKING": "Turn on public booking",
+      "VALIDATION": {
+        "NAME_REQUIRED": "Give the procedure a name.",
+        "DURATION_RANGE": "Use a whole number between 5 and 480 minutes.",
+        "BUFFER_RANGE": "Use a whole number between 0 and 120 minutes.",
+        "MAX_SESSIONS_RANGE": "Use a whole number between 1 and 100.",
+        "PUBLIC_SLUG_REQUIRED": "Give the public link an address using letters or numbers.",
+        "FIX_MARKED_FIELDS": "Fix the marked fields to save."
+      }
     },
     "DETAIL": {
       "TITLE": "Appointment details",

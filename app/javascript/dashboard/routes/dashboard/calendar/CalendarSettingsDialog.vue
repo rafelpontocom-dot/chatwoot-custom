@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -8,6 +8,7 @@ import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import CalendarWorkingHours from './CalendarWorkingHours.vue';
 import {
   RAEVO_CONTROL_CLASS,
@@ -66,7 +67,11 @@ const bookingPageForm = ref({
   captchaSiteKey: '',
   publicFormFields: [],
 });
-const procedureForm = ref({
+// Uma só definição do procedimento vazio. Estava escrita três vezes e as cópias
+// divergiram: a usada depois de gravar perdeu os intervalos, a localização e a
+// cor, e a partir do segundo procedimento o botão de guardar ficava desligado
+// até alguém escrever nos dois intervalos.
+const procedimentoVazio = () => ({
   name: '',
   durationMinutes: '50',
   bufferBeforeMinutes: '0',
@@ -81,6 +86,7 @@ const procedureForm = ref({
   publicDescription: '',
   publicSlug: '',
 });
+const procedureForm = ref(procedimentoVazio());
 const resourceForm = ref({ name: '', resourceType: 'generic', userId: '' });
 const exceptionForm = ref({
   kind: 'block',
@@ -101,18 +107,56 @@ const suggestedPublicSlug = computed(() => {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 });
+// O que falta para gravar, campo a campo. Antes era só um botão desligado, e
+// ninguém sabia porquê: foi preciso adivinhar que eram os intervalos.
+//
+// Os limites são os de `KanbanCalendarProcedure`. As regras antigas do ecrã
+// eram mais frouxas (duração > 0, intervalo >= 0) e deixavam passar o que o
+// servidor depois recusava; a validação nativa do browser tapava isso, e com
+// `novalidate` deixou de tapar.
+const inteiroEntre = (valor, minimo, maximo) => {
+  const numero = Number(valor);
+  return (
+    valor !== '' &&
+    Number.isInteger(numero) &&
+    numero >= minimo &&
+    numero <= maximo
+  );
+};
+
+const procedureErrors = computed(() => {
+  const form = procedureForm.value;
+  const erros = {};
+  if (!form.name.trim()) {
+    erros.name = t('CALENDAR.SETTINGS.VALIDATION.NAME_REQUIRED');
+  }
+  if (!inteiroEntre(form.durationMinutes, 5, 480)) {
+    erros.duration = t('CALENDAR.SETTINGS.VALIDATION.DURATION_RANGE');
+  }
+  if (!inteiroEntre(form.bufferBeforeMinutes, 0, 120)) {
+    erros.bufferBefore = t('CALENDAR.SETTINGS.VALIDATION.BUFFER_RANGE');
+  }
+  if (!inteiroEntre(form.bufferAfterMinutes, 0, 120)) {
+    erros.bufferAfter = t('CALENDAR.SETTINGS.VALIDATION.BUFFER_RANGE');
+  }
+  if (form.recurrenceAllowed && !inteiroEntre(form.maxSessions, 1, 100)) {
+    erros.maxSessions = t('CALENDAR.SETTINGS.VALIDATION.MAX_SESSIONS_RANGE');
+  }
+  if (form.publicBookingEnabled && !suggestedPublicSlug.value) {
+    erros.publicSlug = t('CALENDAR.SETTINGS.VALIDATION.PUBLIC_SLUG_REQUIRED');
+  }
+  return erros;
+});
+
+// As mensagens só aparecem depois de tentar gravar. Um formulário acabado de
+// abrir, todo a vermelho, grita antes de a pessoa ter feito alguma coisa.
+const triedToSaveProcedure = ref(false);
+const procedureFieldError = campo =>
+  (triedToSaveProcedure.value && procedureErrors.value[campo]) || '';
+const procedureFormElement = ref(null);
+
 const canCreateProcedure = computed(
-  () =>
-    procedureForm.value.name.trim() &&
-    Number(procedureForm.value.durationMinutes) > 0 &&
-    Number(procedureForm.value.bufferBeforeMinutes) >= 0 &&
-    Number(procedureForm.value.bufferAfterMinutes) >= 0 &&
-    (!procedureForm.value.publicBookingEnabled || suggestedPublicSlug.value) &&
-    (!procedureForm.value.recurrenceAllowed ||
-      (Number.isInteger(Number(procedureForm.value.maxSessions)) &&
-        Number(procedureForm.value.maxSessions) >= 1 &&
-        Number(procedureForm.value.maxSessions) <= 100)) &&
-    !isSaving.value
+  () => !Object.keys(procedureErrors.value).length && !isSaving.value
 );
 const canCreateResource = computed(
   () =>
@@ -230,21 +274,8 @@ const getErrorMessage = errorResponse =>
   t('CALENDAR.SETTINGS.SAVE_ERROR');
 
 const resetForms = () => {
-  procedureForm.value = {
-    name: '',
-    durationMinutes: '50',
-    bufferBeforeMinutes: '0',
-    bufferAfterMinutes: '0',
-    locationType: 'in_person',
-    color: RAEVO_DEFAULT_PROCEDURE_COLOR,
-    recurrenceAllowed: false,
-    maxSessions: '',
-    resourceIds: [],
-    publicBookingEnabled: false,
-    publicTitle: '',
-    publicDescription: '',
-    publicSlug: '',
-  };
+  procedureForm.value = procedimentoVazio();
+  triedToSaveProcedure.value = false;
   resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
   availabilityResourceId.value = null;
   availabilityRules.value = [];
@@ -304,17 +335,8 @@ const procedurePayload = () => {
 };
 
 const resetProcedureForm = () => {
-  procedureForm.value = {
-    name: '',
-    durationMinutes: '50',
-    recurrenceAllowed: false,
-    maxSessions: '10',
-    resourceIds: [],
-    publicBookingEnabled: false,
-    publicTitle: '',
-    publicDescription: '',
-    publicSlug: '',
-  };
+  procedureForm.value = procedimentoVazio();
+  triedToSaveProcedure.value = false;
   editingProcedureId.value = null;
   isProcedureEditorOpen.value = false;
 };
@@ -404,6 +426,7 @@ const editResource = async resource => {
 
 const editProcedure = procedure => {
   isProcedureEditorOpen.value = true;
+  triedToSaveProcedure.value = false;
   editingProcedureId.value = procedure.id;
   procedureForm.value = {
     name: procedure.name,
@@ -515,6 +538,23 @@ const selectSettingsTab = tab => {
   if (tab === 'booking-page') loadBookingPage();
 };
 
+// «Links por procedimento» só lista os procedimentos com autoagendamento ligado,
+// e ele vem desligado. A lista vazia mandava «publicar» — palavra que não existe
+// em botão nenhum —, por isso quem criou procedimentos não os via aparecer. O
+// atalho leva ao procedimento já com o interruptor ligado; gravar continua a
+// ser uma decisão da pessoa.
+// A API devolve também os arquivados; oferecer um link — ou ativar o
+// autoagendamento — de um procedimento que já saiu de uso não faz sentido.
+const linkableProcedures = computed(() =>
+  procedures.value.filter(procedure => procedure.active !== false)
+);
+
+const enableProcedureBooking = procedure => {
+  selectSettingsTab('procedures');
+  editProcedure(procedure);
+  procedureForm.value.publicBookingEnabled = true;
+};
+
 const selectBookingBoard = () => {
   bookingPageForm.value.stageId = '';
 };
@@ -605,6 +645,11 @@ const open = async () => {
   resetForms();
   if (!props.inline) dialog.value?.open();
   await loadSettings();
+  // Só `selectSettingsTab` carregava a página de agendamento, e só se chega lá
+  // mudando de aba. Abrir já nela — pelo link da navegação lateral ou ao
+  // recarregar — deixava o painel vazio: a aba começava ativa, o watcher não
+  // disparava e a página nunca era pedida.
+  if (activeTab.value === 'booking-page') await loadBookingPage();
 };
 
 watch(
@@ -622,7 +667,14 @@ onMounted(() => {
 const close = () => dialog.value?.close();
 
 const createProcedure = async () => {
-  if (!canCreateProcedure.value) return;
+  triedToSaveProcedure.value = true;
+  if (!canCreateProcedure.value) {
+    // Leva o foco ao primeiro campo em falta: num formulário que rola, a
+    // mensagem pode estar fora do ecrã, e quem usa teclado precisa de lá chegar.
+    await nextTick();
+    procedureFormElement.value?.querySelector('[aria-invalid="true"]')?.focus();
+    return;
+  }
 
   isSaving.value = true;
   error.value = '';
@@ -1064,100 +1116,141 @@ defineExpose({ open });
               @click="isProcedureEditorOpen = true"
             />
           </div>
+          <!--
+            `novalidate`: quem diz o que falta são as mensagens junto de cada
+            campo. Com a validação nativa ligada, o browser mostrava um balão
+            seu por cima e a nossa mensagem nunca chegava a aparecer.
+          -->
           <form
             v-if="isProcedureEditorOpen"
+            ref="procedureFormElement"
             class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
             data-testid="calendar-procedure-form"
+            novalidate
             @submit.prevent="createProcedure"
           >
             <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.PROCEDURE_NAME') }}
-                </span>
-                <input
-                  v-model="procedureForm.name"
-                  data-testid="calendar-procedure-name"
-                  type="text"
-                  :class="RAEVO_CONTROL_CLASS"
-                />
-              </label>
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.DURATION') }}
-                </span>
-                <input
-                  v-model="procedureForm.durationMinutes"
-                  data-testid="calendar-procedure-duration"
-                  min="5"
-                  max="480"
-                  type="number"
-                  :class="RAEVO_CONTROL_CLASS"
-                />
-              </label>
+              <RaevoField
+                :label="t('CALENDAR.SETTINGS.PROCEDURE_NAME')"
+                :error="procedureFieldError('name')"
+                error-testid="calendar-procedure-name-error"
+                required
+              >
+                <template #default="{ controlClass, fieldId, describedBy }">
+                  <input
+                    :id="fieldId"
+                    v-model="procedureForm.name"
+                    data-testid="calendar-procedure-name"
+                    type="text"
+                    required
+                    :aria-invalid="!!procedureFieldError('name')"
+                    :aria-describedby="describedBy"
+                    :class="controlClass"
+                  />
+                </template>
+              </RaevoField>
+              <RaevoField
+                :label="t('CALENDAR.SETTINGS.DURATION')"
+                :error="procedureFieldError('duration')"
+                required
+              >
+                <template #default="{ controlClass, fieldId, describedBy }">
+                  <input
+                    :id="fieldId"
+                    v-model="procedureForm.durationMinutes"
+                    data-testid="calendar-procedure-duration"
+                    min="5"
+                    max="480"
+                    type="number"
+                    required
+                    :aria-invalid="!!procedureFieldError('duration')"
+                    :aria-describedby="describedBy"
+                    :class="controlClass"
+                  />
+                </template>
+              </RaevoField>
             </div>
+            <!--
+              Os intervalos não levam asterisco: já vêm com 0, que é válido. A
+              marca diria a quem preenche que tem de escrever ali, e não tem.
+            -->
             <div class="grid gap-3 sm:grid-cols-4">
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.BUFFER_BEFORE') }}
-                </span>
-                <input
-                  v-model="procedureForm.bufferBeforeMinutes"
-                  min="0"
-                  max="120"
-                  type="number"
-                  :class="RAEVO_CONTROL_CLASS"
-                />
-              </label>
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.BUFFER_AFTER') }}
-                </span>
-                <input
-                  v-model="procedureForm.bufferAfterMinutes"
-                  min="0"
-                  max="120"
-                  type="number"
-                  :class="RAEVO_CONTROL_CLASS"
-                />
-              </label>
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.LOCATION_TYPE') }}
-                </span>
-                <select
-                  v-model="procedureForm.locationType"
-                  :class="RAEVO_SELECT_STANDALONE_CLASS"
-                >
-                  <option value="in_person">
-                    {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.IN_PERSON') }}
-                  </option>
-                  <option value="video">
-                    {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.VIDEO') }}
-                  </option>
-                  <option value="phone">
-                    {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.PHONE') }}
-                  </option>
-                  <option value="other">
-                    {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.OTHER') }}
-                  </option>
-                </select>
-              </label>
-              <label class="grid gap-1.5">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ t('CALENDAR.SETTINGS.PROCEDURE_COLOR') }}
-                </span>
-                <input
-                  v-model="procedureForm.color"
-                  type="color"
-                  :class="RAEVO_SWATCH_CLASS"
-                />
-              </label>
+              <RaevoField
+                :label="t('CALENDAR.SETTINGS.BUFFER_BEFORE')"
+                :error="procedureFieldError('bufferBefore')"
+              >
+                <template #default="{ controlClass, fieldId, describedBy }">
+                  <input
+                    :id="fieldId"
+                    v-model="procedureForm.bufferBeforeMinutes"
+                    data-testid="calendar-procedure-buffer-before"
+                    min="0"
+                    max="120"
+                    type="number"
+                    :aria-invalid="!!procedureFieldError('bufferBefore')"
+                    :aria-describedby="describedBy"
+                    :class="controlClass"
+                  />
+                </template>
+              </RaevoField>
+              <RaevoField
+                :label="t('CALENDAR.SETTINGS.BUFFER_AFTER')"
+                :error="procedureFieldError('bufferAfter')"
+              >
+                <template #default="{ controlClass, fieldId, describedBy }">
+                  <input
+                    :id="fieldId"
+                    v-model="procedureForm.bufferAfterMinutes"
+                    data-testid="calendar-procedure-buffer-after"
+                    min="0"
+                    max="120"
+                    type="number"
+                    :aria-invalid="!!procedureFieldError('bufferAfter')"
+                    :aria-describedby="describedBy"
+                    :class="controlClass"
+                  />
+                </template>
+              </RaevoField>
+              <RaevoField
+                :label="t('CALENDAR.SETTINGS.LOCATION_TYPE')"
+                variant="select"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <select
+                    :id="fieldId"
+                    v-model="procedureForm.locationType"
+                    :class="controlClass"
+                  >
+                    <option value="in_person">
+                      {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.IN_PERSON') }}
+                    </option>
+                    <option value="video">
+                      {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.VIDEO') }}
+                    </option>
+                    <option value="phone">
+                      {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.PHONE') }}
+                    </option>
+                    <option value="other">
+                      {{ t('CALENDAR.SETTINGS.LOCATION_TYPES.OTHER') }}
+                    </option>
+                  </select>
+                </template>
+              </RaevoField>
+              <RaevoField :label="t('CALENDAR.SETTINGS.PROCEDURE_COLOR')">
+                <template #default="{ fieldId }">
+                  <input
+                    :id="fieldId"
+                    v-model="procedureForm.color"
+                    type="color"
+                    :class="RAEVO_SWATCH_CLASS"
+                  />
+                </template>
+              </RaevoField>
             </div>
-            <label class="grid gap-1.5">
-              <span class="text-sm font-medium text-n-slate-12">
-                {{ t('CALENDAR.SETTINGS.PROCEDURE_RESOURCES') }}
-              </span>
+            <RaevoField
+              :label="t('CALENDAR.SETTINGS.PROCEDURE_RESOURCES')"
+              :hint="t('CALENDAR.SETTINGS.PROCEDURE_RESOURCES_HELP')"
+            >
               <TagMultiSelectComboBox
                 v-model="procedureForm.resourceIds"
                 :options="resourceOptions"
@@ -1169,10 +1262,7 @@ defineExpose({ open });
                 "
                 :empty-state="t('CALENDAR.SETTINGS.PROCEDURE_RESOURCES_EMPTY')"
               />
-              <span class="text-xs font-normal text-n-slate-11">
-                {{ t('CALENDAR.SETTINGS.PROCEDURE_RESOURCES_HELP') }}
-              </span>
-            </label>
+            </RaevoField>
             <div
               class="grid gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3"
             >
@@ -1194,82 +1284,117 @@ defineExpose({ open });
                 v-if="procedureForm.publicBookingEnabled"
                 class="grid gap-3 sm:grid-cols-2"
               >
-                <label class="grid gap-1.5">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('CALENDAR.SETTINGS.PUBLIC_TITLE') }}
-                  </span>
-                  <input
-                    v-model="procedureForm.publicTitle"
-                    type="text"
-                    :class="RAEVO_CONTROL_CLASS"
-                  />
-                </label>
-                <label class="grid gap-1.5">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('CALENDAR.SETTINGS.PUBLIC_SLUG') }}
-                  </span>
-                  <input
-                    v-model="procedureForm.publicSlug"
-                    data-testid="calendar-procedure-public-slug"
-                    type="text"
-                    autocomplete="off"
-                    :class="RAEVO_CONTROL_CLASS"
-                  />
-                </label>
-                <label class="grid gap-1.5 sm:col-span-2">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('CALENDAR.SETTINGS.PUBLIC_DESCRIPTION') }}
-                  </span>
-                  <textarea
-                    v-model="procedureForm.publicDescription"
-                    rows="2"
-                    :class="RAEVO_TEXTAREA_CLASS"
-                  />
-                </label>
+                <RaevoField :label="t('CALENDAR.SETTINGS.PUBLIC_TITLE')">
+                  <template #default="{ controlClass, fieldId }">
+                    <input
+                      :id="fieldId"
+                      v-model="procedureForm.publicTitle"
+                      type="text"
+                      :class="controlClass"
+                    />
+                  </template>
+                </RaevoField>
+                <RaevoField
+                  :label="t('CALENDAR.SETTINGS.PUBLIC_SLUG')"
+                  :error="procedureFieldError('publicSlug')"
+                  required
+                >
+                  <template #default="{ controlClass, fieldId, describedBy }">
+                    <input
+                      :id="fieldId"
+                      v-model="procedureForm.publicSlug"
+                      data-testid="calendar-procedure-public-slug"
+                      type="text"
+                      autocomplete="off"
+                      :aria-invalid="!!procedureFieldError('publicSlug')"
+                      :aria-describedby="describedBy"
+                      :class="controlClass"
+                    />
+                  </template>
+                </RaevoField>
+                <RaevoField
+                  class="sm:col-span-2"
+                  :label="t('CALENDAR.SETTINGS.PUBLIC_DESCRIPTION')"
+                  variant="textarea"
+                >
+                  <template #default="{ controlClass, fieldId }">
+                    <textarea
+                      :id="fieldId"
+                      v-model="procedureForm.publicDescription"
+                      rows="2"
+                      :class="controlClass"
+                    />
+                  </template>
+                </RaevoField>
               </div>
             </div>
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <label class="flex items-center gap-2 text-sm text-n-slate-12">
-                <input
-                  v-model="procedureForm.recurrenceAllowed"
-                  data-testid="calendar-procedure-recurrence"
-                  type="checkbox"
-                  class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                />
-                {{ t('CALENDAR.SETTINGS.ALLOW_RECURRENCE') }}
-              </label>
-              <label
-                v-if="procedureForm.recurrenceAllowed"
-                class="flex items-center gap-2 text-sm text-n-slate-12"
-              >
-                <span>{{ t('CALENDAR.SETTINGS.MAX_SESSIONS') }}</span>
-                <!-- O controlo canónico é `w-full`; a largura vive no invólucro. -->
-                <div class="w-20 shrink-0">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+              <div class="flex flex-wrap items-end gap-3">
+                <label
+                  class="flex min-h-10 items-center gap-2 text-sm text-n-slate-12"
+                >
                   <input
-                    v-model="procedureForm.maxSessions"
-                    min="2"
-                    max="100"
-                    type="number"
-                    :class="RAEVO_CONTROL_CLASS"
+                    v-model="procedureForm.recurrenceAllowed"
+                    data-testid="calendar-procedure-recurrence"
+                    type="checkbox"
+                    class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
                   />
-                </div>
-              </label>
-              <NextButton
-                type="submit"
-                size="sm"
-                :label="procedureSubmitLabel"
-                :disabled="!canCreateProcedure"
-                :is-loading="isSaving"
-              />
-              <NextButton
-                v-if="editingProcedureId"
-                type="button"
-                size="sm"
-                outline
-                :label="t('GENERAL.CANCEL')"
-                @click="resetProcedureForm"
-              />
+                  {{ t('CALENDAR.SETTINGS.ALLOW_RECURRENCE') }}
+                </label>
+                <!-- O controlo canónico é `w-full`; a largura vive no invólucro. -->
+                <RaevoField
+                  v-if="procedureForm.recurrenceAllowed"
+                  class="w-32"
+                  :label="t('CALENDAR.SETTINGS.MAX_SESSIONS')"
+                  :error="procedureFieldError('maxSessions')"
+                  required
+                >
+                  <template #default="{ controlClass, fieldId, describedBy }">
+                    <input
+                      :id="fieldId"
+                      v-model="procedureForm.maxSessions"
+                      data-testid="calendar-procedure-max-sessions"
+                      min="1"
+                      max="100"
+                      type="number"
+                      :aria-invalid="!!procedureFieldError('maxSessions')"
+                      :aria-describedby="describedBy"
+                      :class="controlClass"
+                    />
+                  </template>
+                </RaevoField>
+              </div>
+              <!--
+                Cancelar aparece também ao criar. Só existia ao editar, e um
+                procedimento novo aberto por engano não tinha como ser fechado.
+              -->
+              <div class="flex items-center gap-2">
+                <NextButton
+                  type="button"
+                  size="sm"
+                  outline
+                  data-testid="calendar-procedure-cancel"
+                  :label="t('CALENDAR.SETTINGS.CANCEL_EDIT')"
+                  @click="resetProcedureForm"
+                />
+                <NextButton
+                  type="submit"
+                  size="sm"
+                  data-testid="calendar-procedure-submit"
+                  :label="procedureSubmitLabel"
+                  :disabled="isSaving"
+                  :is-loading="isSaving"
+                />
+              </div>
             </div>
+            <p
+              v-if="triedToSaveProcedure && !canCreateProcedure && !isSaving"
+              data-testid="calendar-procedure-missing"
+              class="mb-0 text-xs text-n-ruby-11"
+              role="status"
+            >
+              {{ t('CALENDAR.SETTINGS.VALIDATION.FIX_MARKED_FIELDS') }}
+            </p>
           </form>
           <div class="grid gap-2">
             <p v-if="!procedures.length" class="mb-0 text-sm text-n-slate-11">
@@ -1280,42 +1405,51 @@ defineExpose({ open });
               :key="procedure.id"
               class="flex items-center justify-between gap-3 rounded-md border border-n-weak px-3 py-2"
             >
-              <div class="grid gap-0.5">
+              <div class="grid min-w-0 gap-0.5">
                 <span class="text-sm font-medium text-n-slate-12">{{
                   procedure.name
                 }}</span>
-                <span
-                  v-if="procedure.public_booking_enabled"
-                  class="text-xs text-n-brand"
-                >
-                  {{ t('CALENDAR.SETTINGS.PUBLIC_BOOKING_PUBLISHED') }}
+                <span class="text-xs text-n-slate-11">
+                  {{
+                    t('CALENDAR.SETTINGS.DURATION_VALUE', {
+                      minutes: procedure.duration_minutes,
+                    })
+                  }}
+                  <span
+                    v-if="procedure.public_booking_enabled"
+                    class="text-n-brand"
+                  >
+                    · {{ t('CALENDAR.SETTINGS.PUBLIC_BOOKING_PUBLISHED') }}
+                  </span>
                 </span>
               </div>
-              <span class="text-xs text-n-slate-11">
-                {{
-                  t('CALENDAR.SETTINGS.DURATION_VALUE', {
-                    minutes: procedure.duration_minutes,
-                  })
-                }}
-              </span>
-              <NextButton
-                type="button"
-                xs
-                outline
-                data-testid="calendar-edit-procedure"
-                :label="t('CALENDAR.SETTINGS.EDIT_PROCEDURE')"
-                @click="editProcedure(procedure)"
-              />
-              <NextButton
-                type="button"
-                xs
-                outline
-                ruby
-                data-testid="calendar-remove-procedure"
-                :label="t('CALENDAR.SETTINGS.REMOVE_PROCEDURE')"
-                :disabled="isSaving"
-                @click="removeProcedure(procedure)"
-              />
+              <!-- Mesmo defeito da lista de agendas: ações soltas no `justify-between`. -->
+              <div class="flex shrink-0 items-center gap-1">
+                <NextButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="slate"
+                  icon="i-lucide-pencil"
+                  data-testid="calendar-edit-procedure"
+                  :aria-label="t('CALENDAR.SETTINGS.EDIT_PROCEDURE')"
+                  :title="t('CALENDAR.SETTINGS.EDIT_PROCEDURE')"
+                  @click="editProcedure(procedure)"
+                />
+                <span class="mx-1 h-4 w-px bg-n-weak" aria-hidden="true" />
+                <NextButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="ruby"
+                  icon="i-lucide-trash-2"
+                  data-testid="calendar-remove-procedure"
+                  :aria-label="t('CALENDAR.SETTINGS.REMOVE_PROCEDURE')"
+                  :title="t('CALENDAR.SETTINGS.REMOVE_PROCEDURE')"
+                  :disabled="isSaving"
+                  @click="removeProcedure(procedure)"
+                />
+              </div>
             </article>
           </div>
         </section>
@@ -1424,11 +1558,11 @@ defineExpose({ open });
                 :is-loading="isSaving"
               />
               <NextButton
-                v-if="editingResourceId"
                 type="button"
                 size="sm"
                 outline
-                :label="t('GENERAL.CANCEL')"
+                data-testid="calendar-resource-cancel"
+                :label="t('CALENDAR.SETTINGS.CANCEL_EDIT')"
                 @click="resetResourceForm"
               />
             </div>
@@ -1509,7 +1643,7 @@ defineExpose({ open });
               :key="resource.id"
               class="flex items-center justify-between gap-3 rounded-md border border-n-weak px-3 py-2"
             >
-              <div class="grid gap-0.5">
+              <div class="grid min-w-0 gap-0.5">
                 <span
                   class="flex items-center gap-2 text-sm font-medium text-n-slate-12"
                 >
@@ -1530,40 +1664,65 @@ defineExpose({ open });
                   {{ resourceTypeLabel(resource.resource_type) }}
                 </span>
               </div>
-              <NextButton
-                type="button"
-                xs
-                outline
-                data-testid="calendar-edit-resource"
-                :label="t('CALENDAR.SETTINGS.EDIT_RESOURCE')"
-                @click="editResource(resource)"
-              />
-              <NextButton
-                type="button"
-                xs
-                outline
-                :label="t('CALENDAR.SETTINGS.AVAILABILITY.OPEN')"
-                @click="openAvailability(resource)"
-              />
-              <NextButton
-                type="button"
-                xs
-                outline
-                data-testid="calendar-toggle-resource"
-                :label="resourceToggleLabel(resource)"
-                :disabled="isSaving"
-                @click="toggleResource(resource)"
-              />
-              <NextButton
-                type="button"
-                xs
-                outline
-                ruby
-                data-testid="calendar-remove-resource"
-                :label="t('CALENDAR.SETTINGS.REMOVE_RESOURCE')"
-                :disabled="isSaving"
-                @click="removeResource(resource)"
-              />
+              <!--
+                As ações vivem num grupo próprio. Soltas como filhos diretos do
+                `justify-between`, o espaço era repartido entre as cinco peças e
+                os botões espalhavam-se pela linha, cada um a uma distância.
+                Apagar fica afastado dos outros por ser o único destrutivo.
+              -->
+              <div class="flex shrink-0 items-center gap-1">
+                <NextButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="slate"
+                  icon="i-lucide-pencil"
+                  data-testid="calendar-edit-resource"
+                  :aria-label="t('CALENDAR.SETTINGS.EDIT_RESOURCE')"
+                  :title="t('CALENDAR.SETTINGS.EDIT_RESOURCE')"
+                  @click="editResource(resource)"
+                />
+                <NextButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="slate"
+                  icon="i-lucide-clock"
+                  data-testid="calendar-resource-availability"
+                  :aria-label="t('CALENDAR.SETTINGS.AVAILABILITY.OPEN')"
+                  :title="t('CALENDAR.SETTINGS.AVAILABILITY.OPEN')"
+                  @click="openAvailability(resource)"
+                />
+                <NextButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="slate"
+                  :icon="
+                    resource.active
+                      ? 'i-lucide-archive'
+                      : 'i-lucide-archive-restore'
+                  "
+                  data-testid="calendar-toggle-resource"
+                  :aria-label="resourceToggleLabel(resource)"
+                  :title="resourceToggleLabel(resource)"
+                  :disabled="isSaving"
+                  @click="toggleResource(resource)"
+                />
+                <span class="mx-1 h-4 w-px bg-n-weak" aria-hidden="true" />
+                <NextButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="ruby"
+                  icon="i-lucide-trash-2"
+                  data-testid="calendar-remove-resource"
+                  :aria-label="t('CALENDAR.SETTINGS.REMOVE_RESOURCE')"
+                  :title="t('CALENDAR.SETTINGS.REMOVE_RESOURCE')"
+                  :disabled="isSaving"
+                  @click="removeResource(resource)"
+                />
+              </div>
             </article>
           </div>
 
@@ -1907,32 +2066,59 @@ defineExpose({ open });
               </p>
             </div>
             <p
-              v-if="!procedures.some(item => item.public_booking_enabled)"
+              v-if="!linkableProcedures.length"
+              data-testid="calendar-procedure-links-empty"
               class="mb-0 text-sm text-n-slate-11"
             >
-              {{ t('CALENDAR.SETTINGS.NO_PUBLISHED_PROCEDURES') }}
+              {{ t('CALENDAR.SETTINGS.NO_PROCEDURES_FOR_LINKS') }}
             </p>
+            <!--
+              Todos os procedimentos, e não só os que têm autoagendamento. Só
+              esses apareciam, o interruptor vem desligado, e a lista vazia
+              mandava «publicar» — palavra que não existe em botão nenhum. Quem
+              criou procedimentos não os via e achava que era defeito.
+            -->
             <div
-              v-for="procedure in procedures.filter(
-                item => item.public_booking_enabled
-              )"
+              v-for="procedure in linkableProcedures"
               :key="procedure.id"
+              data-testid="calendar-procedure-link"
               class="flex items-center justify-between gap-3 rounded-md border border-n-weak bg-n-surface-1 px-3 py-2"
             >
               <div class="grid min-w-0 gap-0.5">
                 <span class="truncate text-sm font-medium text-n-slate-12">
                   {{ procedure.public_title || procedure.name }}
                 </span>
-                <span class="truncate text-xs text-n-slate-11">
+                <span
+                  v-if="procedure.public_booking_enabled"
+                  class="truncate text-xs text-n-slate-11"
+                >
                   {{ publicProcedureUrl(procedure) }}
+                </span>
+                <span
+                  v-else
+                  class="flex items-center gap-1 text-xs text-n-slate-11"
+                >
+                  <i class="i-lucide-link-2-off size-3.5" aria-hidden="true" />
+                  {{ t('CALENDAR.SETTINGS.PUBLIC_BOOKING_OFF') }}
                 </span>
               </div>
               <NextButton
+                v-if="procedure.public_booking_enabled"
                 type="button"
-                xs
-                outline
+                size="xs"
+                variant="outline"
+                data-testid="calendar-copy-procedure-link"
                 :label="t('CALENDAR.SETTINGS.COPY_LINK')"
                 @click="copyProcedureBookingLink(procedure)"
+              />
+              <NextButton
+                v-else
+                type="button"
+                size="xs"
+                variant="outline"
+                data-testid="calendar-enable-procedure-booking"
+                :label="t('CALENDAR.SETTINGS.ENABLE_PUBLIC_BOOKING')"
+                @click="enableProcedureBooking(procedure)"
               />
             </div>
           </section>
