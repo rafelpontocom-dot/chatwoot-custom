@@ -19,11 +19,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
     starts_at = Time.zone.parse(params.require(:starts_at))
     return render_invalid_availability if starts_at.blank?
 
-    render json: KanbanCalendar::AvailabilityCheckService.new(
-      procedure: scoped_availability_procedure,
-      resource: scoped_availability_resource,
-      starts_at: starts_at
-    ).call
+    render json: availability_across_resources.check(starts_at: starts_at)
   end
 
   def create
@@ -188,6 +184,25 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
     policy_scope(KanbanCalendarResource).active.find(params.require(:resource_id))
   end
 
+  # Uma consulta pode ocupar profissional, sala e equipamento ao mesmo tempo, e
+  # a disponibilidade tem de valer para todos. `resource_id` continua aceite:
+  # a oportunidade do Kanban e o runtime ainda perguntam por um recurso só.
+  def scoped_availability_resources
+    ids = Array(params[:resource_ids]).compact_blank.uniq
+    return [scoped_availability_resource] if ids.empty?
+
+    # `find` com lista lança RecordNotFound se faltar algum: um id de outra conta
+    # é recusado em vez de ignorado.
+    policy_scope(KanbanCalendarResource).active.find(ids)
+  end
+
+  def availability_across_resources
+    KanbanCalendar::AvailabilityAcrossResources.new(
+      procedure: scoped_availability_procedure,
+      resources: scoped_availability_resources
+    )
+  end
+
   def render_invalid_record(record)
     render json: { message: record.errors.full_messages.to_sentence, errors: record.errors }, status: :unprocessable_entity
   end
@@ -198,11 +213,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
 
   def render_available_slots
     date = Date.iso8601(params[:date])
-    slots = KanbanCalendar::AvailabilitySlotsQuery.new(
-      procedure: scoped_availability_procedure,
-      resource: scoped_availability_resource,
-      date: date
-    ).call
+    slots = availability_across_resources.slots(date: date)
     render json: { date: date.iso8601, slots: slots.map(&:iso8601) }
   rescue Date::Error
     render json: { message: 'A valid date is required' }, status: :unprocessable_entity

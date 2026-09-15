@@ -41,17 +41,15 @@ class KanbanCalendarResource < ApplicationRecord
   validates :name, :timezone, presence: true
   validates :resource_type, inclusion: { in: RESOURCE_TYPES }
   validates :capacity, numericality: { only_integer: true, equal_to: 1 }
-  validate :user_present_for_user_resource
+  # O tipo `user` é o profissional, e já não exige utilizador do CRM: quem
+  # atende na clínica pode não ter login. A ligação a um utilizador continua
+  # possível, e continua a ter de ser da mesma conta.
   validate :user_belongs_to_account
   validate :valid_timezone
 
   scope :active, -> { where(active: true) }
 
   private
-
-  def user_present_for_user_resource
-    errors.add(:user, 'must be selected for a professional resource') if resource_type == 'user' && user.blank?
-  end
 
   def user_belongs_to_account
     return if user.blank? || user.account_ids.include?(account_id)
