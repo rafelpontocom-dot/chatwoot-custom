@@ -13,22 +13,25 @@ class KanbanBoards::CreateFromTemplateService
   #
   # Poucos e certos de propósito: apagar o que sobra é mais fácil do que
   # descobrir o que falta.
+  #
+  # Nascem todos em largura total — é o padrão do produto para conta nova. Quem
+  # quiser campos lado a lado escolhe a meia largura nas configurações do funil.
   FIELDS = {
     'clinic' => [
       { key: 'procedimento', label: 'Procedimento', field_type: 'select',
-        options: %w[Consulta Avaliação Procedimento Retorno], width: 'half' },
-      { key: 'valor_orcado', label: 'Valor orçado', field_type: 'currency', width: 'half' },
-      { key: 'profissional', label: 'Profissional', field_type: 'text', width: 'half' },
-      { key: 'data_procedimento', label: 'Data do procedimento', field_type: 'date', width: 'half' },
+        options: %w[Consulta Avaliação Procedimento Retorno] },
+      { key: 'valor_orcado', label: 'Valor orçado', field_type: 'currency' },
+      { key: 'profissional', label: 'Profissional', field_type: 'text' },
+      { key: 'data_procedimento', label: 'Data do procedimento', field_type: 'date' },
       { key: 'origem', label: 'Como nos conheceu', field_type: 'select',
-        options: ['Indicação', 'Instagram', 'Google', 'Passou em frente', 'Outro'], width: 'half' },
-      { key: 'observacoes', label: 'Observações', field_type: 'textarea', width: 'full' }
+        options: ['Indicação', 'Instagram', 'Google', 'Passou em frente', 'Outro'] },
+      { key: 'observacoes', label: 'Observações', field_type: 'textarea' }
     ],
     'b2b' => [
-      { key: 'empresa', label: 'Empresa', field_type: 'text', width: 'half' },
-      { key: 'valor_orcado', label: 'Valor da proposta', field_type: 'currency', width: 'half' },
-      { key: 'decisor', label: 'Quem decide', field_type: 'text', width: 'half' },
-      { key: 'observacoes', label: 'Observações', field_type: 'textarea', width: 'full' }
+      { key: 'empresa', label: 'Empresa', field_type: 'text' },
+      { key: 'valor_orcado', label: 'Valor da proposta', field_type: 'currency' },
+      { key: 'decisor', label: 'Quem decide', field_type: 'text' },
+      { key: 'observacoes', label: 'Observações', field_type: 'textarea' }
     ]
   }.freeze
 
@@ -76,7 +79,7 @@ class KanbanBoards::CreateFromTemplateService
       'required_stage_ids' => [],
       'condition' => {},
       'formula' => nil,
-      'layout' => { 'section' => 'details', 'position' => index + 1, 'width' => field[:width] }
+      'layout' => { 'section' => 'details', 'position' => index + 1, 'width' => 'full' }
     }
   end
 

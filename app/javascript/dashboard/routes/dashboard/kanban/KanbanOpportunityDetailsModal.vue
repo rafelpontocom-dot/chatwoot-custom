@@ -8,7 +8,9 @@ import FinanceAPI from 'dashboard/api/finance';
 import FormsAPI from 'dashboard/api/forms';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
+import { getRandomColor } from 'dashboard/helper/labelColor';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import KanbanCalendarAppointmentsSection from './KanbanCalendarAppointmentsSection.vue';
@@ -184,6 +186,8 @@ const subjectError = ref('');
 const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
 const showLabelsPopover = ref(false);
+const labelQuery = ref('');
+const isCreatingLabel = ref(false);
 const pendingPipelineTransfer = ref(null);
 const activeTabKey = ref('details');
 const contactDraft = ref({
@@ -412,6 +416,38 @@ const setContactAttributeValue = (entry, value) => {
     },
   };
 };
+// Espelha o servidor: o título fica em minúsculas e não aceita espaço, então
+// «Paciente VIP» vira «paciente-vip» em vez de ser recusado.
+const LABEL_TITLE_FORMAT = /^[\p{L}\p{N}][\p{L}\p{N}_-]+$/u;
+const normalizedLabelQuery = computed(() =>
+  labelQuery.value.trim().toLowerCase().replace(/\s+/g, '-')
+);
+const filteredAccountLabels = computed(() => {
+  const query = normalizedLabelQuery.value;
+  if (!query) return accountLabels.value || [];
+  return (accountLabels.value || []).filter(label =>
+    String(label.title || '')
+      .toLowerCase()
+      .includes(query)
+  );
+});
+const labelQueryHasExactMatch = computed(() =>
+  (accountLabels.value || []).some(
+    label =>
+      String(label.title || '').toLowerCase() === normalizedLabelQuery.value
+  )
+);
+const canCreateLabels = computed(() =>
+  (currentAccount.value?.permissions || []).includes('administrator')
+);
+const labelQueryIsNew = computed(
+  () => !!normalizedLabelQuery.value && !labelQueryHasExactMatch.value
+);
+const labelTitleToCreate = computed(() =>
+  labelQueryIsNew.value && LABEL_TITLE_FORMAT.test(normalizedLabelQuery.value)
+    ? normalizedLabelQuery.value
+    : ''
+);
 const selectedLabelTitleSet = computed(
   () => new Set(selectedLabelTitles.value)
 );
@@ -859,7 +895,16 @@ const currentFormState = () => ({
   amountValue: amountValue.value,
   amountCurrency: amountCurrency.value,
   expectedCloseDate: expectedCloseDate.value,
-  customFieldValues: customFieldValues.value,
+  // Campo vazio e campo ausente são o mesmo valor: escrever e apagar não é alteração.
+  customFieldValues: Object.fromEntries(
+    Object.entries(customFieldValues.value || {}).filter(
+      ([, value]) =>
+        value !== '' &&
+        value !== null &&
+        value !== undefined &&
+        !(Array.isArray(value) && !value.length)
+    )
+  ),
   nextActionType: nextActionType.value,
   nextActionAt: nextActionAt.value,
   nextActionNote: nextActionNote.value,
@@ -1425,6 +1470,36 @@ const saveLabels = async () => {
   }
 };
 
+const createLabel = async () => {
+  const title = labelTitleToCreate.value;
+  if (!title || !canCreateLabels.value || isCreatingLabel.value) return;
+
+  isCreatingLabel.value = true;
+  labelsSaveError.value = '';
+  try {
+    await store.dispatch('labels/create', {
+      title,
+      color: getRandomColor(),
+      show_on_sidebar: false,
+    });
+  } catch (error) {
+    labelsSaveError.value = getErrorMessage(
+      error,
+      t('KANBAN.OPPORTUNITY_DETAILS.CREATE_LABEL_ERROR')
+    );
+    return;
+  } finally {
+    isCreatingLabel.value = false;
+  }
+
+  labelQuery.value = '';
+  if (!selectedLabelTitleSet.value.has(title)) {
+    selectedLabelTitles.value = [...selectedLabelTitles.value, title];
+  }
+  // Criar a partir do card é para usar já: fica aplicada sem segundo clique.
+  await saveLabels();
+};
+
 const saveContact = async () => {
   const contactId = card.value?.contact?.id;
   if (!contactId || isSavingContact.value) return;
@@ -1682,13 +1757,31 @@ watch(invitationPendingRevocation, async invitation => {
               >
                 {{ labelsLoadError || labelsSaveError }}
               </p>
+              <RaevoField>
+                <template #default="{ controlClass, fieldId }">
+                  <input
+                    :id="fieldId"
+                    v-model="labelQuery"
+                    type="search"
+                    data-testid="kanban-opportunity-label-search"
+                    :class="controlClass"
+                    :placeholder="
+                      canCreateLabels
+                        ? t('KANBAN.OPPORTUNITY_DETAILS.LABEL_SEARCH_OR_CREATE')
+                        : t('KANBAN.OPPORTUNITY_DETAILS.LABEL_SEARCH')
+                    "
+                    :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.LABEL_SEARCH')"
+                    @keydown.enter.prevent="createLabel"
+                  />
+                </template>
+              </RaevoField>
               <div
-                v-if="accountLabels.length"
+                v-if="filteredAccountLabels.length"
                 data-testid="kanban-opportunity-labels"
-                class="flex flex-wrap gap-1.5"
+                class="flex max-h-48 flex-wrap gap-1.5 overflow-y-auto"
               >
                 <button
-                  v-for="label in accountLabels"
+                  v-for="label in filteredAccountLabels"
                   :key="label.id || label.title"
                   type="button"
                   data-testid="kanban-opportunity-label"
@@ -1713,12 +1806,47 @@ watch(invitationPendingRevocation, async invitation => {
                 </button>
               </div>
               <p
-                v-else-if="!isLoadingLabels"
+                v-else-if="!isLoadingLabels && !labelQueryIsNew"
                 data-testid="kanban-opportunity-no-labels"
                 class="mb-0 text-xs text-n-slate-11"
               >
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.NO_LABELS_AVAILABLE') }}
               </p>
+              <template v-if="labelQueryIsNew">
+                <button
+                  v-if="canCreateLabels && labelTitleToCreate"
+                  type="button"
+                  data-testid="kanban-opportunity-create-label"
+                  class="flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-xs font-medium text-n-blue-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="isCreatingLabel || isSavingLabels"
+                  @click="createLabel"
+                >
+                  <i class="i-lucide-plus size-3.5 flex-shrink-0" />
+                  <span class="truncate">
+                    {{
+                      t('KANBAN.OPPORTUNITY_DETAILS.CREATE_LABEL', {
+                        title: labelTitleToCreate,
+                      })
+                    }}
+                  </span>
+                </button>
+                <p
+                  v-else-if="canCreateLabels"
+                  data-testid="kanban-opportunity-label-invalid"
+                  class="mb-0 flex items-start gap-1.5 text-xs text-n-slate-11"
+                >
+                  <i class="i-lucide-info mt-0.5 size-3.5 flex-shrink-0" />
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.LABEL_TITLE_RULE') }}
+                </p>
+                <p
+                  v-else
+                  data-testid="kanban-opportunity-label-admin-only"
+                  class="mb-0 flex items-start gap-1.5 text-xs text-n-slate-11"
+                >
+                  <i class="i-lucide-lock mt-0.5 size-3.5 flex-shrink-0" />
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.LABEL_CREATE_ADMIN_ONLY') }}
+                </p>
+              </template>
             </div>
           </div>
         </div>
@@ -1789,7 +1917,7 @@ watch(invitationPendingRevocation, async invitation => {
       <form
         v-else-if="card"
         data-testid="kanban-opportunity-form"
-        class="grid gap-5"
+        class="flex min-h-full flex-col gap-5"
         @submit.prevent="saveCard"
       >
         <nav
@@ -2954,8 +3082,16 @@ watch(invitationPendingRevocation, async invitation => {
           {{ saveError }}
         </p>
 
+        <!--
+          Só aparece com alterações por salvar: desfazer a edição esconde-a de novo.
+          `mt-auto` prende-a ao fundo do painel: presa ao fim do conteúdo, subia
+          quando o campo em edição fechava ao perder o foco, e o clique em Salvar
+          caía no vazio.
+        -->
         <div
-          class="sticky bottom-0 z-20 -mx-1 flex items-center justify-end gap-3 border-t border-n-weak bg-n-background px-1 pb-4 pt-4"
+          v-if="isFormDirty || isSaving"
+          data-testid="kanban-opportunity-save-bar"
+          class="sticky bottom-0 z-20 -mx-1 mt-auto flex items-center justify-end gap-3 border-t border-n-weak bg-n-background px-1 pb-4 pt-4"
         >
           <NextButton
             type="button"

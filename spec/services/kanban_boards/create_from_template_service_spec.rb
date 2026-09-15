@@ -15,6 +15,15 @@ RSpec.describe KanbanBoards::CreateFromTemplateService do
     expect(board.custom_field_definitions.first['layout']).to include('section' => 'details', 'position' => 1)
   end
 
+  it 'creates every template field full width, so a new account starts readable' do
+    %w[clinic b2b].each do |template_key|
+      board = described_class.new(account: account, attributes: { name: template_key }, template_key: template_key).perform!
+      widths = board.custom_field_definitions.map { |definition| definition['layout']['width'] }
+
+      expect(widths).to all(eq('full')), template_key
+    end
+  end
+
   it 'leaves a blank funnel blank' do
     board = build_board('blank')
 

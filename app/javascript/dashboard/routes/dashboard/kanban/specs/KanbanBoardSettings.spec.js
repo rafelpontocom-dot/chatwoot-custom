@@ -608,11 +608,21 @@ describe('KanbanBoardSettings', () => {
   });
 
   it('persists stage reorder from settings', async () => {
+    // O SortableJS entrega em `item` o elemento RAIZ do item arrastado. Este
+    // teste fabricava `{ dataset: { stageId: '200' } }` à mão — e a raiz real
+    // não tinha `data-stage-id`, que estava num `div` de dentro. O teste passava
+    // e arrastar uma etapa nas definições nunca chegava ao servidor.
     const { wrapper, dispatch } = await mountSettings();
-    const draggable = wrapper.findComponent({ name: 'Draggable' });
+    const draggable = wrapper
+      .findAllComponents({ name: 'Draggable' })
+      .find(
+        componente =>
+          componente.attributes('data-testid') === 'kanban-settings-stage-list'
+      );
+    const itemArrastado = draggable.element.children[1];
 
     await draggable.vm.$emit('end', {
-      item: { dataset: { stageId: '200' } },
+      item: itemArrastado,
       oldIndex: 1,
       newIndex: 0,
     });
@@ -1019,6 +1029,41 @@ describe('KanbanBoardSettings', () => {
       'event_id',
       'landing_page_full',
     ]);
+    expect(
+      payload.kanban_board.custom_field_definitions
+        .filter(definition => definition.layout.section === 'marketing')
+        .map(definition => definition.layout.width)
+    ).toEqual(Array(marketingKeys.length).fill('full'));
+  });
+
+  it('keeps the width chosen for a marketing field when the preset is normalized', async () => {
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          custom_field_definitions: [
+            {
+              key: 'utm_source',
+              label: 'UTM source',
+              field_type: 'text',
+              layout: { section: 'marketing', position: 1, width: 'half' },
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    const definitions =
+      KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1].kanban_board
+        .custom_field_definitions;
+    expect(
+      definitions.find(definition => definition.key === 'utm_source').layout
+        .width
+    ).toBe('half');
   });
 
   it('removes the marketing preset only after the switch asks to confirm', async () => {

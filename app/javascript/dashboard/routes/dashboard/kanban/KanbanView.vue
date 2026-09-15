@@ -192,14 +192,6 @@ const hasActiveFilters = computed(
 const openFilters = () => {
   showFiltersPanel.value = true;
 };
-const stageListModel = computed({
-  get: () => selectedBoard.value?.stages || [],
-  set: nextStages => {
-    if (!selectedBoard.value) return;
-
-    selectedBoard.value = { ...selectedBoard.value, stages: nextStages };
-  },
-});
 const isCardDragDisabled = computed(
   () => isPersistingCardDrag.value || !!activeActionKey.value
 );
@@ -1167,36 +1159,6 @@ const closeAddItemPicker = () => {
 
 const openQuickOpportunityPicker = () => {
   if (firstStageId.value) showQuickCreate.value = true;
-};
-
-const reorderStageByPosition = async (stage, position) => {
-  if (!selectedBoard.value?.id || !stage?.id || activeActionKey.value) return;
-
-  activeActionKey.value = `reorder-stage-${stage.id}`;
-
-  try {
-    await KanbanBoardsAPI.reorderStage(selectedBoard.value.id, stage.id, {
-      position,
-    });
-    await refreshSelectedBoard();
-  } catch (error) {
-    showActionError(error, t('KANBAN.ACTIONS.REORDER_STAGE_ERROR'));
-    await refreshSelectedBoard();
-  } finally {
-    activeActionKey.value = '';
-  }
-};
-
-const onStageDragEnd = async event => {
-  const stageId = Number(event?.item?.dataset?.stageId);
-  const newIndex = event?.newIndex;
-  const oldIndex = event?.oldIndex;
-  if (!stageId || oldIndex === newIndex || newIndex === undefined) return;
-
-  const stage = stages.value.find(item => item.id === stageId);
-  if (!stage) return;
-
-  await reorderStageByPosition(stage, newIndex + 1);
 };
 
 const openBookingStageOpportunity = (cardId, stageId, stageChanged) => {
@@ -2600,307 +2562,298 @@ onUnmounted(() => {
         :class="{ 'cursor-grabbing select-none': isPanning }"
         @mousedown="startPan"
       >
-        <Draggable
-          v-model="stageListModel"
-          item-key="id"
-          class="flex min-h-0 gap-3"
-          handle=".stage-drag-handle"
-          ghost-class="opacity-60"
-          chosen-class="opacity-90"
-          :animation="180"
-          @end="onStageDragEnd"
-        >
-          <template #item="{ element: stage }">
-            <section
-              :data-stage-id="stage.id"
-              class="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
+        <!--
+          As colunas não se arrastam aqui. A ordem das etapas é configuração do
+          quadro e define-se em Configuração › Geral; o Pipeline só a mostra.
+          Arrastar colunas aqui era o único sítio onde a ordem gravava, e isso
+          escondia que nas definições não gravava.
+        -->
+        <div class="flex min-h-0 gap-3">
+          <section
+            v-for="stage in stages"
+            :key="stage.id"
+            :data-stage-id="stage.id"
+            class="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
+          >
+            <div
+              v-if="!isNeutralStageColor(stage.color)"
+              class="h-1 w-full flex-shrink-0"
+              :class="getStageBarClass(stage)"
+              aria-hidden="true"
+            />
+            <header
+              class="group/stage relative flex min-h-10 items-start justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-2 text-n-slate-12"
             >
-              <div
-                v-if="!isNeutralStageColor(stage.color)"
-                class="h-1 w-full flex-shrink-0"
-                :class="getStageBarClass(stage)"
-                aria-hidden="true"
-              />
-              <header
-                class="stage-drag-handle group/stage relative flex min-h-10 cursor-grab items-start justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-2 text-n-slate-12"
+              <form
+                v-if="editingStageId === stage.id"
+                class="grid min-w-0 flex-1 gap-2"
+                @submit.prevent="updateStage(stage)"
               >
-                <form
-                  v-if="editingStageId === stage.id"
-                  class="grid min-w-0 flex-1 gap-2"
-                  @submit.prevent="updateStage(stage)"
-                >
-                  <div class="flex min-w-0 gap-2">
-                    <input
-                      :ref="element => setStageNameInput(stage.id, element)"
-                      v-model="stageNames[stage.id]"
-                      type="text"
-                      class="min-w-0 flex-1 rounded-full border border-n-strong bg-n-solid-1 px-3 py-1.5 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                      :placeholder="t('KANBAN.ACTIONS.STAGE_NAME_PLACEHOLDER')"
-                      @keydown.escape.prevent="cancelEditingStage"
-                    />
-                    <button
-                      type="submit"
-                      class="flex p-0 size-8 flex-shrink-0 items-center justify-center rounded-full border border-solid border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="
-                        !String(stageNames[stage.id] || '').trim() ||
-                        !!activeActionKey
-                      "
-                      :aria-label="t('KANBAN.ACTIONS.SAVE_STAGE')"
-                      :title="t('KANBAN.ACTIONS.SAVE_STAGE')"
-                    >
-                      <i class="i-lucide-check size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      class="flex p-0 size-8 flex-shrink-0 items-center justify-center rounded-full border border-solid border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand"
-                      :aria-label="t('KANBAN.ACTIONS.CANCEL')"
-                      :title="t('KANBAN.ACTIONS.CANCEL')"
-                      @click="cancelEditingStage"
-                    >
-                      <i class="i-lucide-x size-4" />
-                    </button>
-                  </div>
-                  <div
-                    class="flex items-center gap-1.5"
-                    :aria-label="t('KANBAN.ACTIONS.STAGE_COLOR')"
+                <div class="flex min-w-0 gap-2">
+                  <input
+                    :ref="element => setStageNameInput(stage.id, element)"
+                    v-model="stageNames[stage.id]"
+                    type="text"
+                    class="min-w-0 flex-1 rounded-full border border-n-strong bg-n-solid-1 px-3 py-1.5 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                    :placeholder="t('KANBAN.ACTIONS.STAGE_NAME_PLACEHOLDER')"
+                    @keydown.escape.prevent="cancelEditingStage"
+                  />
+                  <button
+                    type="submit"
+                    class="flex p-0 size-8 flex-shrink-0 items-center justify-center rounded-full border border-solid border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="
+                      !String(stageNames[stage.id] || '').trim() ||
+                      !!activeActionKey
+                    "
+                    :aria-label="t('KANBAN.ACTIONS.SAVE_STAGE')"
+                    :title="t('KANBAN.ACTIONS.SAVE_STAGE')"
                   >
-                    <button
-                      v-for="colorOption in stageColorOptions"
-                      :key="colorOption.value"
-                      type="button"
-                      class="p-0 size-5 rounded-full border border-solid border-n-weak ring-offset-2 ring-offset-n-solid-1"
-                      :class="[
-                        colorOption.swatchClass,
-                        stageColors[stage.id] === colorOption.value
-                          ? 'ring-2 ring-n-brand'
-                          : 'hover:ring-2 hover:ring-n-slate-8',
-                      ]"
-                      :aria-label="getSelectStageColorLabel(colorOption)"
-                      @click="stageColors[stage.id] = colorOption.value"
-                    />
-                  </div>
-                </form>
-                <template v-else>
-                  <div class="flex min-w-0 flex-1 items-start gap-2">
-                    <h3
-                      class="min-w-0 flex-1 break-words text-base font-bold leading-6 tracking-tight text-n-slate-12"
-                    >
-                      <!--
+                    <i class="i-lucide-check size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="flex p-0 size-8 flex-shrink-0 items-center justify-center rounded-full border border-solid border-n-weak bg-n-solid-1 text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand"
+                    :aria-label="t('KANBAN.ACTIONS.CANCEL')"
+                    :title="t('KANBAN.ACTIONS.CANCEL')"
+                    @click="cancelEditingStage"
+                  >
+                    <i class="i-lucide-x size-4" />
+                  </button>
+                </div>
+                <div
+                  class="flex items-center gap-1.5"
+                  :aria-label="t('KANBAN.ACTIONS.STAGE_COLOR')"
+                >
+                  <button
+                    v-for="colorOption in stageColorOptions"
+                    :key="colorOption.value"
+                    type="button"
+                    class="p-0 size-5 rounded-full border border-solid border-n-weak ring-offset-2 ring-offset-n-solid-1"
+                    :class="[
+                      colorOption.swatchClass,
+                      stageColors[stage.id] === colorOption.value
+                        ? 'ring-2 ring-n-brand'
+                        : 'hover:ring-2 hover:ring-n-slate-8',
+                    ]"
+                    :aria-label="getSelectStageColorLabel(colorOption)"
+                    @click="stageColors[stage.id] = colorOption.value"
+                  />
+                </div>
+              </form>
+              <template v-else>
+                <div class="flex min-w-0 flex-1 items-start gap-2">
+                  <h3
+                    class="min-w-0 flex-1 break-words text-base font-bold leading-6 tracking-tight text-n-slate-12"
+                  >
+                    <!--
                         Nome da etapa nunca corta: quebra em duas linhas e a
                         coluna cresce. Etapas vão de 6 a 15 e os nomes são longos.
                       -->
-                      <span :title="stage.description || stage.name">
-                        {{ stage.name }}
-                      </span>
-                    </h3>
-                    <button
-                      v-if="stage.description"
-                      type="button"
-                      class="flex p-0 size-6 shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand"
-                      :aria-label="stage.description"
-                      :title="stage.description"
-                    >
-                      <i
-                        class="i-lucide-circle-help size-4"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <span
-                      class="mt-0.5 flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-micro font-bold tabular-nums text-n-slate-11"
-                    >
-                      {{ stageCardCount(stage) }}
+                    <span :title="stage.description || stage.name">
+                      {{ stage.name }}
                     </span>
-                    <span
-                      v-if="stageStaleCount(stage)"
-                      data-testid="kanban-stage-stale-count"
-                      class="mt-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-amber-3 px-2 py-0.5 text-micro font-semibold tabular-nums text-n-amber-11"
-                      :title="t('KANBAN.STAGE.STALE_TITLE')"
-                    >
-                      <i
-                        class="i-lucide-clock-alert size-3"
-                        aria-hidden="true"
-                      />
-                      {{
-                        t('KANBAN.STAGE.STALE_COUNT', stageStaleCount(stage), {
-                          count: stageStaleCount(stage),
-                        })
-                      }}
-                    </span>
-                    <span
-                      v-if="stageOverCapacity(stage)"
-                      data-testid="kanban-stage-capacity-alert"
-                      class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-ruby-3 px-2 py-0.5 text-micro font-medium text-n-ruby-11"
-                      :title="t('KANBAN.STAGE.CAPACITY_ALERT')"
-                    >
-                      <i class="i-lucide-triangle-alert size-3" />
-                      {{ `${stageCardCount(stage)}/${stage.wipLimit}` }}
-                    </span>
-                  </div>
-                  <!--
+                  </h3>
+                  <button
+                    v-if="stage.description"
+                    type="button"
+                    class="flex p-0 size-6 shrink-0 items-center justify-center rounded-full text-n-slate-10 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand"
+                    :aria-label="stage.description"
+                    :title="stage.description"
+                  >
+                    <i class="i-lucide-circle-help size-4" aria-hidden="true" />
+                  </button>
+                  <span
+                    class="mt-0.5 flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-micro font-bold tabular-nums text-n-slate-11"
+                  >
+                    {{ stageCardCount(stage) }}
+                  </span>
+                  <span
+                    v-if="stageStaleCount(stage)"
+                    data-testid="kanban-stage-stale-count"
+                    class="mt-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-amber-3 px-2 py-0.5 text-micro font-semibold tabular-nums text-n-amber-11"
+                    :title="t('KANBAN.STAGE.STALE_TITLE')"
+                  >
+                    <i class="i-lucide-clock-alert size-3" aria-hidden="true" />
+                    {{
+                      t('KANBAN.STAGE.STALE_COUNT', stageStaleCount(stage), {
+                        count: stageStaleCount(stage),
+                      })
+                    }}
+                  </span>
+                  <span
+                    v-if="stageOverCapacity(stage)"
+                    data-testid="kanban-stage-capacity-alert"
+                    class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-ruby-3 px-2 py-0.5 text-micro font-medium text-n-ruby-11"
+                    :title="t('KANBAN.STAGE.CAPACITY_ALERT')"
+                  >
+                    <i class="i-lucide-triangle-alert size-3" />
+                    {{ `${stageCardCount(stage)}/${stage.wipLimit}` }}
+                  </span>
+                </div>
+                <!--
                     Barra de saúde: sem margem lateral, encostada às arestas do
                     cabeçalho, para se ler como uma régua da coluna e não como
                     mais um elemento dentro dela.
                   -->
-                  <div
-                    v-if="stageHealth(stage).total"
-                    data-testid="kanban-stage-health"
-                    class="absolute inset-x-0 bottom-0 flex h-1 gap-px overflow-hidden"
-                    role="img"
-                    :aria-label="stageHealthLabel(stage)"
-                    :title="stageHealthLabel(stage)"
-                  >
-                    <span
-                      v-if="stageHealth(stage).ok"
-                      class="bg-n-teal-9"
-                      :style="{ flex: `${stageHealth(stage).ok} 1 0%` }"
-                    />
-                    <span
-                      v-if="stageHealth(stage).warn"
-                      class="bg-n-amber-9"
-                      :style="{ flex: `${stageHealth(stage).warn} 1 0%` }"
-                    />
-                    <span
-                      v-if="stageHealth(stage).stuck"
-                      class="bg-n-ruby-9"
-                      :style="{ flex: `${stageHealth(stage).stuck} 1 0%` }"
-                    />
-                  </div>
-                  <!--
+                <div
+                  v-if="stageHealth(stage).total"
+                  data-testid="kanban-stage-health"
+                  class="absolute inset-x-0 bottom-0 flex h-1 gap-px overflow-hidden"
+                  role="img"
+                  :aria-label="stageHealthLabel(stage)"
+                  :title="stageHealthLabel(stage)"
+                >
+                  <span
+                    v-if="stageHealth(stage).ok"
+                    class="bg-n-teal-9"
+                    :style="{ flex: `${stageHealth(stage).ok} 1 0%` }"
+                  />
+                  <span
+                    v-if="stageHealth(stage).warn"
+                    class="bg-n-amber-9"
+                    :style="{ flex: `${stageHealth(stage).warn} 1 0%` }"
+                  />
+                  <span
+                    v-if="stageHealth(stage).stuck"
+                    class="bg-n-ruby-9"
+                    :style="{ flex: `${stageHealth(stage).stuck} 1 0%` }"
+                  />
+                </div>
+                <!--
                     Controles de hover sobrepostos, nunca reservando largura: era
                     isso que empurrava a contagem para o meio do cabeçalho.
                   -->
-                  <div
-                    class="absolute end-2 top-1.5 flex flex-shrink-0 gap-1 rounded-full bg-n-solid-1 opacity-0 shadow-sm transition-opacity focus-within:opacity-100 group-hover/stage:opacity-100"
+                <div
+                  class="absolute end-2 top-1.5 flex flex-shrink-0 gap-1 rounded-full bg-n-solid-1 opacity-0 shadow-sm transition-opacity focus-within:opacity-100 group-hover/stage:opacity-100"
+                >
+                  <button
+                    type="button"
+                    class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="!!activeActionKey"
+                    :aria-label="
+                      t('KANBAN.ACTIONS.EDIT_STAGE_NAMED', {
+                        name: stage.name,
+                      })
+                    "
+                    @click="startEditingStage(stage)"
                   >
-                    <button
-                      type="button"
-                      class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="!!activeActionKey"
-                      :aria-label="
-                        t('KANBAN.ACTIONS.EDIT_STAGE_NAMED', {
-                          name: stage.name,
-                        })
-                      "
-                      @click="startEditingStage(stage)"
-                    >
-                      <i class="i-lucide-pencil size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="!!activeActionKey"
-                      :aria-label="
-                        t('KANBAN.ACTIONS.REMOVE_STAGE_NAMED', {
-                          name: stage.name,
-                        })
-                      "
-                      @click="openRemoveStageConfirmation(stage)"
-                    >
-                      <i class="i-lucide-x size-4" />
-                    </button>
-                  </div>
+                    <i class="i-lucide-pencil size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="flex p-0 size-7 items-center justify-center rounded-full text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand group-hover/stage:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="!!activeActionKey"
+                    :aria-label="
+                      t('KANBAN.ACTIONS.REMOVE_STAGE_NAMED', {
+                        name: stage.name,
+                      })
+                    "
+                    @click="openRemoveStageConfirmation(stage)"
+                  >
+                    <i class="i-lucide-x size-4" />
+                  </button>
+                </div>
+              </template>
+            </header>
+
+            <div
+              class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-n-background p-2"
+            >
+              <button
+                type="button"
+                data-testid="kanban-add-item-button"
+                :data-stage-id="stage.id"
+                class="no-drag flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-n-strong bg-transparent px-3 py-2 text-xs font-semibold text-n-slate-10 outline-none hover:border-n-brand hover:bg-n-blue-3 hover:text-n-brand focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="!!activeActionKey"
+                :aria-expanded="activeAddItemStageId === stage.id"
+                :aria-controls="`kanban-add-item-panel-${stage.id}`"
+                :title="t('KANBAN.ACTIONS.ADD_ITEM')"
+                @click="toggleAddItemPicker(stage)"
+              >
+                <i class="i-lucide-plus size-3.5" />
+                {{ t('KANBAN.ACTIONS.ADD_ITEM') }}
+              </button>
+
+              <KanbanOpportunityPicker
+                v-if="activeAddItemStageId === stage.id"
+                :kanban-board-id="selectedBoard.id"
+                :kanban-stage-id="stage.id"
+                @created="refreshStageFirstPage(stage.id)"
+                @close="closeAddItemPicker"
+              />
+
+              <Draggable
+                :list="stage.cards"
+                item-key="id"
+                class="order-first flex flex-col gap-2 rounded-md"
+                :class="
+                  // Coluna vazia precisa de alvo generoso para soltar o card;
+                  // com cards, encolhe para o 'adicionar' não boiar no rodapé.
+                  stage.cards && stage.cards.length ? 'min-h-16' : 'min-h-40'
+                "
+                :group="{ name: 'kanban-cards' }"
+                handle=".card-drag-handle"
+                :filter="cardDragFilter"
+                :prevent-on-filter="false"
+                :empty-insert-threshold="80"
+                :swap-threshold="0.65"
+                fallback-on-body
+                force-fallback
+                :disabled="isCardDragDisabled"
+                ghost-class="opacity-60"
+                chosen-class="opacity-90"
+                :animation="180"
+                @start="onCardDragStart"
+                @change="onCardDragChange(stage, $event)"
+                @end="onCardDragEnd"
+              >
+                <p
+                  v-if="stage.cards.length === 0"
+                  class="pointer-events-none px-1 py-2 text-sm text-n-slate-10"
+                >
+                  {{ t('KANBAN.EMPTY_CARDS') }}
+                </p>
+                <template #item="{ element: card }">
+                  <KanbanConversationCard
+                    :card="card"
+                    :stages="stages"
+                    :active-action-key="activeActionKey"
+                    :selected="selectedCardIds.includes(card.id)"
+                    @open-details="openDetails"
+                    @open-conversation="openConversation"
+                    @remove-card="openRemoveCardConfirmation"
+                    @toggle-selection="toggleCardSelection"
+                    @move-card="moveCardToStage"
+                  />
                 </template>
-              </header>
+              </Draggable>
 
               <div
-                class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-n-background p-2"
+                v-if="getStageCardsError(stage.id)"
+                class="text-sm text-n-ruby-11"
               >
-                <button
-                  type="button"
-                  data-testid="kanban-add-item-button"
-                  :data-stage-id="stage.id"
-                  class="no-drag flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-n-strong bg-transparent px-3 py-2 text-xs font-semibold text-n-slate-10 outline-none hover:border-n-brand hover:bg-n-blue-3 hover:text-n-brand focus:ring-2 focus:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="!!activeActionKey"
-                  :aria-expanded="activeAddItemStageId === stage.id"
-                  :aria-controls="`kanban-add-item-panel-${stage.id}`"
-                  :title="t('KANBAN.ACTIONS.ADD_ITEM')"
-                  @click="toggleAddItemPicker(stage)"
-                >
-                  <i class="i-lucide-plus size-3.5" />
-                  {{ t('KANBAN.ACTIONS.ADD_ITEM') }}
-                </button>
-
-                <KanbanOpportunityPicker
-                  v-if="activeAddItemStageId === stage.id"
-                  :kanban-board-id="selectedBoard.id"
-                  :kanban-stage-id="stage.id"
-                  @created="refreshStageFirstPage(stage.id)"
-                  @close="closeAddItemPicker"
-                />
-
-                <Draggable
-                  :list="stage.cards"
-                  item-key="id"
-                  class="order-first flex flex-col gap-2 rounded-md"
-                  :class="
-                    // Coluna vazia precisa de alvo generoso para soltar o card;
-                    // com cards, encolhe para o 'adicionar' não boiar no rodapé.
-                    stage.cards && stage.cards.length ? 'min-h-16' : 'min-h-40'
-                  "
-                  :group="{ name: 'kanban-cards' }"
-                  handle=".card-drag-handle"
-                  :filter="cardDragFilter"
-                  :prevent-on-filter="false"
-                  :empty-insert-threshold="80"
-                  :swap-threshold="0.65"
-                  fallback-on-body
-                  force-fallback
-                  :disabled="isCardDragDisabled"
-                  ghost-class="opacity-60"
-                  chosen-class="opacity-90"
-                  :animation="180"
-                  @start="onCardDragStart"
-                  @change="onCardDragChange(stage, $event)"
-                  @end="onCardDragEnd"
-                >
-                  <p
-                    v-if="stage.cards.length === 0"
-                    class="pointer-events-none px-1 py-2 text-sm text-n-slate-10"
-                  >
-                    {{ t('KANBAN.EMPTY_CARDS') }}
-                  </p>
-                  <template #item="{ element: card }">
-                    <KanbanConversationCard
-                      :card="card"
-                      :stages="stages"
-                      :active-action-key="activeActionKey"
-                      :selected="selectedCardIds.includes(card.id)"
-                      @open-details="openDetails"
-                      @open-conversation="openConversation"
-                      @remove-card="openRemoveCardConfirmation"
-                      @toggle-selection="toggleCardSelection"
-                      @move-card="moveCardToStage"
-                    />
-                  </template>
-                </Draggable>
-
-                <div
-                  v-if="getStageCardsError(stage.id)"
-                  class="text-sm text-n-ruby-11"
-                >
-                  {{ getStageCardsError(stage.id) }}
-                </div>
-
-                <button
-                  v-if="stage.pagination?.hasMore"
-                  type="button"
-                  data-testid="kanban-load-more-cards"
-                  :data-stage-id="stage.id"
-                  class="no-drag flex w-full items-center justify-center gap-1 rounded-md border border-solid border-n-weak bg-n-alpha-1 px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="isStageCardsLoading(stage.id)"
-                  @click="loadMoreStageCards(stage)"
-                >
-                  <i class="i-lucide-loader-2 size-4" />
-                  {{
-                    isStageCardsLoading(stage.id)
-                      ? t('KANBAN.ACTIONS.LOADING_CARDS')
-                      : t('KANBAN.ACTIONS.LOAD_MORE_CARDS')
-                  }}
-                </button>
+                {{ getStageCardsError(stage.id) }}
               </div>
-            </section>
-          </template>
-        </Draggable>
+
+              <button
+                v-if="stage.pagination?.hasMore"
+                type="button"
+                data-testid="kanban-load-more-cards"
+                :data-stage-id="stage.id"
+                class="no-drag flex w-full items-center justify-center gap-1 rounded-md border border-solid border-n-weak bg-n-alpha-1 px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="isStageCardsLoading(stage.id)"
+                @click="loadMoreStageCards(stage)"
+              >
+                <i class="i-lucide-loader-2 size-4" />
+                {{
+                  isStageCardsLoading(stage.id)
+                    ? t('KANBAN.ACTIONS.LOADING_CARDS')
+                    : t('KANBAN.ACTIONS.LOAD_MORE_CARDS')
+                }}
+              </button>
+            </div>
+          </section>
+        </div>
       </div>
     </section>
 

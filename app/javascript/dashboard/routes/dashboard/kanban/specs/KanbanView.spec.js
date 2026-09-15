@@ -1161,22 +1161,24 @@ describe('KanbanView drag and drop', () => {
     vi.useRealTimers();
   });
 
-  it('persists stage drag reorder using explicit position payload', async () => {
+  it('does not let the pipeline reorder stages: that belongs to the settings', async () => {
+    // Pedido do Alysson. A ordem das etapas é configuração do quadro e define-se
+    // em Configuração › Geral. Arrastar colunas no Pipeline era, afinal, o único
+    // sítio onde a ordem gravava — e escondia que nas definições não gravava.
     const wrapper = await mountView();
-    const draggables = wrapper.findAllComponents({ name: 'Draggable' });
-    KanbanBoardsAPI.show.mockClear();
 
-    await draggables[0].vm.$emit('end', {
-      item: { dataset: { stageId: '200' } },
-      oldIndex: 1,
-      newIndex: 0,
-    });
-    await flushPromises();
+    const colunas = wrapper.findAll('section[data-stage-id]');
+    expect(colunas.length).toBeGreaterThan(0);
 
-    expect(KanbanBoardsAPI.reorderStage).toHaveBeenCalledWith(10, 200, {
-      position: 1,
-    });
-    expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, undefined);
+    const arrastaColunas = wrapper
+      .findAllComponents({ name: 'Draggable' })
+      .some(componente =>
+        [...componente.element.children].some(filho =>
+          filho.matches('section[data-stage-id]')
+        )
+      );
+    expect(arrastaColunas).toBe(false);
+    expect(wrapper.find('.stage-drag-handle').exists()).toBe(false);
   });
 
   it('persists cross-stage card drag using target stage and position payload', async () => {

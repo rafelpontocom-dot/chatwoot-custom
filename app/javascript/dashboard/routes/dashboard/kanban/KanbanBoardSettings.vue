@@ -740,7 +740,7 @@ const marketingFieldDefinitions = computed(() => {
     key,
     label: marketingFieldLabels.value[labelKey],
     fieldType: 'text',
-    layoutWidth: 'half',
+    layoutWidth: 'full',
     ...options,
   });
 
@@ -778,10 +778,7 @@ const marketingFieldDefinitions = computed(() => {
     field('ad_id', 'AD_ID'),
     field('landing_page', 'LANDING_PAGE', { fieldType: 'url' }),
     field('event_id', 'EVENT_ID'),
-    field('landing_page_full', 'LANDING_PAGE_FULL', {
-      fieldType: 'textarea',
-      layoutWidth: 'full',
-    }),
+    field('landing_page_full', 'LANDING_PAGE_FULL', { fieldType: 'textarea' }),
   ];
 });
 
@@ -858,7 +855,8 @@ const normalizeMarketingFieldDefinitions = definitions => {
         ...(definition.layout || {}),
         section: 'marketing',
         position: marketingPosition,
-        width: preset.layoutWidth || 'half',
+        // A largura é escolha de quem configura: normalizar não a desfaz.
+        width: definition.layout?.width || preset.layoutWidth,
       },
     });
     seenCanonicalKeys.add(canonicalKey);
@@ -882,7 +880,7 @@ const normalizeMarketingFieldDefinitions = definitions => {
       layout: {
         section: 'marketing',
         position: marketingPosition,
-        width: preset.layoutWidth || 'half',
+        width: preset.layoutWidth,
       },
     });
     marketingPosition += 1;
@@ -3615,6 +3613,13 @@ onMounted(async () => {
               {{ t('KANBAN.EMPTY_STAGES') }}
             </p>
 
+            <!--
+              `data-stage-id` na raiz do item: é esse o elemento que o SortableJS
+              entrega em `event.item`. Estava no div de dentro, e `onStageDragEnd`
+              lia `undefined` e saía sem gravar — a etapa mudava de sítio no ecrã
+              e voltava ao sítio no Pipeline. O comentário fica aqui fora porque o
+              slot `#item` do vuedraggable só aceita um filho.
+            -->
             <Draggable
               v-else
               v-model="stageListModel"
@@ -3628,9 +3633,8 @@ onMounted(async () => {
               @end="onStageDragEnd"
             >
               <template #item="{ element: stage }">
-                <div class="grid gap-2">
+                <div :data-stage-id="stage.id" class="grid gap-2">
                   <div
-                    :data-stage-id="stage.id"
                     data-testid="kanban-settings-stage-row"
                     class="flex min-w-0 items-center gap-2 rounded-md border px-2 py-2 transition-colors"
                     :class="

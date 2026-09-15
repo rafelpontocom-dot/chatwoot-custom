@@ -228,6 +228,8 @@ For Kanban, opportunity, and CRM-facing UI work, load these project skills toget
 - `frappe-ui-patterns`: guide pipeline, list/detail, activity, bulk-action, and configuration patterns used by CRM products.
 - `accessibility-compliance`: audit semantic controls, keyboard navigation, modal focus, screen-reader feedback, contrast, and responsive behavior.
 
+Campos personalizados da oportunidade nascem em **largura total** (`layout.width: 'full'`) numa conta ou funil novo — nos modelos de `KanbanBoards::CreateFromTemplateService` e no preset de marketing de `KanbanBoardSettings.vue`. Meia largura é escolha de quem configura, e normalizar o preset não a desfaz. A ordem das etapas só se muda em Configurações › Geral; o Pipeline não reordena etapas.
+
 Apply them as a single review workflow. Keep the board header compact, use progressive disclosure for filters and configuration, and separate field administration from opportunity editing. Cards and dialogs must preserve stable dimensions, readable hierarchy, and clear empty/loading/error states. Drag-and-drop must distinguish click from drag, show a drop target, update optimistically, and restore the original position with an actionable error when the request fails. Every important action must also have a keyboard-accessible alternative.
 
 ## Kanban Visual Automations

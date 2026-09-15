@@ -90,6 +90,7 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.SAVING': 'Saving...',
         'KANBAN.OPPORTUNITY_DETAILS.LABELS': 'Labels',
         'KANBAN.OPPORTUNITY_DETAILS.SAVE_LABELS': 'Save labels',
+        'KANBAN.OPPORTUNITY_DETAILS.CREATE_LABEL': 'Create and add “{title}”',
         'KANBAN.OPPORTUNITY_DETAILS.SAVING_LABELS': 'Saving labels...',
         'KANBAN.OPPORTUNITY_DETAILS.NO_LABELS_AVAILABLE': 'No labels available',
         'KANBAN.OPPORTUNITY_DETAILS.LOAD_LABELS_ERROR':
@@ -473,6 +474,10 @@ const saveButton = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-save"]');
 const labelButtons = wrapper =>
   wrapper.findAll('[data-testid="kanban-opportunity-label"]');
+const labelSearchInput = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-label-search"]');
+const createLabelButton = wrapper =>
+  wrapper.find('[data-testid="kanban-opportunity-create-label"]');
 const saveLabelsButton = wrapper =>
   wrapper.find('[data-testid="kanban-opportunity-save-labels"]');
 const openLabels = wrapper =>
@@ -1017,7 +1022,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
     expect(
       wrapper.find('[data-testid="kanban-opportunity-form"]').classes()
-    ).toContain('grid');
+    ).toEqual(expect.arrayContaining(['flex', 'flex-col', 'min-h-full']));
     expect(
       wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
     ).not.toContain('xl:grid-cols-[minmax(0,1fr)_18rem]');
@@ -2129,6 +2134,90 @@ describe('KanbanOpportunityDetailsModal', () => {
     ]);
   });
 
+  it('filters labels by the typed text', async () => {
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+
+    await labelSearchInput(wrapper).setValue('ENTER');
+
+    expect(labelButtons(wrapper).map(button => button.text())).toEqual([
+      'enterprise',
+    ]);
+    expect(createLabelButton(wrapper).exists()).toBe(true);
+
+    await labelSearchInput(wrapper).setValue('Hot');
+    expect(createLabelButton(wrapper).exists()).toBe(false);
+  });
+
+  it('creates a missing label from the card and applies it', async () => {
+    KanbanBoardsAPI.updateCardLabels.mockResolvedValue({
+      data: { payload: ['hot', 'paciente-vip'] },
+    });
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+
+    await labelSearchInput(wrapper).setValue('  Paciente VIP ');
+    expect(createLabelButton(wrapper).text()).toContain('paciente-vip');
+
+    await createLabelButton(wrapper).trigger('click');
+    await flushPromises();
+
+    expect(storeMocks.dispatch).toHaveBeenCalledWith(
+      'labels/create',
+      expect.objectContaining({ title: 'paciente-vip', show_on_sidebar: false })
+    );
+    expect(KanbanBoardsAPI.updateCardLabels).toHaveBeenCalledWith(10, 501, [
+      'hot',
+      'paciente-vip',
+    ]);
+    expect(labelSearchInput(wrapper).element.value).toBe('');
+  });
+
+  it('keeps the typed label when creating it fails', async () => {
+    const wrapper = await mountModal();
+    storeMocks.dispatch.mockImplementation(action =>
+      action === 'labels/create'
+        ? Promise.reject(new Error('Title has already been taken'))
+        : Promise.resolve()
+    );
+    await openLabels(wrapper);
+
+    await labelSearchInput(wrapper).setValue('vip');
+    await createLabelButton(wrapper).trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardLabels).not.toHaveBeenCalled();
+    expect(labelSearchInput(wrapper).element.value).toBe('vip');
+    expect(wrapper.text()).toContain('Title has already been taken');
+  });
+
+  it('explains label naming instead of offering an invalid label', async () => {
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+
+    await labelSearchInput(wrapper).setValue('vip!');
+
+    expect(createLabelButton(wrapper).exists()).toBe(false);
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-label-invalid"]').exists()
+    ).toBe(true);
+  });
+
+  it('does not offer label creation to agents', async () => {
+    storeMocks.currentAccount = { permissions: ['agent'] };
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+
+    await labelSearchInput(wrapper).setValue('vip');
+
+    expect(createLabelButton(wrapper).exists()).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-label-admin-only"]')
+        .exists()
+    ).toBe(true);
+  });
+
   it('labels save preserves scalar form state', async () => {
     const wrapper = await mountModal();
     await abrirLinhas(wrapper);
@@ -2157,17 +2246,56 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.text()).not.toContain('Add note');
   });
 
-  it('emits close from cancel and close actions', async () => {
+  it('hides the save bar again when an empty custom field is typed and cleared', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({ customFieldValues: { consulta_realizada: 'Sim' } }),
+    });
+    const footer = () =>
+      wrapper.find('[data-testid="kanban-opportunity-save-bar"]');
+    const campo = await customFieldInput(wrapper, 'observacao_venda');
+
+    await campo.setValue('Pagou sinal');
+    expect(footer().exists()).toBe(true);
+
+    await campo.setValue('');
+    expect(footer().exists()).toBe(false);
+  });
+
+  it('emits close from the close action when nothing changed', async () => {
     const wrapper = await mountModal();
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-cancel"]')
-      .trigger('click');
     await wrapper
       .find('[data-testid="kanban-opportunity-close"]')
       .trigger('click');
 
-    expect(wrapper.emitted('close')).toHaveLength(2);
+    expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+
+  it('only offers cancel and save while there are unsaved changes', async () => {
+    const updatedCard = buildCard({ subject: 'Modified subject' });
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: updatedCard,
+    });
+    const wrapper = await mountModal();
+    const footer = () =>
+      wrapper.find('[data-testid="kanban-opportunity-save-bar"]');
+
+    expect(footer().exists()).toBe(false);
+
+    const original = subjectInput(wrapper).element.value;
+    await subjectInput(wrapper).setValue('Modified subject');
+    expect(footer().exists()).toBe(true);
+    expect(saveButton(wrapper).exists()).toBe(true);
+
+    await subjectInput(wrapper).setValue(original);
+    expect(footer().exists()).toBe(false);
+
+    await subjectInput(wrapper).setValue('Modified subject');
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledTimes(1);
+    expect(footer().exists()).toBe(false);
   });
 
   it('asks before closing when the opportunity has unsaved changes', async () => {
