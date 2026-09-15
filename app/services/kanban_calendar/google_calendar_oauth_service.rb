@@ -11,7 +11,11 @@ class KanbanCalendar::GoogleCalendarOauthService
   def authorization_url
     ensure_google_credentials!
     state = SecureRandom.urlsafe_base64(32)
-    Rails.cache.write(state_cache_key(state),
+    # `state_cache_key` é de classe, porque o callback só tem o `state` e ainda
+    # não sabe a que agenda pertence. Chamado daqui sem `self.class` rebentava
+    # com NoMethodError — e ficou escondido enquanto faltavam as credenciais,
+    # porque até elas existirem o fluxo nunca passava da linha de cima.
+    Rails.cache.write(self.class.state_cache_key(state),
                       { 'resource_id' => @resource.id, 'account_id' => @resource.account_id },
                       expires_in: STATE_TTL)
     oauth_client.auth_code.authorize_url(

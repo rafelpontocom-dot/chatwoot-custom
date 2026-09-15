@@ -27,6 +27,36 @@ RSpec.describe KanbanCalendar::GoogleCalendarOauthService do
       .to raise_error(KanbanCalendar::GoogleCalendarApiError, 'Google authorization expired')
   end
 
+  # A ida e volta inteira, sem escrever o `state` à mão. O teste de cima monta
+  # a primeira metade sozinho e por isso nunca executou `authorization_url`: foi
+  # assim que um NoMethodError ali chegou a produção e deu 500 no primeiro
+  # clique depois de as credenciais serem configuradas.
+  it 'starts an authorization whose state leads the callback back to the same agenda' do
+    allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
+    {
+      'GOOGLE_CALENDAR_OAUTH_CLIENT_ID' => 'client-id',
+      'GOOGLE_CALENDAR_OAUTH_CLIENT_SECRET' => 'client-secret',
+      'GOOGLE_CALENDAR_OAUTH_CALLBACK_URL' => 'https://crm.example.com/calendar/google/callback'
+    }.each do |name, value|
+      config = InstallationConfig.find_or_initialize_by(name: name)
+      config.value = value
+      config.locked = false
+      config.save!
+    end
+    GlobalConfig.clear_cache
+
+    url = described_class.new(resource: resource).authorization_url
+    query = Rack::Utils.parse_query(URI.parse(url).query)
+
+    expect(query).to include(
+      'client_id' => 'client-id',
+      'scope' => described_class::SCOPE,
+      'redirect_uri' => 'https://crm.example.com/calendar/google/callback',
+      'access_type' => 'offline'
+    )
+    expect(described_class.resource_from_state!(query['state'])).to eq(resource)
+  end
+
   it 'queues a backfill after connecting an agenda' do
     connection = instance_double(KanbanCalendarGoogleConnection, refresh_token: 'old-refresh-token')
     token = instance_double(
