@@ -84,6 +84,12 @@ const describedBy = computed(() => {
 </script>
 
 <template>
+  <!--
+    `content-start`: numa grelha de campos, a mensagem de erro de um estica a
+    célula, e a grelha estica os vizinhos até à mesma altura. Sem isto o campo
+    ao lado repartia essa altura entre o rótulo e o controlo, e descia ~20px —
+    visto no formulário de procedimento da agenda. Em repouso não muda nada.
+  -->
   <div
     class="grid"
     :class="
@@ -91,7 +97,7 @@ const describedBy = computed(() => {
         ? `grid-cols-[8.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 ${
             variant === 'textarea' ? 'items-start' : 'items-center'
           }`
-        : 'gap-1.5'
+        : 'content-start gap-1.5'
     "
   >
     <!--
