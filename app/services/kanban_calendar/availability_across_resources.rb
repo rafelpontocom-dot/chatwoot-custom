@@ -25,6 +25,31 @@ class KanbanCalendar::AvailabilityAcrossResources
     por_recurso.first.select { |slot| restantes.all? { |instantes| instantes.include?(slot.to_i) } }
   end
 
+  # Os próximos dias com vaga, a partir de uma data. Escolher a agenda já devia
+  # bastar para ver quando há lugar; obrigar a adivinhar uma data primeiro era
+  # pedir a resposta antes da pergunta.
+  def upcoming(from:, days: 30, per_day: 6, max_days_with_slots: 3)
+    resultado = []
+    (0...days).each do |offset|
+      date = from + offset
+      slots = slots(date: date).first(per_day)
+      next if slots.empty?
+
+      resultado << { date: date, slots: slots }
+      break if resultado.length >= max_days_with_slots
+    end
+    resultado
+  end
+
+  def upcoming_availability(from:, days:)
+    {
+      days: upcoming(from: from, days: days.clamp(1, 60)).map do |dia|
+        { date: dia[:date].iso8601, slots: dia[:slots].map(&:iso8601) }
+      end,
+      resources_without_hours: resources_without_hours.map { |resource| { id: resource.id, name: resource.name } }
+    }
+  end
+
   # Os horários do dia e as agendas que não têm janela de trabalho nenhuma — sem
   # elas, a lista vazia não dizia porquê estava vazia.
   def day_availability(date:)

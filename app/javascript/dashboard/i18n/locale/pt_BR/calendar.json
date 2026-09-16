@@ -68,7 +68,11 @@
       "CONFIRM_BOOKING": "Confirmar agendamento",
       "SAVE_ERROR": "Não foi possível criar o agendamento.",
       "BOOK_DESCRIPTION_BLANK": "Escolha o paciente, o procedimento, o profissional e o horário.",
-      "NO_WORKING_HOURS": "{resources} ainda não tem horários configurados. Configure em Configurações › Agendas › Horários."
+      "NO_WORKING_HOURS": "{resources} ainda não tem horários configurados. Configure em Configurações › Agendas › Horários.",
+      "DATE": "Data",
+      "DATE_HINT": "Deixe vazio para ver os próximos horários livres.",
+      "TIME": "Hora",
+      "NEXT_AVAILABLE_TIMES": "Próximos horários livres"
     },
     "SETTINGS": {
       "OPEN": "Configurar agenda",

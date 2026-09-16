@@ -130,7 +130,26 @@ const recurrenceIntervalLabel = interval =>
 const hasAvailabilityConflict = computed(
   () => availabilityResult.value?.available === false
 );
-const selectedDate = computed(() => startsAt.value.split('T')[0] || '');
+// Data e hora separadas: escolher o dia muda os horários daquela combinação, e
+// a hora vem de um horário livre em vez de ser adivinhada.
+const selectedDate = computed({
+  get: () => startsAt.value.split('T')[0] || '',
+  set: value => {
+    const hora = startsAt.value.split('T')[1] || '';
+    startsAt.value = value ? `${value}T${hora}` : '';
+  },
+});
+const selectedTime = computed({
+  get: () => startsAt.value.split('T')[1] || '',
+  set: value => {
+    const dia = startsAt.value.split('T')[0];
+    if (!dia) return;
+
+    startsAt.value = `${dia}T${value}`;
+  },
+});
+// Dias com vaga, quando ainda não há data escolhida.
+const upcomingDays = ref([]);
 const availabilityErrorMessage = computed(() =>
   availabilityResult.value?.conflict
     ? t('CALENDAR.OPPORTUNITY.AVAILABILITY_CONFLICT')
@@ -247,23 +266,32 @@ const checkAvailability = async () => {
 
 const debouncedCheckAvailability = debounce(checkAvailability, 250, false);
 
+// Quantos dias à frente se procura vaga quando ninguém escolheu data.
+const UPCOMING_DAYS = 30;
+
 const loadAvailabilitySlots = async () => {
-  if (!resourceIds.value.length || !selectedDate.value || !procedureId.value) {
+  if (!resourceIds.value.length || !procedureId.value) {
     availabilitySlots.value = [];
+    upcomingDays.value = [];
     return;
   }
 
   isLoadingSlots.value = true;
   try {
     const response = await CalendarAPI.getAvailability({
-      date: selectedDate.value,
       procedure_id: Number(procedureId.value),
       resource_ids: resourceIds.value,
+      // Com data, os horários daquele dia; sem ela, os próximos dias com vaga.
+      ...(selectedDate.value
+        ? { date: selectedDate.value }
+        : { days: UPCOMING_DAYS }),
     });
     availabilitySlots.value = response.data?.slots || [];
+    upcomingDays.value = response.data?.days || [];
     resourcesWithoutHours.value = response.data?.resources_without_hours || [];
   } catch {
     availabilitySlots.value = [];
+    upcomingDays.value = [];
     resourcesWithoutHours.value = [];
   } finally {
     isLoadingSlots.value = false;
@@ -287,6 +315,13 @@ const toLocalDateTimeValue = value => {
 const selectAvailabilitySlot = slot => {
   startsAt.value = toLocalDateTimeValue(slot);
 };
+
+const dayLabel = date =>
+  new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(`${date}T12:00:00`));
 
 const slotLabel = slot =>
   new Intl.DateTimeFormat(undefined, {
@@ -551,17 +586,34 @@ defineExpose({ open });
           testid-prefix="kanban-calendar-resource"
         />
 
-        <RaevoField :label="t('CALENDAR.OPPORTUNITY.STARTS_AT')">
-          <template #default="{ controlClass, fieldId }">
-            <input
-              :id="fieldId"
-              v-model="startsAt"
-              data-testid="kanban-calendar-starts-at"
-              type="datetime-local"
-              :class="controlClass"
-            />
-          </template>
-        </RaevoField>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <RaevoField
+            :label="t('CALENDAR.OPPORTUNITY.DATE')"
+            :hint="t('CALENDAR.OPPORTUNITY.DATE_HINT')"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="selectedDate"
+                data-testid="kanban-calendar-date"
+                type="date"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField :label="t('CALENDAR.OPPORTUNITY.TIME')">
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="selectedTime"
+                data-testid="kanban-calendar-time"
+                type="time"
+                :disabled="!selectedDate"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+        </div>
         <div
           v-if="recurrencePreview.length"
           class="grid gap-1 rounded-md border border-n-weak bg-n-surface-2 p-2.5"
@@ -604,12 +656,16 @@ defineExpose({ open });
           {{ availabilityErrorMessage }}
         </p>
         <div
-          v-if="selectedDate && resourceIds.length && procedureId"
+          v-if="resourceIds.length && procedureId"
           class="grid gap-1.5 rounded-md bg-n-surface-2 p-2.5"
         >
           <div class="flex items-center justify-between gap-2">
             <span class="text-xs font-medium text-n-slate-12">
-              {{ t('CALENDAR.OPPORTUNITY.AVAILABLE_TIMES') }}
+              {{
+                selectedDate
+                  ? t('CALENDAR.OPPORTUNITY.AVAILABLE_TIMES')
+                  : t('CALENDAR.OPPORTUNITY.NEXT_AVAILABLE_TIMES')
+              }}
             </span>
             <span v-if="isLoadingSlots" class="text-xs text-n-slate-11">
               {{ t('CALENDAR.OPPORTUNITY.LOADING_AVAILABLE_TIMES') }}
@@ -626,6 +682,34 @@ defineExpose({ open });
             >
               {{ slotLabel(slot) }}
             </button>
+          </div>
+          <!--
+            Sem data escolhida, os próximos dias com vaga: escolher a agenda já
+            basta para ver quando há lugar.
+          -->
+          <div v-else-if="upcomingDays.length" class="grid gap-2">
+            <div
+              v-for="dia in upcomingDays"
+              :key="dia.date"
+              data-testid="calendar-availability-day"
+              class="grid gap-1"
+            >
+              <span class="text-xs font-medium capitalize text-n-slate-11">
+                {{ dayLabel(dia.date) }}
+              </span>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="slot in dia.slots"
+                  :key="slot"
+                  type="button"
+                  data-testid="calendar-availability-slot"
+                  class="rounded border border-solid border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-12 outline-none hover:border-n-brand hover:text-n-brand focus:ring-2 focus:ring-n-brand/40"
+                  @click="selectAvailabilitySlot(slot)"
+                >
+                  {{ slotLabel(slot) }}
+                </button>
+              </div>
+            </div>
           </div>
           <p
             v-else-if="!isLoadingSlots && resourcesWithoutHours.length"

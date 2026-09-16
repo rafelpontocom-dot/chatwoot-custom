@@ -68,7 +68,11 @@
       "CONFIRM_BOOKING": "Confirm booking",
       "SAVE_ERROR": "Could not create the appointment.",
       "BOOK_DESCRIPTION_BLANK": "Choose the patient, procedure, professional, and time.",
-      "NO_WORKING_HOURS": "{resources} has no working hours yet. Set them in Settings › Agendas › Hours."
+      "NO_WORKING_HOURS": "{resources} has no working hours yet. Set them in Settings › Agendas › Hours.",
+      "DATE": "Date",
+      "DATE_HINT": "Leave empty to see the next free times.",
+      "TIME": "Time",
+      "NEXT_AVAILABLE_TIMES": "Next free times"
     },
     "SETTINGS": {
       "OPEN": "Configure calendar",

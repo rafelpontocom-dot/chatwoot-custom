@@ -80,4 +80,27 @@ RSpec.describe 'Calendar appointment availability', type: :request do
 
     expect(response.parsed_body['resources_without_hours']).to eq([])
   end
+
+  # Sem data escolhida a tela não tinha o que mostrar, e quem marca ficava a
+  # adivinhar. Escolher as agendas passa a bastar para ver os próximos horários.
+  it 'answers with the next days that have room when no date is asked for' do
+    get path,
+        params: { procedure_id: procedure.id, resource_ids: [professional.id, room.id], days: 7, from: date.iso8601 },
+        headers: administrator.create_new_auth_token
+
+    expect(response).to have_http_status(:ok)
+    dias = response.parsed_body['days']
+    expect(dias.first['date']).to eq(date.iso8601)
+    expect(dias.first['slots'].map { |slot| Time.iso8601(slot).in_time_zone(timezone).strftime('%H:%M') }).to eq(['10:00'])
+    expect(response.parsed_body['resources_without_hours']).to eq([])
+  end
+
+  it 'still answers a single day when the date is given' do
+    get path,
+        params: { procedure_id: procedure.id, resource_ids: [professional.id, room.id], date: date.iso8601 },
+        headers: administrator.create_new_auth_token
+
+    expect(response.parsed_body).to have_key('slots')
+    expect(response.parsed_body).not_to have_key('days')
+  end
 end

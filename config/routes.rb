@@ -169,7 +169,7 @@ Rails.application.routes.draw do
             end
             resources :busy_blocks, only: [:index]
             resources :appointments, only: [:index, :show, :create, :update] do
-              get :availability, on: :collection
+              get :availability, on: :collection, to: 'appointment_availability#show'
               post :reschedule, on: :member
             end
           end

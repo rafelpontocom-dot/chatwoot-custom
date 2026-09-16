@@ -58,4 +58,40 @@ RSpec.describe KanbanCalendar::AvailabilityAcrossResources do
 
     expect(result).to include(available: true, conflict: false, resource_allowed: true)
   end
+
+  describe '#upcoming' do
+    # Escolher a agenda já devia bastar para ver quando há vaga: obrigar a
+    # adivinhar uma data primeiro era pedir a resposta antes da pergunta.
+    it 'answers with the next days that have room, skipping the empty ones' do
+      professional.kanban_calendar_availability_rules.create!(
+        kind: 'weekly_window', weekday: (date + 2).wday, starts_at_local: '09:00', ends_at_local: '10:00'
+      )
+      room.kanban_calendar_availability_rules.create!(
+        kind: 'weekly_window', weekday: (date + 2).wday, starts_at_local: '09:00', ends_at_local: '10:00'
+      )
+
+      dias = described_class.new(procedure: procedure, resources: [professional, room])
+                            .upcoming(from: date, days: 7, per_day: 4)
+
+      expect(dias.map { |dia| dia[:date] }).to eq([date, date + 2])
+      expect(local_times(dias.first[:slots])).to eq(['10:00'])
+    end
+
+    it 'stops at the days asked for, so a quiet agenda does not scan forever' do
+      dias = described_class.new(procedure: procedure, resources: [professional, room])
+                            .upcoming(from: date + 1, days: 1, per_day: 4)
+
+      expect(dias).to be_empty
+    end
+
+    it 'shows only the first times of each day, to keep the list readable' do
+      professional.kanban_calendar_availability_rules.first.update!(ends_at_local: '12:00')
+      room.kanban_calendar_availability_rules.first.update!(starts_at_local: '09:00', ends_at_local: '12:00')
+
+      dias = described_class.new(procedure: procedure, resources: [professional, room])
+                            .upcoming(from: date, days: 1, per_day: 2)
+
+      expect(local_times(dias.first[:slots])).to eq(['09:00', '09:15'])
+    end
+  end
 end

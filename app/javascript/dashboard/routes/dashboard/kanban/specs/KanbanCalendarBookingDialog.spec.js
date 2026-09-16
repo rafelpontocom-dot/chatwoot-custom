@@ -99,8 +99,11 @@ describe('KanbanCalendarBookingDialog', () => {
       .find('[data-testid="kanban-calendar-resource-professional"]')
       .setValue('3');
     await wrapper
-      .find('[data-testid="kanban-calendar-starts-at"]')
-      .setValue('2026-08-10T13:00');
+      .find('[data-testid="kanban-calendar-date"]')
+      .setValue('2026-08-10');
+    await wrapper
+      .find('[data-testid="kanban-calendar-time"]')
+      .setValue('13:00');
     await flushPromises();
     await wrapper
       .find('[data-testid="calendar-confirm-booking"]')
@@ -109,6 +112,115 @@ describe('KanbanCalendarBookingDialog', () => {
 
     expect(wrapper.text()).toContain(
       'CALENDAR.OPPORTUNITY.AVAILABILITY_CONFLICT'
+    );
+    expect(
+      wrapper.findAll('[data-testid="calendar-availability-slot"]')
+    ).toHaveLength(1);
+  });
+
+  // Escolher a agenda já devia bastar: antes era preciso adivinhar uma data e
+  // hora primeiro, e só então a lista de horários aparecia.
+  it('offers the next free times as soon as the agendas are chosen', async () => {
+    CalendarAPI.getAvailability.mockResolvedValue({
+      data: {
+        days: [
+          {
+            date: '2026-09-23',
+            slots: ['2026-09-23T09:00:00-03:00', '2026-09-23T11:00:00-03:00'],
+          },
+          { date: '2026-09-24', slots: ['2026-09-24T09:00:00-03:00'] },
+        ],
+        resources_without_hours: [],
+      },
+    });
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="kanban-calendar-procedure"]')
+      .setValue('2');
+    await wrapper
+      .find('[data-testid="kanban-calendar-resource-professional"]')
+      .setValue('3');
+    await new Promise(resolve => {
+      setTimeout(resolve, 300);
+    });
+    await flushPromises();
+
+    // Nenhuma data escrita, e mesmo assim há horários para escolher.
+    expect(CalendarAPI.getAvailability).toHaveBeenCalledWith(
+      expect.objectContaining({ days: expect.any(Number) })
+    );
+    const dias = wrapper.findAll('[data-testid="calendar-availability-day"]');
+    expect(dias).toHaveLength(2);
+    expect(
+      wrapper.findAll('[data-testid="calendar-availability-slot"]')
+    ).toHaveLength(3);
+  });
+
+  it('fills date and time from the chosen slot', async () => {
+    CalendarAPI.getAvailability.mockResolvedValue({
+      data: {
+        days: [{ date: '2026-09-23', slots: ['2026-09-23T09:00:00-03:00'] }],
+        resources_without_hours: [],
+      },
+    });
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-calendar-procedure"]')
+      .setValue('2');
+    await wrapper
+      .find('[data-testid="kanban-calendar-resource-professional"]')
+      .setValue('3');
+    await new Promise(resolve => {
+      setTimeout(resolve, 300);
+    });
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="calendar-availability-slot"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="kanban-calendar-date"]').element.value
+    ).toBe('2026-09-23');
+    expect(
+      wrapper.find('[data-testid="kanban-calendar-time"]').element.value
+    ).toBe('09:00');
+  });
+
+  // Escolher o dia devia mudar a lista daquele dia, sem obrigar a escrever hora.
+  it('asks for the times of the day the person picked', async () => {
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="kanban-calendar-procedure"]')
+      .setValue('2');
+    await wrapper
+      .find('[data-testid="kanban-calendar-resource-professional"]')
+      .setValue('3');
+    CalendarAPI.getAvailability.mockResolvedValue({
+      data: {
+        slots: ['2026-09-30T14:00:00-03:00'],
+        resources_without_hours: [],
+      },
+    });
+
+    await wrapper
+      .find('[data-testid="kanban-calendar-date"]')
+      .setValue('2026-09-30');
+    await new Promise(resolve => {
+      setTimeout(resolve, 300);
+    });
+    await flushPromises();
+
+    expect(CalendarAPI.getAvailability).toHaveBeenLastCalledWith(
+      expect.objectContaining({ date: '2026-09-30' })
     );
     expect(
       wrapper.findAll('[data-testid="calendar-availability-slot"]')
@@ -135,8 +247,11 @@ describe('KanbanCalendarBookingDialog', () => {
       .find('[data-testid="kanban-calendar-resource-professional"]')
       .setValue('3');
     await wrapper
-      .find('[data-testid="kanban-calendar-starts-at"]')
-      .setValue('2026-08-10T13:00');
+      .find('[data-testid="kanban-calendar-date"]')
+      .setValue('2026-08-10');
+    await wrapper
+      .find('[data-testid="kanban-calendar-time"]')
+      .setValue('13:00');
     await new Promise(resolve => {
       setTimeout(resolve, 300);
     });
@@ -174,8 +289,11 @@ describe('KanbanCalendarBookingDialog', () => {
       .setValue('2');
     await flushPromises();
     await wrapper
-      .find('[data-testid="kanban-calendar-starts-at"]')
-      .setValue('2026-08-10T13:00');
+      .find('[data-testid="kanban-calendar-date"]')
+      .setValue('2026-08-10');
+    await wrapper
+      .find('[data-testid="kanban-calendar-time"]')
+      .setValue('13:00');
     // A verificação de disponibilidade tem debounce de 250ms.
     await new Promise(resolve => {
       setTimeout(resolve, 300);
