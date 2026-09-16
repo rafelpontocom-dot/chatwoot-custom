@@ -9,33 +9,21 @@ vi.mock('vue-i18n', () => ({
 }));
 
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: key =>
-    ref(key === 'agents/getAgents' ? [{ id: 12, name: 'Dra. Ana' }] : []),
+  useMapGetter: () => ref([]),
   useStore: () => ({ dispatch: vi.fn().mockResolvedValue() }),
 }));
 
 vi.mock('dashboard/api/calendar', () => ({
   default: {
     getProcedures: vi.fn(),
-    getResources: vi.fn(),
     getBookingPage: vi.fn(),
     getBookingLinks: vi.fn(),
-    getGoogleCalendarConnection: vi.fn(),
-    getGoogleCalendarAuthorizationUrl: vi.fn(),
-    disconnectGoogleCalendar: vi.fn(),
-    syncGoogleCalendar: vi.fn(),
     getFeegowConnection: vi.fn(),
     updateFeegowConnection: vi.fn(),
     syncFeegowConnection: vi.fn(),
     disconnectFeegow: vi.fn(),
     getFeegowProfessionals: vi.fn(),
     updateBookingPage: vi.fn(),
-    createProcedure: vi.fn(),
-    updateProcedure: vi.fn(),
-    createResource: vi.fn(),
-    updateResource: vi.fn(),
-    archiveResource: vi.fn(),
-    archiveProcedure: vi.fn(),
   },
 }));
 
@@ -44,15 +32,10 @@ const mountDialog = (props = {}) =>
     props,
     global: {
       stubs: {
-        Dialog: {
-          template: '<div><slot /></div>',
-          methods: { open: vi.fn(), close: vi.fn() },
-        },
         NextButton: {
           props: ['label'],
           template: '<button v-bind="$attrs">{{ label }}</button>',
         },
-        TagMultiSelectComboBox: true,
         // Sem este stub o `shallowMount` esconde o slot do RaevoField e todos
         // os campos do procedimento desaparecem do teste (CLAUDE.md).
         RaevoField: {
@@ -75,18 +58,9 @@ const mountDialog = (props = {}) =>
     },
   });
 
-const abrirAba = async (wrapper, rotulo) => {
-  await wrapper
-    .findAll('[role="tab"]')
-    .find(tab => tab.text() === rotulo)
-    .trigger('click');
-  await flushPromises();
-};
-
 describe('CalendarSettingsDialog', () => {
   beforeEach(() => {
     CalendarAPI.getProcedures.mockResolvedValue({ data: [] });
-    CalendarAPI.getResources.mockResolvedValue({ data: [] });
     CalendarAPI.getBookingPage.mockResolvedValue({
       data: {
         active: false,
@@ -98,188 +72,126 @@ describe('CalendarSettingsDialog', () => {
       },
     });
     CalendarAPI.getBookingLinks.mockResolvedValue({ data: [] });
-    CalendarAPI.getGoogleCalendarConnection.mockResolvedValue({
-      data: { connected: false, status: 'disconnected' },
-    });
-    CalendarAPI.syncGoogleCalendar.mockResolvedValue({
-      data: {
-        connected: true,
-        status: 'connected',
-        retryable: false,
-        last_imported_at: '2026-09-15T12:00:00Z',
-      },
-    });
     CalendarAPI.getFeegowConnection.mockResolvedValue({
       data: { connected: false, status: 'disconnected', has_token: false },
     });
     CalendarAPI.getFeegowProfessionals.mockResolvedValue({ data: [] });
-    CalendarAPI.createResource.mockResolvedValue({
-      data: { id: 4, name: 'Dra. Ana', resource_type: 'user', active: true },
-    });
   });
 
-  it('exposes configuration sections as accessible tabs', async () => {
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    const tabs = wrapper.findAll('[role="tab"]');
-
-    expect(tabs).toHaveLength(3);
-    expect(tabs[0].attributes('aria-selected')).toBe('true');
-    expect(tabs[0].attributes('aria-controls')).toBe(
-      'calendar-settings-procedures-panel'
-    );
-  });
-
-  it('loads the booking page only when its configuration tab is selected', async () => {
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    expect(CalendarAPI.getBookingPage).not.toHaveBeenCalled();
-
-    await wrapper
-      .findAll('[role="tab"]')
-      .find(tab => tab.text() === 'CALENDAR.SETTINGS.BOOKING_PAGE')
-      .trigger('click');
-    await flushPromises();
-
-    expect(CalendarAPI.getBookingPage).toHaveBeenCalled();
-    expect(
-      wrapper.find('[data-testid="calendar-booking-page-form"]').exists()
-    ).toBe(true);
-  });
-
-  it('carrega a página de agendamento quando se abre diretamente nela', async () => {
-    // O link da navegação lateral e o recarregar da página abrem já nesta aba.
-    // Como ela começava ativa, o watcher não disparava, ninguém chamava
-    // `loadBookingPage`, e o painel ficava vazio até se sair e voltar.
-    const wrapper = mountDialog({ inline: true, tab: 'booking-page' });
-    await flushPromises();
-
-    expect(CalendarAPI.getBookingPage).toHaveBeenCalled();
-    expect(
-      wrapper.find('[data-testid="calendar-booking-page-form"]').exists()
-    ).toBe(true);
-  });
-
-  it('keeps procedure creation out of the list until requested', async () => {
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    expect(
-      wrapper.find('[data-testid="calendar-procedure-form"]').exists()
-    ).toBe(false);
-
-    await wrapper
-      .find('[data-testid="calendar-add-procedure"]')
-      .trigger('click');
-
-    expect(
-      wrapper.find('[data-testid="calendar-procedure-form"]').exists()
-    ).toBe(true);
-  });
-
-  it('creates a professional resource with the selected agent', async () => {
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-    await wrapper
-      .find('[data-testid="calendar-add-resource-professional"]')
-      .trigger('click');
-    await wrapper.find('[data-testid="calendar-resource-user"]').setValue('12');
-    await wrapper
-      .find('[data-testid="calendar-resource-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.createResource).toHaveBeenCalledWith({
-      resource: expect.objectContaining({
-        name: 'Dra. Ana',
-        resource_type: 'user',
-        user_id: 12,
-      }),
-    });
-  });
-
-  it('loads Google Calendar status only when editing an agenda', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 8,
-          name: 'Agenda da Dra. Ana',
-          resource_type: 'generic',
-          user_id: null,
-          active: true,
-        },
-      ],
-    });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await wrapper
-      .findAll('[role="tab"]')
-      .find(tab => tab.text() === 'CALENDAR.SETTINGS.RESOURCES')
-      .trigger('click');
-    await flushPromises();
-    await wrapper
-      .find('[data-testid="calendar-edit-resource"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(CalendarAPI.getGoogleCalendarConnection).toHaveBeenCalledWith(8);
-    expect(wrapper.text()).toContain(
-      'CALENDAR.SETTINGS.GOOGLE_CALENDAR.DISCONNECTED'
-    );
-  });
-
-  const editarAgendaDaAna = async connection => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 8,
-          name: 'Agenda da Dra. Ana',
-          resource_type: 'generic',
-          user_id: null,
-          active: true,
-          google_calendar_status: connection.status,
-        },
-      ],
-    });
-    CalendarAPI.getGoogleCalendarConnection.mockResolvedValue({
-      data: connection,
-    });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-    await wrapper
-      .find('[data-testid="calendar-edit-resource"]')
-      .trigger('click');
+  const abrirPaginaDeAgendamento = async () => {
+    const wrapper = mountDialog({ tab: 'booking-page' });
     await flushPromises();
     return wrapper;
   };
 
   // O Feegow é da clínica inteira e vive em Integrações.
   const abrirIntegracoes = async () => {
-    const wrapper = mountDialog({ inline: true, tab: 'integrations' });
+    const wrapper = mountDialog({ tab: 'integrations' });
     await flushPromises();
     return wrapper;
   };
 
-  const abrirAgendas = async () => {
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
+  it('carrega a página de agendamento quando se abre diretamente nela', async () => {
+    // O link da navegação lateral e o recarregar da página abrem já nesta aba.
+    // Como ela começava ativa, o watcher não disparava, ninguém chamava
+    // `loadBookingPage`, e o painel ficava vazio até se sair e voltar.
+    const wrapper = mountDialog({ tab: 'booking-page' });
     await flushPromises();
-    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+
+    expect(CalendarAPI.getBookingPage).toHaveBeenCalled();
+    expect(
+      wrapper.find('[data-testid="calendar-booking-page-form"]').exists()
+    ).toBe(true);
+  });
+
+  it('does not ask for the booking page while on integrations', async () => {
+    await abrirIntegracoes();
+
+    expect(CalendarAPI.getBookingPage).not.toHaveBeenCalled();
+    expect(CalendarAPI.getFeegowConnection).toHaveBeenCalled();
+  });
+
+  it('saves the clinic identity shown on the public page', async () => {
+    CalendarAPI.updateBookingPage.mockResolvedValue({
+      data: {
+        active: true,
+        public_token: 'public-token',
+        clinic_name: 'Clínica Vida',
+        duplicate_policy: 'create_new',
+        minimum_notice_minutes: 1440,
+        maximum_notice_days: 60,
+        slot_interval_minutes: 15,
+      },
+    });
+    const wrapper = await abrirPaginaDeAgendamento();
+
+    await wrapper
+      .find('[data-testid="calendar-booking-clinic-name"]')
+      .setValue('Clínica Vida');
+    await wrapper
+      .find('[data-testid="calendar-booking-page-form"]')
+      .trigger('submit');
     await flushPromises();
-    return wrapper;
-  };
+
+    expect(CalendarAPI.updateBookingPage).toHaveBeenCalledWith({
+      booking_page: expect.objectContaining({ clinic_name: 'Clínica Vida' }),
+    });
+  });
+
+  describe('links por procedimento', () => {
+    const procedimentos = [
+      {
+        id: 1,
+        name: 'Consulta',
+        active: true,
+        public_booking_enabled: true,
+        public_slug: 'consulta',
+        duration_minutes: 50,
+      },
+      {
+        id: 2,
+        name: 'Retorno',
+        active: true,
+        public_booking_enabled: false,
+        duration_minutes: 30,
+      },
+      {
+        id: 3,
+        name: 'Antigo',
+        active: false,
+        public_booking_enabled: false,
+        duration_minutes: 30,
+      },
+    ];
+
+    it('mostra também quem não tem autoagendamento, e não os arquivados', async () => {
+      CalendarAPI.getProcedures.mockResolvedValue({ data: procedimentos });
+      const wrapper = await abrirPaginaDeAgendamento();
+
+      const linhas = wrapper.findAll('[data-testid="calendar-procedure-link"]');
+      expect(linhas.map(linha => linha.text())).toEqual([
+        expect.stringContaining('Consulta'),
+        expect.stringContaining('Retorno'),
+      ]);
+      expect(
+        linhas[0].find('[data-testid="calendar-copy-procedure-link"]').exists()
+      ).toBe(true);
+      expect(linhas[1].text()).toContain(
+        'CALENDAR.SETTINGS.PUBLIC_BOOKING_OFF'
+      );
+    });
+
+    it('leva ao procedimento novo, pedindo o autoagendamento ligado', async () => {
+      CalendarAPI.getProcedures.mockResolvedValue({ data: procedimentos });
+      const wrapper = await abrirPaginaDeAgendamento();
+
+      await wrapper
+        .find('[data-testid="calendar-enable-procedure-booking"]')
+        .trigger('click');
+
+      expect(wrapper.emitted('openProcedure')).toEqual([[2]]);
+    });
+  });
 
   it('saves the Feegow token and shows when it expires', async () => {
     CalendarAPI.updateFeegowConnection.mockResolvedValue({
@@ -356,1060 +268,5 @@ describe('CalendarSettingsDialog', () => {
     expect(
       wrapper.find('[data-testid="calendar-feegow-error"]').text()
     ).toContain('Token inválido');
-  });
-
-  it('maps an agenda to a Feegow professional', async () => {
-    CalendarAPI.getFeegowConnection.mockResolvedValue({
-      data: {
-        connected: true,
-        status: 'connected',
-        has_token: true,
-        token_expires_in_days: 40,
-      },
-    });
-    CalendarAPI.getFeegowProfessionals.mockResolvedValue({
-      data: [{ id: '9', name: 'Dra. Anna' }],
-    });
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 8,
-          name: 'Dra. Ana',
-          resource_type: 'user',
-          user_id: null,
-          active: true,
-          settings: {},
-        },
-      ],
-    });
-    CalendarAPI.updateResource.mockResolvedValue({
-      data: {
-        id: 8,
-        name: 'Dra. Ana',
-        resource_type: 'user',
-        active: true,
-        settings: { feegow: { professional_id: '9' } },
-      },
-    });
-    const wrapper = await abrirAgendas();
-    await wrapper
-      .find('[data-testid="calendar-edit-resource"]')
-      .trigger('click');
-    await flushPromises();
-
-    await wrapper
-      .find('[data-testid="calendar-resource-feegow-professional"]')
-      .setValue('9');
-    await wrapper
-      .find('[data-testid="calendar-resource-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(
-      8,
-      expect.objectContaining({
-        resource: expect.objectContaining({
-          settings: { feegow: { professional_id: '9' } },
-        }),
-      })
-    );
-  });
-
-  it('saves the slot spacing chosen for the agenda', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 8,
-          name: 'Dra. Ana',
-          resource_type: 'user',
-          user_id: null,
-          active: true,
-          slot_interval_minutes: null,
-        },
-      ],
-    });
-    CalendarAPI.updateResource.mockResolvedValue({
-      data: {
-        id: 8,
-        name: 'Dra. Ana',
-        resource_type: 'user',
-        active: true,
-        slot_interval_minutes: 30,
-      },
-    });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-    await wrapper
-      .find('[data-testid="calendar-edit-resource"]')
-      .trigger('click');
-    await flushPromises();
-
-    await wrapper
-      .find('[data-testid="calendar-resource-slot-interval"]')
-      .setValue('30');
-    await wrapper
-      .find('[data-testid="calendar-resource-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(
-      8,
-      expect.objectContaining({
-        resource: expect.objectContaining({ slot_interval_minutes: 30 }),
-      })
-    );
-  });
-
-  // Vazio é «o padrão da conta», e não 0: mandar 0 seria um intervalo inválido.
-  it('sends no spacing when the agenda follows the account default', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 8,
-          name: 'Dra. Ana',
-          resource_type: 'user',
-          user_id: null,
-          active: true,
-          slot_interval_minutes: 30,
-        },
-      ],
-    });
-    CalendarAPI.updateResource.mockResolvedValue({
-      data: {
-        id: 8,
-        name: 'Dra. Ana',
-        resource_type: 'user',
-        active: true,
-        slot_interval_minutes: null,
-      },
-    });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-    await wrapper
-      .find('[data-testid="calendar-edit-resource"]')
-      .trigger('click');
-    await flushPromises();
-    expect(
-      wrapper.find('[data-testid="calendar-resource-slot-interval"]').element
-        .value
-    ).toBe('30');
-
-    await wrapper
-      .find('[data-testid="calendar-resource-slot-interval"]')
-      .setValue('');
-    await wrapper
-      .find('[data-testid="calendar-resource-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(
-      8,
-      expect.objectContaining({
-        resource: expect.objectContaining({ slot_interval_minutes: null }),
-      })
-    );
-  });
-
-  it('syncs an agenda now and says when Google was last read', async () => {
-    const wrapper = await editarAgendaDaAna({
-      connected: false,
-      retryable: true,
-      status: 'error',
-      last_error: 'Google timeout',
-    });
-
-    await wrapper
-      .find('[data-testid="calendar-sync-google-calendar"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(CalendarAPI.syncGoogleCalendar).toHaveBeenCalledWith(8);
-    expect(wrapper.text()).toContain(
-      'CALENDAR.SETTINGS.GOOGLE_CALENDAR.CONNECTED'
-    );
-    expect(
-      wrapper.find('[data-testid="calendar-google-last-import"]').text()
-    ).toContain('CALENDAR.SETTINGS.GOOGLE_CALENDAR.LAST_IMPORT');
-    expect(wrapper.text()).not.toContain('Google timeout');
-  });
-
-  it('shows why Google refused when syncing fails', async () => {
-    CalendarAPI.syncGoogleCalendar.mockRejectedValue({
-      response: {
-        data: {
-          connected: false,
-          retryable: true,
-          status: 'error',
-          last_error: 'Google timeout',
-        },
-      },
-    });
-    const wrapper = await editarAgendaDaAna({
-      connected: true,
-      status: 'connected',
-    });
-
-    await wrapper
-      .find('[data-testid="calendar-sync-google-calendar"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(
-      wrapper.find('[data-testid="calendar-google-error"]').text()
-    ).toContain('Google timeout');
-  });
-
-  // A mensagem crua do Google não diz o que fazer; a causa conhecida é a caixa
-  // da agenda deixada por marcar no ecrã de permissões.
-  it('explains a missing calendar permission instead of the raw Google message', async () => {
-    const wrapper = await editarAgendaDaAna({
-      connected: false,
-      retryable: true,
-      status: 'error',
-      last_error: 'Request had insufficient authentication scopes.',
-    });
-
-    const aviso = wrapper.find('[data-testid="calendar-google-error"]').text();
-    expect(aviso).toContain(
-      'CALENDAR.SETTINGS.GOOGLE_CALENDAR.MISSING_PERMISSION'
-    );
-    expect(aviso).not.toContain('insufficient authentication scopes');
-  });
-
-  // A frase do Google diz o número do projeto e um link de consola; quem está
-  // em Configurações precisa de saber que é uma configuração no Google Cloud.
-  it('explains that the Calendar API is switched off in the Google project', async () => {
-    const wrapper = await editarAgendaDaAna({
-      connected: false,
-      retryable: true,
-      status: 'error',
-      last_error:
-        'Google Calendar API has not been used in project 629430143774 before or it is disabled.',
-    });
-
-    const aviso = wrapper.find('[data-testid="calendar-google-error"]').text();
-    expect(aviso).toContain('CALENDAR.SETTINGS.GOOGLE_CALENDAR.API_DISABLED');
-    expect(aviso).not.toContain('has not been used in project');
-  });
-
-  it('marks in the list which agendas are linked to Google', async () => {
-    const wrapper = await editarAgendaDaAna({
-      connected: true,
-      status: 'connected',
-    });
-
-    expect(
-      wrapper.find('[data-testid="calendar-resource-google-status"]').text()
-    ).toContain('CALENDAR.SETTINGS.GOOGLE_CALENDAR.ROW_CONNECTED');
-  });
-
-  it('updates an existing procedure instead of creating a duplicate', async () => {
-    CalendarAPI.getProcedures.mockResolvedValue({
-      data: [
-        {
-          id: 7,
-          name: 'Consulta inicial',
-          duration_minutes: 50,
-          buffer_before_minutes: 10,
-          buffer_after_minutes: 15,
-          location_type: 'video',
-          color: '#00B8C6',
-          recurrence_allowed: false,
-          max_sessions: null,
-          resource_ids: [],
-          active: true,
-        },
-      ],
-    });
-    CalendarAPI.updateProcedure.mockResolvedValue({
-      data: {
-        id: 7,
-        name: 'Consulta de avaliação',
-        duration_minutes: 60,
-        buffer_before_minutes: 10,
-        buffer_after_minutes: 15,
-        location_type: 'video',
-        color: '#00B8C6',
-        recurrence_allowed: false,
-        max_sessions: null,
-        resource_ids: [],
-        active: true,
-      },
-    });
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await wrapper
-      .find('[data-testid="calendar-edit-procedure"]')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-procedure-name"]')
-      .setValue('Consulta de avaliação');
-    await wrapper
-      .find('[data-testid="calendar-procedure-duration"]')
-      .setValue('60');
-    await wrapper
-      .find('[data-testid="calendar-procedure-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.updateProcedure).toHaveBeenCalledWith(7, {
-      procedure: expect.objectContaining({
-        name: 'Consulta de avaliação',
-        duration_minutes: 60,
-        buffer_before_minutes: 10,
-        buffer_after_minutes: 15,
-        location_type: 'video',
-      }),
-    });
-  });
-
-  it('uses a recurrence limit when enabling recurrence for an existing procedure', async () => {
-    CalendarAPI.getProcedures.mockResolvedValue({
-      data: [
-        {
-          id: 7,
-          name: 'Consulta inicial',
-          duration_minutes: 50,
-          recurrence_allowed: false,
-          max_sessions: null,
-          resource_ids: [],
-          active: true,
-        },
-      ],
-    });
-    CalendarAPI.updateProcedure.mockResolvedValue({
-      data: {
-        id: 7,
-        name: 'Consulta inicial',
-        duration_minutes: 50,
-        recurrence_allowed: true,
-        max_sessions: 10,
-        resource_ids: [],
-        active: true,
-      },
-    });
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await wrapper
-      .find('[data-testid="calendar-edit-procedure"]')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-procedure-recurrence"]')
-      .setValue(true);
-    await wrapper
-      .find('[data-testid="calendar-procedure-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.updateProcedure).toHaveBeenCalledWith(7, {
-      procedure: expect.objectContaining({
-        recurrence_allowed: true,
-        max_sessions: 10,
-      }),
-    });
-  });
-
-  it('publishes a procedure with its public title and booking slug', async () => {
-    CalendarAPI.getProcedures.mockResolvedValue({
-      data: [
-        {
-          id: 7,
-          name: 'Consulta inicial',
-          duration_minutes: 50,
-          recurrence_allowed: false,
-          max_sessions: null,
-          resource_ids: [],
-          active: true,
-          public_booking_enabled: false,
-        },
-      ],
-    });
-    CalendarAPI.updateProcedure.mockResolvedValue({ data: {} });
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await wrapper
-      .find('[data-testid="calendar-edit-procedure"]')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-procedure-public-enabled"]')
-      .setValue(true);
-    await wrapper
-      .find('[data-testid="calendar-procedure-public-slug"]')
-      .setValue('consulta-inicial');
-    await wrapper
-      .find('[data-testid="calendar-procedure-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.updateProcedure).toHaveBeenCalledWith(7, {
-      procedure: expect.objectContaining({
-        public_booking_enabled: true,
-        public_slug: 'consulta-inicial',
-      }),
-    });
-  });
-
-  it('saves a second procedure without making anyone retype the intervals', async () => {
-    // O formulário vazio estava escrito três vezes e a cópia usada depois de
-    // gravar não tinha os intervalos. O primeiro procedimento gravava; a partir
-    // do segundo, `Number(undefined) >= 0` desligava o botão até alguém
-    // escrever nos dois intervalos — sem nada no ecrã a dizer porquê.
-    CalendarAPI.createProcedure.mockResolvedValue({ data: {} });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await ['Consulta', 'Retorno'].reduce(async (anterior, nome) => {
-      await anterior;
-      await wrapper
-        .find('[data-testid="calendar-add-procedure"]')
-        .trigger('click');
-      await wrapper
-        .find('[data-testid="calendar-procedure-name"]')
-        .setValue(nome);
-      await wrapper
-        .find('[data-testid="calendar-procedure-form"]')
-        .trigger('submit');
-      await flushPromises();
-    }, Promise.resolve());
-
-    expect(CalendarAPI.createProcedure).toHaveBeenCalledTimes(2);
-    expect(CalendarAPI.createProcedure).toHaveBeenLastCalledWith({
-      procedure: expect.objectContaining({
-        name: 'Retorno',
-        buffer_before_minutes: 0,
-        buffer_after_minutes: 0,
-        location_type: 'in_person',
-      }),
-    });
-  });
-
-  describe('o que falta para gravar um procedimento', () => {
-    it('diz qual campo falta, junto dele, em vez de desligar o botão', async () => {
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await wrapper
-        .find('[data-testid="calendar-add-procedure"]')
-        .trigger('click');
-
-      // Antes de tentar, nada a vermelho: o formulário acabou de abrir.
-      expect(
-        wrapper.find('[data-testid="calendar-procedure-name-error"]').exists()
-      ).toBe(false);
-      expect(
-        wrapper
-          .find('[data-testid="calendar-procedure-submit"]')
-          .attributes('disabled')
-      ).toBeUndefined();
-
-      await wrapper
-        .find('[data-testid="calendar-procedure-form"]')
-        .trigger('submit');
-      await flushPromises();
-
-      expect(CalendarAPI.createProcedure).not.toHaveBeenCalled();
-      expect(
-        wrapper.find('[data-testid="calendar-procedure-name-error"]').text()
-      ).toBe('CALENDAR.SETTINGS.VALIDATION.NAME_REQUIRED');
-      expect(
-        wrapper.find('[data-testid="calendar-procedure-missing"]').exists()
-      ).toBe(true);
-    });
-
-    it('marca como obrigatórios o nome e a duração, e não os intervalos', async () => {
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await wrapper
-        .find('[data-testid="calendar-add-procedure"]')
-        .trigger('click');
-
-      const obrigatorios = wrapper
-        .findAll('[data-testid="required-mark"]')
-        .map(marca => marca.element.parentElement.textContent.trim());
-
-      expect(obrigatorios).toEqual([
-        'CALENDAR.SETTINGS.PROCEDURE_NAME',
-        'CALENDAR.SETTINGS.DURATION',
-      ]);
-    });
-
-    it('recusa o que o servidor recusaria: duração abaixo de 5 minutos', async () => {
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await wrapper
-        .find('[data-testid="calendar-add-procedure"]')
-        .trigger('click');
-      await wrapper
-        .find('[data-testid="calendar-procedure-name"]')
-        .setValue('Consulta');
-      await wrapper
-        .find('[data-testid="calendar-procedure-duration"]')
-        .setValue('3');
-      await wrapper
-        .find('[data-testid="calendar-procedure-form"]')
-        .trigger('submit');
-      await flushPromises();
-
-      expect(CalendarAPI.createProcedure).not.toHaveBeenCalled();
-      expect(wrapper.text()).toContain(
-        'CALENDAR.SETTINGS.VALIDATION.DURATION_RANGE'
-      );
-    });
-
-    it('deixa fechar um procedimento novo sem gravar', async () => {
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await wrapper
-        .find('[data-testid="calendar-add-procedure"]')
-        .trigger('click');
-
-      const cancelar = wrapper.find(
-        '[data-testid="calendar-procedure-cancel"]'
-      );
-      expect(cancelar.text()).toBe('CALENDAR.SETTINGS.CANCEL_EDIT');
-      await cancelar.trigger('click');
-
-      expect(
-        wrapper.find('[data-testid="calendar-procedure-form"]').exists()
-      ).toBe(false);
-    });
-  });
-
-  it('nunca mostra o nome cru de uma chave de tradução no lugar de Cancelar', async () => {
-    // `GENERAL.CANCEL` não existe em nenhum JSON e aparecia escrito no botão.
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [{ id: 3, name: 'Sala 1', resource_type: 'room', active: true }],
-    });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await wrapper
-      .find('[data-testid="calendar-add-procedure"]')
-      .trigger('click');
-    expect(wrapper.html()).not.toContain('GENERAL.CANCEL');
-    expect(
-      wrapper.find('[data-testid="calendar-procedure-cancel"]').text()
-    ).toBe('CALENDAR.SETTINGS.CANCEL_EDIT');
-
-    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-    await wrapper
-      .find('[data-testid="calendar-add-resource-room"]')
-      .trigger('click');
-    expect(wrapper.html()).not.toContain('GENERAL.CANCEL');
-    expect(
-      wrapper.find('[data-testid="calendar-resource-cancel"]').text()
-    ).toBe('CALENDAR.SETTINGS.CANCEL_EDIT');
-  });
-
-  describe('agendas separadas por tipo', () => {
-    const agendas = [
-      {
-        id: 1,
-        name: 'Dra. Ana',
-        resource_type: 'user',
-        user_id: 12,
-        active: true,
-      },
-      { id: 2, name: 'Sala 1', resource_type: 'room', active: true },
-      { id: 3, name: 'Laser CO2', resource_type: 'equipment', active: true },
-    ];
-
-    it('mostra profissionais, salas e equipamentos em secções próprias', async () => {
-      CalendarAPI.getResources.mockResolvedValue({ data: agendas });
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-
-      const nomesEm = chave =>
-        wrapper
-          .find(`[data-testid="calendar-resource-section-${chave}"]`)
-          .findAll('[data-testid="calendar-resource-row"]')
-          .map(linha => linha.text());
-
-      expect(nomesEm('professional')).toEqual([
-        expect.stringContaining('Dra. Ana'),
-      ]);
-      expect(nomesEm('room')).toEqual([expect.stringContaining('Sala 1')]);
-      expect(nomesEm('equipment')).toEqual([
-        expect.stringContaining('Laser CO2'),
-      ]);
-      // Quem usa o CRM aparece com o nome da conta.
-      expect(nomesEm('professional')[0]).toContain(
-        'CALENDAR.SETTINGS.LINKED_TO_CRM_USER'
-      );
-      // Sem agendas antigas sem tipo, a secção «Outros» nem existe.
-      expect(
-        wrapper.find('[data-testid="calendar-resource-section-other"]').exists()
-      ).toBe(false);
-    });
-
-    it('mantém à vista as agendas antigas sem tipo, numa secção «Outros»', async () => {
-      CalendarAPI.getResources.mockResolvedValue({
-        data: [
-          {
-            id: 8,
-            name: 'Agenda antiga',
-            resource_type: 'generic',
-            active: true,
-          },
-        ],
-      });
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-
-      expect(
-        wrapper.find('[data-testid="calendar-resource-section-other"]').text()
-      ).toContain('Agenda antiga');
-    });
-
-    it('cria um profissional que não usa o CRM, sem user_id inventado', async () => {
-      // Com o utilizador opcional, `Number('')` mandava `user_id: 0` e partia a
-      // chave estrangeira no servidor.
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-
-      await wrapper
-        .find('[data-testid="calendar-add-resource-professional"]')
-        .trigger('click');
-      await wrapper
-        .find('[data-testid="calendar-resource-name"]')
-        .setValue('Dr. Bruno');
-      await wrapper
-        .find('[data-testid="calendar-resource-form"]')
-        .trigger('submit');
-      await flushPromises();
-
-      expect(CalendarAPI.createResource).toHaveBeenCalledWith({
-        resource: expect.objectContaining({
-          name: 'Dr. Bruno',
-          resource_type: 'user',
-          user_id: null,
-        }),
-      });
-    });
-
-    it('abre o formulário na secção onde se carregou, já com o tipo dela', async () => {
-      CalendarAPI.createResource.mockResolvedValue({
-        data: { id: 9, name: 'Sala 2', resource_type: 'room', active: true },
-      });
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-
-      await wrapper
-        .find('[data-testid="calendar-add-resource-room"]')
-        .trigger('click');
-
-      const salas = wrapper.find(
-        '[data-testid="calendar-resource-section-room"]'
-      );
-      expect(
-        salas.find('[data-testid="calendar-resource-form"]').exists()
-      ).toBe(true);
-      // Uma sala não tem utilizador do CRM para escolher.
-      expect(
-        salas.find('[data-testid="calendar-resource-user"]').exists()
-      ).toBe(false);
-
-      await salas
-        .find('[data-testid="calendar-resource-name"]')
-        .setValue('Sala 2');
-      await salas
-        .find('[data-testid="calendar-resource-form"]')
-        .trigger('submit');
-      await flushPromises();
-
-      expect(CalendarAPI.createResource).toHaveBeenCalledWith({
-        resource: expect.objectContaining({
-          resource_type: 'room',
-          user_id: null,
-        }),
-      });
-    });
-
-    it('diz que falta o nome, junto do campo', async () => {
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-
-      await wrapper
-        .find('[data-testid="calendar-add-resource-equipment"]')
-        .trigger('click');
-      await wrapper
-        .find('[data-testid="calendar-resource-form"]')
-        .trigger('submit');
-      await flushPromises();
-
-      expect(CalendarAPI.createResource).not.toHaveBeenCalled();
-      expect(
-        wrapper.find('[data-testid="calendar-resource-name-error"]').text()
-      ).toBe('CALENDAR.SETTINGS.VALIDATION.RESOURCE_NAME_REQUIRED');
-    });
-  });
-
-  it('agrupa as ações de cada agenda em ícones com nome acessível', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [{ id: 3, name: 'Sala 1', resource_type: 'room', active: true }],
-    });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
-
-    const acoes = [
-      'calendar-edit-resource',
-      'calendar-resource-availability',
-      'calendar-toggle-resource',
-      'calendar-remove-resource',
-    ].map(id => wrapper.find(`[data-testid="${id}"]`));
-
-    // Todas no mesmo grupo — e não soltas no `justify-between` da linha.
-    const grupo = acoes[0].element.parentElement;
-    acoes.forEach(acao => {
-      expect(acao.element.parentElement).toBe(grupo);
-      expect(acao.attributes('aria-label')).toBeTruthy();
-      expect(acao.attributes('title')).toBe(acao.attributes('aria-label'));
-    });
-  });
-
-  describe('links por procedimento', () => {
-    const procedimentos = [
-      {
-        id: 1,
-        name: 'Consulta',
-        active: true,
-        public_booking_enabled: true,
-        public_slug: 'consulta',
-        duration_minutes: 50,
-      },
-      {
-        id: 2,
-        name: 'Retorno',
-        active: true,
-        public_booking_enabled: false,
-        duration_minutes: 30,
-      },
-      {
-        id: 3,
-        name: 'Antigo',
-        active: false,
-        public_booking_enabled: false,
-        duration_minutes: 30,
-      },
-    ];
-
-    it('mostra também quem não tem autoagendamento, e não os arquivados', async () => {
-      CalendarAPI.getProcedures.mockResolvedValue({ data: procedimentos });
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await abrirAba(wrapper, 'CALENDAR.SETTINGS.BOOKING_PAGE');
-
-      const linhas = wrapper.findAll('[data-testid="calendar-procedure-link"]');
-      expect(linhas.map(linha => linha.text())).toEqual([
-        expect.stringContaining('Consulta'),
-        expect.stringContaining('Retorno'),
-      ]);
-      expect(
-        linhas[0].find('[data-testid="calendar-copy-procedure-link"]').exists()
-      ).toBe(true);
-      expect(linhas[1].text()).toContain(
-        'CALENDAR.SETTINGS.PUBLIC_BOOKING_OFF'
-      );
-    });
-
-    it('leva ao procedimento já com o autoagendamento ligado', async () => {
-      CalendarAPI.getProcedures.mockResolvedValue({ data: procedimentos });
-      const wrapper = mountDialog();
-      await wrapper.vm.open();
-      await flushPromises();
-      await abrirAba(wrapper, 'CALENDAR.SETTINGS.BOOKING_PAGE');
-
-      await wrapper
-        .find('[data-testid="calendar-enable-procedure-booking"]')
-        .trigger('click');
-      await flushPromises();
-
-      expect(
-        wrapper.find('[data-testid="calendar-procedure-name"]').element.value
-      ).toBe('Retorno');
-      expect(
-        wrapper.find('[data-testid="calendar-procedure-public-enabled"]')
-          .element.checked
-      ).toBe(true);
-    });
-  });
-
-  it('uses a safe booking slug from the procedure name when publishing', async () => {
-    CalendarAPI.createProcedure.mockResolvedValue({ data: {} });
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    await wrapper
-      .find('[data-testid="calendar-add-procedure"]')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-procedure-name"]')
-      .setValue('Consulta de Avaliação');
-    await wrapper
-      .find('[data-testid="calendar-procedure-public-enabled"]')
-      .setValue(true);
-    await wrapper
-      .find('[data-testid="calendar-procedure-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.createProcedure).toHaveBeenCalledWith({
-      procedure: expect.objectContaining({
-        public_booking_enabled: true,
-        public_slug: 'consulta-de-avaliacao',
-      }),
-    });
-  });
-
-  it('deactivates an existing resource without removing it', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 4,
-          name: 'Sala 1',
-          resource_type: 'room',
-          timezone: 'America/Sao_Paulo',
-          active: true,
-        },
-      ],
-    });
-    CalendarAPI.updateResource.mockResolvedValue({
-      data: {
-        id: 4,
-        name: 'Sala 1',
-        resource_type: 'room',
-        timezone: 'America/Sao_Paulo',
-        active: false,
-      },
-    });
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-toggle-resource"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(4, {
-      resource: { active: false },
-    });
-  });
-
-  it('removes an agenda outright when the API says it was deleted', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 4,
-          name: 'Sala 1',
-          resource_type: 'room',
-          timezone: 'America/Sao_Paulo',
-          active: true,
-        },
-      ],
-    });
-    CalendarAPI.archiveResource.mockResolvedValue({
-      data: { id: 4, outcome: 'deleted' },
-    });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-remove-resource"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(CalendarAPI.archiveResource).toHaveBeenCalledWith(4);
-    expect(
-      wrapper.find('[data-testid="calendar-remove-resource"]').exists()
-    ).toBe(false);
-  });
-
-  it('keeps the agenda in the list, marked, when it could only be archived', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 4,
-          name: 'Sala 1',
-          resource_type: 'room',
-          timezone: 'America/Sao_Paulo',
-          active: true,
-        },
-      ],
-    });
-    CalendarAPI.archiveResource.mockResolvedValue({
-      data: {
-        id: 4,
-        name: 'Sala 1',
-        resource_type: 'room',
-        active: false,
-        outcome: 'archived',
-      },
-    });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-remove-resource"]')
-      .trigger('click');
-    await flushPromises();
-
-    // Arquivada continua visível, mas marcada — antes ficava idêntica a uma ativa.
-    expect(
-      wrapper.find('[data-testid="calendar-resource-archived"]').exists()
-    ).toBe(true);
-  });
-
-  it('does nothing when the confirmation is dismissed', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 4,
-          name: 'Sala 1',
-          resource_type: 'room',
-          timezone: 'America/Sao_Paulo',
-          active: true,
-        },
-      ],
-    });
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-remove-resource"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(CalendarAPI.archiveResource).not.toHaveBeenCalled();
-  });
-
-  it('edits an existing resource without creating another one', async () => {
-    CalendarAPI.getResources.mockResolvedValue({
-      data: [
-        {
-          id: 4,
-          name: 'Sala 1',
-          resource_type: 'room',
-          timezone: 'America/Sao_Paulo',
-          active: true,
-        },
-      ],
-    });
-    CalendarAPI.updateResource.mockResolvedValue({
-      data: {
-        id: 4,
-        name: 'Consultório 1',
-        resource_type: 'room',
-        timezone: 'America/Sao_Paulo',
-        active: true,
-      },
-    });
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-    await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CALENDAR.SETTINGS.RESOURCES')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-edit-resource"]')
-      .trigger('click');
-    await wrapper
-      .find('[data-testid="calendar-resource-name"]')
-      .setValue('Consultório 1');
-    await wrapper
-      .find('[data-testid="calendar-resource-form"]')
-      .trigger('submit');
-    await flushPromises();
-
-    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(4, {
-      resource: expect.objectContaining({
-        name: 'Consultório 1',
-        resource_type: 'room',
-      }),
-    });
-  });
-
-  it('apaga um procedimento quando é seguro, e arquiva quando não é', async () => {
-    const procedimento = {
-      id: 4,
-      name: 'Toxina',
-      duration_minutes: 50,
-      active: true,
-    };
-    CalendarAPI.getProcedures.mockResolvedValue({ data: [procedimento] });
-    CalendarAPI.getResources.mockResolvedValue({ data: [] });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    const wrapper = mountDialog();
-    await wrapper.vm.open();
-    await flushPromises();
-
-    CalendarAPI.archiveProcedure.mockResolvedValue({
-      data: { id: 4, outcome: 'deleted' },
-    });
-    await wrapper
-      .find('[data-testid="calendar-remove-procedure"]')
-      .trigger('click');
-    await flushPromises();
-
-    expect(CalendarAPI.archiveProcedure).toHaveBeenCalledWith(4);
-    // Apagado sai da lista; arquivado ficaria, com `active: false`.
-    expect(wrapper.vm.procedures).toEqual([]);
   });
 });

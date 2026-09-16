@@ -41,8 +41,10 @@ const monta = () =>
         ResourcesSection: secao('resources'),
         TeamsSection: secao('teams'),
         CalendarSettingsDialog: {
-          props: ['inline', 'tab'],
-          template: '<div data-testid="painel" :data-tab="tab" />',
+          props: ['tab'],
+          emits: ['openProcedure'],
+          template:
+            '<div data-testid="painel" :data-tab="tab"><button data-testid="painel-publicar" @click="$emit(\'openProcedure\', 5)" /></div>',
         },
       },
     },
@@ -106,9 +108,22 @@ describe('CalendarSettingsView', () => {
       .find('[data-testid="calendar-settings-nav-teams"]')
       .trigger('click');
 
-    expect(empurra).toHaveBeenCalledWith(
-      '/app/accounts/7/calendar/settings/teams'
-    );
+    expect(empurra).toHaveBeenCalledWith({
+      path: '/app/accounts/7/calendar/settings/teams',
+      query: {},
+    });
+  });
+
+  it('abre o procedimento pedido pela página de agendamento, para publicar', async () => {
+    rotaAtual.value = { params: { section: 'booking-page' } };
+    const wrapper = monta();
+
+    await wrapper.find('[data-testid="painel-publicar"]').trigger('click');
+
+    expect(empurra).toHaveBeenCalledWith({
+      path: '/app/accounts/7/calendar/settings/procedures/5/setup',
+      query: { publicar: '1' },
+    });
   });
 
   it('marca a secção aberta para quem usa leitor de ecrã', () => {

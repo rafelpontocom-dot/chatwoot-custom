@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import CalendarAPI from 'dashboard/api/calendar';
 import SetupButton from '../shared/SetupButton.vue';
 import SetupHead from '../shared/SetupHead.vue';
@@ -40,6 +41,7 @@ const TABS = [
   { id: 'changes', component: ChangesTab },
 ];
 
+const route = useRoute();
 const draft = ref(draftFrom(props.procedure));
 const baseline = ref(JSON.stringify(draft.value));
 const ownLoaded = ref(false);
@@ -57,12 +59,20 @@ const activeComponent = computed(
   () => TABS.find(tab => tab.id === activeTab.value).component
 );
 
+// Vindo do atalho da página de agendamento (`?publicar=1`), o procedimento abre
+// com o autoagendamento ligado e por gravar.
+const applyPublishRequest = () => {
+  if (route.query.publicar === '1' && draft.value.id)
+    draft.value.public_booking_enabled = true;
+};
+
 const reset = procedure => {
   draft.value = draftFrom(procedure);
   ownLoaded.value = false;
   baseline.value = JSON.stringify(draft.value);
   errors.value = {};
   error.value = '';
+  applyPublishRequest();
 };
 
 const ownScheduleLoaded = async () => {
@@ -251,6 +261,8 @@ watch(
   () => props.procedure?.id,
   () => reset(props.procedure)
 );
+
+applyPublishRequest();
 
 provideProcedureDraft({
   draft,

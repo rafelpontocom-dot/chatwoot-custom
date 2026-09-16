@@ -48,13 +48,25 @@ const baseUrl = computed(() =>
   frontendURL(`accounts/${currentAccountId.value}/calendar`)
 );
 
-const goTo = (section, { itemId = '', tab = '', replace = false } = {}) => {
+const goTo = (
+  section,
+  { itemId = '', tab = '', replace = false, query = {} } = {}
+) => {
   const path = [baseUrl.value, 'settings', section, itemId, itemId && tab]
     .filter(Boolean)
     .join('/');
-  if (replace) router.replace(path);
-  else router.push(path);
+  if (replace) router.replace({ path, query });
+  else router.push({ path, query });
 };
+
+// Atalho da página de agendamento: abre o procedimento com o autoagendamento
+// já ligado; gravar continua a ser decisão de quem está na tela.
+const openProcedureToPublish = id =>
+  goTo('procedures', {
+    itemId: String(id),
+    tab: 'setup',
+    query: { publicar: '1' },
+  });
 
 onMounted(loadAll);
 </script>
@@ -156,8 +168,8 @@ onMounted(loadAll);
         />
         <CalendarSettingsDialog
           :key="activeSection.legacy"
-          inline
           :tab="activeSection.legacy"
+          @open-procedure="openProcedureToPublish"
         />
       </section>
     </div>
