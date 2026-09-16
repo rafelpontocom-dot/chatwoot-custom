@@ -50,6 +50,10 @@ class KanbanCalendar::FeegowClient
     raise KanbanCalendar::FeegowApiError, error_message(response, body) unless response.success?
 
     Array(body['content'])
+  rescue Faraday::Error => e
+    # Feegow fora do ar tem de chegar como erro do Feegow: é ele que a
+    # importação grava na ligação e que a tela mostra, em vez de um 500.
+    raise KanbanCalendar::FeegowApiError, "Feegow could not be reached (#{e.class.name.demodulize})"
   end
 
   def parse(response)

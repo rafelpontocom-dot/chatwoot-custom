@@ -43,6 +43,12 @@ RSpec.describe KanbanCalendar::FeegowClient do
     expect { client.professionals }.to raise_error(KanbanCalendar::FeegowApiError, /Token inválido/)
   end
 
+  it 'reports Feegow being out of reach as a Feegow error, not a crash' do
+    stub_request(:get, 'https://api.feegow.test/v1/api/professional/list').to_timeout
+
+    expect { client.professionals }.to raise_error(KanbanCalendar::FeegowApiError, /could not be reached/)
+  end
+
   it 'refuses to call Feegow without a token instead of asking anonymously' do
     connection.update!(status: 'disconnected', api_token: nil)
 
