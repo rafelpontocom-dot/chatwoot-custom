@@ -176,7 +176,8 @@
         "LAST_EXPORT": "Última consulta enviada ao Google em {time}",
         "MISSING_PERMISSION": "Falta a permissão do calendário. Desligue, ligue de novo e marque a caixa do calendário no ecrã do Google.",
         "ROW_CONNECTED": "Google",
-        "ROW_ERROR": "Google com erro"
+        "ROW_ERROR": "Google com erro",
+        "API_DISABLED": "A API do Google Calendar está desativada no seu projeto do Google Cloud. Ative a «Google Calendar API» na consola do Google Cloud, espere alguns minutos e sincronize de novo. É uma configuração única, para o projeto inteiro."
       },
       "AVAILABILITY": {
         "OPEN": "Horários",

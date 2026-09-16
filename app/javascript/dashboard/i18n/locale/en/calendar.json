@@ -176,7 +176,8 @@
         "LAST_EXPORT": "Last appointment sent to Google {time}",
         "MISSING_PERMISSION": "Calendar access is missing. Disconnect, connect again and tick the calendar box on the Google screen.",
         "ROW_CONNECTED": "Google",
-        "ROW_ERROR": "Google needs attention"
+        "ROW_ERROR": "Google needs attention",
+        "API_DISABLED": "The Google Calendar API is switched off in your Google Cloud project. Enable \"Google Calendar API\" in the Google Cloud console, wait a couple of minutes and sync again. It is a one-off setting for the whole project."
       },
       "AVAILABILITY": {
         "OPEN": "Hours",

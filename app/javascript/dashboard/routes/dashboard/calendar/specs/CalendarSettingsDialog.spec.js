@@ -421,6 +421,22 @@ describe('CalendarSettingsDialog', () => {
     expect(aviso).not.toContain('insufficient authentication scopes');
   });
 
+  // A frase do Google diz o número do projeto e um link de consola; quem está
+  // em Configurações precisa de saber que é uma configuração no Google Cloud.
+  it('explains that the Calendar API is switched off in the Google project', async () => {
+    const wrapper = await editarAgendaDaAna({
+      connected: false,
+      retryable: true,
+      status: 'error',
+      last_error:
+        'Google Calendar API has not been used in project 629430143774 before or it is disabled.',
+    });
+
+    const aviso = wrapper.find('[data-testid="calendar-google-error"]').text();
+    expect(aviso).toContain('CALENDAR.SETTINGS.GOOGLE_CALENDAR.API_DISABLED');
+    expect(aviso).not.toContain('has not been used in project');
+  });
+
   it('marks in the list which agendas are linked to Google', async () => {
     const wrapper = await editarAgendaDaAna({
       connected: true,

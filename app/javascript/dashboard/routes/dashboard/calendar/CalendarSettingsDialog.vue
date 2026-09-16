@@ -507,13 +507,20 @@ const canSyncGoogleCalendar = computed(
 // O Google devolve isto quando a caixa da agenda ficou por marcar no ecrã de
 // permissões. A frase dele não diz o que fazer; a nossa diz.
 const GOOGLE_MISSING_PERMISSION = /insufficient authentication scopes/i;
+// A API da agenda vem desligada num projeto novo do Google Cloud. A frase do
+// Google traz o número do projeto e um link de consola; aqui diz-se o que fazer.
+const GOOGLE_API_DISABLED = /has not been used in project|is disabled/i;
 
 const googleCalendarError = computed(() => {
   const message = googleCalendarConnection.value?.last_error;
   if (!message) return '';
-  return GOOGLE_MISSING_PERMISSION.test(message)
-    ? t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.MISSING_PERMISSION')
-    : message;
+  if (GOOGLE_MISSING_PERMISSION.test(message)) {
+    return t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.MISSING_PERMISSION');
+  }
+  if (GOOGLE_API_DISABLED.test(message)) {
+    return t('CALENDAR.SETTINGS.GOOGLE_CALENDAR.API_DISABLED');
+  }
+  return message;
 });
 
 const formatSyncTime = value =>
