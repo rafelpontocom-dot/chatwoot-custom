@@ -86,6 +86,20 @@ RSpec.describe 'Public calendar booking in three steps', type: :request do
     expect(KanbanCalendarAppointment.count).to eq(0)
   end
 
+  it 'keeps the held time when the patient picks an online payment the clinic cannot take' do
+    procedure.update!(payment_enabled: true, price_cents: 25_000, payment_methods: %w[pix on_site])
+
+    get "#{base}.json"
+    expect(response.parsed_body['payment']['methods']).to eq(%w[on_site])
+
+    held = hold!
+    post "#{base}/vaga/#{held['token']}/confirmar", params: { booking: patient.merge(payment_method: 'pix') }, as: :json
+    expect(response.parsed_body['code']).to eq('payment_failed')
+
+    post "#{base}/vaga/#{held['token']}/confirmar", params: { booking: patient.merge(payment_method: 'on_site') }, as: :json
+    expect(response.parsed_body['status']).to eq('confirmed')
+  end
+
   context 'with online payment' do
     before do
       account.create_finance_module_setting!(enabled: true, market: 'BR', default_payment_provider: 'asaas')

@@ -1,7 +1,7 @@
 <main
   id="public-booking-app"
   class="raevo-compact"
-  data-booking-page-url="<%= @booking_link ? "/agendar/convite/#{@booking_link.token}" : "/agendar/#{@booking_page.public_token}" %>"
+  data-booking-page-url="<%= @booking_link ? "/agendar/convite/#{@booking_link.token}" : "/agendar/#{@booking_page&.public_token}" %>"
   data-procedure-slug="<%= @procedure&.public_slug %>"
   data-private-booking="<%= @booking_link.present? %>"
   data-booking-token="<%= @appointment&.hold_token %>"

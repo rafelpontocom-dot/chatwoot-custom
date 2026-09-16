@@ -30,14 +30,16 @@ class KanbanCalendar::ProcedureAvailability
   end
 
   def days_with_slots(from:, to:)
-    (from..to).select { |date| slots(date: date).any? }
+    with_occupancy(from, to) { (from..to).select { |date| slots(date: date).any? } }
   end
 
   def upcoming(from:, days:, per_day: 6, max_days: 3)
-    (from...(from + days)).each_with_object([]) do |date, found|
-      day_slots = slots(date: date)
-      found << { date: date, slots: day_slots.first(per_day) } if day_slots.any?
-      break found if found.length >= max_days
+    with_occupancy(from, from + days) do
+      (from...(from + days)).each_with_object([]) do |date, found|
+        day_slots = slots(date: date)
+        found << { date: date, slots: day_slots.first(per_day) } if day_slots.any?
+        break found if found.length >= max_days
+      end
     end
   end
 
@@ -80,8 +82,34 @@ class KanbanCalendar::ProcedureAvailability
 
   def free_instants(date)
     groups.flatten.uniq.index_by(&:id).transform_values do |resource|
-      KanbanCalendar::AvailabilitySlotsQuery.new(resource: resource, procedure: @procedure, date: date).call.to_set(&:to_i)
+      KanbanCalendar::AvailabilitySlotsQuery.new(
+        resource: resource, procedure: @procedure, date: date, occupancy: @occupancy,
+        working_rules: working_rules_for(resource), limits: limits, allowed_resource_ids: allowed_resource_ids
+      ).call.to_set(&:to_i)
     end
+  end
+
+  # Um período inteiro carregado de uma vez; um dia a mais de cada lado cobre
+  # fusos e intervalos antes e depois.
+  def with_occupancy(from, to)
+    resource_ids = groups.flatten.map(&:id).uniq
+    zone = ActiveSupport::TimeZone[timezone]
+    @occupancy = KanbanCalendar::Occupancy.new(
+      resource_ids: resource_ids, from: zone.local(from.year, from.month, from.day) - 1.day,
+      to: zone.local(to.year, to.month, to.day) + 2.days
+    )
+    yield
+  ensure
+    @occupancy = nil
+  end
+
+  def working_rules_for(resource)
+    @working_rules ||= {}
+    @working_rules[resource.id] ||= KanbanCalendar::WorkingRules.new(resource: resource, procedure: @procedure)
+  end
+
+  def allowed_resource_ids
+    @allowed_resource_ids ||= @procedure.kanban_calendar_resource_ids
   end
 
   def groups

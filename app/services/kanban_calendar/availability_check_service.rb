@@ -1,8 +1,13 @@
 class KanbanCalendar::AvailabilityCheckService
-  def initialize(procedure:, resource:, starts_at:)
+  # `allowed: true` quando quem chama já verificou que a agenda serve o
+  # procedimento; `occupancy` e `working_rules` vêm do calendário do mês.
+  def initialize(procedure:, resource:, starts_at:, **cache)
     @procedure = procedure
     @resource = resource
     @starts_at = starts_at
+    @occupancy = cache[:occupancy]
+    @working_rules = cache[:working_rules]
+    @allowed = cache[:allowed]
   end
 
   def call
@@ -15,16 +20,20 @@ class KanbanCalendar::AvailabilityCheckService
     }
   end
 
-  private
-
   def available?
-    resource_allowed? && !conflict? && availability_query.available?
+    resource_allowed? && availability_query.available? && !conflict?
   end
+
+  private
 
   def conflict?
     return @conflict if defined?(@conflict)
 
-    @conflict = appointment_conflict? || external_busy_conflict? || slot_hold_conflict?
+    @conflict = if @occupancy
+                  @occupancy.busy?(@resource.id, reservation_starts_at, reservation_ends_at)
+                else
+                  appointment_conflict? || external_busy_conflict? || slot_hold_conflict?
+                end
   end
 
   def appointment_conflict?
@@ -46,6 +55,8 @@ class KanbanCalendar::AvailabilityCheckService
   end
 
   def resource_allowed?
+    return @allowed unless @allowed.nil?
+
     !@procedure.kanban_calendar_resources.exists? ||
       @procedure.kanban_calendar_resources.exists?(id: @resource.id)
   end
@@ -54,6 +65,7 @@ class KanbanCalendar::AvailabilityCheckService
     KanbanCalendar::AvailabilityQuery.new(
       resource: @resource,
       procedure: @procedure,
+      working_rules: @working_rules,
       starts_at: reservation_starts_at,
       ends_at: reservation_ends_at
     )

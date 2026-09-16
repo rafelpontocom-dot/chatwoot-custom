@@ -23,6 +23,7 @@ const ESCOPO_RAEVO = [
   // O formulário do doente é a superfície mais exposta que temos e estava fora
   // da porta: foi lá que uma borda invisível passou despercebida.
   'app/javascript/public_form',
+  'app/javascript/public_booking',
   'app/javascript/v3/views/login',
 ];
 const todos = process.argv.includes('--all');
@@ -30,26 +31,51 @@ const raizes = todos ? ['app/javascript/dashboard'] : ESCOPO_RAEVO;
 
 const arquivos = raizes.flatMap(r => {
   try {
-    return execSync(`find ${r} -name '*.vue' -not -path '*/specs/*'`, { encoding: 'utf8' })
-      .split('\n').filter(Boolean);
-  } catch { return []; }
+    return execSync(`find ${r} -name '*.vue' -not -path '*/specs/*'`, {
+      encoding: 'utf8',
+    })
+      .split('\n')
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 });
 
 // Cores de marca de terceiros e assets SVG são exceção legítima.
-const PERMITIDO = /(currentColor|transparent|none|#fff\b|#ffffff\b|#000\b|#000000\b)/i;
+const PERMITIDO =
+  /(currentColor|transparent|none|#fff\b|#ffffff\b|#000\b|#000000\b)/i;
 const REGRAS = [
-  { nome: 'cor hexadecimal literal', re: /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g,
-    ignorar: l => /<svg|<path|<stop|<rect|<circle|fill=|stroke=|d=|viewBox|logo|brand-asset/i.test(l) },
-  { nome: 'cor rgb()/hsl() literal', re: /\b(rgb|rgba|hsl|hsla)\(\s*\d/g,
-    ignorar: l => /var\(--/.test(l) },
+  {
+    nome: 'cor hexadecimal literal',
+    re: /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g,
+    ignorar: l =>
+      /<svg|<path|<stop|<rect|<circle|fill=|stroke=|d=|viewBox|logo|brand-asset/i.test(
+        l
+      ),
+  },
+  {
+    nome: 'cor rgb()/hsl() literal',
+    re: /\b(rgb|rgba|hsl|hsla)\(\s*\d/g,
+    ignorar: l => /var\(--/.test(l),
+  },
   // só valor arbitrário que É cor — text-[11px] e stroke-[1.5] são tamanho, não cor
-  { nome: 'classe arbitrária de cor', re: /\b(bg|text|border|ring|fill|stroke|from|via|to)-\[(#|rgb|rgba|hsl|hsla)[^\]]*\]/g,
-    ignorar: () => false },
-  { nome: 'raio literal', re: /border-radius\s*:\s*\d/g, ignorar: l => /var\(--/.test(l) },
+  {
+    nome: 'classe arbitrária de cor',
+    re: /\b(bg|text|border|ring|fill|stroke|from|via|to)-\[(#|rgb|rgba|hsl|hsla)[^\]]*\]/g,
+    ignorar: () => false,
+  },
+  {
+    nome: 'raio literal',
+    re: /border-radius\s*:\s*\d/g,
+    ignorar: l => /var\(--/.test(l),
+  },
   // A auditoria de 30/08 contou 27 degraus de tipografia em uso, porque cada
   // tela inventava o seu com text-[Npx]. A escala tem seis degraus nomeados.
-  { nome: 'tamanho de texto fora da escala', re: /\btext-\[[0-9.]+(px|rem|em)\]/g,
-    ignorar: () => false },
+  {
+    nome: 'tamanho de texto fora da escala',
+    re: /\btext-\[[0-9.]+(px|rem|em)\]/g,
+    ignorar: () => false,
+  },
 ];
 
 /**
@@ -140,9 +166,7 @@ function submitSemQuerer(fonte) {
     }
     const tag = dentro.slice(m.index, i + 1);
     if (!/\stype=/.test(tag)) {
-      achados.push(
-        fonte.slice(0, inicio + m.index).split('\n').length
-      );
+      achados.push(fonte.slice(0, inicio + m.index).split('\n').length);
     }
   }
   return achados;
@@ -164,7 +188,9 @@ function bordasInvisiveis(fonte) {
       i += 1;
     }
     const tag = fonte.slice(m.index, i + 1);
-    const classes = [...tag.matchAll(/:?class="([^"]*)"/g)].map(x => x[1]).join(' ');
+    const classes = [...tag.matchAll(/:?class="([^"]*)"/g)]
+      .map(x => x[1])
+      .join(' ');
     // `border-n-*` sem prefixo de estado é intenção de desenhar uma borda
     const querBorda = /(^|[\s'"])border-n-[a-z]+-?\d*\b/.test(classes);
     if (querBorda && !/border-(solid|dashed|dotted)/.test(classes)) {
@@ -197,12 +223,18 @@ for (const arq of arquivos) {
   for (const linha of bordasInvisiveis(fonte)) {
     achados++;
     console.log(`${arq}:${linha}  borda de botão sem border-solid → invisível`);
-    console.log('    `_base.scss` zera a borda de todo <button>; acrescente border-solid.');
+    console.log(
+      '    `_base.scss` zera a borda de todo <button>; acrescente border-solid.'
+    );
   }
   for (const linha of submitSemQuerer(fonte)) {
     achados++;
-    console.log(`${arq}:${linha}  <Button> sem type dentro de <form> → submete sem querer`);
-    console.log('    Sem `type`, o HTML assume submit; acrescente type="button".');
+    console.log(
+      `${arq}:${linha}  <Button> sem type dentro de <form> → submete sem querer`
+    );
+    console.log(
+      '    Sem `type`, o HTML assume submit; acrescente type="button".'
+    );
   }
   for (const linha of iconesEsmagados(fonte)) {
     achados++;
@@ -213,8 +245,14 @@ for (const arq of arquivos) {
 
 console.log('');
 if (achados) {
-  console.log(`✗ ${achados} ocorrência(s) de valor fora do sistema em ${arquivos.length} arquivos.`);
-  console.log('  Use os tokens n-* / --raevo-*. Ver docs/raevo-design-system.md §7.');
+  console.log(
+    `✗ ${achados} ocorrência(s) de valor fora do sistema em ${arquivos.length} arquivos.`
+  );
+  console.log(
+    '  Use os tokens n-* / --raevo-*. Ver docs/raevo-design-system.md §7.'
+  );
   process.exit(1);
 }
-console.log(`✓ ${arquivos.length} arquivos sem cor literal nem tamanho fora da escala.`);
+console.log(
+  `✓ ${arquivos.length} arquivos sem cor literal nem tamanho fora da escala.`
+);

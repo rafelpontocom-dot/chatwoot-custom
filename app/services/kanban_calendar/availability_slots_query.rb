@@ -1,8 +1,14 @@
 class KanbanCalendar::AvailabilitySlotsQuery
-  def initialize(resource:, procedure:, date:)
+  # `occupancy`, `working_rules`, `limits` e `allowed_resource_ids` evitam repetir
+  # consultas quando se pergunta por muitos dias seguidos (calendário do mês).
+  def initialize(resource:, procedure:, date:, **cache)
     @resource = resource
     @procedure = procedure
     @date = date
+    @occupancy = cache[:occupancy]
+    @working_rules = cache[:working_rules]
+    @limits = cache[:limits]
+    @allowed_resource_ids = cache[:allowed_resource_ids]
   end
 
   def call
@@ -14,8 +20,8 @@ class KanbanCalendar::AvailabilitySlotsQuery
   private
 
   def resource_allowed?
-    !@procedure.kanban_calendar_resources.exists? ||
-      @procedure.kanban_calendar_resources.exists?(id: @resource.id)
+    allowed = @allowed_resource_ids || @procedure.kanban_calendar_resource_ids
+    allowed.empty? || allowed.include?(@resource.id)
   end
 
   def working_windows
@@ -53,8 +59,11 @@ class KanbanCalendar::AvailabilitySlotsQuery
     KanbanCalendar::AvailabilityCheckService.new(
       procedure: @procedure,
       resource: @resource,
-      starts_at: starts_at
-    ).call[:available]
+      starts_at: starts_at,
+      occupancy: @occupancy,
+      working_rules: working_rules,
+      allowed: true
+    ).available?
   end
 
   def timezone
@@ -64,6 +73,7 @@ class KanbanCalendar::AvailabilitySlotsQuery
   # De quanto em quanto tempo se oferece um horário: o procedimento decide, depois
   # a agenda, depois o padrão da conta, configurado na página de agendamento.
   def slot_interval_minutes
-    @slot_interval_minutes ||= KanbanCalendar::ProcedureLimits.new(procedure: @procedure, resource: @resource).slot_interval_minutes
+    @slot_interval_minutes ||= @procedure.slot_interval_minutes || @resource.slot_interval_minutes ||
+                               (@limits || KanbanCalendar::ProcedureLimits.new(procedure: @procedure)).slot_interval_minutes
   end
 end

@@ -16,6 +16,7 @@ class KanbanCalendar::PublicBookingService
 
   def perform!
     validate_references!
+    validate_payment_method!
 
     appointment = ActiveRecord::Base.transaction do
       consume_hold!
@@ -25,11 +26,19 @@ class KanbanCalendar::PublicBookingService
     end
 
     dispatch_card_created_event if @created_card
-    charge!(appointment)
+    KanbanCalendar::BookingPaymentService.new(appointment: appointment, method: @payment_method, cpf: @cpf).charge_or_announce!
     appointment
   end
 
   private
+
+  # Antes de gastar a vaga: forma de pagamento que a página não ofereceu não passa.
+  def validate_payment_method!
+    return unless procedure.payment_enabled? && @payment_method.present?
+    return if @payment_method.in?(KanbanCalendar::BookingPaymentService.offered_methods(procedure))
+
+    raise KanbanCalendar::BookingPaymentService::PaymentUnavailable, 'This payment method is not available'
+  end
 
   def book_appointment!
     KanbanCalendar::BookAppointmentService.new(
@@ -63,28 +72,6 @@ class KanbanCalendar::PublicBookingService
 
     procedure.kanban_calendar_team.kanban_calendar_team_members.where(kanban_calendar_resource_id: resource_ids)
              .update_all(last_assigned_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
-  end
-
-  # Pagamento online: a consulta só é anunciada quando o webhook confirmar. Se a
-  # cobrança não puder ser criada, a consulta é cancelada e o erro sobe.
-  def charge!(appointment)
-    payment = KanbanCalendar::BookingPaymentService.new(appointment: appointment, method: @payment_method, cpf: @cpf)
-    if payment.online?
-      begin
-        payment.perform!
-      rescue StandardError
-        cancel_unpaid!(appointment)
-        raise
-      end
-    else
-      KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'created').dispatch
-    end
-  end
-
-  def cancel_unpaid!(appointment)
-    KanbanCalendar::UpdateAppointmentStatusService.new(
-      appointment: appointment, action: 'cancel', cancellation_reason: 'Cobrança não pôde ser criada'
-    ).perform!
   end
 
   attr_reader :booking_page, :procedure, :contact_attributes, :resource_ids, :starts_at, :timezone

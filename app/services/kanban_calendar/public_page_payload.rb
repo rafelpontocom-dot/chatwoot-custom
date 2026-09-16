@@ -79,18 +79,20 @@ class KanbanCalendar::PublicPagePayload
   end
 
   def cpf_needed?(procedure)
-    procedure.mirrors_feegow? || (procedure.payment_enabled? && procedure.payment_methods.intersect?(%w[pix card]))
+    procedure.mirrors_feegow? ||
+      (procedure.payment_enabled? && KanbanCalendar::BookingPaymentService.offered_methods(procedure).intersect?(%w[pix card]))
   end
 
   def payment(procedure)
-    return { enabled: false } unless procedure.payment_enabled?
+    methods = procedure.payment_enabled? ? KanbanCalendar::BookingPaymentService.offered_methods(procedure) : []
+    return { enabled: false } if methods.empty?
 
     {
       enabled: true,
       mode: procedure.payment_mode,
       price_cents: procedure.price_cents,
       charge_cents: procedure.payment_mode == 'deposit' ? procedure.deposit_cents : procedure.price_cents,
-      methods: procedure.payment_methods,
+      methods: methods,
       hold_minutes: procedure.hold_minutes,
       currency: 'BRL'
     }

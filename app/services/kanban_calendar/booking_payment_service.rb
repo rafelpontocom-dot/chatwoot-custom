@@ -9,6 +9,20 @@ class KanbanCalendar::BookingPaymentService
 
   class PaymentUnavailable < StandardError; end
 
+  # Pix e cartão só existem com o Financeiro ligado ao Asaas; sem ele, a página
+  # oferece apenas pagar na clínica.
+  def self.connection_for(account)
+    setting = account.finance_module_setting
+    return unless setting&.enabled && setting.default_payment_provider == 'asaas'
+
+    account.finance_provider_connections.find_by(provider: 'asaas', status: 'connected')
+  end
+
+  def self.offered_methods(procedure)
+    methods = Array(procedure.payment_methods)
+    connection_for(procedure.account) ? methods : methods & %w[on_site]
+  end
+
   def initialize(appointment:, method:, cpf:)
     @appointment = appointment
     @procedure = appointment.kanban_calendar_procedure
@@ -18,6 +32,20 @@ class KanbanCalendar::BookingPaymentService
 
   def online?
     @procedure.payment_enabled? && BILLING_TYPES.key?(@method)
+  end
+
+  # Pagamento online: a consulta só é anunciada quando o webhook confirmar. Se a
+  # cobrança não puder ser criada, a consulta é cancelada e o erro sobe.
+  def charge_or_announce!
+    unless online?
+      KanbanCalendar::AppointmentEventDispatcher.new(appointment: @appointment, event_type: 'created').dispatch
+      return
+    end
+
+    perform!
+  rescue StandardError
+    cancel_unpaid! if online?
+    raise
   end
 
   def perform!
@@ -37,6 +65,12 @@ class KanbanCalendar::BookingPaymentService
 
   private
 
+  def cancel_unpaid!
+    KanbanCalendar::UpdateAppointmentStatusService.new(
+      appointment: @appointment, action: 'cancel', cancellation_reason: 'Cobrança não pôde ser criada'
+    ).perform!
+  end
+
   def create_payment!
     raise PaymentUnavailable, 'Online payment is not available for this clinic' if connection.blank?
 
@@ -54,12 +88,7 @@ class KanbanCalendar::BookingPaymentService
   end
 
   def connection
-    @connection ||= begin
-      setting = @appointment.account.finance_module_setting
-      if setting&.enabled && setting.default_payment_provider == 'asaas'
-        @appointment.account.finance_provider_connections.find_by(provider: 'asaas', status: 'connected')
-      end
-    end
+    @connection ||= self.class.connection_for(@appointment.account)
   end
 
   def description
