@@ -486,3 +486,76 @@ oferecia nada — passaram pelos testes e só a jornada real os apanhou.
 8. Consulta vinda do Feegow (`source_read_only`) continua intocável.
 9. Agenda sem janela nenhuma mostra «falta horário» e não oferece horário.
 10. Calendário do mês não acende dia que o Google ou o Feegow ocuparam por inteiro.
+
+---
+
+## 8 · Como foi construído — onde o código difere desta SPEC
+
+Registado em 2026-09-16, depois das fases 1 a 6 (commits `6a4c2d768`,
+`04c6e34cb`, `e0e49218e`, `5f41c14b9`). O visual segue o mockup; as diferenças
+abaixo são de modelo e de nomes, e **o código é que vale**.
+
+**Horários (§1.2).** Não houve backfill. Cada agenda continua com as suas
+regras próprias e pode, em vez delas, usar um horário nomeado
+(`kanban_calendar_schedule_id`). `KanbanCalendar::WorkingRules` decide numa
+ordem só: horário próprio do procedimento → horário nomeado da agenda → regras
+da própria agenda. Bloqueios continuam sempre da agenda. Uma agenda nova ganha o
+horário padrão da conta; quem cria pedindo horário próprio fica com ele.
+
+**Vaga segurada (§1.5).** Não é um estado da consulta. Vive na tabela
+`kanban_calendar_slot_holds` (procedimento, `resource_ids`, `starts_at`,
+intervalo ocupado, fuso, `token`, `expires_at`). Ocupa horário para
+disponibilidade e para marcação, e é consumida na mesma transação que cria a
+consulta — se a marcação falhar, a vaga volta. `KanbanCalendar::ExpireHoldsJob`
+(no `TriggerScheduledItemsJob`) apaga as vencidas.
+
+**Aguardando pagamento (§2.1).** Com Pix ou cartão, a consulta nasce `scheduled`
+com `hold_expires_at` preenchido — é o «aguardando pagamento até…». O
+`KanbanCalendarPaymentListener` limpa o prazo quando chega
+`finance.payment.received` ou `finance.payment.confirmed`; o
+`ExpireHoldsJob` cancela a que venceu sem pagamento e devolve o horário. A
+cobrança é criada por `KanbanCalendar::BookingPaymentService` via
+`Finance::Asaas::CreatePaymentService`; se falhar, a consulta é cancelada.
+
+**Formas de pagamento.** Pix e cartão só são oferecidos com o Financeiro da
+conta ligado ao Asaas (`BookingPaymentService.offered_methods`); sem ele, a
+página mostra apenas «Pagar na clínica». Uma forma não oferecida é recusada
+**antes** de gastar a vaga (`payment_failed`, mensagem traduzida na página). No
+passo 3, com pagamento pendente, a página mostra o botão para abrir a cobrança
+(`invoice_url`), não o código Pix.
+
+**Serviços (§2).** Os nomes mudaram:
+
+| Na SPEC | No código |
+| --- | --- |
+| `AvailabilityAcrossResources`, `TeamAssignment` | `KanbanCalendar::ProcedureAvailability` (grupos por tipo de agenda; primeiro com vaga, rodízio, todos juntos; `slots`, `days_with_slots`, `upcoming`, `assignment_for`) |
+| — | `KanbanCalendar::Occupancy`: carrega consultas, bloqueios e vagas do período inteiro de uma vez (o mês caiu de 3–6 s para ~0,1 s) |
+| `CancelByPatientService` | `KanbanCalendar::PatientChangeService` (`can_reschedule?`, `can_cancel?`, `reschedule!`, `cancel!`, efeito na oportunidade) |
+| `ExpireCalendarHoldsJob` | `KanbanCalendar::ExpireHoldsJob` |
+
+O rodízio grava `last_assigned_at` no membro da equipe em
+`PublicBookingService`, quando a consulta é marcada pela página.
+
+**Rotas públicas (§3.2).**
+
+| Rota | O que faz |
+| --- | --- |
+| `GET /agendar/:token/:slug/disponibilidade?month=…&tz=…` | dias com vaga no mês |
+| `GET …/disponibilidade?date=…&tz=…` | horários do dia, com quem atende |
+| `POST /agendar/:token/:slug/vaga` | segura a vaga → `{ token, expires_at, resources }` |
+| `POST …/vaga/:hold_token/confirmar` | marca a consulta a partir da vaga |
+| `GET /agendar/reserva/:booking_token` | página da consulta do paciente (HTML e JSON) |
+| `GET /agendar/reserva/:booking_token/calendario` | `.ics` |
+| `GET …/disponibilidade` · `POST …/vaga` · `POST …/remarcar` · `POST …/cancelar` | remarcar e cancelar pelo paciente |
+
+As mesmas rotas de vaga existem em `/agendar/convite/:private_token/…`. A rota
+antiga `POST …/reservas` continua para links antigos e para a IA.
+
+**Página de agendamento.** Ganhou `clinic_whatsapp` ao lado de `clinic_name` e
+`clinic_address`. `pnpm raevo:design` passou a verificar
+`app/javascript/public_booking`.
+
+**Ainda não feito:** selo de «aguardando pagamento» na grade da agenda
+(`payment_pending_until` já vem no payload); retirar as abas antigas de
+procedimentos e agendas do `CalendarSettingsDialog`; Pix e cartão testados
+contra o Asaas real com webhook.

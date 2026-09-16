@@ -2,7 +2,7 @@
 #
 # A consulta nasce marcada e fica «aguardando pagamento até…» (`hold_expires_at`).
 # Só o webhook do provedor a confirma (ver KanbanCalendarPaymentListener); se o
-# prazo passar sem pagamento, ExpireCalendarHoldsJob cancela e o horário volta.
+# prazo passar sem pagamento, KanbanCalendar::ExpireHoldsJob cancela e o horário volta.
 # Redirecionamento do navegador nunca confirma nada.
 class KanbanCalendar::BookingPaymentService
   BILLING_TYPES = { 'pix' => 'pix', 'card' => 'credit_card' }.freeze
