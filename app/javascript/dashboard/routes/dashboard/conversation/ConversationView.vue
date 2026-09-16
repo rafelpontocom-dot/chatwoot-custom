@@ -1,6 +1,8 @@
 <script>
 import { mapGetters } from 'vuex';
+import { useWindowSize } from '@vueuse/core';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useRequestSidebarFocus } from 'dashboard/composables/useSidebarFocus';
 import { useAccount } from 'dashboard/composables/useAccount';
 import ChatList from '../../../components/ChatList.vue';
 import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
@@ -56,11 +58,15 @@ export default {
   setup() {
     const { uiSettings, updateUISettings } = useUISettings();
     const { accountId } = useAccount();
+    const { width: windowWidth } = useWindowSize();
+    const { setSidebarFocus } = useRequestSidebarFocus();
 
     return {
       uiSettings,
       updateUISettings,
       accountId,
+      windowWidth,
+      setSidebarFocus,
     };
   },
   data() {
@@ -73,7 +79,16 @@ export default {
       chatList: 'getAllConversations',
       currentChat: 'getSelectedChat',
     }),
+    /**
+     * Abaixo desta largura não cabem as quatro colunas: navegação, lista,
+     * conversa e oportunidade. A 1280px sobravam 380px para a conversa.
+     */
+    isCompactWorkspace() {
+      return Boolean(this.conversationId) && this.windowWidth < 1440;
+    },
     showConversationList() {
+      if (this.isCompactWorkspace) return false;
+
       return this.isOnExpandedLayout ? !this.conversationId : true;
     },
     showMessageView() {
@@ -100,6 +115,14 @@ export default {
   watch: {
     conversationId() {
       this.fetchConversationIfUnavailable();
+    },
+    // Recolher a navegação a ícones é estado de momento: não grava por cima da
+    // largura que a pessoa escolheu, e volta sozinho quando há espaço.
+    isCompactWorkspace: {
+      immediate: true,
+      handler(compact) {
+        this.setSidebarFocus(compact);
+      },
     },
   },
 
@@ -203,13 +226,13 @@ export default {
       :team-id="teamId"
       :conversation-type="conversationType"
       :folders-id="foldersId"
-      :is-on-expanded-layout="isOnExpandedLayout"
+      :is-on-expanded-layout="isOnExpandedLayout || isCompactWorkspace"
       @conversation-load="onConversationLoad"
     />
     <ConversationBox
       v-if="showMessageView"
       :inbox-id="inboxId"
-      :is-on-expanded-layout="isOnExpandedLayout"
+      :is-on-expanded-layout="isOnExpandedLayout || isCompactWorkspace"
     >
       <SidepanelSwitch v-if="currentChat.id" />
     </ConversationBox>

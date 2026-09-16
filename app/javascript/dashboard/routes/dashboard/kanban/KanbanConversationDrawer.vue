@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 
 import { useStore } from 'dashboard/composables/store';
 import ConversationBox from 'dashboard/components/widgets/conversation/ConversationBox.vue';
+import KanbanConversationOpportunity from 'dashboard/routes/dashboard/conversation/Kanban/KanbanConversationOpportunity.vue';
 
 const props = defineProps({
   conversationId: { type: [Number, String], default: null },
@@ -39,7 +40,7 @@ watch(() => [props.show, props.conversationId], activateConversation, {
     <aside
       v-if="show"
       data-testid="kanban-conversation-drawer"
-      class="fixed inset-y-0 right-0 z-50 flex w-full max-w-3xl flex-col border-l border-n-weak bg-n-surface-1 shadow-2xl"
+      class="fixed inset-y-0 right-0 z-50 flex w-full max-w-[72rem] flex-col border-l border-n-weak bg-n-surface-1 shadow-2xl"
       role="dialog"
       aria-modal="true"
       :aria-label="t('KANBAN.CONVERSATION_DRAWER.TITLE')"
@@ -74,12 +75,25 @@ watch(() => [props.show, props.conversationId], activateConversation, {
           </button>
         </div>
       </header>
-      <ConversationBox
-        class="min-h-0 flex-1"
-        :inbox-id="0"
-        is-inbox-view
-        is-on-expanded-layout
-      />
+      <!--
+        Conversa e oportunidade lado a lado, como na tela de conversa: pelo
+        balão do card resolve-se o lead sem sair do Pipeline.
+      -->
+      <div class="flex min-h-0 flex-1">
+        <ConversationBox
+          class="min-h-0 flex-1"
+          :inbox-id="0"
+          is-inbox-view
+          is-on-expanded-layout
+        />
+        <aside
+          v-if="hasConversation"
+          data-testid="kanban-drawer-opportunity"
+          class="hidden min-h-0 w-[22rem] shrink-0 overflow-y-auto border-l border-n-weak bg-n-surface-2 p-2 lg:block"
+        >
+          <KanbanConversationOpportunity :conversation-id="conversationId" />
+        </aside>
+      </div>
     </aside>
   </div>
 </template>
