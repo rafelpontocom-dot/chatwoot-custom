@@ -23,9 +23,6 @@
 #  fk_rails_...  (account_id => accounts.id)
 #  fk_rails_...  (kanban_calendar_procedure_id => kanban_calendar_procedures.id)
 #
-# Horário com nome («Comercial», «Manhãs da Dra. Anna»), que várias agendas
-# usam. Mudar o horário uma vez muda todas as agendas que o usam.
-#
 # Um horário com procedimento é privado desse procedimento («horário só deste
 # procedimento») e não aparece na lista da conta.
 class KanbanCalendarSchedule < ApplicationRecord

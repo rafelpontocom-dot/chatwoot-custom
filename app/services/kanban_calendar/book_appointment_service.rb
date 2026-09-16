@@ -149,8 +149,16 @@ class KanbanCalendar::BookAppointmentService
         KanbanCalendarExternalBusyBlock.where(kanban_calendar_resource_id: @resource_ids)
                                        .overlapping(*window)
                                        .distinct
-                                       .pluck(:kanban_calendar_resource_id)
+                                       .pluck(:kanban_calendar_resource_id) +
+        held_resource_ids(window)
     end.uniq
+  end
+
+  # Vaga segurada por quem está a preencher a página pública. A própria reserva
+  # de quem confirma já foi apagada na mesma transação.
+  def held_resource_ids(window)
+    KanbanCalendarSlotHold.active.overlapping(*window).where('resource_ids && ARRAY[?]::integer[]', @resource_ids)
+                          .pluck(:resource_ids).flatten & @resource_ids
   end
 
   def appointment_starts

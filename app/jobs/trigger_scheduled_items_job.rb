@@ -26,6 +26,9 @@ class TriggerScheduledItemsJob < ApplicationJob
     # Bring the clinic's Feegow agenda in, so nobody books over it.
     KanbanCalendar::ImportAllFeegowCalendarsJob.perform_later
 
+    # Give back held times nobody confirmed and cancel appointments left unpaid.
+    KanbanCalendar::ExpireHoldsJob.perform_later
+
     # Job to deliver due opt-in appointment reminders.
     KanbanAppointmentReminders::ProcessDueJob.perform_later
 

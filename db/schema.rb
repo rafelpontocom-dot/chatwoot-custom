@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_17_100300) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_17_100400) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1783,6 +1783,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_17_100300) do
     t.index ["kanban_calendar_procedure_id"], name: "idx_on_kanban_calendar_procedure_id_82f1544c94"
   end
 
+  create_table "kanban_calendar_slot_holds", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_calendar_procedure_id", null: false
+    t.integer "resource_ids", default: [], null: false, array: true
+    t.datetime "starts_at", null: false
+    t.datetime "reserved_from", null: false
+    t.datetime "reserved_until", null: false
+    t.string "timezone", null: false
+    t.string "token", null: false
+    t.datetime "expires_at", null: false
+    t.bigint "kanban_calendar_appointment_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_calendar_slot_holds_on_account_id"
+    t.index ["expires_at"], name: "index_kanban_calendar_slot_holds_on_expires_at"
+    t.index ["kanban_calendar_appointment_id"], name: "idx_on_kanban_calendar_appointment_id_d3be1449b6"
+    t.index ["kanban_calendar_procedure_id"], name: "idx_on_kanban_calendar_procedure_id_7401459b39"
+    t.index ["resource_ids"], name: "index_kanban_calendar_slot_holds_on_resource_ids", using: :gin
+    t.index ["token"], name: "index_kanban_calendar_slot_holds_on_token", unique: true
+  end
+
   create_table "kanban_calendar_team_members", force: :cascade do |t|
     t.bigint "kanban_calendar_team_id", null: false
     t.bigint "kanban_calendar_resource_id", null: false
@@ -2587,6 +2608,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_17_100300) do
   add_foreign_key "kanban_calendar_resources", "users"
   add_foreign_key "kanban_calendar_schedules", "accounts"
   add_foreign_key "kanban_calendar_schedules", "kanban_calendar_procedures"
+  add_foreign_key "kanban_calendar_slot_holds", "accounts"
+  add_foreign_key "kanban_calendar_slot_holds", "kanban_calendar_appointments"
+  add_foreign_key "kanban_calendar_slot_holds", "kanban_calendar_procedures"
   add_foreign_key "kanban_calendar_team_members", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_team_members", "kanban_calendar_teams"
   add_foreign_key "kanban_calendar_teams", "accounts"

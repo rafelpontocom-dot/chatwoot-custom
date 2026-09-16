@@ -1,9 +1,12 @@
+# rubocop:disable Metrics/ClassLength -- Public and private booking links share the same three-step flow.
 class Public::CalendarBookingsController < PublicController
-  before_action :fetch_booking_page, except: [:private_show, :private_procedure, :private_create, :private_availability]
-  before_action :fetch_procedure, only: [:procedure, :availability, :create]
-  before_action :fetch_private_booking, only: [:private_show, :private_procedure, :private_create, :private_availability]
-  before_action :fetch_private_procedure, only: [:private_procedure, :private_create, :private_availability]
-  before_action :enforce_booking_rate_limit, only: [:create, :private_create]
+  PRIVATE_ACTIONS = %i[private_show private_procedure private_create private_availability private_hold private_confirm].freeze
+
+  before_action :fetch_booking_page, except: PRIVATE_ACTIONS
+  before_action :fetch_procedure, only: [:procedure, :availability, :create, :hold, :confirm]
+  before_action :fetch_private_booking, only: PRIVATE_ACTIONS
+  before_action :fetch_private_procedure, only: PRIVATE_ACTIONS - [:private_show]
+  before_action :enforce_booking_rate_limit, only: [:create, :private_create, :hold, :private_hold, :confirm, :private_confirm]
 
   def show
     respond_to do |format|
@@ -19,12 +22,58 @@ class Public::CalendarBookingsController < PublicController
     end
   end
 
+  # `month` devolve os dias com vaga (o calendário do mês); `date`, os horários
+  # do dia com quem atende. `resource_id` mantém o contrato antigo.
   def availability
-    date = Date.iso8601(params.require(:date))
-    slots = KanbanCalendar::AvailabilitySlotsQuery.new(procedure: @procedure, resource: public_resource, date: date).call
-    render json: { date: date.iso8601, slots: slots.map(&:iso8601) }
-  rescue Date::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
+    return render json: legacy_resource_availability if params[:resource_id].present?
+    return render json: month_availability if params[:month].present?
+
+    render json: day_availability
+  rescue ActionController::ParameterMissing, ActiveRecord::RecordNotFound, ArgumentError
     render_invalid_request
+  end
+
+  # Passo 1 → 2: segura o horário enquanto o paciente preenche os dados.
+  def hold
+    hold = KanbanCalendar::PublicSlotHoldService.new(
+      procedure: @procedure, starts_at: Time.zone.parse(params.require(:starts_at)),
+      timezone: params[:timezone].presence || patient_availability.timezone, professional_id: params[:professional_id]
+    ).perform!
+    render json: hold_payload(hold), status: :created
+  rescue KanbanCalendar::ConflictError
+    render json: { message: 'This time is no longer available', code: 'slot_taken' }, status: :conflict
+  rescue ActionController::ParameterMissing, ArgumentError, ActiveRecord::RecordInvalid
+    render_invalid_request
+  end
+
+  # Passo 2 → 3: dados do paciente e forma de pagamento.
+  def confirm
+    return render_invalid_request if rejected_submission?
+
+    render_confirmed_appointment
+  rescue ActiveRecord::RecordNotFound
+    render_hold_expired
+  rescue KanbanCalendar::ConflictError
+    render json: { message: 'This time is no longer available', code: 'slot_taken' }, status: :conflict
+  rescue KanbanCalendar::BookingPaymentService::PaymentUnavailable, Finance::Asaas::ApiError => e
+    render json: { message: e.message, code: 'payment_failed' }, status: :unprocessable_entity
+  rescue ActiveRecord::RecordInvalid => e
+    e.record.errors.full_messages.include?('The held time has expired') ? render_hold_expired : render_invalid_request
+  rescue ActionController::ParameterMissing
+    render_invalid_request
+  end
+
+  def private_hold
+    return render json: { message: 'Booking link not found' }, status: :not_found unless @booking_link.available?
+
+    hold
+  end
+
+  def private_confirm
+    return render json: { message: 'Booking link not found' }, status: :not_found unless @booking_link.available?
+
+    confirm
+    @booking_link.consume! if response.created?
   end
 
   def create
@@ -71,14 +120,18 @@ class Public::CalendarBookingsController < PublicController
   def private_availability
     return render json: { message: 'Booking link not found' }, status: :not_found unless @booking_link.available?
 
-    date = Date.iso8601(params.require(:date))
-    slots = KanbanCalendar::AvailabilitySlotsQuery.new(procedure: @procedure, resource: public_resource, date: date).call
-    render json: { date: date.iso8601, slots: slots.map(&:iso8601) }
-  rescue Date::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
-    render_invalid_request
+    availability
   end
 
   private
+
+  def rejected_submission?
+    booking_params[:consent] != true || booking_params[:website].present? || (captcha_required? && !captcha_valid?)
+  end
+
+  def render_hold_expired
+    render json: { message: 'The held time has expired', code: 'hold_expired' }, status: :conflict
+  end
 
   def fetch_booking_page
     @booking_page = KanbanCalendarBookingPage.find_by!(public_token: params[:public_token], active: true)
@@ -127,33 +180,66 @@ class Public::CalendarBookingsController < PublicController
   def booking_params
     params.require(:booking).permit(
       :name, :email, :phone_number, :starts_at, :timezone, :consent, :website, :captcha_token,
-      resource_ids: [], custom_attributes: {}
+      :cpf, :notes, :payment_method, resource_ids: [], custom_attributes: {}
     )
   end
 
+  def page_payloads
+    @page_payloads ||= KanbanCalendar::PublicPagePayload.new(booking_page: @booking_page)
+  end
+
   def page_payload
-    {
-      title: @booking_page.title.presence || @booking_page.account.name,
-      description: @booking_page.description,
-      locale: @booking_page.account.locale,
-      public_form_fields: @booking_page.public_form_fields,
-      captcha_site_key: @booking_page.captcha_site_key,
-      procedures: public_procedures.map { |procedure| procedure_payload(procedure) }
-    }
+    page_payloads.page(procedures: public_procedures)
   end
 
   def procedure_payload(procedure = @procedure, include_resources: false)
-    payload = {
-      slug: procedure.public_slug,
-      title: procedure.public_title.presence || procedure.name,
-      description: procedure.public_description,
-      duration_minutes: procedure.duration_minutes,
-      color: procedure.color,
-      recurrence_allowed: procedure.recurrence_allowed,
-      max_sessions: procedure.max_sessions
+    return page_payloads.procedure_summary(procedure) unless include_resources
+
+    page_payloads.procedure_detail(procedure, resources: public_resources)
+  end
+
+  def patient_availability
+    @patient_availability ||= KanbanCalendar::ProcedureAvailability.new(
+      procedure: @procedure, professional_id: params[:professional_id], patient: true
+    )
+  end
+
+  def legacy_resource_availability
+    date = Date.iso8601(params.require(:date))
+    slots = KanbanCalendar::AvailabilitySlotsQuery.new(procedure: @procedure, resource: public_resource, date: date).call
+    { date: date.iso8601, slots: slots.map(&:iso8601) }
+  end
+
+  def month_availability
+    first = Date.strptime(params.require(:month), '%Y-%m')
+    today = Time.current.in_time_zone(patient_availability.timezone).to_date
+    from = [first, today].max
+    days = from > first.end_of_month ? [] : patient_availability.days_with_slots(from: from, to: first.end_of_month)
+    { month: first.strftime('%Y-%m'), timezone: patient_availability.timezone, days: days.map(&:iso8601) }
+  end
+
+  def day_availability
+    date = Date.iso8601(params.require(:date))
+    {
+      date: date.iso8601,
+      timezone: patient_availability.timezone,
+      slots: patient_availability.slots(date: date).map do |slot|
+        { starts_at: slot[:starts_at].iso8601, resources: slot[:resources].map { |resource| public_resource_payload(resource) } }
+      end
     }
-    payload[:resources] = public_resources.map { |resource| { id: resource.id, name: resource.name } } if include_resources
-    payload
+  end
+
+  def public_resource_payload(resource)
+    { id: resource.id, name: resource.name, type: resource.resource_type }
+  end
+
+  def hold_payload(hold)
+    resources = @booking_page.account.kanban_calendar_resources.where(id: hold.resource_ids).order(:name)
+    {
+      token: hold.token, starts_at: hold.starts_at.iso8601, expires_at: hold.expires_at.iso8601, timezone: hold.timezone,
+      ends_at: (hold.starts_at + @procedure.duration_minutes.minutes).iso8601,
+      resources: resources.map { |resource| public_resource_payload(resource) }
+    }
   end
 
   def public_procedures
@@ -194,6 +280,21 @@ class Public::CalendarBookingsController < PublicController
     render json: { message: 'Too many booking attempts' }, status: :too_many_requests
   end
 
+  def render_confirmed_appointment
+    hold = KanbanCalendarSlotHold.find_by!(token: params[:hold_token], kanban_calendar_procedure_id: @procedure.id)
+    appointment = KanbanCalendar::PublicBookingService.new(
+      booking_page: @booking_page,
+      procedure: @procedure,
+      booking: {
+        hold: hold,
+        contact_attributes: booking_params.slice(:name, :email, :phone_number, :custom_attributes),
+        timezone: booking_params[:timezone], notes: booking_params[:notes],
+        payment_method: booking_params[:payment_method], cpf: booking_params[:cpf]
+      }
+    ).perform!
+    render json: KanbanCalendar::PatientBookingPayload.new(appointment: appointment.reload).call, status: :created
+  end
+
   def render_created_appointment
     appointment = KanbanCalendar::PublicBookingService.new(
       booking_page: @booking_page,
@@ -208,3 +309,4 @@ class Public::CalendarBookingsController < PublicController
     render json: KanbanCalendar::AppointmentPayloadBuilder.new(appointment).call, status: :created
   end
 end
+# rubocop:enable Metrics/ClassLength

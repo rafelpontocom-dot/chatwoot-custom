@@ -368,6 +368,9 @@ const resetForms = () => {
     active: false,
     title: '',
     description: '',
+    clinicName: '',
+    clinicAddress: '',
+    clinicWhatsapp: '',
     duplicatePolicy: 'create_new',
     minimumNoticeMinutes: '1440',
     maximumNoticeDays: '60',
@@ -614,6 +617,9 @@ const applyBookingPage = page => {
     active: page.active,
     title: page.title || '',
     description: page.description || '',
+    clinicName: page.clinic_name || '',
+    clinicAddress: page.clinic_address || '',
+    clinicWhatsapp: page.clinic_whatsapp || '',
     duplicatePolicy: page.duplicate_policy,
     minimumNoticeMinutes: String(page.minimum_notice_minutes),
     maximumNoticeDays: String(page.maximum_notice_days),
@@ -729,6 +735,9 @@ const saveBookingPage = async () => {
         active: bookingPageForm.value.active,
         title: bookingPageForm.value.title.trim() || null,
         description: bookingPageForm.value.description.trim() || null,
+        clinic_name: bookingPageForm.value.clinicName.trim() || null,
+        clinic_address: bookingPageForm.value.clinicAddress.trim() || null,
+        clinic_whatsapp: bookingPageForm.value.clinicWhatsapp.trim() || null,
         duplicate_policy: bookingPageForm.value.duplicatePolicy,
         minimum_notice_minutes: Number(
           bookingPageForm.value.minimumNoticeMinutes
@@ -2513,6 +2522,40 @@ defineExpose({ open });
                   {{ t('CALENDAR.SETTINGS.DUPLICATE_POLICIES.MOST_RECENT') }}
                 </option>
               </select>
+            </label>
+          </div>
+          <!-- Quem a clínica é, na coluna da esquerda da página pública. -->
+          <div class="grid gap-3 sm:grid-cols-3">
+            <label class="grid gap-1.5">
+              <span class="text-sm font-medium text-n-slate-12">
+                {{ t('CALENDAR.SETTINGS.CLINIC_NAME') }}
+              </span>
+              <input
+                v-model="bookingPageForm.clinicName"
+                type="text"
+                data-testid="calendar-booking-clinic-name"
+                :class="RAEVO_CONTROL_CLASS"
+              />
+            </label>
+            <label class="grid gap-1.5">
+              <span class="text-sm font-medium text-n-slate-12">
+                {{ t('CALENDAR.SETTINGS.CLINIC_ADDRESS') }}
+              </span>
+              <input
+                v-model="bookingPageForm.clinicAddress"
+                type="text"
+                :class="RAEVO_CONTROL_CLASS"
+              />
+            </label>
+            <label class="grid gap-1.5">
+              <span class="text-sm font-medium text-n-slate-12">
+                {{ t('CALENDAR.SETTINGS.CLINIC_WHATSAPP') }}
+              </span>
+              <input
+                v-model="bookingPageForm.clinicWhatsapp"
+                type="tel"
+                :class="RAEVO_CONTROL_CLASS"
+              />
             </label>
           </div>
           <label class="grid gap-1.5">

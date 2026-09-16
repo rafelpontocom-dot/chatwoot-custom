@@ -21,6 +21,7 @@ class AsyncDispatcher < BaseDispatcher
       ReportingEventListener.instance,
       WebhookListener.instance,
       KanbanCardListener.instance,
+      KanbanCalendarPaymentListener.instance,
       MarketingListener.instance,
       Whatsapp::AssignmentGreetingListener.instance
     ]

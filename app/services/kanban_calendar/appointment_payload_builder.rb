@@ -29,6 +29,8 @@ class KanbanCalendar::AppointmentPayloadBuilder
       occurrence_number: @appointment.occurrence_number,
       appointment_version: @appointment.appointment_version,
       lock_version: @appointment.lock_version,
+      # Marcada pela página pública e à espera do webhook do pagamento.
+      payment_pending_until: @appointment.hold_expires_at&.iso8601,
       source: source_payload
     }
   end

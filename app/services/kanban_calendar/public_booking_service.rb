@@ -1,38 +1,91 @@
 class KanbanCalendar::PublicBookingService
+  # Com `hold`, o horário e as agendas vêm da vaga segurada no primeiro passo da
+  # página; sem ele, do pedido (links antigos e a IA).
   def initialize(booking_page:, procedure:, booking:)
     @booking_page = booking_page
     @procedure = procedure
     @contact_attributes = booking.fetch(:contact_attributes, {}).to_h.symbolize_keys
-    @resource_ids = Array(booking[:resource_ids]).map(&:to_i).uniq
-    @starts_at = booking[:starts_at]
-    @timezone = booking[:timezone]
+    @hold = booking[:hold]
+    @resource_ids = @hold ? @hold.resource_ids : Array(booking[:resource_ids]).map(&:to_i).uniq
+    @starts_at = @hold ? @hold.starts_at : booking[:starts_at]
+    @timezone = booking[:timezone].presence || @hold&.timezone
+    @notes = booking[:notes]
+    @payment_method = booking[:payment_method]
+    @cpf = booking[:cpf]
   end
 
   def perform!
     validate_references!
 
     appointment = ActiveRecord::Base.transaction do
+      consume_hold!
       @contact = find_or_create_contact!
       @card = find_or_create_card!
-      KanbanCalendar::BookAppointmentService.new(
-        account: account,
-        contact: @contact,
-        procedure: procedure,
-        resource_ids: resource_ids,
-        starts_at: starts_at,
-        timezone: timezone,
-        kanban_card: @card,
-        dispatch_events: false,
-        external_refs: booking_metadata
-      ).perform!
+      book_appointment!.tap { |booked| finish_public_booking!(booked) }
     end
 
     dispatch_card_created_event if @created_card
-    KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'created').dispatch
+    charge!(appointment)
     appointment
   end
 
   private
+
+  def book_appointment!
+    KanbanCalendar::BookAppointmentService.new(
+      account: account,
+      contact: @contact,
+      procedure: procedure,
+      resource_ids: resource_ids,
+      starts_at: starts_at,
+      timezone: timezone,
+      kanban_card: @card,
+      dispatch_events: false,
+      external_refs: booking_metadata
+    ).perform!
+  end
+
+  # A vaga de quem confirma sai antes de marcar, na mesma transação: se a
+  # marcação falhar, a vaga volta.
+  def consume_hold!
+    return if @hold.blank?
+
+    @hold.lock!
+    invalid!('The held time has expired') if @hold.expired?
+    @hold.destroy!
+  end
+
+  # O token abre a página da consulta (calendário, remarcar, cancelar); o rodízio
+  # regista quem acabou de receber a consulta.
+  def finish_public_booking!(appointment)
+    appointment.update!(hold_token: SecureRandom.urlsafe_base64(24), booking_timezone: timezone, notes: @notes.presence || appointment.notes)
+    return unless procedure.assignment_strategy == 'round_robin' && procedure.kanban_calendar_team
+
+    procedure.kanban_calendar_team.kanban_calendar_team_members.where(kanban_calendar_resource_id: resource_ids)
+             .update_all(last_assigned_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
+  end
+
+  # Pagamento online: a consulta só é anunciada quando o webhook confirmar. Se a
+  # cobrança não puder ser criada, a consulta é cancelada e o erro sobe.
+  def charge!(appointment)
+    payment = KanbanCalendar::BookingPaymentService.new(appointment: appointment, method: @payment_method, cpf: @cpf)
+    if payment.online?
+      begin
+        payment.perform!
+      rescue StandardError
+        cancel_unpaid!(appointment)
+        raise
+      end
+    else
+      KanbanCalendar::AppointmentEventDispatcher.new(appointment: appointment, event_type: 'created').dispatch
+    end
+  end
+
+  def cancel_unpaid!(appointment)
+    KanbanCalendar::UpdateAppointmentStatusService.new(
+      appointment: appointment, action: 'cancel', cancellation_reason: 'Cobrança não pôde ser criada'
+    ).perform!
+  end
 
   attr_reader :booking_page, :procedure, :contact_attributes, :resource_ids, :starts_at, :timezone
 

@@ -291,7 +291,10 @@
         "PROFESSIONAL": "Professional in Feegow",
         "PROFESSIONAL_HINT": "Which Feegow agenda fills this one. Without it, nothing is imported.",
         "NO_PROFESSIONAL": "Not linked to Feegow"
-      }
+      },
+      "CLINIC_NAME": "Clinic name",
+      "CLINIC_ADDRESS": "Address shown on the page",
+      "CLINIC_WHATSAPP": "Clinic WhatsApp"
     },
     "DETAIL": {
       "TITLE": "Appointment details",

@@ -24,7 +24,7 @@ class KanbanCalendar::AvailabilityCheckService
   def conflict?
     return @conflict if defined?(@conflict)
 
-    @conflict = appointment_conflict? || external_busy_conflict?
+    @conflict = appointment_conflict? || external_busy_conflict? || slot_hold_conflict?
   end
 
   def appointment_conflict?
@@ -38,6 +38,11 @@ class KanbanCalendar::AvailabilityCheckService
     KanbanCalendarExternalBusyBlock.where(kanban_calendar_resource: @resource)
                                    .overlapping(reservation_starts_at, reservation_ends_at)
                                    .exists?
+  end
+
+  # Alguém está a preencher os dados para este horário na página pública.
+  def slot_hold_conflict?
+    KanbanCalendarSlotHold.active.for_resource(@resource.id).overlapping(reservation_starts_at, reservation_ends_at).exists?
   end
 
   def resource_allowed?

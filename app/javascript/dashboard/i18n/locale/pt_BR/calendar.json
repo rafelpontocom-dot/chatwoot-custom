@@ -291,7 +291,10 @@
         "PROFESSIONAL": "Profissional no Feegow",
         "PROFESSIONAL_HINT": "Qual agenda do Feegow abastece esta. Sem isso, nada é importado.",
         "NO_PROFESSIONAL": "Não ligada ao Feegow"
-      }
+      },
+      "CLINIC_NAME": "Nome da clínica",
+      "CLINIC_ADDRESS": "Endereço mostrado na página",
+      "CLINIC_WHATSAPP": "WhatsApp da clínica"
     },
     "DETAIL": {
       "TITLE": "Detalhes do agendamento",

@@ -19,8 +19,6 @@
 #
 #  fk_rails_...  (account_id => accounts.id)
 #
-# Profissionais que atendem o mesmo procedimento.
-#
 # A estratégia decide quem fica com a consulta quando o paciente não escolhe:
 # `first_available` oferece o horário livre de qualquer membro, `round_robin`
 # distribui por igual, `collective` exige todos livres ao mesmo tempo.
