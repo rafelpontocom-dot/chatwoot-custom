@@ -1,4 +1,6 @@
 class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::BaseController
+  include CalendarWorkingHoursParams
+
   PROCEDURE_SCALAR_PARAMS = %i[
     name color duration_minutes buffer_before_minutes buffer_after_minutes
     location_type recurrence_allowed max_sessions active public_booking_enabled
@@ -15,7 +17,7 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
   ].freeze
   PREVIEW_DAYS = 14
 
-  before_action :fetch_procedure, only: [:show, :update, :destroy, :availability_preview]
+  before_action :fetch_procedure, only: [:show, :update, :destroy, :availability_preview, :own_schedule, :update_own_schedule]
 
   def index
     authorize KanbanCalendarProcedure, :index?
@@ -62,6 +64,30 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
     }
   end
 
+  # «Horário só deste procedimento»: um horário privado, fora da lista da conta.
+  def own_schedule
+    authorize @procedure, :show?
+    schedule = procedure_own_schedule
+    return render json: { id: nil, weekly: [], overrides: [] } if schedule.blank?
+
+    render json: { id: schedule.id }.merge(KanbanCalendar::WorkingHoursSheet.new(schedule.kanban_calendar_availability_rules).payload)
+  end
+
+  def update_own_schedule
+    authorize @procedure, :configure?
+    schedule = procedure_own_schedule || Current.account.kanban_calendar_schedules.create!(
+      kanban_calendar_procedure: @procedure, name: "#{@procedure.name} (#{@procedure.id})",
+      timezone: Current.account.kanban_calendar_resources.first&.timezone || 'America/Sao_Paulo'
+    )
+    sheet = KanbanCalendar::WorkingHoursSheet.new(schedule.kanban_calendar_availability_rules)
+    sheet.replace!(**working_hours_params)
+    render json: { id: schedule.id }.merge(sheet.payload)
+  rescue ActiveRecord::RecordInvalid => e
+    render_invalid_record(e.record)
+  rescue ArgumentError
+    render json: { message: 'Invalid working hours' }, status: :unprocessable_entity
+  end
+
   # Mesmo critério das agendas: apaga quando é seguro, arquiva quando há
   # consulta marcada, e devolve qual dos dois aconteceu.
   def destroy
@@ -82,6 +108,10 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
 
   def fetch_procedure
     @procedure = policy_scope(KanbanCalendarProcedure).find(params[:id])
+  end
+
+  def procedure_own_schedule
+    Current.account.kanban_calendar_schedules.find_by(kanban_calendar_procedure: @procedure)
   end
 
   def procedure_params
@@ -144,7 +174,8 @@ class Api::V1::Accounts::Calendar::ProceduresController < Api::V1::Accounts::Bas
       stage_policy: procedure.stage_policy,
       active: procedure.active,
       schedule_id: procedure.kanban_calendar_schedule_id,
-      team_id: procedure.kanban_calendar_team_id
+      team_id: procedure.kanban_calendar_team_id,
+      own_schedule: procedure.kanban_calendar_schedule&.kanban_calendar_procedure_id == procedure.id
     }.merge(procedure.slice(*BOOKING_SETTINGS).symbolize_keys)
   end
 

@@ -18,6 +18,7 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
     resource = Current.account.kanban_calendar_resources.new(resource_params)
     authorize resource, :configure?
     resource.save!
+    keep_own_hours_when_asked(resource)
     render json: resource_payload(resource), status: :created
   rescue ActiveRecord::RecordInvalid => e
     render_invalid_record(e.record)
@@ -82,6 +83,19 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
                                                   :slot_interval_minutes, :schedule_id, settings: {})
     attributes[:kanban_calendar_schedule_id] = attributes.delete(:schedule_id) if attributes.key?(:schedule_id)
     attributes
+  end
+
+  # Agenda nova nasce com o horário padrão da conta; quem escolheu «horário só
+  # desta agenda» fica com a semana desse padrão, mas só dela.
+  def keep_own_hours_when_asked(resource)
+    return unless params[:resource].key?(:schedule_id) && params[:resource][:schedule_id].blank?
+
+    default_schedule = resource.kanban_calendar_schedule
+    return if default_schedule.blank?
+
+    @calendar_resource = resource
+    resource.update!(kanban_calendar_schedule: nil)
+    keep_hours_when_leaving_schedule(default_schedule)
   end
 
   # Quem deixa de usar um horário com nome e ainda não tem semana própria começa

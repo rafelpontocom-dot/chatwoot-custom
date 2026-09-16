@@ -16,7 +16,9 @@ export const routes = [
   {
     // Cada secção tem endereço próprio, para poder ser partilhada e para o
     // browser saber voltar — o modal não permitia nem uma coisa nem outra.
-    path: frontendURL('accounts/:accountId/calendar/settings/:section?'),
+    path: frontendURL(
+      'accounts/:accountId/calendar/settings/:section?/:itemId?/:tab?'
+    ),
     name: 'calendar_settings',
     component: CalendarSettingsView,
     meta,

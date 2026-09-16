@@ -135,6 +135,14 @@ textarea,
   --raevo-radius-control: 8px;
 }
 
+// --- Configuração densa da agenda ---------------------------------------------------
+// Configurações da agenda e página de agendamento, iguais aos mockups aprovados
+// (decisão D7 do PRD da nova agenda): campo de uma linha com canto de 10px.
+// Botões, chips e selos que pedem `rounded-full` continuam pílula.
+.raevo-compact {
+  --raevo-radius-control: 10px;
+}
+
 // --- Movimento -------------------------------------------------------------------
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -237,6 +237,9 @@ const tailwindConfig = {
       // único degrau abaixo de 12px e existe só para selo, contador e cabeçalho
       // de tabela em caixa alta; nunca para texto corrido.
       micro: ['11px', '15px'],
+      // `ui` (13px) é o corpo das telas de configuração densa da agenda, aprovado
+      // no mockup (decisão D7 do PRD da nova agenda). Não usar fora delas.
+      ui: ['13px', '18px'],
     },
     colors: {
       transparent: 'transparent',

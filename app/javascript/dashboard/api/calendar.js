@@ -140,6 +140,73 @@ class CalendarAPI extends ApiClient {
     );
   }
 
+  getSchedules() {
+    return axios.get(`${this.url}/schedules`);
+  }
+
+  createSchedule(payload) {
+    return axios.post(`${this.url}/schedules`, payload);
+  }
+
+  updateSchedule(id, payload) {
+    return axios.patch(`${this.url}/schedules/${id}`, payload);
+  }
+
+  deleteSchedule(id) {
+    return axios.delete(`${this.url}/schedules/${id}`);
+  }
+
+  // Troca a semana e as exceções inteiras: { weekly, overrides }.
+  updateScheduleRules(id, payload) {
+    return axios.put(`${this.url}/schedules/${id}/rules`, payload);
+  }
+
+  // Com dry_run devolve só quantas consultas futuras ficariam fora do horário.
+  applySchedule(id, payload) {
+    return axios.post(`${this.url}/schedules/${id}/apply_to`, payload);
+  }
+
+  getResourceWorkingHours(resourceId) {
+    return axios.get(`${this.url}/resources/${resourceId}/working_hours`);
+  }
+
+  updateResourceWorkingHours(resourceId, payload) {
+    return axios.put(
+      `${this.url}/resources/${resourceId}/working_hours`,
+      payload
+    );
+  }
+
+  getTeams() {
+    return axios.get(`${this.url}/teams`);
+  }
+
+  createTeam(payload) {
+    return axios.post(`${this.url}/teams`, payload);
+  }
+
+  updateTeam(id, payload) {
+    return axios.patch(`${this.url}/teams/${id}`, payload);
+  }
+
+  deleteTeam(id) {
+    return axios.delete(`${this.url}/teams/${id}`);
+  }
+
+  getProcedureOwnSchedule(id) {
+    return axios.get(`${this.url}/procedures/${id}/own_schedule`);
+  }
+
+  updateProcedureOwnSchedule(id, payload) {
+    return axios.put(`${this.url}/procedures/${id}/own_schedule`, payload);
+  }
+
+  getProcedureAvailabilityPreview(id, params) {
+    return axios.get(`${this.url}/procedures/${id}/availability_preview`, {
+      params,
+    });
+  }
+
   createAppointment(payload) {
     return axios.post(`${this.url}/appointments`, payload);
   }

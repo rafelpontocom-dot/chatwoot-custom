@@ -397,5 +397,429 @@
       "ERROR": "Não foi possível conectar a Google Agenda. Tente de novo em Configurações › Agendas.",
       "DISMISS": "Fechar aviso"
     }
+  },
+  "CALENDAR_SETUP": {
+    "NAV_LABEL": "Configurações da agenda",
+    "BACK": "Voltar à agenda",
+    "RAIL_LABEL": "Agenda",
+    "NAV": {
+      "PROCEDURES": "Procedimentos",
+      "AVAILABILITY": "Disponibilidade",
+      "RESOURCES": "Agendas",
+      "TEAMS": "Equipes",
+      "BOOKING_PAGE": "Página de agendamento",
+      "INTEGRATIONS": "Integrações"
+    },
+    "LEGACY_DESCRIPTIONS": {
+      "BOOKING_PAGE": "O endereço público, para onde vai quem marca sozinho e o que a página mostra.",
+      "INTEGRATIONS": "Feegow para a clínica inteira. A Google Agenda liga-se em cada agenda, em Agendas."
+    },
+    "COMMON": {
+      "SAVE": "Salvar",
+      "SAVED": "Salvo",
+      "CANCEL": "Cancelar",
+      "CLOSE": "Fechar",
+      "EDIT": "Editar",
+      "EDITING": "Em edição",
+      "REMOVE": "Remover",
+      "LOADING": "Carregando…",
+      "LOAD_ERROR": "Não foi possível carregar. Tente de novo.",
+      "SAVE_ERROR": "Não foi possível salvar. Tente de novo.",
+      "UNSAVED": "Há alterações por salvar. Sair mesmo assim?",
+      "MINUTES": "{count} minutos",
+      "HOURS": "{count} hora | {count} horas",
+      "DAYS": "{count} dia | {count} dias",
+      "ACCOUNT_DEFAULT": "Padrão da conta · {value}",
+      "AND": "e",
+      "OR": "ou"
+    },
+    "WEEKDAYS": {
+      "SUNDAY": "Domingo",
+      "MONDAY": "Segunda",
+      "TUESDAY": "Terça",
+      "WEDNESDAY": "Quarta",
+      "THURSDAY": "Quinta",
+      "FRIDAY": "Sexta",
+      "SATURDAY": "Sábado"
+    },
+    "WEEKDAYS_SHORT": {
+      "SUN": "dom",
+      "MON": "seg",
+      "TUE": "ter",
+      "WED": "qua",
+      "THU": "qui",
+      "FRI": "sex",
+      "SAT": "sáb"
+    },
+    "PROCEDURES": {
+      "TITLE": "Procedimentos",
+      "DESCRIPTION": "O que se marca na agenda. Entre num procedimento para ver tudo o que lhe diz respeito.",
+      "NEW": "+ Novo procedimento",
+      "NEW_TITLE": "Novo procedimento",
+      "LIST_GROUP": "Procedimentos da clínica",
+      "EMPTY": "Nenhum procedimento ainda.",
+      "ARCHIVED": "Arquivados",
+      "CHARGES": "cobra ao agendar"
+    },
+    "PROCEDURE": {
+      "TABS_LABEL": "Abas do procedimento",
+      "PUBLIC_ON": "Autoagendamento ligado",
+      "PUBLIC_OFF": "Só pela equipe",
+      "TOGGLE_PUBLIC": "Ligar ou desligar o autoagendamento pela página pública",
+      "SUBTITLE_PUBLIC": "aparece na página de agendamento",
+      "SUBTITLE_PRIVATE": "só a equipe marca",
+      "TABS": {
+        "SETUP": {
+          "TITLE": "O que é",
+          "HINT": "Nome, duração, local"
+        },
+        "RESOURCES": {
+          "TITLE": "Quem atende",
+          "HINT": "Profissional, sala, equipamento"
+        },
+        "WHEN": {
+          "TITLE": "Quando",
+          "HINT": "Horário desta consulta"
+        },
+        "FORM": {
+          "TITLE": "Formulário",
+          "HINT": "O que se pergunta ao paciente"
+        },
+        "LIMITS": {
+          "TITLE": "Limites",
+          "HINT": "Antecedência, intervalos"
+        },
+        "PAYMENT": {
+          "TITLE": "Pagamento",
+          "HINT": "Sinal ou valor cheio"
+        },
+        "CHANGES": {
+          "TITLE": "Remarcar e cancelar",
+          "HINT": "Prazo e política"
+        }
+      },
+      "HEADS": {
+        "RESOURCES": {
+          "TITLE": "Quem atende",
+          "SUBTITLE": "A consulta ocupa profissional, sala e equipamento ao mesmo tempo"
+        },
+        "WHEN": {
+          "TITLE": "Quando",
+          "SUBTITLE": "De onde vêm os horários oferecidos"
+        },
+        "FORM": {
+          "TITLE": "Formulário de reserva",
+          "SUBTITLE": "O que a página de agendamento pergunta ao paciente"
+        },
+        "LIMITS": {
+          "TITLE": "Limites",
+          "SUBTITLE": "Antecedência, janela e intervalos"
+        },
+        "PAYMENT": {
+          "TITLE": "Pagamento",
+          "SUBTITLE": "Cobrança no agendamento, pelo módulo Financeiro"
+        },
+        "CHANGES": {
+          "TITLE": "Remarcar e cancelar",
+          "SUBTITLE": "O que o paciente resolve sozinho"
+        }
+      },
+      "LOCATIONS": {
+        "IN_PERSON": "Presencial",
+        "VIDEO": "Vídeo",
+        "PHONE": "Telefone",
+        "OTHER": "Outro"
+      },
+      "LOCATIONS_LOWER": {
+        "IN_PERSON": "presencial",
+        "VIDEO": "vídeo",
+        "PHONE": "telefone",
+        "OTHER": "outro local"
+      },
+      "COLORS": {
+        "BLUE": "Azul",
+        "TEAL": "Verde-água",
+        "AMBER": "Âmbar",
+        "MAGENTA": "Magenta",
+        "GREEN": "Verde",
+        "RED": "Vermelho",
+        "NAVY": "Azul-escuro",
+        "GRAY": "Cinza"
+      },
+      "ERRORS": {
+        "NAME": "Dê um nome ao procedimento.",
+        "SLUG": "Com autoagendamento ligado, o link público é obrigatório.",
+        "PRICE": "Informe o valor.",
+        "DEPOSIT": "O sinal tem de ser maior que zero e menor que o valor.",
+        "FIX_FIELDS": "Há campos a corrigir antes de salvar."
+      },
+      "SETUP": {
+        "GROUP": "O que é",
+        "GROUP_HINT": "Como o paciente vê",
+        "NAME": "Nome",
+        "LINK": "Link público",
+        "DESCRIPTION": "Descrição",
+        "DURATION": "Duração",
+        "LOCATION": "Local",
+        "COLOR": "Cor na agenda",
+        "RECURRENCE": "Permite sessões recorrentes",
+        "RECURRENCE_HINT": "Marca uma série de consultas de uma vez",
+        "MAX_SESSIONS": "Máximo de sessões"
+      },
+      "RESOURCES": {
+        "GROUP": "Quem atende",
+        "GROUP_HINT": "A consulta ocupa todos ao mesmo tempo",
+        "REQUIRED_COUNT": "Obrigatório · {count} elegível | Obrigatório · {count} elegíveis",
+        "NOT_USED": "Não usa",
+        "NO_RESOURCES": "Crie agendas em Agendas para escolher quem atende.",
+        "STRATEGY": "Quando há mais de um profissional",
+        "STRATEGY_HINT": "Como a página pública escolhe",
+        "STRATEGIES": {
+          "PATIENT_CHOICE": "O paciente escolhe",
+          "FIRST_AVAILABLE": "Primeiro com vaga",
+          "ROUND_ROBIN": "Rodízio",
+          "COLLECTIVE": "Todos juntos"
+        },
+        "TEAM": "Equipe",
+        "TEAM_HINT": "Os profissionais que entram na distribuição",
+        "PICK_TEAM": "Escolha uma equipe",
+        "TEAM_NEEDED": "Primeiro com vaga, rodízio e todos juntos usam uma equipe.",
+        "GO_TO_TEAMS": "Criar equipe"
+      },
+      "WHEN": {
+        "GROUP": "Quando",
+        "GROUP_HINT": "De onde vêm os horários desta consulta",
+        "MODES": {
+          "RESOURCES": "Horário de cada agenda",
+          "SCHEDULE": "Um horário nomeado",
+          "OWN": "Horário só deste procedimento"
+        },
+        "HELP_RESOURCES": "Com «horário de cada agenda», {procedure} só aparece quando {resources} estão livres ao mesmo tempo.",
+        "HELP_RESOURCES_EMPTY": "Escolha em «Quem atende» as agendas deste procedimento.",
+        "HELP_SCHEDULE": "O horário nomeado decide as janelas; as agendas ainda precisam de estar livres.",
+        "HELP_OWN": "Uma semana só para {procedure}; as agendas ainda precisam de estar livres.",
+        "PICK_SCHEDULE": "Horário",
+        "SCHEDULE_REQUIRED": "Escolha o horário.",
+        "PREVIEW_TITLE": "Resultado, nas próximas duas semanas",
+        "PREVIEW_HINT": "o que o paciente veria",
+        "PREVIEW_SAVED_ONLY": "mostra o que está salvo",
+        "PREVIEW_EMPTY": "Sem vaga nas próximas duas semanas."
+      },
+      "FORM": {
+        "GROUP": "Formulário de reserva",
+        "GROUP_HINT": "O que a página de agendamento pergunta",
+        "LOCKED": "fixo",
+        "REQUIRED": "obrigatório",
+        "REQUIRED_FEEGOW": "obrigatório · Feegow",
+        "OPTIONAL": "opcional",
+        "TOGGLE_REQUIRED": "Clique para mudar se é obrigatório",
+        "TOGGLE_REQUIRED_OF": "Mudar se «{label}» é obrigatório",
+        "HINT_FULL_NAME": "Sempre obrigatório",
+        "HINT_WHATSAPP": "É por onde a confirmação segue",
+        "HINT_NOTES": "Texto livre",
+        "HINT_CPF_FEEGOW": "Exigido porque esta agenda espelha no Feegow",
+        "HINT_CPF_NO_FEEGOW": "Só é pedido quando o procedimento espelha no Feegow",
+        "MOVE_UP": "Subir",
+        "MOVE_DOWN": "Descer",
+        "ADD": "+ Acrescentar pergunta",
+        "ADD_CONFIRM": "Acrescentar",
+        "LABEL": "Pergunta",
+        "KIND": "Tipo",
+        "OPTIONS": "Opções (uma por linha)",
+        "REQUIRED_CHECK": "Obrigatória",
+        "KINDS": {
+          "TEXT": "Texto curto",
+          "PHONE": "Telefone",
+          "EMAIL": "E-mail",
+          "CPF": "CPF",
+          "TEXTAREA": "Texto livre",
+          "SELECT": "Lista de opções",
+          "DATE": "Data"
+        }
+      },
+      "LIMITS": {
+        "GROUP": "Limites",
+        "GROUP_HINT": "O que protege a agenda",
+        "MIN_NOTICE": "Antecedência mínima",
+        "MIN_NOTICE_HINT": "Ninguém marca para daqui a uma hora.",
+        "NO_NOTICE": "Sem antecedência",
+        "MAX_NOTICE": "Até quando dá para marcar",
+        "DAYS_AHEAD": "{count} dias à frente",
+        "INTERVAL": "Espaçamento dos horários",
+        "BUFFER_BEFORE": "Intervalo antes",
+        "BUFFER_AFTER": "Intervalo depois",
+        "DAILY": "Máximo por dia",
+        "NO_LIMIT": "sem limite",
+        "PER_DAY": "{count} consulta | {count} consultas"
+      },
+      "PAYMENT": {
+        "GROUP": "Pagamento",
+        "GROUP_HINT": "Usa o módulo Financeiro que já existe",
+        "ENABLED": "Cobrar na hora de agendar",
+        "ENABLED_HINT": "Sem pagamento, a vaga é confirmada na mesma",
+        "FINANCE_OFF": "O Financeiro não está ativo nesta conta; ative-o para cobrar no agendamento.",
+        "PRICE": "Valor (R$)",
+        "MODE": "O que se cobra",
+        "MODES": {
+          "FULL": "Valor cheio",
+          "DEPOSIT": "Sinal"
+        },
+        "MODE_HINT": "A outra opção é um sinal, com o resto na clínica.",
+        "DEPOSIT": "Valor do sinal (R$)",
+        "METHODS": "Formas aceitas",
+        "METHODS_LIST": {
+          "PIX": "Pix",
+          "CARD": "Cartão",
+          "ON_SITE": "Pagar na clínica"
+        },
+        "HOLD": "Segura a vaga por",
+        "HOLD_HINT": "Depois disso o horário volta para a lista.",
+        "PROVIDER": "Provedor",
+        "PROVIDER_NONE": "Nenhum provedor ligado no Financeiro"
+      },
+      "CHANGES": {
+        "GROUP": "Remarcar e cancelar",
+        "GROUP_HINT": "O que o paciente pode fazer sozinho",
+        "RESCHEDULE": "O paciente pode remarcar",
+        "RESCHEDULE_HINT": "Pelo link do WhatsApp de confirmação",
+        "CANCEL": "O paciente pode cancelar",
+        "DEADLINE": "Até quando",
+        "ANY_TIME": "Até a hora da consulta",
+        "HOURS_BEFORE": "{count} hora antes | {count} horas antes",
+        "REASON": "Motivo do cancelamento",
+        "REASON_REQUIRED": "Obrigatório",
+        "REASON_OPTIONAL": "Opcional",
+        "ON_CANCEL": "Quando o paciente cancela",
+        "ON_CANCEL_HINT": "O que acontece na oportunidade do funil",
+        "ON_CANCEL_OPTIONS": {
+          "BACK_TO_SCHEDULING": "Volta para «Agendar»",
+          "MARK_LOST": "Marca como perdida",
+          "NONE": "Não muda"
+        }
+      }
+    },
+    "SCHEDULES": {
+      "TITLE": "Disponibilidade",
+      "DESCRIPTION": "Horários com nome, que qualquer agenda pode usar. Criar uma agenda passa a ser escolher um destes.",
+      "NEW": "+ Novo horário",
+      "NEW_TITLE": "Novo horário",
+      "LIST_GROUP": "Horários da clínica",
+      "IN_USE_COUNT": "{count} em uso",
+      "EMPTY": "Nenhum horário com nome ainda.",
+      "USED_BY": "nenhuma agenda usa | usado por {count} agenda | usado por {count} agendas",
+      "DEFAULT": "padrão",
+      "IN_USE": "em uso",
+      "UNUSED": "sem uso",
+      "TIMEZONE": "Fuso: {zone}",
+      "TIMEZONE_LABEL": "Fuso",
+      "EDIT_DETAILS": "Nome e fuso",
+      "NAME": "Nome",
+      "NAME_PLACEHOLDER": "Manhãs da Dra. Anna",
+      "NAME_REQUIRED": "Dê um nome ao horário.",
+      "MAKE_DEFAULT": "Horário padrão da conta",
+      "CLOSED": "Fechado",
+      "ADD_RANGE": "+ intervalo",
+      "REMOVE_RANGE": "Remover intervalo",
+      "RANGE_FROM": "Início em {day}",
+      "RANGE_TO": "Fim em {day}",
+      "COPY_TO": "Copiar para…",
+      "COPY_APPLY": "Copiar",
+      "EXCEPTIONS": "Exceções",
+      "EXCEPTIONS_HINT": "Feriados, férias, um dia diferente",
+      "EXCEPTION_CLOSED": "Fechado o dia todo",
+      "EXCEPTION_CLOSED_NOTE": "{note} — fechado o dia todo",
+      "EXCEPTION_RANGES": "Atende só {ranges}",
+      "ADD_EXCEPTION": "+ Acrescentar exceção",
+      "ADD_EXCEPTION_CONFIRM": "Acrescentar",
+      "EXCEPTION_DATE": "Data",
+      "EXCEPTION_NOTE": "Motivo",
+      "EXCEPTION_NOTE_PLACEHOLDER": "Congresso",
+      "EXCEPTION_KIND": "Como fica o dia",
+      "EXCEPTION_KIND_CLOSED": "Fechado o dia todo",
+      "EXCEPTION_KIND_RANGE": "Atende em outro horário",
+      "FROM": "Início",
+      "TO": "Fim",
+      "SAVE": "Salvar horário",
+      "APPLY": "Aplicar a agendas",
+      "APPLY_HINT": "As agendas marcadas passam a usar este horário",
+      "APPLY_WARNING": "{count} consulta futura fica fora do novo horário. | {count} consultas futuras ficam fora do novo horário.",
+      "APPLY_CONFIRM": "Aplicar",
+      "SAVE_BEFORE_APPLY": "Salve o horário antes de o aplicar.",
+      "DELETE": "Apagar horário",
+      "DELETE_IN_USE": "Em uso por {count} agenda(s) — mude o horário delas antes de apagar."
+    },
+    "RESOURCES": {
+      "TITLE": "Agendas",
+      "DESCRIPTION": "Quem atende e o que é ocupado: profissionais, salas, equipamentos. Cada uma escolhe um horário da lista.",
+      "NEW": "+ Nova agenda",
+      "PROFESSIONALS": "Profissionais",
+      "ROOMS_EQUIPMENT": "Salas e equipamentos",
+      "EMPTY": "Nenhuma agenda deste tipo.",
+      "SCHEDULE_LINE": "Horário: {name}",
+      "SPACING": "espaçamento {count} min",
+      "OWN_HOURS": "Horário só desta agenda",
+      "MISSING": "Sem horário configurado — não oferece vaga",
+      "MISSING_PILL": "falta horário",
+      "GOOGLE": "Google",
+      "FEEGOW": "Feegow",
+      "TYPE_PILLS": {
+        "USER": "profissional",
+        "ROOM": "sala",
+        "EQUIPMENT": "equipamento",
+        "GENERIC": "outro"
+      },
+      "TYPES": {
+        "USER": "Profissional",
+        "ROOM": "Sala",
+        "EQUIPMENT": "Equipamento",
+        "GENERIC": "Outro"
+      },
+      "NEW_GROUP": "Nova agenda",
+      "NEW_GROUP_HINT": "o que se pergunta ao criar",
+      "EDIT_GROUP": "Editar agenda: {name}",
+      "NAME": "Nome",
+      "NAME_PLACEHOLDER": "Dra. Carla",
+      "NAME_REQUIRED": "Dê um nome à agenda.",
+      "TYPE": "Tipo",
+      "CRM_USER": "Usuário do CRM",
+      "OPTIONAL": "opcional",
+      "SCHEDULE": "Horário",
+      "SCHEDULE_HINT": "Ou «horário só desta agenda», que abre o editor da semana aqui mesmo.",
+      "SCHEDULE_DEFAULT": "{name} (padrão)",
+      "OWN_OPTION": "Horário só desta agenda",
+      "OWN_HOURS_TITLE": "Semana desta agenda",
+      "SPACING_LABEL": "Espaçamento dos horários",
+      "ACCOUNT_DEFAULT": "Padrão da conta · {count} min",
+      "CREATE": "Criar agenda",
+      "ARCHIVE": "Arquivar agenda",
+      "ARCHIVE_CONFIRM": "Arquivar a agenda «{name}»? Consultas marcadas continuam no histórico."
+    },
+    "TEAMS": {
+      "TITLE": "Equipes",
+      "DESCRIPTION": "Um grupo de profissionais que atende o mesmo procedimento. É o que permite «primeiro com vaga» e rodízio.",
+      "NEW": "+ Nova equipe",
+      "NEW_TITLE": "Nova equipe",
+      "EMPTY": "Nenhuma equipe ainda.",
+      "MEMBERS_COUNT": "{count} profissional | {count} profissionais",
+      "PROCEDURES_COUNT": "nenhum procedimento usa | usada em {count} procedimento | usada em {count} procedimentos",
+      "ACTIVE": "ativa",
+      "INACTIVE": "inativa",
+      "DISTRIBUTE": "Como distribuir",
+      "DISTRIBUTE_HINT": "Quando o paciente não escolhe",
+      "STRATEGIES": {
+        "FIRST_AVAILABLE": "Primeiro com vaga",
+        "ROUND_ROBIN": "Rodízio",
+        "COLLECTIVE": "Todos juntos"
+      },
+      "EXPLAIN_FIRST": "mostra o horário livre de qualquer um — enche mais a agenda.",
+      "EXPLAIN_ROUND": "distribui por igual.",
+      "EXPLAIN_COLLECTIVE": "é para a consulta que precisa de todos ao mesmo tempo.",
+      "NAME": "Nome da equipe",
+      "NAME_PLACEHOLDER": "Dermatologia",
+      "NAME_REQUIRED": "Dê um nome à equipe.",
+      "MEMBERS": "Profissionais",
+      "DELETE": "Apagar equipe",
+      "DELETE_CONFIRM": "Apagar a equipe «{name}»? Os procedimentos que a usam voltam a «o paciente escolhe»."
+    }
   }
 }

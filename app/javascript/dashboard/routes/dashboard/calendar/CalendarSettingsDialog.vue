@@ -1706,12 +1706,10 @@ defineExpose({ open });
         </section>
       </template>
 
-      <template v-else-if="activeTab === 'resources'">
+      <template v-else-if="activeTab === 'integrations'">
         <section
-          id="calendar-settings-resources-panel"
-          role="tabpanel"
-          aria-labelledby="calendar-settings-resources-tab"
           class="grid gap-4"
+          data-testid="calendar-settings-integrations-panel"
         >
           <!--
             O Feegow é da clínica inteira, não de uma agenda: o token fica aqui,
@@ -1868,6 +1866,16 @@ defineExpose({ open });
               />
             </div>
           </section>
+        </section>
+      </template>
+
+      <template v-else-if="activeTab === 'resources'">
+        <section
+          id="calendar-settings-resources-panel"
+          role="tabpanel"
+          aria-labelledby="calendar-settings-resources-tab"
+          class="grid gap-4"
+        >
           <div
             v-if="!inline"
             class="grid gap-1 rounded-lg border border-n-weak bg-n-surface-2 p-4"

@@ -47,4 +47,16 @@ RSpec.describe 'Calendar procedure booking settings', type: :request do
     day = response.parsed_body['days'].first
     expect(day['slots'].first['resources']).to eq(['Dra. Anna', 'Sala 1'])
   end
+
+  it 'keeps hours for the procedure only, out of the account schedule list' do
+    put "#{url}/own_schedule", params: { weekly: [{ weekday: 6, ranges: [{ from: '09:00', to: '13:00' }] }] },
+                               headers: administrator.create_new_auth_token, as: :json
+    schedule_id = response.parsed_body['id']
+    patch url, params: { procedure: { availability_mode: 'schedule', schedule_id: schedule_id } },
+               headers: administrator.create_new_auth_token, as: :json
+
+    expect(response.parsed_body['own_schedule']).to be(true)
+    get "/api/v1/accounts/#{account.id}/calendar/schedules", headers: administrator.create_new_auth_token, as: :json
+    expect(response.parsed_body).to eq([])
+  end
 end

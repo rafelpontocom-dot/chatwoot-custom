@@ -4,7 +4,8 @@ import { ref } from 'vue';
 import CalendarSettingsView from '../CalendarSettingsView.vue';
 
 const rotaAtual = ref({ params: { section: 'procedures' } });
-const substitui = vi.fn();
+const empurra = vi.fn();
+const carregaTudo = vi.fn();
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
@@ -12,7 +13,7 @@ vi.mock('vue-i18n', () => ({
 
 vi.mock('vue-router', () => ({
   useRoute: () => rotaAtual.value,
-  useRouter: () => ({ replace: substitui, push: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), push: empurra }),
 }));
 
 vi.mock('dashboard/composables/store', () => ({
@@ -20,12 +21,25 @@ vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: vi.fn().mockResolvedValue() }),
 }));
 
+vi.mock('../setup/useCalendarSetup', () => ({
+  useCalendarSetup: () => ({ loadAll: carregaTudo }),
+}));
+
+const secao = nome => ({
+  props: ['itemId', 'tab'],
+  template: `<div data-testid="secao" data-secao="${nome}" :data-item="itemId" :data-tab="tab" />`,
+});
+
 const monta = () =>
   shallowMount(CalendarSettingsView, {
     global: {
       stubs: {
-        Icon: true,
         'router-link': { props: ['to'], template: '<a><slot /></a>' },
+        SetupHead: true,
+        ProceduresSection: secao('procedures'),
+        SchedulesSection: secao('availability'),
+        ResourcesSection: secao('resources'),
+        TeamsSection: secao('teams'),
         CalendarSettingsDialog: {
           props: ['inline', 'tab'],
           template: '<div data-testid="painel" :data-tab="tab" />',
@@ -37,34 +51,50 @@ const monta = () =>
 describe('CalendarSettingsView', () => {
   beforeEach(() => {
     rotaAtual.value = { params: { section: 'procedures' } };
-    substitui.mockClear();
+    empurra.mockClear();
   });
 
-  it('lista as três secções na navegação lateral', () => {
+  it('lista as seis secções do mockup na barra lateral', () => {
     const wrapper = monta();
 
-    expect(wrapper.find('[data-testid="calendar-settings-nav"]').exists()).toBe(
-      true
-    );
-    ['procedures', 'resources', 'booking-page'].forEach(secao => {
+    [
+      'procedures',
+      'availability',
+      'resources',
+      'teams',
+      'booking-page',
+      'integrations',
+    ].forEach(nome => {
       expect(
-        wrapper.find(`[data-testid="calendar-settings-nav-${secao}"]`).exists()
+        wrapper.find(`[data-testid="calendar-settings-nav-${nome}"]`).exists()
       ).toBe(true);
     });
+    expect(carregaTudo).toHaveBeenCalled();
   });
 
-  it('entrega ao painel a secção pedida pela URL', () => {
-    rotaAtual.value = { params: { section: 'booking-page' } };
+  it('abre o procedimento e a aba pedidos pela URL', () => {
+    rotaAtual.value = {
+      params: { section: 'procedures', itemId: '3', tab: 'when' },
+    };
+
+    const secaoAberta = monta().find('[data-testid="secao"]');
+
+    expect(secaoAberta.attributes('data-item')).toBe('3');
+    expect(secaoAberta.attributes('data-tab')).toBe('when');
+  });
+
+  it('usa o painel antigo para a página de agendamento e integrações', () => {
+    rotaAtual.value = { params: { section: 'integrations' } };
 
     expect(monta().find('[data-testid="painel"]').attributes('data-tab')).toBe(
-      'booking-page'
+      'integrations'
     );
   });
 
   it('cai em procedimentos quando a URL pede uma secção que não existe', () => {
     rotaAtual.value = { params: { section: 'inventada' } };
 
-    expect(monta().find('[data-testid="painel"]').attributes('data-tab')).toBe(
+    expect(monta().find('[data-testid="secao"]').attributes('data-secao')).toBe(
       'procedures'
     );
   });
@@ -73,22 +103,12 @@ describe('CalendarSettingsView', () => {
     const wrapper = monta();
 
     await wrapper
-      .find('[data-testid="calendar-settings-nav-resources"]')
+      .find('[data-testid="calendar-settings-nav-teams"]')
       .trigger('click');
 
-    expect(substitui).toHaveBeenCalledWith(
-      '/app/accounts/7/calendar/settings/resources'
+    expect(empurra).toHaveBeenCalledWith(
+      '/app/accounts/7/calendar/settings/teams'
     );
-  });
-
-  it('não navega ao clicar na secção que já está aberta', async () => {
-    const wrapper = monta();
-
-    await wrapper
-      .find('[data-testid="calendar-settings-nav-procedures"]')
-      .trigger('click');
-
-    expect(substitui).not.toHaveBeenCalled();
   });
 
   it('marca a secção aberta para quem usa leitor de ecrã', () => {

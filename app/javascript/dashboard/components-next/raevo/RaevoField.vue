@@ -1,6 +1,9 @@
 <script setup>
 import { computed, useId } from 'vue';
 import {
+  RAEVO_COMPACT_CONTROL_CLASS,
+  RAEVO_COMPACT_SELECT_CLASS,
+  RAEVO_COMPACT_TEXTAREA_CLASS,
   RAEVO_CONTROL_CLASS,
   RAEVO_INLINE_CONTROL_CLASS,
   RAEVO_INLINE_SELECT_CLASS,
@@ -59,6 +62,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** Campo compacto das configurações da agenda (36px, canto 11px, 13px). */
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const fieldId = useId();
@@ -70,6 +78,11 @@ const controlClass = computed(() => {
     if (props.variant === 'select') return RAEVO_INLINE_SELECT_CLASS;
     if (props.variant === 'textarea') return RAEVO_INLINE_TEXTAREA_CLASS;
     return RAEVO_INLINE_CONTROL_CLASS;
+  }
+  if (props.compact) {
+    if (props.variant === 'select') return RAEVO_COMPACT_SELECT_CLASS;
+    if (props.variant === 'textarea') return RAEVO_COMPACT_TEXTAREA_CLASS;
+    return RAEVO_COMPACT_CONTROL_CLASS;
   }
   if (props.variant === 'select') return RAEVO_SELECT_CLASS;
   if (props.variant === 'textarea') return RAEVO_TEXTAREA_CLASS;
@@ -97,7 +110,7 @@ const describedBy = computed(() => {
         ? `grid-cols-[8.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 ${
             variant === 'textarea' ? 'items-start' : 'items-center'
           }`
-        : 'content-start gap-1.5'
+        : 'min-w-0 content-start gap-1.5'
     "
   >
     <!--

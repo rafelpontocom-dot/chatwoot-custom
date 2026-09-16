@@ -73,3 +73,16 @@ export const RAEVO_INLINE_SELECT_CLASS = `min-h-8 appearance-none bg-none pr-6 $
 
 /** textarea em ficha densa — cresce para baixo, sem sair da coluna do valor */
 export const RAEVO_INLINE_TEXTAREA_CLASS = `min-h-20 resize-y py-0.5 ${INLINE_BASE}`;
+
+/**
+ * Campo compacto — as telas de configuração da agenda, iguais ao mockup
+ * aprovado (decisão D7): 36px de altura, canto de 11px e corpo a 13px. Fora
+ * dessas telas, o campo continua pílula.
+ */
+const COMPACT_BASE = BASE.replace('text-sm', 'text-ui');
+
+export const RAEVO_COMPACT_CONTROL_CLASS = `h-9 rounded-lg px-3 ${COMPACT_BASE}`;
+
+export const RAEVO_COMPACT_SELECT_CLASS = `h-9 appearance-none rounded-lg bg-none px-3 pr-9 ${COMPACT_BASE}`;
+
+export const RAEVO_COMPACT_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-3 py-2 ${COMPACT_BASE}`;

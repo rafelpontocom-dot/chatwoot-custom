@@ -150,7 +150,11 @@ Rails.application.routes.draw do
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           namespace :calendar do
             resources :procedures, only: [:index, :show, :create, :update, :destroy] do
-              get :availability_preview, on: :member
+              member do
+                get :availability_preview
+                get :own_schedule
+                put :own_schedule, action: :update_own_schedule
+              end
             end
             resource :booking_page, controller: 'booking_page', only: [:show, :update]
             resources :booking_links, controller: 'booking_links', only: [:index, :create]

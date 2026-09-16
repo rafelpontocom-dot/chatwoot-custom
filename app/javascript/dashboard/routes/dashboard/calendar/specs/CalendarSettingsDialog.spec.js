@@ -265,6 +265,13 @@ describe('CalendarSettingsDialog', () => {
     return wrapper;
   };
 
+  // O Feegow é da clínica inteira e vive em Integrações.
+  const abrirIntegracoes = async () => {
+    const wrapper = mountDialog({ inline: true, tab: 'integrations' });
+    await flushPromises();
+    return wrapper;
+  };
+
   const abrirAgendas = async () => {
     const wrapper = mountDialog();
     await wrapper.vm.open();
@@ -284,7 +291,7 @@ describe('CalendarSettingsDialog', () => {
         token_expires_in_days: 90,
       },
     });
-    const wrapper = await abrirAgendas();
+    const wrapper = await abrirIntegracoes();
 
     await wrapper
       .find('[data-testid="calendar-feegow-token"]')
@@ -316,7 +323,7 @@ describe('CalendarSettingsDialog', () => {
         last_error: 'Token inválido',
       },
     });
-    const wrapper = await abrirAgendas();
+    const wrapper = await abrirIntegracoes();
 
     const aviso = wrapper.find('[data-testid="calendar-feegow-expiry"]');
     expect(aviso.text()).toContain('CALENDAR.SETTINGS.FEEGOW.EXPIRED');
@@ -341,7 +348,7 @@ describe('CalendarSettingsDialog', () => {
         },
       },
     });
-    const wrapper = await abrirAgendas();
+    const wrapper = await abrirIntegracoes();
 
     await wrapper.find('[data-testid="calendar-feegow-sync"]').trigger('click');
     await flushPromises();

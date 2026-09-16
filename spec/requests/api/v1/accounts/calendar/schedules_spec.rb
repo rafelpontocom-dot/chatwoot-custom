@@ -90,4 +90,18 @@ RSpec.describe 'Calendar schedules API', type: :request do
     get "#{base}/resources", headers: administrator.create_new_auth_token, as: :json
     expect(response.parsed_body.find { |item| item['id'] == agenda.id }['missing_hours']).to be(true)
   end
+
+  it 'creates an agenda with hours of its own even when the account has a default schedule' do
+    schedule = account.kanban_calendar_schedules.create!(name: 'Comercial', timezone: 'America/Sao_Paulo', default_schedule: true)
+    KanbanCalendar::WorkingHoursSheet.new(schedule.kanban_calendar_availability_rules)
+                                     .replace!(weekly: [{ weekday: 1, ranges: [{ from: '08:00', to: '18:00' }] }], overrides: [])
+
+    post "#{base}/resources",
+         params: { resource: { name: 'Sala 2', resource_type: 'room', timezone: 'America/Sao_Paulo', schedule_id: nil } },
+         headers: administrator.create_new_auth_token, as: :json
+
+    agenda = KanbanCalendarResource.find(response.parsed_body['id'])
+    expect(agenda.kanban_calendar_schedule).to be_nil
+    expect(agenda.kanban_calendar_availability_rules.pluck(:weekday)).to eq([1])
+  end
 end

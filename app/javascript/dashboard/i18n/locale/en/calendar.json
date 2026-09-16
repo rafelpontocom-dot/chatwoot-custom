@@ -397,5 +397,429 @@
       "ERROR": "Google Calendar could not be connected. Try again from Settings › Agendas.",
       "DISMISS": "Dismiss"
     }
+  },
+  "CALENDAR_SETUP": {
+    "NAV_LABEL": "Calendar settings",
+    "BACK": "Back to calendar",
+    "RAIL_LABEL": "Calendar",
+    "NAV": {
+      "PROCEDURES": "Procedures",
+      "AVAILABILITY": "Availability",
+      "RESOURCES": "Calendars",
+      "TEAMS": "Teams",
+      "BOOKING_PAGE": "Booking page",
+      "INTEGRATIONS": "Integrations"
+    },
+    "LEGACY_DESCRIPTIONS": {
+      "BOOKING_PAGE": "The public address where people book by themselves, and what the page shows.",
+      "INTEGRATIONS": "Feegow for the whole clinic. Google Calendar is connected per calendar, in Calendars."
+    },
+    "COMMON": {
+      "SAVE": "Save",
+      "SAVED": "Saved",
+      "CANCEL": "Cancel",
+      "CLOSE": "Close",
+      "EDIT": "Edit",
+      "EDITING": "Editing",
+      "REMOVE": "Remove",
+      "LOADING": "Loading…",
+      "LOAD_ERROR": "Could not load. Try again.",
+      "SAVE_ERROR": "Could not save. Try again.",
+      "UNSAVED": "There are unsaved changes. Leave anyway?",
+      "MINUTES": "{count} minutes",
+      "HOURS": "{count} hour | {count} hours",
+      "DAYS": "{count} day | {count} days",
+      "ACCOUNT_DEFAULT": "Account default · {value}",
+      "AND": "and",
+      "OR": "or"
+    },
+    "WEEKDAYS": {
+      "SUNDAY": "Sunday",
+      "MONDAY": "Monday",
+      "TUESDAY": "Tuesday",
+      "WEDNESDAY": "Wednesday",
+      "THURSDAY": "Thursday",
+      "FRIDAY": "Friday",
+      "SATURDAY": "Saturday"
+    },
+    "WEEKDAYS_SHORT": {
+      "SUN": "sun",
+      "MON": "mon",
+      "TUE": "tue",
+      "WED": "wed",
+      "THU": "thu",
+      "FRI": "fri",
+      "SAT": "sat"
+    },
+    "PROCEDURES": {
+      "TITLE": "Procedures",
+      "DESCRIPTION": "What gets booked. Open a procedure to see everything about it.",
+      "NEW": "+ New procedure",
+      "NEW_TITLE": "New procedure",
+      "LIST_GROUP": "Clinic procedures",
+      "EMPTY": "No procedures yet.",
+      "ARCHIVED": "Archived",
+      "CHARGES": "charges on booking"
+    },
+    "PROCEDURE": {
+      "TABS_LABEL": "Procedure tabs",
+      "PUBLIC_ON": "Self-booking on",
+      "PUBLIC_OFF": "Staff only",
+      "TOGGLE_PUBLIC": "Turn self-booking on the public page on or off",
+      "SUBTITLE_PUBLIC": "shown on the booking page",
+      "SUBTITLE_PRIVATE": "only staff book it",
+      "TABS": {
+        "SETUP": {
+          "TITLE": "Setup",
+          "HINT": "Name, duration, location"
+        },
+        "RESOURCES": {
+          "TITLE": "Who attends",
+          "HINT": "Professional, room, equipment"
+        },
+        "WHEN": {
+          "TITLE": "When",
+          "HINT": "Hours for this appointment"
+        },
+        "FORM": {
+          "TITLE": "Form",
+          "HINT": "What the patient is asked"
+        },
+        "LIMITS": {
+          "TITLE": "Limits",
+          "HINT": "Notice, buffers"
+        },
+        "PAYMENT": {
+          "TITLE": "Payment",
+          "HINT": "Deposit or full price"
+        },
+        "CHANGES": {
+          "TITLE": "Reschedule and cancel",
+          "HINT": "Deadline and policy"
+        }
+      },
+      "HEADS": {
+        "RESOURCES": {
+          "TITLE": "Who attends",
+          "SUBTITLE": "The appointment takes a professional, a room and equipment at once"
+        },
+        "WHEN": {
+          "TITLE": "When",
+          "SUBTITLE": "Where the offered times come from"
+        },
+        "FORM": {
+          "TITLE": "Booking form",
+          "SUBTITLE": "What the booking page asks the patient"
+        },
+        "LIMITS": {
+          "TITLE": "Limits",
+          "SUBTITLE": "Notice, window and buffers"
+        },
+        "PAYMENT": {
+          "TITLE": "Payment",
+          "SUBTITLE": "Charge on booking, through Finance"
+        },
+        "CHANGES": {
+          "TITLE": "Reschedule and cancel",
+          "SUBTITLE": "What the patient handles on their own"
+        }
+      },
+      "LOCATIONS": {
+        "IN_PERSON": "In person",
+        "VIDEO": "Video",
+        "PHONE": "Phone",
+        "OTHER": "Other"
+      },
+      "LOCATIONS_LOWER": {
+        "IN_PERSON": "in person",
+        "VIDEO": "video",
+        "PHONE": "phone",
+        "OTHER": "other location"
+      },
+      "COLORS": {
+        "BLUE": "Blue",
+        "TEAL": "Teal",
+        "AMBER": "Amber",
+        "MAGENTA": "Magenta",
+        "GREEN": "Green",
+        "RED": "Red",
+        "NAVY": "Navy",
+        "GRAY": "Gray"
+      },
+      "ERRORS": {
+        "NAME": "Give the procedure a name.",
+        "SLUG": "With self-booking on, the public link is required.",
+        "PRICE": "Enter the price.",
+        "DEPOSIT": "The deposit must be above zero and below the price.",
+        "FIX_FIELDS": "Some fields need fixing before saving."
+      },
+      "SETUP": {
+        "GROUP": "Setup",
+        "GROUP_HINT": "How the patient sees it",
+        "NAME": "Name",
+        "LINK": "Public link",
+        "DESCRIPTION": "Description",
+        "DURATION": "Duration",
+        "LOCATION": "Location",
+        "COLOR": "Calendar color",
+        "RECURRENCE": "Allows recurring sessions",
+        "RECURRENCE_HINT": "Books a series of appointments at once",
+        "MAX_SESSIONS": "Maximum sessions"
+      },
+      "RESOURCES": {
+        "GROUP": "Who attends",
+        "GROUP_HINT": "The appointment takes all of them at once",
+        "REQUIRED_COUNT": "Required · {count} eligible | Required · {count} eligible",
+        "NOT_USED": "Not used",
+        "NO_RESOURCES": "Create calendars in Calendars to choose who attends.",
+        "STRATEGY": "When there is more than one professional",
+        "STRATEGY_HINT": "How the public page picks",
+        "STRATEGIES": {
+          "PATIENT_CHOICE": "Patient picks",
+          "FIRST_AVAILABLE": "First available",
+          "ROUND_ROBIN": "Round robin",
+          "COLLECTIVE": "All together"
+        },
+        "TEAM": "Team",
+        "TEAM_HINT": "Professionals included in the distribution",
+        "PICK_TEAM": "Pick a team",
+        "TEAM_NEEDED": "First available, round robin and all together use a team.",
+        "GO_TO_TEAMS": "Create team"
+      },
+      "WHEN": {
+        "GROUP": "When",
+        "GROUP_HINT": "Where this appointment's hours come from",
+        "MODES": {
+          "RESOURCES": "Each calendar's hours",
+          "SCHEDULE": "A named schedule",
+          "OWN": "Hours for this procedure only"
+        },
+        "HELP_RESOURCES": "With each calendar's hours, {procedure} only shows when {resources} are free at the same time.",
+        "HELP_RESOURCES_EMPTY": "Choose this procedure's calendars in Who attends.",
+        "HELP_SCHEDULE": "The named schedule sets the windows; the calendars still need to be free.",
+        "HELP_OWN": "A week just for {procedure}; the calendars still need to be free.",
+        "PICK_SCHEDULE": "Schedule",
+        "SCHEDULE_REQUIRED": "Pick the schedule.",
+        "PREVIEW_TITLE": "Result, over the next two weeks",
+        "PREVIEW_HINT": "what the patient would see",
+        "PREVIEW_SAVED_ONLY": "shows what is saved",
+        "PREVIEW_EMPTY": "No openings in the next two weeks."
+      },
+      "FORM": {
+        "GROUP": "Booking form",
+        "GROUP_HINT": "What the booking page asks",
+        "LOCKED": "fixed",
+        "REQUIRED": "required",
+        "REQUIRED_FEEGOW": "required · Feegow",
+        "OPTIONAL": "optional",
+        "TOGGLE_REQUIRED": "Click to change whether it is required",
+        "TOGGLE_REQUIRED_OF": "Change whether “{label}” is required",
+        "HINT_FULL_NAME": "Always required",
+        "HINT_WHATSAPP": "Where the confirmation is sent",
+        "HINT_NOTES": "Free text",
+        "HINT_CPF_FEEGOW": "Required because this calendar mirrors Feegow",
+        "HINT_CPF_NO_FEEGOW": "Only asked when the procedure mirrors Feegow",
+        "MOVE_UP": "Move up",
+        "MOVE_DOWN": "Move down",
+        "ADD": "+ Add question",
+        "ADD_CONFIRM": "Add",
+        "LABEL": "Question",
+        "KIND": "Type",
+        "OPTIONS": "Options (one per line)",
+        "REQUIRED_CHECK": "Required",
+        "KINDS": {
+          "TEXT": "Short text",
+          "PHONE": "Phone",
+          "EMAIL": "Email",
+          "CPF": "CPF",
+          "TEXTAREA": "Free text",
+          "SELECT": "Option list",
+          "DATE": "Date"
+        }
+      },
+      "LIMITS": {
+        "GROUP": "Limits",
+        "GROUP_HINT": "What protects the calendar",
+        "MIN_NOTICE": "Minimum notice",
+        "MIN_NOTICE_HINT": "Nobody books for an hour from now.",
+        "NO_NOTICE": "No notice",
+        "MAX_NOTICE": "How far ahead",
+        "DAYS_AHEAD": "{count} days ahead",
+        "INTERVAL": "Time slot spacing",
+        "BUFFER_BEFORE": "Buffer before",
+        "BUFFER_AFTER": "Buffer after",
+        "DAILY": "Maximum per day",
+        "NO_LIMIT": "no limit",
+        "PER_DAY": "{count} appointment | {count} appointments"
+      },
+      "PAYMENT": {
+        "GROUP": "Payment",
+        "GROUP_HINT": "Uses the existing Finance module",
+        "ENABLED": "Charge when booking",
+        "ENABLED_HINT": "Without payment the slot is confirmed anyway",
+        "FINANCE_OFF": "Finance is not active in this account; turn it on to charge on booking.",
+        "PRICE": "Price",
+        "MODE": "What is charged",
+        "MODES": {
+          "FULL": "Full price",
+          "DEPOSIT": "Deposit"
+        },
+        "MODE_HINT": "The other option is a deposit, with the rest at the clinic.",
+        "DEPOSIT": "Deposit amount",
+        "METHODS": "Accepted methods",
+        "METHODS_LIST": {
+          "PIX": "Pix",
+          "CARD": "Card",
+          "ON_SITE": "Pay at the clinic"
+        },
+        "HOLD": "Hold the slot for",
+        "HOLD_HINT": "After that the time goes back to the list.",
+        "PROVIDER": "Provider",
+        "PROVIDER_NONE": "No provider connected in Finance"
+      },
+      "CHANGES": {
+        "GROUP": "Reschedule and cancel",
+        "GROUP_HINT": "What the patient can do on their own",
+        "RESCHEDULE": "Patient can reschedule",
+        "RESCHEDULE_HINT": "Through the WhatsApp confirmation link",
+        "CANCEL": "Patient can cancel",
+        "DEADLINE": "Until when",
+        "ANY_TIME": "Until the appointment time",
+        "HOURS_BEFORE": "{count} hour before | {count} hours before",
+        "REASON": "Cancellation reason",
+        "REASON_REQUIRED": "Required",
+        "REASON_OPTIONAL": "Optional",
+        "ON_CANCEL": "When the patient cancels",
+        "ON_CANCEL_HINT": "What happens to the pipeline opportunity",
+        "ON_CANCEL_OPTIONS": {
+          "BACK_TO_SCHEDULING": "Back to “Schedule”",
+          "MARK_LOST": "Mark as lost",
+          "NONE": "No change"
+        }
+      }
+    },
+    "SCHEDULES": {
+      "TITLE": "Availability",
+      "DESCRIPTION": "Named schedules any calendar can use. Creating a calendar becomes picking one of these.",
+      "NEW": "+ New schedule",
+      "NEW_TITLE": "New schedule",
+      "LIST_GROUP": "Clinic schedules",
+      "IN_USE_COUNT": "{count} in use",
+      "EMPTY": "No named schedules yet.",
+      "USED_BY": "no calendar uses it | used by {count} calendar | used by {count} calendars",
+      "DEFAULT": "default",
+      "IN_USE": "in use",
+      "UNUSED": "unused",
+      "TIMEZONE": "Time zone: {zone}",
+      "TIMEZONE_LABEL": "Time zone",
+      "EDIT_DETAILS": "Name and time zone",
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "Dr. Anna's mornings",
+      "NAME_REQUIRED": "Give the schedule a name.",
+      "MAKE_DEFAULT": "Account default schedule",
+      "CLOSED": "Closed",
+      "ADD_RANGE": "+ range",
+      "REMOVE_RANGE": "Remove range",
+      "RANGE_FROM": "Start on {day}",
+      "RANGE_TO": "End on {day}",
+      "COPY_TO": "Copy to…",
+      "COPY_APPLY": "Copy",
+      "EXCEPTIONS": "Exceptions",
+      "EXCEPTIONS_HINT": "Holidays, vacation, a different day",
+      "EXCEPTION_CLOSED": "Closed all day",
+      "EXCEPTION_CLOSED_NOTE": "{note} — closed all day",
+      "EXCEPTION_RANGES": "Only {ranges}",
+      "ADD_EXCEPTION": "+ Add exception",
+      "ADD_EXCEPTION_CONFIRM": "Add",
+      "EXCEPTION_DATE": "Date",
+      "EXCEPTION_NOTE": "Reason",
+      "EXCEPTION_NOTE_PLACEHOLDER": "Conference",
+      "EXCEPTION_KIND": "How the day looks",
+      "EXCEPTION_KIND_CLOSED": "Closed all day",
+      "EXCEPTION_KIND_RANGE": "Different hours",
+      "FROM": "Start",
+      "TO": "End",
+      "SAVE": "Save schedule",
+      "APPLY": "Apply to calendars",
+      "APPLY_HINT": "Checked calendars start using this schedule",
+      "APPLY_WARNING": "{count} future appointment falls outside the new schedule. | {count} future appointments fall outside the new schedule.",
+      "APPLY_CONFIRM": "Apply",
+      "SAVE_BEFORE_APPLY": "Save the schedule before applying it.",
+      "DELETE": "Delete schedule",
+      "DELETE_IN_USE": "Used by {count} calendar(s) — change their schedule before deleting."
+    },
+    "RESOURCES": {
+      "TITLE": "Calendars",
+      "DESCRIPTION": "Who attends and what gets taken: professionals, rooms, equipment. Each one picks a schedule from the list.",
+      "NEW": "+ New calendar",
+      "PROFESSIONALS": "Professionals",
+      "ROOMS_EQUIPMENT": "Rooms and equipment",
+      "EMPTY": "No calendars of this kind.",
+      "SCHEDULE_LINE": "Schedule: {name}",
+      "SPACING": "spacing {count} min",
+      "OWN_HOURS": "Hours for this calendar only",
+      "MISSING": "No hours set — offers no openings",
+      "MISSING_PILL": "missing hours",
+      "GOOGLE": "Google",
+      "FEEGOW": "Feegow",
+      "TYPE_PILLS": {
+        "USER": "professional",
+        "ROOM": "room",
+        "EQUIPMENT": "equipment",
+        "GENERIC": "other"
+      },
+      "TYPES": {
+        "USER": "Professional",
+        "ROOM": "Room",
+        "EQUIPMENT": "Equipment",
+        "GENERIC": "Other"
+      },
+      "NEW_GROUP": "New calendar",
+      "NEW_GROUP_HINT": "what is asked when creating",
+      "EDIT_GROUP": "Edit calendar: {name}",
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "Dr. Carla",
+      "NAME_REQUIRED": "Give the calendar a name.",
+      "TYPE": "Type",
+      "CRM_USER": "CRM user",
+      "OPTIONAL": "optional",
+      "SCHEDULE": "Schedule",
+      "SCHEDULE_HINT": "Or “hours for this calendar only”, which opens the week editor right here.",
+      "SCHEDULE_DEFAULT": "{name} (default)",
+      "OWN_OPTION": "Hours for this calendar only",
+      "OWN_HOURS_TITLE": "This calendar's week",
+      "SPACING_LABEL": "Time slot spacing",
+      "ACCOUNT_DEFAULT": "Account default · {count} min",
+      "CREATE": "Create calendar",
+      "ARCHIVE": "Archive calendar",
+      "ARCHIVE_CONFIRM": "Archive the calendar “{name}”? Booked appointments stay in the history."
+    },
+    "TEAMS": {
+      "TITLE": "Teams",
+      "DESCRIPTION": "A group of professionals who attend the same procedure. It is what enables first available and round robin.",
+      "NEW": "+ New team",
+      "NEW_TITLE": "New team",
+      "EMPTY": "No teams yet.",
+      "MEMBERS_COUNT": "{count} professional | {count} professionals",
+      "PROCEDURES_COUNT": "no procedure uses it | used in {count} procedure | used in {count} procedures",
+      "ACTIVE": "active",
+      "INACTIVE": "inactive",
+      "DISTRIBUTE": "How to distribute",
+      "DISTRIBUTE_HINT": "When the patient does not pick",
+      "STRATEGIES": {
+        "FIRST_AVAILABLE": "First available",
+        "ROUND_ROBIN": "Round robin",
+        "COLLECTIVE": "All together"
+      },
+      "EXPLAIN_FIRST": "shows anyone's free time — fills the calendar more.",
+      "EXPLAIN_ROUND": "spreads evenly.",
+      "EXPLAIN_COLLECTIVE": "is for the appointment that needs everyone at once.",
+      "NAME": "Team name",
+      "NAME_PLACEHOLDER": "Dermatology",
+      "NAME_REQUIRED": "Give the team a name.",
+      "MEMBERS": "Professionals",
+      "DELETE": "Delete team",
+      "DELETE_CONFIRM": "Delete the team “{name}”? Procedures using it go back to “patient picks”."
+    }
   }
 }
