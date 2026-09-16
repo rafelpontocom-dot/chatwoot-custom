@@ -36,8 +36,11 @@ RSpec.describe KanbanCalendar::ProcedureAvailability do
   end
 
   it 'offers a time while any eligible professional and a room are free, and names who takes it' do
+    # Sem empate entre profissionais: quem desempata é a ordem por nome, e essa
+    # depende do collation do banco (C local, en_US no CI e em produção).
     book([anna, sala], 9)
     book([bruno], 10)
+    book([anna], 11)
 
     expect(hours(described_class.new(procedure: procedure).slots(date: date))).to eq(
       [[10, ['Dra. Anna', 'Sala 1']], [11, ['Dr. Bruno', 'Sala 1']]]
