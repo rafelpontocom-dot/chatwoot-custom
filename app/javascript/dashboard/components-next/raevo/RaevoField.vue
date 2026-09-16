@@ -135,7 +135,7 @@ const describedBy = computed(() => {
       />
     </label>
 
-    <div class="relative">
+    <div class="relative min-w-0">
       <slot
         :control-class="controlClass"
         :field-id="fieldId"
