@@ -67,7 +67,8 @@
       },
       "CONFIRM_BOOKING": "Confirm booking",
       "SAVE_ERROR": "Could not create the appointment.",
-      "BOOK_DESCRIPTION_BLANK": "Choose the patient, procedure, professional, and time."
+      "BOOK_DESCRIPTION_BLANK": "Choose the patient, procedure, professional, and time.",
+      "NO_WORKING_HOURS": "{resources} has no working hours yet. Set them in Settings › Agendas › Hours."
     },
     "SETTINGS": {
       "OPEN": "Configure calendar",
@@ -91,7 +92,7 @@
       },
       "MINIMUM_NOTICE": "Minimum notice (minutes)",
       "MAXIMUM_NOTICE": "Maximum notice (days)",
-      "SLOT_INTERVAL": "Time slot interval (minutes)",
+      "SLOT_INTERVAL": "Spacing between times",
       "DESTINATION_BOARD": "Destination pipeline",
       "DESTINATION_STAGE": "Destination stage",
       "DESTINATION_INBOX": "Inbox",
@@ -261,7 +262,10 @@
           "TITLE": "Other",
           "HELP": "Calendars without a type. Edit one to say whether it is a professional, a room or equipment."
         }
-      }
+      },
+      "SLOT_INTERVAL_HINT": "How often a time is offered in this agenda.",
+      "SLOT_INTERVAL_DEFAULT": "Account default",
+      "SLOT_INTERVAL_MINUTES": "{minutes} minutes"
     },
     "DETAIL": {
       "TITLE": "Appointment details",

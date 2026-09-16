@@ -20,6 +20,9 @@ RSpec.describe KanbanCalendar::AvailabilitySlotsQuery do
   let(:date) { Date.new(2026, 8, 10) }
   let(:resource_timezone) { ActiveSupport::TimeZone[resource.timezone] }
 
+  # A agenda nasce com a semana comercial; cada exemplo define a janela que testa.
+  before { resource.kanban_calendar_availability_rules.delete_all }
+
   it 'returns free starts that fit the configured working window' do
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window',
@@ -47,6 +50,36 @@ RSpec.describe KanbanCalendar::AvailabilitySlotsQuery do
 
     expect(slots.map { |slot| slot.in_time_zone(resource.timezone).strftime('%H:%M') })
       .to eq(['09:10', '09:25', '09:40', '09:55'])
+  end
+
+  # O espaçamento estava escrito no código em 15 minutos, e a configuração que
+  # existia na página de agendamento não era lida por ninguém.
+  it 'offers the starts spaced as the agenda asks' do
+    resource.update!(slot_interval_minutes: 60)
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window',
+      weekday: date.wday,
+      starts_at_local: '09:00',
+      ends_at_local: '12:00'
+    )
+
+    slots = described_class.new(resource: resource, procedure: procedure, date: date).call
+
+    expect(slots.map { |slot| slot.in_time_zone(resource.timezone).strftime('%H:%M') }).to eq(['09:00', '10:00', '11:00'])
+  end
+
+  it 'falls back to the spacing configured for the account when the agenda has none' do
+    KanbanCalendarBookingPage.create!(account: account, public_token: SecureRandom.hex(8), slot_interval_minutes: 30)
+    resource.kanban_calendar_availability_rules.create!(
+      kind: 'weekly_window',
+      weekday: date.wday,
+      starts_at_local: '09:00',
+      ends_at_local: '11:00'
+    )
+
+    slots = described_class.new(resource: resource, procedure: procedure, date: date).call
+
+    expect(slots.map { |slot| slot.in_time_zone(resource.timezone).strftime('%H:%M') }).to eq(['09:00', '09:30', '10:00'])
   end
 
   it 'omits starts that overlap a busy time imported from Google Calendar' do

@@ -212,9 +212,7 @@ class Api::V1::Accounts::Calendar::AppointmentsController < Api::V1::Accounts::B
   end
 
   def render_available_slots
-    date = Date.iso8601(params[:date])
-    slots = availability_across_resources.slots(date: date)
-    render json: { date: date.iso8601, slots: slots.map(&:iso8601) }
+    render json: availability_across_resources.day_availability(date: Date.iso8601(params[:date]))
   rescue Date::Error
     render json: { message: 'A valid date is required' }, status: :unprocessable_entity
   end

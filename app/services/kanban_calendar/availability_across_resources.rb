@@ -25,6 +25,20 @@ class KanbanCalendar::AvailabilityAcrossResources
     por_recurso.first.select { |slot| restantes.all? { |instantes| instantes.include?(slot.to_i) } }
   end
 
+  # Os horários do dia e as agendas que não têm janela de trabalho nenhuma — sem
+  # elas, a lista vazia não dizia porquê estava vazia.
+  def day_availability(date:)
+    {
+      date: date.iso8601,
+      slots: slots(date: date).map(&:iso8601),
+      resources_without_hours: resources_without_hours.map { |resource| { id: resource.id, name: resource.name } }
+    }
+  end
+
+  def resources_without_hours
+    @resources.reject { |resource| resource.kanban_calendar_availability_rules.active.exists? }
+  end
+
   def check(starts_at:)
     por_recurso = @resources.map do |resource|
       KanbanCalendar::AvailabilityCheckService.new(procedure: @procedure, resource: resource, starts_at: starts_at).call

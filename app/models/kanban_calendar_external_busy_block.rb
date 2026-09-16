@@ -15,9 +15,9 @@
 #
 # Indexes
 #
-#  idx_calendar_busy_blocks_on_connection_event                 (kanban_calendar_google_connection_id,external_event_id) UNIQUE
-#  idx_calendar_busy_blocks_on_resource_range                   (kanban_calendar_resource_id,starts_at,ends_at)
-#  index_kanban_calendar_external_busy_blocks_on_account_id    (account_id)
+#  idx_calendar_busy_blocks_on_connection_event              (kanban_calendar_google_connection_id,external_event_id) UNIQUE
+#  idx_calendar_busy_blocks_on_resource_range                (kanban_calendar_resource_id,starts_at,ends_at)
+#  index_kanban_calendar_external_busy_blocks_on_account_id  (account_id)
 #
 # Foreign Keys
 #

@@ -57,7 +57,7 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
   end
 
   def resource_params
-    params.require(:resource).permit(:name, :resource_type, :user_id, :timezone, :capacity, :active, settings: {})
+    params.require(:resource).permit(:name, :resource_type, :user_id, :timezone, :capacity, :active, :slot_interval_minutes, settings: {})
   end
 
   def resource_payload(resource)
@@ -68,6 +68,7 @@ class Api::V1::Accounts::Calendar::ResourcesController < Api::V1::Accounts::Base
       user_id: resource.user_id,
       timezone: resource.timezone,
       capacity: resource.capacity,
+      slot_interval_minutes: resource.slot_interval_minutes,
       settings: resource.settings,
       active: resource.active,
       google_calendar_status: resource.kanban_calendar_google_connection&.status || 'disconnected'

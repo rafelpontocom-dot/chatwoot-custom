@@ -25,6 +25,7 @@ RSpec.describe KanbanCalendar::AvailabilityQuery do
   end
 
   it 'requires an appointment to fit a configured weekly window' do
+    resource.kanban_calendar_availability_rules.delete_all
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window',
       weekday: starts_at.wday,

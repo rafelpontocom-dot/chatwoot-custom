@@ -87,7 +87,14 @@ const procedimentoVazio = () => ({
   publicSlug: '',
 });
 const procedureForm = ref(procedimentoVazio());
-const resourceForm = ref({ name: '', resourceType: 'generic', userId: '' });
+const resourceForm = ref({
+  name: '',
+  resourceType: 'generic',
+  userId: '',
+  slotIntervalMinutes: '',
+});
+// O que a agenda pode oferecer de espaçamento; vazio segue o padrão da conta.
+const SLOT_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
 const exceptionForm = ref({
   kind: 'block',
   date: '',
@@ -325,7 +332,12 @@ const getErrorMessage = errorResponse =>
 const resetForms = () => {
   procedureForm.value = procedimentoVazio();
   triedToSaveProcedure.value = false;
-  resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
+  resourceForm.value = {
+    name: '',
+    resourceType: 'generic',
+    userId: '',
+    slotIntervalMinutes: '',
+  };
   availabilityResourceId.value = null;
   availabilityRules.value = [];
   exceptionForm.value = {
@@ -391,7 +403,12 @@ const resetProcedureForm = () => {
 };
 
 const resetResourceForm = () => {
-  resourceForm.value = { name: '', resourceType: 'generic', userId: '' };
+  resourceForm.value = {
+    name: '',
+    resourceType: 'generic',
+    userId: '',
+    slotIntervalMinutes: '',
+  };
   editingResourceId.value = null;
   triedToSaveResource.value = false;
   resourceEditorSection.value = null;
@@ -506,7 +523,12 @@ const formatSyncTime = value =>
   }).format(new Date(value));
 
 const openAddResource = section => {
-  resourceForm.value = { name: '', resourceType: section.type, userId: '' };
+  resourceForm.value = {
+    name: '',
+    resourceType: section.type,
+    userId: '',
+    slotIntervalMinutes: '',
+  };
   editingResourceId.value = null;
   triedToSaveResource.value = false;
   resourceEditorSection.value = section.key;
@@ -522,6 +544,9 @@ const editResource = async resource => {
     name: resource.name,
     resourceType: resource.resource_type,
     userId: resource.user_id ? String(resource.user_id) : '',
+    slotIntervalMinutes: resource.slot_interval_minutes
+      ? String(resource.slot_interval_minutes)
+      : '',
   };
   await loadGoogleCalendarConnection(resource.id);
 };
@@ -819,6 +844,10 @@ const createResource = async () => {
         Intl.DateTimeFormat().resolvedOptions().timeZone,
       active: existingResource?.active ?? true,
       user_id: null,
+      // Vazio é «segue o padrão da conta»; `Number('')` seria 0, que o servidor recusa.
+      slot_interval_minutes: resourceForm.value.slotIntervalMinutes
+        ? Number(resourceForm.value.slotIntervalMinutes)
+        : null,
     };
     // Sem utilizador escolhido vai `null`, e não `Number('')`: com o utilizador
     // opcional, `user_id: 0` partia a chave estrangeira com um 500.
@@ -1700,6 +1729,36 @@ defineExpose({ open });
                       </option>
                       <option value="generic">
                         {{ t('CALENDAR.RESOURCE_FIELDS.OTHER') }}
+                      </option>
+                    </select>
+                  </template>
+                </RaevoField>
+                <RaevoField
+                  :label="t('CALENDAR.SETTINGS.SLOT_INTERVAL')"
+                  :hint="t('CALENDAR.SETTINGS.SLOT_INTERVAL_HINT')"
+                  variant="select"
+                >
+                  <template #default="{ controlClass, fieldId, describedBy }">
+                    <select
+                      :id="fieldId"
+                      v-model="resourceForm.slotIntervalMinutes"
+                      data-testid="calendar-resource-slot-interval"
+                      :aria-describedby="describedBy"
+                      :class="controlClass"
+                    >
+                      <option value="">
+                        {{ t('CALENDAR.SETTINGS.SLOT_INTERVAL_DEFAULT') }}
+                      </option>
+                      <option
+                        v-for="minutes in SLOT_INTERVAL_OPTIONS"
+                        :key="minutes"
+                        :value="String(minutes)"
+                      >
+                        {{
+                          t('CALENDAR.SETTINGS.SLOT_INTERVAL_MINUTES', {
+                            minutes,
+                          })
+                        }}
                       </option>
                     </select>
                   </template>

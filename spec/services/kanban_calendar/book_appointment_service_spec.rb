@@ -201,6 +201,7 @@ RSpec.describe KanbanCalendar::BookAppointmentService do
   end
 
   it 'does not create an appointment outside a configured resource window' do
+    resource.kanban_calendar_availability_rules.delete_all
     unavailable_starts_at = ActiveSupport::TimeZone['America/Sao_Paulo'].parse('2026-08-10 13:00:00')
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window',

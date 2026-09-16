@@ -1,5 +1,5 @@
 class KanbanCalendar::AvailabilitySlotsQuery
-  SLOT_INTERVAL_MINUTES = 15
+  DEFAULT_SLOT_INTERVAL_MINUTES = 15
 
   def initialize(resource:, procedure:, date:)
     @resource = resource
@@ -38,7 +38,7 @@ class KanbanCalendar::AvailabilitySlotsQuery
     slots = []
     while starts_at <= last_start
       slots << starts_at if available?(starts_at)
-      starts_at += SLOT_INTERVAL_MINUTES.minutes
+      starts_at += slot_interval_minutes.minutes
     end
     slots
   end
@@ -57,5 +57,16 @@ class KanbanCalendar::AvailabilitySlotsQuery
 
   def timezone
     @timezone ||= ActiveSupport::TimeZone[@resource.timezone]
+  end
+
+  # De quanto em quanto tempo se oferece um horário: a agenda decide, e quem não
+  # decidiu segue o padrão da conta, configurado na página de agendamento.
+  def slot_interval_minutes
+    @slot_interval_minutes ||= @resource.slot_interval_minutes || account_slot_interval_minutes
+  end
+
+  def account_slot_interval_minutes
+    KanbanCalendarBookingPage.find_by(account_id: @resource.account_id)&.slot_interval_minutes ||
+      DEFAULT_SLOT_INTERVAL_MINUTES
   end
 end

@@ -13,6 +13,8 @@ RSpec.describe KanbanCalendar::AvailabilityAcrossResources do
   end
 
   before do
+    # A agenda nasce com a semana comercial; estes exemplos definem a sua.
+    [professional, room].each { |resource| resource.kanban_calendar_availability_rules.delete_all }
     professional.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window', weekday: date.wday, starts_at_local: '09:00', ends_at_local: '11:00'
     )

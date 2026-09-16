@@ -67,7 +67,8 @@
       },
       "CONFIRM_BOOKING": "Confirmar agendamento",
       "SAVE_ERROR": "Não foi possível criar o agendamento.",
-      "BOOK_DESCRIPTION_BLANK": "Escolha o paciente, o procedimento, o profissional e o horário."
+      "BOOK_DESCRIPTION_BLANK": "Escolha o paciente, o procedimento, o profissional e o horário.",
+      "NO_WORKING_HOURS": "{resources} ainda não tem horários configurados. Configure em Configurações › Agendas › Horários."
     },
     "SETTINGS": {
       "OPEN": "Configurar agenda",
@@ -91,7 +92,7 @@
       },
       "MINIMUM_NOTICE": "Antecedência mínima (minutos)",
       "MAXIMUM_NOTICE": "Antecedência máxima (dias)",
-      "SLOT_INTERVAL": "Intervalo dos horários (minutos)",
+      "SLOT_INTERVAL": "Espaçamento entre horários",
       "DESTINATION_BOARD": "Funil de destino",
       "DESTINATION_STAGE": "Etapa de destino",
       "DESTINATION_INBOX": "Caixa de entrada",
@@ -261,7 +262,10 @@
           "TITLE": "Outros",
           "HELP": "Agendas sem tipo. Edite para indicar se é profissional, sala ou equipamento."
         }
-      }
+      },
+      "SLOT_INTERVAL_HINT": "De quanto em quanto tempo esta agenda oferece um horário.",
+      "SLOT_INTERVAL_DEFAULT": "Padrão da conta",
+      "SLOT_INTERVAL_MINUTES": "{minutes} minutos"
     },
     "DETAIL": {
       "TITLE": "Detalhes do agendamento",

@@ -111,6 +111,7 @@ RSpec.describe KanbanCalendar::RescheduleAppointmentService do
   end
 
   it 'rejects a new time outside the resource working hours' do
+    resource.kanban_calendar_availability_rules.delete_all
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window',
       weekday: appointment.starts_at.in_time_zone(resource.timezone).wday,

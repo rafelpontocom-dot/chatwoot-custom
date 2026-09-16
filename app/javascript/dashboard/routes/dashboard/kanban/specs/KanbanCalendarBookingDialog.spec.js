@@ -3,7 +3,12 @@ import KanbanCalendarBookingDialog from '../KanbanCalendarBookingDialog.vue';
 import CalendarAPI from 'dashboard/api/calendar';
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: key => key }),
+  useI18n: () => ({
+    // Devolve a chave com os parâmetros ao lado: chega para ver que o nome da
+    // agenda vai na mensagem, sem trazer o catálogo inteiro para o teste.
+    t: (key, params) =>
+      params ? `${key} ${Object.values(params).join(' ')}` : key,
+  }),
 }));
 
 vi.mock('dashboard/api/calendar', () => ({
@@ -108,6 +113,43 @@ describe('KanbanCalendarBookingDialog', () => {
     expect(
       wrapper.findAll('[data-testid="calendar-availability-slot"]')
     ).toHaveLength(1);
+  });
+
+  // Lista vazia sem explicação foi o que o Alysson viu ao escolher a sua agenda.
+  it('explains that an agenda has no working hours instead of showing an empty list', async () => {
+    CalendarAPI.getAvailability.mockResolvedValue({
+      data: {
+        available: true,
+        slots: [],
+        resources_without_hours: [{ id: 3, name: 'Dra. Ana' }],
+      },
+    });
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="kanban-calendar-procedure"]')
+      .setValue('2');
+    await wrapper
+      .find('[data-testid="kanban-calendar-resource-professional"]')
+      .setValue('3');
+    await wrapper
+      .find('[data-testid="kanban-calendar-starts-at"]')
+      .setValue('2026-08-10T13:00');
+    await new Promise(resolve => {
+      setTimeout(resolve, 300);
+    });
+    await flushPromises();
+
+    const aviso = wrapper.find(
+      '[data-testid="calendar-resources-without-hours"]'
+    );
+    expect(aviso.text()).toContain('CALENDAR.OPPORTUNITY.NO_WORKING_HOURS');
+    expect(aviso.text()).toContain('Dra. Ana');
+    expect(wrapper.text()).not.toContain(
+      'CALENDAR.OPPORTUNITY.NO_AVAILABLE_TIMES'
+    );
   });
 
   it('books the professional and the room together, and asks for both', async () => {

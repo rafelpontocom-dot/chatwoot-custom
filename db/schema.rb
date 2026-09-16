@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_15_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_15_190000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1715,6 +1715,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_15_120000) do
     t.jsonb "settings", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "slot_interval_minutes"
     t.index ["account_id", "user_id"], name: "index_kanban_calendar_resources_on_account_and_user", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["account_id"], name: "index_kanban_calendar_resources_on_account_id"
     t.index ["user_id"], name: "index_kanban_calendar_resources_on_user_id"

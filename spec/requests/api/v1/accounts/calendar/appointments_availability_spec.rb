@@ -15,6 +15,8 @@ RSpec.describe 'Calendar appointment availability', type: :request do
   let(:path) { "/api/v1/accounts/#{account.id}/calendar/appointments/availability" }
 
   before do
+    # A agenda nasce com a semana comercial; estes exemplos definem a sua.
+    [professional, room].each { |resource| resource.kanban_calendar_availability_rules.delete_all }
     professional.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window', weekday: date.wday, starts_at_local: '09:00', ends_at_local: '11:00'
     )
@@ -56,5 +58,26 @@ RSpec.describe 'Calendar appointment availability', type: :request do
         headers: administrator.create_new_auth_token
 
     expect(response).to have_http_status(:not_found)
+  end
+
+  # Agenda sem horários não oferece horário nenhum, e a lista vazia não explicava
+  # porquê: era o que o Alysson via ao escolher a sua agenda.
+  it 'names the agendas without working hours instead of answering an empty list in silence' do
+    room.kanban_calendar_availability_rules.delete_all
+
+    get path,
+        params: { procedure_id: procedure.id, resource_ids: [professional.id, room.id], date: date.iso8601 },
+        headers: administrator.create_new_auth_token
+
+    expect(response.parsed_body['slots']).to be_empty
+    expect(response.parsed_body['resources_without_hours']).to eq([{ 'id' => room.id, 'name' => 'Sala 1' }])
+  end
+
+  it 'says nothing about working hours when every agenda has them' do
+    get path,
+        params: { procedure_id: procedure.id, resource_ids: [professional.id, room.id], date: date.iso8601 },
+        headers: administrator.create_new_auth_token
+
+    expect(response.parsed_body['resources_without_hours']).to eq([])
   end
 end

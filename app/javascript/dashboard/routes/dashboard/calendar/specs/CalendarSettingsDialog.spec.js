@@ -256,6 +256,105 @@ describe('CalendarSettingsDialog', () => {
     return wrapper;
   };
 
+  it('saves the slot spacing chosen for the agenda', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 8,
+          name: 'Dra. Ana',
+          resource_type: 'user',
+          user_id: null,
+          active: true,
+          slot_interval_minutes: null,
+        },
+      ],
+    });
+    CalendarAPI.updateResource.mockResolvedValue({
+      data: {
+        id: 8,
+        name: 'Dra. Ana',
+        resource_type: 'user',
+        active: true,
+        slot_interval_minutes: 30,
+      },
+    });
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+    await wrapper
+      .find('[data-testid="calendar-edit-resource"]')
+      .trigger('click');
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="calendar-resource-slot-interval"]')
+      .setValue('30');
+    await wrapper
+      .find('[data-testid="calendar-resource-form"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(
+      8,
+      expect.objectContaining({
+        resource: expect.objectContaining({ slot_interval_minutes: 30 }),
+      })
+    );
+  });
+
+  // Vazio é «o padrão da conta», e não 0: mandar 0 seria um intervalo inválido.
+  it('sends no spacing when the agenda follows the account default', async () => {
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 8,
+          name: 'Dra. Ana',
+          resource_type: 'user',
+          user_id: null,
+          active: true,
+          slot_interval_minutes: 30,
+        },
+      ],
+    });
+    CalendarAPI.updateResource.mockResolvedValue({
+      data: {
+        id: 8,
+        name: 'Dra. Ana',
+        resource_type: 'user',
+        active: true,
+        slot_interval_minutes: null,
+      },
+    });
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+    await wrapper
+      .find('[data-testid="calendar-edit-resource"]')
+      .trigger('click');
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="calendar-resource-slot-interval"]').element
+        .value
+    ).toBe('30');
+
+    await wrapper
+      .find('[data-testid="calendar-resource-slot-interval"]')
+      .setValue('');
+    await wrapper
+      .find('[data-testid="calendar-resource-form"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(
+      8,
+      expect.objectContaining({
+        resource: expect.objectContaining({ slot_interval_minutes: null }),
+      })
+    );
+  });
+
   it('syncs an agenda now and says when Google was last read', async () => {
     const wrapper = await editarAgendaDaAna({
       connected: false,

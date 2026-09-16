@@ -46,6 +46,9 @@ const contactSearchController = ref(null);
 const availabilityResult = ref(null);
 const isCheckingAvailability = ref(false);
 const availabilitySlots = ref([]);
+// Agenda sem janela de trabalho não tem horário para oferecer, e a lista vazia
+// sozinha não dizia porquê — era o que se via ao escolher a agenda.
+const resourcesWithoutHours = ref([]);
 const isLoadingSlots = ref(false);
 
 const bookingContactId = computed(
@@ -161,6 +164,7 @@ const resetForm = () => {
   availabilityResult.value = null;
   isCheckingAvailability.value = false;
   availabilitySlots.value = [];
+  resourcesWithoutHours.value = [];
   isLoadingSlots.value = false;
 };
 
@@ -257,8 +261,10 @@ const loadAvailabilitySlots = async () => {
       resource_ids: resourceIds.value,
     });
     availabilitySlots.value = response.data?.slots || [];
+    resourcesWithoutHours.value = response.data?.resources_without_hours || [];
   } catch {
     availabilitySlots.value = [];
+    resourcesWithoutHours.value = [];
   } finally {
     isLoadingSlots.value = false;
   }
@@ -621,6 +627,23 @@ defineExpose({ open });
               {{ slotLabel(slot) }}
             </button>
           </div>
+          <p
+            v-else-if="!isLoadingSlots && resourcesWithoutHours.length"
+            data-testid="calendar-resources-without-hours"
+            class="mb-0 flex items-start gap-1.5 text-xs text-n-amber-11"
+          >
+            <i
+              class="i-lucide-alert-triangle mt-0.5 size-3.5 shrink-0"
+              aria-hidden="true"
+            />
+            {{
+              t('CALENDAR.OPPORTUNITY.NO_WORKING_HOURS', {
+                resources: resourcesWithoutHours
+                  .map(resource => resource.name)
+                  .join(', '),
+              })
+            }}
+          </p>
           <p v-else-if="!isLoadingSlots" class="mb-0 text-xs text-n-slate-11">
             {{ t('CALENDAR.OPPORTUNITY.NO_AVAILABLE_TIMES') }}
           </p>

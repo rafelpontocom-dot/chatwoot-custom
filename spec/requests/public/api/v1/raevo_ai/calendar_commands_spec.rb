@@ -59,6 +59,7 @@ RSpec.describe 'Raevo AI calendar commands API', type: :request do
   it 'lists slots only from the calendar resources published for the trusted conversation opportunity' do
     card
     date = Date.new(2026, 10, 1)
+    resource.kanban_calendar_availability_rules.delete_all
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window',
       weekday: date.wday,
@@ -98,6 +99,7 @@ RSpec.describe 'Raevo AI calendar commands API', type: :request do
       resource_type: 'generic',
       timezone: 'America/Sao_Paulo'
     )
+    [resource, second_resource].each { |item| item.kanban_calendar_availability_rules.delete_all }
     resource.kanban_calendar_availability_rules.create!(
       kind: 'weekly_window', weekday: date.wday, starts_at_local: '09:00', ends_at_local: '11:00'
     )
