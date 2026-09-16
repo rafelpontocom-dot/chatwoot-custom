@@ -160,9 +160,12 @@ describe('KanbanCalendarBookingDialog', () => {
   });
 
   it('fills date and time from the chosen slot', async () => {
+    // Construído no fuso de quem corre o teste: fixar -03:00 fazia o CI, que
+    // corre em UTC, esperar 09:00 e ler 12:00.
+    const horario = new Date(2026, 8, 23, 9, 0);
     CalendarAPI.getAvailability.mockResolvedValue({
       data: {
-        days: [{ date: '2026-09-23', slots: ['2026-09-23T09:00:00-03:00'] }],
+        days: [{ date: '2026-09-23', slots: [horario.toISOString()] }],
         resources_without_hours: [],
       },
     });
