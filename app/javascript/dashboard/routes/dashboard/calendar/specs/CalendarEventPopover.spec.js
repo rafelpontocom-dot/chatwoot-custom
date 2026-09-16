@@ -49,6 +49,27 @@ describe('CalendarEventPopover', () => {
     );
   });
 
+  it('diz que a consulta aguarda pagamento enquanto o webhook não chega', () => {
+    const pendente = monta({
+      appointment: agendamento({
+        payment_pending_until: '2026-09-01T08:10:00.000Z',
+      }),
+    });
+    expect(pendente.find('[data-testid="calendar-event-status"]').text()).toBe(
+      'CALENDAR.DETAIL.STATUS.PAYMENT_PENDING_UNTIL'
+    );
+
+    const cancelada = monta({
+      appointment: agendamento({
+        status: 'canceled',
+        payment_pending_until: '2026-09-01T08:10:00.000Z',
+      }),
+    });
+    expect(cancelada.find('[data-testid="calendar-event-status"]').text()).toBe(
+      'CALENDAR.DETAIL.STATUS.CANCELED'
+    );
+  });
+
   it('ancora onde o agendamento foi clicado', () => {
     const wrapper = monta({ anchor: { top: 140, left: 260 } });
 

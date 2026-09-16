@@ -71,13 +71,29 @@ const STATUS_TONE = {
   canceled: 'bg-n-ruby-9',
 };
 
-const statusLabel = computed(() =>
-  props.appointment ? t(STATUS_LABEL[props.appointment.status] || '') : ''
+// Marcada pela página pública com Pix ou cartão e à espera do webhook.
+const awaitingPayment = computed(
+  () =>
+    Boolean(props.appointment?.payment_pending_until) &&
+    props.appointment.status !== 'canceled'
 );
 
-const statusTone = computed(
-  () => STATUS_TONE[props.appointment?.status] || 'bg-n-slate-9'
-);
+const statusLabel = computed(() => {
+  if (!props.appointment) return '';
+  if (awaitingPayment.value) {
+    const time = new Intl.DateTimeFormat(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(props.appointment.payment_pending_until));
+    return t('CALENDAR.DETAIL.STATUS.PAYMENT_PENDING_UNTIL', { time });
+  }
+  return t(STATUS_LABEL[props.appointment.status] || '');
+});
+
+const statusTone = computed(() => {
+  if (awaitingPayment.value) return 'bg-n-amber-9';
+  return STATUS_TONE[props.appointment?.status] || 'bg-n-slate-9';
+});
 
 /** "sexta-feira, 4 de setembro · 09:00 – 09:50" — uma linha, como no Google. */
 const timeLabel = computed(() => {
@@ -241,7 +257,10 @@ const primaryAction = computed(() => {
         </div>
         <div class="flex items-start gap-3">
           <i
-            class="i-lucide-circle-check mt-0.5 size-4 shrink-0 text-n-slate-10"
+            class="mt-0.5 size-4 shrink-0 text-n-slate-10"
+            :class="
+              awaitingPayment ? 'i-lucide-hourglass' : 'i-lucide-circle-check'
+            "
             aria-hidden="true"
           />
           <dt class="sr-only">{{ t('CALENDAR.DETAIL.STATUS_LABEL') }}</dt>

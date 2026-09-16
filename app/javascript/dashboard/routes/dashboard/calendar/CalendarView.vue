@@ -587,6 +587,12 @@ const statusLabel = status =>
     canceled: t('CALENDAR.DETAIL.STATUS.CANCELED'),
   })[status] || status;
 
+// Marcada pela página pública com Pix ou cartão: ocupa o horário, mas só vale
+// quando o webhook do pagamento chegar.
+const awaitingPayment = appointment =>
+  Boolean(appointment.payment_pending_until) &&
+  appointment.status !== 'canceled';
+
 const changeDay = amount => {
   const nextDate = new Date(selectedDate.value);
   nextDate.setDate(nextDate.getDate() + amount);
@@ -1073,11 +1079,17 @@ onMounted(() => {
                 :class="appointmentToneClass(appointment)"
                 :style="estilo"
                 :aria-label="
-                  t('CALENDAR.APPOINTMENT_LABEL', {
-                    time: formatTime(appointment.starts_at),
-                    contact: appointment.contact.name,
-                    procedure: appointment.procedure.name,
-                  })
+                  [
+                    t('CALENDAR.APPOINTMENT_LABEL', {
+                      time: formatTime(appointment.starts_at),
+                      contact: appointment.contact.name,
+                      procedure: appointment.procedure.name,
+                    }),
+                    awaitingPayment(appointment) &&
+                      t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT'),
+                  ]
+                    .filter(Boolean)
+                    .join(', ')
                 "
                 @click="openAppointment(appointment, $event)"
                 @dragstart="beginRescheduleDrag(appointment)"
@@ -1086,6 +1098,12 @@ onMounted(() => {
                 <span
                   class="block truncate text-xs font-semibold text-n-slate-12"
                 >
+                  <i
+                    v-if="awaitingPayment(appointment)"
+                    class="i-lucide-hourglass inline-block size-3 align-[-2px] text-n-amber-11"
+                    data-testid="calendar-appointment-awaiting-payment"
+                    :title="t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT')"
+                  />
                   {{
                     t('CALENDAR.APPOINTMENT_CARD_TITLE', {
                       time: formatTime(appointment.starts_at),
@@ -1123,7 +1141,11 @@ onMounted(() => {
                     data-testid="calendar-appointment-status"
                     class="font-medium"
                   >
-                    {{ statusLabel(appointment.status) }}
+                    {{
+                      awaitingPayment(appointment)
+                        ? t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT')
+                        : statusLabel(appointment.status)
+                    }}
                   </span>
                 </span>
               </button>

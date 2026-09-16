@@ -341,7 +341,9 @@
         "CHECKED_IN": "Chegou",
         "COMPLETED": "Concluído",
         "NO_SHOW": "Falta",
-        "CANCELED": "Cancelado"
+        "CANCELED": "Cancelado",
+        "AWAITING_PAYMENT": "A aguardar pagamento",
+        "PAYMENT_PENDING_UNTIL": "A aguardar pagamento até às {time}"
       },
       "EVENTS": {
         "TITLE": "Histórico do marcação",

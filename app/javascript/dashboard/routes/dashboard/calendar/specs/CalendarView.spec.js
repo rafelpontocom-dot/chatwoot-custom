@@ -305,6 +305,38 @@ describe('CalendarView', () => {
     ).toBe('CALENDAR.DETAIL.STATUS.CONFIRMED');
   });
 
+  it('marks an appointment still waiting for its online payment', async () => {
+    CalendarAPI.getAppointments.mockResolvedValue({
+      data: [
+        {
+          id: 8,
+          starts_at: new Date().toISOString(),
+          status: 'scheduled',
+          payment_pending_until: new Date().toISOString(),
+          contact: { name: 'Ana Silva' },
+          procedure: { name: 'Consulta' },
+        },
+      ],
+    });
+
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(
+      wrapper
+        .find('[data-testid="calendar-appointment-awaiting-payment"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="calendar-appointment-status"]').text()
+    ).toBe('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT');
+    expect(
+      wrapper
+        .find('[data-testid="calendar-appointment"]')
+        .attributes('aria-label')
+    ).toContain('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT');
+  });
+
   it('shows the reserved resource on the calendar card', async () => {
     CalendarAPI.getAppointments.mockResolvedValue({
       data: [

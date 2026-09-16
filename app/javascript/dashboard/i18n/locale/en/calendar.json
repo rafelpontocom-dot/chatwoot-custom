@@ -341,7 +341,9 @@
         "CHECKED_IN": "Checked in",
         "COMPLETED": "Completed",
         "NO_SHOW": "No-show",
-        "CANCELED": "Canceled"
+        "CANCELED": "Canceled",
+        "AWAITING_PAYMENT": "Awaiting payment",
+        "PAYMENT_PENDING_UNTIL": "Awaiting payment until {time}"
       },
       "EVENTS": {
         "TITLE": "Appointment history",
