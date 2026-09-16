@@ -96,12 +96,8 @@ RSpec.describe 'Calendar Google connections API', type: :request do
   end
 
   it 'stops blocking the agenda with Google busy times after disconnecting' do
-    connection = KanbanCalendarGoogleConnection.create!(
-      account: account, kanban_calendar_resource: resource, access_token: 'access-token',
-      refresh_token: 'refresh-token', expires_at: 1.hour.from_now, status: 'connected'
-    )
     KanbanCalendarExternalBusyBlock.create!(
-      account: account, kanban_calendar_resource: resource, kanban_calendar_google_connection: connection,
+      account: account, kanban_calendar_resource: resource, provider: 'google_calendar',
       external_event_id: 'dentista', starts_at: 1.day.from_now, ends_at: 1.day.from_now + 1.hour
     )
 

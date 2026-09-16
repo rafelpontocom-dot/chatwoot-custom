@@ -92,7 +92,15 @@ const resourceForm = ref({
   resourceType: 'generic',
   userId: '',
   slotIntervalMinutes: '',
+  feegowProfessionalId: '',
 });
+
+// Ligação da clínica ao Feegow: token, validade e importação da agenda.
+const feegowConnection = ref(null);
+const feegowProfessionals = ref([]);
+const isSavingFeegow = ref(false);
+const feegowToken = ref('');
+const feegowTokenExpiresAt = ref('');
 // O que a agenda pode oferecer de espaçamento; vazio segue o padrão da conta.
 const SLOT_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
 const exceptionForm = ref({
@@ -554,6 +562,9 @@ const editResource = async resource => {
     slotIntervalMinutes: resource.slot_interval_minutes
       ? String(resource.slot_interval_minutes)
       : '',
+    feegowProfessionalId: resource.settings?.feegow?.professional_id
+      ? String(resource.settings.feegow.professional_id)
+      : '',
   };
   await loadGoogleCalendarConnection(resource.id);
 };
@@ -775,10 +786,101 @@ const copyProcedureBookingLink = async procedure => {
   await copyTextToClipboard(url);
 };
 
+const loadFeegowProfessionals = async () => {
+  if (!feegowConnection.value?.connected) {
+    feegowProfessionals.value = [];
+    return;
+  }
+
+  const professionals = await CalendarAPI.getFeegowProfessionals();
+  feegowProfessionals.value = professionals.data || [];
+};
+
+const loadFeegowConnection = async () => {
+  try {
+    const response = await CalendarAPI.getFeegowConnection();
+    feegowConnection.value = response.data;
+    await loadFeegowProfessionals();
+  } catch {
+    // Sem Feegow configurado a agenda continua a funcionar; a secção fica no
+    // estado «não ligado» em vez de derrubar as configurações.
+    feegowProfessionals.value = [];
+  }
+};
+
+const saveFeegowConnection = async () => {
+  if (isSavingFeegow.value || !feegowToken.value.trim()) return;
+
+  isSavingFeegow.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.updateFeegowConnection({
+      feegow_connection: {
+        api_token: feegowToken.value.trim(),
+        token_expires_at: feegowTokenExpiresAt.value,
+      },
+    });
+    // A resposta do próprio salvamento é o estado novo: voltar a perguntar ao
+    // servidor só para reescrever o mesmo seria uma ida e volta a mais.
+    feegowConnection.value = response.data;
+    feegowToken.value = '';
+    await loadFeegowProfessionals();
+  } catch (saveError) {
+    error.value = getErrorMessage(saveError);
+  } finally {
+    isSavingFeegow.value = false;
+  }
+};
+
+const syncFeegowConnection = async () => {
+  if (isSavingFeegow.value) return;
+
+  isSavingFeegow.value = true;
+  error.value = '';
+  try {
+    const response = await CalendarAPI.syncFeegowConnection();
+    feegowConnection.value = response.data;
+  } catch (syncError) {
+    if (syncError?.response?.data?.status) {
+      feegowConnection.value = syncError.response.data;
+    } else {
+      error.value = getErrorMessage(syncError);
+    }
+  } finally {
+    isSavingFeegow.value = false;
+  }
+};
+
+const disconnectFeegow = async () => {
+  if (isSavingFeegow.value) return;
+
+  isSavingFeegow.value = true;
+  try {
+    await CalendarAPI.disconnectFeegow();
+    feegowConnection.value = {
+      connected: false,
+      status: 'disconnected',
+      has_token: false,
+    };
+    feegowProfessionals.value = [];
+  } catch (disconnectError) {
+    error.value = getErrorMessage(disconnectError);
+  } finally {
+    isSavingFeegow.value = false;
+  }
+};
+
+const feegowExpiryTone = computed(() => {
+  if (feegowConnection.value?.token_expired) return 'text-n-ruby-11';
+  if (feegowConnection.value?.token_expiring_soon) return 'text-n-amber-11';
+  return 'text-n-slate-11';
+});
+
 const open = async () => {
   resetForms();
   if (!props.inline) dialog.value?.open();
   await loadSettings();
+  await loadFeegowConnection();
   // Só `selectSettingsTab` carregava a página de agendamento, e só se chega lá
   // mudando de aba. Abrir já nela — pelo link da navegação lateral ou ao
   // recarregar — deixava o painel vazio: a aba começava ativa, o watcher não
@@ -855,7 +957,15 @@ const createResource = async () => {
       slot_interval_minutes: resourceForm.value.slotIntervalMinutes
         ? Number(resourceForm.value.slotIntervalMinutes)
         : null,
+      // Sem profissional escolhido a agenda simplesmente não importa do Feegow.
+      settings: {
+        ...(existingResource?.settings || {}),
+        feegow: resourceForm.value.feegowProfessionalId
+          ? { professional_id: resourceForm.value.feegowProfessionalId }
+          : undefined,
+      },
     };
+    if (!resource.settings.feegow) delete resource.settings.feegow;
     // Sem utilizador escolhido vai `null`, e não `Number('')`: com o utilizador
     // opcional, `user_id: 0` partia a chave estrangeira com um 500.
     if (resource.resource_type === 'user' && resourceForm.value.userId)
@@ -1603,6 +1713,161 @@ defineExpose({ open });
           aria-labelledby="calendar-settings-resources-tab"
           class="grid gap-4"
         >
+          <!--
+            O Feegow é da clínica inteira, não de uma agenda: o token fica aqui,
+            e cada agenda escolhe depois o profissional que espelha.
+          -->
+          <section
+            data-testid="calendar-feegow-section"
+            class="grid gap-2 rounded-lg border border-n-weak bg-n-surface-1 p-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="grid gap-0.5">
+                <h4 class="mb-0 text-sm font-medium text-n-slate-12">
+                  {{ t('CALENDAR.SETTINGS.FEEGOW.TITLE') }}
+                </h4>
+                <p class="mb-0 text-xs text-n-slate-11">
+                  {{ t('CALENDAR.SETTINGS.FEEGOW.HELP') }}
+                </p>
+              </div>
+              <span
+                class="text-xs font-medium"
+                :class="
+                  feegowConnection?.connected
+                    ? 'text-n-teal-11'
+                    : 'text-n-slate-11'
+                "
+              >
+                {{
+                  feegowConnection?.connected
+                    ? t('CALENDAR.SETTINGS.FEEGOW.CONNECTED')
+                    : t('CALENDAR.SETTINGS.FEEGOW.DISCONNECTED')
+                }}
+              </span>
+            </div>
+
+            <p
+              v-if="feegowConnection?.last_error"
+              data-testid="calendar-feegow-error"
+              role="alert"
+              class="mb-0 flex items-start gap-1.5 text-xs text-n-ruby-11"
+            >
+              <i
+                class="i-lucide-alert-triangle mt-0.5 size-3.5 shrink-0"
+                aria-hidden="true"
+              />
+              {{ feegowConnection.last_error }}
+            </p>
+
+            <p
+              v-if="feegowConnection?.has_token"
+              data-testid="calendar-feegow-expiry"
+              class="mb-0 flex items-start gap-1.5 text-xs"
+              :class="feegowExpiryTone"
+            >
+              <i
+                class="mt-0.5 size-3.5 shrink-0"
+                :class="
+                  feegowConnection.token_expired
+                    ? 'i-lucide-alert-triangle'
+                    : 'i-lucide-clock'
+                "
+                aria-hidden="true"
+              />
+              {{
+                feegowConnection.token_expired
+                  ? t('CALENDAR.SETTINGS.FEEGOW.EXPIRED')
+                  : t('CALENDAR.SETTINGS.FEEGOW.EXPIRES_IN', {
+                      days: feegowConnection.token_expires_in_days,
+                    })
+              }}
+            </p>
+            <p
+              v-if="feegowConnection?.last_imported_at"
+              data-testid="calendar-feegow-last-import"
+              class="mb-0 text-xs text-n-slate-11"
+            >
+              {{
+                t('CALENDAR.SETTINGS.FEEGOW.LAST_IMPORT', {
+                  time: formatSyncTime(feegowConnection.last_imported_at),
+                })
+              }}
+            </p>
+
+            <div class="grid gap-2 sm:grid-cols-2">
+              <RaevoField
+                :label="t('CALENDAR.SETTINGS.FEEGOW.TOKEN')"
+                :hint="t('CALENDAR.SETTINGS.FEEGOW.TOKEN_HINT')"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <input
+                    :id="fieldId"
+                    v-model="feegowToken"
+                    type="password"
+                    autocomplete="off"
+                    data-testid="calendar-feegow-token"
+                    :placeholder="
+                      feegowConnection?.has_token
+                        ? t('CALENDAR.SETTINGS.FEEGOW.TOKEN_SAVED')
+                        : ''
+                    "
+                    :class="controlClass"
+                  />
+                </template>
+              </RaevoField>
+              <RaevoField
+                :label="t('CALENDAR.SETTINGS.FEEGOW.EXPIRES_AT')"
+                :hint="t('CALENDAR.SETTINGS.FEEGOW.EXPIRES_AT_HINT')"
+              >
+                <template #default="{ controlClass, fieldId }">
+                  <input
+                    :id="fieldId"
+                    v-model="feegowTokenExpiresAt"
+                    type="date"
+                    data-testid="calendar-feegow-expires-at"
+                    :class="controlClass"
+                  />
+                </template>
+              </RaevoField>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <NextButton
+                type="button"
+                size="sm"
+                data-testid="calendar-feegow-save"
+                :label="t('CALENDAR.SETTINGS.FEEGOW.SAVE_TOKEN')"
+                :disabled="isSavingFeegow || !feegowToken.trim()"
+                @click="saveFeegowConnection"
+              />
+              <NextButton
+                v-if="feegowConnection?.has_token"
+                type="button"
+                size="sm"
+                outline
+                icon="i-lucide-refresh-cw"
+                data-testid="calendar-feegow-sync"
+                :label="
+                  isSavingFeegow
+                    ? t('CALENDAR.SETTINGS.FEEGOW.SYNCING')
+                    : t('CALENDAR.SETTINGS.FEEGOW.SYNC_NOW')
+                "
+                :disabled="isSavingFeegow"
+                @click="syncFeegowConnection"
+              />
+              <NextButton
+                v-if="feegowConnection?.has_token"
+                type="button"
+                size="sm"
+                outline
+                slate
+                data-testid="calendar-feegow-disconnect"
+                :label="t('CALENDAR.SETTINGS.FEEGOW.DISCONNECT')"
+                :disabled="isSavingFeegow"
+                @click="disconnectFeegow"
+              />
+            </div>
+          </section>
           <div
             v-if="!inline"
             class="grid gap-1 rounded-lg border border-n-weak bg-n-surface-2 p-4"
@@ -1736,6 +2001,33 @@ defineExpose({ open });
                       </option>
                       <option value="generic">
                         {{ t('CALENDAR.RESOURCE_FIELDS.OTHER') }}
+                      </option>
+                    </select>
+                  </template>
+                </RaevoField>
+                <RaevoField
+                  v-if="feegowProfessionals.length"
+                  :label="t('CALENDAR.SETTINGS.FEEGOW.PROFESSIONAL')"
+                  :hint="t('CALENDAR.SETTINGS.FEEGOW.PROFESSIONAL_HINT')"
+                  variant="select"
+                >
+                  <template #default="{ controlClass, fieldId, describedBy }">
+                    <select
+                      :id="fieldId"
+                      v-model="resourceForm.feegowProfessionalId"
+                      data-testid="calendar-resource-feegow-professional"
+                      :aria-describedby="describedBy"
+                      :class="controlClass"
+                    >
+                      <option value="">
+                        {{ t('CALENDAR.SETTINGS.FEEGOW.NO_PROFESSIONAL') }}
+                      </option>
+                      <option
+                        v-for="professional in feegowProfessionals"
+                        :key="professional.id"
+                        :value="professional.id"
+                      >
+                        {{ professional.name }}
                       </option>
                     </select>
                   </template>

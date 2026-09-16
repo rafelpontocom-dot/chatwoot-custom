@@ -40,6 +40,11 @@ RSpec.describe TriggerScheduledItemsJob do
     described_class.perform_now
   end
 
+  it 'triggers KanbanCalendar::ImportAllFeegowCalendarsJob' do
+    expect(KanbanCalendar::ImportAllFeegowCalendarsJob).to receive(:perform_later).once
+    described_class.perform_now
+  end
+
   it 'triggers Finance::MarkOverduePaymentsJob' do
     expect(Finance::MarkOverduePaymentsJob).to receive(:perform_later).once
     described_class.perform_now

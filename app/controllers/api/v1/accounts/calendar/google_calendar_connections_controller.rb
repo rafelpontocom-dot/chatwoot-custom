@@ -24,7 +24,10 @@ class Api::V1::Accounts::Calendar::GoogleCalendarConnectionsController < Api::V1
       last_error: nil
     )
     # Desligada a agenda, os compromissos do Google deixam de travar horários.
-    connection&.kanban_calendar_external_busy_blocks&.delete_all
+    KanbanCalendarExternalBusyBlock.where(
+      kanban_calendar_resource_id: @calendar_resource.id,
+      provider: KanbanCalendar::GoogleCalendarImportService::PROVIDER
+    ).delete_all
     head :no_content
   end
 

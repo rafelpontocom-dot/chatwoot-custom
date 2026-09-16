@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_15_190000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1641,16 +1641,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_15_190000) do
   create_table "kanban_calendar_external_busy_blocks", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "kanban_calendar_resource_id", null: false
-    t.bigint "kanban_calendar_google_connection_id", null: false
     t.string "external_event_id", null: false
     t.datetime "starts_at", null: false
     t.datetime "ends_at", null: false
     t.boolean "all_day", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "provider", default: "google_calendar", null: false
     t.index ["account_id"], name: "index_kanban_calendar_external_busy_blocks_on_account_id"
-    t.index ["kanban_calendar_google_connection_id", "external_event_id"], name: "idx_calendar_busy_blocks_on_connection_event", unique: true
+    t.index ["kanban_calendar_resource_id", "provider", "external_event_id"], name: "idx_calendar_busy_blocks_on_resource_provider_event", unique: true
     t.index ["kanban_calendar_resource_id", "starts_at", "ends_at"], name: "idx_calendar_busy_blocks_on_resource_range"
+  end
+
+  create_table "kanban_calendar_feegow_connections", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "api_url", default: "https://api.feegow.com/v1/api", null: false
+    t.string "api_token"
+    t.datetime "token_expires_at"
+    t.string "status", default: "disconnected", null: false
+    t.text "last_error"
+    t.datetime "last_imported_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_kanban_calendar_feegow_connections_on_account_id", unique: true
   end
 
   create_table "kanban_calendar_google_connections", force: :cascade do |t|
@@ -2487,8 +2500,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_15_190000) do
   add_foreign_key "kanban_calendar_booking_pages", "kanban_boards"
   add_foreign_key "kanban_calendar_booking_pages", "kanban_stages"
   add_foreign_key "kanban_calendar_external_busy_blocks", "accounts"
-  add_foreign_key "kanban_calendar_external_busy_blocks", "kanban_calendar_google_connections"
   add_foreign_key "kanban_calendar_external_busy_blocks", "kanban_calendar_resources"
+  add_foreign_key "kanban_calendar_feegow_connections", "accounts"
   add_foreign_key "kanban_calendar_google_connections", "accounts"
   add_foreign_key "kanban_calendar_google_connections", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_procedures"

@@ -92,6 +92,26 @@ class CalendarAPI extends ApiClient {
     );
   }
 
+  getFeegowConnection() {
+    return axios.get(`${this.url}/feegow_connection`);
+  }
+
+  updateFeegowConnection(payload) {
+    return axios.put(`${this.url}/feegow_connection`, payload);
+  }
+
+  syncFeegowConnection() {
+    return axios.post(`${this.url}/feegow_connection/sync`);
+  }
+
+  disconnectFeegow() {
+    return axios.delete(`${this.url}/feegow_connection`);
+  }
+
+  getFeegowProfessionals() {
+    return axios.get(`${this.url}/feegow_connection/professionals`);
+  }
+
   getBusyBlocks(params) {
     return axios.get(`${this.url}/busy_blocks`, { params });
   }

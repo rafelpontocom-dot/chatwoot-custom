@@ -6,13 +6,9 @@ RSpec.describe 'Calendar busy blocks API', type: :request do
   let(:resource) { KanbanCalendarResource.create!(account: account, name: 'Dra. Ana', resource_type: 'user', timezone: 'America/Sao_Paulo') }
   let(:other_resource) { KanbanCalendarResource.create!(account: account, name: 'Sala 1', resource_type: 'room', timezone: 'America/Sao_Paulo') }
 
-  def block(for_resource, event_id, starts_at)
-    connection = for_resource.kanban_calendar_google_connection || KanbanCalendarGoogleConnection.create!(
-      account: account, kanban_calendar_resource: for_resource, status: 'connected',
-      access_token: 'token', refresh_token: 'refresh', expires_at: 1.hour.from_now
-    )
+  def block(for_resource, event_id, starts_at, provider = 'google_calendar')
     KanbanCalendarExternalBusyBlock.create!(
-      account: account, kanban_calendar_resource: for_resource, kanban_calendar_google_connection: connection,
+      account: account, kanban_calendar_resource: for_resource, provider: provider,
       external_event_id: event_id, starts_at: starts_at, ends_at: starts_at + 1.hour
     )
   end
@@ -50,12 +46,8 @@ RSpec.describe 'Calendar busy blocks API', type: :request do
   it 'does not show busy times of another account' do
     other_account = create(:account)
     other = KanbanCalendarResource.create!(account: other_account, name: 'Outro', resource_type: 'user', timezone: 'America/Sao_Paulo')
-    connection = KanbanCalendarGoogleConnection.create!(
-      account: other_account, kanban_calendar_resource: other, status: 'connected',
-      access_token: 'token', refresh_token: 'refresh', expires_at: 1.hour.from_now
-    )
     KanbanCalendarExternalBusyBlock.create!(
-      account: other_account, kanban_calendar_resource: other, kanban_calendar_google_connection: connection,
+      account: other_account, kanban_calendar_resource: other, provider: 'google_calendar',
       external_event_id: 'x', starts_at: Time.zone.parse('2026-09-16 13:00:00'), ends_at: Time.zone.parse('2026-09-16 14:00:00')
     )
 
@@ -64,5 +56,18 @@ RSpec.describe 'Calendar busy blocks API', type: :request do
         headers: agent.create_new_auth_token
 
     expect(response.parsed_body).to eq([])
+  end
+
+  # Google e Feegow ocupam o mesmo horário da mesma agenda; a tela precisa de
+  # saber de quem é cada bloco para o dizer a quem lê.
+  it 'says which provider each busy time came from' do
+    block(resource, 'dentista', Time.zone.parse('2026-09-16 13:00:00'))
+    block(resource, '7001', Time.zone.parse('2026-09-16 15:00:00'), 'feegow')
+
+    get "/api/v1/accounts/#{account.id}/calendar/busy_blocks",
+        params: { starts_at: '2026-09-14T00:00:00Z', ends_at: '2026-09-21T00:00:00Z' },
+        headers: agent.create_new_auth_token
+
+    expect(response.parsed_body.pluck('source')).to eq(%w[google_calendar feegow])
   end
 end

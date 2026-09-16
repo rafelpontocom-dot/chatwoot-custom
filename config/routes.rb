@@ -163,6 +163,10 @@ Rails.application.routes.draw do
                         controller: 'resource_availability_rules',
                         only: [:index, :create, :update, :destroy]
             end
+            resource :feegow_connection, controller: 'feegow_connection', only: [:show, :update, :destroy] do
+              post :sync
+              get :professionals
+            end
             resources :busy_blocks, only: [:index]
             resources :appointments, only: [:index, :show, :create, :update] do
               get :availability, on: :collection

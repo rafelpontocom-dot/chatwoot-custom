@@ -24,7 +24,7 @@ class Api::V1::Accounts::Calendar::BusyBlocksController < Api::V1::Accounts::Bas
       starts_at: block.starts_at.iso8601,
       ends_at: block.ends_at.iso8601,
       all_day: block.all_day,
-      source: 'google_calendar'
+      source: block.provider
     }
   end
 end

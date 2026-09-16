@@ -2,36 +2,39 @@
 #
 # Table name: kanban_calendar_external_busy_blocks
 #
-#  id                                   :bigint           not null, primary key
-#  all_day                              :boolean          default(FALSE), not null
-#  ends_at                              :datetime         not null
-#  starts_at                            :datetime         not null
-#  created_at                           :datetime         not null
-#  updated_at                           :datetime         not null
-#  account_id                           :bigint           not null
-#  external_event_id                    :string           not null
-#  kanban_calendar_google_connection_id :bigint           not null
-#  kanban_calendar_resource_id          :bigint           not null
+#  id                          :bigint           not null, primary key
+#  all_day                     :boolean          default(FALSE), not null
+#  ends_at                     :datetime         not null
+#  provider                    :string           default("google_calendar"), not null
+#  starts_at                   :datetime         not null
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  account_id                  :bigint           not null
+#  external_event_id           :string           not null
+#  kanban_calendar_resource_id :bigint           not null
 #
 # Indexes
 #
-#  idx_calendar_busy_blocks_on_connection_event              (kanban_calendar_google_connection_id,external_event_id) UNIQUE
+#  idx_calendar_busy_blocks_on_resource_provider_event       (kanban_calendar_resource_id,provider,external_event_id) UNIQUE
 #  idx_calendar_busy_blocks_on_resource_range                (kanban_calendar_resource_id,starts_at,ends_at)
 #  index_kanban_calendar_external_busy_blocks_on_account_id  (account_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (account_id => accounts.id)
-#  fk_rails_...  (kanban_calendar_google_connection_id => kanban_calendar_google_connections.id)
 #  fk_rails_...  (kanban_calendar_resource_id => kanban_calendar_resources.id)
 #
-# Um horário em que a agenda Google ligada a um recurso está ocupada. Só o
-# intervalo: o título do evento é da vida de quem o marcou, não da clínica.
+# Um horário em que a agenda externa ligada a um recurso está ocupada — Google
+# hoje, Feegow a seguir. Só o intervalo: o que a pessoa marcou é da vida dela, e
+# o que está no prontuário é da clínica; ao Raevo basta saber que não cabe mais
+# nada ali.
 class KanbanCalendarExternalBusyBlock < ApplicationRecord
+  PROVIDERS = %w[google_calendar feegow].freeze
+
   belongs_to :account
   belongs_to :kanban_calendar_resource
-  belongs_to :kanban_calendar_google_connection
 
+  validates :provider, inclusion: { in: PROVIDERS }
   validates :external_event_id, presence: true
   validates :starts_at, :ends_at, presence: true
   validate :ends_after_starts

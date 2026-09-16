@@ -266,7 +266,28 @@
       },
       "SLOT_INTERVAL_HINT": "De quanto em quanto tempo esta agenda oferece um horário.",
       "SLOT_INTERVAL_DEFAULT": "Padrão da conta",
-      "SLOT_INTERVAL_MINUTES": "{minutes} minutos"
+      "SLOT_INTERVAL_MINUTES": "{minutes} minutos",
+      "FEEGOW": {
+        "TITLE": "Feegow",
+        "HELP": "O que está marcado no Feegow ocupa o horário aqui, para ninguém marcar por cima. O Raevo ainda não escreve no Feegow.",
+        "CONNECTED": "Ligado",
+        "DISCONNECTED": "Não ligado",
+        "TOKEN": "Token do Feegow",
+        "TOKEN_HINT": "Gerado no Feegow. Vence a cada 90 dias.",
+        "TOKEN_SAVED": "Já existe um token guardado",
+        "EXPIRES_AT": "Vence em",
+        "EXPIRES_AT_HINT": "Deixe vazio para 90 dias a partir de hoje.",
+        "EXPIRES_IN": "Token vence em {days} dias",
+        "EXPIRED": "O token do Feegow venceu. Gere outro no Feegow e cole aqui.",
+        "SAVE_TOKEN": "Guardar token",
+        "SYNC_NOW": "Sincronizar agora",
+        "SYNCING": "A sincronizar...",
+        "DISCONNECT": "Desligar",
+        "LAST_IMPORT": "Agenda do Feegow trazida em {time}",
+        "PROFESSIONAL": "Profissional no Feegow",
+        "PROFESSIONAL_HINT": "Qual agenda do Feegow abastece esta. Sem isso, nada é importado.",
+        "NO_PROFESSIONAL": "Não ligada ao Feegow"
+      }
     },
     "DETAIL": {
       "TITLE": "Detalhes do marcação",
@@ -356,12 +377,15 @@
       }
     },
     "BUSY": {
-      "LABEL": "Ocupado no Google",
       "ALL_DAY": "Dia ocupado no Google",
-      "ARIA": "Ocupado no Google Calendar, {time}, {resource}",
+      "ARIA": "Ocupado, {time}, {resource}, {source}",
       "HINT": "Este horário está ocupado no Google Calendar ligado a esta agenda. Altere no Google.",
       "ALL_DAY_SHORT": "Ocupado",
-      "ALL_DAY_ARIA": "Dia ocupado no Google Calendar: {resources}"
+      "ALL_DAY_ARIA": "Dia ocupado no Google Calendar: {resources}",
+      "SOURCE": {
+        "GOOGLE_CALENDAR": "Ocupado no Google",
+        "FEEGOW": "Ocupado no Feegow"
+      }
     },
     "GOOGLE_NOTICE": {
       "CONNECTED": "Google Calendar ligado. Os compromissos do Google aparecem aqui como ocupado dentro de instantes, e as novas consultas vão para o Google.",

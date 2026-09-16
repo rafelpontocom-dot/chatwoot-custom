@@ -26,7 +26,7 @@ RSpec.describe KanbanCalendar::GoogleCalendarImportService do
   it 'turns busy Google events into blocks of the connected resource, without keeping the title' do
     import([event('consulta-externa', '2026-09-16T10:00:00-03:00', '2026-09-16T11:30:00-03:00', 'summary' => 'Dentista')])
 
-    expect(connection.kanban_calendar_external_busy_blocks.sole).to have_attributes(
+    expect(resource.kanban_calendar_external_busy_blocks.sole).to have_attributes(
       account_id: account.id,
       kanban_calendar_resource_id: resource.id,
       external_event_id: 'consulta-externa',
@@ -48,13 +48,13 @@ RSpec.describe KanbanCalendar::GoogleCalendarImportService do
                    'extendedProperties' => { 'private' => { 'raevo_appointment_id' => '15' } })
            ])
 
-    expect(connection.kanban_calendar_external_busy_blocks).to be_empty
+    expect(resource.kanban_calendar_external_busy_blocks).to be_empty
   end
 
   it 'blocks a whole all-day event in the calendar time zone' do
     import([{ 'id' => 'ferias', 'status' => 'confirmed', 'start' => { 'date' => '2026-09-20' }, 'end' => { 'date' => '2026-09-22' } }])
 
-    expect(connection.kanban_calendar_external_busy_blocks.sole).to have_attributes(
+    expect(resource.kanban_calendar_external_busy_blocks.sole).to have_attributes(
       starts_at: Time.zone.parse('2026-09-20 03:00:00'),
       ends_at: Time.zone.parse('2026-09-22 03:00:00'),
       all_day: true
@@ -67,7 +67,7 @@ RSpec.describe KanbanCalendar::GoogleCalendarImportService do
 
     import([event('movido', '2026-09-16T15:00:00-03:00', '2026-09-16T16:00:00-03:00')])
 
-    expect(connection.kanban_calendar_external_busy_blocks.pluck(:external_event_id, :starts_at)).to eq(
+    expect(resource.kanban_calendar_external_busy_blocks.pluck(:external_event_id, :starts_at)).to eq(
       [['movido', Time.zone.parse('2026-09-16 18:00:00')]]
     )
   end

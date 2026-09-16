@@ -5,6 +5,7 @@
 # Reimporta a janela inteira de cada vez e apaga o que já não veio: é o que trata
 # um evento movido ou apagado no Google sem precisar de guardar estado de sync.
 class KanbanCalendar::GoogleCalendarImportService
+  PROVIDER = 'google_calendar'.freeze
   PAST_WINDOW = 1.day
   FUTURE_WINDOW = 180.days
   NON_BLOCKING_EVENT_TYPES = %w[workingLocation].freeze
@@ -72,23 +73,30 @@ class KanbanCalendar::GoogleCalendarImportService
 
   def replace_blocks(blocks)
     KanbanCalendarExternalBusyBlock.transaction do
-      @connection.kanban_calendar_external_busy_blocks.where.not(external_event_id: blocks.pluck(:external_event_id)).delete_all
+      provider_blocks.where.not(external_event_id: blocks.pluck(:external_event_id)).delete_all
       next if blocks.empty?
 
       # Um upsert por janela em vez de um save por evento: uma agenda cheia traz
       # centenas. O intervalo já foi validado em `busy_block`.
       KanbanCalendarExternalBusyBlock.upsert_all( # rubocop:disable Rails/SkipsModelValidations
         blocks.map { |block| block.merge(block_owner) },
-        unique_by: :idx_calendar_busy_blocks_on_connection_event
+        unique_by: :idx_calendar_busy_blocks_on_resource_provider_event
       )
     end
+  end
+
+  def provider_blocks
+    KanbanCalendarExternalBusyBlock.where(
+      kanban_calendar_resource_id: @connection.kanban_calendar_resource_id,
+      provider: PROVIDER
+    )
   end
 
   def block_owner
     {
       account_id: @connection.account_id,
       kanban_calendar_resource_id: @connection.kanban_calendar_resource_id,
-      kanban_calendar_google_connection_id: @connection.id
+      provider: PROVIDER
     }
   end
 end

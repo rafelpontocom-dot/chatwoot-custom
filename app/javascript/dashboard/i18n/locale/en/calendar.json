@@ -266,7 +266,28 @@
       },
       "SLOT_INTERVAL_HINT": "How often a time is offered in this agenda.",
       "SLOT_INTERVAL_DEFAULT": "Account default",
-      "SLOT_INTERVAL_MINUTES": "{minutes} minutes"
+      "SLOT_INTERVAL_MINUTES": "{minutes} minutes",
+      "FEEGOW": {
+        "TITLE": "Feegow",
+        "HELP": "What is booked in Feegow takes the slot here, so nobody books over it. The Raevo does not write in Feegow yet.",
+        "CONNECTED": "Connected",
+        "DISCONNECTED": "Not connected",
+        "TOKEN": "Feegow token",
+        "TOKEN_HINT": "Generated in Feegow. It expires every 90 days.",
+        "TOKEN_SAVED": "A token is already saved",
+        "EXPIRES_AT": "Expires on",
+        "EXPIRES_AT_HINT": "Leave empty for 90 days from today.",
+        "EXPIRES_IN": "Token expires in {days} days",
+        "EXPIRED": "The Feegow token has expired. Generate another one in Feegow and paste it here.",
+        "SAVE_TOKEN": "Save token",
+        "SYNC_NOW": "Sync now",
+        "SYNCING": "Syncing...",
+        "DISCONNECT": "Disconnect",
+        "LAST_IMPORT": "Feegow agenda brought in {time}",
+        "PROFESSIONAL": "Professional in Feegow",
+        "PROFESSIONAL_HINT": "Which Feegow agenda fills this one. Without it, nothing is imported.",
+        "NO_PROFESSIONAL": "Not linked to Feegow"
+      }
     },
     "DETAIL": {
       "TITLE": "Appointment details",
@@ -356,12 +377,15 @@
       }
     },
     "BUSY": {
-      "LABEL": "Busy in Google",
       "ALL_DAY": "Busy all day in Google",
-      "ARIA": "Busy in Google Calendar, {time}, {resource}",
+      "ARIA": "Busy, {time}, {resource}, {source}",
       "HINT": "This time is taken in the Google Calendar linked to this agenda. Change it in Google.",
       "ALL_DAY_SHORT": "Busy",
-      "ALL_DAY_ARIA": "Busy all day in Google Calendar: {resources}"
+      "ALL_DAY_ARIA": "Busy all day in Google Calendar: {resources}",
+      "SOURCE": {
+        "GOOGLE_CALENDAR": "Busy in Google",
+        "FEEGOW": "Busy in Feegow"
+      }
     },
     "GOOGLE_NOTICE": {
       "CONNECTED": "Google Calendar connected. Google events will show up here as busy in a few moments, and new appointments go to Google.",

@@ -31,7 +31,6 @@ class KanbanCalendarGoogleConnection < ApplicationRecord
 
   belongs_to :account
   belongs_to :kanban_calendar_resource
-  has_many :kanban_calendar_external_busy_blocks, dependent: :destroy
 
   encrypts :access_token if Chatwoot.encryption_configured?
   encrypts :refresh_token if Chatwoot.encryption_configured?

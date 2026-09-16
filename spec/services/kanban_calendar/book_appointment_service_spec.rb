@@ -235,12 +235,8 @@ RSpec.describe KanbanCalendar::BookAppointmentService do
   # A secretária pode ver o horário livre numa aba antiga, e a IA marca pelo mesmo
   # serviço: a recusa tem de acontecer ao gravar, não só na lista de horários.
   it 'rejects a booking over a busy time imported from Google Calendar' do
-    connection = KanbanCalendarGoogleConnection.create!(
-      account: account, kanban_calendar_resource: resource, status: 'connected',
-      access_token: 'token', refresh_token: 'refresh', expires_at: 1.hour.from_now
-    )
     KanbanCalendarExternalBusyBlock.create!(
-      account: account, kanban_calendar_resource: resource, kanban_calendar_google_connection: connection,
+      account: account, kanban_calendar_resource: resource, provider: 'google_calendar',
       external_event_id: 'dentista', starts_at: starts_at + 30.minutes, ends_at: starts_at + 90.minutes
     )
 

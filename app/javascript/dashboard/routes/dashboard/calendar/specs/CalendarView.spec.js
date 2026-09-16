@@ -594,6 +594,25 @@ describe('CalendarView', () => {
       });
     });
 
+    // Google e Feegow ocupam a mesma grade: quem lê precisa de saber de onde veio.
+    it('diz de que agenda veio cada horário ocupado', async () => {
+      CalendarAPI.getBusyBlocks.mockResolvedValue({
+        data: [
+          bloqueio(40, quartaAs(10), quartaAs(11)),
+          bloqueio(41, quartaAs(15), quartaAs(16), { source: 'feegow' }),
+        ],
+      });
+
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const textos = wrapper
+        .findAll('[data-testid="calendar-busy-block"]')
+        .map(bloco => bloco.text());
+      expect(textos[0]).toContain('CALENDAR.BUSY.SOURCE.GOOGLE_CALENDAR');
+      expect(textos[1]).toContain('CALENDAR.BUSY.SOURCE.FEEGOW');
+    });
+
     it('pede os horários ocupados do mesmo período e os desenha como ocupado', async () => {
       CalendarAPI.getBusyBlocks.mockResolvedValue({
         data: [bloqueio(40, quartaAs(10), quartaAs(11, 30))],
@@ -608,7 +627,7 @@ describe('CalendarView', () => {
       expect(pedido.ends_at).toBe(pedidoConsultas.ends_at);
 
       const bloco = wrapper.find('[data-testid="calendar-busy-block"]');
-      expect(bloco.text()).toContain('CALENDAR.BUSY.LABEL');
+      expect(bloco.text()).toContain('CALENDAR.BUSY.SOURCE.GOOGLE_CALENDAR');
       expect(bloco.text()).toContain('Dra. Ana');
       // Não é um botão: não se abre nem se arrasta o que é do Google.
       expect(bloco.element.tagName).not.toBe('BUTTON');

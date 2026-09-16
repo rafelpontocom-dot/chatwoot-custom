@@ -23,6 +23,9 @@ class TriggerScheduledItemsJob < ApplicationJob
     # Bring busy times from connected Google Calendars into the Raevo agenda.
     KanbanCalendar::ImportAllGoogleCalendarsJob.perform_later
 
+    # Bring the clinic's Feegow agenda in, so nobody books over it.
+    KanbanCalendar::ImportAllFeegowCalendarsJob.perform_later
+
     # Job to deliver due opt-in appointment reminders.
     KanbanAppointmentReminders::ProcessDueJob.perform_later
 

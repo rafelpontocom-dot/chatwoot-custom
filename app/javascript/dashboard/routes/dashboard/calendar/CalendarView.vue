@@ -512,6 +512,13 @@ const formatTime = value =>
     minute: '2-digit',
   }).format(new Date(value));
 
+// De qual agenda veio o horário ocupado. Google e Feegow dividem a mesma grade;
+// «Ocupado» sozinho não diz onde ir mudar aquilo.
+const busySourceLabel = block =>
+  block.source === 'feegow'
+    ? t('CALENDAR.BUSY.SOURCE.FEEGOW')
+    : t('CALENDAR.BUSY.SOURCE.GOOGLE_CALENDAR');
+
 const resourceName = resourceId =>
   resources.value.find(resource => resource.id === resourceId)?.name || '';
 
@@ -1134,6 +1141,7 @@ onMounted(() => {
                   t('CALENDAR.BUSY.ARIA', {
                     time: horario,
                     resource: resourceName(block.resource_id),
+                    source: busySourceLabel(block),
                   })
                 "
                 :title="t('CALENDAR.BUSY.HINT')"
@@ -1147,7 +1155,7 @@ onMounted(() => {
                     class="i-lucide-calendar-x size-3 shrink-0"
                     aria-hidden="true"
                   />
-                  {{ t('CALENDAR.BUSY.LABEL') }}
+                  {{ busySourceLabel(block) }}
                 </span>
                 <span
                   v-if="!compacto"
@@ -1208,7 +1216,7 @@ onMounted(() => {
                 {{
                   block.all_day
                     ? t('CALENDAR.BUSY.ALL_DAY')
-                    : `${formatTime(block.starts_at)} ${t('CALENDAR.BUSY.LABEL')}`
+                    : `${formatTime(block.starts_at)} ${busySourceLabel(block)}`
                 }}
               </span>
             </span>

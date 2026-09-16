@@ -24,6 +24,11 @@ vi.mock('dashboard/api/calendar', () => ({
     getGoogleCalendarAuthorizationUrl: vi.fn(),
     disconnectGoogleCalendar: vi.fn(),
     syncGoogleCalendar: vi.fn(),
+    getFeegowConnection: vi.fn(),
+    updateFeegowConnection: vi.fn(),
+    syncFeegowConnection: vi.fn(),
+    disconnectFeegow: vi.fn(),
+    getFeegowProfessionals: vi.fn(),
     updateBookingPage: vi.fn(),
     createProcedure: vi.fn(),
     updateProcedure: vi.fn(),
@@ -104,6 +109,10 @@ describe('CalendarSettingsDialog', () => {
         last_imported_at: '2026-09-15T12:00:00Z',
       },
     });
+    CalendarAPI.getFeegowConnection.mockResolvedValue({
+      data: { connected: false, status: 'disconnected', has_token: false },
+    });
+    CalendarAPI.getFeegowProfessionals.mockResolvedValue({ data: [] });
     CalendarAPI.createResource.mockResolvedValue({
       data: { id: 4, name: 'Dra. Ana', resource_type: 'user', active: true },
     });
@@ -255,6 +264,149 @@ describe('CalendarSettingsDialog', () => {
     await flushPromises();
     return wrapper;
   };
+
+  const abrirAgendas = async () => {
+    const wrapper = mountDialog();
+    await wrapper.vm.open();
+    await flushPromises();
+    await abrirAba(wrapper, 'CALENDAR.SETTINGS.RESOURCES');
+    await flushPromises();
+    return wrapper;
+  };
+
+  it('saves the Feegow token and shows when it expires', async () => {
+    CalendarAPI.updateFeegowConnection.mockResolvedValue({
+      data: {
+        connected: true,
+        status: 'connected',
+        has_token: true,
+        token_expires_at: '2026-12-15T00:00:00Z',
+        token_expires_in_days: 90,
+      },
+    });
+    const wrapper = await abrirAgendas();
+
+    await wrapper
+      .find('[data-testid="calendar-feegow-token"]')
+      .setValue('token-da-clinica');
+    await wrapper.find('[data-testid="calendar-feegow-save"]').trigger('click');
+    await flushPromises();
+
+    expect(CalendarAPI.updateFeegowConnection).toHaveBeenCalledWith({
+      feegow_connection: {
+        api_token: 'token-da-clinica',
+        token_expires_at: '',
+      },
+    });
+    expect(
+      wrapper.find('[data-testid="calendar-feegow-expiry"]').text()
+    ).toContain('CALENDAR.SETTINGS.FEEGOW.EXPIRES_IN');
+  });
+
+  // Token vencido em silêncio é a agenda a parar sem ninguém perceber.
+  it('warns in red when the Feegow token has expired', async () => {
+    CalendarAPI.getFeegowConnection.mockResolvedValue({
+      data: {
+        connected: true,
+        status: 'error',
+        has_token: true,
+        token_expires_at: '2026-01-01T00:00:00Z',
+        token_expires_in_days: -12,
+        token_expired: true,
+        last_error: 'Token inválido',
+      },
+    });
+    const wrapper = await abrirAgendas();
+
+    const aviso = wrapper.find('[data-testid="calendar-feegow-expiry"]');
+    expect(aviso.text()).toContain('CALENDAR.SETTINGS.FEEGOW.EXPIRED');
+    expect(aviso.classes().join(' ')).toContain('ruby');
+  });
+
+  it('syncs Feegow now and shows the reason when it refuses', async () => {
+    CalendarAPI.getFeegowConnection.mockResolvedValue({
+      data: {
+        connected: true,
+        status: 'connected',
+        has_token: true,
+        token_expires_in_days: 40,
+      },
+    });
+    CalendarAPI.syncFeegowConnection.mockRejectedValue({
+      response: {
+        data: {
+          status: 'error',
+          has_token: true,
+          last_error: 'Token inválido',
+        },
+      },
+    });
+    const wrapper = await abrirAgendas();
+
+    await wrapper.find('[data-testid="calendar-feegow-sync"]').trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-feegow-error"]').text()
+    ).toContain('Token inválido');
+  });
+
+  it('maps an agenda to a Feegow professional', async () => {
+    CalendarAPI.getFeegowConnection.mockResolvedValue({
+      data: {
+        connected: true,
+        status: 'connected',
+        has_token: true,
+        token_expires_in_days: 40,
+      },
+    });
+    CalendarAPI.getFeegowProfessionals.mockResolvedValue({
+      data: [{ id: '9', name: 'Dra. Anna' }],
+    });
+    CalendarAPI.getResources.mockResolvedValue({
+      data: [
+        {
+          id: 8,
+          name: 'Dra. Ana',
+          resource_type: 'user',
+          user_id: null,
+          active: true,
+          settings: {},
+        },
+      ],
+    });
+    CalendarAPI.updateResource.mockResolvedValue({
+      data: {
+        id: 8,
+        name: 'Dra. Ana',
+        resource_type: 'user',
+        active: true,
+        settings: { feegow: { professional_id: '9' } },
+      },
+    });
+    const wrapper = await abrirAgendas();
+    await wrapper
+      .find('[data-testid="calendar-edit-resource"]')
+      .trigger('click');
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="calendar-resource-feegow-professional"]')
+      .setValue('9');
+    await wrapper
+      .find('[data-testid="calendar-resource-form"]')
+      .trigger('submit');
+    await flushPromises();
+
+    expect(CalendarAPI.updateResource).toHaveBeenCalledWith(
+      8,
+      expect.objectContaining({
+        resource: expect.objectContaining({
+          settings: { feegow: { professional_id: '9' } },
+        }),
+      })
+    );
+  });
 
   it('saves the slot spacing chosen for the agenda', async () => {
     CalendarAPI.getResources.mockResolvedValue({
