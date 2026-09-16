@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_17_100300) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -1572,18 +1572,23 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
     t.datetime "source_updated_at"
     t.datetime "source_synced_at"
     t.string "source_hash"
+    t.datetime "hold_expires_at"
+    t.string "booking_timezone"
+    t.string "hold_token"
     t.index ["account_id", "source_provider", "source_external_id"], name: "idx_calendar_appointments_on_external_source", unique: true, where: "((source_provider IS NOT NULL) AND (source_external_id IS NOT NULL))"
     t.index ["account_id", "starts_at", "status"], name: "index_calendar_appointments_on_account_starts_status"
     t.index ["account_id"], name: "index_kanban_calendar_appointments_on_account_id"
     t.index ["canceled_by_id"], name: "index_kanban_calendar_appointments_on_canceled_by_id"
     t.index ["contact_id"], name: "index_kanban_calendar_appointments_on_contact_id"
+    t.index ["hold_expires_at"], name: "index_calendar_appointments_on_hold_expires_at", where: "(hold_expires_at IS NOT NULL)"
+    t.index ["hold_token"], name: "index_calendar_appointments_on_hold_token", unique: true, where: "(hold_token IS NOT NULL)"
     t.index ["kanban_calendar_appointment_series_id", "occurrence_number"], name: "index_calendar_appointments_on_series_and_occurrence", unique: true
     t.index ["kanban_card_id"], name: "index_kanban_calendar_appointments_on_kanban_card_id"
     t.index ["rescheduled_from_id"], name: "index_kanban_calendar_appointments_on_rescheduled_from_id"
   end
 
   create_table "kanban_calendar_availability_rules", force: :cascade do |t|
-    t.bigint "kanban_calendar_resource_id", null: false
+    t.bigint "kanban_calendar_resource_id"
     t.string "kind", null: false
     t.integer "weekday"
     t.date "date"
@@ -1592,8 +1597,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "kanban_calendar_schedule_id"
+    t.string "note"
     t.index ["kanban_calendar_resource_id", "date"], name: "index_calendar_availability_rules_on_resource_date"
     t.index ["kanban_calendar_resource_id", "kind", "weekday"], name: "index_calendar_availability_rules_on_resource_kind_weekday"
+    t.index ["kanban_calendar_schedule_id"], name: "idx_on_kanban_calendar_schedule_id_314cde7467"
+    t.check_constraint "(kanban_calendar_schedule_id IS NULL) <> (kanban_calendar_resource_id IS NULL)", name: "calendar_rule_belongs_to_one_owner"
   end
 
   create_table "kanban_calendar_booking_links", force: :cascade do |t|
@@ -1631,6 +1640,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
     t.jsonb "public_form_fields", default: [], null: false
     t.string "captcha_provider"
     t.string "captcha_site_key"
+    t.string "clinic_name"
+    t.string "clinic_address"
+    t.string "clinic_whatsapp"
     t.index ["account_id"], name: "index_kanban_calendar_booking_pages_on_account_id", unique: true
     t.index ["inbox_id"], name: "index_kanban_calendar_booking_pages_on_inbox_id"
     t.index ["kanban_board_id"], name: "index_kanban_calendar_booking_pages_on_kanban_board_id"
@@ -1712,9 +1724,30 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
     t.text "public_description"
     t.string "public_slug"
     t.jsonb "public_booking_config", default: {}, null: false
+    t.string "availability_mode", default: "resources", null: false
+    t.string "assignment_strategy", default: "patient_choice", null: false
+    t.integer "minimum_notice_minutes"
+    t.integer "maximum_notice_days"
+    t.integer "slot_interval_minutes"
+    t.integer "daily_limit"
+    t.boolean "payment_enabled", default: false, null: false
+    t.integer "price_cents"
+    t.string "payment_mode", default: "full", null: false
+    t.integer "deposit_cents"
+    t.jsonb "payment_methods", default: ["pix", "card", "on_site"], null: false
+    t.integer "hold_minutes", default: 10, null: false
+    t.boolean "reschedule_allowed", default: true, null: false
+    t.boolean "cancel_allowed", default: true, null: false
+    t.integer "change_deadline_hours", default: 12, null: false
+    t.boolean "cancel_reason_required", default: true, null: false
+    t.string "on_cancel_stage_action", default: "back_to_scheduling", null: false
+    t.bigint "kanban_calendar_schedule_id"
+    t.bigint "kanban_calendar_team_id"
     t.index "account_id, lower((name)::text)", name: "index_kanban_calendar_procedures_on_account_and_lower_name", unique: true
     t.index "account_id, lower((public_slug)::text)", name: "index_calendar_procedures_on_account_and_public_slug", unique: true, where: "(public_slug IS NOT NULL)"
     t.index ["account_id"], name: "index_kanban_calendar_procedures_on_account_id"
+    t.index ["kanban_calendar_schedule_id"], name: "idx_on_kanban_calendar_schedule_id_ac12f1ba93"
+    t.index ["kanban_calendar_team_id"], name: "index_kanban_calendar_procedures_on_kanban_calendar_team_id"
   end
 
   create_table "kanban_calendar_resources", force: :cascade do |t|
@@ -1729,9 +1762,48 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "slot_interval_minutes"
+    t.bigint "kanban_calendar_schedule_id"
     t.index ["account_id", "user_id"], name: "index_kanban_calendar_resources_on_account_and_user", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["account_id"], name: "index_kanban_calendar_resources_on_account_id"
+    t.index ["kanban_calendar_schedule_id"], name: "index_kanban_calendar_resources_on_kanban_calendar_schedule_id"
     t.index ["user_id"], name: "index_kanban_calendar_resources_on_user_id"
+  end
+
+  create_table "kanban_calendar_schedules", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "kanban_calendar_procedure_id"
+    t.string "name", null: false
+    t.string "timezone", null: false
+    t.boolean "default_schedule", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "account_id, lower((name)::text)", name: "index_calendar_schedules_on_account_and_lower_name", unique: true, where: "(kanban_calendar_procedure_id IS NULL)"
+    t.index ["account_id"], name: "index_calendar_schedules_on_account_default", unique: true, where: "(default_schedule = true)"
+    t.index ["account_id"], name: "index_kanban_calendar_schedules_on_account_id"
+    t.index ["kanban_calendar_procedure_id"], name: "idx_on_kanban_calendar_procedure_id_82f1544c94"
+  end
+
+  create_table "kanban_calendar_team_members", force: :cascade do |t|
+    t.bigint "kanban_calendar_team_id", null: false
+    t.bigint "kanban_calendar_resource_id", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "last_assigned_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["kanban_calendar_resource_id"], name: "idx_on_kanban_calendar_resource_id_6412b830fd"
+    t.index ["kanban_calendar_team_id", "kanban_calendar_resource_id"], name: "index_calendar_team_members_on_team_and_resource", unique: true
+    t.index ["kanban_calendar_team_id"], name: "index_kanban_calendar_team_members_on_kanban_calendar_team_id"
+  end
+
+  create_table "kanban_calendar_teams", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "assignment_strategy", default: "first_available", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "account_id, lower((name)::text)", name: "index_calendar_teams_on_account_and_lower_name", unique: true
+    t.index ["account_id"], name: "index_kanban_calendar_teams_on_account_id"
   end
 
   create_table "kanban_card_events", force: :cascade do |t|
@@ -2492,6 +2564,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
   add_foreign_key "kanban_calendar_appointments", "kanban_cards"
   add_foreign_key "kanban_calendar_appointments", "users", column: "canceled_by_id"
   add_foreign_key "kanban_calendar_availability_rules", "kanban_calendar_resources"
+  add_foreign_key "kanban_calendar_availability_rules", "kanban_calendar_schedules"
   add_foreign_key "kanban_calendar_booking_links", "accounts"
   add_foreign_key "kanban_calendar_booking_links", "kanban_calendar_booking_pages"
   add_foreign_key "kanban_calendar_booking_links", "kanban_calendar_procedures"
@@ -2507,8 +2580,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_121000) do
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_procedures"
   add_foreign_key "kanban_calendar_procedure_resources", "kanban_calendar_resources"
   add_foreign_key "kanban_calendar_procedures", "accounts"
+  add_foreign_key "kanban_calendar_procedures", "kanban_calendar_schedules"
+  add_foreign_key "kanban_calendar_procedures", "kanban_calendar_teams"
   add_foreign_key "kanban_calendar_resources", "accounts"
+  add_foreign_key "kanban_calendar_resources", "kanban_calendar_schedules"
   add_foreign_key "kanban_calendar_resources", "users"
+  add_foreign_key "kanban_calendar_schedules", "accounts"
+  add_foreign_key "kanban_calendar_schedules", "kanban_calendar_procedures"
+  add_foreign_key "kanban_calendar_team_members", "kanban_calendar_resources"
+  add_foreign_key "kanban_calendar_team_members", "kanban_calendar_teams"
+  add_foreign_key "kanban_calendar_teams", "accounts"
   add_foreign_key "kanban_card_events", "accounts"
   add_foreign_key "kanban_card_events", "kanban_boards"
   add_foreign_key "kanban_card_events", "kanban_cards"

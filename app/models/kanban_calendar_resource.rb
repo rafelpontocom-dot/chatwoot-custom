@@ -2,28 +2,31 @@
 #
 # Table name: kanban_calendar_resources
 #
-#  id                    :bigint           not null, primary key
-#  active                :boolean          default(TRUE), not null
-#  capacity              :integer          default(1), not null
-#  name                  :string           not null
-#  resource_type         :string           not null
-#  settings              :jsonb            not null
-#  slot_interval_minutes :integer
-#  timezone              :string           not null
-#  created_at            :datetime         not null
-#  updated_at            :datetime         not null
-#  account_id            :bigint           not null
-#  user_id               :bigint
+#  id                          :bigint           not null, primary key
+#  active                      :boolean          default(TRUE), not null
+#  capacity                    :integer          default(1), not null
+#  name                        :string           not null
+#  resource_type               :string           not null
+#  settings                    :jsonb            not null
+#  slot_interval_minutes       :integer
+#  timezone                    :string           not null
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  account_id                  :bigint           not null
+#  kanban_calendar_schedule_id :bigint
+#  user_id                     :bigint
 #
 # Indexes
 #
-#  index_kanban_calendar_resources_on_account_and_user  (account_id,user_id) UNIQUE WHERE (user_id IS NOT NULL)
-#  index_kanban_calendar_resources_on_account_id        (account_id)
-#  index_kanban_calendar_resources_on_user_id           (user_id)
+#  index_kanban_calendar_resources_on_account_and_user             (account_id,user_id) UNIQUE WHERE (user_id IS NOT NULL)
+#  index_kanban_calendar_resources_on_account_id                   (account_id)
+#  index_kanban_calendar_resources_on_kanban_calendar_schedule_id  (kanban_calendar_schedule_id)
+#  index_kanban_calendar_resources_on_user_id                      (user_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (kanban_calendar_schedule_id => kanban_calendar_schedules.id)
 #  fk_rails_...  (user_id => users.id)
 #
 class KanbanCalendarResource < ApplicationRecord
@@ -37,6 +40,9 @@ class KanbanCalendarResource < ApplicationRecord
 
   belongs_to :account
   belongs_to :user, optional: true
+  # Horário com nome que esta agenda usa. Vazio = horário só desta agenda, nas
+  # suas próprias regras.
+  belongs_to :kanban_calendar_schedule, optional: true
 
   has_many :kanban_calendar_procedure_resources, dependent: :destroy
   has_many :kanban_calendar_procedures, through: :kanban_calendar_procedure_resources
@@ -45,6 +51,7 @@ class KanbanCalendarResource < ApplicationRecord
   has_many :kanban_calendar_availability_rules, dependent: :destroy
   has_one :kanban_calendar_google_connection, dependent: :destroy
   has_many :kanban_calendar_external_busy_blocks, dependent: :destroy
+  has_many :kanban_calendar_team_members, dependent: :destroy
 
   validates :name, :timezone, presence: true
   validates :resource_type, inclusion: { in: RESOURCE_TYPES }
@@ -56,19 +63,49 @@ class KanbanCalendarResource < ApplicationRecord
   # possível, e continua a ter de ser da mesma conta.
   validate :user_belongs_to_account
   validate :valid_timezone
+  validate :schedule_is_shared_by_the_account
 
   scope :active, -> { where(active: true) }
 
   after_create :create_default_working_hours
 
+  # As regras que decidem quando esta agenda atende: as do horário com nome,
+  # quando usa um, mais os bloqueios pontuais desta agenda; senão as suas.
+  def working_rules
+    own_rules = kanban_calendar_availability_rules.active.to_a
+    return own_rules if kanban_calendar_schedule.blank?
+
+    kanban_calendar_schedule.kanban_calendar_availability_rules.active.to_a + own_rules.select(&:block?)
+  end
+
+  def working_timezone
+    kanban_calendar_schedule&.timezone || timezone
+  end
+
+  def working_hours?
+    working_rules.any? { |rule| rule.weekly_window? || rule.date_override? }
+  end
+
   private
 
+  # Agenda nova usa o horário padrão da conta, quando existe; senão nasce com a
+  # semana comercial só dela.
   def create_default_working_hours
-    return if kanban_calendar_availability_rules.any?
+    return if kanban_calendar_schedule_id.present? || kanban_calendar_availability_rules.any?
+
+    default_schedule = account.kanban_calendar_schedules.shared.find_by(default_schedule: true)
+    return update_column(:kanban_calendar_schedule_id, default_schedule.id) if default_schedule # rubocop:disable Rails/SkipsModelValidations
 
     DEFAULT_WORKING_DAYS.each do |weekday|
       kanban_calendar_availability_rules.create!(kind: 'weekly_window', weekday: weekday, **DEFAULT_WORKING_HOURS)
     end
+  end
+
+  def schedule_is_shared_by_the_account
+    schedule = kanban_calendar_schedule
+    return if schedule.blank? || (schedule.account_id == account_id && schedule.kanban_calendar_procedure_id.nil?)
+
+    errors.add(:kanban_calendar_schedule, 'must be a schedule of the account')
   end
 
   def user_belongs_to_account

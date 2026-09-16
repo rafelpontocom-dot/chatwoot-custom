@@ -6,6 +6,9 @@
 #  active                 :boolean          default(FALSE), not null
 #  captcha_provider       :string
 #  captcha_site_key       :string
+#  clinic_address         :string
+#  clinic_name            :string
+#  clinic_whatsapp        :string
 #  description            :text
 #  duplicate_policy       :string           default("create_new"), not null
 #  maximum_notice_days    :integer          default(60), not null

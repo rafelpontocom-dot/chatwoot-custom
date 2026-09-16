@@ -1,6 +1,7 @@
 class KanbanCalendar::AvailabilityQuery
-  def initialize(resource:, starts_at:, ends_at:)
+  def initialize(resource:, starts_at:, ends_at:, procedure: nil, working_rules: nil)
     @resource = resource
+    @working_rules = working_rules || KanbanCalendar::WorkingRules.new(resource: resource, procedure: procedure)
     @starts_at = starts_at
     @ends_at = ends_at
   end
@@ -15,15 +16,15 @@ class KanbanCalendar::AvailabilityQuery
   private
 
   def rules
-    @rules ||= @resource.kanban_calendar_availability_rules.active.to_a
+    @working_rules.rules
   end
 
   def local_starts_at
-    @local_starts_at ||= @starts_at.in_time_zone(@resource.timezone)
+    @local_starts_at ||= @starts_at.in_time_zone(@working_rules.timezone)
   end
 
   def local_ends_at
-    @local_ends_at ||= @ends_at.in_time_zone(@resource.timezone)
+    @local_ends_at ||= @ends_at.in_time_zone(@working_rules.timezone)
   end
 
   def local_date

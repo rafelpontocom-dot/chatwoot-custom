@@ -73,6 +73,7 @@ class KanbanCalendar::RescheduleAppointmentService
     return if resources.all? do |resource|
       KanbanCalendar::AvailabilityQuery.new(
         resource: resource,
+        procedure: procedure,
         starts_at: reservation_starts_at,
         ends_at: reservation_ends_at
       ).available?

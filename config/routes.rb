@@ -149,7 +149,9 @@ Rails.application.routes.draw do
           end
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           namespace :calendar do
-            resources :procedures, only: [:index, :show, :create, :update, :destroy]
+            resources :procedures, only: [:index, :show, :create, :update, :destroy] do
+              get :availability_preview, on: :member
+            end
             resource :booking_page, controller: 'booking_page', only: [:show, :update]
             resources :booking_links, controller: 'booking_links', only: [:index, :create]
             resources :resources, only: [:index, :show, :create, :update, :destroy] do
@@ -162,7 +164,18 @@ Rails.application.routes.draw do
               resources :availability_rules,
                         controller: 'resource_availability_rules',
                         only: [:index, :create, :update, :destroy]
+              member do
+                get :working_hours
+                put :working_hours, action: :update_working_hours
+              end
             end
+            resources :schedules, only: [:index, :show, :create, :update, :destroy] do
+              member do
+                put :rules
+                post :apply_to
+              end
+            end
+            resources :teams, only: [:index, :create, :update, :destroy]
             resource :feegow_connection, controller: 'feegow_connection', only: [:show, :update, :destroy] do
               post :sync
               get :professionals

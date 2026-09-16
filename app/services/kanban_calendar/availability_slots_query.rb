@@ -1,6 +1,4 @@
 class KanbanCalendar::AvailabilitySlotsQuery
-  DEFAULT_SLOT_INTERVAL_MINUTES = 15
-
   def initialize(resource:, procedure:, date:)
     @resource = resource
     @procedure = procedure
@@ -29,7 +27,11 @@ class KanbanCalendar::AvailabilitySlotsQuery
   end
 
   def availability_rules
-    @availability_rules ||= @resource.kanban_calendar_availability_rules.active.to_a
+    working_rules.rules
+  end
+
+  def working_rules
+    @working_rules ||= KanbanCalendar::WorkingRules.new(resource: @resource, procedure: @procedure)
   end
 
   def slots_for(window)
@@ -56,17 +58,12 @@ class KanbanCalendar::AvailabilitySlotsQuery
   end
 
   def timezone
-    @timezone ||= ActiveSupport::TimeZone[@resource.timezone]
+    @timezone ||= ActiveSupport::TimeZone[working_rules.timezone]
   end
 
-  # De quanto em quanto tempo se oferece um horário: a agenda decide, e quem não
-  # decidiu segue o padrão da conta, configurado na página de agendamento.
+  # De quanto em quanto tempo se oferece um horário: o procedimento decide, depois
+  # a agenda, depois o padrão da conta, configurado na página de agendamento.
   def slot_interval_minutes
-    @slot_interval_minutes ||= @resource.slot_interval_minutes || account_slot_interval_minutes
-  end
-
-  def account_slot_interval_minutes
-    KanbanCalendarBookingPage.find_by(account_id: @resource.account_id)&.slot_interval_minutes ||
-      DEFAULT_SLOT_INTERVAL_MINUTES
+    @slot_interval_minutes ||= KanbanCalendar::ProcedureLimits.new(procedure: @procedure, resource: @resource).slot_interval_minutes
   end
 end

@@ -20,6 +20,7 @@ class KanbanCalendar::ResourceAvailabilityValidator
       @resources.reject do |resource|
         KanbanCalendar::AvailabilityQuery.new(
           resource: resource,
+          procedure: @record.is_a?(KanbanCalendarProcedure) ? @record : nil,
           starts_at: starts_at,
           ends_at: starts_at + @duration_minutes.minutes
         ).available?

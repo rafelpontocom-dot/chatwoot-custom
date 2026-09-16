@@ -4,11 +4,14 @@
 #
 #  id                                    :bigint           not null, primary key
 #  appointment_version                   :integer          default(1), not null
+#  booking_timezone                      :string
 #  canceled_at                           :datetime
 #  cancellation_reason                   :string
 #  completed_at                          :datetime
 #  ends_at                               :datetime         not null
 #  external_refs                         :jsonb            not null
+#  hold_expires_at                       :datetime
+#  hold_token                            :string
 #  lock_version                          :integer          default(0), not null
 #  no_show_at                            :datetime
 #  notes                                 :text
@@ -37,6 +40,8 @@
 #
 #  idx_calendar_appointments_on_external_source               (account_id,source_provider,source_external_id) UNIQUE WHERE ((source_provider IS NOT NULL) AND (source_external_id IS NOT NULL))
 #  index_calendar_appointments_on_account_starts_status       (account_id,starts_at,status)
+#  index_calendar_appointments_on_hold_expires_at             (hold_expires_at) WHERE (hold_expires_at IS NOT NULL)
+#  index_calendar_appointments_on_hold_token                  (hold_token) UNIQUE WHERE (hold_token IS NOT NULL)
 #  index_calendar_appointments_on_series_and_occurrence       (kanban_calendar_appointment_series_id,occurrence_number) UNIQUE
 #  index_kanban_calendar_appointments_on_account_id           (account_id)
 #  index_kanban_calendar_appointments_on_canceled_by_id       (canceled_by_id)

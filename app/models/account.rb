@@ -107,6 +107,8 @@ class Account < ApplicationRecord
   has_one :kanban_birthday_automation, dependent: :destroy
   has_many :kanban_calendar_procedures, dependent: :destroy_async
   has_many :kanban_calendar_resources, dependent: :destroy_async
+  has_many :kanban_calendar_schedules, dependent: :destroy_async
+  has_many :kanban_calendar_teams, dependent: :destroy_async
   has_many :kanban_calendar_appointment_series, dependent: :destroy_async
   has_many :kanban_calendar_appointments, dependent: :destroy_async
   has_many :kanban_calendar_google_connections, dependent: :destroy_async

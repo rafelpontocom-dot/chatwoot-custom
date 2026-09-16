@@ -61,7 +61,7 @@ class KanbanCalendar::AvailabilityAcrossResources
   end
 
   def resources_without_hours
-    @resources.reject { |resource| resource.kanban_calendar_availability_rules.active.exists? }
+    @resources.reject { |resource| KanbanCalendar::WorkingRules.new(resource: resource, procedure: @procedure).working_hours? }
   end
 
   def check(starts_at:)

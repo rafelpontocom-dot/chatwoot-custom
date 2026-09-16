@@ -48,6 +48,7 @@ class KanbanCalendar::AvailabilityCheckService
   def availability_query
     KanbanCalendar::AvailabilityQuery.new(
       resource: @resource,
+      procedure: @procedure,
       starts_at: reservation_starts_at,
       ends_at: reservation_ends_at
     )
