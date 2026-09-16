@@ -6,13 +6,14 @@ class Api::V1::Accounts::KanbanBoards::StagesController < Api::V1::Accounts::Bas
   def create
     KanbanStage.transaction do
       KanbanStage.normalize_positions_for_board!(@kanban_board)
+      position = position_for_new_stage
 
-      @kanban_board.kanban_stages.active.ordered.to_a.reverse_each do |stage|
+      @kanban_board.kanban_stages.active.ordered.where(position: position..).reverse_each do |stage|
         stage.update!(position: stage.position + 1)
       end
 
       @kanban_stage = @kanban_board.kanban_stages.create!(
-        stage_params_with_probability.except(:position).merge(account: Current.account, position: 1)
+        stage_params_with_probability.except(:position).merge(account: Current.account, position: position)
       )
 
       KanbanStage.normalize_positions_for_board!(@kanban_board)
@@ -64,6 +65,15 @@ class Api::V1::Accounts::KanbanBoards::StagesController < Api::V1::Accounts::Bas
   end
 
   private
+
+  # Etapa nova entra mesmo antes de Ganho/Perdido: é uma etapa de trabalho, e o
+  # fim do funil continua a ser o fim. Nascia na posição 1, à frente da primeira
+  # etapa, e obrigava a reordenar à mão a cada etapa criada.
+  def position_for_new_stage
+    stages = @kanban_board.kanban_stages.active.ordered.to_a
+    closing = stages.find { |stage| stage.category != 'open' }
+    closing&.position || (stages.size + 1)
+  end
 
   def fetch_kanban_board
     @kanban_board = policy_scope(KanbanBoard).find(params[:kanban_board_id])

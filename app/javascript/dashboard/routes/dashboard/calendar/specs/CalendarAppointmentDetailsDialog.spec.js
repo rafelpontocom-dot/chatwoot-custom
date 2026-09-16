@@ -45,6 +45,12 @@ const mountDialog = () =>
           props: ['label'],
           template: '<button><slot />{{ label }}</button>',
         },
+        // Sem renderizar o slot, todo campo em RaevoField desaparece do teste.
+        RaevoField: {
+          props: { label: String },
+          template:
+            '<div><span>{{ label }}</span><slot control-class="control" field-id="field" /></div>',
+        },
       },
     },
   });
@@ -217,5 +223,34 @@ describe('CalendarAppointmentDetailsDialog', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('CALENDAR.DETAIL.RELOAD');
+  });
+
+  // Os campos deste diálogo estavam em `<label>` + controlo cru, contra a regra 7
+  // do CLAUDE.md, e o rótulo da remarcação quebrava em duas linhas.
+  it('draws every field through RaevoField', async () => {
+    const wrapper = mountDialog();
+    await wrapper.vm.open(10);
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-cancellation-reason"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="calendar-cancellation-scope"]').exists()
+    ).toBe(true);
+    expect(wrapper.findAll('label.grid')).toHaveLength(0);
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text().includes('RESCHEDULE'))
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="calendar-reschedule-starts-at"]').classes()
+    ).toContain('control');
+    expect(
+      wrapper.find('[data-testid="calendar-reschedule-scope"]').classes()
+    ).toContain('control');
   });
 });

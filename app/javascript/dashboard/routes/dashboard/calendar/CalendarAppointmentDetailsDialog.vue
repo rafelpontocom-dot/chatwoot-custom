@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router';
 import CalendarAPI from 'dashboard/api/calendar';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import CalendarResourceFields from './CalendarResourceFields.vue';
 import { useAppointmentResources } from './useAppointmentResources';
 
@@ -375,68 +376,82 @@ defineExpose({ open, openForReschedule });
             </li>
           </ol>
         </section>
-        <label v-if="isActive" class="grid gap-1.5">
-          <span class="text-sm font-medium text-n-slate-12">{{
-            t('CALENDAR.DETAIL.CANCELLATION_REASON')
-          }}</span>
-          <input
-            v-model="cancellationReason"
-            type="text"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-          />
-        </label>
-        <label v-if="isActive" class="grid gap-1.5">
-          <span class="text-sm font-medium text-n-slate-12">{{
-            t('CALENDAR.DETAIL.CANCELLATION_SCOPE')
-          }}</span>
-          <select
-            v-model="cancellationScope"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-          >
-            <option value="this_occurrence">
-              {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.THIS_OCCURRENCE') }}
-            </option>
-            <option value="this_and_future">
-              {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.THIS_AND_FUTURE') }}
-            </option>
-            <option value="all_occurrences">
-              {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.ALL_OCCURRENCES') }}
-            </option>
-          </select>
-        </label>
+        <RaevoField
+          v-if="isActive"
+          :label="t('CALENDAR.DETAIL.CANCELLATION_REASON')"
+        >
+          <template #default="{ controlClass, fieldId }">
+            <input
+              :id="fieldId"
+              v-model="cancellationReason"
+              type="text"
+              data-testid="calendar-cancellation-reason"
+              :class="controlClass"
+            />
+          </template>
+        </RaevoField>
+        <RaevoField
+          v-if="isActive"
+          :label="t('CALENDAR.DETAIL.CANCELLATION_SCOPE')"
+          variant="select"
+        >
+          <template #default="{ controlClass, fieldId }">
+            <select
+              :id="fieldId"
+              v-model="cancellationScope"
+              data-testid="calendar-cancellation-scope"
+              :class="controlClass"
+            >
+              <option value="this_occurrence">
+                {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.THIS_OCCURRENCE') }}
+              </option>
+              <option value="this_and_future">
+                {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.THIS_AND_FUTURE') }}
+              </option>
+              <option value="all_occurrences">
+                {{ t('CALENDAR.DETAIL.CANCELLATION_SCOPES.ALL_OCCURRENCES') }}
+              </option>
+            </select>
+          </template>
+        </RaevoField>
         <div
           v-if="isRescheduling"
           class="grid gap-3 rounded-lg border border-n-weak bg-n-surface-2 p-3"
         >
-          <label class="grid gap-1.5">
-            <span class="text-sm font-medium text-n-slate-12">{{
-              t('CALENDAR.DETAIL.NEW_DATE_TIME')
-            }}</span>
-            <input
-              v-model="rescheduleStartsAt"
-              type="datetime-local"
-              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            />
-          </label>
-          <label class="grid gap-1.5">
-            <span class="text-sm font-medium text-n-slate-12">{{
-              t('CALENDAR.DETAIL.RESCHEDULE_SCOPE')
-            }}</span>
-            <select
-              v-model="rescheduleScope"
-              class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-            >
-              <option value="this_occurrence">
-                {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.THIS_OCCURRENCE') }}
-              </option>
-              <option value="this_and_future">
-                {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.THIS_AND_FUTURE') }}
-              </option>
-              <option value="all_occurrences">
-                {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.ALL_OCCURRENCES') }}
-              </option>
-            </select>
-          </label>
+          <RaevoField :label="t('CALENDAR.DETAIL.NEW_DATE_TIME')">
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="rescheduleStartsAt"
+                type="datetime-local"
+                data-testid="calendar-reschedule-starts-at"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField
+            :label="t('CALENDAR.DETAIL.RESCHEDULE_SCOPE')"
+            variant="select"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <select
+                :id="fieldId"
+                v-model="rescheduleScope"
+                data-testid="calendar-reschedule-scope"
+                :class="controlClass"
+              >
+                <option value="this_occurrence">
+                  {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.THIS_OCCURRENCE') }}
+                </option>
+                <option value="this_and_future">
+                  {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.THIS_AND_FUTURE') }}
+                </option>
+                <option value="all_occurrences">
+                  {{ t('CALENDAR.DETAIL.RESCHEDULE_SCOPES.ALL_OCCURRENCES') }}
+                </option>
+              </select>
+            </template>
+          </RaevoField>
           <CalendarResourceFields
             v-model="rescheduleSelection"
             class="sm:col-span-2"

@@ -221,6 +221,9 @@
     "REPLYBOX": {
       "REPLY": "Responder",
       "PRIVATE_NOTE": "Nota Privada",
+      "INTERNAL_NOTE": "Mensagem interna",
+      "MODE_INTERNAL_ACTIVE": "A escrever mensagem interna, só a sua equipa vê. Trocar para resposta.",
+      "MODE_REPLY_ACTIVE": "A escrever resposta ao cliente. Trocar para mensagem interna.",
       "SEND": "Enviar",
       "CREATE": "Adicionar nota",
       "INSERT_READ_MORE": "Ler mais",

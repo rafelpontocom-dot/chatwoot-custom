@@ -86,7 +86,26 @@ RSpec.describe 'Kanban Stages API', type: :request do
       )
     end
 
-    it 'inserts the new stage at the beginning and shifts existing active stages' do
+    # Etapa de trabalho não nasce depois do fim do funil, nem antes da primeira:
+    # entra mesmo antes de Ganho/Perdido, que é onde o Pedro a quer.
+    it 'inserts the new stage before the closing stages' do
+      first_stage = create(:kanban_stage, account: account, kanban_board: kanban_board, name: 'Novo lead', position: 1)
+      won = create(:kanban_stage, account: account, kanban_board: kanban_board, name: 'Ganho', position: 2, category: 'won')
+      lost = create(:kanban_stage, account: account, kanban_board: kanban_board, name: 'Perdido', position: 3, category: 'lost')
+
+      post "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/stages",
+           headers: administrator.create_new_auth_token,
+           params: { stage: { name: 'Proposal', position: 99, color: 'teal' } },
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['position']).to eq(2)
+      expect(first_stage.reload.position).to eq(1)
+      expect(won.reload.position).to eq(3)
+      expect(lost.reload.position).to eq(4)
+    end
+
+    it 'adds the new stage at the end when the funnel has no closing stage' do
       first_stage = create(:kanban_stage, account: account, kanban_board: kanban_board, name: 'First', position: 1)
       second_stage = create(:kanban_stage, account: account, kanban_board: kanban_board, name: 'Second', position: 2)
 
@@ -95,10 +114,9 @@ RSpec.describe 'Kanban Stages API', type: :request do
            params: { stage: { name: 'Proposal', position: 99, color: 'teal' } },
            as: :json
 
-      expect(response).to have_http_status(:success)
-      expect(response.parsed_body['position']).to eq(1)
-      expect(first_stage.reload.position).to eq(2)
-      expect(second_stage.reload.position).to eq(3)
+      expect(response.parsed_body['position']).to eq(3)
+      expect(first_stage.reload.position).to eq(1)
+      expect(second_stage.reload.position).to eq(2)
     end
 
     it 'does not shift inactive stages or stages from other boards' do
@@ -126,7 +144,8 @@ RSpec.describe 'Kanban Stages API', type: :request do
            as: :json
 
       expect(response).to have_http_status(:success)
-      expect(first_stage.reload.position).to eq(2)
+      expect(response.parsed_body['position']).to eq(2)
+      expect(first_stage.reload.position).to eq(1)
       expect(inactive_stage.reload.position).to eq(5)
       expect(other_board_stage.reload.position).to eq(5)
     end
