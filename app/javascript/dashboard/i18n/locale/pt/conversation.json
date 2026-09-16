@@ -442,7 +442,8 @@
       "UPDATED": "Oportunidade atualizada",
       "OPEN_IN_BOARD": "Abrir oportunidade no funil",
       "GENERAL_FIELDS": "Outros campos",
-      "MARKETING_FIELDS": "Marketing"
+      "MARKETING_FIELDS": "Marketing",
+      "WHICH_OPPORTUNITY": "Qual oportunidade"
     },
     "SHARED_FILES": {
       "EMPTY": "Nenhum anexo ainda",

@@ -95,10 +95,10 @@ const mountComponent = () =>
         'woot-feature-toggle': {
           template: '<div><slot /></div>',
         },
-        KanbanConversationCards: {
+        KanbanConversationOpportunity: {
           props: ['conversationId'],
           template:
-            '<div data-testid="kanban-conversation-cards">{{ conversationId }}</div>',
+            '<div data-testid="kanban-conversation-opportunity">{{ conversationId }}</div>',
         },
         Draggable: {
           props: ['list'],
@@ -128,7 +128,7 @@ describe('ContactPanel', () => {
 
     expect(wrapper.text()).toContain('Opportunities');
     expect(
-      wrapper.get('[data-testid="kanban-conversation-cards"]').text()
+      wrapper.get('[data-testid="kanban-conversation-opportunity"]').text()
     ).toBe('42');
   });
 });

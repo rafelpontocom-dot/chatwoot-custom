@@ -20,3 +20,5 @@ json.kanban_stage do
   json.color kanban_card.kanban_stage.color
 end
 json.conversation_id kanban_card.conversation.display_id
+# A conversa mostra a oportunidade mais recente quando há mais de uma ligada.
+json.created_at kanban_card.created_at&.iso8601

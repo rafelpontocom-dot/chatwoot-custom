@@ -444,7 +444,8 @@
       "MARKETING_FIELDS": "Marketing",
       "NEXT_ACTION": "Next action",
       "NEXT_ACTION_TYPE": "Action type",
-      "NEXT_ACTION_AT": "Action date"
+      "NEXT_ACTION_AT": "Action date",
+      "WHICH_OPPORTUNITY": "Which opportunity"
     },
     "SHARED_FILES": {
       "EMPTY": "No attachments yet",

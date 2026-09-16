@@ -24,6 +24,14 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
       expect(payload_ids).to contain_exactly(card.id)
     end
 
+    it 'says when each card was created, so the conversation can show the most recent' do
+      create_conversation_card
+
+      request_conversation_kanban_cards
+
+      expect(response.parsed_body['payload'].first['created_at']).to be_present
+    end
+
     it 'lists active linked manual cards' do
       card = create_manual_card(conversation: conversation, subject: 'Renewal')
 
@@ -128,7 +136,8 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
           ],
           'kanban_board' => { 'id' => kanban_board.id, 'name' => 'Sales' },
           'kanban_stage' => { 'id' => stage.id, 'name' => 'New', 'color' => 'blue' },
-          'conversation_id' => conversation.display_id
+          'conversation_id' => conversation.display_id,
+          'created_at' => card.created_at.iso8601
         }
       )
       expect(response.parsed_body['payload'].first).not_to have_key('conversation')

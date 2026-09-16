@@ -99,6 +99,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /**
+   * Dentro da conversa a ficha não tem para onde fechar, e «abrir conversa»
+   * levaria à conversa que já está aberta. Os dois botões saem.
+   */
+  embedded: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -1853,7 +1861,7 @@ watch(invitationPendingRevocation, async invitation => {
       </div>
       <div class="flex flex-shrink-0 items-center gap-1">
         <button
-          v-if="hasConversation"
+          v-if="hasConversation && !embedded"
           type="button"
           data-testid="kanban-opportunity-header-open-conversation"
           class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
@@ -1885,6 +1893,7 @@ watch(invitationPendingRevocation, async invitation => {
           <i class="i-lucide-settings-2 size-4" />
         </button>
         <button
+          v-if="!embedded"
           type="button"
           data-testid="kanban-opportunity-close"
           class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
