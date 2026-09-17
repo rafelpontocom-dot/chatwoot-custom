@@ -56,7 +56,7 @@ const bcp47 = computed(() => locale.value.replace('_', '-'));
       <select
         :value="timezone"
         :aria-label="t('PUBLIC_BOOKING.TIMEZONE')"
-        class="reset-base mb-0 h-7 min-w-0 flex-1 appearance-none rounded-md border border-solid border-n-weak bg-n-solid-1 bg-none px-1.5 text-xs text-n-slate-11"
+        class="reset-base mb-0 h-7 min-w-0 flex-1 appearance-none rounded-md border border-solid border-n-weak bg-n-solid-1 bg-none px-1.5 py-0 text-xs text-n-slate-11"
         data-testid="public-booking-timezone"
         @change="emit('update:timezone', $event.target.value)"
       >
