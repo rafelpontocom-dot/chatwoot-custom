@@ -2785,10 +2785,13 @@ onUnmounted(() => {
               <Draggable
                 :list="stage.cards"
                 item-key="id"
-                class="order-first flex flex-col gap-2 rounded-md"
+                class="order-first flex shrink-0 flex-col gap-2 rounded-md"
                 :class="
                   // Coluna vazia precisa de alvo generoso para soltar o card;
                   // com cards, encolhe para o 'adicionar' não boiar no rodapé.
+                  // `shrink-0`: o `min-h-*` tira a proteção de altura mínima do
+                  // flex, e com muitos cards a lista esmagava cada card para
+                  // caber na coluna em vez de rolar.
                   stage.cards && stage.cards.length ? 'min-h-16' : 'min-h-40'
                 "
                 :group="{ name: 'kanban-cards' }"

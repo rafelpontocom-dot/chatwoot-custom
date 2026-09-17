@@ -308,7 +308,7 @@ const openConversation = event => {
 
 <template>
   <article
-    class="card-drag-handle group relative cursor-grab rounded-lg border border-n-weak bg-n-solid-1 p-2.5 transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-n-slate-8 hover:shadow focus:outline-none focus:ring-2 focus:ring-n-brand"
+    class="card-drag-handle group relative shrink-0 cursor-grab rounded-lg border border-n-weak bg-n-solid-1 p-2.5 transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-n-slate-8 hover:shadow focus:outline-none focus:ring-2 focus:ring-n-brand"
     :class="selected ? 'ring-2 ring-n-brand border-transparent' : ''"
     :data-card-id="card.id"
     :data-conversation-id="card.conversationId"
