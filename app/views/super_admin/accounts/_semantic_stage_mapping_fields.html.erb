@@ -1,0 +1,10 @@
+<p class="text-sm text-n-slate-11"><%= t('super_admin.raevo_ai.stage_mapping_description') %></p>
+<% SuperAdmin::AccountsController::SEMANTIC_STAGE_EVENTS.each_key do |event_key| %>
+  <div class="field-unit">
+    <%= label_tag "#{form.object_name}_stage_mappings_#{event_key}", t("super_admin.raevo_ai.semantic_stage_events.#{event_key}") %>
+    <%= select_tag "#{form.object_name}[stage_mappings][#{event_key}]",
+                   options_for_select(stages.map { |board, stage| ["#{board.name} — #{stage.name}", stage.id] }, configured_stages.dig(event_key, 'stage_id')),
+                   include_blank: t('super_admin.raevo_ai.select_stage'),
+                   id: "#{form.object_name}_stage_mappings_#{event_key}", required: true %>
+  </div>
+<% end %>

@@ -169,7 +169,21 @@ RSpec.describe 'Super Admin accounts API', type: :request do
   describe 'POST /super_admin/accounts/{account_id}/provision_raevo_ai' do
     let(:board) { create(:kanban_board, account: account) }
     let(:qualification) { create(:kanban_stage, account: account, kanban_board: board) }
+    let(:scheduling) { create(:kanban_stage, account: account, kanban_board: board) }
     let(:command_token) { 'a' * 48 }
+    let(:stage_mappings) do
+      {
+        new_lead: qualification.id,
+        qualified: qualification.id,
+        no_response: qualification.id,
+        price_informed: qualification.id,
+        future_follow_up: qualification.id,
+        scheduling_requested: qualification.id,
+        scheduled: qualification.id,
+        won: qualification.id,
+        lost: qualification.id
+      }
+    end
     let(:provisioning_params) do
       {
         raevo_ai: {
@@ -178,9 +192,7 @@ RSpec.describe 'Super Admin accounts API', type: :request do
           board_key: 'consulta',
           board_id: board.id,
           initial_stage_id: qualification.id,
-          stages_json: {
-            qualified: { stage_id: qualification.id, allowed_from: [] }
-          }.to_json
+          stage_mappings: stage_mappings
         }
       }
     end
@@ -193,6 +205,9 @@ RSpec.describe 'Super Admin accounts API', type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).to include('RAEVO AI')
       expect(response.body).to include('Provision AI')
+      expect(response.body).to include('Semantic stage mapping')
+      expect(response.body).to include('raevo_ai[stage_mappings][qualified]')
+      expect(response.body).not_to include('Semantic stage catalog (JSON)')
     end
 
     it 'requires a Super Admin session' do
@@ -208,23 +223,45 @@ RSpec.describe 'Super Admin accounts API', type: :request do
       post "/super_admin/accounts/#{account.id}/provision_raevo_ai", params: provisioning_params
 
       integration = account.reload.raevo_ai_integration
-      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
-      expect(integration).to be_present
-      expect(integration).not_to be_enabled
-      expect(integration.settings.dig('crm', 'boards', 'consulta', 'board_id')).to eq(board.id)
-      expect(integration.settings['command_token_digest']).to eq(Digest::SHA256.hexdigest(command_token))
-      expect(board.reload.configured_custom_field_definitions.map { |field| field['key'] }).to include('raevo_ai_status')
-      expect(response.body).not_to include(command_token)
+      aggregate_failures do
+        expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+        expect(integration).to be_present
+        expect(integration).not_to be_enabled
+        expect(integration.settings.dig('crm', 'boards', 'consulta', 'board_id')).to eq(board.id)
+        expect(integration.settings.dig('crm', 'boards', 'consulta', 'stages', 'qualified', 'stage_id')).to eq(qualification.id)
+        expect(integration.settings['command_token_digest']).to eq(Digest::SHA256.hexdigest(command_token))
+        expect(board.reload.configured_custom_field_definitions.map { |field| field['key'] }).to include('raevo_ai_status')
+        expect(response.body).not_to include(command_token)
+      end
     end
 
-    it 'rejects a non-object semantic stage catalog without creating an integration' do
+    it 'rejects an incomplete semantic stage mapping without creating an integration' do
       sign_in(super_admin, scope: :super_admin)
 
-      post "/super_admin/accounts/#{account.id}/provision_raevo_ai",
-           params: provisioning_params.deep_merge(raevo_ai: { stages_json: [{ stage_id: qualification.id }].to_json })
+      invalid_params = provisioning_params.deep_dup
+      invalid_params[:raevo_ai][:stage_mappings] = { qualified: qualification.id }
+      post "/super_admin/accounts/#{account.id}/provision_raevo_ai", params: invalid_params
 
       expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
       expect(account.reload.raevo_ai_integration).to be_nil
+    end
+
+    it 'updates a provisioned inactive semantic stage mapping' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/provision_raevo_ai", params: provisioning_params
+      post "/super_admin/accounts/#{account.id}/update_raevo_ai_stage_mapping",
+           params: {
+             raevo_ai: {
+               board_key: 'consulta', board_id: board.id, initial_stage_id: qualification.id,
+               stage_mappings: stage_mappings.merge(scheduling_requested: scheduling.id)
+             }
+           }
+
+      integration = account.reload.raevo_ai_integration
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(integration.settings.dig('crm', 'boards', 'consulta', 'stages', 'scheduling_requested', 'stage_id')).to eq(scheduling.id)
+      expect(integration).not_to be_enabled
     end
   end
 

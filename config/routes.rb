@@ -917,6 +917,7 @@ Rails.application.routes.draw do
         post :seed, on: :member
         post :reset_cache, on: :member
         post :provision_raevo_ai, on: :member
+        post :update_raevo_ai_stage_mapping, on: :member
         post :activate_raevo_ai, on: :member
       end
       resources :users, only: [:index, :new, :create, :show, :edit, :update, :destroy] do

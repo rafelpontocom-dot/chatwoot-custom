@@ -1,6 +1,8 @@
 <% integration = account.raevo_ai_integration %>
 <% boards = KanbanBoard.where(account: account).active.ordered.includes(:kanban_stages) %>
 <% stages = boards.flat_map { |board| board.kanban_stages.active.ordered.map { |stage| [board, stage] } } %>
+<% configured_board = integration&.settings&.dig('crm', 'boards')&.values&.first || {} %>
+<% configured_stages = configured_board.fetch('stages', {}) %>
 
 <section class="main-content__body">
   <hr class="my-8 border-n-weak">
@@ -10,6 +12,16 @@
     <p class="text-sm text-n-teal-11">Active for <%= integration.clinic_id %>.</p>
   <% elsif integration.present? && integration.settings['command_token_digest'].present? %>
     <p class="text-sm text-n-amber-11">Provisioned for <%= integration.clinic_id %>. Activate only after the tenant command token is deployed in Volt.</p>
+    <h3 class="text-base text-n-slate-12"><%= t('super_admin.raevo_ai.stage_mapping') %></h3>
+    <%= form_with scope: :raevo_ai, url: update_raevo_ai_stage_mapping_super_admin_account_path(account), method: :post, class: 'form' do |form| %>
+      <%= hidden_field_tag 'raevo_ai[board_key]', integration.settings.dig('crm', 'boards')&.keys&.first %>
+      <%= hidden_field_tag 'raevo_ai[board_id]', configured_board['board_id'] %>
+      <%= hidden_field_tag 'raevo_ai[initial_stage_id]', configured_board['initial_stage_id'] %>
+      <%= render 'semantic_stage_mapping_fields', form: form, stages: stages, configured_stages: configured_stages %>
+      <div class="form-actions">
+        <%= form.submit t('super_admin.raevo_ai.save_stage_mapping') %>
+      </div>
+    <% end %>
     <%= form_with url: activate_raevo_ai_super_admin_account_path(account), method: :post, class: 'form' do %>
       <div class="field-unit">
         <%= check_box_tag :token_deployed, '1', false, id: "token_deployed_#{account.id}" %>
@@ -43,8 +55,8 @@
         <%= form.select :initial_stage_id, stages.map { |board, stage| ["#{board.name} — #{stage.name}", stage.id] }, { include_blank: 'Select an initial stage' }, required: true %>
       </div>
       <div class="field-unit">
-        <%= form.label :stages_json, 'Semantic stage catalog (JSON)' %>
-        <%= form.text_area :stages_json, required: true, rows: 8, placeholder: '{"qualified":{"stage_id":123,"allowed_from":[]}}' %>
+        <h3 class="text-base text-n-slate-12"><%= t('super_admin.raevo_ai.stage_mapping') %></h3>
+        <%= render 'semantic_stage_mapping_fields', form: form, stages: stages, configured_stages: configured_stages %>
       </div>
       <div class="form-actions">
         <%= form.submit 'Provision AI' %>

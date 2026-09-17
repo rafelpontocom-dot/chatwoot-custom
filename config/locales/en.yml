@@ -31,13 +31,6 @@
 
 en:
   hello: 'Hello world'
-  super_admin:
-    raevo_ai:
-      activated: 'RAEVO AI is active for this account.'
-      not_provisioned: 'RAEVO AI must be provisioned before activation.'
-      provisioned: 'RAEVO AI provisioned. Keep it inactive until the Volt token is deployed.'
-      provisioning_failed: 'RAEVO AI provisioning could not be completed.'
-      token_not_deployed: 'Confirm that the tenant command token is deployed in Volt before activation.'
   forms:
     submission_actions:
       attached_to_history: 'Form answered: %{form_name}. The answers are in the response record.'
@@ -603,6 +596,28 @@ en:
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
+    raevo_ai:
+      activated: 'RAEVO AI is active for this account.'
+      not_provisioned: 'RAEVO AI must be provisioned before activation.'
+      provisioned: 'RAEVO AI provisioned. Keep it inactive until the Volt token is deployed.'
+      provisioning_failed: 'RAEVO AI provisioning could not be completed.'
+      stage_mapping_updated: 'RAEVO AI stage mapping updated while the assistant remains inactive.'
+      stage_mapping_update_failed: 'RAEVO AI stage mapping could not be updated.'
+      stage_mapping: 'Semantic stage mapping'
+      stage_mapping_description: 'Map each stable AI event to the matching stage in this board. Stage names and order can change without changing the AI contract.'
+      save_stage_mapping: 'Save stage mapping'
+      select_stage: 'Select a stage'
+      token_not_deployed: 'Confirm that the tenant command token is deployed in Volt before activation.'
+      semantic_stage_events:
+        new_lead: 'New lead'
+        qualified: 'Qualified'
+        no_response: 'No response'
+        price_informed: 'Price informed'
+        future_follow_up: 'Future follow-up'
+        scheduling_requested: 'Scheduling requested'
+        scheduled: 'Scheduled'
+        won: 'Won'
+        lost: 'Lost'
     captain_model_overrides:
       form:
         helper_text: 'Leave a model blank to use the YAML default for that AI feature.'

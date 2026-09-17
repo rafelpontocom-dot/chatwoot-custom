@@ -50,7 +50,8 @@ class RaevoAi::CrmCatalogPublisher
 
   def persist_catalog!(board_key, board, initial_stage, stages)
     settings = @integration.settings.deep_dup
-    boards = (settings['crm'] ||= {})['boards'] ||= {}
+    crm = settings['crm'] ||= {}
+    boards = crm['boards'] ||= {}
     existing = boards[board_key] || {}
     validate_board_assignment!(existing, board)
     boards[board_key] = existing.merge(
@@ -58,6 +59,7 @@ class RaevoAi::CrmCatalogPublisher
       'initial_stage_id' => initial_stage.id,
       'stages' => stages
     )
+    crm['catalog_version'] = crm.fetch('catalog_version', 0).to_i + 1
     @integration.update!(settings: settings)
   end
 

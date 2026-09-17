@@ -49,6 +49,31 @@ RSpec.describe RaevoAi::IntegrationProvisioner do
     expect(integration.settings).to eq({})
   end
 
+  it 'reconfigures a provisioned inactive catalog without requiring the command token again' do
+    described_class.new(integration: integration, command_token: 'a' * 48).provision!(
+      board_key: 'consulta',
+      board_id: board.id,
+      initial_stage_id: qualification.id,
+      stages: { 'qualified' => { 'stage_id' => qualification.id, 'allowed_from' => [] } },
+      ai_tab_board_ids: [board.id]
+    )
+    token_digest = integration.reload.settings.fetch('command_token_digest')
+
+    result = described_class.new(integration: integration).reconfigure!(
+      board_key: 'consulta',
+      board_id: board.id,
+      initial_stage_id: scheduling.id,
+      stages: { 'qualified' => { 'stage_id' => scheduling.id, 'allowed_from' => [] } },
+      ai_tab_board_ids: [board.id]
+    )
+
+    settings = integration.reload.settings
+    expect(result).to include('enabled' => false, 'board_key' => 'consulta', 'board_ids' => [board.id])
+    expect(settings.fetch('command_token_digest')).to eq(token_digest)
+    expect(settings.dig('crm', 'catalog_version')).to eq(2)
+    expect(settings.dig('crm', 'boards', 'consulta', 'initial_stage_id')).to eq(scheduling.id)
+  end
+
   it 'activates only after the catalog, fields and command token are provisioned' do
     described_class.new(integration: integration, command_token: 'a' * 48).provision!(
       board_key: 'consulta',

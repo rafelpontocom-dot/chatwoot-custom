@@ -37,6 +37,22 @@ class RaevoAi::IntegrationProvisioner
     { 'enabled' => true, 'clinic_id' => @integration.clinic_id }
   end
 
+  def reconfigure!(board_key:, board_id:, initial_stage_id:, stages:, ai_tab_board_ids:)
+    ensure_inactive!
+    ensure_provisioned!
+
+    ActiveRecord::Base.transaction do
+      publish_catalog!(board_key: board_key, board_id: board_id, initial_stage_id: initial_stage_id, stages: stages)
+      tab = configure_tab!(ai_tab_board_ids)
+
+      {
+        'enabled' => false,
+        'board_key' => board_key.to_s,
+        'board_ids' => tab.fetch('board_ids')
+      }
+    end
+  end
+
   private
 
   def ensure_inactive!

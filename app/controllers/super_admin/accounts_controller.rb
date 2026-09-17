@@ -1,4 +1,16 @@
 class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
+  SEMANTIC_STAGE_EVENTS = {
+    'new_lead' => [],
+    'qualified' => %w[new_lead qualified],
+    'no_response' => %w[new_lead qualified price_informed future_follow_up scheduling_requested],
+    'price_informed' => %w[new_lead qualified no_response future_follow_up],
+    'future_follow_up' => %w[new_lead qualified no_response price_informed scheduling_requested],
+    'scheduling_requested' => %w[new_lead qualified no_response price_informed future_follow_up],
+    'scheduled' => ['scheduling_requested'],
+    'won' => ['scheduled'],
+    'lost' => %w[new_lead qualified no_response price_informed future_follow_up scheduling_requested]
+  }.freeze
+
   # Overwrite any of the RESTful controller actions to implement custom behavior
   # For example, you may want to send an email after a foo is updated.
   #
@@ -73,9 +85,27 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     )
 
     redirect_to [namespace, requested_resource], notice: t('super_admin.raevo_ai.provisioned')
-  rescue JSON::ParserError, RaevoAi::IntegrationProvisioner::InvalidProvisioning,
+  rescue RaevoAi::IntegrationProvisioner::InvalidProvisioning,
          RaevoAi::CrmCatalogPublisher::InvalidCatalog, RaevoAi::OpportunityAiTabProvisioner::InvalidBoard
     redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.provisioning_failed')
+  end
+
+  def update_raevo_ai_stage_mapping
+    integration = requested_resource.raevo_ai_integration
+    raise RaevoAi::IntegrationProvisioner::InvalidProvisioning, 'integration is not provisioned' unless integration
+
+    RaevoAi::IntegrationProvisioner.new(integration: integration).reconfigure!(
+      board_key: raevo_ai_provisioning_params[:board_key],
+      board_id: raevo_ai_provisioning_params[:board_id],
+      initial_stage_id: raevo_ai_provisioning_params[:initial_stage_id],
+      stages: parsed_raevo_ai_stages!,
+      ai_tab_board_ids: [raevo_ai_provisioning_params[:board_id]]
+    )
+
+    redirect_to [namespace, requested_resource], notice: t('super_admin.raevo_ai.stage_mapping_updated')
+  rescue RaevoAi::IntegrationProvisioner::InvalidProvisioning,
+         RaevoAi::CrmCatalogPublisher::InvalidCatalog, RaevoAi::OpportunityAiTabProvisioner::InvalidBoard
+    redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.stage_mapping_update_failed')
   end
 
   def activate_raevo_ai
@@ -114,14 +144,21 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
   end
 
   def raevo_ai_provisioning_params
-    params.require(:raevo_ai).permit(:clinic_id, :command_token, :board_key, :board_id, :initial_stage_id, :stages_json)
+    params.require(:raevo_ai).permit(
+      :clinic_id, :command_token, :board_key, :board_id, :initial_stage_id,
+      stage_mappings: SEMANTIC_STAGE_EVENTS.keys
+    )
   end
 
   def parsed_raevo_ai_stages!
-    stages = JSON.parse(raevo_ai_provisioning_params[:stages_json])
-    return stages if stages.is_a?(Hash)
+    stage_mappings = raevo_ai_provisioning_params.fetch(:stage_mappings, {}).to_h.stringify_keys
+    missing_events = SEMANTIC_STAGE_EVENTS.keys - stage_mappings.keys
+    invalid_events = stage_mappings.values.any?(&:blank?)
+    raise RaevoAi::IntegrationProvisioner::InvalidProvisioning, 'each semantic stage must be mapped' if missing_events.any? || invalid_events
 
-    raise RaevoAi::IntegrationProvisioner::InvalidProvisioning, 'semantic stage catalog must be a JSON object'
+    SEMANTIC_STAGE_EVENTS.to_h do |event_key, allowed_from|
+      [event_key, { 'stage_id' => stage_mappings.fetch(event_key), 'allowed_from' => allowed_from }]
+    end
   end
 end
 
