@@ -67,6 +67,19 @@ RSpec.describe 'Public calendar booking in three steps', type: :request do
     expect(KanbanCalendarSlotHold.count).to eq(0)
   end
 
+  it 'opens the booking on the patient open opportunity when the page reuses it' do
+    page.update!(duplicate_policy: 'open_or_recent')
+    contact = create(:contact, account: account, name: 'Marina Costa', phone_number: patient[:phone_number])
+    card = KanbanCard.create!(account: account, kanban_board: board, kanban_stage: stage, contact: contact, inbox: inbox,
+                              subject: 'Marina', origin: 'manual', position: 1, active: true)
+
+    post "#{base}/vaga/#{hold!['token']}/confirmar", params: { booking: patient.except(:email) }, as: :json
+
+    expect(response).to have_http_status(:created)
+    expect(KanbanCalendarAppointment.last.kanban_card).to eq(card)
+    expect(KanbanCard.where(contact: contact).count).to eq(1)
+  end
+
   it 'refuses a second hold on a time someone is already filling in' do
     hold!
     hold!

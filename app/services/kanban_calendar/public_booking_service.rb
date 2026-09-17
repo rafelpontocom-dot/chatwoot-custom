@@ -146,7 +146,7 @@ class KanbanCalendar::PublicBookingService
   def matching_card
     return if booking_page.create_new?
 
-    scope = account.kanban_cards.where(contact: @contact, kanban_board: booking_page.kanban_board)
+    scope = booking_page.kanban_board.kanban_cards.where(contact: @contact)
     scope = scope.open_opportunities if booking_page.open_or_recent?
     scope.order(created_at: :desc, id: :desc).first
   end
