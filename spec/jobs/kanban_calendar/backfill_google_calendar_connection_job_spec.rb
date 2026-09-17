@@ -14,6 +14,10 @@ RSpec.describe KanbanCalendar::BackfillGoogleCalendarConnectionJob do
     )
   end
 
+  # Numa quarta: «daqui a dois dias» e «há dois dias» caem em dias úteis, dentro
+  # do horário padrão da agenda. Sem data fixa, o teste falhava perto do fim de semana.
+  around { |example| travel_to(Time.zone.local(2026, 9, 16, 12)) { example.run } }
+
   def book(starts_at)
     KanbanCalendar::BookAppointmentService.new(
       account: account, contact: contact, procedure: procedure, resource_ids: [resource.id],
