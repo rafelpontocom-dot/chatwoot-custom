@@ -147,6 +147,7 @@ Rails.application.routes.draw do
               post :publish
               post :rollback
             end
+            resource :crm_catalog, only: [:update], controller: 'crm_catalogs'
             resource :opportunity_tab, only: [:show, :update], controller: 'opportunity_tabs'
           end
           resources :callbacks, only: [] do
