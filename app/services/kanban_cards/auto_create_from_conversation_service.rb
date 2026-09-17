@@ -48,8 +48,10 @@ class KanbanCards::AutoCreateFromConversationService
   end
 
   def create_for_stage(kanban_board, stage)
-    if automatic_card_exists?(kanban_board)
+    if card_for_conversation_exists?(kanban_board)
       skip_existing_card
+      nil
+    elsif reconcile_recent_opportunity(kanban_board)
       nil
     else
       lock_active_cards!(kanban_board, stage)
@@ -97,8 +99,30 @@ class KanbanCards::AutoCreateFromConversationService
     )
   end
 
-  def automatic_card_exists?(kanban_board)
-    KanbanCard.conversation.exists?(kanban_board: kanban_board, conversation_id: conversation.id)
+  def card_for_conversation_exists?(kanban_board)
+    KanbanCard.exists?(kanban_board: kanban_board, conversation_id: conversation.id)
+  end
+
+  def reconcile_recent_opportunity(kanban_board)
+    card = KanbanCard.open_opportunities.manual
+                     .where(
+                       account_id: conversation.account_id,
+                       kanban_board: kanban_board,
+                       contact: contact,
+                       inbox: inbox,
+                       conversation_id: nil,
+                       created_at: 7.days.ago..
+                     )
+                     .order(created_at: :desc, id: :desc)
+                     .first
+    return false if card.blank?
+
+    card.update!(conversation: conversation)
+    MarketingTouchpoint.where(
+      account_id: conversation.account_id, kanban_card_id: card.id, conversation_id: nil
+    ).update_all(conversation_id: conversation.id, updated_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
+    summary[:skipped][:reconciled_opportunity] += 1
+    true
   end
 
   def default_subject
@@ -139,6 +163,7 @@ class KanbanCards::AutoCreateFromConversationService
       created: 0,
       skipped: {
         existing_card: 0,
+        reconciled_opportunity: 0,
         without_active_stage: 0,
         broadcast: 0
       }

@@ -30,6 +30,14 @@ class MarketingAPI extends ApiClient {
     return axios.get(`${this.url}/intake_sources`);
   }
 
+  getIntakeDeliveries(params = {}) {
+    return axios.get(`${this.url}/intake_deliveries`, { params });
+  }
+
+  retryIntakeDelivery(id) {
+    return axios.post(`${this.url}/intake_deliveries/${id}/retry`);
+  }
+
   createIntakeSource(payload) {
     return axios.post(`${this.url}/intake_sources`, payload);
   }

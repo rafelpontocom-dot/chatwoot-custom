@@ -15,14 +15,12 @@ class Public::Api::V1::Marketing::IntakeController < ActionController::API
   end
 
   def create
+    delivery = record_delivery
     result = Marketing::IngestLeadService.new(source: source, payload: lead_params).perform
 
-    if result.ok?
-      render json: { status: result.status, contact_id: result.contact&.id, opportunity_id: result.kanban_card&.id },
-             status: result.status == 'duplicate' ? :ok : :created
-    else
-      render json: { status: 'rejected', error: result.error }, status: :unprocessable_entity
-    end
+    return render_success(delivery, result) if result.ok?
+
+    render_failure(delivery, result)
   end
 
   private
@@ -50,5 +48,33 @@ class Public::Api::V1::Marketing::IntakeController < ActionController::API
       :name, :email, :phone_number, :subject, :idempotency_key,
       *Marketing::AttributionFields::ALL_KEYS.map(&:to_sym)
     ).to_h
+  end
+
+  def record_delivery
+    Marketing::WebhookDeliveryRecorder.new(
+      account: source.account,
+      raw_payload: lead_params.to_json,
+      provider_event_id: lead_params['idempotency_key'],
+      provider: 'intake',
+      marketing_intake_source: source
+    ).perform
+  end
+
+  def retryable?(error)
+    error == 'destination_unavailable'
+  end
+
+  def render_success(delivery, result)
+    delivery.mark_intake_processed!(result)
+    render json: {
+      status: result.status, delivery_id: delivery.id,
+      contact_id: result.contact&.id, opportunity_id: result.kanban_card&.id
+    }, status: result.status == 'duplicate' ? :ok : :created
+  end
+
+  def render_failure(delivery, result)
+    delivery.mark_intake_failed!(result.error)
+    Marketing::ProcessIntakeDeliveryJob.set(wait: 1.minute).perform_later(delivery.id) if retryable?(result.error)
+    render json: { status: 'rejected', delivery_id: delivery.id, error: result.error }, status: :unprocessable_entity
   end
 end

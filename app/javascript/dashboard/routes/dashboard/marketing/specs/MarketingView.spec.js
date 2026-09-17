@@ -8,6 +8,8 @@ const apiMocks = vi.hoisted(() => ({
   getTouchpoints: vi.fn(),
   getSummary: vi.fn(),
   getIntakeSources: vi.fn(),
+  getIntakeDeliveries: vi.fn(),
+  retryIntakeDelivery: vi.fn(),
   getIntakeReference: vi.fn(),
   createIntakeSource: vi.fn(),
   rotateIntakeSource: vi.fn(),
@@ -65,6 +67,25 @@ describe('MarketingView', () => {
     storeMocks.currentAccount = { id: 7, permissions: ['administrator'] };
     apiMocks.getModule.mockResolvedValue({ data: { enabled: true } });
     apiMocks.getIntakeSources.mockResolvedValue({ data: { payload: [] } });
+    apiMocks.getIntakeDeliveries.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 81,
+            source_name: 'Landing Atendimento',
+            processing_status: 'failed',
+            error_message: 'destination_unavailable',
+            received_at: '2026-09-17T10:00:00Z',
+            retry_count: 1,
+            contact_id: null,
+            kanban_card_id: null,
+          },
+        ],
+      },
+    });
+    apiMocks.retryIntakeDelivery.mockResolvedValue({
+      data: { status: 'accepted' },
+    });
     apiMocks.getIntakeReference.mockResolvedValue({
       data: {
         token_header: 'X-Raevo-Intake-Token',
@@ -138,6 +159,50 @@ describe('MarketingView', () => {
 
     expect(wrapper.text()).toContain('MARKETING.EMPTY.DISABLED_TITLE');
     expect(apiMocks.getSummary).not.toHaveBeenCalled();
+  });
+
+  it('shows failed landing deliveries in Marketing without exposing patient payloads', async () => {
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+
+    const deliveries = wrapper.find(
+      '[data-testid="marketing-intake-deliveries"]'
+    );
+    expect(deliveries.text()).toContain('Landing Atendimento');
+    expect(deliveries.text()).toContain('destination_unavailable');
+  });
+
+  it('lets an administrator retry a failed delivery', async () => {
+    apiMocks.getIntakeDeliveries
+      .mockResolvedValueOnce({
+        data: {
+          payload: [
+            {
+              id: 81,
+              source_name: 'Landing Atendimento',
+              processing_status: 'failed',
+              received_at: '2026-09-17T10:00:00Z',
+              retry_count: 0,
+            },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({ data: { payload: [] } });
+
+    const wrapper = montar();
+    await flushPromises();
+    await wrapper
+      .find('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="marketing-retry-intake-delivery"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(apiMocks.retryIntakeDelivery).toHaveBeenCalledWith(81);
   });
 
   it('hides the settings gear from someone who cannot configure', async () => {

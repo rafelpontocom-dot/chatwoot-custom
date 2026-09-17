@@ -225,6 +225,9 @@ Rails.application.routes.draw do
               post :rotate, on: :member
               get :reference, on: :collection
             end
+            resources :intake_deliveries, only: [:index] do
+              post :retry, on: :member
+            end
             resources :connections, only: [:index, :destroy] do
               post :authorization_url, on: :collection
               post :sync_pages, on: :member

@@ -56,6 +56,35 @@ const formatMoment = value =>
     timeStyle: 'short',
   }).format(new Date(value));
 
+const deliveryStatusLabel = status => {
+  switch (status) {
+    case 'received':
+      return t('MARKETING.INTAKE.DELIVERIES.STATUS.RECEIVED');
+    case 'processing':
+      return t('MARKETING.INTAKE.DELIVERIES.STATUS.PROCESSING');
+    case 'processed':
+      return t('MARKETING.INTAKE.DELIVERIES.STATUS.PROCESSED');
+    case 'ignored':
+      return t('MARKETING.INTAKE.DELIVERIES.STATUS.IGNORED');
+    default:
+      return t('MARKETING.INTAKE.DELIVERIES.STATUS.FAILED');
+  }
+};
+
+const deliveryLinks = delivery => {
+  const links = [
+    delivery.contact_id &&
+      t('MARKETING.INTAKE.DELIVERIES.CONTACT', {
+        id: delivery.contact_id,
+      }),
+    delivery.kanban_card_id &&
+      t('MARKETING.INTAKE.DELIVERIES.OPPORTUNITY', {
+        id: delivery.kanban_card_id,
+      }),
+  ].filter(Boolean);
+  return links.length ? ` · ${links.join(' · ')}` : '';
+};
+
 // A barra existe para o número deixar de flutuar a meia tela do seu rótulo, e
 // para a proporção entre origens se ler sem fazer conta.
 const shareOf = (rows, count) => {
@@ -66,6 +95,8 @@ const shareOf = (rows, count) => {
 // Entrada de leads: o token é a credencial de uma escrita pública, por isso
 // aparece uma única vez e pode ser desligado na hora.
 const intakeSources = ref([]);
+const intakeDeliveries = ref([]);
+const retryingDeliveryId = ref(null);
 const boards = ref([]);
 const boardStages = ref([]);
 const allowedInboxIds = ref([]);
@@ -289,12 +320,31 @@ const salvarDestino = form =>
   });
 
 const loadIntake = async () => {
-  const [sourcesResponse, boardsResponse] = await Promise.all([
-    MarketingAPI.getIntakeSources(),
-    KanbanBoardsAPI.get(),
-  ]);
+  const [sourcesResponse, deliveriesResponse, boardsResponse] =
+    await Promise.all([
+      MarketingAPI.getIntakeSources(),
+      MarketingAPI.getIntakeDeliveries({ limit: 50 }),
+      KanbanBoardsAPI.get(),
+    ]);
   intakeSources.value = sourcesResponse.data.payload || [];
+  intakeDeliveries.value = deliveriesResponse.data.payload || [];
   boards.value = boardsResponse.data?.payload || boardsResponse.data || [];
+};
+
+const retryIntakeDelivery = async id => {
+  retryingDeliveryId.value = id;
+  intakeError.value = '';
+  try {
+    await MarketingAPI.retryIntakeDelivery(id);
+    const { data } = await MarketingAPI.getIntakeDeliveries({ limit: 50 });
+    intakeDeliveries.value = data.payload || [];
+  } catch (error) {
+    intakeError.value =
+      error?.response?.data?.message ||
+      t('MARKETING.INTAKE.DELIVERIES.RETRY_ERROR');
+  } finally {
+    retryingDeliveryId.value = null;
+  }
 };
 
 const onBoardChosen = async boardId => {
@@ -965,6 +1015,74 @@ onMounted(async () => {
         <p v-else class="mb-0 text-sm text-n-slate-9">
           {{ t('MARKETING.INTAKE.NONE') }}
         </p>
+
+        <div
+          class="grid gap-2 rounded-lg border border-n-weak bg-n-alpha-1 p-3"
+          data-testid="marketing-intake-deliveries"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h4 class="mb-0 text-sm font-semibold text-n-slate-12">
+              {{ t('MARKETING.INTAKE.DELIVERIES.TITLE') }}
+            </h4>
+            <span class="text-xs text-n-slate-10">
+              {{ t('MARKETING.INTAKE.DELIVERIES.RECENT') }}
+            </span>
+          </div>
+          <p
+            v-if="!intakeDeliveries.length"
+            class="mb-0 text-sm text-n-slate-9"
+          >
+            {{ t('MARKETING.INTAKE.DELIVERIES.NONE') }}
+          </p>
+          <ul v-else class="grid list-none gap-1 p-0">
+            <li
+              v-for="delivery in intakeDeliveries"
+              :key="delivery.id"
+              class="grid gap-1 border-b border-n-weak py-2 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto]"
+            >
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <strong class="text-sm text-n-slate-12">
+                    {{
+                      delivery.source_name ||
+                      t('MARKETING.INTAKE.DELIVERIES.UNKNOWN_SOURCE')
+                    }}
+                  </strong>
+                  <RaevoStamp
+                    :variant="
+                      delivery.processing_status === 'processed'
+                        ? 'success'
+                        : delivery.processing_status === 'failed'
+                          ? 'danger'
+                          : 'neutral'
+                    "
+                    :label="deliveryStatusLabel(delivery.processing_status)"
+                  />
+                </div>
+                <p class="mb-0 text-xs text-n-slate-10">
+                  {{ formatMoment(delivery.received_at) }}
+                  {{ deliveryLinks(delivery) }}
+                </p>
+                <p
+                  v-if="delivery.error_message"
+                  class="mb-0 text-xs text-n-ruby-11"
+                >
+                  {{ delivery.error_message }}
+                </p>
+              </div>
+              <button
+                v-if="delivery.processing_status === 'failed'"
+                type="button"
+                class="self-center rounded-full border border-solid border-n-weak px-3 py-1 text-xs text-n-slate-11 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+                data-testid="marketing-retry-intake-delivery"
+                :disabled="retryingDeliveryId === delivery.id"
+                @click="retryIntakeDelivery(delivery.id)"
+              >
+                {{ t('MARKETING.INTAKE.DELIVERIES.RETRY') }}
+              </button>
+            </li>
+          </ul>
+        </div>
 
         <form class="grid gap-3 sm:grid-cols-4" @submit.prevent="createSource">
           <RaevoField :label="t('MARKETING.INTAKE.NAME')">

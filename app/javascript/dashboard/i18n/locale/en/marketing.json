@@ -56,6 +56,23 @@
       "ENDPOINT": "Send a POST to",
       "SCHEMA_HINT": "A GET on /schema lists every field it accepts.",
       "ERROR": "Could not save the source.",
+      "DELIVERIES": {
+        "TITLE": "Recent intakes",
+        "RECENT": "Latest 50",
+        "NONE": "No intake received yet.",
+        "UNKNOWN_SOURCE": "Removed source",
+        "CONTACT": "Contact #{id}",
+        "OPPORTUNITY": "Opportunity #{id}",
+        "RETRY": "Retry",
+        "RETRY_ERROR": "Could not retry this intake.",
+        "STATUS": {
+          "RECEIVED": "Received",
+          "PROCESSING": "Processing",
+          "PROCESSED": "Created",
+          "IGNORED": "Ignored",
+          "FAILED": "Failed"
+        }
+      },
       "DOCS": {
         "OPEN": "How to send leads",
         "TITLE": "Sending leads",

@@ -56,6 +56,23 @@
       "ENDPOINT": "Envie um POST para",
       "SCHEMA_HINT": "Um GET em /schema lista todos os campos aceitos.",
       "ERROR": "Não foi possível salvar a origem.",
+      "DELIVERIES": {
+        "TITLE": "Entradas recentes",
+        "RECENT": "Últimas 50",
+        "NONE": "Nenhuma entrada recebida ainda.",
+        "UNKNOWN_SOURCE": "Origem removida",
+        "CONTACT": "Contato #{id}",
+        "OPPORTUNITY": "Oportunidade #{id}",
+        "RETRY": "Tentar novamente",
+        "RETRY_ERROR": "Não foi possível reenviar esta entrada.",
+        "STATUS": {
+          "RECEIVED": "Recebida",
+          "PROCESSING": "Processando",
+          "PROCESSED": "Criada",
+          "IGNORED": "Ignorada",
+          "FAILED": "Falhou"
+        }
+      },
       "DOCS": {
         "OPEN": "Como enviar leads",
         "TITLE": "Enviar leads",

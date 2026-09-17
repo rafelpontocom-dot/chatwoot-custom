@@ -2,18 +2,21 @@ require 'digest'
 
 class Marketing::WebhookDeliveryRecorder
   # Grava antes de processar: se a ingestao falhar, ainda se sabe que chegou.
-  def initialize(account:, raw_payload:, provider_event_id: nil, provider: 'meta')
+  def initialize(account:, raw_payload:, provider_event_id: nil, provider: 'meta', marketing_intake_source: nil)
     @account = account
     @raw_payload = raw_payload
     @provider_event_id = provider_event_id
     @provider = provider
+    @marketing_intake_source = marketing_intake_source
   end
 
   def perform
     delivery = find_or_initialize
     delivery.assign_attributes(
       account: account, provider: provider, payload_digest: payload_digest,
-      raw_payload: raw_payload, received_at: delivery.received_at || Time.current
+      raw_payload: raw_payload, received_at: delivery.received_at || Time.current,
+      marketing_intake_source: marketing_intake_source,
+      processing_status: delivery.new_record? && provider == 'intake' ? 'received' : delivery.processing_status
     )
     delivery.save!
     delivery
@@ -21,7 +24,7 @@ class Marketing::WebhookDeliveryRecorder
 
   private
 
-  attr_reader :account, :raw_payload, :provider_event_id, :provider
+  attr_reader :account, :raw_payload, :provider_event_id, :provider, :marketing_intake_source
 
   # Pelo id do evento quando ha um; pelo corpo quando nao ha.
   def find_or_initialize

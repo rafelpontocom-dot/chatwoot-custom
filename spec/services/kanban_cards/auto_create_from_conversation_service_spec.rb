@@ -255,6 +255,25 @@ RSpec.describe KanbanCards::AutoCreateFromConversationService do
       expect { service.perform! }.not_to change(KanbanCard, :count)
     end
 
+    it 'attaches the conversation to a recent open landing opportunity instead of creating a duplicate' do
+      landing_card = create(
+        :kanban_card,
+        account: account,
+        kanban_board: board,
+        kanban_stage: first_stage,
+        contact: contact,
+        inbox: inbox,
+        origin: 'manual',
+        subject: 'Consulta médica particular — Maria',
+        created_at: 2.days.ago
+      )
+
+      expect { service.perform! }.not_to change(KanbanCard, :count)
+
+      expect(landing_card.reload.conversation_id).to eq(conversation.id)
+      expect(service.perform![:skipped][:reconciled_opportunity]).to eq(1)
+    end
+
     it 'does not emit kanban.card.created for an automatic duplicate skip' do
       create_automatic_card(active: true)
       allow(Rails.configuration.dispatcher).to receive(:dispatch)
@@ -327,6 +346,7 @@ RSpec.describe KanbanCards::AutoCreateFromConversationService do
         created: 1,
         skipped: {
           existing_card: 1,
+          reconciled_opportunity: 0,
           without_active_stage: 1,
           broadcast: 0
         }

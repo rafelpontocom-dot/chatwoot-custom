@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_17_100400) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_17_120000) do
   # These extensions should be enabled to support this database
   enable_extension "btree_gist"
   enable_extension "pg_stat_statements"
@@ -2089,10 +2089,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_17_100400) do
     t.integer "retry_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "marketing_intake_source_id"
+    t.bigint "contact_id"
+    t.bigint "kanban_card_id"
     t.index ["account_id", "payload_digest"], name: "index_marketing_deliveries_on_account_and_digest", unique: true
     t.index ["account_id", "processing_status", "received_at"], name: "index_marketing_deliveries_for_account_status"
     t.index ["account_id", "provider_event_id"], name: "index_marketing_deliveries_on_account_and_event", unique: true, where: "(provider_event_id IS NOT NULL)"
     t.index ["account_id"], name: "index_marketing_webhook_deliveries_on_account_id"
+    t.index ["contact_id"], name: "index_marketing_webhook_deliveries_on_contact_id"
+    t.index ["kanban_card_id"], name: "index_marketing_webhook_deliveries_on_kanban_card_id"
+    t.index ["marketing_intake_source_id"], name: "idx_on_marketing_intake_source_id_8e700c69f8"
   end
 
   create_table "mentions", force: :cascade do |t|
@@ -2633,6 +2639,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_17_100400) do
   add_foreign_key "marketing_touchpoints", "conversations", on_delete: :nullify
   add_foreign_key "marketing_touchpoints", "kanban_cards", on_delete: :nullify
   add_foreign_key "marketing_webhook_deliveries", "accounts"
+  add_foreign_key "marketing_webhook_deliveries", "contacts", on_delete: :nullify
+  add_foreign_key "marketing_webhook_deliveries", "kanban_cards", on_delete: :nullify
+  add_foreign_key "marketing_webhook_deliveries", "marketing_intake_sources"
   add_foreign_key "raevo_ai_commands", "raevo_ai_integrations"
   add_foreign_key "raevo_ai_integrations", "accounts"
   add_foreign_key "user_sessions", "users"

@@ -35,6 +35,7 @@ class MarketingIntakeSource < ApplicationRecord
   has_secure_token :token
 
   belongs_to :account
+  has_many :marketing_webhook_deliveries, dependent: :nullify
 
   validates :name, presence: true, uniqueness: { scope: :account_id }
   validate :destination_shape

@@ -46,6 +46,22 @@ RSpec.describe 'Marketing lead intake API', type: :request do
       expect(card.kanban_stage_id).to eq(kanban_stage.id)
     end
 
+    it 'records the intake before processing and links the successful delivery' do
+      expect do
+        post '/public/api/v1/marketing/intake', params: lead.merge(idempotency_key: 'landing-1'), headers: headers, as: :json
+      end.to change(MarketingWebhookDelivery, :count).by(1)
+
+      delivery = MarketingWebhookDelivery.last
+      expect(delivery).to have_attributes(
+        provider: 'intake',
+        provider_event_id: 'landing-1',
+        processing_status: 'processed',
+        marketing_intake_source_id: source.id,
+        contact_id: response.parsed_body['contact_id'],
+        kanban_card_id: response.parsed_body['opportunity_id']
+      )
+    end
+
     it 'records where the lead came from' do
       post '/public/api/v1/marketing/intake', params: lead, headers: headers, as: :json
 
@@ -124,10 +140,17 @@ RSpec.describe 'Marketing lead intake API', type: :request do
     it 'refuses when the destination no longer exists' do
       kanban_board.update!(active: false)
 
-      post '/public/api/v1/marketing/intake', params: lead, headers: headers, as: :json
+      expect do
+        post '/public/api/v1/marketing/intake', params: lead.merge(idempotency_key: 'landing-failed'), headers: headers, as: :json
+      end.to change(MarketingWebhookDelivery, :count).by(1)
 
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.parsed_body['error']).to eq('destination_unavailable')
+      expect(MarketingWebhookDelivery.last).to have_attributes(
+        provider: 'intake',
+        provider_event_id: 'landing-failed',
+        processing_status: 'failed'
+      )
     end
   end
 end

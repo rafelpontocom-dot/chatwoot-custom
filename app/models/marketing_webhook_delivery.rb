@@ -28,18 +28,32 @@
 #  fk_rails_...  (account_id => accounts.id)
 #
 class MarketingWebhookDelivery < ApplicationRecord
-  PROCESSING_STATUSES = %w[processed ignored failed].freeze
+  PROCESSING_STATUSES = %w[received processing processed ignored failed].freeze
 
   # O corpo cru do Meta traz nome e telefone de paciente.
   encrypts :raw_payload if Chatwoot.encryption_configured?
 
   belongs_to :account
+  belongs_to :marketing_intake_source, optional: true
+  belongs_to :contact, optional: true
+  belongs_to :kanban_card, optional: true
 
   validates :processing_status, inclusion: { in: PROCESSING_STATUSES }
   validates :payload_digest, presence: true, uniqueness: { scope: :account_id }
 
   def mark_processed!(status: 'processed')
     update!(processing_status: status, processed_at: Time.current, error_message: nil)
+  end
+
+  def mark_intake_processed!(result)
+    update!(
+      processing_status: 'processed', processed_at: Time.current, error_message: nil,
+      contact: result.contact, kanban_card: result.kanban_card
+    )
+  end
+
+  def mark_intake_failed!(error_code)
+    update!(processing_status: 'failed', processed_at: nil, error_message: error_code.to_s)
   end
 
   # So a classe do erro: o texto do provedor pode carregar id de conta alheia.
@@ -51,7 +65,10 @@ class MarketingWebhookDelivery < ApplicationRecord
     {
       id: id, provider: provider, provider_event_id: provider_event_id,
       processing_status: processing_status, error_message: error_message,
-      received_at: received_at, processed_at: processed_at, retry_count: retry_count
+      received_at: received_at, processed_at: processed_at, retry_count: retry_count,
+      marketing_intake_source_id: marketing_intake_source_id,
+      source_name: marketing_intake_source&.name,
+      contact_id: contact_id, kanban_card_id: kanban_card_id
     }
   end
 end
