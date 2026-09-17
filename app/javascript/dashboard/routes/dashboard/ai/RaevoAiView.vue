@@ -599,6 +599,17 @@ const needsYouRemainder = computed(() =>
 const assistantName = ref('');
 const isSavingName = ref(false);
 const nameError = ref(null);
+const normalizarNomeAssistente = valor => String(valor ?? '').trim();
+const hasAssistantNameChanges = computed(
+  () =>
+    normalizarNomeAssistente(assistantName.value) !==
+    normalizarNomeAssistente(overview.value?.assistant_name)
+);
+const setupTitle = computed(() => {
+  if (isAdmin.value) return t('RAEVO_AI.SETUP.TITLE_CONFIGURABLE');
+
+  return t('RAEVO_AI.SETUP.TITLE');
+});
 
 watch(
   () => overview.value?.assistant_name,
@@ -609,11 +620,13 @@ watch(
 );
 
 const saveAssistantName = async () => {
+  if (!hasAssistantNameChanges.value || isSavingName.value) return;
+
   isSavingName.value = true;
   nameError.value = null;
   try {
     const { data } = await RaevoAiAPI.saveAssistantName(
-      assistantName.value.trim()
+      normalizarNomeAssistente(assistantName.value)
     );
     // Vazio repõe o padrão, e é o serviço que diz qual é — o ecrã não o inventa.
     assistantName.value = data.state.assistant_name ?? '';
@@ -1210,7 +1223,7 @@ const setupRows = computed(() => [
                 {{ t('RAEVO_AI.SETUP.EYEBROW') }}
               </p>
               <h3 class="mt-1 text-sm font-semibold text-n-slate-12">
-                {{ t('RAEVO_AI.SETUP.TITLE') }}
+                {{ setupTitle }}
               </h3>
 
               <div class="mt-3 grid gap-4 sm:grid-cols-2">
@@ -1235,10 +1248,21 @@ const setupRows = computed(() => [
                             :placeholder="t('RAEVO_AI.SETUP.NAME_PLACEHOLDER')"
                             :disabled="isSavingName"
                             :class="controlClass"
-                            @change="saveAssistantName"
+                            @input="nameError = null"
                           />
                         </template>
                       </RaevoField>
+                      <div class="mt-2 flex justify-end">
+                        <NextButton
+                          type="button"
+                          data-testid="ai-assistant-name-save"
+                          size="sm"
+                          :label="t('RAEVO_AI.SETUP.SAVE_NAME')"
+                          :is-loading="isSavingName"
+                          :disabled="isSavingName || !hasAssistantNameChanges"
+                          @click="saveAssistantName"
+                        />
+                      </div>
                     </div>
                     <template v-else>
                       <dt class="text-xs font-medium text-n-slate-10">

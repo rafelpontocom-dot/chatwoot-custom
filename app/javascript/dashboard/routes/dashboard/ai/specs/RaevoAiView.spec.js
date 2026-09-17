@@ -751,9 +751,12 @@ describe('RaevoAiView', () => {
       expect(
         wrapper.find('[data-testid="ai-assistant-name"]').element.value
       ).toBe('Sofia');
+      expect(wrapper.find('[data-testid="ai-setup"]').text()).toContain(
+        'RAEVO_AI.SETUP.TITLE_CONFIGURABLE'
+      );
     });
 
-    it('grava ao sair do campo', async () => {
+    it('só grava quando o administrador confirma no botão Salvar', async () => {
       adminMocks.isAdmin = true;
       const wrapper = mountView();
       await flushPromises();
@@ -761,7 +764,13 @@ describe('RaevoAiView', () => {
 
       const campo = wrapper.find('[data-testid="ai-assistant-name"]');
       await campo.setValue('Sofia');
-      await campo.trigger('change');
+      await flushPromises();
+
+      expect(RaevoAiAPI.saveAssistantName).not.toHaveBeenCalled();
+
+      const salvar = wrapper.find('[data-testid="ai-assistant-name-save"]');
+      expect(salvar.exists()).toBe(true);
+      await salvar.trigger('click');
       await flushPromises();
 
       expect(RaevoAiAPI.saveAssistantName).toHaveBeenCalledWith('Sofia');
@@ -769,6 +778,9 @@ describe('RaevoAiView', () => {
 
     it('vazio repõe o padrão em vez de a deixar sem nome', async () => {
       adminMocks.isAdmin = true;
+      RaevoAiAPI.getOverview.mockResolvedValue({
+        data: { status: 'active', assistant_name: 'Sofia', usage: {} },
+      });
       RaevoAiAPI.saveAssistantName.mockResolvedValue({
         data: { state: { assistant_name: null, effective_name: 'Elis' } },
       });
@@ -778,7 +790,9 @@ describe('RaevoAiView', () => {
 
       const campo = wrapper.find('[data-testid="ai-assistant-name"]');
       await campo.setValue('   ');
-      await campo.trigger('change');
+      await wrapper
+        .find('[data-testid="ai-assistant-name-save"]')
+        .trigger('click');
       await flushPromises();
 
       expect(RaevoAiAPI.saveAssistantName).toHaveBeenCalledWith('');
@@ -810,7 +824,9 @@ describe('RaevoAiView', () => {
 
       const campo = wrapper.find('[data-testid="ai-assistant-name"]');
       await campo.setValue('Sofia');
-      await campo.trigger('change');
+      await wrapper
+        .find('[data-testid="ai-assistant-name-save"]')
+        .trigger('click');
       await flushPromises();
 
       expect(wrapper.find('[data-testid="ai-field-error"]').text()).toContain(

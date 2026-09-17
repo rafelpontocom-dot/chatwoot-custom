@@ -221,6 +221,7 @@
     "SETUP": {
       "EYEBROW": "HOW SHE IS SET UP",
       "TITLE": "Reading, not configuration",
+      "TITLE_CONFIGURABLE": "Assistant configuration",
       "NAME": "Name",
       "NAME_VALUE": "Elis",
       "NAME_HINT": "This is the name she uses when introducing herself. Leave it empty to use the default.",
@@ -229,8 +230,9 @@
       "LANGUAGE": "Language",
       "LANGUAGE_VALUE": "Brazilian Portuguese",
       "NAME_PLACEHOLDER": "Elis",
+      "SAVE_NAME": "Save name",
       "NAME_CONFLICT": "Someone else changed this. Reload to see the current name.",
-      "NAME_UNAVAILABLE": "Could not reach the assistant service."
+      "NAME_UNAVAILABLE": "The name could not be saved. Check the assistant connection and try again."
     },
     "JOURNEY": {
       "OUTCOME": "Package outcome",

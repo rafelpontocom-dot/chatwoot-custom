@@ -221,6 +221,7 @@
     "SETUP": {
       "EYEBROW": "COMO ESTÁ MONTADA",
       "TITLE": "Leitura, não configuração",
+      "TITLE_CONFIGURABLE": "Configuração da assistente",
       "NAME": "Nome",
       "NAME_VALUE": "Elis",
       "NAME_HINT": "É este o nome que ela usa ao se apresentar. Deixe vazio para usar o padrão.",
@@ -229,8 +230,9 @@
       "LANGUAGE": "Idioma",
       "LANGUAGE_VALUE": "Português do Brasil",
       "NAME_PLACEHOLDER": "Elis",
+      "SAVE_NAME": "Salvar nome",
       "NAME_CONFLICT": "Outra pessoa alterou isto. Recarregue para ver o nome atual.",
-      "NAME_UNAVAILABLE": "Não foi possível falar com o serviço da assistente."
+      "NAME_UNAVAILABLE": "Não foi possível salvar o nome. Verifique a conexão com a assistente e tente novamente."
     },
     "JOURNEY": {
       "OUTCOME": "Resultado do pacote",
