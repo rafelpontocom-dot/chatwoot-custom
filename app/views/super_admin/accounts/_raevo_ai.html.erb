@@ -1,0 +1,54 @@
+<% integration = account.raevo_ai_integration %>
+<% boards = KanbanBoard.where(account: account).active.ordered.includes(:kanban_stages) %>
+<% stages = boards.flat_map { |board| board.kanban_stages.active.ordered.map { |stage| [board, stage] } } %>
+
+<section class="main-content__body">
+  <hr class="my-8 border-n-weak">
+  <h2 class="text-xl text-n-slate-12">RAEVO AI</h2>
+
+  <% if integration&.enabled? %>
+    <p class="text-sm text-n-teal-11">Active for <%= integration.clinic_id %>.</p>
+  <% elsif integration.present? && integration.settings['command_token_digest'].present? %>
+    <p class="text-sm text-n-amber-11">Provisioned for <%= integration.clinic_id %>. Activate only after the tenant command token is deployed in Volt.</p>
+    <%= form_with url: activate_raevo_ai_super_admin_account_path(account), method: :post, class: 'form' do %>
+      <div class="field-unit">
+        <%= check_box_tag :token_deployed, '1', false, id: "token_deployed_#{account.id}" %>
+        <%= label_tag "token_deployed_#{account.id}", 'The tenant command token is deployed in Volt' %>
+      </div>
+      <div class="form-actions">
+        <%= submit_tag 'Activate AI', class: 'button' %>
+      </div>
+    <% end %>
+  <% else %>
+    <p class="text-sm text-n-slate-11">Provision the CRM catalog and IA fields. This step keeps the assistant inactive.</p>
+    <%= form_with scope: :raevo_ai, url: provision_raevo_ai_super_admin_account_path(account), method: :post, class: 'form' do |form| %>
+      <div class="field-unit">
+        <%= form.label :clinic_id, 'Clinic ID' %>
+        <%= form.text_field :clinic_id, required: true %>
+      </div>
+      <div class="field-unit">
+        <%= form.label :command_token, 'Tenant command token' %>
+        <%= form.password_field :command_token, required: true, autocomplete: 'new-password' %>
+      </div>
+      <div class="field-unit">
+        <%= form.label :board_key, 'CRM board key' %>
+        <%= form.text_field :board_key, required: true, value: 'acquisition' %>
+      </div>
+      <div class="field-unit">
+        <%= form.label :board_id, 'CRM board' %>
+        <%= form.select :board_id, boards.map { |board| [board.name, board.id] }, { include_blank: 'Select a board' }, required: true %>
+      </div>
+      <div class="field-unit">
+        <%= form.label :initial_stage_id, 'Initial stage' %>
+        <%= form.select :initial_stage_id, stages.map { |board, stage| ["#{board.name} — #{stage.name}", stage.id] }, { include_blank: 'Select an initial stage' }, required: true %>
+      </div>
+      <div class="field-unit">
+        <%= form.label :stages_json, 'Semantic stage catalog (JSON)' %>
+        <%= form.text_area :stages_json, required: true, rows: 8, placeholder: '{"qualified":{"stage_id":123,"allowed_from":[]}}' %>
+      </div>
+      <div class="form-actions">
+        <%= form.submit 'Provision AI' %>
+      </div>
+    <% end %>
+  <% end %>
+</section>

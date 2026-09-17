@@ -58,6 +58,41 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     # rubocop:enable Rails/I18nLocaleTexts
   end
 
+  def provision_raevo_ai
+    stages = parsed_raevo_ai_stages!
+    integration = raevo_ai_integration_for_provisioning!
+    RaevoAi::IntegrationProvisioner.new(
+      integration: integration,
+      command_token: raevo_ai_provisioning_params[:command_token]
+    ).provision!(
+      board_key: raevo_ai_provisioning_params[:board_key],
+      board_id: raevo_ai_provisioning_params[:board_id],
+      initial_stage_id: raevo_ai_provisioning_params[:initial_stage_id],
+      stages: stages,
+      ai_tab_board_ids: [raevo_ai_provisioning_params[:board_id]]
+    )
+
+    redirect_to [namespace, requested_resource], notice: t('super_admin.raevo_ai.provisioned')
+  rescue JSON::ParserError, RaevoAi::IntegrationProvisioner::InvalidProvisioning,
+         RaevoAi::CrmCatalogPublisher::InvalidCatalog, RaevoAi::OpportunityAiTabProvisioner::InvalidBoard
+    redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.provisioning_failed')
+  end
+
+  def activate_raevo_ai
+    unless ActiveModel::Type::Boolean.new.cast(params[:token_deployed])
+      return redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.token_not_deployed')
+    end
+
+    integration = requested_resource.raevo_ai_integration
+    raise RaevoAi::IntegrationProvisioner::InvalidProvisioning, 'integration is not provisioned' unless integration
+
+    RaevoAi::IntegrationProvisioner.new(integration: integration).activate!(actor_ref: "super_admin:#{current_super_admin.id}")
+
+    redirect_to [namespace, requested_resource], notice: t('super_admin.raevo_ai.activated')
+  rescue RaevoAi::IntegrationProvisioner::InvalidProvisioning
+    redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.not_provisioned')
+  end
+
   def destroy
     account = Account.find(params[:id])
 
@@ -65,6 +100,28 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     # rubocop:disable Rails/I18nLocaleTexts
     redirect_back(fallback_location: [namespace, requested_resource], notice: 'Account deletion is in progress.')
     # rubocop:enable Rails/I18nLocaleTexts
+  end
+
+  private
+
+  def raevo_ai_integration_for_provisioning!
+    integration = requested_resource.raevo_ai_integration
+    return requested_resource.create_raevo_ai_integration!(clinic_id: raevo_ai_provisioning_params[:clinic_id], enabled: false) unless integration
+
+    return integration if integration.clinic_id == raevo_ai_provisioning_params[:clinic_id]
+
+    raise RaevoAi::IntegrationProvisioner::InvalidProvisioning, 'clinic_id cannot change after integration creation'
+  end
+
+  def raevo_ai_provisioning_params
+    params.require(:raevo_ai).permit(:clinic_id, :command_token, :board_key, :board_id, :initial_stage_id, :stages_json)
+  end
+
+  def parsed_raevo_ai_stages!
+    stages = JSON.parse(raevo_ai_provisioning_params[:stages_json])
+    return stages if stages.is_a?(Hash)
+
+    raise RaevoAi::IntegrationProvisioner::InvalidProvisioning, 'semantic stage catalog must be a JSON object'
   end
 end
 

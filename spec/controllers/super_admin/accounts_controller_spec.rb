@@ -166,6 +166,101 @@ RSpec.describe 'Super Admin accounts API', type: :request do
     end
   end
 
+  describe 'POST /super_admin/accounts/{account_id}/provision_raevo_ai' do
+    let(:board) { create(:kanban_board, account: account) }
+    let(:qualification) { create(:kanban_stage, account: account, kanban_board: board) }
+    let(:command_token) { 'a' * 48 }
+    let(:provisioning_params) do
+      {
+        raevo_ai: {
+          clinic_id: 'clinic-demo',
+          command_token: command_token,
+          board_key: 'consulta',
+          board_id: board.id,
+          initial_stage_id: qualification.id,
+          stages_json: {
+            qualified: { stage_id: qualification.id, allowed_from: [] }
+          }.to_json
+        }
+      }
+    end
+
+    it 'shows the provisioning controls on the account detail page' do
+      sign_in(super_admin, scope: :super_admin)
+
+      get "/super_admin/accounts/#{account.id}"
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('RAEVO AI')
+      expect(response.body).to include('Provision AI')
+    end
+
+    it 'requires a Super Admin session' do
+      post "/super_admin/accounts/#{account.id}/provision_raevo_ai", params: provisioning_params
+
+      expect(response).to have_http_status(:redirect)
+      expect(account.raevo_ai_integration).to be_nil
+    end
+
+    it 'provisions the catalog and fields without enabling the account' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/provision_raevo_ai", params: provisioning_params
+
+      integration = account.reload.raevo_ai_integration
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(integration).to be_present
+      expect(integration).not_to be_enabled
+      expect(integration.settings.dig('crm', 'boards', 'consulta', 'board_id')).to eq(board.id)
+      expect(integration.settings['command_token_digest']).to eq(Digest::SHA256.hexdigest(command_token))
+      expect(board.reload.configured_custom_field_definitions.map { |field| field['key'] }).to include('raevo_ai_status')
+      expect(response.body).not_to include(command_token)
+    end
+
+    it 'rejects a non-object semantic stage catalog without creating an integration' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/provision_raevo_ai",
+           params: provisioning_params.deep_merge(raevo_ai: { stages_json: [{ stage_id: qualification.id }].to_json })
+
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(account.reload.raevo_ai_integration).to be_nil
+    end
+  end
+
+  describe 'POST /super_admin/accounts/{account_id}/activate_raevo_ai' do
+    let!(:integration) do
+      RaevoAiIntegration.create!(
+        account: account,
+        clinic_id: 'clinic-demo',
+        enabled: false,
+        settings: {
+          'command_token_digest' => Digest::SHA256.hexdigest('a' * 48),
+          'crm' => { 'boards' => { 'consulta' => { 'board_id' => 1, 'initial_stage_id' => 1, 'stages' => { 'qualified' => {} } } } },
+          'opportunity_ai_tab' => { 'enabled' => true, 'board_ids' => [1] }
+        }
+      )
+    end
+
+    it 'requires explicit confirmation before enabling the account' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/activate_raevo_ai"
+
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(integration.reload).not_to be_enabled
+    end
+
+    it 'enables a provisioned integration after the operator confirms the token is deployed' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/activate_raevo_ai", params: { token_deployed: '1' }
+
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(integration.reload).to be_enabled
+    end
+  end
+
   describe 'DELETE /super_admin/accounts/{account_id}' do
     context 'when it is an unauthenticated user' do
       it 'returns unauthorized' do

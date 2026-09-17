@@ -31,6 +31,13 @@
 
 en:
   hello: 'Hello world'
+  super_admin:
+    raevo_ai:
+      activated: 'RAEVO AI is active for this account.'
+      not_provisioned: 'RAEVO AI must be provisioned before activation.'
+      provisioned: 'RAEVO AI provisioned. Keep it inactive until the Volt token is deployed.'
+      provisioning_failed: 'RAEVO AI provisioning could not be completed.'
+      token_not_deployed: 'Confirm that the tenant command token is deployed in Volt before activation.'
   forms:
     submission_actions:
       attached_to_history: 'Form answered: %{form_name}. The answers are in the response record.'
