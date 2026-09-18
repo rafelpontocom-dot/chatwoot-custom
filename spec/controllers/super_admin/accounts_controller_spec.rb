@@ -298,6 +298,44 @@ RSpec.describe 'Super Admin accounts API', type: :request do
     end
   end
 
+  describe 'POST /super_admin/accounts/{account_id}/rotate_raevo_ai_command_token' do
+    let!(:integration) do
+      RaevoAiIntegration.create!(
+        account: account,
+        clinic_id: 'clinic-demo',
+        enabled: true,
+        settings: {
+          'command_token_digest' => Digest::SHA256.hexdigest('a' * 48),
+          'crm' => { 'boards' => { 'consulta' => { 'board_id' => 1, 'initial_stage_id' => 1, 'stages' => { 'qualified' => {} } } } },
+          'opportunity_ai_tab' => { 'enabled' => true, 'board_ids' => [1] }
+        }
+      )
+    end
+
+    it 'rotates the command token without disabling an active integration' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/rotate_raevo_ai_command_token",
+           params: { raevo_ai: { command_token: 'b' * 48, token_deployed: '1' } }
+
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(integration.reload).to be_enabled
+      expect(integration.settings.fetch('command_token_digest')).to eq(Digest::SHA256.hexdigest('b' * 48))
+      expect(integration.settings.dig('command_token_rotation', 'actor_ref')).to eq("super_admin:#{super_admin.id}")
+    end
+
+    it 'keeps the current token when deployment confirmation is missing' do
+      sign_in(super_admin, scope: :super_admin)
+      previous_digest = integration.settings.fetch('command_token_digest')
+
+      post "/super_admin/accounts/#{account.id}/rotate_raevo_ai_command_token",
+           params: { raevo_ai: { command_token: 'b' * 48 } }
+
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(integration.reload.settings.fetch('command_token_digest')).to eq(previous_digest)
+    end
+  end
+
   describe 'DELETE /super_admin/accounts/{account_id}' do
     context 'when it is an unauthenticated user' do
       it 'returns unauthorized' do

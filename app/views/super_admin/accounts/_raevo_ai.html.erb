@@ -10,6 +10,19 @@
 
   <% if integration&.enabled? %>
     <p class="text-sm text-n-teal-11">Active for <%= integration.clinic_id %>.</p>
+    <%= form_with scope: :raevo_ai, url: rotate_raevo_ai_command_token_super_admin_account_path(account), method: :post, class: 'form' do |form| %>
+      <div class="field-unit">
+        <%= form.label :command_token, t('super_admin.raevo_ai.command_token') %>
+        <%= form.password_field :command_token, required: true, autocomplete: 'new-password' %>
+      </div>
+      <div class="field-unit">
+        <%= form.check_box :token_deployed %>
+        <%= form.label :token_deployed, t('super_admin.raevo_ai.token_deployed_confirmation') %>
+      </div>
+      <div class="form-actions">
+        <%= form.submit t('super_admin.raevo_ai.rotate_command_token') %>
+      </div>
+    <% end %>
   <% elsif integration.present? && integration.settings['command_token_digest'].present? %>
     <p class="text-sm text-n-amber-11">Provisioned for <%= integration.clinic_id %>. Activate only after the tenant command token is deployed in Volt.</p>
     <h3 class="text-base text-n-slate-12"><%= t('super_admin.raevo_ai.stage_mapping') %></h3>
@@ -25,7 +38,7 @@
     <%= form_with url: activate_raevo_ai_super_admin_account_path(account), method: :post, class: 'form' do %>
       <div class="field-unit">
         <%= check_box_tag :token_deployed, '1', false, id: "token_deployed_#{account.id}" %>
-        <%= label_tag "token_deployed_#{account.id}", 'The tenant command token is deployed in Volt' %>
+        <%= label_tag "token_deployed_#{account.id}", t('super_admin.raevo_ai.token_deployed_confirmation') %>
       </div>
       <div class="form-actions">
         <%= submit_tag 'Activate AI', class: 'button' %>
@@ -39,7 +52,7 @@
         <%= form.text_field :clinic_id, required: true %>
       </div>
       <div class="field-unit">
-        <%= form.label :command_token, 'Tenant command token' %>
+        <%= form.label :command_token, t('super_admin.raevo_ai.command_token') %>
         <%= form.password_field :command_token, required: true, autocomplete: 'new-password' %>
       </div>
       <div class="field-unit">

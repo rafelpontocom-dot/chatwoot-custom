@@ -598,6 +598,9 @@ en:
   super_admin:
     raevo_ai:
       activated: 'RAEVO AI is active for this account.'
+      command_token: 'Tenant command token'
+      command_token_rotated: 'RAEVO AI command token rotated.'
+      command_token_rotation_failed: 'RAEVO AI command token could not be rotated.'
       not_provisioned: 'RAEVO AI must be provisioned before activation.'
       provisioned: 'RAEVO AI provisioned. Keep it inactive until the Volt token is deployed.'
       provisioning_failed: 'RAEVO AI provisioning could not be completed.'
@@ -608,6 +611,8 @@ en:
       save_stage_mapping: 'Save stage mapping'
       select_stage: 'Select a stage'
       token_not_deployed: 'Confirm that the tenant command token is deployed in Volt before activation.'
+      token_deployed_confirmation: 'The tenant command token is deployed in Volt'
+      rotate_command_token: 'Rotate command token'
       semantic_stage_events:
         new_lead: 'New lead'
         qualified: 'Qualified'
