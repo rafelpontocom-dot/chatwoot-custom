@@ -1,0 +1,107 @@
+# Direções
+
+Uma **direção** é um sistema de design completo — cor, forma, elevação,
+tipografia — expresso no mesmo formato que o sistema vigente. Fica aqui como
+proposta: desenhada, gerada, vista e medida, mas **não adotada**.
+
+| Direção | Estado | Ficheiros |
+| --- | --- | --- |
+| **H · Sereno** | vigente, aprovada 29/08/2026 | `../raevo.tokens.json` · `../reference.html` |
+| **N · Nitidez** | proposta | `nitidez.tokens.json` · `nitidez.html` · `nitidez.scss` |
+
+Abra o `.html` de cada uma no browser. Cada página está desenhada **com os
+próprios tokens que descreve**, por isso o que se vê é o sistema, não uma
+amostra dele.
+
+---
+
+## N · Nitidez
+
+### A tese
+
+Sereno otimiza para **calma**. Um posto de trabalho clínico otimiza para
+**varrer densidade e ler estado**.
+
+A regra 3 do Sereno — *"em repouso o espaço separa, não a sombra"* — é bonita e
+funciona num ecrã com poucos objetos. A quarenta cartões num quadro de Pipeline,
+ou sessenta faixas numa Agenda, separar só por espaço tem dois custos: gasta
+altura que não sobra, e deixa a fronteira do objeto por conta do intervalo —
+que ao varrer depressa se perde.
+
+Nitidez troca isso por **fio de contorno mais elevação mínima**, aperta os
+raios, aquece os neutros e assume 13px como corpo do trabalho operacional.
+
+### O que muda, e porquê
+
+| Decisão | Sereno | Nitidez | Razão |
+| --- | --- | --- | --- |
+| Neutros | ardósia fria (`#F7F8FA` → `#111827`) | pedra quente (`#F6F6F4` → `#1C1917`) | O frio somado ao azul dá ar de utilitário. O neutro quente devolve calor sem introduzir segundo acento, e faz o azul ler como decisão, não como temperatura do ecrã. |
+| Sombra em repouso | `shadow-sm: none` | `shadow-sm: 0 1px 2px / 5%` | O cartão volta a ser objeto discreto sem precisar de intervalo grande. Ganha-se altura de lista. |
+| Raio do cartão | 13px | **10px** | Raio grande pede respiro grande à volta. Apertar o raio deixa alinhar mais perto sem parecer apertado. |
+| Raio do controle | pílula | **8px** | A pílula desperdiça largura e, em dois controles adjacentes, borra onde acaba um e começa o outro. Fica reservada ao selo (`--raevo-radius-pill`), onde diz *"isto é rótulo, não botão"*. |
+| Corpo | 14px | **13px** (`text-sm`) | O Sereno já tinha `ui: 13px`, mas **proibido fora da agenda densa**. Nitidez assume o que a prática já mostrava: o produto é operacional, e 13px é a medida dele. A escala inteira aperta (11 · 12 · 13 · 15 · 19 · 28). |
+| Paleta de etapas | `#2563EB #0F9D8F #B45309 #A21CAF` | **igual** | Ver abaixo. |
+
+### Porque a paleta de etapas não muda
+
+Procurei substituta e **todas mediram pior**. Treze candidatas passaram pelo
+`scripts/validate_palette.js`:
+
+- verde + magenta colapsa em **ΔE 1,1** em deuteranopia (`#059669` ↔ `#DB2777`);
+- `#0E7490` tem croma 0,094 — abaixo do piso, lê cinzento;
+- `#3730A3` cai fora da banda de luminosidade (L 0,398);
+- as duas melhores alternativas completas ficaram em **ΔE 6,9 e 7,2** — dentro
+  da faixa de piso 6–8, que o validador só aceita com codificação secundária.
+
+A paleta vigente mede **ΔE 9,7**. O par que a limita é sempre
+`#A21CAF ↔ #2563EB`: azul e magenta são as âncoras, e mexer no teal ou no âmbar
+não move o pior par. Acrescente-se que estas cores são **dado gravado em banco
+de produção** — trocá-las é migração, não decisão de estilo.
+
+Manter foi a escolha medida, não a preguiçosa.
+
+### Ver
+
+```bash
+open design-system/directions/nitidez.html      # a direção, desenhada em si mesma
+open design-system/reference.html               # a vigente, para comparar
+```
+
+### Adotar
+
+`nitidez.scss` é **drop-in**: redefine as mesmas custom properties que
+`_raevo-tokens.scss`, fica fora de `@layer` pela mesma razão, e por isso um
+`git pull` do Chatwoot continua sem desfazer a identidade.
+
+1. Em `_woot.scss`, troque o import de `_raevo-tokens` por esta folha.
+2. Em `tailwind.config.js`, aplique `shape.radius.tailwind`, `shadow.tailwind` e
+   `typography.extras` do JSON da direção.
+3. Rode `pnpm raevo:design` e `pnpm raevo:tokens`.
+4. Percorra Pipeline, Agenda, Financeiro e Formulários a 1280px, claro e escuro.
+
+Reverter é desfazer os passos 1 e 2. Nenhum componente precisa de mudar: é essa
+a razão de a regra 1 existir.
+
+> **Nota sobre tipo.** Plus Jakarta Sans mantém-se. Trocar de tipo é decisão de
+> infraestrutura — ficheiros, licença, peso de carregamento — e não pertence a
+> uma camada de tokens. Fica por decidir à parte.
+
+---
+
+## Criar outra direção
+
+```bash
+# 1. escreva o conjunto de tokens
+cp nitidez.tokens.json outra.tokens.json && $EDITOR outra.tokens.json
+
+# 2. gere os artefactos
+node scripts/design-tokens.mjs scss      outra.tokens.json design-system/directions/outra.scss
+node scripts/design-tokens.mjs reference outra.tokens.json design-system/directions/outra.html
+
+# 3. se mexeu na paleta de etapas, meça
+pnpm raevo:palette
+```
+
+`pnpm raevo:tokens` falha se o `.scss` ou o `.html` de qualquer direção ficar
+para trás do seu JSON — uma direção desatualizada mostra um sistema que já não
+existe, e isso é pior do que não a mostrar.

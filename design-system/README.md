@@ -76,15 +76,23 @@ A porta cobre justamente esse erro: se os quatro lugares deixarem de concordar,
 | --- | --- |
 | `raevo.tokens.json` | os tokens extraídos do código — cor (rampas e semânticos, claro e escuro), etapas, forma, sombra, tipografia |
 | `reference.html` | referência viva, **gerada** do JSON. Abra no browser; tem alternador de tema |
+| `directions/` | sistemas de design propostos, completos e vistos — hoje **N · Nitidez**. Ver [`directions/README.md`](./directions/README.md) |
 | `../scripts/design-tokens.mjs` | extrai, verifica e gera |
 | `../docs/raevo-design-system.md` | a especificação: padrões de tela, regras de uso, checklist de PR |
 
 `reference.html` é gerado — não edite à mão. Se um valor lá está errado, o erro
 está no sistema, não na página.
 
-## O que isto **não** é
+## Trocar de direção
 
-Não é um redesign. Nenhum pixel mudou: a extração foi conferida contra o código
+Com o sistema em dado, uma identidade nova é um conjunto de tokens e dois
+comandos — não uma arqueologia pelas quatro cópias de cada valor. A primeira
+está em [`directions/`](./directions/README.md): **N · Nitidez**, completa,
+gerada e medida. Trocar é um import; reverter é desfazê-lo.
+
+## O que a extração **não** é
+
+A extração não é um redesign. Nenhum pixel mudou: a extração foi conferida contra o código
 e a porta passa limpa. É a arquitetura que faltava para que um redesign futuro
 seja possível sem arqueologia — hoje trocar a identidade significa achar as
 quatro cópias de cada valor à mão.
