@@ -28,6 +28,7 @@ Agora existe um arquivo só como fonte da verdade declarada — **`raevo.tokens.
 pnpm raevo:tokens             # falha se o código divergir do JSON
 pnpm raevo:tokens:extract     # regrava o JSON a partir do código
 pnpm raevo:tokens:reference   # regera reference.html
+pnpm raevo:tokens:mockup      # regera mockup.html (componentes e telas)
 ```
 
 `pnpm raevo:tokens` roda em CI (`custom_checks.yml`, job `lint-frontend`), junto
@@ -75,7 +76,8 @@ A porta cobre justamente esse erro: se os quatro lugares deixarem de concordar,
 | Arquivo | O que é |
 | --- | --- |
 | `raevo.tokens.json` | os tokens extraídos do código — cor (rampas e semânticos, claro e escuro), etapas, forma, sombra, tipografia |
-| `reference.html` | referência viva, **gerada** do JSON. Abra no browser; tem alternador de tema |
+| `reference.html` | inventário de tokens, **gerado** do JSON. Abra no browser; tem alternador de tema |
+| `mockup.html` | **componentes e telas** — botão, campo, selo, cartão, tabela, diálogo, estados, e Pipeline/Financeiro/Agenda desenhados com os tokens |
 | `directions/` | sistemas de design propostos, completos e vistos — hoje **N · Nitidez**. Ver [`directions/README.md`](./directions/README.md) |
 | `../scripts/design-tokens.mjs` | extrai, verifica e gera |
 | `../docs/raevo-design-system.md` | a especificação: padrões de tela, regras de uso, checklist de PR |

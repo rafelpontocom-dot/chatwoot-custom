@@ -6,12 +6,29 @@ proposta: desenhada, gerada, vista e medida, mas **não adotada**.
 
 | Direção | Estado | Ficheiros |
 | --- | --- | --- |
-| **H · Sereno** | vigente, aprovada 29/08/2026 | `../raevo.tokens.json` · `../reference.html` |
-| **N · Nitidez** | proposta | `nitidez.tokens.json` · `nitidez.html` · `nitidez.scss` |
+| **H · Sereno** | vigente, aprovada 29/08/2026 | `../raevo.tokens.json` · `../reference.html` · **`../mockup.html`** |
+| **N · Nitidez** | proposta | `nitidez.tokens.json` · `nitidez.html` · `nitidez.scss` · **`nitidez-mockup.html`** |
 
-Abra o `.html` de cada uma no browser. Cada página está desenhada **com os
-próprios tokens que descreve**, por isso o que se vê é o sistema, não uma
-amostra dele.
+Cada direção tem duas páginas, e são coisas diferentes:
+
+- **`*-mockup.html` — é aqui que se decide.** Os componentes (botão, campo, selo,
+  cartão, tabela, abas, menu, diálogo, estados vazio/carregando/erro) e as telas
+  do produto (Pipeline, Financeiro, Agenda) desenhados com aquele conjunto.
+- **`reference.html` / `nitidez.html`** — o inventário de tokens: rampas,
+  semânticos, escala de forma, sombra e tipografia.
+
+Ambas estão desenhadas **com os próprios tokens que descrevem**, por isso o que
+se vê é o sistema a funcionar, não uma amostra dele.
+
+### A prova
+
+Os dois mockups são **a mesma marcação**. O gerador é um só
+(`scripts/design-mockup.mjs`), e nenhuma regra de CSS dele escreve cor, raio ou
+sombra literal — tudo sai de `var()`. Abra os dois lado a lado: muda a cara,
+não muda um componente.
+
+É essa a razão de a regra 1 existir. Se um componente escrevesse `bg-[#2563EB]`,
+esta comparação seria impossível e trocar de direção seria reescrever o produto.
 
 ---
 
@@ -63,8 +80,13 @@ Manter foi a escolha medida, não a preguiçosa.
 ### Ver
 
 ```bash
-open design-system/directions/nitidez.html      # a direção, desenhada em si mesma
-open design-system/reference.html               # a vigente, para comparar
+# os componentes e as telas — é aqui que se decide
+open design-system/directions/nitidez-mockup.html
+open design-system/mockup.html                  # a vigente, mesma marcação
+
+# o inventário de tokens
+open design-system/directions/nitidez.html
+open design-system/reference.html
 ```
 
 ### Adotar
@@ -97,6 +119,7 @@ cp nitidez.tokens.json outra.tokens.json && $EDITOR outra.tokens.json
 # 2. gere os artefactos
 node scripts/design-tokens.mjs scss      outra.tokens.json design-system/directions/outra.scss
 node scripts/design-tokens.mjs reference outra.tokens.json design-system/directions/outra.html
+node scripts/design-mockup.mjs            outra.tokens.json design-system/directions/outra-mockup.html
 
 # 3. se mexeu na paleta de etapas, meça
 pnpm raevo:palette

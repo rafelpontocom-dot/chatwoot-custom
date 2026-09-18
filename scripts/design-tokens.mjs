@@ -27,6 +27,7 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mockup } from './design-mockup.mjs';
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const P = {
@@ -36,6 +37,7 @@ const P = {
   pkg: 'package.json',
   tokens: 'design-system/raevo.tokens.json',
   reference: 'design-system/reference.html',
+  mockup: 'design-system/mockup.html',
   directions: 'design-system/directions',
 };
 const ler = rel => readFileSync(resolve(RAIZ, rel), 'utf8');
@@ -602,10 +604,14 @@ if (comando === 'extract') {
   // volta a ser uma página que afirma valores que o produto já não usa — o
   // problema que este arquivo existe para acabar.
   let referenciaVelha = false;
+  let mockupVelho = false;
   try {
-    referenciaVelha = ler(P.reference) !== referencia(JSON.parse(ler(P.tokens)), P.tokens);
+    const t = JSON.parse(ler(P.tokens));
+    referenciaVelha = ler(P.reference) !== referencia(t, P.tokens);
+    mockupVelho = ler(P.mockup) !== mockup(t, P.tokens);
   } catch {
     referenciaVelha = true;
+    mockupVelho = true;
   }
 
   for (const f of falhas) console.error(`✗ ${f}`);
@@ -623,11 +629,12 @@ if (comando === 'extract') {
       const origem = `${P.directions}/${f}`;
       const t = JSON.parse(ler(origem));
       const base = f.replace(/\.tokens\.json$/, '');
-      for (const [ext, gerar] of [
-        ['html', () => referencia(t, origem)],
-        ['scss', () => folha(t, origem)],
+      for (const [suf, gerar] of [
+        ['.html', () => referencia(t, origem)],
+        ['.scss', () => folha(t, origem)],
+        ['-mockup.html', () => mockup(t, origem)],
       ]) {
-        const alvo = `${P.directions}/${base}.${ext}`;
+        const alvo = `${P.directions}/${base}${suf}`;
         try {
           if (ler(alvo) !== gerar()) direcoesVelhas.push(alvo);
         } catch {
@@ -647,11 +654,20 @@ if (comando === 'extract') {
     console.error(
       `✗ ${P.reference} está desatualizada — rode \`pnpm raevo:tokens:reference\``
     );
+  if (mockupVelho)
+    console.error(`✗ ${P.mockup} está desatualizado — rode \`pnpm raevo:tokens:mockup\``);
 
-  if (falhas.length || deriva.length || referenciaVelha || direcoesVelhas.length) {
+  if (
+    falhas.length ||
+    deriva.length ||
+    referenciaVelha ||
+    mockupVelho ||
+    direcoesVelhas.length
+  ) {
     console.error(
       `\n${falhas.length} invariante(s) quebrada(s), ${deriva.length} desvio(s) do JSON` +
         `${referenciaVelha ? ', referência desatualizada' : ''}` +
+        `${mockupVelho ? ', mockup desatualizado' : ''}` +
         `${direcoesVelhas.length ? `, ${direcoesVelhas.length} artefacto(s) de direção obsoleto(s)` : ''}.`
     );
     // Uma invariante quebrada é um erro no código — `extract` só a copiaria para

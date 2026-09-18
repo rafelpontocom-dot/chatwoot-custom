@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="pt"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raevo · H · Sereno — componentes e telas</title>
+<style>
+
+    :root {
+      --slate-1: 251 252 253;
+    --slate-2: 247 248 250;
+    --slate-3: 242 244 247;
+    --slate-4: 238 240 244;
+    --slate-5: 233 235 239;
+    --slate-6: 228 231 236;
+    --slate-7: 220 223 229;
+    --slate-8: 199 205 214;
+    --slate-9: 152 160 174;
+    --slate-10: 122 130 143;
+    --slate-11: 75 85 99;
+    --slate-12: 17 24 39;
+    --gray-1: 251 252 253;
+    --gray-2: 247 248 250;
+    --gray-3: 242 244 247;
+    --gray-4: 238 240 244;
+    --gray-5: 233 235 239;
+    --gray-6: 228 231 236;
+    --gray-7: 220 223 229;
+    --gray-8: 199 205 214;
+    --gray-9: 152 160 174;
+    --gray-10: 122 130 143;
+    --gray-11: 75 85 99;
+    --gray-12: 17 24 39;
+    --blue-1: 252 253 255;
+    --blue-2: 248 250 255;
+    --blue-3: 239 244 255;
+    --blue-4: 220 230 255;
+    --blue-5: 200 217 254;
+    --blue-6: 191 210 254;
+    --blue-7: 155 182 250;
+    --blue-8: 116 152 246;
+    --blue-9: 37 99 235;
+    --blue-10: 29 87 216;
+    --blue-11: 29 79 215;
+    --blue-12: 23 48 107;
+    --iris-3: 239 244 255;
+    --iris-9: 37 99 235;
+    --iris-11: 29 79 215;
+    --violet-3: 244 238 253;
+    --violet-9: 162 28 175;
+    --violet-11: 134 25 143;
+    --teal-1: 250 254 252;
+    --teal-2: 244 251 248;
+    --teal-3: 230 246 238;
+    --teal-4: 209 238 225;
+    --teal-5: 183 227 208;
+    --teal-6: 150 212 187;
+    --teal-7: 106 192 163;
+    --teal-8: 45 168 137;
+    --teal-9: 15 157 143;
+    --teal-10: 13 138 118;
+    --teal-11: 11 107 75;
+    --teal-12: 6 60 43;
+    --amber-1: 255 253 249;
+    --amber-2: 255 250 240;
+    --amber-3: 254 244 226;
+    --amber-4: 253 233 199;
+    --amber-5: 251 219 168;
+    --amber-6: 247 201 137;
+    --amber-7: 238 178 104;
+    --amber-8: 223 146 55;
+    --amber-9: 180 83 9;
+    --amber-10: 160 74 8;
+    --amber-11: 147 97 10;
+    --amber-12: 66 41 5;
+    --ruby-1: 255 252 252;
+    --ruby-2: 255 248 248;
+    --ruby-3: 254 236 236;
+    --ruby-4: 253 221 221;
+    --ruby-5: 250 205 205;
+    --ruby-6: 243 201 201;
+    --ruby-7: 235 170 170;
+    --ruby-8: 227 133 133;
+    --ruby-9: 220 38 38;
+    --ruby-10: 197 34 34;
+    --ruby-11: 180 35 24;
+    --ruby-12: 96 20 16;
+      --brand-color: 37 99 235;
+    --background-color: 247 248 250;
+    --surface-1: 255 255 255;
+    --surface-2: 255 255 255;
+    --surface-active: 239 244 255;
+    --solid-1: 255 255 255;
+    --solid-2: 255 255 255;
+    --solid-3: 255 255 255;
+    --solid-active: 239 244 255;
+    --card-color: 255 255 255;
+    --border-weak: 233 235 239;
+    --border-strong: 220 223 229;
+    --border-container: 233 235 239;
+    --border-blue-strong: 37 99 235;
+    --border-blue: 37, 99, 235, 0.45;
+    --text-blue: 23 48 107;
+    --text-purple: 88 28 135;
+    --text-amber: 66 41 5;
+    --solid-blue: 239 244 255;
+    --solid-blue-2: 248 250 255;
+    --solid-amber: 254 244 226;
+    --solid-amber-button: 253 233 199;
+    --solid-red: 254 236 236;
+    --solid-iris: 239 244 255;
+    --solid-purple: 244 238 253;
+    --label-background: 242 244 247;
+    --label-border: 17, 24, 39, 0.06;
+    --button-color: 255 255 255;
+    --button-hover-color: 255, 255, 255, 0.16;
+    --background-input-box: 17, 24, 39, 0.02;
+    --alpha-1: 233, 235, 239, 0.5;
+    --alpha-2: 242, 244, 247, 0.85;
+    --alpha-3: 255, 255, 255, 0.96;
+    --black-alpha-1: 17, 24, 39, 0.10;
+    --black-alpha-2: 17, 24, 39, 0.04;
+    --white-alpha: 255, 255, 255, 0.8;
+    --overlay: 17, 24, 39, 0.32;
+    --overlay-avatar: 255, 255, 255, 0.67;
+      --raevo-radius-card: 13px;
+    --raevo-radius-item: 11px;
+    --raevo-radius-control: 9999px;
+      --raevo-shadow-rest: none;
+    --raevo-shadow-hover: 0 2px 8px rgb(17 24 39 / 6%);
+    --raevo-shadow-float: 0 12px 34px rgb(17 24 39 / 10%);
+      --raevo-stage-1: 37 99 235;
+    --raevo-stage-2: 15 157 143;
+    --raevo-stage-3: 180 83 9;
+    --raevo-stage-4: 162 28 175;
+    --raevo-stage-5: 152 160 174;
+      --raevo-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    [data-tema="dark"] {
+      --slate-1: 20 23 28;
+    --slate-2: 24 28 34;
+    --slate-3: 30 35 43;
+    --slate-4: 35 40 49;
+    --slate-5: 38 43 51;
+    --slate-6: 45 51 61;
+    --slate-7: 51 58 68;
+    --slate-8: 72 80 92;
+    --slate-9: 108 116 130;
+    --slate-10: 133 141 154;
+    --slate-11: 160 167 180;
+    --slate-12: 232 234 238;
+    --gray-1: 20 23 28;
+    --gray-2: 24 28 34;
+    --gray-3: 30 35 43;
+    --gray-4: 35 40 49;
+    --gray-5: 38 43 51;
+    --gray-6: 45 51 61;
+    --gray-7: 51 58 68;
+    --gray-8: 72 80 92;
+    --gray-9: 108 116 130;
+    --gray-10: 133 141 154;
+    --gray-11: 160 167 180;
+    --gray-12: 232 234 238;
+    --blue-3: 27 39 64;
+    --blue-4: 32 49 84;
+    --blue-6: 45 68 116;
+    --blue-9: 91 141 239;
+    --blue-10: 110 156 243;
+    --blue-11: 147 182 247;
+    --blue-12: 219 232 255;
+    --teal-3: 15 45 40;
+    --teal-9: 32 178 158;
+    --teal-11: 106 216 194;
+    --amber-3: 56 38 12;
+    --amber-9: 214 141 47;
+    --amber-11: 240 186 106;
+    --ruby-3: 61 26 26;
+    --ruby-6: 96 44 44;
+    --ruby-9: 239 83 80;
+    --ruby-11: 248 145 142;
+    --violet-9: 192 88 205;
+    --violet-11: 216 148 226;
+      --brand-color: 91 141 239;
+    --background-color: 15 17 21;
+    --surface-1: 22 26 32;
+    --surface-2: 26 31 38;
+    --surface-active: 27 39 64;
+    --solid-1: 22 26 32;
+    --solid-2: 26 31 38;
+    --solid-3: 30 35 43;
+    --solid-active: 27 39 64;
+    --card-color: 26 31 38;
+    --border-weak: 38 43 51;
+    --border-strong: 51 58 68;
+    --border-container: 38 43 51;
+    --border-blue-strong: 91 141 239;
+    --border-blue: 91, 141, 239, 0.45;
+    --text-blue: 219 232 255;
+    --text-purple: 236 209 242;
+    --text-amber: 250 226 186;
+    --solid-blue: 27 39 64;
+    --solid-blue-2: 22 30 46;
+    --solid-amber: 56 38 12;
+    --solid-amber-button: 82 56 18;
+    --solid-red: 61 26 26;
+    --solid-iris: 27 39 64;
+    --solid-purple: 48 26 56;
+    --label-background: 30 35 43;
+    --label-border: 255, 255, 255, 0.08;
+    --button-color: 232 234 238;
+    --button-hover-color: 255, 255, 255, 0.10;
+    --background-input-box: 255, 255, 255, 0.04;
+    --alpha-1: 38, 43, 51, 0.6;
+    --alpha-2: 30, 35, 43, 0.9;
+    --alpha-3: 22, 26, 32, 0.96;
+    --black-alpha-1: 0, 0, 0, 0.4;
+    --black-alpha-2: 0, 0, 0, 0.24;
+    --white-alpha: 255, 255, 255, 0.08;
+    --overlay: 0, 0, 0, 0.6;
+      --raevo-shadow-hover: 0 2px 10px rgb(0 0 0 / 40%);
+    --raevo-shadow-float: 0 14px 38px rgb(0 0 0 / 52%);
+      --raevo-stage-1: 91 141 239;
+    --raevo-stage-2: 32 178 158;
+    --raevo-stage-3: 214 141 47;
+    --raevo-stage-4: 192 88 205;
+    --raevo-stage-5: 133 141 154;
+    }
+
+  /* Nada abaixo escreve cor, raio ou sombra literal. Tudo sai de var(). */
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; background: rgb(var(--background-color)); color: rgb(var(--slate-12));
+    font-family: var(--raevo-font-sans); font-size: 14px; line-height: 1.55;
+  }
+  .env { max-width: 1280px; margin: 0 auto; padding: 0 24px 72px; }
+  header.topo {
+    position: sticky; top: 0; z-index: 5; background: rgb(var(--background-color));
+    border-bottom: 1px solid rgb(var(--border-weak)); padding: 14px 24px;
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; margin: 44px 0 4px; letter-spacing: -0.01em; }
+  h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+       color: rgb(var(--slate-10)); margin: 26px 0 10px; font-weight: 600; }
+  h4 { font-size: 14px; margin: 0; font-weight: 600; }
+  .meta { color: rgb(var(--slate-10)); font-size: 12px; }
+  .linha { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .painel {
+    background: rgb(var(--card-color)); border: 1px solid rgb(var(--border-weak));
+    border-radius: var(--raevo-radius-card); box-shadow: var(--raevo-shadow-rest);
+    padding: 18px;
+  }
+
+  /* --- botão --- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; font: inherit; font-weight: 550;
+    padding: 8px 15px; border-radius: var(--raevo-radius-control); cursor: pointer;
+    border: 1px solid transparent; background: none; color: rgb(var(--slate-12));
+    box-shadow: var(--raevo-shadow-rest);
+  }
+  .btn svg { width: 15px; height: 15px; flex: none; }
+  .btn--primario { background: rgb(var(--brand-color)); color: rgb(var(--solid-1)); }
+  .btn--secundario { background: rgb(var(--solid-1)); border-color: rgb(var(--border-strong)); }
+  .btn--fantasma { color: rgb(var(--slate-11)); box-shadow: none; }
+  .btn--perigo { background: rgb(var(--ruby-9)); color: rgb(var(--solid-1)); }
+  .btn--foco { outline: 2px solid rgb(var(--brand-color)); outline-offset: 2px; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn--bloco { width: 100%; justify-content: center; color: rgb(var(--slate-10)); }
+  .btn--peq { padding: 5px 11px; font-size: 12px; }
+
+  /* --- campo (rótulo acima, campo abaixo — regra 7) --- */
+  .campo { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .campo__rotulo { font-size: 12px; font-weight: 600; color: rgb(var(--slate-11)); }
+  .ctrl {
+    font: inherit; width: 100%; padding: 8px 11px; color: rgb(var(--slate-12));
+    background: rgb(var(--solid-1)); border: 1px solid rgb(var(--border-strong));
+    border-radius: var(--raevo-radius-control);
+  }
+  textarea.ctrl { border-radius: var(--raevo-radius-item); resize: vertical; min-height: 74px; }
+  .ctrl--erro { border-color: rgb(var(--ruby-9)); }
+  .ctrl[disabled] { background: rgb(var(--slate-3)); color: rgb(var(--slate-9)); }
+  .campo__dica { margin: 0; font-size: 12px; color: rgb(var(--slate-10)); }
+  .campo__erro {
+    margin: 0; font-size: 12px; color: rgb(var(--ruby-11));
+    display: flex; align-items: center; gap: 5px;
+  }
+  .campo__erro svg { width: 13px; height: 13px; flex: none; }
+
+  /* --- selo: cor + ícone + texto (regra 5, WCAG 2.2) --- */
+  .selo {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
+    font-weight: 600; padding: 3px 9px; border-radius: var(--raevo-radius-pill, 9999px);
+  }
+  .selo svg { width: 13px; height: 13px; flex: none; }
+  .selo--teal  { background: rgb(var(--teal-3));  color: rgb(var(--teal-11)); }
+  .selo--amber { background: rgb(var(--amber-3)); color: rgb(var(--amber-11)); }
+  .selo--ruby  { background: rgb(var(--ruby-3));  color: rgb(var(--ruby-11)); }
+  .selo--slate { background: rgb(var(--slate-3)); color: rgb(var(--slate-11)); }
+
+  /* --- quadro --- */
+  .quadro { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; }
+  .coluna {
+    background: rgb(var(--slate-2)); border: 1px solid rgb(var(--border-weak));
+    border-radius: var(--raevo-radius-card); padding: 10px; display: flex;
+    flex-direction: column; gap: 8px;
+  }
+  .coluna__cab { display: flex; justify-content: space-between; align-items: center; padding: 2px 3px 6px; }
+  .etapa { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 12px; }
+  .etapa__ponto { width: 9px; height: 9px; border-radius: 9999px; flex: none; }
+  .conta {
+    font-size: 11px; font-weight: 600; color: rgb(var(--slate-10));
+    background: rgb(var(--slate-4)); border-radius: 9999px; padding: 1px 7px;
+  }
+  .cartao {
+    position: relative; background: rgb(var(--card-color)); padding: 11px 12px 11px 15px;
+    border: 1px solid rgb(var(--border-weak)); border-radius: var(--raevo-radius-item);
+    box-shadow: var(--raevo-shadow-rest); overflow: hidden; cursor: grab;
+  }
+  .cartao:focus-visible { outline: 2px solid rgb(var(--brand-color)); outline-offset: 2px; }
+  .cartao__faixa { position: absolute; inset: 0 auto 0 0; width: 3px; }
+  .cartao__proc { margin: 2px 0 9px; font-size: 12px; color: rgb(var(--slate-10)); }
+  .cartao__pe { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .cartao__pe strong { font-size: 14px; }
+  .cartao__quando {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: rgb(var(--slate-10));
+  }
+  .cartao__quando svg { width: 12px; height: 12px; }
+
+  /* --- tabela --- */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .06em; color: rgb(var(--slate-10)); font-weight: 600;
+    padding: 9px 12px; border-bottom: 1px solid rgb(var(--border-weak));
+  }
+  td { padding: 11px 12px; border-bottom: 1px solid rgb(var(--border-weak)); }
+  tbody tr:nth-child(even) { background: rgb(var(--slate-2)); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* --- abas --- */
+  .abas { display: flex; gap: 3px; border-bottom: 1px solid rgb(var(--border-weak)); }
+  .aba {
+    font: inherit; padding: 8px 13px; border: 0; background: none; cursor: pointer;
+    color: rgb(var(--slate-10)); border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .aba[aria-selected="true"] { color: rgb(var(--slate-12)); font-weight: 600;
+    border-bottom-color: rgb(var(--brand-color)); }
+
+  /* --- diálogo / menu --- */
+  .dialogo {
+    background: rgb(var(--card-color)); border: 1px solid rgb(var(--border-weak));
+    border-radius: var(--raevo-radius-card); box-shadow: var(--raevo-shadow-float);
+    max-width: 440px; overflow: hidden;
+  }
+  .dialogo__cab { display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 18px; border-bottom: 1px solid rgb(var(--border-weak)); }
+  .dialogo__corpo { padding: 18px; }
+  .dialogo__pe { display: flex; justify-content: flex-end; gap: 8px; padding: 13px 18px;
+    background: rgb(var(--slate-2)); border-top: 1px solid rgb(var(--border-weak)); }
+  .menu {
+    background: rgb(var(--card-color)); border: 1px solid rgb(var(--border-weak));
+    border-radius: var(--raevo-radius-item); box-shadow: var(--raevo-shadow-float);
+    padding: 5px; width: 210px;
+  }
+  .menu__item { display: flex; align-items: center; gap: 9px; padding: 7px 10px;
+    border-radius: calc(var(--raevo-radius-item) - 3px); cursor: pointer; }
+  .menu__item svg { width: 15px; height: 15px; color: rgb(var(--slate-10)); }
+  .menu__item--ativo { background: rgb(var(--surface-active)); }
+
+  /* --- estados --- */
+  .estado { text-align: center; padding: 34px 18px; }
+  .estado svg { width: 30px; height: 30px; color: rgb(var(--slate-9)); }
+  .estado h4 { margin: 11px 0 3px; }
+  .estado p { margin: 0 0 14px; color: rgb(var(--slate-10)); font-size: 12px; }
+  .esqueleto { background: rgb(var(--slate-3)); border-radius: var(--raevo-radius-item);
+    height: 13px; margin-bottom: 8px; }
+
+  /* align-items:start para um painel curto nao esticar ate a altura do vizinho. */
+  .grade2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px; align-items: start; }
+  .agenda { display: grid; grid-template-columns: 62px 1fr; gap: 0; }
+  .agenda__h { font-size: 11px; color: rgb(var(--slate-10)); padding: 9px 9px 0 0;
+    text-align: right; border-top: 1px solid rgb(var(--border-weak)); }
+  .agenda__f { border-top: 1px solid rgb(var(--border-weak)); padding: 5px 0; min-height: 46px; }
+  .marcacao { border-left: 3px solid; border-radius: var(--raevo-radius-item);
+    padding: 6px 10px; margin-bottom: 4px; background: rgb(var(--solid-1));
+    border-top: 1px solid rgb(var(--border-weak)); border-right: 1px solid rgb(var(--border-weak));
+    border-bottom: 1px solid rgb(var(--border-weak)); box-shadow: var(--raevo-shadow-rest); }
+  .marcacao b { display: block; font-size: 12px; }
+  .marcacao span { font-size: 11px; color: rgb(var(--slate-10)); }
+  @media (max-width: 900px) { .quadro, .grade2 { grid-template-columns: 1fr; }
+    .env, header.topo { padding-left: 16px; padding-right: 16px; } }
+</style></head>
+<body>
+<header class="topo">
+  <h1>Raevo · H · Sereno</h1>
+  <span class="meta">aprovado 2026-08-29
+    · mesma marcação, tokens de <code>design-system/raevo.tokens.json</code></span>
+  <button class="btn btn--secundario btn--peq" id="tema" type="button">Alternar tema</button>
+</header>
+<div class="env">
+
+  <h2>Componentes</h2>
+  <p class="meta">Nenhuma regra desta página escreve cor, raio ou sombra literal —
+  tudo sai de <code>var()</code>. É por isso que trocar a direção não reescreve componente.</p>
+
+  <h3>Botão</h3>
+  <div class="painel linha">
+    <button class="btn btn--primario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Confirmar</button>
+    <button class="btn btn--secundario">Cancelar</button>
+    <button class="btn btn--fantasma"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg> Filtros</button>
+    <button class="btn btn--perigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Estornar</button>
+    <button class="btn btn--secundario btn--foco">Com foco</button>
+    <button class="btn btn--secundario" disabled>Desativado</button>
+    <button class="btn btn--primario btn--peq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Pequeno</button>
+  </div>
+
+  <h3>Campo</h3>
+  <div class="painel grade2">
+    <div>
+      
+  <div class="campo">
+    <label class="campo__rotulo">Nome do doente</label>
+    <input class="ctrl" value="Ana Beatriz Mendes">
+    
+    
+  </div>
+      
+  <div class="campo">
+    <label class="campo__rotulo">Procedimento</label>
+    <select class="ctrl"><option>Implante unitário</option></select>
+    
+    
+  </div>
+      
+  <div class="campo">
+    <label class="campo__rotulo">Valor</label>
+    <input class="ctrl" value="R$ 4.800,00">
+    <p class="campo__dica">Sem imposto. O recibo é emitido à parte.</p>
+    
+  </div>
+    </div>
+    <div>
+      
+  <div class="campo">
+    <label class="campo__rotulo">Telemóvel</label>
+    <input class="ctrl ctrl--erro" value="+351 91">
+    
+    <p class="campo__erro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Número incompleto — faltam 7 dígitos.</p>
+  </div>
+      
+  <div class="campo">
+    <label class="campo__rotulo">Observação</label>
+    <textarea class="ctrl">Prefere manhã.</textarea>
+    
+    
+  </div>
+      
+  <div class="campo">
+    <label class="campo__rotulo">Conta</label>
+    <input class="ctrl" value="Clínica Raevo" disabled>
+    
+    
+  </div>
+    </div>
+  </div>
+
+  <h3>Selo de estado — cor + ícone + texto</h3>
+  <div class="painel linha"><span class="selo selo--teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Recebido</span><span class="selo selo--amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>A vencer</span><span class="selo selo--ruby"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Vencido</span><span class="selo selo--slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Rascunho</span>
+    <span class="meta">Nunca só cor: a regra 5 é requisito WCAG 2.2, não gosto.</span>
+  </div>
+
+  <h3>Abas · menu · diálogo</h3>
+  <div class="grade2">
+    <div class="painel" style="padding:0">
+      <div class="abas" role="tablist">
+        <button class="aba" role="tab" aria-selected="true">Quadro</button>
+        <button class="aba" role="tab" aria-selected="false">Lista</button>
+        <button class="aba" role="tab" aria-selected="false">Automações</button>
+      </div>
+      <div style="padding:16px">
+        <div class="menu">
+          <div class="menu__item menu__item--ativo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Atribuir responsável</div>
+          <div class="menu__item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Marcar avaliação</div>
+          <div class="menu__item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar oportunidade</div>
+        </div>
+      </div>
+    </div>
+    <div class="dialogo">
+      <div class="dialogo__cab"><h4>Nova cobrança</h4>
+        <button class="btn btn--fantasma btn--peq" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div class="dialogo__corpo">
+        
+  <div class="campo">
+    <label class="campo__rotulo">Doente</label>
+    <input class="ctrl" value="Marta Ribeiro">
+    
+    
+  </div>
+        
+  <div class="campo">
+    <label class="campo__rotulo">Vencimento</label>
+    <input class="ctrl" value="20/09/2026">
+    
+    
+  </div>
+      </div>
+      <div class="dialogo__pe">
+        <button class="btn btn--secundario">Cancelar</button>
+        <button class="btn btn--primario">Criar cobrança</button>
+      </div>
+    </div>
+  </div>
+
+  <h3>Vazio · a carregar · erro</h3>
+  <div class="grade2">
+    <div class="painel estado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7"/><path d="M3 7l9-4 9 4-9 4-9-4Z"/></svg><h4>Nenhuma oportunidade nesta etapa</h4>
+      <p>Arraste um cartão para cá, ou crie a primeira.</p>
+      <button class="btn btn--secundario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nova oportunidade</button></div>
+    <div class="painel">
+      <div class="esqueleto" style="width:56%"></div>
+      <div class="esqueleto" style="width:88%"></div>
+      <div class="esqueleto" style="width:38%"></div>
+    </div>
+  </div>
+  <div class="painel estado" style="margin-top:18px">
+    <span style="color:rgb(var(--ruby-9))"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
+    <h4>Não foi possível carregar sua fila de trabalho</h4>
+    <p>A ligação falhou. Nada foi perdido.</p>
+    <button class="btn btn--secundario">Tentar novamente</button>
+  </div>
+
+  <h2>Telas</h2>
+  <p class="meta">As mesmas telas do produto — Pipeline, Financeiro, Agenda — desenhadas
+  com este conjunto de tokens.</p>
+
+  <h3>Pipeline</h3>
+  <div class="painel" style="padding:14px">
+    <div class="linha" style="justify-content:space-between;margin-bottom:12px">
+      <div class="linha">
+        <strong style="font-size:16px">Comercial</strong>
+        <span class="conta">15 oportunidades</span>
+      </div>
+      <div class="linha">
+        <button class="btn btn--fantasma btn--peq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Procurar</button>
+        <button class="btn btn--fantasma btn--peq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg> Filtros</button>
+        <button class="btn btn--primario btn--peq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nova</button>
+      </div>
+    </div>
+    <div class="quadro">
+  <section class="coluna" aria-label="Novo lead">
+    <header class="coluna__cab">
+      <span class="etapa">
+        <span class="etapa__ponto" style="background:rgb(var(--raevo-stage-1))"></span>
+        Novo lead
+      </span>
+      <span class="conta">6</span>
+    </header>
+    
+  <article class="cartao" tabindex="0">
+    <span class="cartao__faixa" style="background:rgb(var(--raevo-stage-1))"></span>
+    <h4>Ana Beatriz Mendes</h4>
+    <p class="cartao__proc">Implante unitário</p>
+    <div class="cartao__pe">
+      <strong>R$ 4.800</strong>
+      <span class="cartao__quando"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>hoje 14:30</span>
+    </div>
+  </article>
+  <article class="cartao" tabindex="0">
+    <span class="cartao__faixa" style="background:rgb(var(--raevo-stage-1))"></span>
+    <h4>Carlos Nogueira</h4>
+    <p class="cartao__proc">Clareamento</p>
+    <div class="cartao__pe">
+      <strong>R$ 1.200</strong>
+      <span class="cartao__quando"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>amanhã 09:00</span>
+    </div>
+  </article>
+  <article class="cartao" tabindex="0">
+    <span class="cartao__faixa" style="background:rgb(var(--raevo-stage-1))"></span>
+    <h4>Helena Vaz</h4>
+    <p class="cartao__proc">Ortodontia</p>
+    <div class="cartao__pe">
+      <strong>R$ 8.400</strong>
+      <span class="cartao__quando"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>qui 16:00</span>
+    </div>
+  </article>
+    <button class="btn btn--fantasma btn--bloco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nova oportunidade</button>
+  </section>
+  <section class="coluna" aria-label="Em contacto">
+    <header class="coluna__cab">
+      <span class="etapa">
+        <span class="etapa__ponto" style="background:rgb(var(--raevo-stage-2))"></span>
+        Em contacto
+      </span>
+      <span class="conta">4</span>
+    </header>
+    
+  <article class="cartao" tabindex="0">
+    <span class="cartao__faixa" style="background:rgb(var(--raevo-stage-2))"></span>
+    <h4>Marta Ribeiro</h4>
+    <p class="cartao__proc">Prótese</p>
+    <div class="cartao__pe">
+      <strong>R$ 6.100</strong>
+      <span class="cartao__quando"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>hoje 11:00</span>
+    </div>
+  </article>
+  <article class="cartao" tabindex="0">
+    <span class="cartao__faixa" style="background:rgb(var(--raevo-stage-2))"></span>
+    <h4>João Peixoto</h4>
+    <p class="cartao__proc">Limpeza</p>
+    <div class="cartao__pe">
+      <strong>R$ 320</strong>
+      <span class="cartao__quando"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>sex 10:30</span>
+    </div>
+  </article>
+    <button class="btn btn--fantasma btn--bloco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nova oportunidade</button>
+  </section>
+  <section class="coluna" aria-label="Avaliação marcada">
+    <header class="coluna__cab">
+      <span class="etapa">
+        <span class="etapa__ponto" style="background:rgb(var(--raevo-stage-3))"></span>
+        Avaliação marcada
+      </span>
+      <span class="conta">3</span>
+    </header>
+    
+  <article class="cartao" tabindex="0">
+    <span class="cartao__faixa" style="background:rgb(var(--raevo-stage-3))"></span>
+    <h4>Rui Salgado</h4>
+    <p class="cartao__proc">Implante múltiplo</p>
+    <div class="cartao__pe">
+      <strong>R$ 12.900</strong>
+      <span class="cartao__quando"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>seg 08:30</span>
+    </div>
+  </article>
+    <button class="btn btn--fantasma btn--bloco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nova oportunidade</button>
+  </section>
+  <section class="coluna" aria-label="Proposta enviada">
+    <header class="coluna__cab">
+      <span class="etapa">
+        <span class="etapa__ponto" style="background:rgb(var(--raevo-stage-4))"></span>
+        Proposta enviada
+      </span>
+      <span class="conta">2</span>
+    </header>
+    
+  <article class="cartao" tabindex="0">
+    <span class="cartao__faixa" style="background:rgb(var(--raevo-stage-4))"></span>
+    <h4>Sofia Antunes</h4>
+    <p class="cartao__proc">Faceta</p>
+    <div class="cartao__pe">
+      <strong>R$ 3.400</strong>
+      <span class="cartao__quando"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>qua 15:00</span>
+    </div>
+  </article>
+    <button class="btn btn--fantasma btn--bloco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nova oportunidade</button>
+  </section></div>
+  </div>
+
+  <h3>Financeiro</h3>
+  <div class="painel" style="padding:0;overflow:hidden">
+    <table>
+      <thead><tr><th>Doente</th><th>Descrição</th><th class="num">Valor</th>
+        <th>Vencimento</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Ana Beatriz Mendes</strong></td><td class="meta">Implante unitário</td>
+          <td class="num">R$ 4.800,00</td><td class="meta">12/09</td>
+          <td><span class="selo selo--teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Recebido</span></td></tr><tr>
+          <td><strong>Marta Ribeiro</strong></td><td class="meta">Prótese — 2ª parcela</td>
+          <td class="num">R$ 2.050,00</td><td class="meta">20/09</td>
+          <td><span class="selo selo--amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>A vencer</span></td></tr><tr>
+          <td><strong>Rui Salgado</strong></td><td class="meta">Implante múltiplo</td>
+          <td class="num">R$ 12.900,00</td><td class="meta">02/09</td>
+          <td><span class="selo selo--ruby"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Vencido</span></td></tr><tr>
+          <td><strong>Sofia Antunes</strong></td><td class="meta">Faceta</td>
+          <td class="num">R$ 3.400,00</td><td class="meta">—</td>
+          <td><span class="selo selo--slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Rascunho</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Agenda</h3>
+  <div class="painel">
+    <div class="agenda">
+      <div class="agenda__h">09:00</div>
+      <div class="agenda__f">
+        <div class="marcacao" style="border-left-color:rgb(var(--raevo-stage-2))">
+          <b>Carlos Nogueira — Clareamento</b><span>09:00 · Dra. Elis · sala 2</span></div>
+      </div>
+      <div class="agenda__h">10:30</div>
+      <div class="agenda__f">
+        <div class="marcacao" style="border-left-color:rgb(var(--raevo-stage-1))">
+          <b>Ana Beatriz Mendes — Avaliação</b><span>10:30 · Dr. Nuno · sala 1</span></div>
+      </div>
+      <div class="agenda__h">14:30</div>
+      <div class="agenda__f">
+        <div class="marcacao" style="border-left-color:rgb(var(--raevo-stage-3))">
+          <b>Rui Salgado — Implante múltiplo</b><span>14:30 · Dr. Nuno · sala 1</span></div>
+        <div class="marcacao" style="border-left-color:rgb(var(--raevo-stage-4))">
+          <b>Sofia Antunes — Faceta</b><span>15:00 · Dra. Elis · sala 2</span></div>
+      </div>
+      <div class="agenda__h">16:00</div>
+      <div class="agenda__f"></div>
+    </div>
+  </div>
+</div>
+<script>
+  document.getElementById('tema').addEventListener('click', () => {
+    const r = document.documentElement;
+    r.dataset.tema = r.dataset.tema === 'dark' ? 'light' : 'dark';
+  });
+</script>
+</body></html>
