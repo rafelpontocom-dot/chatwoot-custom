@@ -97,6 +97,10 @@ const newStageColor = ref(DEFAULT_KANBAN_STAGE_COLOR);
 const newStageIcon = ref(DEFAULT_KANBAN_STAGE_ICON);
 const newStageDescription = ref('');
 const activeStageActionKey = ref('');
+// Apagar etapa vive aqui, e só aqui: no quadro era um X no hover do título,
+// ao lado do lápis, e bastava um clique torto para perder a etapa.
+const stagePendingRemoval = ref(null);
+const showRemoveStageConfirmation = ref(false);
 const ignoreGroupsForImport = ref(false);
 const activeFormulaFieldId = ref(null);
 const activeFormulaSuggestionIndex = ref(0);
@@ -3091,6 +3095,45 @@ const createStage = async () => {
   }
 };
 
+const openRemoveStage = stage => {
+  if (getStageCardsCount(stage) > 0) {
+    useAlert(t('KANBAN.ACTIONS.REMOVE_STAGE_NOT_EMPTY'));
+    return;
+  }
+
+  stagePendingRemoval.value = stage;
+  showRemoveStageConfirmation.value = true;
+};
+
+const closeRemoveStage = () => {
+  showRemoveStageConfirmation.value = false;
+  stagePendingRemoval.value = null;
+};
+
+const confirmRemoveStage = async () => {
+  const stage = stagePendingRemoval.value;
+  closeRemoveStage();
+  if (!stage?.id || !isAdmin.value) return;
+
+  activeStageActionKey.value = `remove-stage-${stage.id}`;
+  stageError.value = '';
+
+  try {
+    await KanbanBoardsAPI.deleteStage(boardId.value, stage.id);
+    if (selectedStageId.value === stage.id) selectedStageId.value = null;
+    await refreshBoard();
+    useAlert(t('KANBAN.ACTIONS.REMOVE_STAGE_SUCCESS'));
+  } catch (error) {
+    stageError.value = getErrorMessage(
+      error,
+      t('KANBAN.ACTIONS.REMOVE_STAGE_ERROR')
+    );
+    useAlert(stageError.value);
+  } finally {
+    activeStageActionKey.value = '';
+  }
+};
+
 const saveStageRules = async stage => {
   if (!stage?.id || activeStageActionKey.value || !isAdmin.value) return;
 
@@ -3700,6 +3743,17 @@ onMounted(async () => {
                         @click="moveStage(stage, 1)"
                       >
                         <i class="i-lucide-chevron-down size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        :data-testid="`kanban-settings-stage-remove-${stage.id}`"
+                        class="flex p-0 size-8 items-center justify-center rounded text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="!!activeStageActionKey"
+                        :aria-label="t('KANBAN.REMOVE_STAGE.TITLE')"
+                        :title="t('KANBAN.REMOVE_STAGE.TITLE')"
+                        @click="openRemoveStage(stage)"
+                      >
+                        <i class="i-lucide-trash-2 size-4" />
                       </button>
                     </div>
                   </div>
@@ -7136,6 +7190,17 @@ onMounted(async () => {
           />
         </div>
       </form>
+
+      <woot-delete-modal
+        v-model:show="showRemoveStageConfirmation"
+        :on-close="closeRemoveStage"
+        :on-confirm="confirmRemoveStage"
+        :title="t('KANBAN.REMOVE_STAGE.TITLE')"
+        :message="t('KANBAN.REMOVE_STAGE.MESSAGE')"
+        :message-value="stagePendingRemoval?.name || ''"
+        :confirm-text="t('KANBAN.REMOVE_STAGE.CONFIRM')"
+        :reject-text="t('KANBAN.REMOVE_STAGE.CANCEL')"
+      />
 
       <woot-delete-modal
         v-model:show="showDeleteConfirmation"

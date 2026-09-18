@@ -46,6 +46,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     delete: vi.fn(),
     duplicateBoard: vi.fn(),
     createStage: vi.fn(),
+    deleteStage: vi.fn(),
     updateStage: vi.fn(),
     reorderStage: vi.fn(),
     importExistingConversations: vi.fn(),
@@ -568,6 +569,29 @@ describe('KanbanBoardSettings', () => {
         probability: 40,
       },
     });
+  });
+
+  it('removes an empty stage, and refuses one that still has opportunities', async () => {
+    KanbanBoardsAPI.deleteStage.mockResolvedValue({ data: {} });
+    const { wrapper } = await mountSettings();
+
+    // A etapa «Lead» tem 3 oportunidades: recusa antes de abrir a confirmação.
+    await wrapper
+      .find('[data-testid="kanban-settings-stage-remove-100"]')
+      .trigger('click');
+    expect(wrapper.find('[data-testid="confirm-delete"]').exists()).toBe(false);
+    expect(useAlert).toHaveBeenCalledWith(
+      'KANBAN.ACTIONS.REMOVE_STAGE_NOT_EMPTY'
+    );
+    expect(KanbanBoardsAPI.deleteStage).not.toHaveBeenCalled();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-stage-remove-200"]')
+      .trigger('click');
+    await wrapper.find('[data-testid="confirm-delete"]').trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.deleteStage).toHaveBeenCalledWith(10, 200);
   });
 
   it('creates a new stage from settings', async () => {
