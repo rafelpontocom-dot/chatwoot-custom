@@ -80,7 +80,11 @@ RSpec.describe KanbanCard, type: :model do
     )
 
     expect(errors).to be_empty
-    expect(described_class.conversation.where(kanban_board: board, conversation: conversation).count).to eq(1)
+    # Desde «audit and recover lead intakes», a conversa pode ser anexada a uma
+    # oportunidade manual recente do mesmo contacto em vez de criar um card
+    # automático. O que a concorrência tem de garantir é o mesmo: um card só
+    # fica com a conversa.
+    expect(described_class.where(kanban_board: board, conversation: conversation).count).to eq(1)
     expect_card_invariants
   end
 
@@ -112,7 +116,11 @@ RSpec.describe KanbanCard, type: :model do
     )
 
     expect(errors).to be_empty
-    expect(described_class.conversation.where(kanban_board: board, conversation: conversation).count).to eq(1)
+    # Desde «audit and recover lead intakes», a conversa pode ser anexada a uma
+    # oportunidade manual recente do mesmo contacto em vez de criar um card
+    # automático. O que a concorrência tem de garantir é o mesmo: um card só
+    # fica com a conversa.
+    expect(described_class.where(kanban_board: board, conversation: conversation).count).to eq(1)
     expect_card_invariants
   end
 
