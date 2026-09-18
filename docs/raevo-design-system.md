@@ -2,6 +2,8 @@
 
 **Status:** aprovado em 29/08/2026 · vigente
 **Fonte da verdade em código:** `app/javascript/dashboard/assets/scss/_raevo-tokens.scss`
+**O sistema como dado:** [`design-system/raevo.tokens.json`](../design-system/raevo.tokens.json) — extraído do código e verificado em CI por `pnpm raevo:tokens` ([como mudar um valor](../design-system/README.md))
+**Referência viva:** `design-system/reference.html` — gerada dos tokens, com alternador de tema
 **Mockups de referência:** `output/raevo-design-2026-v2/index.html` (direção "H · Sereno")
 **Como chegamos aqui:** [raevo-crm-design-directions-2026-v2.md](./raevo-crm-design-directions-2026-v2.md)
 
@@ -273,6 +275,9 @@ com ícone. Valor à direita, tabular.
 ```bash
 # nenhum componente do Raevo escreve cor literal?
 pnpm raevo:design
+
+# código e design-system/raevo.tokens.json continuam de acordo?
+pnpm raevo:tokens
 
 # a paleta de etapas continua acessível?
 pnpm raevo:palette

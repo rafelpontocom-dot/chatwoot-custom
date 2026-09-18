@@ -17,6 +17,7 @@ Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável
    `style="color:#111"`, `border-radius: 8px`. Use as classes `n-*` do Tailwind e os
    tokens `--raevo-*`. Se falta um token, crie em
    `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` — nunca no componente.
+   Depois rode `pnpm raevo:tokens:extract`, senão a porta acusa divergência.
 
 2. **Nunca edite `_next-colors.scss`, e não mude cor em `theme/colors.js`.** São arquivos
    upstream; editá-los gera conflito em todo `git pull` do Chatwoot. A identidade vive em
@@ -86,14 +87,22 @@ Exemplos prontos: `KanbanAutomations.spec.js`, `KanbanBoardSettings.spec.js`.
 
 ```bash
 pnpm raevo:design    # falha se algum componente do Raevo escrever cor literal
+pnpm raevo:tokens    # falha se o código divergir de design-system/raevo.tokens.json
 pnpm raevo:palette   # revalida a paleta de etapas
 ```
+
+As duas primeiras rodam em CI (`custom_checks.yml`, job `lint-frontend`).
+
+Mudou um token de propósito? Rode `pnpm raevo:tokens:extract` e **leia o diff do
+JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pretendia.
 
 ## Onde a identidade mora
 
 | Arquivo | Papel |
 | --- | --- |
-| `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` | fonte da verdade: cor, sombra, raio semântico |
+| `design-system/raevo.tokens.json` | o sistema como dado — a porta `pnpm raevo:tokens` falha se o código divergir |
+| `design-system/reference.html` | referência viva, gerada dos tokens (abra no browser) |
+| `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` | fonte da verdade em CSS: cor, sombra, raio semântico |
 | `app/javascript/dashboard/assets/scss/_raevo-components.scss` | o que token não alcança |
 | `tailwind.config.js` | raio, borda, sombra e fonte do produto inteiro |
 | `app/javascript/dashboard/components-next/raevo/` | primitivos: `RaevoPageHeader`, `RaevoStamp` — use, não recrie |
