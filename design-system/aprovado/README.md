@@ -131,6 +131,13 @@ Medidos pelo gerador a cada execução, não recordados:
 O passo 9 (`#A1A1A1`, 2,58:1) é fio de desativado, **não texto**. Marcador de posição
 usa o passo 10, como na referência.
 
+## O que está no JSON e ainda não está no SCSS
+
+Os cinco tokens de gráfico (`chart.light` / `chart.dark`) estão gravados, mas a folha
+SCSS não os emite: o Raevo ainda não escolheu biblioteca de gráficos para Vue — o
+Recharts da referência é React e não atravessa. Ficam no JSON à espera dessa decisão.
+Ver `design-system/referencia/README.md`, barreira 5.
+
 ## Como mudar isto
 
 O JSON é gerado. Editar o JSON à mão faz a porta acusar divergência na execução
