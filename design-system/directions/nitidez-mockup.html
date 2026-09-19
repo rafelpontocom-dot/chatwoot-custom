@@ -373,7 +373,9 @@
   .estado svg { width: 30px; height: 30px; color: rgb(var(--slate-9)); }
   .estado h4 { margin: 11px 0 3px; }
   .estado p { margin: 0 0 14px; color: rgb(var(--slate-10)); font-size: 12px; }
-  .esqueleto { background: rgb(var(--slate-3)); border-radius: var(--raevo-radius-item);
+  /* Superfície discreta SEMÂNTICA, não um degrau da rampa: --slate-3 é o fundo
+     discreto no claro mas é o próprio cartão no escuro, e o esqueleto desaparecia. */
+  .esqueleto { background: rgb(var(--label-background)); border-radius: var(--raevo-radius-item);
     height: 13px; margin-bottom: 8px; }
 
   /* align-items:start para um painel curto nao esticar ate a altura do vizinho. */

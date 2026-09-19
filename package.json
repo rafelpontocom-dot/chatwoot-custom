@@ -24,6 +24,7 @@
     "raevo:tokens:extract": "node scripts/design-tokens.mjs extract",
     "raevo:tokens:reference": "node scripts/design-tokens.mjs reference",
     "raevo:tokens:mockup": "node scripts/design-mockup.mjs design-system/raevo.tokens.json design-system/mockup.html",
+    "raevo:aprovado": "node scripts/author-consultorio.mjs && node scripts/design-tokens.mjs scss design-system/aprovado/consultorio.tokens.json design-system/aprovado/consultorio.scss && node scripts/design-tokens.mjs reference design-system/aprovado/consultorio.tokens.json design-system/aprovado/consultorio.html && node scripts/design-mockup.mjs design-system/aprovado/consultorio.tokens.json design-system/aprovado/consultorio-mockup.html",
     "raevo:design:all": "node scripts/check-design-tokens.mjs --all",
     "raevo:palette": "node scripts/validate_palette.js \"#2563EB,#0F9D8F,#B45309,#A21CAF\" --mode light --pairs all",
     "skills:install": "node scripts/install-skills.mjs"

@@ -55,8 +55,12 @@ Isto é uma decisão a tomar, não um detalhe:
   funil, e é **dado gravado em banco**. Usá-lo como cor de ação faz a ação e a
   primeira etapa partilharem a mesma cor.
 
-A recomendação é ir pelo preto no primário e deixar o azul ser só etapa. Resolve
-a ambiguidade e aproxima da referência ao mesmo tempo.
+**Decidido em 19/09/2026: vai o preto.** `--brand-color` passa a `#171717` e o azul
+fica reservado a etapa do funil. Está gravado em
+[`design-system/aprovado/`](../aprovado/README.md).
+
+O que isso obriga a tratar em cada tela que migrar: a ligação de texto deixa de se
+distinguir por ser azul e passa a sublinhado.
 
 ---
 
@@ -129,6 +133,50 @@ Onde a referência e o `AGENTS.md` se cruzam, o `AGENTS.md` decide:
   no Raevo cada um leva ícone e texto.
 
 ---
+
+## O modo escuro, e o alfa que quase se perdeu
+
+Duas correções de 19/09/2026, ambas encontradas ao tentar responder "e o escuro?".
+
+**O `.dark` vinha errado.** O recortador de blocos procurava o seletor com um
+`indexOf` cru, e a primeira ocorrência de `.dark` no `globals.css` está dentro de
+`@custom-variant dark (&:is(.dark *))`, na linha 10 — quatro linhas antes do bloco
+seguinte. Resultado: o que ficava gravado como "escuro" eram os 40 nomes do
+`@theme inline`, não os 31 valores do `.dark`. Passava despercebido porque o número
+parecia plausível. Agora o seletor tem de estar imediatamente antes da chaveta.
+
+**A referência escreve cor com alfa; o triplete não o transporta.** A borda do modo
+escuro é `oklch(1 0 0 / 10%)` — branco a 10%, não branco. O Chatwoot consome
+`rgb(var(--x) / <alpha-value>)`, onde o alfa vem do Tailwind, não do token. Sem
+tratamento, um fio subtil virava uma linha branca berrante.
+
+O tradutor passa a emitir o alfa à parte:
+
+```scss
+--shadcn-border: 255 255 255;   // #FFFFFF a 10%
+--shadcn-border-alpha: 0.1;
+```
+
+E a direção aprovada **compõe** o valor sobre a superfície onde o fio vive de facto
+(o cartão, `#171717`), gravando o resultado opaco: `#2E2E2E`. Ver
+`scripts/author-consultorio.mjs`.
+
+O que o `.dark` da referência diz, agora que se lê:
+
+| | claro | escuro |
+| --- | --- | --- |
+| `--primary` | `#171717` | **`#E5E5E5`** — inverte |
+| `--primary-foreground` | `#FAFAFA` | `#171717` |
+| `--background` | `#FFFFFF` | `#0A0A0A` |
+| `--card` / `--sidebar` | `#FFFFFF` / `#FAFAFA` | `#171717` |
+| `--chart-1..5` | cinco cinzentos | **os mesmos cinco** |
+
+O primário inverter não é detalhe: um botão quase preto sobre fundo quase preto não
+se vê. E os cinco tons de gráfico não mudam entre modos — o que confirma que a
+escolha acromática é deliberada, não um esquecimento.
+
+Há uma incoerência na própria referência, que **não** atravessa: `--sidebar-primary`
+no escuro é `#1447E6`, azul, sozinho num sistema de croma zero. Fica de fora.
 
 ## Aplicar
 

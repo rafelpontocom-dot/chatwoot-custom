@@ -65,7 +65,49 @@
 }
 
 .dark {
+  --shadcn-background: 10 10 10;   // #0A0A0A
+  --shadcn-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-card: 23 23 23;   // #171717
+  --shadcn-card-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-popover: 23 23 23;   // #171717
+  --shadcn-popover-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-primary: 229 229 229;   // #E5E5E5
+  --shadcn-primary-foreground: 23 23 23;   // #171717
+  --shadcn-secondary: 38 38 38;   // #262626
+  --shadcn-secondary-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-muted: 38 38 38;   // #262626
+  --shadcn-muted-foreground: 161 161 161;   // #A1A1A1
+  --shadcn-accent: 38 38 38;   // #262626
+  --shadcn-accent-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-destructive: 255 100 103;   // #FF6467
+  --shadcn-border: 255 255 255;   // #FFFFFF a 10%
+  --shadcn-border-alpha: 0.1;
+  --shadcn-input: 255 255 255;   // #FFFFFF a 15%
+  --shadcn-input-alpha: 0.15;
+  --shadcn-ring: 115 115 115;   // #737373
+  --shadcn-chart-1: 212 212 212;   // #D4D4D4
+  --shadcn-chart-2: 115 115 115;   // #737373
+  --shadcn-chart-3: 82 82 82;   // #525252
+  --shadcn-chart-4: 64 64 64;   // #404040
+  --shadcn-chart-5: 38 38 38;   // #262626
+  --shadcn-sidebar: 23 23 23;   // #171717
+  --shadcn-sidebar-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-primary: 20 71 230;   // #1447E6
+  --shadcn-sidebar-primary-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-accent: 38 38 38;   // #262626
+  --shadcn-sidebar-accent-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-border: 255 255 255;   // #FFFFFF a 10%
+  --shadcn-sidebar-border-alpha: 0.1;
+  --shadcn-sidebar-ring: 115 115 115;   // #737373
 
-
-
+  --background-color: var(--shadcn-background);
+  --slate-12: var(--shadcn-foreground);
+  --card-color: var(--shadcn-card);
+  --solid-1: var(--shadcn-popover);
+  --brand-color: var(--shadcn-primary);
+  --slate-3: var(--shadcn-muted);
+  --slate-10: var(--shadcn-muted-foreground);
+  --surface-active: var(--shadcn-accent);
+  --border-weak: var(--shadcn-border);
+  --border-strong: var(--shadcn-input);
 }

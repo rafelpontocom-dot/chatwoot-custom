@@ -6,8 +6,13 @@ proposta: desenhada, gerada, vista e medida, mas **não adotada**.
 
 | Direção | Estado | Ficheiros |
 | --- | --- | --- |
-| **H · Sereno** | vigente, aprovada 29/08/2026 | `../raevo.tokens.json` · `../reference.html` · **`../mockup.html`** |
-| **N · Nitidez** | proposta | `nitidez.tokens.json` · `nitidez.html` · `nitidez.scss` · **`nitidez-mockup.html`** |
+| **A · Consultório** | **aprovada 19/09/2026** — o alvo | [`../aprovado/`](../aprovado/README.md) |
+| **H · Sereno** | no código, até cada tela migrar | `../raevo.tokens.json` · `../reference.html` · **`../mockup.html`** |
+| **N · Nitidez** | proposta, não escolhida | `nitidez.tokens.json` · `nitidez.html` · `nitidez.scss` · **`nitidez-mockup.html`** |
+
+> **A direção aprovada é A · Consultório.** O que está aqui é o histórico: Sereno é o
+> que o código ainda tem, Nitidez foi explorada e não foi escolhida. Para desenhar
+> qualquer coisa nova, use [`../aprovado/`](../aprovado/README.md).
 
 Cada direção tem duas páginas, e são coisas diferentes:
 

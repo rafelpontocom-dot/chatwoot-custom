@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="pt"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raevo — referência do sistema</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: rgb(255 255 255);
+    --card: rgb(255 255 255);
+    --ink: rgb(10 10 10);
+    --muted: rgb(115 115 115);
+    --line: rgb(229 229 229);
+    --r-card: 14px;
+    --r-item: 8px;
+    --r-ctrl: 10px;
+    --sh-rest: none;
+    --sh-float: 0 16px 40px rgb(10 10 10 / 14%);
+  }
+  [data-tema="dark"] {
+    color-scheme: dark;
+    --bg: rgb(10 10 10);
+    --card: rgb(23 23 23);
+    --ink: rgb(250 250 250);
+    --muted: rgb(161 161 161);
+    --line: rgb(46 46 46);
+    --sh-rest: none;
+    --sh-float: 0 16px 40px rgb(0 0 0 / 65%);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.6
+         'Plus Jakarta Sans', system-ui, sans-serif; }
+  header { position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--line);
+           padding:16px 24px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  h1 { font-size:20px; margin:0; }
+  h2 { font-size:20px; margin:40px 0 4px; }
+  h3 { font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+       color:var(--muted); margin:24px 0 8px; }
+  main { padding:0 24px 64px; max-width:1100px; margin:0 auto; }
+  .meta { color:var(--muted); font-size:12px; }
+  button { font:inherit; border:1px solid var(--line); background:var(--card);
+           color:var(--ink); border-radius:var(--r-ctrl); padding:6px 14px;
+           cursor:pointer; box-shadow:var(--sh-rest); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .sw { margin:0; background:var(--card); border:1px solid var(--line);
+        border-radius:var(--r-item); overflow:hidden; box-shadow:var(--sh-rest); }
+  .chip { height:52px; }
+  figcaption { padding:7px 9px; display:flex; flex-direction:column; gap:1px; }
+  code { font:11px/1.4 ui-monospace, monospace; }
+  figcaption span { color:var(--muted); font-size:11px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td, th { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; }
+  .amostra { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  .raio { width:74px; height:74px; background:var(--card); border:1px solid var(--line);
+          display:grid; place-items:center; font-size:11px; color:var(--muted); }
+  .aviso { background:var(--card); border:1px solid var(--line); border-left-width:3px;
+           border-radius:var(--r-card); padding:12px 14px; margin:12px 0;
+           box-shadow:var(--sh-rest); }
+  @media (max-width:600px) { main, header { padding-left:16px; padding-right:16px; } }
+</style></head>
+<body>
+<header>
+  <h1>Raevo · A · Consultório</h1>
+  <span class="meta">aprovada — 19/09/2026 · gerado de <code>design-system/aprovado/consultorio.tokens.json</code></span>
+  <button id="tema" type="button">Alternar tema</button>
+</header>
+<main>
+  <p class="aviso">Esta página é <strong>gerada</strong> de <code>design-system/aprovado/consultorio.tokens.json</code>,
+  e está desenhada com os tokens que descreve — o que se vê é o sistema, não uma
+  amostra dele. <strong>Tese:</strong> A base não tem cor nenhuma, e por isso toda a cor que aparece no ecrã significa alguma coisa: etapa do funil, cobrança vencida, conversa por responder. A ação é quase preta, não azul — no shadcn a cor de marca não ocupa o primário. A densidade vem da caixa, não do tipo: botão de 32px, célula de 8px, cartão com anel de 1px em vez de sombra. O tipo fica onde já estava.</p>
+
+  <h2>Etapas do funil</h2>
+  <p class="meta">Paleta travada. Pior par #A21CAF↔#2563EB · ΔE 9.7
+  em deuteranopia. Não trocar sem rodar <code>pnpm raevo:palette</code>.</p>
+  <div class="grid">
+    <figure class="sw"><div class="chip" style="background:#2563EB"></div>
+      <figcaption><code>etapa 1</code>
+      <span>#2563EB</span></figcaption></figure><figure class="sw"><div class="chip" style="background:#0F9D8F"></div>
+      <figcaption><code>etapa 2</code>
+      <span>#0F9D8F</span></figcaption></figure><figure class="sw"><div class="chip" style="background:#B45309"></div>
+      <figcaption><code>etapa 3</code>
+      <span>#B45309</span></figcaption></figure><figure class="sw"><div class="chip" style="background:#A21CAF"></div>
+      <figcaption><code>etapa 4</code>
+      <span>#A21CAF</span></figcaption></figure><figure class="sw"><div class="chip" style="background:#98A0AE"></div>
+      <figcaption><code>etapa 5 · terminal</code>
+      <span>#98A0AE</span></figcaption></figure>
+  </div>
+
+  <h2>Cor — rampas</h2>
+  <h3>Claro</h3><div class="grid"><figure class="sw">
+        <div class="chip" style="background:#FFFFFF"></div>
+        <figcaption><code>--slate-1</code><span>#FFFFFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFAFA"></div>
+        <figcaption><code>--slate-2</code><span>#FAFAFA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F5F5F5"></div>
+        <figcaption><code>--slate-3</code><span>#F5F5F5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFEFEF"></div>
+        <figcaption><code>--slate-4</code><span>#EFEFEF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#E5E5E5"></div>
+        <figcaption><code>--slate-5</code><span>#E5E5E5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#DCDCDC"></div>
+        <figcaption><code>--slate-6</code><span>#DCDCDC</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D4D4D4"></div>
+        <figcaption><code>--slate-7</code><span>#D4D4D4</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#C2C2C2"></div>
+        <figcaption><code>--slate-8</code><span>#C2C2C2</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#A1A1A1"></div>
+        <figcaption><code>--slate-9</code><span>#A1A1A1</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#737373"></div>
+        <figcaption><code>--slate-10</code><span>#737373</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#525252"></div>
+        <figcaption><code>--slate-11</code><span>#525252</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0A0A0A"></div>
+        <figcaption><code>--slate-12</code><span>#0A0A0A</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFFFF"></div>
+        <figcaption><code>--gray-1</code><span>#FFFFFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFAFA"></div>
+        <figcaption><code>--gray-2</code><span>#FAFAFA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F5F5F5"></div>
+        <figcaption><code>--gray-3</code><span>#F5F5F5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFEFEF"></div>
+        <figcaption><code>--gray-4</code><span>#EFEFEF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#E5E5E5"></div>
+        <figcaption><code>--gray-5</code><span>#E5E5E5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#DCDCDC"></div>
+        <figcaption><code>--gray-6</code><span>#DCDCDC</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D4D4D4"></div>
+        <figcaption><code>--gray-7</code><span>#D4D4D4</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#C2C2C2"></div>
+        <figcaption><code>--gray-8</code><span>#C2C2C2</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#A1A1A1"></div>
+        <figcaption><code>--gray-9</code><span>#A1A1A1</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#737373"></div>
+        <figcaption><code>--gray-10</code><span>#737373</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#525252"></div>
+        <figcaption><code>--gray-11</code><span>#525252</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0A0A0A"></div>
+        <figcaption><code>--gray-12</code><span>#0A0A0A</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FCFDFF"></div>
+        <figcaption><code>--blue-1</code><span>#FCFDFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F8FAFF"></div>
+        <figcaption><code>--blue-2</code><span>#F8FAFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFF4FF"></div>
+        <figcaption><code>--blue-3</code><span>#EFF4FF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#DCE6FF"></div>
+        <figcaption><code>--blue-4</code><span>#DCE6FF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#C8D9FE"></div>
+        <figcaption><code>--blue-5</code><span>#C8D9FE</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#BFD2FE"></div>
+        <figcaption><code>--blue-6</code><span>#BFD2FE</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#9BB6FA"></div>
+        <figcaption><code>--blue-7</code><span>#9BB6FA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#7498F6"></div>
+        <figcaption><code>--blue-8</code><span>#7498F6</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#2563EB"></div>
+        <figcaption><code>--blue-9</code><span>#2563EB</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#1D57D8"></div>
+        <figcaption><code>--blue-10</code><span>#1D57D8</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#1D4FD7"></div>
+        <figcaption><code>--blue-11</code><span>#1D4FD7</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#17306B"></div>
+        <figcaption><code>--blue-12</code><span>#17306B</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFF4FF"></div>
+        <figcaption><code>--iris-3</code><span>#EFF4FF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#2563EB"></div>
+        <figcaption><code>--iris-9</code><span>#2563EB</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#1D4FD7"></div>
+        <figcaption><code>--iris-11</code><span>#1D4FD7</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F4EEFD"></div>
+        <figcaption><code>--violet-3</code><span>#F4EEFD</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#A21CAF"></div>
+        <figcaption><code>--violet-9</code><span>#A21CAF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#86198F"></div>
+        <figcaption><code>--violet-11</code><span>#86198F</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFEFC"></div>
+        <figcaption><code>--teal-1</code><span>#FAFEFC</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F4FBF8"></div>
+        <figcaption><code>--teal-2</code><span>#F4FBF8</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#E6F6EE"></div>
+        <figcaption><code>--teal-3</code><span>#E6F6EE</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D1EEE1"></div>
+        <figcaption><code>--teal-4</code><span>#D1EEE1</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#B7E3D0"></div>
+        <figcaption><code>--teal-5</code><span>#B7E3D0</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#96D4BB"></div>
+        <figcaption><code>--teal-6</code><span>#96D4BB</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#6AC0A3"></div>
+        <figcaption><code>--teal-7</code><span>#6AC0A3</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#2DA889"></div>
+        <figcaption><code>--teal-8</code><span>#2DA889</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0F9D8F"></div>
+        <figcaption><code>--teal-9</code><span>#0F9D8F</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0D8A76"></div>
+        <figcaption><code>--teal-10</code><span>#0D8A76</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0B6B4B"></div>
+        <figcaption><code>--teal-11</code><span>#0B6B4B</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#063C2B"></div>
+        <figcaption><code>--teal-12</code><span>#063C2B</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFDF9"></div>
+        <figcaption><code>--amber-1</code><span>#FFFDF9</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFAF0"></div>
+        <figcaption><code>--amber-2</code><span>#FFFAF0</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FEF4E2"></div>
+        <figcaption><code>--amber-3</code><span>#FEF4E2</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FDE9C7"></div>
+        <figcaption><code>--amber-4</code><span>#FDE9C7</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FBDBA8"></div>
+        <figcaption><code>--amber-5</code><span>#FBDBA8</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F7C989"></div>
+        <figcaption><code>--amber-6</code><span>#F7C989</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EEB268"></div>
+        <figcaption><code>--amber-7</code><span>#EEB268</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#DF9237"></div>
+        <figcaption><code>--amber-8</code><span>#DF9237</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#B45309"></div>
+        <figcaption><code>--amber-9</code><span>#B45309</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#A04A08"></div>
+        <figcaption><code>--amber-10</code><span>#A04A08</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#93610A"></div>
+        <figcaption><code>--amber-11</code><span>#93610A</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#422905"></div>
+        <figcaption><code>--amber-12</code><span>#422905</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFCFC"></div>
+        <figcaption><code>--ruby-1</code><span>#FFFCFC</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFF8F8"></div>
+        <figcaption><code>--ruby-2</code><span>#FFF8F8</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FEECEC"></div>
+        <figcaption><code>--ruby-3</code><span>#FEECEC</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FDDDDD"></div>
+        <figcaption><code>--ruby-4</code><span>#FDDDDD</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FACDCD"></div>
+        <figcaption><code>--ruby-5</code><span>#FACDCD</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F3C9C9"></div>
+        <figcaption><code>--ruby-6</code><span>#F3C9C9</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EBAAAA"></div>
+        <figcaption><code>--ruby-7</code><span>#EBAAAA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#E38585"></div>
+        <figcaption><code>--ruby-8</code><span>#E38585</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#DC2626"></div>
+        <figcaption><code>--ruby-9</code><span>#DC2626</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#C52222"></div>
+        <figcaption><code>--ruby-10</code><span>#C52222</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#B42318"></div>
+        <figcaption><code>--ruby-11</code><span>#B42318</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#601410"></div>
+        <figcaption><code>--ruby-12</code><span>#601410</span></figcaption>
+      </figure></div>
+  <h3>Escuro</h3><div class="grid"><figure class="sw">
+        <div class="chip" style="background:#0A0A0A"></div>
+        <figcaption><code>--slate-1</code><span>#0A0A0A</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#141414"></div>
+        <figcaption><code>--slate-2</code><span>#141414</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#171717"></div>
+        <figcaption><code>--slate-3</code><span>#171717</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#1F1F1F"></div>
+        <figcaption><code>--slate-4</code><span>#1F1F1F</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#262626"></div>
+        <figcaption><code>--slate-5</code><span>#262626</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#303030"></div>
+        <figcaption><code>--slate-6</code><span>#303030</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#3D3D3D"></div>
+        <figcaption><code>--slate-7</code><span>#3D3D3D</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#525252"></div>
+        <figcaption><code>--slate-8</code><span>#525252</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#737373"></div>
+        <figcaption><code>--slate-9</code><span>#737373</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#A1A1A1"></div>
+        <figcaption><code>--slate-10</code><span>#A1A1A1</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D4D4D4"></div>
+        <figcaption><code>--slate-11</code><span>#D4D4D4</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFAFA"></div>
+        <figcaption><code>--slate-12</code><span>#FAFAFA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0A0A0A"></div>
+        <figcaption><code>--gray-1</code><span>#0A0A0A</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#141414"></div>
+        <figcaption><code>--gray-2</code><span>#141414</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#171717"></div>
+        <figcaption><code>--gray-3</code><span>#171717</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#1F1F1F"></div>
+        <figcaption><code>--gray-4</code><span>#1F1F1F</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#262626"></div>
+        <figcaption><code>--gray-5</code><span>#262626</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#303030"></div>
+        <figcaption><code>--gray-6</code><span>#303030</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#3D3D3D"></div>
+        <figcaption><code>--gray-7</code><span>#3D3D3D</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#525252"></div>
+        <figcaption><code>--gray-8</code><span>#525252</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#737373"></div>
+        <figcaption><code>--gray-9</code><span>#737373</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#A1A1A1"></div>
+        <figcaption><code>--gray-10</code><span>#A1A1A1</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D4D4D4"></div>
+        <figcaption><code>--gray-11</code><span>#D4D4D4</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFAFA"></div>
+        <figcaption><code>--gray-12</code><span>#FAFAFA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#1B2740"></div>
+        <figcaption><code>--blue-3</code><span>#1B2740</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#203154"></div>
+        <figcaption><code>--blue-4</code><span>#203154</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#2D4474"></div>
+        <figcaption><code>--blue-6</code><span>#2D4474</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#5B8DEF"></div>
+        <figcaption><code>--blue-9</code><span>#5B8DEF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#6E9CF3"></div>
+        <figcaption><code>--blue-10</code><span>#6E9CF3</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#93B6F7"></div>
+        <figcaption><code>--blue-11</code><span>#93B6F7</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#DBE8FF"></div>
+        <figcaption><code>--blue-12</code><span>#DBE8FF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0F2D28"></div>
+        <figcaption><code>--teal-3</code><span>#0F2D28</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#20B29E"></div>
+        <figcaption><code>--teal-9</code><span>#20B29E</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#6AD8C2"></div>
+        <figcaption><code>--teal-11</code><span>#6AD8C2</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#38260C"></div>
+        <figcaption><code>--amber-3</code><span>#38260C</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D68D2F"></div>
+        <figcaption><code>--amber-9</code><span>#D68D2F</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F0BA6A"></div>
+        <figcaption><code>--amber-11</code><span>#F0BA6A</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#3D1A1A"></div>
+        <figcaption><code>--ruby-3</code><span>#3D1A1A</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#602C2C"></div>
+        <figcaption><code>--ruby-6</code><span>#602C2C</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EF5350"></div>
+        <figcaption><code>--ruby-9</code><span>#EF5350</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F8918E"></div>
+        <figcaption><code>--ruby-11</code><span>#F8918E</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#C058CD"></div>
+        <figcaption><code>--violet-9</code><span>#C058CD</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D894E2"></div>
+        <figcaption><code>--violet-11</code><span>#D894E2</span></figcaption>
+      </figure></div>
+
+  <h2>Cor — semânticos</h2>
+  <h3>Claro</h3><div class="grid"><figure class="sw">
+        <div class="chip" style="background:#171717"></div>
+        <figcaption><code>--brand-color</code><span>#171717</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFFFF"></div>
+        <figcaption><code>--background-color</code><span>#FFFFFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFFFF"></div>
+        <figcaption><code>--surface-1</code><span>#FFFFFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFAFA"></div>
+        <figcaption><code>--surface-2</code><span>#FAFAFA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F5F5F5"></div>
+        <figcaption><code>--surface-active</code><span>#F5F5F5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFFFF"></div>
+        <figcaption><code>--solid-1</code><span>#FFFFFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F5F5F5"></div>
+        <figcaption><code>--solid-2</code><span>#F5F5F5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFEFEF"></div>
+        <figcaption><code>--solid-3</code><span>#EFEFEF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFF4FF"></div>
+        <figcaption><code>--solid-active</code><span>#EFF4FF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFFFF"></div>
+        <figcaption><code>--card-color</code><span>#FFFFFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#E5E5E5"></div>
+        <figcaption><code>--border-weak</code><span>#E5E5E5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#D4D4D4"></div>
+        <figcaption><code>--border-strong</code><span>#D4D4D4</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#E5E5E5"></div>
+        <figcaption><code>--border-container</code><span>#E5E5E5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#2563EB"></div>
+        <figcaption><code>--border-blue-strong</code><span>#2563EB</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(37, 99, 235, 0.45)"></div>
+        <figcaption><code>--border-blue</code><span>37, 99, 235, 0.45</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#17306B"></div>
+        <figcaption><code>--text-blue</code><span>#17306B</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#581C87"></div>
+        <figcaption><code>--text-purple</code><span>#581C87</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#422905"></div>
+        <figcaption><code>--text-amber</code><span>#422905</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFF4FF"></div>
+        <figcaption><code>--solid-blue</code><span>#EFF4FF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F8FAFF"></div>
+        <figcaption><code>--solid-blue-2</code><span>#F8FAFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FEF4E2"></div>
+        <figcaption><code>--solid-amber</code><span>#FEF4E2</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FDE9C7"></div>
+        <figcaption><code>--solid-amber-button</code><span>#FDE9C7</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FEECEC"></div>
+        <figcaption><code>--solid-red</code><span>#FEECEC</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#EFF4FF"></div>
+        <figcaption><code>--solid-iris</code><span>#EFF4FF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F4EEFD"></div>
+        <figcaption><code>--solid-purple</code><span>#F4EEFD</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#F5F5F5"></div>
+        <figcaption><code>--label-background</code><span>#F5F5F5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(10, 10, 10, 0.08)"></div>
+        <figcaption><code>--label-border</code><span>10, 10, 10, 0.08</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FFFFFF"></div>
+        <figcaption><code>--button-color</code><span>#FFFFFF</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(255, 255, 255, 0.16)"></div>
+        <figcaption><code>--button-hover-color</code><span>255, 255, 255, 0.16</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(17, 24, 39, 0.02)"></div>
+        <figcaption><code>--background-input-box</code><span>17, 24, 39, 0.02</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(233, 235, 239, 0.5)"></div>
+        <figcaption><code>--alpha-1</code><span>233, 235, 239, 0.5</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(242, 244, 247, 0.85)"></div>
+        <figcaption><code>--alpha-2</code><span>242, 244, 247, 0.85</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(255, 255, 255, 0.96)"></div>
+        <figcaption><code>--alpha-3</code><span>255, 255, 255, 0.96</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(17, 24, 39, 0.10)"></div>
+        <figcaption><code>--black-alpha-1</code><span>17, 24, 39, 0.10</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(17, 24, 39, 0.04)"></div>
+        <figcaption><code>--black-alpha-2</code><span>17, 24, 39, 0.04</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(255, 255, 255, 0.8)"></div>
+        <figcaption><code>--white-alpha</code><span>255, 255, 255, 0.8</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(10, 10, 10, 0.4)"></div>
+        <figcaption><code>--overlay</code><span>10, 10, 10, 0.4</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:rgb(255, 255, 255, 0.67)"></div>
+        <figcaption><code>--overlay-avatar</code><span>255, 255, 255, 0.67</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFAFA"></div>
+        <figcaption><code>--brand-foreground</code><span>#FAFAFA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#E7E7E7"></div>
+        <figcaption><code>--card-ring</code><span>#E7E7E7</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#FAFAFA"></div>
+        <figcaption><code>--sidebar-color</code><span>#FAFAFA</span></figcaption>
+      </figure><figure class="sw">
+        <div class="chip" style="background:#0A0A0A"></div>
+        <figcaption><code>--focus-ring</code><span>#0A0A0A</span></figcaption>
+      </figure></div>
+
+  <h2>Forma</h2>
+  <div class="amostra">
+    <div class="raio" style="border-radius:8px">rounded<br>8px</div><div class="raio" style="border-radius:6px">rounded-sm<br>6px</div><div class="raio" style="border-radius:8px">rounded-md<br>8px</div><div class="raio" style="border-radius:10px">rounded-lg<br>10px</div><div class="raio" style="border-radius:14px">rounded-xl<br>14px</div><div class="raio" style="border-radius:18px">rounded-2xl<br>18px</div><div class="raio" style="border-radius:22px">rounded-3xl<br>22px</div>
+  </div>
+
+  <h2>Sombra</h2>
+  <table><tr><th>Token</th><th>Valor</th></tr>
+  <tr><td><code>shadow-none</code></td><td><code>none</code></td></tr><tr><td><code>shadow-sm</code></td><td><code>none</code></td></tr><tr><td><code>shadow-DEFAULT</code></td><td><code>var(--raevo-shadow-hover)</code></td></tr><tr><td><code>shadow-md</code></td><td><code>var(--raevo-shadow-hover)</code></td></tr><tr><td><code>shadow-lg</code></td><td><code>var(--raevo-shadow-float)</code></td></tr><tr><td><code>shadow-xl</code></td><td><code>var(--raevo-shadow-float)</code></td></tr><tr><td><code>shadow-2xl</code></td><td><code>var(--raevo-shadow-float)</code></td></tr>
+  </table>
+
+  <h2>Tipografia</h2>
+  <p class="meta">Seis degraus. Nunca <code>text-[Npx]</code>.</p>
+  <table><tr><th>Classe</th><th>Amostra</th></tr>
+  <tr><td><code>text-micro</code> · 11px</td>
+        <td style="font-size:11px">Agendamento confirmado</td></tr><tr><td><code>text-xs</code> · 12px</td>
+        <td style="font-size:12px">Agendamento confirmado</td></tr><tr><td><code>text-sm</code> · 14px</td>
+        <td style="font-size:14px">Agendamento confirmado</td></tr><tr><td><code>text-base</code> · 16px</td>
+        <td style="font-size:16px">Agendamento confirmado</td></tr><tr><td><code>text-xl</code> · 20px</td>
+        <td style="font-size:20px">Agendamento confirmado</td></tr><tr><td><code>text-3xl</code> · 30px</td>
+        <td style="font-size:30px">Agendamento confirmado</td></tr>
+  </table>
+  <p class="meta">Pilha: <code>'Plus Jakarta Sans', 'Inter', -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif</code></p>
+</main>
+<script>
+  document.getElementById('tema').addEventListener('click', () => {
+    const r = document.documentElement;
+    r.dataset.tema = r.dataset.tema === 'dark' ? 'light' : 'dark';
+  });
+</script>
+</body></html>

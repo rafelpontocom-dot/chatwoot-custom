@@ -1,34 +1,34 @@
 <!doctype html>
 <html lang="pt"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Raevo · H · Sereno — componentes e telas</title>
+<title>Raevo · A · Consultório — componentes e telas</title>
 <style>
 
     :root {
-      --slate-1: 251 252 253;
-    --slate-2: 247 248 250;
-    --slate-3: 242 244 247;
-    --slate-4: 238 240 244;
-    --slate-5: 233 235 239;
-    --slate-6: 228 231 236;
-    --slate-7: 220 223 229;
-    --slate-8: 199 205 214;
-    --slate-9: 152 160 174;
-    --slate-10: 122 130 143;
-    --slate-11: 75 85 99;
-    --slate-12: 17 24 39;
-    --gray-1: 251 252 253;
-    --gray-2: 247 248 250;
-    --gray-3: 242 244 247;
-    --gray-4: 238 240 244;
-    --gray-5: 233 235 239;
-    --gray-6: 228 231 236;
-    --gray-7: 220 223 229;
-    --gray-8: 199 205 214;
-    --gray-9: 152 160 174;
-    --gray-10: 122 130 143;
-    --gray-11: 75 85 99;
-    --gray-12: 17 24 39;
+      --slate-1: 255 255 255;
+    --slate-2: 250 250 250;
+    --slate-3: 245 245 245;
+    --slate-4: 239 239 239;
+    --slate-5: 229 229 229;
+    --slate-6: 220 220 220;
+    --slate-7: 212 212 212;
+    --slate-8: 194 194 194;
+    --slate-9: 161 161 161;
+    --slate-10: 115 115 115;
+    --slate-11: 82 82 82;
+    --slate-12: 10 10 10;
+    --gray-1: 255 255 255;
+    --gray-2: 250 250 250;
+    --gray-3: 245 245 245;
+    --gray-4: 239 239 239;
+    --gray-5: 229 229 229;
+    --gray-6: 220 220 220;
+    --gray-7: 212 212 212;
+    --gray-8: 194 194 194;
+    --gray-9: 161 161 161;
+    --gray-10: 115 115 115;
+    --gray-11: 82 82 82;
+    --gray-12: 10 10 10;
     --blue-1: 252 253 255;
     --blue-2: 248 250 255;
     --blue-3: 239 244 255;
@@ -83,19 +83,19 @@
     --ruby-10: 197 34 34;
     --ruby-11: 180 35 24;
     --ruby-12: 96 20 16;
-      --brand-color: 37 99 235;
-    --background-color: 247 248 250;
+      --brand-color: 23 23 23;
+    --background-color: 255 255 255;
     --surface-1: 255 255 255;
-    --surface-2: 255 255 255;
-    --surface-active: 239 244 255;
+    --surface-2: 250 250 250;
+    --surface-active: 245 245 245;
     --solid-1: 255 255 255;
-    --solid-2: 255 255 255;
-    --solid-3: 255 255 255;
+    --solid-2: 245 245 245;
+    --solid-3: 239 239 239;
     --solid-active: 239 244 255;
     --card-color: 255 255 255;
-    --border-weak: 233 235 239;
-    --border-strong: 220 223 229;
-    --border-container: 233 235 239;
+    --border-weak: 229 229 229;
+    --border-strong: 212 212 212;
+    --border-container: 229 229 229;
     --border-blue-strong: 37 99 235;
     --border-blue: 37, 99, 235, 0.45;
     --text-blue: 23 48 107;
@@ -108,8 +108,8 @@
     --solid-red: 254 236 236;
     --solid-iris: 239 244 255;
     --solid-purple: 244 238 253;
-    --label-background: 242 244 247;
-    --label-border: 17, 24, 39, 0.06;
+    --label-background: 245 245 245;
+    --label-border: 10, 10, 10, 0.08;
     --button-color: 255 255 255;
     --button-hover-color: 255, 255, 255, 0.16;
     --background-input-box: 17, 24, 39, 0.02;
@@ -119,14 +119,19 @@
     --black-alpha-1: 17, 24, 39, 0.10;
     --black-alpha-2: 17, 24, 39, 0.04;
     --white-alpha: 255, 255, 255, 0.8;
-    --overlay: 17, 24, 39, 0.32;
+    --overlay: 10, 10, 10, 0.4;
     --overlay-avatar: 255, 255, 255, 0.67;
-      --raevo-radius-card: 13px;
-    --raevo-radius-item: 11px;
-    --raevo-radius-control: 9999px;
+    --brand-foreground: 250 250 250;
+    --card-ring: 231 231 231;
+    --sidebar-color: 250 250 250;
+    --focus-ring: 10 10 10;
+      --raevo-radius-card: 14px;
+    --raevo-radius-item: 8px;
+    --raevo-radius-control: 10px;
+    --raevo-radius-pill: 9999px;
       --raevo-shadow-rest: none;
-    --raevo-shadow-hover: 0 2px 8px rgb(17 24 39 / 6%);
-    --raevo-shadow-float: 0 12px 34px rgb(17 24 39 / 10%);
+    --raevo-shadow-hover: 0 4px 16px rgb(10 10 10 / 9%);
+    --raevo-shadow-float: 0 16px 40px rgb(10 10 10 / 14%);
       --raevo-stage-1: 37 99 235;
     --raevo-stage-2: 15 157 143;
     --raevo-stage-3: 180 83 9;
@@ -135,30 +140,30 @@
       --raevo-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
     [data-tema="dark"] {
-      --slate-1: 20 23 28;
-    --slate-2: 24 28 34;
-    --slate-3: 30 35 43;
-    --slate-4: 35 40 49;
-    --slate-5: 38 43 51;
-    --slate-6: 45 51 61;
-    --slate-7: 51 58 68;
-    --slate-8: 72 80 92;
-    --slate-9: 108 116 130;
-    --slate-10: 133 141 154;
-    --slate-11: 160 167 180;
-    --slate-12: 232 234 238;
-    --gray-1: 20 23 28;
-    --gray-2: 24 28 34;
-    --gray-3: 30 35 43;
-    --gray-4: 35 40 49;
-    --gray-5: 38 43 51;
-    --gray-6: 45 51 61;
-    --gray-7: 51 58 68;
-    --gray-8: 72 80 92;
-    --gray-9: 108 116 130;
-    --gray-10: 133 141 154;
-    --gray-11: 160 167 180;
-    --gray-12: 232 234 238;
+      --slate-1: 10 10 10;
+    --slate-2: 20 20 20;
+    --slate-3: 23 23 23;
+    --slate-4: 31 31 31;
+    --slate-5: 38 38 38;
+    --slate-6: 48 48 48;
+    --slate-7: 61 61 61;
+    --slate-8: 82 82 82;
+    --slate-9: 115 115 115;
+    --slate-10: 161 161 161;
+    --slate-11: 212 212 212;
+    --slate-12: 250 250 250;
+    --gray-1: 10 10 10;
+    --gray-2: 20 20 20;
+    --gray-3: 23 23 23;
+    --gray-4: 31 31 31;
+    --gray-5: 38 38 38;
+    --gray-6: 48 48 48;
+    --gray-7: 61 61 61;
+    --gray-8: 82 82 82;
+    --gray-9: 115 115 115;
+    --gray-10: 161 161 161;
+    --gray-11: 212 212 212;
+    --gray-12: 250 250 250;
     --blue-3: 27 39 64;
     --blue-4: 32 49 84;
     --blue-6: 45 68 116;
@@ -178,19 +183,19 @@
     --ruby-11: 248 145 142;
     --violet-9: 192 88 205;
     --violet-11: 216 148 226;
-      --brand-color: 91 141 239;
-    --background-color: 15 17 21;
-    --surface-1: 22 26 32;
-    --surface-2: 26 31 38;
-    --surface-active: 27 39 64;
-    --solid-1: 22 26 32;
-    --solid-2: 26 31 38;
-    --solid-3: 30 35 43;
+      --brand-color: 229 229 229;
+    --background-color: 10 10 10;
+    --surface-1: 23 23 23;
+    --surface-2: 31 31 31;
+    --surface-active: 38 38 38;
+    --solid-1: 23 23 23;
+    --solid-2: 38 38 38;
+    --solid-3: 48 48 48;
     --solid-active: 27 39 64;
-    --card-color: 26 31 38;
-    --border-weak: 38 43 51;
-    --border-strong: 51 58 68;
-    --border-container: 38 43 51;
+    --card-color: 23 23 23;
+    --border-weak: 46 46 46;
+    --border-strong: 58 58 58;
+    --border-container: 46 46 46;
     --border-blue-strong: 91 141 239;
     --border-blue: 91, 141, 239, 0.45;
     --text-blue: 219 232 255;
@@ -203,8 +208,8 @@
     --solid-red: 61 26 26;
     --solid-iris: 27 39 64;
     --solid-purple: 48 26 56;
-    --label-background: 30 35 43;
-    --label-border: 255, 255, 255, 0.08;
+    --label-background: 38 38 38;
+    --label-border: 250, 250, 250, 0.10;
     --button-color: 232 234 238;
     --button-hover-color: 255, 255, 255, 0.10;
     --background-input-box: 255, 255, 255, 0.04;
@@ -215,8 +220,13 @@
     --black-alpha-2: 0, 0, 0, 0.24;
     --white-alpha: 255, 255, 255, 0.08;
     --overlay: 0, 0, 0, 0.6;
-      --raevo-shadow-hover: 0 2px 10px rgb(0 0 0 / 40%);
-    --raevo-shadow-float: 0 14px 38px rgb(0 0 0 / 52%);
+    --brand-foreground: 23 23 23;
+    --card-ring: 46 46 46;
+    --sidebar-color: 23 23 23;
+    --focus-ring: 250 250 250;
+      --raevo-shadow-rest: none;
+    --raevo-shadow-hover: 0 4px 16px rgb(0 0 0 / 50%);
+    --raevo-shadow-float: 0 16px 40px rgb(0 0 0 / 65%);
       --raevo-stage-1: 91 141 239;
     --raevo-stage-2: 32 178 158;
     --raevo-stage-3: 214 141 47;
@@ -394,9 +404,9 @@
 </style></head>
 <body>
 <header class="topo">
-  <h1>Raevo · H · Sereno</h1>
-  <span class="meta">aprovado 2026-08-29
-    · mesma marcação, tokens de <code>design-system/raevo.tokens.json</code></span>
+  <h1>Raevo · A · Consultório</h1>
+  <span class="meta">aprovada — 19/09/2026
+    · mesma marcação, tokens de <code>design-system/aprovado/consultorio.tokens.json</code></span>
   <button class="btn btn--secundario btn--peq" id="tema" type="button">Alternar tema</button>
 </header>
 <div class="env">

@@ -1,0 +1,241 @@
+// scss-lint:disable PropertySortOrder
+// =============================================================================
+// RAEVO — direção A · Consultório
+// GERADO por scripts/design-tokens.mjs a partir de design-system/aprovado/consultorio.tokens.json. Não editar à mão:
+// mude o JSON e gere outra vez, senão a porta acusa divergência.
+// =============================================================================
+:root {
+  --slate-1: 255 255 255;   // #FFFFFF
+  --slate-2: 250 250 250;   // #FAFAFA
+  --slate-3: 245 245 245;   // #F5F5F5
+  --slate-4: 239 239 239;   // #EFEFEF
+  --slate-5: 229 229 229;   // #E5E5E5
+  --slate-6: 220 220 220;   // #DCDCDC
+  --slate-7: 212 212 212;   // #D4D4D4
+  --slate-8: 194 194 194;   // #C2C2C2
+  --slate-9: 161 161 161;   // #A1A1A1
+  --slate-10: 115 115 115;   // #737373
+  --slate-11: 82 82 82;   // #525252
+  --slate-12: 10 10 10;   // #0A0A0A
+  --gray-1: 255 255 255;   // #FFFFFF
+  --gray-2: 250 250 250;   // #FAFAFA
+  --gray-3: 245 245 245;   // #F5F5F5
+  --gray-4: 239 239 239;   // #EFEFEF
+  --gray-5: 229 229 229;   // #E5E5E5
+  --gray-6: 220 220 220;   // #DCDCDC
+  --gray-7: 212 212 212;   // #D4D4D4
+  --gray-8: 194 194 194;   // #C2C2C2
+  --gray-9: 161 161 161;   // #A1A1A1
+  --gray-10: 115 115 115;   // #737373
+  --gray-11: 82 82 82;   // #525252
+  --gray-12: 10 10 10;   // #0A0A0A
+  --blue-1: 252 253 255;   // #FCFDFF
+  --blue-2: 248 250 255;   // #F8FAFF
+  --blue-3: 239 244 255;   // #EFF4FF
+  --blue-4: 220 230 255;   // #DCE6FF
+  --blue-5: 200 217 254;   // #C8D9FE
+  --blue-6: 191 210 254;   // #BFD2FE
+  --blue-7: 155 182 250;   // #9BB6FA
+  --blue-8: 116 152 246;   // #7498F6
+  --blue-9: 37 99 235;   // #2563EB
+  --blue-10: 29 87 216;   // #1D57D8
+  --blue-11: 29 79 215;   // #1D4FD7
+  --blue-12: 23 48 107;   // #17306B
+  --iris-3: 239 244 255;   // #EFF4FF
+  --iris-9: 37 99 235;   // #2563EB
+  --iris-11: 29 79 215;   // #1D4FD7
+  --violet-3: 244 238 253;   // #F4EEFD
+  --violet-9: 162 28 175;   // #A21CAF
+  --violet-11: 134 25 143;   // #86198F
+  --teal-1: 250 254 252;   // #FAFEFC
+  --teal-2: 244 251 248;   // #F4FBF8
+  --teal-3: 230 246 238;   // #E6F6EE
+  --teal-4: 209 238 225;   // #D1EEE1
+  --teal-5: 183 227 208;   // #B7E3D0
+  --teal-6: 150 212 187;   // #96D4BB
+  --teal-7: 106 192 163;   // #6AC0A3
+  --teal-8: 45 168 137;   // #2DA889
+  --teal-9: 15 157 143;   // #0F9D8F
+  --teal-10: 13 138 118;   // #0D8A76
+  --teal-11: 11 107 75;   // #0B6B4B
+  --teal-12: 6 60 43;   // #063C2B
+  --amber-1: 255 253 249;   // #FFFDF9
+  --amber-2: 255 250 240;   // #FFFAF0
+  --amber-3: 254 244 226;   // #FEF4E2
+  --amber-4: 253 233 199;   // #FDE9C7
+  --amber-5: 251 219 168;   // #FBDBA8
+  --amber-6: 247 201 137;   // #F7C989
+  --amber-7: 238 178 104;   // #EEB268
+  --amber-8: 223 146 55;   // #DF9237
+  --amber-9: 180 83 9;   // #B45309
+  --amber-10: 160 74 8;   // #A04A08
+  --amber-11: 147 97 10;   // #93610A
+  --amber-12: 66 41 5;   // #422905
+  --ruby-1: 255 252 252;   // #FFFCFC
+  --ruby-2: 255 248 248;   // #FFF8F8
+  --ruby-3: 254 236 236;   // #FEECEC
+  --ruby-4: 253 221 221;   // #FDDDDD
+  --ruby-5: 250 205 205;   // #FACDCD
+  --ruby-6: 243 201 201;   // #F3C9C9
+  --ruby-7: 235 170 170;   // #EBAAAA
+  --ruby-8: 227 133 133;   // #E38585
+  --ruby-9: 220 38 38;   // #DC2626
+  --ruby-10: 197 34 34;   // #C52222
+  --ruby-11: 180 35 24;   // #B42318
+  --ruby-12: 96 20 16;   // #601410
+
+  --brand-color: 23 23 23;   // #171717
+  --background-color: 255 255 255;   // #FFFFFF
+  --surface-1: 255 255 255;   // #FFFFFF
+  --surface-2: 250 250 250;   // #FAFAFA
+  --surface-active: 245 245 245;   // #F5F5F5
+  --solid-1: 255 255 255;   // #FFFFFF
+  --solid-2: 245 245 245;   // #F5F5F5
+  --solid-3: 239 239 239;   // #EFEFEF
+  --solid-active: 239 244 255;   // #EFF4FF
+  --card-color: 255 255 255;   // #FFFFFF
+  --border-weak: 229 229 229;   // #E5E5E5
+  --border-strong: 212 212 212;   // #D4D4D4
+  --border-container: 229 229 229;   // #E5E5E5
+  --border-blue-strong: 37 99 235;   // #2563EB
+  --border-blue: 37, 99, 235, 0.45;
+  --text-blue: 23 48 107;   // #17306B
+  --text-purple: 88 28 135;   // #581C87
+  --text-amber: 66 41 5;   // #422905
+  --solid-blue: 239 244 255;   // #EFF4FF
+  --solid-blue-2: 248 250 255;   // #F8FAFF
+  --solid-amber: 254 244 226;   // #FEF4E2
+  --solid-amber-button: 253 233 199;   // #FDE9C7
+  --solid-red: 254 236 236;   // #FEECEC
+  --solid-iris: 239 244 255;   // #EFF4FF
+  --solid-purple: 244 238 253;   // #F4EEFD
+  --label-background: 245 245 245;   // #F5F5F5
+  --label-border: 10, 10, 10, 0.08;
+  --button-color: 255 255 255;   // #FFFFFF
+  --button-hover-color: 255, 255, 255, 0.16;
+  --background-input-box: 17, 24, 39, 0.02;
+  --alpha-1: 233, 235, 239, 0.5;
+  --alpha-2: 242, 244, 247, 0.85;
+  --alpha-3: 255, 255, 255, 0.96;
+  --black-alpha-1: 17, 24, 39, 0.10;
+  --black-alpha-2: 17, 24, 39, 0.04;
+  --white-alpha: 255, 255, 255, 0.8;
+  --overlay: 10, 10, 10, 0.4;
+  --overlay-avatar: 255, 255, 255, 0.67;
+  --brand-foreground: 250 250 250;   // #FAFAFA
+  --card-ring: 231 231 231;   // #E7E7E7
+  --sidebar-color: 250 250 250;   // #FAFAFA
+  --focus-ring: 10 10 10;   // #0A0A0A
+
+  --radius-card: 14px;
+  --radius-item: 8px;
+  --radius-control: 10px;
+  --radius-pill: 9999px;
+  --shadow-rest: none;
+  --shadow-hover: 0 4px 16px rgb(10 10 10 / 9%);
+  --shadow-float: 0 16px 40px rgb(10 10 10 / 14%);
+  --raevo-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --raevo-stage-1: 37 99 235;   // #2563EB
+  --raevo-stage-2: 15 157 143;   // #0F9D8F
+  --raevo-stage-3: 180 83 9;   // #B45309
+  --raevo-stage-4: 162 28 175;   // #A21CAF
+  --raevo-stage-5: 152 160 174;   // #98A0AE
+}
+
+.dark {
+  --slate-1: 10 10 10;   // #0A0A0A
+  --slate-2: 20 20 20;   // #141414
+  --slate-3: 23 23 23;   // #171717
+  --slate-4: 31 31 31;   // #1F1F1F
+  --slate-5: 38 38 38;   // #262626
+  --slate-6: 48 48 48;   // #303030
+  --slate-7: 61 61 61;   // #3D3D3D
+  --slate-8: 82 82 82;   // #525252
+  --slate-9: 115 115 115;   // #737373
+  --slate-10: 161 161 161;   // #A1A1A1
+  --slate-11: 212 212 212;   // #D4D4D4
+  --slate-12: 250 250 250;   // #FAFAFA
+  --gray-1: 10 10 10;   // #0A0A0A
+  --gray-2: 20 20 20;   // #141414
+  --gray-3: 23 23 23;   // #171717
+  --gray-4: 31 31 31;   // #1F1F1F
+  --gray-5: 38 38 38;   // #262626
+  --gray-6: 48 48 48;   // #303030
+  --gray-7: 61 61 61;   // #3D3D3D
+  --gray-8: 82 82 82;   // #525252
+  --gray-9: 115 115 115;   // #737373
+  --gray-10: 161 161 161;   // #A1A1A1
+  --gray-11: 212 212 212;   // #D4D4D4
+  --gray-12: 250 250 250;   // #FAFAFA
+  --blue-3: 27 39 64;   // #1B2740
+  --blue-4: 32 49 84;   // #203154
+  --blue-6: 45 68 116;   // #2D4474
+  --blue-9: 91 141 239;   // #5B8DEF
+  --blue-10: 110 156 243;   // #6E9CF3
+  --blue-11: 147 182 247;   // #93B6F7
+  --blue-12: 219 232 255;   // #DBE8FF
+  --teal-3: 15 45 40;   // #0F2D28
+  --teal-9: 32 178 158;   // #20B29E
+  --teal-11: 106 216 194;   // #6AD8C2
+  --amber-3: 56 38 12;   // #38260C
+  --amber-9: 214 141 47;   // #D68D2F
+  --amber-11: 240 186 106;   // #F0BA6A
+  --ruby-3: 61 26 26;   // #3D1A1A
+  --ruby-6: 96 44 44;   // #602C2C
+  --ruby-9: 239 83 80;   // #EF5350
+  --ruby-11: 248 145 142;   // #F8918E
+  --violet-9: 192 88 205;   // #C058CD
+  --violet-11: 216 148 226;   // #D894E2
+
+  --brand-color: 229 229 229;   // #E5E5E5
+  --background-color: 10 10 10;   // #0A0A0A
+  --surface-1: 23 23 23;   // #171717
+  --surface-2: 31 31 31;   // #1F1F1F
+  --surface-active: 38 38 38;   // #262626
+  --solid-1: 23 23 23;   // #171717
+  --solid-2: 38 38 38;   // #262626
+  --solid-3: 48 48 48;   // #303030
+  --solid-active: 27 39 64;   // #1B2740
+  --card-color: 23 23 23;   // #171717
+  --border-weak: 46 46 46;   // #2E2E2E
+  --border-strong: 58 58 58;   // #3A3A3A
+  --border-container: 46 46 46;   // #2E2E2E
+  --border-blue-strong: 91 141 239;   // #5B8DEF
+  --border-blue: 91, 141, 239, 0.45;
+  --text-blue: 219 232 255;   // #DBE8FF
+  --text-purple: 236 209 242;   // #ECD1F2
+  --text-amber: 250 226 186;   // #FAE2BA
+  --solid-blue: 27 39 64;   // #1B2740
+  --solid-blue-2: 22 30 46;   // #161E2E
+  --solid-amber: 56 38 12;   // #38260C
+  --solid-amber-button: 82 56 18;   // #523812
+  --solid-red: 61 26 26;   // #3D1A1A
+  --solid-iris: 27 39 64;   // #1B2740
+  --solid-purple: 48 26 56;   // #301A38
+  --label-background: 38 38 38;   // #262626
+  --label-border: 250, 250, 250, 0.10;
+  --button-color: 232 234 238;   // #E8EAEE
+  --button-hover-color: 255, 255, 255, 0.10;
+  --background-input-box: 255, 255, 255, 0.04;
+  --alpha-1: 38, 43, 51, 0.6;
+  --alpha-2: 30, 35, 43, 0.9;
+  --alpha-3: 22, 26, 32, 0.96;
+  --black-alpha-1: 0, 0, 0, 0.4;
+  --black-alpha-2: 0, 0, 0, 0.24;
+  --white-alpha: 255, 255, 255, 0.08;
+  --overlay: 0, 0, 0, 0.6;
+  --brand-foreground: 23 23 23;   // #171717
+  --card-ring: 46 46 46;   // #2E2E2E
+  --sidebar-color: 23 23 23;   // #171717
+  --focus-ring: 250 250 250;   // #FAFAFA
+  --shadow-rest: none;
+  --shadow-hover: 0 4px 16px rgb(0 0 0 / 50%);
+  --shadow-float: 0 16px 40px rgb(0 0 0 / 65%);
+
+  --raevo-stage-1: 91 141 239;   // #5B8DEF
+  --raevo-stage-2: 32 178 158;   // #20B29E
+  --raevo-stage-3: 214 141 47;   // #D68D2F
+  --raevo-stage-4: 192 88 205;   // #C058CD
+  --raevo-stage-5: 133 141 154;   // #858D9A
+}

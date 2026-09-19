@@ -39,6 +39,7 @@ const P = {
   reference: 'design-system/reference.html',
   mockup: 'design-system/mockup.html',
   directions: 'design-system/directions',
+  approved: 'design-system/aprovado',
 };
 const ler = rel => readFileSync(resolve(RAIZ, rel), 'utf8');
 const gravar = (rel, txt) => writeFileSync(resolve(RAIZ, rel), txt);
@@ -623,18 +624,24 @@ if (comando === 'extract') {
   // Uma direção proposta também não pode mentir: o SCSS e a referência dela são
   // gerados, e ficam obsoletos no momento em que alguém edita só o JSON.
   const direcoesVelhas = [];
-  const dir = resolve(RAIZ, P.directions);
-  if (existsSync(dir)) {
-    for (const f of readdirSync(dir).filter(n => n.endsWith('.tokens.json'))) {
-      const origem = `${P.directions}/${f}`;
+  const paletasDivergentes = [];
+  for (const raiz of [P.directions, P.approved]) {
+    const abs = resolve(RAIZ, raiz);
+    if (!existsSync(abs)) continue;
+    for (const f of readdirSync(abs).filter(n => n.endsWith('.tokens.json'))) {
+      const origem = `${raiz}/${f}`;
       const t = JSON.parse(ler(origem));
       const base = f.replace(/\.tokens\.json$/, '');
+      // Uma direção não pode trazer outra paleta de etapas pela porta das traseiras:
+      // a paleta é dado gravado em produção e vale para o sistema inteiro.
+      if (t.stage?.palette && t.stage.palette.join(',') !== codigo.stage.palette.join(','))
+        paletasDivergentes.push(origem);
       for (const [suf, gerar] of [
         ['.html', () => referencia(t, origem)],
         ['.scss', () => folha(t, origem)],
         ['-mockup.html', () => mockup(t, origem)],
       ]) {
-        const alvo = `${P.directions}/${base}${suf}`;
+        const alvo = `${raiz}/${base}${suf}`;
         try {
           if (ler(alvo) !== gerar()) direcoesVelhas.push(alvo);
         } catch {
@@ -643,6 +650,12 @@ if (comando === 'extract') {
       }
     }
   }
+
+  for (const d of paletasDivergentes)
+    console.error(
+      `✗ ${d}: a paleta de etapas desta direção não é a do produto — ` +
+        'as etapas são dado gravado em banco, não escolha de direção'
+    );
 
   for (const d of direcoesVelhas)
     console.error(
@@ -662,7 +675,8 @@ if (comando === 'extract') {
     deriva.length ||
     referenciaVelha ||
     mockupVelho ||
-    direcoesVelhas.length
+    direcoesVelhas.length +
+    paletasDivergentes.length
   ) {
     console.error(
       `\n${falhas.length} invariante(s) quebrada(s), ${deriva.length} desvio(s) do JSON` +
@@ -684,12 +698,15 @@ if (comando === 'extract') {
   }
   const cores =
     Object.keys(codigo.color.ramp.light).length + Object.keys(codigo.color.semantic.light).length;
-  const nDir = existsSync(dir)
-    ? readdirSync(dir).filter(n => n.endsWith('.tokens.json')).length
-    : 0;
+  const conta = raiz => {
+    const abs = resolve(RAIZ, raiz);
+    return existsSync(abs) ? readdirSync(abs).filter(n => n.endsWith('.tokens.json')).length : 0;
+  };
+  const nDir = conta(P.directions);
+  const nApr = conta(P.approved);
   console.log(
     `✓ ${cores} tokens de cor, ${codigo.stage.palette.length + 1} etapas, a escala de ` +
-      `forma e ${nDir} direção(ões) proposta(s) em acordo.`
+      `forma, ${nApr} direção(ões) aprovada(s) e ${nDir} proposta(s) em acordo.`
   );
 } else {
   console.error(

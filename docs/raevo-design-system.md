@@ -1,6 +1,17 @@
 # Raevo Design System — direção H · Sereno
 
-**Status:** aprovado em 29/08/2026 · vigente
+> ### ⚠︎ Esta é a direção que está no código, não a aprovada
+>
+> Em **19/09/2026** foi aprovada a direção **[A · Consultório](../design-system/aprovado/README.md)**.
+> Ela é o alvo de **tudo o que for desenhado a partir de agora**; as telas que já existem
+> continuam em Sereno até migrarem, uma a uma, pela fila de
+> [`raevo-aprovacao.md`](./raevo-aprovacao.md).
+>
+> Este documento continua válido para: os padrões de tela, o checklist de PR, e as telas
+> que ainda não migraram. Onde Consultório diverge — cor de ação, raio do controlo,
+> separação por anel, modo escuro — manda o `README.md` da direção aprovada.
+
+**Status:** aprovado em 29/08/2026 · é o que o código tem, até cada tela migrar
 **Fonte da verdade em código:** `app/javascript/dashboard/assets/scss/_raevo-tokens.scss`
 **O sistema como dado:** [`design-system/raevo.tokens.json`](../design-system/raevo.tokens.json) — extraído do código e verificado em CI por `pnpm raevo:tokens` ([como mudar um valor](../design-system/README.md))
 **Referência viva:** `design-system/reference.html` — gerada dos tokens, com alternador de tema

@@ -49,6 +49,19 @@ const oklchParaRgb = txt => {
 const hex = ([r, g, b]) =>
   `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 
+/**
+ * Alfa de `oklch(L C H / a)`, ou null se a cor for opaca.
+ *
+ * A referência escreve a borda do modo escuro como `oklch(1 0 0 / 10%)` — branco
+ * a 10%, não branco. O triplete sozinho perde essa informação e o Chatwoot
+ * consome triplete, por isso o alfa vai à parte em vez de desaparecer.
+ */
+const alfaDe = txt => {
+  const m = txt.match(/oklch\([^)]*\/\s*([\d.]+%?)\s*\)/i);
+  if (!m) return null;
+  return m[1].endsWith('%') ? parseFloat(m[1]) / 100 : parseFloat(m[1]);
+};
+
 // --- tradução dos tokens -------------------------------------------------------
 
 /** Nomes que o Chatwoot/Raevo já consome — a ponte com o que existe. */
@@ -69,7 +82,15 @@ const converte = mapa => {
   const out = {};
   for (const [k, v] of Object.entries(mapa)) {
     const rgb = oklchParaRgb(v);
-    if (rgb) out[k] = { oklch: v, rgb: rgb.join(' '), hex: hex(rgb), raevo: PONTE[k] ?? null };
+    const alfa = rgb ? alfaDe(v) : null;
+    if (rgb)
+      out[k] = {
+        oklch: v,
+        rgb: rgb.join(' '),
+        hex: hex(rgb),
+        ...(alfa === null ? {} : { alfa }),
+        raevo: PONTE[k] ?? null,
+      };
     else out[k] = { raw: v, raevo: PONTE[k] ?? null };
   }
   return out;
@@ -89,7 +110,12 @@ const presets = Object.fromEntries(
 const linhas = (mapa, indent = '  ') =>
   Object.entries(mapa)
     .filter(([, v]) => v.rgb)
-    .map(([k, v]) => `${indent}--shadcn-${k}: ${v.rgb};   // ${v.hex}`)
+    .map(([k, v]) =>
+      v.alfa === undefined
+        ? `${indent}--shadcn-${k}: ${v.rgb};   // ${v.hex}`
+        : `${indent}--shadcn-${k}: ${v.rgb};   // ${v.hex} a ${v.alfa * 100}%\n` +
+          `${indent}--shadcn-${k}-alpha: ${v.alfa};`
+    )
     .join('\n');
 
 const ponte = (mapa, indent = '  ') =>

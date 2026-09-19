@@ -1,7 +1,14 @@
 # Raevo Design System — o sistema como dado
 
-A direção **H · Sereno** foi aprovada em 29/08/2026 e não mudou. O que mudou é
-**onde ela vive**.
+> **A direção aprovada é [A · Consultório](aprovado/README.md)** (19/09/2026). É o alvo
+> de tudo o que for desenhado a partir de agora. As telas que já existem migram uma a
+> uma, pela fila de [`docs/raevo-aprovacao.md`](../docs/raevo-aprovacao.md).
+>
+> Este documento descreve a **infraestrutura** — como o sistema vira dado e como a
+> porta o defende. Vale igual para as duas direções.
+
+A direção **H · Sereno** foi aprovada em 29/08/2026 e é o que o código ainda tem. O que
+mudou primeiro foi **onde ela vive**.
 
 Antes, a mesma decisão estava escrita à mão em quatro lugares:
 

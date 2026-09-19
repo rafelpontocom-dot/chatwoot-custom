@@ -30,12 +30,21 @@ const decls = bloco => {
   return out;
 };
 
-/** Recorta o corpo de `seletor { ... }` equilibrando chavetas. */
+/**
+ * Recorta o corpo de `seletor { ... }` equilibrando chavetas.
+ *
+ * O seletor tem de estar imediatamente antes da chaveta: `.dark` também aparece
+ * dentro de `@custom-variant dark (&:is(.dark *))`, e um `indexOf` cru casava
+ * aí e devolvia o corpo do bloco seguinte — era assim que o `.dark` da
+ * referência vinha com os valores do `@theme inline`.
+ */
 const corpo = (css, seletor) => {
-  const i = css.indexOf(seletor);
-  if (i === -1) return null;
+  const alvo = seletor.replace(/\s*\{\s*$/, '');
+  const esc = alvo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = new RegExp(`(?:^|[};\\s])${esc}\\s*\\{`, 'm').exec(css);
+  if (!m) return null;
   let nivel = 0;
-  const abre = css.indexOf('{', i);
+  const abre = m.index + m[0].length - 1;
   for (let j = abre; j < css.length; j += 1) {
     if (css[j] === '{') nivel += 1;
     else if (css[j] === '}') {
