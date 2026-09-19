@@ -5,11 +5,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Raevo Design System — LEIA ANTES DE MEXER EM QUALQUER UI
 
-Este fork é o **Raevo**. Toda interface — tela nova, componente novo, ajuste em tela
-existente — segue a direção **H · Sereno**, aprovada em 29/08/2026.
+Este fork é o **Raevo**. Há **duas** direções em jogo ao mesmo tempo, e confundi-las dá
+retrabalho:
+
+| | Direção | Onde vale |
+| --- | --- | --- |
+| **O que está no código** | **H · Sereno** (29/08/2026) | as telas que já existem, até cada uma migrar |
+| **O que foi aprovado** | **A · Consultório** (19/09/2026) | **tudo o que for desenhado a partir de agora** |
+
+- **Tela nova, componente novo, diálogo novo → nasce em Consultório.** O sistema está
+  gravado em [`design-system/aprovado/`](design-system/aprovado/README.md).
+- **Tela que já existe → não muda sem aprovação.** A fila e o processo estão em
+  [`docs/raevo-aprovacao.md`](docs/raevo-aprovacao.md). Implementar antes de aprovar é
+  retrabalho à espera de acontecer.
+- **Tela nativa do Chatwoot** (Conversas, Contactos, Definições, Caixas de entrada,
+  Central de ajuda) → **só tokens, markup intocado**. Herda a identidade sem ser
+  editada. Redesenhá-las tela a tela é o que encarece cada `git pull` do upstream.
 
 **Especificação completa e obrigatória: [`docs/raevo-design-system.md`](docs/raevo-design-system.md).**
-Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável.
+Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável — valem
+nas duas direções, com as duas exceções assinaladas.
+
+## O que Consultório muda em relação a Sereno
+
+Aplica-se a desenho novo e a cada tela quando ela migrar — não retroativamente ao que
+já está no código.
+
+| Decisão | Sereno | Consultório |
+| --- | --- | --- |
+| Cor de ação (`--brand-color`) | `#2563EB` | **`#171717`** — o azul fica só para etapa |
+| Base | ardósia fria | **acromática** (croma zero) |
+| Raio do controlo | pílula | **10px** (regra 4 abaixo) |
+| Raio do cartão | 13px | 14px (`--radius` + 4) |
+| Separação em repouso | espaço | **anel de 1px** (`ring-foreground/10`) |
+| Modo escuro | invertido à mão | medido da referência; o primário **inverte** para `#E5E5E5` |
+| Tipografia | seis degraus | **os mesmos seis degraus** — não muda nada |
+| Paleta de etapas | travada | **travada, igual** |
+
+O modo escuro **usa o interruptor de tema que o Chatwoot já tem**. Não se cria outro, e
+a proposta C · Órbita não é o modo escuro de A — ver `docs/raevo-aprovacao.md`.
 
 ## As sete regras
 
@@ -17,6 +51,7 @@ Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável
    `style="color:#111"`, `border-radius: 8px`. Use as classes `n-*` do Tailwind e os
    tokens `--raevo-*`. Se falta um token, crie em
    `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` — nunca no componente.
+   Depois rode `pnpm raevo:tokens:extract`, senão a porta acusa divergência.
 
 2. **Nunca edite `_next-colors.scss`, e não mude cor em `theme/colors.js`.** São arquivos
    upstream; editá-los gera conflito em todo `git pull` do Chatwoot. A identidade vive em
@@ -28,10 +63,16 @@ Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável
 4. **Botão e campo de uma linha são pílula** (`rounded-full`, já é o padrão global).
    Card e painel usam `rounded-xl` (13px). Textarea usa `rounded-lg`.
 
+   **Exceção em Consultório:** a pílula fica para o selo e para a barra de pesquisa;
+   botão e campo passam a `lg` (10px) e o cartão a `xl` (14px). A densidade alta tira
+   largura ao controlo, e dois botões-pílula adjacentes ficam ambíguos. Vale em tela
+   nova e em tela migrada — não mexa nas outras só por isto.
+
 5. **Estado nunca se comunica só por cor.** Sempre cor + ícone + texto. É requisito de
    acessibilidade (WCAG 2.2), não preferência estética.
 
-6. **Tipografia só na escala.** Seis degraus: `text-micro` (11px, piso, só caixa alta e
+6. **Tipografia só na escala.** (Consultório **não mexe** nisto: a referência não
+   redefine um único degrau de tipo — a densidade dela vem da caixa, não do tipo.) Seis degraus: `text-micro` (11px, piso, só caixa alta e
    número curto) · `text-xs` (12) · `text-sm` (14) · `text-base` (16) · `text-xl` (20) ·
    `text-3xl` (30). **Nunca `text-[Npx]`** — a auditoria achou 27 degraus distintos em uso
    porque cada tela inventou o seu. Ver `docs/raevo-design-system.md` §4.
@@ -86,14 +127,29 @@ Exemplos prontos: `KanbanAutomations.spec.js`, `KanbanBoardSettings.spec.js`.
 
 ```bash
 pnpm raevo:design    # falha se algum componente do Raevo escrever cor literal
+pnpm raevo:tokens    # falha se o código divergir do sistema gravado — inclui a direção aprovada
 pnpm raevo:palette   # revalida a paleta de etapas
 ```
+
+Mexeu na direção aprovada? Não edite o JSON à mão: mude `scripts/author-consultorio.mjs`,
+rode `pnpm raevo:aprovado` e leia o diff de `consultorio.tokens.json`.
+
+As duas primeiras rodam em CI (`custom_checks.yml`, job `lint-frontend`).
+
+Mudou um token de propósito? Rode `pnpm raevo:tokens:extract` e **leia o diff do
+JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pretendia.
 
 ## Onde a identidade mora
 
 | Arquivo | Papel |
 | --- | --- |
-| `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` | fonte da verdade: cor, sombra, raio semântico |
+| `design-system/aprovado/consultorio.tokens.json` | **a direção aprovada** — o alvo de tudo o que for desenhado a partir de agora |
+| `design-system/aprovado/README.md` | as sete decisões que Consultório trava, e de onde veio cada valor |
+| `docs/raevo-aprovacao.md` | a fila de telas: o que precisa de aprovação, o que não, e o que já foi decidido |
+| `scripts/author-consultorio.mjs` | como o JSON aprovado é derivado da referência — **é aqui que se muda** |
+| `design-system/raevo.tokens.json` | o sistema **como está no código** (Sereno) — a porta `pnpm raevo:tokens` falha se divergir |
+| `design-system/reference.html` | referência viva, gerada dos tokens (abra no browser) |
+| `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` | fonte da verdade em CSS: cor, sombra, raio semântico |
 | `app/javascript/dashboard/assets/scss/_raevo-components.scss` | o que token não alcança |
 | `tailwind.config.js` | raio, borda, sombra e fonte do produto inteiro |
 | `app/javascript/dashboard/components-next/raevo/` | primitivos: `RaevoPageHeader`, `RaevoStamp` — use, não recrie |

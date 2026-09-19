@@ -1,0 +1,113 @@
+// scss-lint:disable PropertySortOrder
+// =============================================================================
+// REFERÊNCIA shadcn/ui — TRADUZIDA PARA O RAEVO
+// GERADO por scripts/translate-reference.mjs a partir de design-system/referencia/shadcn.tokens.json
+// Fonte: arhamkhnz/next-shadcn-admin-dashboard (lido 2026-09-19)
+//
+// A referência escreve cor em OKLCH; aqui vai em triplete RGB, que é o que o
+// Chatwoot consome em `rgb(var(--x) / <alpha-value>)`. Fica FORA de `@layer`
+// pela mesma razão que `_raevo-tokens.scss`: assim um `git pull` do upstream
+// não desfaz a identidade.
+//
+// Importar DEPOIS de _raevo-tokens.scss para esta direção vencer.
+// =============================================================================
+:root {
+  // --- valores da referência, convertidos ---
+  --shadcn-card: 255 255 255;   // #FFFFFF
+  --shadcn-card-foreground: 10 10 10;   // #0A0A0A
+  --shadcn-popover: 255 255 255;   // #FFFFFF
+  --shadcn-popover-foreground: 10 10 10;   // #0A0A0A
+  --shadcn-primary: 23 23 23;   // #171717
+  --shadcn-primary-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-secondary: 245 245 245;   // #F5F5F5
+  --shadcn-secondary-foreground: 23 23 23;   // #171717
+  --shadcn-muted: 245 245 245;   // #F5F5F5
+  --shadcn-muted-foreground: 115 115 115;   // #737373
+  --shadcn-accent: 245 245 245;   // #F5F5F5
+  --shadcn-accent-foreground: 23 23 23;   // #171717
+  --shadcn-destructive: 231 0 11;   // #E7000B
+  --shadcn-border: 229 229 229;   // #E5E5E5
+  --shadcn-input: 229 229 229;   // #E5E5E5
+  --shadcn-ring: 161 161 161;   // #A1A1A1
+  --shadcn-chart-1: 212 212 212;   // #D4D4D4
+  --shadcn-chart-2: 115 115 115;   // #737373
+  --shadcn-chart-3: 82 82 82;   // #525252
+  --shadcn-chart-4: 64 64 64;   // #404040
+  --shadcn-chart-5: 38 38 38;   // #262626
+  --shadcn-sidebar: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-foreground: 10 10 10;   // #0A0A0A
+  --shadcn-sidebar-primary: 23 23 23;   // #171717
+  --shadcn-sidebar-primary-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-accent: 245 245 245;   // #F5F5F5
+  --shadcn-sidebar-accent-foreground: 23 23 23;   // #171717
+  --shadcn-sidebar-border: 229 229 229;   // #E5E5E5
+  --shadcn-sidebar-ring: 161 161 161;   // #A1A1A1
+  --shadcn-background: 255 255 255;   // #FFFFFF
+  --shadcn-foreground: 10 10 10;   // #0A0A0A
+
+  // --- ponte: os nomes que o produto já consome ---
+  --card-color: var(--shadcn-card);
+  --solid-1: var(--shadcn-popover);
+  --brand-color: var(--shadcn-primary);
+  --slate-3: var(--shadcn-muted);
+  --slate-10: var(--shadcn-muted-foreground);
+  --surface-active: var(--shadcn-accent);
+  --border-weak: var(--shadcn-border);
+  --border-strong: var(--shadcn-input);
+  --background-color: var(--shadcn-background);
+  --slate-12: var(--shadcn-foreground);
+
+  // --- forma: raio por fórmula, como na referência ---
+  --radius: 0.625rem;
+  --raevo-radius-item: calc(var(--radius) - 2px);
+  --raevo-radius-control: var(--radius);
+  --raevo-radius-card: calc(var(--radius) + 4px);
+}
+
+.dark {
+  --shadcn-background: 10 10 10;   // #0A0A0A
+  --shadcn-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-card: 23 23 23;   // #171717
+  --shadcn-card-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-popover: 23 23 23;   // #171717
+  --shadcn-popover-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-primary: 229 229 229;   // #E5E5E5
+  --shadcn-primary-foreground: 23 23 23;   // #171717
+  --shadcn-secondary: 38 38 38;   // #262626
+  --shadcn-secondary-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-muted: 38 38 38;   // #262626
+  --shadcn-muted-foreground: 161 161 161;   // #A1A1A1
+  --shadcn-accent: 38 38 38;   // #262626
+  --shadcn-accent-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-destructive: 255 100 103;   // #FF6467
+  --shadcn-border: 255 255 255;   // #FFFFFF a 10%
+  --shadcn-border-alpha: 0.1;
+  --shadcn-input: 255 255 255;   // #FFFFFF a 15%
+  --shadcn-input-alpha: 0.15;
+  --shadcn-ring: 115 115 115;   // #737373
+  --shadcn-chart-1: 212 212 212;   // #D4D4D4
+  --shadcn-chart-2: 115 115 115;   // #737373
+  --shadcn-chart-3: 82 82 82;   // #525252
+  --shadcn-chart-4: 64 64 64;   // #404040
+  --shadcn-chart-5: 38 38 38;   // #262626
+  --shadcn-sidebar: 23 23 23;   // #171717
+  --shadcn-sidebar-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-primary: 20 71 230;   // #1447E6
+  --shadcn-sidebar-primary-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-accent: 38 38 38;   // #262626
+  --shadcn-sidebar-accent-foreground: 250 250 250;   // #FAFAFA
+  --shadcn-sidebar-border: 255 255 255;   // #FFFFFF a 10%
+  --shadcn-sidebar-border-alpha: 0.1;
+  --shadcn-sidebar-ring: 115 115 115;   // #737373
+
+  --background-color: var(--shadcn-background);
+  --slate-12: var(--shadcn-foreground);
+  --card-color: var(--shadcn-card);
+  --solid-1: var(--shadcn-popover);
+  --brand-color: var(--shadcn-primary);
+  --slate-3: var(--shadcn-muted);
+  --slate-10: var(--shadcn-muted-foreground);
+  --surface-active: var(--shadcn-accent);
+  --border-weak: var(--shadcn-border);
+  --border-strong: var(--shadcn-input);
+}

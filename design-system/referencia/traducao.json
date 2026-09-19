@@ -1,0 +1,1084 @@
+{
+  "light": {
+    "radius": {
+      "raw": "0.625rem",
+      "raevo": null
+    },
+    "card": {
+      "oklch": "oklch(1 0 0)",
+      "rgb": "255 255 255",
+      "hex": "#FFFFFF",
+      "raevo": "card-color"
+    },
+    "card-foreground": {
+      "oklch": "oklch(0.145 0 0)",
+      "rgb": "10 10 10",
+      "hex": "#0A0A0A",
+      "raevo": null
+    },
+    "popover": {
+      "oklch": "oklch(1 0 0)",
+      "rgb": "255 255 255",
+      "hex": "#FFFFFF",
+      "raevo": "solid-1"
+    },
+    "popover-foreground": {
+      "oklch": "oklch(0.145 0 0)",
+      "rgb": "10 10 10",
+      "hex": "#0A0A0A",
+      "raevo": null
+    },
+    "primary": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": "brand-color"
+    },
+    "primary-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "secondary": {
+      "oklch": "oklch(0.97 0 0)",
+      "rgb": "245 245 245",
+      "hex": "#F5F5F5",
+      "raevo": null
+    },
+    "secondary-foreground": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": null
+    },
+    "muted": {
+      "oklch": "oklch(0.97 0 0)",
+      "rgb": "245 245 245",
+      "hex": "#F5F5F5",
+      "raevo": "slate-3"
+    },
+    "muted-foreground": {
+      "oklch": "oklch(0.556 0 0)",
+      "rgb": "115 115 115",
+      "hex": "#737373",
+      "raevo": "slate-10"
+    },
+    "accent": {
+      "oklch": "oklch(0.97 0 0)",
+      "rgb": "245 245 245",
+      "hex": "#F5F5F5",
+      "raevo": "surface-active"
+    },
+    "accent-foreground": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": null
+    },
+    "destructive": {
+      "oklch": "oklch(0.577 0.245 27.325)",
+      "rgb": "231 0 11",
+      "hex": "#E7000B",
+      "raevo": null
+    },
+    "border": {
+      "oklch": "oklch(0.922 0 0)",
+      "rgb": "229 229 229",
+      "hex": "#E5E5E5",
+      "raevo": "border-weak"
+    },
+    "input": {
+      "oklch": "oklch(0.922 0 0)",
+      "rgb": "229 229 229",
+      "hex": "#E5E5E5",
+      "raevo": "border-strong"
+    },
+    "ring": {
+      "oklch": "oklch(0.708 0 0)",
+      "rgb": "161 161 161",
+      "hex": "#A1A1A1",
+      "raevo": null
+    },
+    "chart-1": {
+      "oklch": "oklch(0.87 0 0)",
+      "rgb": "212 212 212",
+      "hex": "#D4D4D4",
+      "raevo": null
+    },
+    "chart-2": {
+      "oklch": "oklch(0.556 0 0)",
+      "rgb": "115 115 115",
+      "hex": "#737373",
+      "raevo": null
+    },
+    "chart-3": {
+      "oklch": "oklch(0.439 0 0)",
+      "rgb": "82 82 82",
+      "hex": "#525252",
+      "raevo": null
+    },
+    "chart-4": {
+      "oklch": "oklch(0.371 0 0)",
+      "rgb": "64 64 64",
+      "hex": "#404040",
+      "raevo": null
+    },
+    "chart-5": {
+      "oklch": "oklch(0.269 0 0)",
+      "rgb": "38 38 38",
+      "hex": "#262626",
+      "raevo": null
+    },
+    "sidebar": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "sidebar-foreground": {
+      "oklch": "oklch(0.145 0 0)",
+      "rgb": "10 10 10",
+      "hex": "#0A0A0A",
+      "raevo": null
+    },
+    "sidebar-primary": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": null
+    },
+    "sidebar-primary-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "sidebar-accent": {
+      "oklch": "oklch(0.97 0 0)",
+      "rgb": "245 245 245",
+      "hex": "#F5F5F5",
+      "raevo": null
+    },
+    "sidebar-accent-foreground": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": null
+    },
+    "sidebar-border": {
+      "oklch": "oklch(0.922 0 0)",
+      "rgb": "229 229 229",
+      "hex": "#E5E5E5",
+      "raevo": null
+    },
+    "sidebar-ring": {
+      "oklch": "oklch(0.708 0 0)",
+      "rgb": "161 161 161",
+      "hex": "#A1A1A1",
+      "raevo": null
+    },
+    "font-sans": {
+      "raw": "var(--font-geist)",
+      "raevo": null
+    },
+    "font-mono": {
+      "raw": "var(--font-geist-mono)",
+      "raevo": null
+    },
+    "background": {
+      "oklch": "oklch(1 0 0)",
+      "rgb": "255 255 255",
+      "hex": "#FFFFFF",
+      "raevo": "background-color"
+    },
+    "foreground": {
+      "oklch": "oklch(0.145 0 0)",
+      "rgb": "10 10 10",
+      "hex": "#0A0A0A",
+      "raevo": "slate-12"
+    }
+  },
+  "dark": {
+    "background": {
+      "oklch": "oklch(0.145 0 0)",
+      "rgb": "10 10 10",
+      "hex": "#0A0A0A",
+      "raevo": "background-color"
+    },
+    "foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": "slate-12"
+    },
+    "card": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": "card-color"
+    },
+    "card-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "popover": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": "solid-1"
+    },
+    "popover-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "primary": {
+      "oklch": "oklch(0.922 0 0)",
+      "rgb": "229 229 229",
+      "hex": "#E5E5E5",
+      "raevo": "brand-color"
+    },
+    "primary-foreground": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": null
+    },
+    "secondary": {
+      "oklch": "oklch(0.269 0 0)",
+      "rgb": "38 38 38",
+      "hex": "#262626",
+      "raevo": null
+    },
+    "secondary-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "muted": {
+      "oklch": "oklch(0.269 0 0)",
+      "rgb": "38 38 38",
+      "hex": "#262626",
+      "raevo": "slate-3"
+    },
+    "muted-foreground": {
+      "oklch": "oklch(0.708 0 0)",
+      "rgb": "161 161 161",
+      "hex": "#A1A1A1",
+      "raevo": "slate-10"
+    },
+    "accent": {
+      "oklch": "oklch(0.269 0 0)",
+      "rgb": "38 38 38",
+      "hex": "#262626",
+      "raevo": "surface-active"
+    },
+    "accent-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "destructive": {
+      "oklch": "oklch(0.704 0.191 22.216)",
+      "rgb": "255 100 103",
+      "hex": "#FF6467",
+      "raevo": null
+    },
+    "border": {
+      "oklch": "oklch(1 0 0 / 10%)",
+      "rgb": "255 255 255",
+      "hex": "#FFFFFF",
+      "alfa": 0.1,
+      "raevo": "border-weak"
+    },
+    "input": {
+      "oklch": "oklch(1 0 0 / 15%)",
+      "rgb": "255 255 255",
+      "hex": "#FFFFFF",
+      "alfa": 0.15,
+      "raevo": "border-strong"
+    },
+    "ring": {
+      "oklch": "oklch(0.556 0 0)",
+      "rgb": "115 115 115",
+      "hex": "#737373",
+      "raevo": null
+    },
+    "chart-1": {
+      "oklch": "oklch(0.87 0 0)",
+      "rgb": "212 212 212",
+      "hex": "#D4D4D4",
+      "raevo": null
+    },
+    "chart-2": {
+      "oklch": "oklch(0.556 0 0)",
+      "rgb": "115 115 115",
+      "hex": "#737373",
+      "raevo": null
+    },
+    "chart-3": {
+      "oklch": "oklch(0.439 0 0)",
+      "rgb": "82 82 82",
+      "hex": "#525252",
+      "raevo": null
+    },
+    "chart-4": {
+      "oklch": "oklch(0.371 0 0)",
+      "rgb": "64 64 64",
+      "hex": "#404040",
+      "raevo": null
+    },
+    "chart-5": {
+      "oklch": "oklch(0.269 0 0)",
+      "rgb": "38 38 38",
+      "hex": "#262626",
+      "raevo": null
+    },
+    "sidebar": {
+      "oklch": "oklch(0.205 0 0)",
+      "rgb": "23 23 23",
+      "hex": "#171717",
+      "raevo": null
+    },
+    "sidebar-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "sidebar-primary": {
+      "oklch": "oklch(0.488 0.243 264.376)",
+      "rgb": "20 71 230",
+      "hex": "#1447E6",
+      "raevo": null
+    },
+    "sidebar-primary-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "sidebar-accent": {
+      "oklch": "oklch(0.269 0 0)",
+      "rgb": "38 38 38",
+      "hex": "#262626",
+      "raevo": null
+    },
+    "sidebar-accent-foreground": {
+      "oklch": "oklch(0.985 0 0)",
+      "rgb": "250 250 250",
+      "hex": "#FAFAFA",
+      "raevo": null
+    },
+    "sidebar-border": {
+      "oklch": "oklch(1 0 0 / 10%)",
+      "rgb": "255 255 255",
+      "hex": "#FFFFFF",
+      "alfa": 0.1,
+      "raevo": null
+    },
+    "sidebar-ring": {
+      "oklch": "oklch(0.556 0 0)",
+      "rgb": "115 115 115",
+      "hex": "#737373",
+      "raevo": null
+    }
+  },
+  "presets": {
+    "brutalist": {
+      "light": {
+        "radius": {
+          "raw": "0px",
+          "raevo": null
+        },
+        "card": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": "card-color"
+        },
+        "card-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "popover": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": "solid-1"
+        },
+        "popover-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "primary": {
+          "oklch": "oklch(0.6489 0.237 26.9728)",
+          "rgb": "255 51 51",
+          "hex": "#FF3333",
+          "raevo": "brand-color"
+        },
+        "primary-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "secondary": {
+          "oklch": "oklch(0.968 0.211 109.7692)",
+          "rgb": "255 255 0",
+          "hex": "#FFFF00",
+          "raevo": null
+        },
+        "secondary-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "muted": {
+          "oklch": "oklch(0.9551 0 0)",
+          "rgb": "240 240 240",
+          "hex": "#F0F0F0",
+          "raevo": "slate-3"
+        },
+        "muted-foreground": {
+          "oklch": "oklch(0.3211 0 0)",
+          "rgb": "51 51 51",
+          "hex": "#333333",
+          "raevo": "slate-10"
+        },
+        "accent": {
+          "oklch": "oklch(0.5635 0.2408 260.8178)",
+          "rgb": "0 102 255",
+          "hex": "#0066FF",
+          "raevo": "surface-active"
+        },
+        "accent-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "destructive": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "border": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": "border-weak"
+        },
+        "input": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": "border-strong"
+        },
+        "ring": {
+          "oklch": "oklch(0.6489 0.237 26.9728)",
+          "rgb": "255 51 51",
+          "hex": "#FF3333",
+          "raevo": null
+        },
+        "chart-1": {
+          "oklch": "oklch(0.6489 0.237 26.9728)",
+          "rgb": "255 51 51",
+          "hex": "#FF3333",
+          "raevo": null
+        },
+        "chart-2": {
+          "oklch": "oklch(0.968 0.211 109.7692)",
+          "rgb": "255 255 0",
+          "hex": "#FFFF00",
+          "raevo": null
+        },
+        "chart-3": {
+          "oklch": "oklch(0.5635 0.2408 260.8178)",
+          "rgb": "0 102 255",
+          "hex": "#0066FF",
+          "raevo": null
+        },
+        "chart-4": {
+          "oklch": "oklch(0.7323 0.2492 142.4953)",
+          "rgb": "0 204 0",
+          "hex": "#00CC00",
+          "raevo": null
+        },
+        "chart-5": {
+          "oklch": "oklch(0.5931 0.2726 328.3634)",
+          "rgb": "204 0 204",
+          "hex": "#CC00CC",
+          "raevo": null
+        },
+        "sidebar": {
+          "oklch": "oklch(0.9551 0 0)",
+          "rgb": "240 240 240",
+          "hex": "#F0F0F0",
+          "raevo": null
+        },
+        "sidebar-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "sidebar-primary": {
+          "oklch": "oklch(0.6489 0.237 26.9728)",
+          "rgb": "255 51 51",
+          "hex": "#FF3333",
+          "raevo": null
+        },
+        "sidebar-primary-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "sidebar-accent": {
+          "oklch": "oklch(0.5635 0.2408 260.8178)",
+          "rgb": "0 102 255",
+          "hex": "#0066FF",
+          "raevo": null
+        },
+        "sidebar-accent-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "sidebar-border": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "sidebar-ring": {
+          "oklch": "oklch(0.6489 0.237 26.9728)",
+          "rgb": "255 51 51",
+          "hex": "#FF3333",
+          "raevo": null
+        },
+        "background": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": "background-color"
+        },
+        "foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": "slate-12"
+        },
+        "shadow-2xs": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 0.5)",
+          "raevo": null
+        },
+        "shadow-xs": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 0.5)",
+          "raevo": null
+        },
+        "shadow-sm": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 1), 4px 1px 2px -1px hsl(0 0% 0% / 1)",
+          "raevo": null
+        },
+        "shadow": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 1), 4px 1px 2px -1px hsl(0 0% 0% / 1)",
+          "raevo": null
+        },
+        "shadow-md": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 1), 4px 2px 4px -1px hsl(0 0% 0% / 1)",
+          "raevo": null
+        },
+        "shadow-lg": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 1), 4px 4px 6px -1px hsl(0 0% 0% / 1)",
+          "raevo": null
+        },
+        "shadow-xl": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 1), 4px 8px 10px -1px hsl(0 0% 0% / 1)",
+          "raevo": null
+        },
+        "shadow-2xl": {
+          "raw": "4px 4px 0px 0px hsl(0 0% 0% / 2.5)",
+          "raevo": null
+        }
+      },
+      "dark": {}
+    },
+    "soft-pop": {
+      "light": {
+        "radius": {
+          "raw": "1rem",
+          "raevo": null
+        },
+        "card": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": "card-color"
+        },
+        "card-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "popover": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": "solid-1"
+        },
+        "popover-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "primary": {
+          "oklch": "oklch(0.5106 0.2301 276.9656)",
+          "rgb": "79 70 229",
+          "hex": "#4F46E5",
+          "raevo": "brand-color"
+        },
+        "primary-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "secondary": {
+          "oklch": "oklch(0.7038 0.123 182.5025)",
+          "rgb": "20 184 166",
+          "hex": "#14B8A6",
+          "raevo": null
+        },
+        "secondary-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "muted": {
+          "oklch": "oklch(0.9551 0 0)",
+          "rgb": "240 240 240",
+          "hex": "#F0F0F0",
+          "raevo": "slate-3"
+        },
+        "muted-foreground": {
+          "oklch": "oklch(0.3211 0 0)",
+          "rgb": "51 51 51",
+          "hex": "#333333",
+          "raevo": "slate-10"
+        },
+        "accent": {
+          "oklch": "oklch(0.7686 0.1647 70.0804)",
+          "rgb": "245 158 11",
+          "hex": "#F59E0B",
+          "raevo": "surface-active"
+        },
+        "accent-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "destructive": {
+          "oklch": "oklch(0.6368 0.2078 25.3313)",
+          "rgb": "239 68 68",
+          "hex": "#EF4444",
+          "raevo": null
+        },
+        "border": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": "border-weak"
+        },
+        "input": {
+          "oklch": "oklch(0.5555 0 0)",
+          "rgb": "115 115 115",
+          "hex": "#737373",
+          "raevo": "border-strong"
+        },
+        "ring": {
+          "oklch": "oklch(0.7853 0.1041 274.7134)",
+          "rgb": "165 180 252",
+          "hex": "#A5B4FC",
+          "raevo": null
+        },
+        "chart-1": {
+          "oklch": "oklch(0.5106 0.2301 276.9656)",
+          "rgb": "79 70 229",
+          "hex": "#4F46E5",
+          "raevo": null
+        },
+        "chart-2": {
+          "oklch": "oklch(0.7038 0.123 182.5025)",
+          "rgb": "20 184 166",
+          "hex": "#14B8A6",
+          "raevo": null
+        },
+        "chart-3": {
+          "oklch": "oklch(0.7686 0.1647 70.0804)",
+          "rgb": "245 158 11",
+          "hex": "#F59E0B",
+          "raevo": null
+        },
+        "chart-4": {
+          "oklch": "oklch(0.6559 0.2118 354.3084)",
+          "rgb": "236 72 153",
+          "hex": "#EC4899",
+          "raevo": null
+        },
+        "chart-5": {
+          "oklch": "oklch(0.7227 0.192 149.5793)",
+          "rgb": "34 197 94",
+          "hex": "#22C55E",
+          "raevo": null
+        },
+        "sidebar": {
+          "oklch": "oklch(0.9789 0.0082 121.6272)",
+          "rgb": "247 249 243",
+          "hex": "#F7F9F3",
+          "raevo": null
+        },
+        "sidebar-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "sidebar-primary": {
+          "oklch": "oklch(0.5106 0.2301 276.9656)",
+          "rgb": "79 70 229",
+          "hex": "#4F46E5",
+          "raevo": null
+        },
+        "sidebar-primary-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "sidebar-accent": {
+          "oklch": "oklch(0.7686 0.1647 70.0804)",
+          "rgb": "245 158 11",
+          "hex": "#F59E0B",
+          "raevo": null
+        },
+        "sidebar-accent-foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "sidebar-border": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": null
+        },
+        "sidebar-ring": {
+          "oklch": "oklch(0.7853 0.1041 274.7134)",
+          "rgb": "165 180 252",
+          "hex": "#A5B4FC",
+          "raevo": null
+        },
+        "background": {
+          "oklch": "oklch(0.9789 0.0082 121.6272)",
+          "rgb": "247 249 243",
+          "hex": "#F7F9F3",
+          "raevo": "background-color"
+        },
+        "foreground": {
+          "oklch": "oklch(0 0 0)",
+          "rgb": "0 0 0",
+          "hex": "#000000",
+          "raevo": "slate-12"
+        },
+        "shadow-2xs": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.03)",
+          "raevo": null
+        },
+        "shadow-xs": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.03)",
+          "raevo": null
+        },
+        "shadow-sm": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 1px 2px -1px hsl(0 0% 10.1961% / 0.05)",
+          "raevo": null
+        },
+        "shadow": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 1px 2px -1px hsl(0 0% 10.1961% / 0.05)",
+          "raevo": null
+        },
+        "shadow-md": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 2px 4px -1px hsl(0 0% 10.1961% / 0.05)",
+          "raevo": null
+        },
+        "shadow-lg": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 4px 6px -1px hsl(0 0% 10.1961% / 0.05)",
+          "raevo": null
+        },
+        "shadow-xl": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 8px 10px -1px hsl(0 0% 10.1961% / 0.05)",
+          "raevo": null
+        },
+        "shadow-2xl": {
+          "raw": "0px 0px 0px 0px hsl(0 0% 10.1961% / 0.13)",
+          "raevo": null
+        }
+      },
+      "dark": {}
+    },
+    "tangerine": {
+      "light": {
+        "radius": {
+          "raw": "0.625rem",
+          "raevo": null
+        },
+        "card": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": "card-color"
+        },
+        "card-foreground": {
+          "oklch": "oklch(0.32 0 0)",
+          "rgb": "51 51 51",
+          "hex": "#333333",
+          "raevo": null
+        },
+        "popover": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": "solid-1"
+        },
+        "popover-foreground": {
+          "oklch": "oklch(0.32 0 0)",
+          "rgb": "51 51 51",
+          "hex": "#333333",
+          "raevo": null
+        },
+        "primary": {
+          "oklch": "oklch(0.64 0.17 36.44)",
+          "rgb": "223 94 58",
+          "hex": "#DF5E3A",
+          "raevo": "brand-color"
+        },
+        "primary-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "secondary": {
+          "oklch": "oklch(0.97 0 264.54)",
+          "rgb": "245 245 245",
+          "hex": "#F5F5F5",
+          "raevo": null
+        },
+        "secondary-foreground": {
+          "oklch": "oklch(0.45 0.03 256.8)",
+          "rgb": "75 86 102",
+          "hex": "#4B5666",
+          "raevo": null
+        },
+        "muted": {
+          "oklch": "oklch(0.98 0 247.84)",
+          "rgb": "248 248 248",
+          "hex": "#F8F8F8",
+          "raevo": "slate-3"
+        },
+        "muted-foreground": {
+          "oklch": "oklch(0.55 0.02 264.36)",
+          "rgb": "108 114 126",
+          "hex": "#6C727E",
+          "raevo": "slate-10"
+        },
+        "accent": {
+          "oklch": "oklch(0.91 0.02 243.82)",
+          "rgb": "215 227 238",
+          "hex": "#D7E3EE",
+          "raevo": "surface-active"
+        },
+        "accent-foreground": {
+          "oklch": "oklch(0.38 0.14 265.52)",
+          "rgb": "30 58 139",
+          "hex": "#1E3A8B",
+          "raevo": null
+        },
+        "destructive": {
+          "oklch": "oklch(0.64 0.21 25.33)",
+          "rgb": "241 68 68",
+          "hex": "#F14444",
+          "raevo": null
+        },
+        "border": {
+          "oklch": "oklch(0.9 0.01 247.88)",
+          "rgb": "217 223 228",
+          "hex": "#D9DFE4",
+          "raevo": "border-weak"
+        },
+        "input": {
+          "oklch": "oklch(0.97 0 264.54)",
+          "rgb": "245 245 245",
+          "hex": "#F5F5F5",
+          "raevo": "border-strong"
+        },
+        "ring": {
+          "oklch": "oklch(0.64 0.17 36.44)",
+          "rgb": "223 94 58",
+          "hex": "#DF5E3A",
+          "raevo": null
+        },
+        "chart-1": {
+          "oklch": "oklch(0.72 0.06 248.68)",
+          "rgb": "136 168 201",
+          "hex": "#88A8C9",
+          "raevo": null
+        },
+        "chart-2": {
+          "oklch": "oklch(0.79 0.09 35.96)",
+          "rgb": "238 166 147",
+          "hex": "#EEA693",
+          "raevo": null
+        },
+        "chart-3": {
+          "oklch": "oklch(0.58 0.08 254.16)",
+          "rgb": "89 125 169",
+          "hex": "#597DA9",
+          "raevo": null
+        },
+        "chart-4": {
+          "oklch": "oklch(0.5 0.08 259.49)",
+          "rgb": "71 100 145",
+          "hex": "#476491",
+          "raevo": null
+        },
+        "chart-5": {
+          "oklch": "oklch(0.42 0.1 264.03)",
+          "rgb": "48 74 131",
+          "hex": "#304A83",
+          "raevo": null
+        },
+        "sidebar": {
+          "oklch": "oklch(0.9 0 258.33)",
+          "rgb": "222 222 222",
+          "hex": "#DEDEDE",
+          "raevo": null
+        },
+        "sidebar-foreground": {
+          "oklch": "oklch(0.32 0 0)",
+          "rgb": "51 51 51",
+          "hex": "#333333",
+          "raevo": null
+        },
+        "sidebar-primary": {
+          "oklch": "oklch(0.64 0.17 36.44)",
+          "rgb": "223 94 58",
+          "hex": "#DF5E3A",
+          "raevo": null
+        },
+        "sidebar-primary-foreground": {
+          "oklch": "oklch(1 0 0)",
+          "rgb": "255 255 255",
+          "hex": "#FFFFFF",
+          "raevo": null
+        },
+        "sidebar-accent": {
+          "oklch": "oklch(0.91 0.02 243.82)",
+          "rgb": "215 227 238",
+          "hex": "#D7E3EE",
+          "raevo": null
+        },
+        "sidebar-accent-foreground": {
+          "oklch": "oklch(0.38 0.14 265.52)",
+          "rgb": "30 58 139",
+          "hex": "#1E3A8B",
+          "raevo": null
+        },
+        "sidebar-border": {
+          "oklch": "oklch(0.93 0.01 264.53)",
+          "rgb": "228 232 239",
+          "hex": "#E4E8EF",
+          "raevo": null
+        },
+        "sidebar-ring": {
+          "oklch": "oklch(0.64 0.17 36.44)",
+          "rgb": "223 94 58",
+          "hex": "#DF5E3A",
+          "raevo": null
+        },
+        "background": {
+          "oklch": "oklch(0.94 0 236.5)",
+          "rgb": "235 235 235",
+          "hex": "#EBEBEB",
+          "raevo": "background-color"
+        },
+        "foreground": {
+          "oklch": "oklch(0.32 0 0)",
+          "rgb": "51 51 51",
+          "hex": "#333333",
+          "raevo": "slate-12"
+        },
+        "shadow-2xs": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.05)",
+          "raevo": null
+        },
+        "shadow-xs": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.05)",
+          "raevo": null
+        },
+        "shadow-sm": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 1px 2px -1px hsl(0 0% 0% / 0.1)",
+          "raevo": null
+        },
+        "shadow": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 1px 2px -1px hsl(0 0% 0% / 0.1)",
+          "raevo": null
+        },
+        "shadow-md": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 2px 4px -1px hsl(0 0% 0% / 0.1)",
+          "raevo": null
+        },
+        "shadow-lg": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 4px 6px -1px hsl(0 0% 0% / 0.1)",
+          "raevo": null
+        },
+        "shadow-xl": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 8px 10px -1px hsl(0 0% 0% / 0.1)",
+          "raevo": null
+        },
+        "shadow-2xl": {
+          "raw": "0px 1px 3px 0px hsl(0 0% 0% / 0.25)",
+          "raevo": null
+        }
+      },
+      "dark": {}
+    }
+  },
+  "radius": {
+    "sm": "calc(var(--radius) - 4px)",
+    "md": "calc(var(--radius) - 2px)",
+    "lg": "var(--radius)",
+    "xl": "calc(var(--radius) + 4px)",
+    "2xl": "calc(var(--radius) + 8px)",
+    "3xl": "calc(var(--radius) + 12px)"
+  }
+}
