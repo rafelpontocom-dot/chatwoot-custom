@@ -68,7 +68,7 @@ ainda por tomar vem no fim.
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | pronta a implementar; a lacuna do teclado fica em separado |
-| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | à espera de aprovação |
+| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | pronta a implementar; `truncate` do assunto e tira de abas ficam em separado |
 | 3 | Início | Home | 1 | por apresentar | KPI, cartão com anel, gráfico de um tom |
 | 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
@@ -81,6 +81,31 @@ Quando uma linha for aprovada, escreva a data e quem aprovou. Quando for impleme
 ponha o link do PR.
 
 ---
+
+## O que falta para fechar o Kanban
+
+Inventário feito em 20/09, depois de aprovadas as telas 1 e 2.
+
+**O que precisa de aprovação própria** — tem arquitetura de informação que não se
+deduz do que já foi aprovado:
+
+| Superfície | Ficheiro | Porquê precisa |
+| --- | --- | --- |
+| **Vista de lista** | `KanbanListView.vue` (8 KB) | é a outra metade do alternador que já está na tela aprovada; sem ela, metade do interruptor fica por definir |
+| **Painel de filtros** | dentro de `KanbanView.vue` | descrito na tela 1, nunca desenhado: filtros guardados, atalhos de estado, ordenação, guardar/renomear/apagar |
+| **Configurações do quadro** | `KanbanBoardSettings.vue` (287 KB) | oito separadores — Geral, Etapas, Agentes, Caixas, Agenda, Comercial, Automações, Campos de contacto |
+| **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
+| **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
+
+**O que herda e não precisa de aprovação** — composto de primitivos já aprovados
+(campo, botão, selo, tabela, estado vazio, gaveta):
+
+`KanbanActivityCenter` · `KanbanImportDialog` · `KanbanOpportunityPicker` ·
+`KanbanConversationDrawer` · `KanbanCreateBoardDialog` · `KanbanCalendarBookingDialog` ·
+cartões arquivados · movimento assistido · resumo comercial · criação rápida.
+
+Aprovar cada um destes à parte é o caminho caro de que este documento avisa. Entram
+na implementação com os tokens, e a porta visual valida o resultado.
 
 ## Achados abertos
 
