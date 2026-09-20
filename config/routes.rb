@@ -919,6 +919,7 @@ Rails.application.routes.draw do
         post :provision_raevo_ai, on: :member
         post :update_raevo_ai_stage_mapping, on: :member
         post :activate_raevo_ai, on: :member
+        post :rotate_raevo_ai_command_token, on: :member
       end
       resources :users, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
         delete :avatar, on: :member, action: :destroy_avatar

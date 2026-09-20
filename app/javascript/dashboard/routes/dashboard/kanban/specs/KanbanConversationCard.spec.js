@@ -245,6 +245,27 @@ describe('KanbanConversationCard', () => {
     expect(wrapper.emitted('openConversation')[0][0]).toEqual(buildCard());
   });
 
+  it('offers the compose bubble on an opportunity that never had a conversation', () => {
+    const wrapper = mountCard({ card: buildManualCard() });
+
+    expect(
+      wrapper.find('[data-testid="kanban-card-open-conversation"]').exists()
+    ).toBe(false);
+    const compose = wrapper.findComponent({ name: 'ComposeConversation' });
+    expect(compose.exists()).toBe(true);
+    expect(compose.props('contactId')).toBe('11');
+  });
+
+  it('keeps the compose bubble away from a card without a contact', () => {
+    const wrapper = mountCard({
+      card: buildManualCard({ contact: null, conversation: null }),
+    });
+
+    expect(
+      wrapper.findComponent({ name: 'ComposeConversation' }).exists()
+    ).toBe(false);
+  });
+
   it('shows the native priority indicator when priority is present', () => {
     const wrapper = mountCard();
     const priorityIcon = wrapper.findComponent({ name: 'CardPriorityIcon' });

@@ -4,13 +4,26 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
 
   before_action :authorize_home
 
+  # A secretaria escolhe o que ver: por caixa de entrada, por funil, e em que
+  # ordem — quem espera há mais tempo ou o que chegou agora.
+  CONVERSATION_SORTS = %w[waiting recent].freeze
+  ACTION_SORTS = %w[overdue recent].freeze
+
   def show
     conversations = open_conversations
 
     render json: {
       open_conversations_count: conversations[:count],
       open_conversations: conversations[:items],
-      overdue_actions: overdue_actions
+      overdue_actions: overdue_actions,
+      filters: {
+        inboxes: inbox_options,
+        boards: board_options,
+        conversation_sort: conversation_sort,
+        action_sort: action_sort,
+        inbox_id: selected_inbox_id,
+        board_id: selected_board_id
+      }
     }
   end
 
@@ -22,13 +35,43 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
 
   LAST_MESSAGE_LIMIT = 140
 
+  def conversation_sort
+    CONVERSATION_SORTS.include?(params[:conversation_sort]) ? params[:conversation_sort] : 'waiting'
+  end
+
+  def action_sort
+    ACTION_SORTS.include?(params[:action_sort]) ? params[:action_sort] : 'overdue'
+  end
+
+  def selected_inbox_id
+    return if params[:inbox_id].blank?
+
+    Current.account.inboxes.where(id: params[:inbox_id]).pick(:id)
+  end
+
+  def selected_board_id
+    return if params[:board_id].blank?
+
+    policy_scope(KanbanBoard).where(id: params[:board_id]).pick(:id)
+  end
+
+  def inbox_options
+    Current.user.assigned_inboxes.where(account_id: Current.account.id).order(:name).map { |inbox| { id: inbox.id, name: inbox.name } }
+  end
+
+  def board_options
+    policy_scope(KanbanBoard).active.order(:name).map { |board| { id: board.id, name: board.name } }
+  end
+
   def open_conversations
-    result = ConversationFinder.new(Current.user, status: 'open', sort_by: 'unread', page: 1).perform
-    # Quem espera há mais tempo aparece primeiro: a Home existe para mostrar o
-    # que está parado, não a ordem em que o banco devolveu.
-    conversations = result[:conversations]
-                    .sort_by { |conversation| conversation.last_activity_at || Time.zone.at(0) }
-                    .first(MAX_ITEMS)
+    finder_params = { status: 'open', sort_by: 'unread', page: 1 }
+    finder_params[:inbox_id] = selected_inbox_id if selected_inbox_id
+    result = ConversationFinder.new(Current.user, finder_params).perform
+    # Por omissão, quem espera há mais tempo aparece primeiro: a Home existe
+    # para mostrar o que está parado, não a ordem em que o banco devolveu.
+    ordered = result[:conversations].sort_by { |conversation| conversation.last_activity_at || Time.zone.at(0) }
+    ordered = ordered.reverse if conversation_sort == 'recent'
+    conversations = ordered.first(MAX_ITEMS)
 
     {
       count: result[:count][:all_count],
@@ -63,7 +106,7 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
   end
 
   def overdue_actions
-    board_ids = policy_scope(KanbanBoard).pluck(:id)
+    board_ids = selected_board_id ? [selected_board_id] : policy_scope(KanbanBoard).pluck(:id)
     return [] if board_ids.empty?
 
     overdue_card_candidates(board_ids).filter_map do |card|
@@ -80,7 +123,7 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
               .where.not(next_action_at: nil)
               .where('next_action_at < ?', Time.current)
               .includes(:contact, :kanban_board, :kanban_stage, :owner, :conversation, :inbox)
-              .order(next_action_at: :asc, id: :asc)
+              .order(next_action_at: action_sort == 'recent' ? :desc : :asc, id: :asc)
               .limit(CARD_CANDIDATE_LIMIT)
   end
 

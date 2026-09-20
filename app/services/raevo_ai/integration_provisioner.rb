@@ -37,6 +37,23 @@ class RaevoAi::IntegrationProvisioner
     { 'enabled' => true, 'clinic_id' => @integration.clinic_id }
   end
 
+  def rotate_command_token!(actor_ref:)
+    ensure_active!
+    ensure_command_token!
+
+    @integration.update!(
+      settings: @integration.settings.merge(
+        'command_token_digest' => Digest::SHA256.hexdigest(@command_token),
+        'command_token_rotation' => {
+          'actor_ref' => actor_ref.to_s,
+          'rotated_at' => Time.current.iso8601
+        }
+      )
+    )
+
+    { 'enabled' => true, 'clinic_id' => @integration.clinic_id }
+  end
+
   def reconfigure!(board_key:, board_id:, initial_stage_id:, stages:, ai_tab_board_ids:)
     ensure_inactive!
     ensure_provisioned!
@@ -57,6 +74,10 @@ class RaevoAi::IntegrationProvisioner
 
   def ensure_inactive!
     raise InvalidProvisioning, 'integration is already enabled' if @integration.enabled?
+  end
+
+  def ensure_active!
+    raise InvalidProvisioning, 'integration is not active' unless @integration.enabled?
   end
 
   def ensure_command_token!

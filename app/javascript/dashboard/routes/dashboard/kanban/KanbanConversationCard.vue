@@ -1,4 +1,5 @@
 <script setup>
+import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { intlLocale } from 'dashboard/composables/useAccountCurrency';
@@ -52,6 +53,14 @@ const inbox = computed(
 );
 
 const hasConversation = computed(() => !!props.card.conversationId);
+// Oportunidade criada pela equipa ainda não tem conversa: o balão abre o mesmo
+// compositor de «Nova mensagem» dos Contactos, para a clínica puxar o assunto.
+const contactId = computed(() =>
+  contact.value?.id ? String(contact.value.id) : ''
+);
+const canStartConversation = computed(
+  () => !hasConversation.value && !!contactId.value
+);
 const contactName = computed(
   () => contact.value?.name || t('KANBAN.CARD.UNKNOWN_CONTACT')
 );
@@ -445,6 +454,7 @@ const openConversation = event => {
           nextActionStatusConfig ||
           amountLabel ||
           hasConversation ||
+          canStartConversation ||
           stageTimeLabel
         "
         data-testid="kanban-card-workflow-summary"
@@ -522,6 +532,33 @@ const openConversation = event => {
           >
             <i class="i-lucide-message-circle size-4" />
           </button>
+
+          <!--
+            O `span` segura o clique: sem ele o mesmo clique abria o compositor
+            e, por trás, a oportunidade. `ComposeConversation` tem duas raízes,
+            então não aceita o modificador diretamente.
+          -->
+          <span
+            v-else-if="canStartConversation"
+            class="no-drag inline-flex"
+            @click.stop
+          >
+            <ComposeConversation :contact-id="contactId">
+              <template #trigger>
+                <button
+                  type="button"
+                  data-testid="kanban-card-start-conversation"
+                  class="no-drag flex p-0 size-7 items-center justify-center rounded-md text-n-slate-10 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                  :aria-label="
+                    t('KANBAN.OPPORTUNITY_DETAILS.START_CONVERSATION')
+                  "
+                  :title="t('KANBAN.OPPORTUNITY_DETAILS.START_CONVERSATION')"
+                >
+                  <i class="i-lucide-message-circle-plus size-4" />
+                </button>
+              </template>
+            </ComposeConversation>
+          </span>
         </div>
       </div>
     </div>

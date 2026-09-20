@@ -13,7 +13,16 @@
     "UNKNOWN_CONTACT": "Contato sem nome",
     "NO_INBOX": "Sem caixa de entrada",
     "PIPELINE_STAGE": "{pipeline} - {stage}",
-    "SEE_ALL": "Ver todas ({count} a mais)"
+    "SEE_ALL": "Ver todas ({count} a mais)",
+    "ALL_INBOXES": "Todas as caixas",
+    "ALL_BOARDS": "Todos os funis",
+    "FILTER_INBOX": "Caixa de entrada",
+    "FILTER_BOARD": "Funil",
+    "SORT": "Ordem",
+    "SORT_WAITING": "Esperando há mais tempo",
+    "SORT_RECENT": "Mais recentes",
+    "SORT_OVERDUE": "Vencidas há mais tempo",
+    "SORT_ACTION_RECENT": "Mais recentes"
   },
   "KANBAN": {
     "EYEBROW": "Comercial",
@@ -1461,6 +1470,7 @@
       "LABEL_TITLE_RULE": "Use letras, números, - ou _ (mínimo de 2 caracteres).",
       "LABEL_CREATE_ADMIN_ONLY": "Só administradores podem criar etiquetas.",
       "OPEN_CONVERSATION": "Abrir conversa",
+      "START_CONVERSATION": "Iniciar conversa",
       "NO_LINKED_CONVERSATION": "Sem conversa vinculada",
       "LOADING": "Carregando detalhes da oportunidade...",
       "LOAD_ERROR": "Não foi possível carregar os detalhes da oportunidade.",

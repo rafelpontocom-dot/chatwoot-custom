@@ -123,6 +123,24 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.not_provisioned')
   end
 
+  def rotate_raevo_ai_command_token
+    unless ActiveModel::Type::Boolean.new.cast(raevo_ai_provisioning_params[:token_deployed])
+      return redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.token_not_deployed')
+    end
+
+    integration = requested_resource.raevo_ai_integration
+    raise RaevoAi::IntegrationProvisioner::InvalidProvisioning, 'integration is not active' unless integration
+
+    RaevoAi::IntegrationProvisioner.new(
+      integration: integration,
+      command_token: raevo_ai_provisioning_params[:command_token]
+    ).rotate_command_token!(actor_ref: "super_admin:#{current_super_admin.id}")
+
+    redirect_to [namespace, requested_resource], notice: t('super_admin.raevo_ai.command_token_rotated')
+  rescue RaevoAi::IntegrationProvisioner::InvalidProvisioning
+    redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.command_token_rotation_failed')
+  end
+
   def destroy
     account = Account.find(params[:id])
 
@@ -145,7 +163,7 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
 
   def raevo_ai_provisioning_params
     params.require(:raevo_ai).permit(
-      :clinic_id, :command_token, :board_key, :board_id, :initial_stage_id,
+      :clinic_id, :command_token, :board_key, :board_id, :initial_stage_id, :token_deployed,
       stage_mappings: SEMANTIC_STAGE_EVENTS.keys
     )
   end

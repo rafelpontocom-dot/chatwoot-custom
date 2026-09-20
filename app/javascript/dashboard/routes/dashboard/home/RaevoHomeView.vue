@@ -13,7 +13,20 @@ const data = ref({
   open_conversations_count: 0,
   open_conversations: [],
   overdue_actions: [],
+  filters: { inboxes: [], boards: [] },
 });
+
+// O que a secretaria escolhe fica na URL: voltar da conversa devolve a mesma
+// lista, e o filtro pode ser partilhado com quem está ao lado.
+const inboxId = ref(String(route.query.inbox_id || ''));
+const boardId = ref(String(route.query.board_id || ''));
+const conversationSort = ref(
+  String(route.query.conversation_sort || 'waiting')
+);
+const actionSort = ref(String(route.query.action_sort || 'overdue'));
+
+const inboxOptions = computed(() => data.value.filters?.inboxes || []);
+const boardOptions = computed(() => data.value.filters?.boards || []);
 const isLoading = ref(true);
 const hasError = ref(false);
 
@@ -30,7 +43,12 @@ const loadHome = async () => {
   hasError.value = false;
 
   try {
-    const response = await RaevoHomeAPI.get();
+    const response = await RaevoHomeAPI.get({
+      inbox_id: inboxId.value || undefined,
+      board_id: boardId.value || undefined,
+      conversation_sort: conversationSort.value,
+      action_sort: actionSort.value,
+    });
     data.value = response.data;
   } catch {
     hasError.value = true;
@@ -119,6 +137,19 @@ const goToAllConversations = () => {
   });
 };
 
+const applyChoice = () => {
+  router.replace({
+    query: {
+      ...route.query,
+      inbox_id: inboxId.value || undefined,
+      board_id: boardId.value || undefined,
+      conversation_sort: conversationSort.value,
+      action_sort: actionSort.value,
+    },
+  });
+  loadHome();
+};
+
 onMounted(loadHome);
 </script>
 
@@ -181,10 +212,38 @@ onMounted(loadHome);
               {{ t('HOME.OPEN_CONVERSATIONS') }}
             </h2>
           </div>
-          <RaevoStamp
-            :label="String(data.open_conversations_count || 0)"
-            size="sm"
-          />
+          <div class="flex shrink-0 items-center gap-2">
+            <select
+              v-model="inboxId"
+              data-testid="home-filter-inbox"
+              class="reset-base mb-0 h-8 max-w-[10rem] rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
+              :aria-label="t('HOME.FILTER_INBOX')"
+              @change="applyChoice"
+            >
+              <option value="">{{ t('HOME.ALL_INBOXES') }}</option>
+              <option
+                v-for="inbox in inboxOptions"
+                :key="inbox.id"
+                :value="String(inbox.id)"
+              >
+                {{ inbox.name }}
+              </option>
+            </select>
+            <select
+              v-model="conversationSort"
+              data-testid="home-sort-conversations"
+              class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
+              :aria-label="t('HOME.SORT')"
+              @change="applyChoice"
+            >
+              <option value="waiting">{{ t('HOME.SORT_WAITING') }}</option>
+              <option value="recent">{{ t('HOME.SORT_RECENT') }}</option>
+            </select>
+            <RaevoStamp
+              :label="String(data.open_conversations_count || 0)"
+              size="sm"
+            />
+          </div>
         </div>
         <div v-if="openConversations.length" class="divide-y divide-n-weak">
           <button
@@ -253,11 +312,39 @@ onMounted(loadHome);
               {{ t('HOME.OVERDUE_ACTIONS') }}
             </h2>
           </div>
-          <RaevoStamp
-            variant="danger"
-            :label="String(overdueActions.length)"
-            size="sm"
-          />
+          <div class="flex shrink-0 items-center gap-2">
+            <select
+              v-model="boardId"
+              data-testid="home-filter-board"
+              class="reset-base mb-0 h-8 max-w-[10rem] rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
+              :aria-label="t('HOME.FILTER_BOARD')"
+              @change="applyChoice"
+            >
+              <option value="">{{ t('HOME.ALL_BOARDS') }}</option>
+              <option
+                v-for="board in boardOptions"
+                :key="board.id"
+                :value="String(board.id)"
+              >
+                {{ board.name }}
+              </option>
+            </select>
+            <select
+              v-model="actionSort"
+              data-testid="home-sort-actions"
+              class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
+              :aria-label="t('HOME.SORT')"
+              @change="applyChoice"
+            >
+              <option value="overdue">{{ t('HOME.SORT_OVERDUE') }}</option>
+              <option value="recent">{{ t('HOME.SORT_ACTION_RECENT') }}</option>
+            </select>
+            <RaevoStamp
+              variant="danger"
+              :label="String(overdueActions.length)"
+              size="sm"
+            />
+          </div>
         </div>
         <div v-if="overdueActions.length" class="divide-y divide-n-weak">
           <button

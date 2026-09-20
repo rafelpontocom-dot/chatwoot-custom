@@ -198,11 +198,16 @@ onMounted(() => {
         @go-to-contacts-list="goToContactsList"
       />
       <template #sidebarHeader>
-        <div class="px-6 pt-6 pb-3">
+        <!--
+          As abas ficam com a largura do próprio nome. Forçar `w-full` em cada
+          botão dividia a coluna por sete e o `truncate` deixava «C…» em todas.
+          Quando não cabem, a barra rola na horizontal.
+        -->
+        <div class="overflow-x-auto px-6 pt-6 pb-3">
           <TabBar
             :tabs="tabs"
             :initial-active-tab="activeTabIndex"
-            class="w-full [&>button]:w-full bg-n-alpha-black2"
+            class="bg-n-alpha-black2"
             @tab-changed="handleTabChange"
           />
         </div>

@@ -21,11 +21,23 @@ class ContactInboxBuilder
       email_source_id
     when 'Channel::Sms'
       phone_source_id
-    when 'Channel::Api', 'Channel::WebWidget'
+    when 'Channel::Api'
+      api_source_id
+    when 'Channel::WebWidget'
       SecureRandom.uuid
     else
       raise "Unsupported operation for this channel: #{@inbox.channel_type}"
     end
+  end
+
+  # Sem `source_id`, cada chamada abria um vínculo novo com um id aleatório, e a
+  # trava «uma conversa por contato» — que procura a conversa dentro do vínculo —
+  # nunca achava a anterior: o WAHA abria uma conversa por mensagem. Com a trava
+  # ligada, reaproveita-se o vínculo que o contato já tem nesta caixa.
+  def api_source_id
+    return SecureRandom.uuid unless @inbox.lock_to_single_conversation?
+
+    @inbox.contact_inboxes.where(contact_id: @contact.id).order(:id).first&.source_id || SecureRandom.uuid
   end
 
   def email_source_id

@@ -4,13 +4,14 @@ import RaevoHomeView from '../RaevoHomeView.vue';
 import RaevoHomeAPI from 'dashboard/api/raevoHome';
 
 const mockPush = vi.fn();
+const mockReplace = vi.fn();
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, locale: ref('pt_BR') }),
 }));
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { accountId: '3' } }),
-  useRouter: () => ({ push: mockPush }),
+  useRoute: () => ({ params: { accountId: '3' }, query: {} }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 vi.mock('dashboard/api/raevoHome', () => ({
   default: { get: vi.fn() },
@@ -43,6 +44,10 @@ describe('RaevoHomeView', () => {
             last_activity_at: '2026-08-29T10:00:00Z',
           },
         ],
+        filters: {
+          inboxes: [{ id: 5, name: 'WhatsApp' }],
+          boards: [{ id: 7, name: 'RAEVO' }],
+        },
         overdue_actions: [
           {
             kanban_card_id: 18,
@@ -73,6 +78,46 @@ describe('RaevoHomeView', () => {
       name: 'inbox_conversation',
       params: { accountId: '3', conversation_id: 1001 },
     });
+  });
+
+  it('filters by inbox and asks the server for the chosen order', async () => {
+    const wrapper = mountHome();
+    await flushPromises();
+    RaevoHomeAPI.get.mockClear();
+
+    await wrapper.find('[data-testid="home-filter-inbox"]').setValue('5');
+    await flushPromises();
+
+    expect(RaevoHomeAPI.get).toHaveBeenCalledWith(
+      expect.objectContaining({ inbox_id: '5', conversation_sort: 'waiting' })
+    );
+    expect(mockReplace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ inbox_id: '5' }),
+      })
+    );
+
+    await wrapper
+      .find('[data-testid="home-sort-conversations"]')
+      .setValue('recent');
+    await flushPromises();
+
+    expect(RaevoHomeAPI.get).toHaveBeenLastCalledWith(
+      expect.objectContaining({ conversation_sort: 'recent', inbox_id: '5' })
+    );
+  });
+
+  it('filters the overdue actions by funnel', async () => {
+    const wrapper = mountHome();
+    await flushPromises();
+    RaevoHomeAPI.get.mockClear();
+
+    await wrapper.find('[data-testid="home-filter-board"]').setValue('7');
+    await flushPromises();
+
+    expect(RaevoHomeAPI.get).toHaveBeenCalledWith(
+      expect.objectContaining({ board_id: '7', action_sort: 'overdue' })
+    );
   });
 
   it('opens an overdue next action in its opportunity drawer', async () => {

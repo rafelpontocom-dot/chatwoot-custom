@@ -321,6 +321,25 @@ describe ContactInboxBuilder do
         expect(contact_inbox.source_id).to eq('test')
       end
 
+      # Sem isto, o WAHA abria uma conversa por mensagem: cada chamada sem
+      # `source_id` criava um vínculo novo e a trava nunca achava a conversa.
+      it 'reuses the contact inbox when the inbox is locked to a single conversation and no source id is given' do
+        api_inbox.update!(lock_to_single_conversation: true)
+        existing_contact_inbox = create(:contact_inbox, contact: contact, inbox: api_inbox, source_id: SecureRandom.uuid)
+
+        contact_inbox = described_class.new(contact: contact, inbox: api_inbox).perform
+
+        expect(contact_inbox.id).to eq(existing_contact_inbox.id)
+      end
+
+      it 'keeps creating a contact inbox per call when the inbox allows many conversations' do
+        existing_contact_inbox = create(:contact_inbox, contact: contact, inbox: api_inbox, source_id: SecureRandom.uuid)
+
+        contact_inbox = described_class.new(contact: contact, inbox: api_inbox).perform
+
+        expect(contact_inbox.id).not_to eq(existing_contact_inbox.id)
+      end
+
       it 'creates a contact inbox with SecureRandom.uuid when source id not provided and no contact inbox exists' do
         contact_inbox = described_class.new(
           contact: contact,

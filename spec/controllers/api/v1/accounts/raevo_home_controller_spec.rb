@@ -64,6 +64,39 @@ RSpec.describe 'Raevo home API', type: :request do
       expect(ids.index(stale.display_id)).to be < ids.index(recent.display_id)
     end
 
+    it 'filters by inbox and can put the newest conversation first' do
+      other_inbox = create(:inbox, account: account)
+      waiting = create(:conversation, account: account, status: :open, last_activity_at: 3.hours.ago)
+      recent = create(:conversation, account: account, inbox: waiting.inbox, status: :open, last_activity_at: 5.minutes.ago)
+      create(:conversation, account: account, inbox: other_inbox, status: :open, last_activity_at: 1.hour.ago)
+
+      get "/api/v1/accounts/#{account.id}/raevo_home",
+          params: { inbox_id: waiting.inbox_id, conversation_sort: 'recent' },
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      display_ids = response.parsed_body['open_conversations'].pluck('display_id')
+      expect(display_ids).to eq([recent.display_id, waiting.display_id])
+      expect(response.parsed_body['filters']).to include('conversation_sort' => 'recent', 'inbox_id' => waiting.inbox_id)
+    end
+
+    it 'filters the overdue actions by funnel and offers the funnels to choose from' do
+      other_board = create(:kanban_board, account: account)
+      other_stage = create(:kanban_stage, account: account, kanban_board: other_board)
+      create(:kanban_card, account: account, kanban_board: board, kanban_stage: stage,
+                           next_action_at: 2.hours.ago, next_action_type: 'follow_up')
+      create(:kanban_card, account: account, kanban_board: other_board, kanban_stage: other_stage,
+                           next_action_at: 3.hours.ago, next_action_type: 'follow_up')
+
+      get "/api/v1/accounts/#{account.id}/raevo_home",
+          params: { board_id: board.id },
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      expect(response.parsed_body['overdue_actions'].pluck('kanban_board_id').uniq).to eq([board.id])
+      expect(response.parsed_body['filters']['boards'].pluck('id')).to include(board.id, other_board.id)
+    end
+
     it 'does not expose a card from a board unavailable to the current agent' do
       agent = create(:user, account: account, role: :agent)
       restricted_board = create(
