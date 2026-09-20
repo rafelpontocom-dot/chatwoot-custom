@@ -69,7 +69,7 @@ ainda por tomar vem no fim.
 | --- | --- | --- | --- | --- | --- |
 | 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | pronta a implementar; a lacuna do teclado fica em separado |
 | 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | pronta a implementar; `truncate` do assunto e tira de abas ficam em separado |
-| 3 | Início | Home | 1 | por apresentar | KPI, cartão com anel, gráfico de um tom |
+| 3 | Início | Home | 1 | **apresentada 20/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. Três achados de dados abertos — ver abaixo |
 | 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
 | 6 | Formulários | Forms | 10 | por apresentar | `RaevoField` é o único tratamento de campo |
@@ -122,6 +122,40 @@ Dois achados menores no mesmo ecrã:
   mesmo selo com a cor da etapa.
 - O estado sem resultados é uma frase centrada, sem saída. Quase sempre é filtro a
   mais. Proposta: dizer quantos grupos estão ativos e oferecer *Limpar filtros*.
+
+### Início — a fila prometia um painel que o servidor não alimenta · 20/09/2026
+
+A nota desta linha dizia *«KPI, cartão com anel, gráfico de um tom»*. O
+`RaevoHomeController#show` devolve duas listas cortadas a oito (`MAX_ITEMS`), um
+contador e os filtros. **Não há série temporal e não há KPI.** Desenhar um painel aqui
+era desenhar um backend que ninguém pediu. A nota da fila foi corrigida: o Início é uma
+fila de trabalho.
+
+Três achados que não são de desenho e que a apresentação mede:
+
+- **A ordenação «quem espera há mais tempo» mente acima de 25 conversas.** O
+  controlador pede ao `ConversationFinder` a página 1 com `sort_by: 'unread'` — 25 por
+  omissão (`CONVERSATION_RESULTS_PER_PAGE`) — e só depois reordena *essa página* por
+  `last_activity_at`. Com 26 conversas abertas ou mais, quem espera há mais tempo pode
+  estar na página 2 e nunca aparecer. Numa clínica com o WhatsApp aberto, 25 é uma manhã.
+- **O emblema do cabeçalho soma um total verdadeiro a um total truncado.**
+  `totalAttention = open_conversations_count + overdueActions.length`: a primeira
+  parcela é o total real, a segunda é o comprimento da lista já cortada a oito. Quanto
+  pior está a operação, mais o número mente — e mente sempre para menos.
+- **Dois controlos com o mesmo nome acessível.** Os dois `select` de ordenação usam
+  `HOME.SORT` («Order») como `aria-label`. Um leitor de ecrã anuncia dois combo boxes
+  chamados «Order», sem nada que os distinga.
+
+E quatro campos que o servidor serializa em todos os pedidos e o template deita fora:
+`unread_count`, `priority`, `owner_name`, `next_action_type`. O `unread_count` custa um
+`COUNT` por conversa — oito consultas por carregamento para um número que ninguém vê. O
+`next_action_type` é exatamente o que faria a linha dizer *Ligar* ou *Enviar mensagem*
+em vez de um relógio genérico. Desenhá-los não acrescenta trabalho ao servidor: deixa de
+o desperdiçar.
+
+**Por responder:** corrigir a ordenação antes de implementar? O servidor passa a contar
+as ações antes de cortar? A barra de filtro única serve? Falta algum cartão (agenda do
+dia, cobranças vencidas)?
 
 ### Definições — «Comercial» não é um separador · 20/09/2026
 
