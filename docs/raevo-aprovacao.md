@@ -94,7 +94,7 @@ deduz do que já foi aprovado:
 | ~~**Vista de lista**~~ | `KanbanListView.vue` (8 KB) | **aprovada 20/09** com o painel de filtros — [ver](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
 | ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09**, no mesmo artefacto |
 | **Definições — oito separadores** | `KanbanBoardSettings.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
-| **Definições — Comercial** | `KanbanBoardSettings.vue` | por apresentar; 141 das 226 chaves do ecrã, ver abaixo |
+| **Definições — Comercial** | `KanbanBoardSettings.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
 | **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
 | **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
 
@@ -153,6 +153,43 @@ Mais duas propostas de arquitetura no mesmo ecrã:
   uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
 - **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
   — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
+
+### Quantos grupos de campos existem — respondido pelo código · 20/09/2026
+
+Perguntei duas vezes ao utilizador e fui buscar a resposta ao repositório.
+`KanbanBoards::CreateFromTemplateService` define o arranque de um funil:
+
+| | Valor |
+| --- | --- |
+| Campos de um funil de clínica novo | **6** |
+| Campos de um funil B2B novo | **4** |
+| Secções (abas) no arranque | **1** — `details` |
+| Largura no arranque | total, em todos |
+| Campos no cartão compacto | **3**, os primeiros da ordem |
+| Campos do preset de marketing | **28** |
+| Tipos de campo | **12**, incluindo fórmula |
+| Campos padrão não removíveis | **8** |
+
+**Isto fecha o risco da tira de abas** registado na tela 2: no arranque são no máximo
+duas abas, a de campos e — se ligarem marketing — a de marketing. Fica como nota.
+
+**E abre um maior: o preset de marketing tem 28 campos, não 8.** `gclid`, `fbclid`,
+`fbp`, `ttclid`, identificadores de campanha, conjunto e anúncio, página de entrada.
+Nenhum é escrito à mão — são preenchidos pelo rastreio. Proposta: mostrá-los como
+**tabela de leitura**, não como 28 campos de formulário. Um campo editável promete uma
+edição que não existe.
+
+### Comercial — seis ferramentas numa página · 20/09/2026
+
+Proposta central da apresentação: Comercial ganha sub-navegação própria — Campos ·
+Cartão · Marketing · Alertas e lembretes · Listas. Configurar um campo e definir dias
+de alerta são trabalhos sem relação, feitos em alturas diferentes; tê-los no mesmo
+*scroll* obriga a passar por um para chegar ao outro.
+
+Mais duas, menores: o editor de campo passa a lista à esquerda e detalhe à direita, com
+*Mais opções* recolhido (chave estável e posição mudam-se quase nunca); e remover um
+campo com dados passa a dizer **quantos cartões** têm valor gravado, em vez de só
+avisar que os valores ficam na base.
 
 ## Achados abertos
 
