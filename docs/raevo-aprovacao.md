@@ -91,9 +91,10 @@ deduz do que já foi aprovado:
 
 | Superfície | Ficheiro | Porquê precisa |
 | --- | --- | --- |
-| ~~**Vista de lista**~~ | `KanbanListView.vue` (8 KB) | **apresentada 20/09** com o painel de filtros — [ver](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
-| ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **apresentada 20/09**, no mesmo artefacto |
-| **Configurações do quadro** | `KanbanBoardSettings.vue` (287 KB) | oito separadores — Geral, Etapas, Agentes, Caixas, Agenda, Comercial, Automações, Campos de contacto |
+| ~~**Vista de lista**~~ | `KanbanListView.vue` (8 KB) | **aprovada 20/09** com o painel de filtros — [ver](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
+| ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09**, no mesmo artefacto |
+| **Definições — oito separadores** | `KanbanBoardSettings.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
+| **Definições — Comercial** | `KanbanBoardSettings.vue` | por apresentar; 141 das 226 chaves do ecrã, ver abaixo |
 | **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
 | **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
 
@@ -121,6 +122,37 @@ Dois achados menores no mesmo ecrã:
   mesmo selo com a cor da etapa.
 - O estado sem resultados é uma frase centrada, sem saída. Quase sempre é filtro a
   mais. Proposta: dizer quantos grupos estão ativos e oferecer *Limpar filtros*.
+
+### Definições — «Comercial» não é um separador · 20/09/2026
+
+Contagem de chaves de tradução por separador, em 20/09:
+
+| Separador | Chaves | % do ecrã |
+| --- | --- | --- |
+| **Comercial** | **141** | **62,4%** |
+| Etapas | 18 | 8,0% |
+| Agenda | 18 | 8,0% |
+| Automações | 17 | 7,5% |
+| Campos de contacto | 14 | 6,2% |
+| Agentes | 6 | 2,7% |
+| Caixas de entrada | 6 | 2,7% |
+| Geral | 3 | 1,3% |
+| Apagar funil | 3 | 1,3% |
+
+Comercial sozinho é **1,66× os outros oito somados**. Contém seis ferramentas numa
+página: construtor de campos (abas, grupos, tipos, opções, largura, obrigatório por
+etapa, condições e fórmulas), layout do cartão, alertas de cartão parado, lembretes de
+marcação, tipos de próxima ação e motivos de perda.
+
+Isto corrige o plano anterior, que propunha apresentar «Etapas e Comercial» juntos:
+Etapas são 18 chaves e cabem com folga; juntá-las ao Comercial fá-las-ia rodapé.
+
+Mais duas propostas de arquitetura no mesmo ecrã:
+
+- **«Apagar funil» sai da navegação.** É uma ação destrutiva com o mesmo peso visual de
+  uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
+- **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
+  — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
 
 ## Achados abertos
 
