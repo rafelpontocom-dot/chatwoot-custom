@@ -67,7 +67,7 @@ ainda por tomar vem no fim.
 
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **por apresentar** | é onde a densidade se prova ou falha |
+| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **apresentada 20/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | à espera de aprovação; ver a lacuna do teclado abaixo |
 | 2 | Cartão da oportunidade | Kanban | — | por apresentar | depende de 1 |
 | 3 | Início | Home | 1 | por apresentar | KPI, cartão com anel, gráfico de um tom |
 | 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
@@ -81,6 +81,22 @@ Quando uma linha for aprovada, escreva a data e quem aprovou. Quando for impleme
 ponha o link do PR.
 
 ---
+
+## Achados abertos
+
+### Pipeline — arrastar não tem alternativa por teclado · 20/09/2026
+
+Confirmado no código ao preparar a apresentação da tela 1: mover um cartão entre
+etapas faz-se **só** por arrastar. O caminho mais próximo é selecionar o cartão e usar
+*Mover para etapa* na barra de ações em lote — que é acessível por teclado, mas obriga a
+passar por uma seleção para mover um cartão só.
+
+O `AGENTS.md` exige alternativa por teclado para todo o gesto de arrastar, por isso esta
+tela não cumpre hoje. A proposta: com o cartão em foco, `Ctrl` + `←`/`→` move de etapa e
+anuncia o destino.
+
+**Isto não são tokens — é comportamento novo.** Por isso vai à parte da aprovação do
+aspeto: pode entrar no mesmo PR da migração da tela ou num PR próprio.
 
 ## Decisões já tomadas
 
