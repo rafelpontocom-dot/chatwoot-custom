@@ -67,8 +67,8 @@ ainda por tomar vem no fim.
 
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **apresentada 20/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | à espera de aprovação; ver a lacuna do teclado abaixo |
-| 2 | Cartão da oportunidade | Kanban | — | por apresentar | depende de 1 |
+| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | pronta a implementar; a lacuna do teclado fica em separado |
+| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | à espera de aprovação |
 | 3 | Início | Home | 1 | por apresentar | KPI, cartão com anel, gráfico de um tom |
 | 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
@@ -98,6 +98,25 @@ anuncia o destino.
 **Isto não são tokens — é comportamento novo.** Por isso vai à parte da aprovação do
 aspeto: pode entrar no mesmo PR da migração da tela ou num PR próprio.
 
+### Oportunidade aberta — o assunto depende de `truncate` · 20/09/2026
+
+O `<h2>` do cabeçalho da gaveta tem `truncate`. O `AGENTS.md` é explícito: título de etapa,
+oportunidade, procedimento e campo **nunca** podem depender de corte para caber. Um assunto
+como «Implante múltiplo — três elementos no maxilar superior» fica cortado a meio e obriga a
+abrir o campo para saber de que se trata.
+
+Proposta, já na apresentação: quebra em duas linhas. A gaveta tem 576px, há espaço.
+
+### Oportunidade aberta — as abas crescem sem limite · 20/09/2026
+
+A tira de abas é Geral + Contacto + Agenda (se ligada) + Financeiro (se ligado) + Formulários
+(se houver permissão) + **uma aba por cada grupo de campos personalizados** + Histórico, mais um
+`+` para criar outra. Com quatro grupos são dez abas em 576px e a tira passa a rolar.
+
+**Não resolvido de propósito.** É desenho de informação, não token, e depende de um dado que
+não tenho: quantos grupos de campos tem o funil Comercial hoje. Com dois ou três não há
+problema; com seis, a tira precisa de outra ideia.
+
 ## Decisões já tomadas
 
 ### Agenda — 19/09/2026
@@ -124,6 +143,13 @@ acromática com primário quase preto que inverte para quase branco. Usar C como
 de A dava dois produtos diferentes conforme a hora do dia. O que se aproveita de C é a
 técnica — no escuro separa-se por degrau de luz, porque um fio de 1px desaparece —, e
 isso já está nos tokens escuros de A.
+
+### Campos do cartão e da oportunidade — 20/09/2026
+
+Ficam como estão. A escolha de que campos aparecem **já é configuração**: *Comercial › Layout do
+cartão* para o quadro (com pré-visualização), e *Gerir campos da oportunidade* para a gaveta.
+«Procedimento» e «Profissional» nas apresentações são exemplos do que uma clínica configurou,
+não campos fixos.
 
 ### Cor de ação — 19/09/2026
 
