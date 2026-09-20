@@ -191,6 +191,24 @@ Mais duas, menores: o editor de campo passa a lista à esquerda e detalhe à dir
 campo com dados passa a dizer **quantos cartões** têm valor gravado, em vez de só
 avisar que os valores ficam na base.
 
+### A base mexeu em telas já aprovadas · 20/09/2026
+
+A base avançou cinco commits enquanto as apresentações decorriam. **Sem conflito** — o
+ramo do design system e a base não tocam num único ficheiro em comum. Mas dois desses
+commits mexem em telas que já passaram por aqui:
+
+- **`795dd0b` — iniciar conversa a partir de uma oportunidade que nunca teve uma.** O
+  cartão do quadro ganha um terceiro estado no canto: em vez de *abrir conversa*, uma
+  oportunidade criada pela equipa oferece **iniciar**, que abre o compositor de mensagem
+  nova. A apresentação da tela 1 foi atualizada para o mostrar.
+- **`8ef0c69` — Início passa a filtrar por caixa ou funil, e a escolher a ordem.** São
+  107 linhas novas em `RaevoHomeView.vue`. A tela 3 ainda não foi apresentada; quando o
+  for, tem de incluir estes filtros.
+
+**A lição, para ficar escrita:** uma apresentação aprovada envelhece. Entre aprovar e
+implementar, a base mexe-se. Antes de implementar uma tela aprovada, comparar sempre com
+o código do dia — não com o mockup.
+
 ## Achados abertos
 
 ### Pipeline — arrastar não tem alternativa por teclado · 20/09/2026
