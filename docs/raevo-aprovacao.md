@@ -91,8 +91,8 @@ deduz do que já foi aprovado:
 
 | Superfície | Ficheiro | Porquê precisa |
 | --- | --- | --- |
-| **Vista de lista** | `KanbanListView.vue` (8 KB) | é a outra metade do alternador que já está na tela aprovada; sem ela, metade do interruptor fica por definir |
-| **Painel de filtros** | dentro de `KanbanView.vue` | descrito na tela 1, nunca desenhado: filtros guardados, atalhos de estado, ordenação, guardar/renomear/apagar |
+| ~~**Vista de lista**~~ | `KanbanListView.vue` (8 KB) | **apresentada 20/09** com o painel de filtros — [ver](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
+| ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **apresentada 20/09**, no mesmo artefacto |
 | **Configurações do quadro** | `KanbanBoardSettings.vue` (287 KB) | oito separadores — Geral, Etapas, Agentes, Caixas, Agenda, Comercial, Automações, Campos de contacto |
 | **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
 | **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
@@ -106,6 +106,21 @@ cartões arquivados · movimento assistido · resumo comercial · criação ráp
 
 Aprovar cada um destes à parte é o caminho caro de que este documento avisa. Entram
 na implementação com os tokens, e a porta visual valida o resultado.
+
+### Vista de lista — `truncate` outra vez, e a etapa sem cor · 20/09/2026
+
+Terceira aparição da mesma regra quebrada. Na lista, o assunto da oportunidade leva
+`truncate` numa linha só — e é pior aqui do que na gaveta, porque a lista existe para
+**comparar**: compara-se o que não se consegue ler. Proposta: até duas linhas, com
+altura de linha estável.
+
+Dois achados menores no mesmo ecrã:
+
+- A etapa aparece como texto simples, sem cor. A mesma etapa tem cor no quadro e na
+  gaveta; perdê-la aqui obriga a ler onde noutro sítio se reconhecia. Proposta: o
+  mesmo selo com a cor da etapa.
+- O estado sem resultados é uma frase centrada, sem saída. Quase sempre é filtro a
+  mais. Proposta: dizer quantos grupos estão ativos e oferecer *Limpar filtros*.
 
 ## Achados abertos
 
