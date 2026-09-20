@@ -13,7 +13,16 @@
     "UNKNOWN_CONTACT": "Unnamed contact",
     "NO_INBOX": "No inbox",
     "PIPELINE_STAGE": "{pipeline} - {stage}",
-    "SEE_ALL": "See all ({count} more)"
+    "SEE_ALL": "See all ({count} more)",
+    "ALL_INBOXES": "All inboxes",
+    "ALL_BOARDS": "All funnels",
+    "FILTER_INBOX": "Inbox",
+    "FILTER_BOARD": "Funnel",
+    "SORT": "Order",
+    "SORT_WAITING": "Waiting longest",
+    "SORT_RECENT": "Most recent",
+    "SORT_OVERDUE": "Most overdue",
+    "SORT_ACTION_RECENT": "Most recent"
   },
   "KANBAN": {
     "EYEBROW": "Sales",
@@ -1458,6 +1467,7 @@
       "LABEL_TITLE_RULE": "Use letters, numbers, - or _ (at least 2 characters).",
       "LABEL_CREATE_ADMIN_ONLY": "Only administrators can create labels.",
       "OPEN_CONVERSATION": "Open conversation",
+      "START_CONVERSATION": "Start conversation",
       "NO_LINKED_CONVERSATION": "No linked conversation",
       "LOADING": "Loading opportunity details...",
       "LOAD_ERROR": "Could not load opportunity details.",
