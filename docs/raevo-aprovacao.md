@@ -243,6 +243,8 @@ pergunta que responderam.
 | 9 | Barra de filtro única no Início? | **sim** |
 | 10 | Acrescentar cartões ao Início? | **sim — agenda, cobranças, oportunidades paradas** |
 
+A **v2 do Início** está publicada com os cinco cartões: [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1).
+
 #### 4 — «Comercial» é um nome que o dono do produto não reconhece
 
 A pergunta foi *«o que seria o comercial?»*. É o separador que vale **62,4% do ecrã de
@@ -308,6 +310,24 @@ A pergunta, agora concreta: **a clínica faz anúncios pagos (Google, Meta, TikT
 Se faz, estes campos enchem-se sozinhos e a aba faz sentido. Se não faz, são 28 campos
 sempre vazios a ocupar uma aba. Não muda nada do que já foi decidido — muda só se a aba
 Marketing aparece ligada ou desligada num funil novo.
+
+#### O achado da v2 — «de quem é a vez» já existe e a tela não o usa
+
+Ao confirmar que os três cartões novos tinham dados, apareceu um sinal melhor do que
+os três. `KanbanCard#reply_state` lê `conversation.waiting_since`: posto quando o
+paciente escreve, limpo quando alguém da clínica responde. Presente significa que **a
+bola está connosco**. O comentário no próprio modelo diz-lhe o nome certo — *«o sinal
+que nenhum CRM do mercado mostra, porque nenhum tem a conversa por baixo»*.
+
+A coluna está indexada (`index_conversations_on_waiting_since`) e já existe
+`Conversation.scope :unattended`. Custa nada.
+
+**E isto corrige a resposta 7.** Eu tinha dito que bastava empurrar a ordenação para a
+base de dados. Estava incompleto: a **coluna também estava errada**.
+`last_activity_at` mexe quando qualquer um age — incluindo quando *nós* respondemos.
+Ordenar «quem espera há mais tempo» por essa coluna põe no topo uma conversa a que
+acabámos de responder. O certo é `waiting_since`, e o controlo passa a dizer **«É a
+nossa vez»**, que é o que a consulta faz.
 
 #### 10 — aprovado, e deixa de ser migração
 
