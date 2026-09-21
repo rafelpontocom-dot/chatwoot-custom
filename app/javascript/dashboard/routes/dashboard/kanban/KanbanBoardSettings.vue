@@ -332,15 +332,24 @@ const settingsNavigation = computed(() => [
     label: t('KANBAN.SETTINGS.AGENTS.TITLE'),
     icon: 'i-lucide-users',
   },
+  // «Comercial» não era uma categoria, era o resto: layout do cartão, um segundo
+  // editor de campos em JSON e dois avisos automáticos. Nenhum nome honesto cobre
+  // os quatro, e um rótulo que não prevê o conteúdo obriga a abrir para saber.
+  // Passa a duas entradas, e o JSON foi para dentro de «Campos».
   {
-    key: 'sales',
-    label: t('KANBAN.SETTINGS.SALES.TITLE'),
-    icon: 'i-lucide-panels-top-left',
+    key: 'card',
+    label: t('KANBAN.SETTINGS.SALES.CARD_NAV'),
+    icon: 'i-lucide-credit-card',
   },
   {
     key: 'fields',
     label: t('KANBAN.SETTINGS.SALES.FIELDS_NAV'),
     icon: 'i-lucide-list-tree',
+  },
+  {
+    key: 'alerts',
+    label: t('KANBAN.SETTINGS.SALES.ALERTS_NAV'),
+    icon: 'i-lucide-bell-ring',
   },
   {
     key: 'calendar',
@@ -4098,20 +4107,14 @@ onMounted(async () => {
         </section>
 
         <section
-          v-show="activeSettingsSection === 'sales'"
+          v-show="activeSettingsSection === 'card'"
+          data-testid="kanban-settings-card"
           class="grid gap-4 border-b border-n-weak pb-6 lg:col-start-2"
         >
           <h2 class="text-base font-medium text-n-slate-12">
-            {{ t('KANBAN.SETTINGS.SALES.TITLE') }}
+            {{ t('KANBAN.SETTINGS.SALES.CARD_NAV') }}
           </h2>
           <div class="grid gap-3">
-            <!--
-              A lista dos campos vivia aqui e na página «Campos»: dois sítios a
-              dizer a mesma coisa, e o nome desta secção a prometer campos que
-              ela não configura. Fica só o que é mesmo comercial; os campos têm
-              a sua própria entrada na navegação.
-            -->
-
             <details
               data-testid="kanban-settings-compact-card-layout"
               class="rounded-xl border border-n-weak bg-n-surface-2"
@@ -4278,22 +4281,26 @@ onMounted(async () => {
                 </div>
               </div>
             </details>
-
-            <details class="text-sm text-n-slate-11">
-              <summary class="cursor-pointer font-medium">
-                {{ t('KANBAN.SETTINGS.SALES.ADVANCED_JSON') }}
-              </summary>
-              <textarea
-                v-model="form.customFieldDefinitionsText"
-                data-testid="kanban-settings-custom-fields"
-                rows="8"
-                class="font-mono mt-2 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
-                :placeholder="
-                  t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS_PLACEHOLDER')
-                "
-              />
-            </details>
           </div>
+        </section>
+
+        <section
+          v-show="activeSettingsSection === 'alerts'"
+          data-testid="kanban-settings-alerts"
+          class="grid gap-4 border-b border-n-weak pb-6 lg:col-start-2"
+        >
+          <h2 class="text-base font-medium text-n-slate-12">
+            {{ t('KANBAN.SETTINGS.SALES.ALERTS_NAV') }}
+          </h2>
+          <!--
+            As duas são a mesma regra: «se X, avisa a equipa». Ficam declarativas,
+            com interruptor e número, porque é a forma certa para quem trabalha na
+            recepção. Qualquer regra que não caiba nestas duas vive em Automação —
+            esta secção não é um segundo motor.
+          -->
+          <p class="m-0 text-xs text-n-slate-11">
+            {{ t('KANBAN.SETTINGS.SALES.ALERTS_SCOPE') }}
+          </p>
 
           <section
             data-testid="kanban-settings-stale-alerts"
@@ -6051,6 +6058,27 @@ onMounted(async () => {
               </div>
             </div>
           </div>
+
+          <!--
+            Estava em «Comercial», a editar o mesmo custom_field_definitions que
+            esta página edita com UI: dois editores para o mesmo dado, num sítio
+            cujo nome não o anunciava. Fica aqui, dobrado — é saída de emergência,
+            não é o caminho normal.
+          -->
+          <details class="text-sm text-n-slate-11">
+            <summary class="cursor-pointer font-medium">
+              {{ t('KANBAN.SETTINGS.SALES.ADVANCED_JSON') }}
+            </summary>
+            <textarea
+              v-model="form.customFieldDefinitionsText"
+              data-testid="kanban-settings-custom-fields"
+              rows="8"
+              class="font-mono mt-2 w-full rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm font-normal text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand"
+              :placeholder="
+                t('KANBAN.SETTINGS.SALES.CUSTOM_FIELDS_PLACEHOLDER')
+              "
+            />
+          </details>
         </section>
 
         <section

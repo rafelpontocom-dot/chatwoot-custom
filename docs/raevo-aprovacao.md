@@ -93,8 +93,8 @@ deduz do que já foi aprovado:
 | --- | --- | --- |
 | ~~**Vista de lista**~~ | `KanbanListView.vue` (8 KB) | **aprovada 20/09** com o painel de filtros — [ver](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
 | ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09**, no mesmo artefacto |
-| **Definições — oito separadores** | `KanbanBoardSettings.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
-| **Definições — Comercial** | `KanbanBoardSettings.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
+| ~~**Definições — navegação**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — ver abaixo. Apresentada a 20/09 como «oito separadores» — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
+| ~~**Definições — Comercial**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — «Comercial» deixou de existir, ver abaixo. Apresentada a 20/09 — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
 | **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
 | **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
 
@@ -187,6 +187,52 @@ Mais duas propostas de arquitetura no mesmo ecrã:
   uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
 - **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
   — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
+
+### Definições — «Comercial» morreu e repartiu-se · 21/09/2026
+
+Decidido e implementado no mesmo dia. A contagem de chaves acima (141, 62,4% do
+ecrã) já não descreve o código: os campos saíram para a entrada «Campos» antes
+desta decisão, e agora sai o resto.
+
+O diagnóstico: **«Comercial» não era uma categoria, era o resto.** Sobraram lá
+quatro coisas sem nada em comum — layout do cartão, um segundo editor de campos
+em JSON, alertas de oportunidade parada e lembretes de agendamento. Nenhum nome
+honesto cobre as quatro, e um rótulo de navegação que não prevê o conteúdo
+obriga a abrir para saber o que lá está.
+
+| Estava em «Comercial» | Foi para | Porquê |
+| --- | --- | --- |
+| Layout do cartão compacto e pré-visualização | **«Cartão»** (`i-lucide-credit-card`) | é o que se vê no quadro, não é comercial |
+| JSON avançado | **«Campos»**, dobrado num `<details>` «Editar em JSON» | editava o mesmo `custom_field_definitions` que «Campos» edita com UI — dois editores para o mesmo dado |
+| Alertas de oportunidade parada | **«Avisos»** (`i-lucide-bell-ring`) | é uma regra de aviso |
+| Lembretes de agendamento | **«Avisos»** | é a mesma regra: «se X, avisa a equipa» |
+
+Navegação final, oito entradas: Geral · Acesso · **Cartão** · Campos ·
+**Avisos** · Agenda · Automação · — Apagar funil.
+
+Duas decisões que ficam registadas porque são contra-intuitivas:
+
+- **Os dois avisos ficam declarativos, não vão para o Vue Flow.** Formalmente são
+  automações, e o `AGENTS.md` diz que automação vive no Vue Flow. Um interruptor e
+  um número é a forma certa para quem trabalha na recepção; uma tela não é. Para
+  «Avisos» não crescer até ser um segundo motor, a secção diz em texto que são
+  estas duas regras e que o resto vive em Automação.
+- **O JSON não foi apagado.** É saída de emergência para o que a UI de campos
+  ainda não alcança. Dobrado, e num sítio cujo nome o anuncia.
+
+O que acelerou a decisão: o rail «Oportunidades paradas» do Início lê
+`kanban_board.stale_days_for_stage` — a definição que o alimenta estava enterrada
+debaixo de uma entrada chamada «Comercial», onde ninguém a ia procurar.
+
+**Duas propostas de 20/09 que o código resolveu de outra maneira**, e que ficam
+corrigidas aqui:
+
+- «Apagar funil sai da navegação, para uma zona de perigo no fim de Geral» —
+  **não foi isso**. Ficou na navegação, no fim, separado por um filete e em rubi.
+  Enterrá-lo dentro de Geral resolvia o peso visual e estragava a descoberta: quem
+  procura como apagar um funil percorre a lista da navegação.
+- «Agentes e Caixas de entrada são o mesmo componente, um primitivo só» — **já
+  está feito**, fundidos na entrada «Acesso».
 
 ### Quantos grupos de campos existem — respondido pelo código · 20/09/2026
 

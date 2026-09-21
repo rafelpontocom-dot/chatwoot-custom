@@ -617,7 +617,9 @@
         "LEGACY_FIELD_HELP": "Optional. Mirrors the next appointment to an existing field while the team moves to Calendar."
       },
       "SALES": {
-        "TITLE": "Sales",
+        "CARD_NAV": "Card",
+        "ALERTS_NAV": "Alerts",
+        "ALERTS_SCOPE": "These two rules run on their own. Anything else belongs in Automations.",
         "NEXT_ACTION_TYPES": "Next action types",
         "NEXT_ACTION_TYPES_PLACEHOLDER": "One action type per line",
         "LOST_REASON_OPTIONS": "Lost reasons",
@@ -772,7 +774,7 @@
           "LOST": "Lost"
         },
         "SHOW_ON_CARD": "Show on compact card",
-        "ADVANCED_JSON": "Advanced JSON",
+        "ADVANCED_JSON": "Edit as JSON",
         "STALE_ALERTS": "Stale card alerts",
         "STALE_ALERTS_DESCRIPTION": "Set how many days an opportunity can remain in each stage before it is marked as stale.",
         "STALE_ALERTS_SUMMARY": "{count} stages configured",

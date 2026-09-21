@@ -2668,6 +2668,67 @@ describe('KanbanBoardSettings', () => {
     );
   });
 
+  // `isVisible()` não serve aqui: o wrapper não está ligado ao documento, e o
+  // `getComputedStyle` de um elemento solto devolve `none` mesmo quando o v-show
+  // já o mostrou. O que o v-show faz é escrever (ou limpar) o display em linha,
+  // e é isso que se verifica.
+  const secaoEscondida = (wrapper, testid) =>
+    (
+      wrapper.find(`[data-testid="${testid}"]`).attributes('style') || ''
+    ).includes('display: none');
+
+  it('splits the old Comercial tab into Cartao and Avisos', async () => {
+    const { wrapper } = await mountSettings();
+
+    expect(
+      wrapper.find('[data-testid="kanban-settings-nav-sales"]').exists()
+    ).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-card"]')
+      .trigger('click');
+    expect(secaoEscondida(wrapper, 'kanban-settings-card')).toBe(false);
+    expect(secaoEscondida(wrapper, 'kanban-settings-alerts')).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-settings-nav-alerts"]')
+      .trigger('click');
+    expect(secaoEscondida(wrapper, 'kanban-settings-alerts')).toBe(false);
+    expect(secaoEscondida(wrapper, 'kanban-settings-card')).toBe(true);
+  });
+
+  it('keeps both automatic warnings together under Avisos', async () => {
+    const { wrapper } = await mountSettings();
+
+    const avisos = wrapper.find('[data-testid="kanban-settings-alerts"]');
+
+    expect(
+      avisos.find('[data-testid="kanban-settings-stale-alerts"]').exists()
+    ).toBe(true);
+    expect(
+      avisos
+        .find('[data-testid="kanban-settings-internal-appointment-reminder"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('moves the JSON escape hatch out of the card tab and into Campos', async () => {
+    const { wrapper } = await mountSettings();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-card"]')
+        .find('[data-testid="kanban-settings-custom-fields"]')
+        .exists()
+    ).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-custom-field-manager"]')
+        .find('[data-testid="kanban-settings-custom-fields"]')
+        .exists()
+    ).toBe(true);
+  });
+
   it('does not show an editable form for agents', async () => {
     const { wrapper } = await mountSettings({
       role: 'agent',
