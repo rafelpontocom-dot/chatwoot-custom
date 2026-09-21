@@ -5,8 +5,16 @@
  * de campo convivendo no mesmo diálogo. A causa não é decisão errada: é a classe
  * copiada em cada tela. Enquanto ela viver colada no template, ela volta a divergir.
  *
- * Geometria conforme docs/raevo-design-system.md §4:
- * campo de uma linha é pílula; textarea usa `rounded-lg`. Altura única de 40 px.
+ * GEOMETRIA: A · Consultório, regra 4 do AGENTS.md — campo e botão usam
+ * `rounded-lg` (10px), textarea usa `rounded-md` (8px). Altura única de 40 px.
+ *
+ * Era pílula até 21/09/2026, e ficou pílula depois da migração porque o raio de
+ * um componente não é um token: as portas `raevo:tokens` e `raevo:design`
+ * verificam cor e escala, e passaram por cima disto. A pílula ficou reservada ao
+ * selo e à barra de pesquisa — a densidade alta tira largura ao controle, e dois
+ * controles-pílula lado a lado ficam ambíguos.
+ *
+ * Trinta ficheiros herdam daqui. É de propósito: é o único sítio a mudar.
  */
 
 // `reset-base` é a saída oficial do Chatwoot (`_base.scss`) para escapar do
@@ -25,23 +33,23 @@ const BASE =
   'disabled:cursor-not-allowed disabled:opacity-60';
 
 /** input, e qualquer controle de uma linha */
-export const RAEVO_CONTROL_CLASS = `h-10 rounded-full px-4 ${BASE}`;
+export const RAEVO_CONTROL_CLASS = `h-10 rounded-lg px-3 ${BASE}`;
 
 /** select — mesma casca; o chevron é desenhado pelo RaevoField */
 // `bg-none` apaga a seta que uma regra global desenha como background-image no
 // select. Sem isso o campo mostra dois chevrons: o global e o do RaevoField.
-export const RAEVO_SELECT_CLASS = `h-10 appearance-none rounded-full bg-none px-4 pr-10 ${BASE}`;
+export const RAEVO_SELECT_CLASS = `h-10 appearance-none rounded-lg bg-none px-3 pr-10 ${BASE}`;
 
 /** select fora de um RaevoField — ninguém lhe desenha o chevron, por isso
  * mantém (sem `bg-none`) a seta que `_base.scss` já pinta em todo o produto. */
-export const RAEVO_SELECT_STANDALONE_CLASS = `h-10 appearance-none rounded-full px-4 pr-8 ${BASE}`;
+export const RAEVO_SELECT_STANDALONE_CLASS = `h-10 appearance-none rounded-lg px-3 pr-8 ${BASE}`;
 
-/** textarea — não é pílula: várias linhas pedem canto de painel */
-export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-3 py-2.5 ${BASE}`;
+/** textarea — `rounded-md` (8px): várias linhas pedem canto mais fechado que o controle */
+export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-md px-3 py-2.5 ${BASE}`;
 
 /** `input[type=color]` — é uma amostra de cor, não um campo de texto: o
  * conteúdo é a própria cor, por isso não leva padding horizontal de texto. */
-export const RAEVO_SWATCH_CLASS = `h-10 cursor-pointer rounded-full p-1 ${BASE}`;
+export const RAEVO_SWATCH_CLASS = `h-10 cursor-pointer rounded-lg p-1 ${BASE}`;
 
 /**
  * Ficha densa — o controle que não desenha caixa.
@@ -56,7 +64,7 @@ export const RAEVO_SWATCH_CLASS = `h-10 cursor-pointer rounded-full p-1 ${BASE}`
  * repouso, e anuncia o foco por um anel. Nada se move ao abrir.
  *
  * Isto é a exceção documentada ao §3/§4 do design system, que continua a valer
- * para formulário (criar, configurar): lá o rótulo é 12px e o campo é pílula.
+ * para formulário (criar, configurar): lá o rótulo é 12px e o campo tem 10px de raio.
  */
 const INLINE_BASE =
   'reset-base mb-0 w-full border-0 bg-transparent px-0 ' +

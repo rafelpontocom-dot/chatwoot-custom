@@ -10,6 +10,13 @@
 > Este documento continua válido para: os padrões de tela, o checklist de PR, e as telas
 > que ainda não migraram. Onde Consultório diverge — cor de ação, raio do controlo,
 > separação por anel, modo escuro — manda o `README.md` da direção aprovada.
+>
+> **Correção de 21/09/2026 — o raio do controlo.** O §4 abaixo diz que todo o botão e todo
+> o campo de uma linha são pílula. **Já não é verdade em lado nenhum:** a regra 4 do
+> `AGENTS.md` dá-lhes 10px, e o primitivo `components-next/raevo/raevoControl.js` foi
+> migrado. A pílula ficou reservada ao selo e à barra de pesquisa. O §4 fica como está
+> porque descreve a direção anterior, que é o que este documento é — mas não descreve o
+> código desde esta data.
 
 **Status:** aprovado em 29/08/2026 · é o que o código tem, até cada tela migrar
 **Fonte da verdade em código:** `app/javascript/dashboard/assets/scss/_raevo-tokens.scss`

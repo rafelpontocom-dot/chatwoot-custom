@@ -78,13 +78,15 @@ describe('RaevoField', () => {
     );
   });
 
-  it('follows the Sereno geometry: one-line controls are pills, textarea is not', () => {
-    // docs/raevo-design-system.md §4
+  it('follows the Consultorio geometry: 10px on the control, 8px on the textarea', () => {
+    // Regra 4 do AGENTS.md. Era pílula até 21/09/2026, e ficou pílula depois da
+    // migração porque o raio de um componente não é um token: as portas
+    // verificam cor e escala, e passaram por cima disto.
     expect(RAEVO_CONTROL_CLASS).toContain('h-10');
-    expect(RAEVO_CONTROL_CLASS).toContain('rounded-full');
-    expect(RAEVO_SELECT_CLASS).toContain('h-10');
-    expect(RAEVO_SELECT_CLASS).toContain('rounded-full');
-    expect(RAEVO_TEXTAREA_CLASS).toContain('rounded-lg');
+    expect(RAEVO_CONTROL_CLASS).toContain('rounded-lg');
+    expect(RAEVO_CONTROL_CLASS).not.toContain('rounded-full');
+    expect(RAEVO_SELECT_CLASS).toContain('rounded-lg');
+    expect(RAEVO_TEXTAREA_CLASS).toContain('rounded-md');
     expect(RAEVO_TEXTAREA_CLASS).not.toContain('rounded-full');
     [RAEVO_CONTROL_CLASS, RAEVO_SELECT_CLASS, RAEVO_TEXTAREA_CLASS].forEach(
       cls => {
