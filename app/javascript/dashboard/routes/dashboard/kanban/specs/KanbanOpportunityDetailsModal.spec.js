@@ -1028,6 +1028,26 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).not.toContain('xl:grid-cols-[minmax(0,1fr)_18rem]');
   });
 
+  // Duas dívidas registadas ao aprovar a tela 2, a 20/09. Ambas silenciosas: o
+  // assunto cortado parece só apertado, e a tira de abas a crescer só se nota
+  // quando há módulos suficientes ligados.
+  it('never truncates the opportunity subject in the header', async () => {
+    const wrapper = await mountModal();
+    const titulo = wrapper.find('h2');
+
+    expect(titulo.classes()).toContain('break-words');
+    expect(titulo.classes()).not.toContain('truncate');
+  });
+
+  it('scrolls the tab strip instead of letting it grow in height', async () => {
+    const wrapper = await mountModal();
+    const tiras = wrapper.find('[role="tablist"]');
+
+    // `flex-wrap` empilhava as abas e, como a tira é sticky, comia o painel.
+    expect(tiras.classes()).toContain('overflow-x-auto');
+    expect(tiras.classes()).not.toContain('flex-wrap');
+  });
+
   it('keeps drawer content in one column so the commercial context cannot overlap fields', async () => {
     const wrapper = await mountModal();
     await wrapper.setProps({ drawerMode: true });

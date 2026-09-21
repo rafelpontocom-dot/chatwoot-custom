@@ -356,6 +356,10 @@ const settingsNavigation = computed(() => [
     key: 'danger',
     label: t('KANBAN.SETTINGS.DELETE.TITLE'),
     icon: 'i-lucide-trash-2',
+    // Apagar um funil é destrutivo e tinha o mesmo peso visual de «Geral».
+    // Fica na navegação, no fim — quem procura como apagar percorre a lista, e
+    // enterrá-lo dentro de Geral resolvia o peso e estragava a descoberta.
+    danger: true,
   },
 ]);
 
@@ -3454,11 +3458,18 @@ onMounted(async () => {
             :key="item.key"
             type="button"
             class="flex min-h-10 min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-n-brand/40"
-            :class="
+            :class="[
+              item.danger
+                ? 'mt-2 border-t border-solid border-n-weak pt-3'
+                : '',
               activeSettingsSection === item.key
-                ? 'bg-n-brand/10 text-n-brand'
-                : 'text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12'
-            "
+                ? item.danger
+                  ? 'bg-n-ruby-3 text-n-ruby-11'
+                  : 'bg-n-brand/10 text-n-brand'
+                : item.danger
+                  ? 'text-n-ruby-11 hover:bg-n-ruby-3'
+                  : 'text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12',
+            ]"
             :aria-current="
               activeSettingsSection === item.key ? 'page' : undefined
             "
