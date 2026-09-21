@@ -210,8 +210,11 @@ const lerDoCodigo = () => {
 
   return {
     name: 'Raevo',
-    direction: 'H · Sereno',
-    approved: '2026-08-29',
+    // O código migrou para A · Consultório a 21/09/2026. A direção gravada tem de
+    // dizer o que o código é: um mockup a anunciar «Sereno» com tokens de
+    // Consultório é pior do que não ter mockup nenhum.
+    direction: 'A · Consultório',
+    approved: '2026-09-19',
     spec: 'docs/raevo-design-system.md',
     note:
       'Extraído do código por scripts/design-tokens.mjs. Este arquivo é a fonte da ' +
@@ -307,8 +310,12 @@ const invariantes = t => {
         '`pnpm raevo:palette` para ver que verificação falhou'
     );
 
+  // O emparelhamento mudou com a direção. Em Sereno o item era `lg` (11px) e o
+  // controlo era pílula, por isso não tinha degrau. Em Consultório o raio sai de
+  // uma fórmula sobre --radius = 10px: item = md, controlo = lg, cartão = xl.
   const par = [
-    ['lg', 'radius-item'],
+    ['md', 'radius-item'],
+    ['lg', 'radius-control'],
     ['xl', 'radius-card'],
   ];
   for (const [tw, tk] of par) {

@@ -50,14 +50,18 @@ const tailwindConfig = {
       // Raevo · Sereno — a forma do produto inteiro sai daqui.
       // Trocar um valor abaixo muda toda ocorrência de `rounded-lg`, `border`
       // ou `shadow-sm` no Chatwoot e no Raevo. Ver docs/raevo-design-system.md.
+      // Consultório: o raio sai de uma fórmula, --radius = 10px.
+      // sm = base-4 · md = base-2 · lg = base · xl = base+4 · 2xl = +8 · 3xl = +12
+      // O controlo deixa de ser pílula: a densidade alta tira-lhe largura e dois
+      // botões-pílula lado a lado ficam ambíguos. A pílula fica para selo e pesquisa.
       borderRadius: {
-        DEFAULT: '9px',
-        sm: '7px',
-        md: '9px',
-        lg: '11px',
-        xl: '13px',
-        '2xl': '16px',
-        '3xl': '20px',
+        DEFAULT: '8px',
+        sm: '6px',
+        md: '8px',
+        lg: '10px',
+        xl: '14px',
+        '2xl': '18px',
+        '3xl': '22px',
       },
       borderWidth: {
         DEFAULT: '1px',

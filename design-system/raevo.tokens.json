@@ -1,7 +1,7 @@
 {
   "name": "Raevo",
-  "direction": "H · Sereno",
-  "approved": "2026-08-29",
+  "direction": "A · Consultório",
+  "approved": "2026-09-19",
   "spec": "docs/raevo-design-system.md",
   "note": "Extraído do código por scripts/design-tokens.mjs. Este arquivo é a fonte da verdade declarada; `check` falha se o código divergir dele.",
   "sources": [
@@ -14,100 +14,100 @@
     "ramp": {
       "light": {
         "slate-1": {
-          "value": "251 252 253",
-          "hex": "#FBFCFD"
+          "value": "255 255 255",
+          "hex": "#FFFFFF"
         },
         "slate-2": {
-          "value": "247 248 250",
-          "hex": "#F7F8FA"
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
         },
         "slate-3": {
-          "value": "242 244 247",
-          "hex": "#F2F4F7"
+          "value": "245 245 245",
+          "hex": "#F5F5F5"
         },
         "slate-4": {
-          "value": "238 240 244",
-          "hex": "#EEF0F4"
+          "value": "239 239 239",
+          "hex": "#EFEFEF"
         },
         "slate-5": {
-          "value": "233 235 239",
-          "hex": "#E9EBEF"
+          "value": "229 229 229",
+          "hex": "#E5E5E5"
         },
         "slate-6": {
-          "value": "228 231 236",
-          "hex": "#E4E7EC"
+          "value": "220 220 220",
+          "hex": "#DCDCDC"
         },
         "slate-7": {
-          "value": "220 223 229",
-          "hex": "#DCDFE5"
+          "value": "212 212 212",
+          "hex": "#D4D4D4"
         },
         "slate-8": {
-          "value": "199 205 214",
-          "hex": "#C7CDD6"
+          "value": "194 194 194",
+          "hex": "#C2C2C2"
         },
         "slate-9": {
-          "value": "152 160 174",
-          "hex": "#98A0AE"
+          "value": "161 161 161",
+          "hex": "#A1A1A1"
         },
         "slate-10": {
-          "value": "122 130 143",
-          "hex": "#7A828F"
+          "value": "115 115 115",
+          "hex": "#737373"
         },
         "slate-11": {
-          "value": "75 85 99",
-          "hex": "#4B5563"
+          "value": "82 82 82",
+          "hex": "#525252"
         },
         "slate-12": {
-          "value": "17 24 39",
-          "hex": "#111827"
+          "value": "10 10 10",
+          "hex": "#0A0A0A"
         },
         "gray-1": {
-          "value": "251 252 253",
-          "hex": "#FBFCFD"
+          "value": "255 255 255",
+          "hex": "#FFFFFF"
         },
         "gray-2": {
-          "value": "247 248 250",
-          "hex": "#F7F8FA"
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
         },
         "gray-3": {
-          "value": "242 244 247",
-          "hex": "#F2F4F7"
+          "value": "245 245 245",
+          "hex": "#F5F5F5"
         },
         "gray-4": {
-          "value": "238 240 244",
-          "hex": "#EEF0F4"
+          "value": "239 239 239",
+          "hex": "#EFEFEF"
         },
         "gray-5": {
-          "value": "233 235 239",
-          "hex": "#E9EBEF"
+          "value": "229 229 229",
+          "hex": "#E5E5E5"
         },
         "gray-6": {
-          "value": "228 231 236",
-          "hex": "#E4E7EC"
+          "value": "220 220 220",
+          "hex": "#DCDCDC"
         },
         "gray-7": {
-          "value": "220 223 229",
-          "hex": "#DCDFE5"
+          "value": "212 212 212",
+          "hex": "#D4D4D4"
         },
         "gray-8": {
-          "value": "199 205 214",
-          "hex": "#C7CDD6"
+          "value": "194 194 194",
+          "hex": "#C2C2C2"
         },
         "gray-9": {
-          "value": "152 160 174",
-          "hex": "#98A0AE"
+          "value": "161 161 161",
+          "hex": "#A1A1A1"
         },
         "gray-10": {
-          "value": "122 130 143",
-          "hex": "#7A828F"
+          "value": "115 115 115",
+          "hex": "#737373"
         },
         "gray-11": {
-          "value": "75 85 99",
-          "hex": "#4B5563"
+          "value": "82 82 82",
+          "hex": "#525252"
         },
         "gray-12": {
-          "value": "17 24 39",
-          "hex": "#111827"
+          "value": "10 10 10",
+          "hex": "#0A0A0A"
         },
         "blue-1": {
           "value": "252 253 255",
@@ -328,100 +328,100 @@
       },
       "dark": {
         "slate-1": {
-          "value": "20 23 28",
-          "hex": "#14171C"
+          "value": "10 10 10",
+          "hex": "#0A0A0A"
         },
         "slate-2": {
-          "value": "24 28 34",
-          "hex": "#181C22"
+          "value": "20 20 20",
+          "hex": "#141414"
         },
         "slate-3": {
-          "value": "30 35 43",
-          "hex": "#1E232B"
+          "value": "23 23 23",
+          "hex": "#171717"
         },
         "slate-4": {
-          "value": "35 40 49",
-          "hex": "#232831"
+          "value": "31 31 31",
+          "hex": "#1F1F1F"
         },
         "slate-5": {
-          "value": "38 43 51",
-          "hex": "#262B33"
+          "value": "38 38 38",
+          "hex": "#262626"
         },
         "slate-6": {
-          "value": "45 51 61",
-          "hex": "#2D333D"
+          "value": "48 48 48",
+          "hex": "#303030"
         },
         "slate-7": {
-          "value": "51 58 68",
-          "hex": "#333A44"
+          "value": "61 61 61",
+          "hex": "#3D3D3D"
         },
         "slate-8": {
-          "value": "72 80 92",
-          "hex": "#48505C"
+          "value": "82 82 82",
+          "hex": "#525252"
         },
         "slate-9": {
-          "value": "108 116 130",
-          "hex": "#6C7482"
+          "value": "115 115 115",
+          "hex": "#737373"
         },
         "slate-10": {
-          "value": "133 141 154",
-          "hex": "#858D9A"
+          "value": "161 161 161",
+          "hex": "#A1A1A1"
         },
         "slate-11": {
-          "value": "160 167 180",
-          "hex": "#A0A7B4"
+          "value": "212 212 212",
+          "hex": "#D4D4D4"
         },
         "slate-12": {
-          "value": "232 234 238",
-          "hex": "#E8EAEE"
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
         },
         "gray-1": {
-          "value": "20 23 28",
-          "hex": "#14171C"
+          "value": "10 10 10",
+          "hex": "#0A0A0A"
         },
         "gray-2": {
-          "value": "24 28 34",
-          "hex": "#181C22"
+          "value": "20 20 20",
+          "hex": "#141414"
         },
         "gray-3": {
-          "value": "30 35 43",
-          "hex": "#1E232B"
+          "value": "23 23 23",
+          "hex": "#171717"
         },
         "gray-4": {
-          "value": "35 40 49",
-          "hex": "#232831"
+          "value": "31 31 31",
+          "hex": "#1F1F1F"
         },
         "gray-5": {
-          "value": "38 43 51",
-          "hex": "#262B33"
+          "value": "38 38 38",
+          "hex": "#262626"
         },
         "gray-6": {
-          "value": "45 51 61",
-          "hex": "#2D333D"
+          "value": "48 48 48",
+          "hex": "#303030"
         },
         "gray-7": {
-          "value": "51 58 68",
-          "hex": "#333A44"
+          "value": "61 61 61",
+          "hex": "#3D3D3D"
         },
         "gray-8": {
-          "value": "72 80 92",
-          "hex": "#48505C"
+          "value": "82 82 82",
+          "hex": "#525252"
         },
         "gray-9": {
-          "value": "108 116 130",
-          "hex": "#6C7482"
+          "value": "115 115 115",
+          "hex": "#737373"
         },
         "gray-10": {
-          "value": "133 141 154",
-          "hex": "#858D9A"
+          "value": "161 161 161",
+          "hex": "#A1A1A1"
         },
         "gray-11": {
-          "value": "160 167 180",
-          "hex": "#A0A7B4"
+          "value": "212 212 212",
+          "hex": "#D4D4D4"
         },
         "gray-12": {
-          "value": "232 234 238",
-          "hex": "#E8EAEE"
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
         },
         "blue-3": {
           "value": "27 39 64",
@@ -504,36 +504,52 @@
     "semantic": {
       "light": {
         "brand-color": {
-          "value": "37 99 235",
-          "hex": "#2563EB"
+          "value": "23 23 23",
+          "hex": "#171717"
+        },
+        "card-ring": {
+          "value": "231 231 231",
+          "hex": "#E7E7E7"
+        },
+        "focus-ring": {
+          "value": "10 10 10",
+          "hex": "#0A0A0A"
+        },
+        "brand-foreground": {
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
+        },
+        "sidebar-color": {
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
         },
         "background-color": {
-          "value": "247 248 250",
-          "hex": "#F7F8FA"
+          "value": "255 255 255",
+          "hex": "#FFFFFF"
         },
         "surface-1": {
           "value": "255 255 255",
           "hex": "#FFFFFF"
         },
         "surface-2": {
-          "value": "255 255 255",
-          "hex": "#FFFFFF"
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
         },
         "surface-active": {
-          "value": "239 244 255",
-          "hex": "#EFF4FF"
+          "value": "245 245 245",
+          "hex": "#F5F5F5"
         },
         "solid-1": {
           "value": "255 255 255",
           "hex": "#FFFFFF"
         },
         "solid-2": {
-          "value": "255 255 255",
-          "hex": "#FFFFFF"
+          "value": "245 245 245",
+          "hex": "#F5F5F5"
         },
         "solid-3": {
-          "value": "255 255 255",
-          "hex": "#FFFFFF"
+          "value": "239 239 239",
+          "hex": "#EFEFEF"
         },
         "solid-active": {
           "value": "239 244 255",
@@ -544,16 +560,16 @@
           "hex": "#FFFFFF"
         },
         "border-weak": {
-          "value": "233 235 239",
-          "hex": "#E9EBEF"
+          "value": "229 229 229",
+          "hex": "#E5E5E5"
         },
         "border-strong": {
-          "value": "220 223 229",
-          "hex": "#DCDFE5"
+          "value": "212 212 212",
+          "hex": "#D4D4D4"
         },
         "border-container": {
-          "value": "233 235 239",
-          "hex": "#E9EBEF"
+          "value": "229 229 229",
+          "hex": "#E5E5E5"
         },
         "border-blue-strong": {
           "value": "37 99 235",
@@ -603,11 +619,11 @@
           "hex": "#F4EEFD"
         },
         "label-background": {
-          "value": "242 244 247",
-          "hex": "#F2F4F7"
+          "value": "245 245 245",
+          "hex": "#F5F5F5"
         },
         "label-border": {
-          "value": "17, 24, 39, 0.06"
+          "value": "10, 10, 10, 0.08"
         },
         "button-color": {
           "value": "255 255 255",
@@ -638,7 +654,7 @@
           "value": "255, 255, 255, 0.8"
         },
         "overlay": {
-          "value": "17, 24, 39, 0.32"
+          "value": "10, 10, 10, 0.4"
         },
         "overlay-avatar": {
           "value": "255, 255, 255, 0.67"
@@ -646,56 +662,72 @@
       },
       "dark": {
         "brand-color": {
-          "value": "91 141 239",
-          "hex": "#5B8DEF"
+          "value": "229 229 229",
+          "hex": "#E5E5E5"
+        },
+        "card-ring": {
+          "value": "46 46 46",
+          "hex": "#2E2E2E"
+        },
+        "focus-ring": {
+          "value": "250 250 250",
+          "hex": "#FAFAFA"
+        },
+        "brand-foreground": {
+          "value": "23 23 23",
+          "hex": "#171717"
+        },
+        "sidebar-color": {
+          "value": "23 23 23",
+          "hex": "#171717"
         },
         "background-color": {
-          "value": "15 17 21",
-          "hex": "#0F1115"
+          "value": "10 10 10",
+          "hex": "#0A0A0A"
         },
         "surface-1": {
-          "value": "22 26 32",
-          "hex": "#161A20"
+          "value": "23 23 23",
+          "hex": "#171717"
         },
         "surface-2": {
-          "value": "26 31 38",
-          "hex": "#1A1F26"
+          "value": "31 31 31",
+          "hex": "#1F1F1F"
         },
         "surface-active": {
-          "value": "27 39 64",
-          "hex": "#1B2740"
+          "value": "38 38 38",
+          "hex": "#262626"
         },
         "solid-1": {
-          "value": "22 26 32",
-          "hex": "#161A20"
+          "value": "23 23 23",
+          "hex": "#171717"
         },
         "solid-2": {
-          "value": "26 31 38",
-          "hex": "#1A1F26"
+          "value": "38 38 38",
+          "hex": "#262626"
         },
         "solid-3": {
-          "value": "30 35 43",
-          "hex": "#1E232B"
+          "value": "48 48 48",
+          "hex": "#303030"
         },
         "solid-active": {
           "value": "27 39 64",
           "hex": "#1B2740"
         },
         "card-color": {
-          "value": "26 31 38",
-          "hex": "#1A1F26"
+          "value": "23 23 23",
+          "hex": "#171717"
         },
         "border-weak": {
-          "value": "38 43 51",
-          "hex": "#262B33"
+          "value": "46 46 46",
+          "hex": "#2E2E2E"
         },
         "border-strong": {
-          "value": "51 58 68",
-          "hex": "#333A44"
+          "value": "58 58 58",
+          "hex": "#3A3A3A"
         },
         "border-container": {
-          "value": "38 43 51",
-          "hex": "#262B33"
+          "value": "46 46 46",
+          "hex": "#2E2E2E"
         },
         "border-blue-strong": {
           "value": "91 141 239",
@@ -745,11 +777,11 @@
           "hex": "#301A38"
         },
         "label-background": {
-          "value": "30 35 43",
-          "hex": "#1E232B"
+          "value": "38 38 38",
+          "hex": "#262626"
         },
         "label-border": {
-          "value": "255, 255, 255, 0.08"
+          "value": "250, 250, 250, 0.10"
         },
         "button-color": {
           "value": "232 234 238",
@@ -880,23 +912,23 @@
   "shape": {
     "radius": {
       "tailwind": {
-        "DEFAULT": "9px",
-        "sm": "7px",
-        "md": "9px",
-        "lg": "11px",
-        "xl": "13px",
-        "2xl": "16px",
-        "3xl": "20px"
+        "DEFAULT": "8px",
+        "sm": "6px",
+        "md": "8px",
+        "lg": "10px",
+        "xl": "14px",
+        "2xl": "18px",
+        "3xl": "22px"
       },
       "token": {
         "radius-card": {
-          "value": "13px"
+          "value": "14px"
         },
         "radius-item": {
-          "value": "11px"
+          "value": "8px"
         },
         "radius-control": {
-          "value": "9999px"
+          "value": "10px"
         }
       }
     },
@@ -920,18 +952,18 @@
           "value": "none"
         },
         "shadow-hover": {
-          "value": "0 2px 8px rgb(17 24 39 / 6%)"
+          "value": "0 4px 16px rgb(10 10 10 / 9%)"
         },
         "shadow-float": {
-          "value": "0 12px 34px rgb(17 24 39 / 10%)"
+          "value": "0 16px 40px rgb(10 10 10 / 14%)"
         }
       },
       "dark": {
         "shadow-hover": {
-          "value": "0 2px 10px rgb(0 0 0 / 40%)"
+          "value": "0 4px 16px rgb(0 0 0 / 50%)"
         },
         "shadow-float": {
-          "value": "0 14px 38px rgb(0 0 0 / 52%)"
+          "value": "0 16px 40px rgb(0 0 0 / 65%)"
         }
       }
     }
