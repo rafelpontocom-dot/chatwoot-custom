@@ -67,7 +67,7 @@ ainda por tomar vem no fim.
 
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | pronta a implementar; a lacuna do teclado fica em separado |
+| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09, fechada 21/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | quadro, lista, filtros e gaveta implementados; o atalho de teclado do cartão também |
 | 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | pronta a implementar; `truncate` do assunto e tira de abas ficam em separado |
 | 3 | Início | Home | 1 | **apresentada 20/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. Três achados de dados abertos — ver abaixo |
 | 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
@@ -91,8 +91,8 @@ deduz do que já foi aprovado:
 
 | Superfície | Ficheiro | Porquê precisa |
 | --- | --- | --- |
-| ~~**Vista de lista**~~ | `KanbanListView.vue` (8 KB) | **aprovada 20/09** com o painel de filtros — [ver](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
-| ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09**, no mesmo artefacto |
+| ~~**Vista de lista**~~ | `KanbanListView.vue` | **aprovada 20/09** e **implementada 21/09** — as quatro correções, ver abaixo. [Artefacto](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
+| ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09** e já no código, no mesmo artefacto |
 | ~~**Definições — navegação**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — ver abaixo. Apresentada a 20/09 como «oito separadores» — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
 | ~~**Definições — Comercial**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — «Comercial» deixou de existir, ver abaixo. Apresentada a 20/09 — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
 | **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
@@ -187,6 +187,31 @@ Mais duas propostas de arquitetura no mesmo ecrã:
   uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
 - **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
   — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
+
+### Vista de lista — as quatro correções, implementadas · 21/09/2026
+
+Aprovada a 20/09, implementada a 21/09. Com ela o **Pipeline fecha**: quadro,
+lista, painel de filtros e gaveta da oportunidade estão todos no código.
+
+| Elemento | Estava | Ficou |
+| --- | --- | --- |
+| Assunto da oportunidade | `truncate`, uma linha | duas linhas com quebra de palavra |
+| Etapa | texto simples, sem cor | selo com a cor da etapa e um ponto |
+| Próxima ação | só cor de texto | selo com cor + ícone + texto |
+| Sem resultados | uma frase centrada | ícone, título, explicação e saída |
+
+Duas notas que não estavam no artefacto e que a implementação obrigou a decidir:
+
+- **As ações do vazio só aparecem com filtros ativos.** O artefacto mostrava
+  «Limpar filtros» e «Rever filtros» sempre. Oferecer uma saída quando não há
+  filtro nenhum é prometer o que não existe: a lista passa a distinguir «ainda
+  não há oportunidades» de «nenhuma com estes filtros», e só a segunda tem
+  botões.
+- **A tabela de estados da próxima ação passou a ser partilhada.** Estava dentro
+  do `KanbanConversationCard.vue`; a lista precisava da mesma e copiá-la ia
+  divergir. Vive agora em `app/javascript/dashboard/helper/kanbanNextAction.js`
+  e serve as duas superfícies. O assunto cortado apareceu três vezes neste
+  produto precisamente porque cada tela resolvia o seu.
 
 ### Definições — «Comercial» morreu e repartiu-se · 21/09/2026
 
