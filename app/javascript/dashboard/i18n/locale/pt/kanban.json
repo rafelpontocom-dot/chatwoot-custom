@@ -19,7 +19,7 @@
     "FILTER_INBOX": "Caixa de entrada",
     "FILTER_BOARD": "Funil",
     "SORT": "Ordem",
-    "SORT_WAITING": "É a nossa vez",
+    "SORT_WAITING": "Sem resposta há mais tempo",
     "SORT_RECENT": "Mais recentes",
     "SORT_OVERDUE": "Vencidas há mais tempo",
     "SORT_ACTION_RECENT": "Mais recentes",
@@ -36,7 +36,15 @@
     "STALE_DETAIL": "{stage} · {days} dias na etapa · limite {limit}",
     "OVERDUE_PAYMENTS": "Cobranças vencidas",
     "PAYMENT_OVERDUE_SINCE": "Vencida há {days} dias",
-    "PAYMENT_NO_OPPORTUNITY": "Esta cobrança não está ligada a uma oportunidade."
+    "PAYMENT_NO_OPPORTUNITY": "Esta cobrança não está ligada a uma oportunidade.",
+    "FILTERS": "A ver",
+    "FILTER_PERIOD": "Período",
+    "PERIOD": {
+      "ALL": "Qualquer data",
+      "today": "Hoje",
+      "7d": "Últimos 7 dias",
+      "30d": "Últimos 30 dias"
+    }
   },
   "KANBAN": {
     "EYEBROW": "Comercial",

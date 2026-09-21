@@ -20,6 +20,11 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
   # significa que a bola está connosco, que é a pergunta que esta tela faz.
   CONVERSATION_SORT_KEYS = { 'waiting' => 'waiting_since_asc', 'recent' => 'last_activity_at_desc' }.freeze
 
+  # O período limita as duas listas longas: conversas pela atividade, ações pela
+  # data em que venceram. A agenda é sempre hoje, e cobranças e paradas são por
+  # natureza «tudo o que está em atraso» — o período não lhes acrescenta nada.
+  PERIODS = { 'today' => 1.day, '7d' => 7.days, '30d' => 30.days }.freeze
+
   def show
     render json: payload
   end
@@ -49,6 +54,7 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
       boards: board_options,
       conversation_sort: conversation_sort,
       action_sort: action_sort,
+      period: period,
       inbox_id: selected_inbox_id,
       board_id: selected_board_id
     }
@@ -66,6 +72,14 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
 
   def action_sort
     ACTION_SORTS.include?(params[:action_sort]) ? params[:action_sort] : 'overdue'
+  end
+
+  def period
+    PERIODS.key?(params[:period]) ? params[:period] : nil
+  end
+
+  def period_cutoff
+    PERIODS[period]&.ago
   end
 
   def selected_inbox_id
@@ -94,6 +108,7 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
   def open_conversations
     finder_params = { status: 'open', sort_by: CONVERSATION_SORT_KEYS.fetch(conversation_sort), page: 1 }
     finder_params[:inbox_id] = selected_inbox_id if selected_inbox_id
+    finder_params[:updated_within] = PERIODS[period].to_i if period
     result = ConversationFinder.new(Current.user, finder_params).perform
 
     {
@@ -152,6 +167,7 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
                      next_action_completed_at: nil)
               .where.not(next_action_at: nil)
               .where('next_action_at < ?', Time.current)
+              .then { |scope| period_cutoff ? scope.where('next_action_at >= ?', period_cutoff) : scope }
               .includes(:contact, :kanban_board, :kanban_stage, :owner, :conversation, :inbox)
               .order(next_action_at: action_sort == 'recent' ? :desc : :asc, id: :asc)
               .limit(OVERDUE_COUNT_LIMIT)

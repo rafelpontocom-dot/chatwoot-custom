@@ -29,6 +29,11 @@ const conversationSort = ref(
   String(route.query.conversation_sort || 'waiting')
 );
 const actionSort = ref(String(route.query.action_sort || 'overdue'));
+const period = ref(String(route.query.period || ''));
+
+// «Tudo» é o valor vazio, não uma opção com semântica própria: sem período, o
+// servidor não corta nada.
+const PERIODS = ['', 'today', '7d', '30d'];
 
 const inboxOptions = computed(() => data.value.filters?.inboxes || []);
 const boardOptions = computed(() => data.value.filters?.boards || []);
@@ -73,6 +78,7 @@ const loadHome = async () => {
       board_id: boardId.value || undefined,
       conversation_sort: conversationSort.value,
       action_sort: actionSort.value,
+      period: period.value || undefined,
     });
     data.value = response.data;
   } catch {
@@ -193,6 +199,7 @@ const applyChoice = () => {
       board_id: boardId.value || undefined,
       conversation_sort: conversationSort.value,
       action_sort: actionSort.value,
+      period: period.value || undefined,
     },
   });
   loadHome();
@@ -245,6 +252,65 @@ onMounted(loadHome);
     </section>
 
     <div v-else class="flex flex-col gap-4">
+      <!--
+        Caixa, funil e período filtram a PÁGINA, não um cartão. Estarem dentro
+        dos cartões dizia o contrário. A ordenação fica em cada cartão, porque
+        essa sim é de cada lista.
+      -->
+      <div
+        data-testid="home-filter-bar"
+        class="flex flex-wrap items-center gap-2 rounded-xl border border-n-weak bg-n-solid-2 px-3 py-2"
+      >
+        <span
+          class="flex items-center gap-1.5 text-xs font-medium text-n-slate-10"
+        >
+          <i class="i-lucide-filter size-3.5" aria-hidden="true" />
+          {{ t('HOME.FILTERS') }}
+        </span>
+        <select
+          v-model="inboxId"
+          data-testid="home-filter-inbox"
+          class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11 max-w-[10rem]"
+          :aria-label="t('HOME.FILTER_INBOX')"
+          @change="applyChoice"
+        >
+          <option value="">{{ t('HOME.ALL_INBOXES') }}</option>
+          <option
+            v-for="inbox in inboxOptions"
+            :key="inbox.id"
+            :value="String(inbox.id)"
+          >
+            {{ inbox.name }}
+          </option>
+        </select>
+        <select
+          v-model="boardId"
+          data-testid="home-filter-board"
+          class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11 max-w-[10rem]"
+          :aria-label="t('HOME.FILTER_BOARD')"
+          @change="applyChoice"
+        >
+          <option value="">{{ t('HOME.ALL_BOARDS') }}</option>
+          <option
+            v-for="board in boardOptions"
+            :key="board.id"
+            :value="String(board.id)"
+          >
+            {{ board.name }}
+          </option>
+        </select>
+        <select
+          v-model="period"
+          data-testid="home-filter-period"
+          class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
+          :aria-label="t('HOME.FILTER_PERIOD')"
+          @change="applyChoice"
+        >
+          <option v-for="value in PERIODS" :key="value || 'all'" :value="value">
+            {{ t(`HOME.PERIOD.${value || 'ALL'}`) }}
+          </option>
+        </select>
+      </div>
       <!--
         A agenda é a única lista com forma de tempo, e é o que a secretaria vê
         primeiro de manhã. Por isso é faixa no topo e não mais um cartão.
@@ -321,22 +387,6 @@ onMounted(loadHome);
                 </h2>
               </div>
               <div class="flex shrink-0 items-center gap-2">
-                <select
-                  v-model="inboxId"
-                  data-testid="home-filter-inbox"
-                  class="reset-base mb-0 h-8 max-w-[10rem] rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
-                  :aria-label="t('HOME.FILTER_INBOX')"
-                  @change="applyChoice"
-                >
-                  <option value="">{{ t('HOME.ALL_INBOXES') }}</option>
-                  <option
-                    v-for="inbox in inboxOptions"
-                    :key="inbox.id"
-                    :value="String(inbox.id)"
-                  >
-                    {{ inbox.name }}
-                  </option>
-                </select>
                 <select
                   v-model="conversationSort"
                   data-testid="home-sort-conversations"
@@ -475,22 +525,6 @@ onMounted(loadHome);
                 </h2>
               </div>
               <div class="flex shrink-0 items-center gap-2">
-                <select
-                  v-model="boardId"
-                  data-testid="home-filter-board"
-                  class="reset-base mb-0 h-8 max-w-[10rem] rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
-                  :aria-label="t('HOME.FILTER_BOARD')"
-                  @change="applyChoice"
-                >
-                  <option value="">{{ t('HOME.ALL_BOARDS') }}</option>
-                  <option
-                    v-for="board in boardOptions"
-                    :key="board.id"
-                    :value="String(board.id)"
-                  >
-                    {{ board.name }}
-                  </option>
-                </select>
                 <select
                   v-model="actionSort"
                   data-testid="home-sort-actions"

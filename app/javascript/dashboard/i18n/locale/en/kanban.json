@@ -19,7 +19,7 @@
     "FILTER_INBOX": "Inbox",
     "FILTER_BOARD": "Funnel",
     "SORT": "Order",
-    "SORT_WAITING": "Ours to answer",
+    "SORT_WAITING": "Longest without a reply",
     "SORT_RECENT": "Most recent",
     "SORT_OVERDUE": "Most overdue",
     "SORT_ACTION_RECENT": "Most recent",
@@ -36,7 +36,15 @@
     "STALE_DETAIL": "{stage} · {days} days in stage · limit {limit}",
     "OVERDUE_PAYMENTS": "Overdue charges",
     "PAYMENT_OVERDUE_SINCE": "Overdue for {days} days",
-    "PAYMENT_NO_OPPORTUNITY": "This charge is not linked to an opportunity."
+    "PAYMENT_NO_OPPORTUNITY": "This charge is not linked to an opportunity.",
+    "FILTERS": "Viewing",
+    "FILTER_PERIOD": "Period",
+    "PERIOD": {
+      "ALL": "Any date",
+      "today": "Today",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days"
+    }
   },
   "KANBAN": {
     "EYEBROW": "Sales",

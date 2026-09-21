@@ -524,7 +524,13 @@ const getStageColorOption = getKanbanStageColorOption;
 
 // Sereno: a etapa se identifica por barra fina + ponto, não por cabeçalho
 // chapado de cor. Ver docs/raevo-design-system.md §5.
-const getStageBarClass = stage => getStageColorOption(stage.color).barClass;
+// A faixa ocupa sempre os 10px, mesmo na etapa neutra — senão essa coluna fica
+// mais curta que as vizinhas e o quadro desalinha. Neutra não DESENHA cor, que é
+// o que a regra pede: uma faixa cinzenta no topo seria ruído.
+const getStageBarClass = stage =>
+  isNeutralStageColor(stage.color)
+    ? 'bg-transparent'
+    : getStageColorOption(stage.color).barClass;
 
 // A cor da etapa preenche o topo inteiro: faixa sólida + tinta suave atrás do
 // cabeçalho. Sólida ATRÁS DO TEXTO não dá — nenhuma cor de texto passa nas cinco
@@ -2409,7 +2415,6 @@ onUnmounted(() => {
             class="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
           >
             <div
-              v-if="!isNeutralStageColor(stage.color)"
               class="h-2.5 w-full flex-shrink-0"
               :class="getStageBarClass(stage)"
               aria-hidden="true"
@@ -2419,11 +2424,13 @@ onUnmounted(() => {
               :class="getStageHeaderClass(stage)"
             >
               <h3
-                class="min-w-0 flex-1 break-words text-base font-bold leading-6 tracking-tight text-n-slate-12"
+                class="min-h-12 min-w-0 flex-1 break-words text-base font-bold leading-6 tracking-tight text-n-slate-12"
               >
                 <!--
-                  Nome da etapa nunca corta: quebra em duas linhas e a coluna
-                  cresce. Etapas vão de 6 a 15 e os nomes são longos.
+                  Nome da etapa nunca corta: quebra de palavra, nunca `truncate`.
+                  O bloco do título reserva DUAS linhas (min-h-12 = 2 × leading-6)
+                  para que uma coluna com nome longo não desalinhe as vizinhas.
+                  Acima de duas linhas volta a crescer, e aí cresce sozinha.
                 -->
                 <span :title="stage.description || stage.name">
                   {{ stage.name }}
