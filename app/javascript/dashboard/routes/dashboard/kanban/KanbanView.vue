@@ -1143,9 +1143,18 @@ const onCardDragEnd = () => {
   hasCardDragChanged.value = false;
 };
 
+// Quem move pelo teclado não vê o cartão saltar de coluna. O destino tem de ser
+// dito. O texto é neutro de propósito: a etapa pode exigir campos e abrir o
+// diálogo de movimento assistido em vez de mover já.
+const cardMoveAnnouncement = ref('');
+
 const moveCardToStage = (card, targetStageId) => {
   const targetStage = stages.value.find(stage => stage.id === targetStageId);
   if (!targetStage || card.kanbanStageId === targetStageId) return;
+
+  cardMoveAnnouncement.value = t('KANBAN.CARD.MOVING_TO', {
+    stage: targetStage.name,
+  });
 
   onCardDragChange(targetStage, {
     added: {
@@ -2383,6 +2392,15 @@ onUnmounted(() => {
           Arrastar colunas aqui era o único sítio onde a ordem gravava, e isso
           escondia que nas definições não gravava.
         -->
+        <!-- O destino de um movimento por teclado é anunciado aqui. -->
+        <p
+          data-testid="kanban-card-move-announcement"
+          class="sr-only"
+          role="status"
+          aria-live="polite"
+        >
+          {{ cardMoveAnnouncement }}
+        </p>
         <div class="flex min-h-0 gap-3">
           <section
             v-for="stage in stages"

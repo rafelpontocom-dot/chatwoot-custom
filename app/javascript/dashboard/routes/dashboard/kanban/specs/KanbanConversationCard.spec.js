@@ -215,6 +215,79 @@ describe('KanbanConversationCard', () => {
     ).toBe(true);
   });
 
+  // Arrastar não pode ser o único caminho para mover um cartão: é requisito do
+  // AGENTS.md, e até aqui só existia o rato ou a seleção em lote.
+  describe('moving between stages with the keyboard', () => {
+    const stages = [
+      { id: 1, name: 'Primeiro contacto' },
+      { id: 2, name: 'Avaliação marcada' },
+      { id: 3, name: 'Orçamento enviado' },
+    ];
+
+    it('moves to the next stage on Ctrl and right arrow', async () => {
+      const wrapper = mountCard({
+        card: buildCard({ kanbanStageId: 2 }),
+        stages,
+      });
+
+      await wrapper.find('article').trigger('keydown', {
+        key: 'ArrowRight',
+        ctrlKey: true,
+      });
+
+      expect(wrapper.emitted('moveCard')[0][1]).toBe(3);
+    });
+
+    it('moves to the previous stage on Cmd and left arrow', async () => {
+      const wrapper = mountCard({
+        card: buildCard({ kanbanStageId: 2 }),
+        stages,
+      });
+
+      await wrapper.find('article').trigger('keydown', {
+        key: 'ArrowLeft',
+        metaKey: true,
+      });
+
+      expect(wrapper.emitted('moveCard')[0][1]).toBe(1);
+    });
+
+    it('stays put at the ends of the board', async () => {
+      const wrapper = mountCard({
+        card: buildCard({ kanbanStageId: 1 }),
+        stages,
+      });
+
+      await wrapper.find('article').trigger('keydown', {
+        key: 'ArrowLeft',
+        ctrlKey: true,
+      });
+
+      expect(wrapper.emitted('moveCard')).toBeUndefined();
+    });
+
+    // Uma seta sozinha percorre a página. Roubá-la para mover cartões tirava a
+    // navegação a quem depende dela.
+    it('leaves a bare arrow alone', async () => {
+      const wrapper = mountCard({
+        card: buildCard({ kanbanStageId: 2 }),
+        stages,
+      });
+
+      await wrapper.find('article').trigger('keydown', { key: 'ArrowRight' });
+
+      expect(wrapper.emitted('moveCard')).toBeUndefined();
+    });
+
+    it('announces the shortcut on the card', () => {
+      const wrapper = mountCard({ stages });
+
+      expect(wrapper.find('article').attributes('aria-keyshortcuts')).toBe(
+        'Control+ArrowLeft Control+ArrowRight'
+      );
+    });
+  });
+
   it('emits selection without opening the opportunity', async () => {
     const wrapper = mountCard();
 

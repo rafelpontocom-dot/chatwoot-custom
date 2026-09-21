@@ -1607,7 +1607,8 @@
         "JUST_NOW": "agora",
         "HOURS": "{count}h",
         "DAYS": "{count}d"
-      }
+      },
+      "MOVING_TO": "A mover para {stage}"
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversa",

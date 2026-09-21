@@ -1605,7 +1605,8 @@
         "JUST_NOW": "just now",
         "HOURS": "{count}h",
         "DAYS": "{count}d"
-      }
+      },
+      "MOVING_TO": "Moving to {stage}"
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversation",

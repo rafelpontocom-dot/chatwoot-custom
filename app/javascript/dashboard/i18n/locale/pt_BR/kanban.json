@@ -1603,7 +1603,8 @@
         "JUST_NOW": "agora",
         "HOURS": "{count}h",
         "DAYS": "{count}d"
-      }
+      },
+      "MOVING_TO": "Movendo para {stage}"
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversa",
