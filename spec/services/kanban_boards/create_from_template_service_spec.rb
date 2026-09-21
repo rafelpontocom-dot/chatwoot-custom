@@ -34,6 +34,6 @@ RSpec.describe KanbanBoards::CreateFromTemplateService do
   it 'still creates the stages of the template' do
     board = build_board('clinic')
 
-    expect(board.kanban_stages.order(:position).pluck(:name).first).to eq('Novo lead')
+    expect(board.kanban_stages.order(:position).pick(:name)).to eq('Novo lead')
   end
 end

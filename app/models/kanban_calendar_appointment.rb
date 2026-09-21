@@ -1,3 +1,4 @@
+# rubocop:disable Layout/LineLength
 # == Schema Information
 #
 # Table name: kanban_calendar_appointments
@@ -59,6 +60,7 @@
 #  fk_rails_...  (kanban_card_id => kanban_cards.id)
 #  fk_rails_...  (rescheduled_from_id => kanban_calendar_appointments.id)
 #
+# rubocop:enable Layout/LineLength
 class KanbanCalendarAppointment < ApplicationRecord
   ACTIVE_STATUSES = %w[scheduled confirmed checked_in].freeze
   STATUSES = (ACTIVE_STATUSES + %w[completed no_show canceled]).freeze
