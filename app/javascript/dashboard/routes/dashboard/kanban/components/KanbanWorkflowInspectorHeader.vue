@@ -35,7 +35,7 @@ const emit = defineEmits(['close', 'connect', 'delete']);
       <div class="min-w-0">
         <p
           data-testid="kanban-workflow-inspector-category"
-          class="m-0 truncate text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+          class="m-0 truncate text-micro font-semibold uppercase tracking-wide text-n-slate-10"
         >
           {{ node.data.categoryLabel }}
         </p>
@@ -47,7 +47,7 @@ const emit = defineEmits(['close', 'connect', 'delete']);
         </p>
         <span
           data-testid="kanban-workflow-inspector-state"
-          class="mt-1 inline-flex rounded-full px-1.5 py-0.5 text-2xs font-medium"
+          class="mt-1 inline-flex rounded-full px-1.5 py-0.5 text-micro font-medium"
           :class="stateTone"
         >
           {{ node.data.stateLabel }}
@@ -93,7 +93,7 @@ const emit = defineEmits(['close', 'connect', 'delete']);
     class="rounded-lg border border-n-weak bg-n-surface-2 px-3 py-2"
   >
     <p
-      class="m-0 text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+      class="m-0 text-micro font-semibold uppercase tracking-wide text-n-slate-10"
     >
       {{ node.data.categoryLabel }}
     </p>

@@ -88,7 +88,7 @@ const stateTone = state =>
         <div class="min-w-0">
           <p
             data-testid="kanban-workflow-node-category"
-            class="m-0 break-words text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+            class="m-0 break-words text-micro font-semibold uppercase tracking-wide text-n-slate-10"
           >
             {{ data.categoryLabel || data.category }}
           </p>
@@ -114,7 +114,7 @@ const stateTone = state =>
     <span
       v-if="data.stateLabel"
       data-testid="kanban-workflow-node-state"
-      class="mt-1.5 inline-flex rounded-full px-1.5 py-0.5 text-2xs font-medium"
+      class="mt-1.5 inline-flex rounded-full px-1.5 py-0.5 text-micro font-medium"
       :class="stateTone(data.state)"
     >
       {{ data.stateLabel }}
@@ -128,7 +128,7 @@ const stateTone = state =>
         v-for="chip in data.chips"
         :key="chip"
         data-testid="kanban-workflow-node-chip"
-        class="max-w-full shrink-0 truncate rounded bg-n-surface-2 px-1.5 py-0.5 text-2xs text-n-slate-11"
+        class="max-w-full shrink-0 truncate rounded bg-n-surface-2 px-1.5 py-0.5 text-micro text-n-slate-11"
       >
         {{ chip }}
       </span>

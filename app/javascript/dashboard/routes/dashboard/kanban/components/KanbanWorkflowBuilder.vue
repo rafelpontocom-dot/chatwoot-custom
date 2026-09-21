@@ -2085,7 +2085,7 @@ const handleBuilderKeydown = event => {
               class="border-b border-n-weak py-1.5 first:pt-0 last:border-b-0 last:pb-0"
             >
               <p
-                class="m-0 flex h-6 items-center gap-1.5 px-1.5 text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
+                class="m-0 flex h-6 items-center gap-1.5 px-1.5 text-micro font-semibold uppercase tracking-wide text-n-slate-10"
               >
                 <i class="size-3" :class="group.icon" aria-hidden="true" />
                 {{ group.label }}
