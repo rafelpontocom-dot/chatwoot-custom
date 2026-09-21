@@ -32,7 +32,9 @@ RSpec.describe FinanceModuleSettingPolicy, type: :policy do
     end
   end
 
-  context 'when an agent has a custom role' do
+  # CustomRole vive em enterprise/, que o run_foss_spec apaga antes de correr.
+  # Mesmo guarda que os specs de política do kanban já usam.
+  context 'when an agent has a custom role', if: defined?(CustomRole) do
     let(:custom_role) { create(:custom_role, account: account, permissions: ['finance_view']) }
     let(:custom_policy) { described_class.new(agent_context, setting) }
 
