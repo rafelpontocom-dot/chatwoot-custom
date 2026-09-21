@@ -232,6 +232,41 @@ describe('KanbanAutomations', () => {
     ).toBe(true);
   });
 
+  it('lets a long automation name wrap instead of cutting it', async () => {
+    const wrapper = await mountWorkspace({
+      rules: [
+        {
+          id: 44,
+          name: 'Retomar orçamento sem resposta há mais de quarenta e oito horas',
+          event_name: 'kanban.card.stage_changed',
+          active: true,
+        },
+      ],
+    });
+
+    // O nome é escolhido por quem usa o produto, e o AGENTS.md proíbe que um
+    // título dependa de corte para caber.
+    const nome = wrapper
+      .find('[data-testid="kanban-automation-rule-open-44"]')
+      .find('p');
+
+    expect(nome.classes()).toContain('break-words');
+    expect(nome.classes()).not.toContain('truncate');
+    expect(nome.text()).toContain('quarenta e oito horas');
+  });
+
+  it('separates the active tab with a ring, since shadow-sm is none', async () => {
+    const wrapper = await mountWorkspace({ rules: [] });
+
+    const ativo = wrapper.find(
+      '[data-testid="kanban-automations-tab-connections"]'
+    );
+    await ativo.trigger('click');
+
+    expect(ativo.classes()).toContain('ring-1');
+    expect(ativo.classes().some(name => name.startsWith('shadow'))).toBe(false);
+  });
+
   it('previews the first commercial steps of a visual automation', async () => {
     const wrapper = await mountWorkspace({
       rules: [
@@ -281,7 +316,7 @@ describe('KanbanAutomations', () => {
 
     expect(
       wrapper.find('[data-testid="kanban-automation-editor-header"]').classes()
-    ).toContain('min-h-[54px]');
+    ).toContain('min-h-12');
     expect(
       wrapper
         .find('[data-testid="kanban-automation-editor-header"]')
