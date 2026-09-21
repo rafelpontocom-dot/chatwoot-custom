@@ -5,6 +5,10 @@
 module RaevoHomeCards
   extend ActiveSupport::Concern
 
+  # As constantes do módulo são DELE. Ruby resolve constantes lexicalmente: uma
+  # constante do controlador que inclui este concern não está em âmbito aqui, e
+  # referenciá-la levanta NameError em cada pedido.
+  AGENDA_ITEMS = 8
   # Cobranças e oportunidades paradas são listas de apoio: três linhas e o total.
   RAIL_ITEMS = 3
   STALE_CANDIDATE_LIMIT = 200
@@ -35,7 +39,7 @@ module RaevoHomeCards
       count: scope.count,
       items: scope.includes(:contact, :kanban_calendar_procedure)
                   .order(starts_at: :asc, id: :asc)
-                  .limit(MAX_ITEMS)
+                  .limit(AGENDA_ITEMS)
                   .map { |appointment| appointment_payload(appointment) }
     }
   end
