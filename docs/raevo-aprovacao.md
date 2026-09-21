@@ -70,7 +70,7 @@ ainda por tomar vem no fim.
 | 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09, fechada 21/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | quadro, lista, filtros e gaveta implementados; o atalho de teclado do cartão também |
 | 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | pronta a implementar; `truncate` do assunto e tira de abas ficam em separado |
 | 3 | Início | Home | 1 | **apresentada 20/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. Três achados de dados abertos — ver abaixo |
-| 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
+| 4 | Financeiro | Finance | 3 | **sem artefacto, corrigida 21/09** | a permissão limitada foi adiada por decisão do produto, e o estado com cor+ícone já existia na lista — faltava no detalhe |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
 | 6 | Formulários | Forms | 10 | por apresentar | `RaevoField` é o único tratamento de campo |
 | 7 | Automação (Vue Flow) | Kanban | — | **aprovada 21/09** em três partes: [cartão de nó](https://claude.ai/artifact/U17sPjtbUM9v3fDZjwEZCH) · [painel do nó](https://claude.ai/artifact/32yjwdj7RykSaQjrLX6RZr) · lista sem artefacto | implementada; falta só o deslocamento da tela — ver abaixo |
@@ -187,6 +187,41 @@ Mais duas propostas de arquitetura no mesmo ecrã:
   uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
 - **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
   — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
+
+### Financeiro — a vista limitada foi adiada, e a tela encolheu · 21/09/2026
+
+A tela 4 estava na fila por duas razões: «estado de cobrança sem depender de
+cor», e decidir o que a secretária vê sem permissão financeira. **Ambas caíram**,
+por razões diferentes.
+
+**A permissão limitada foi adiada por decisão do produto.** Todos veem, e a
+estratégia fica para quando houver uso real a observar. Fica registado o que
+tinha sido proposto e porquê, para não se repetir a análise:
+
+- A janela de 3–5 dias **não serve como permissão**. Uma paciente que ligue ao
+  8.º dia deixa a secretária sem resposta para um sim/não, obrigando-a a
+  interromper quem tem permissão financeira. E 3–5 dias não cobre um fim de
+  semana: pagamento à sexta, pergunta à segunda.
+- O corte que faria sentido não é a **idade** do registo, é o **detalhe
+  financeiro**: estado e data para toda a gente; valores, taxas, meio de
+  pagamento, tentativas e IDs de provedor atrás de permissão. Esse corte não
+  expira.
+- A janela **serve como filtro por omissão** — sete dias, não três — com um
+  controlo visível para alargar.
+- Por decidir, se um dia se retomar: **a secretária vê o valor?** Ela é quem
+  diz à paciente «são 450 reais», mas o valor é o dado que menos se quer
+  espalhado numa lista inteira.
+
+**O estado com cor e ícone já existia — na lista.** Os nove estados tinham tom e
+ícone, com o raciocínio escrito no ficheiro. Faltava no **diálogo de detalhe**,
+que mostrava o estado como texto cinzento — o pior sítio possível, porque o
+detalhe é onde se confirma «isto foi pago?» antes de o dizer a alguém. A causa é
+a de sempre: o tratamento vivia dentro do `FinanceView.vue`, e o diálogo não lhe
+chegava. Passou para `helper/financePaymentStatus.js` e serve os dois.
+
+Mais três desvios: o **nome do contacto** e o **assunto da oportunidade**
+dependiam de corte (quarta vez que o assunto aparece assim), e quatro
+`shadow-sm` mortos em cartões que já se separam pela borda.
 
 ### Visão de funis — o Kanban fecha mesmo · 21/09/2026
 

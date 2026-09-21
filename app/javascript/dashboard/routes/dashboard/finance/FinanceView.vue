@@ -16,6 +16,7 @@ import FinancePaymentDialog from './FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from './FinancePaymentDetailsDialog.vue';
 import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
+import { getFinancePaymentStatus } from 'dashboard/helper/financePaymentStatus';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -216,53 +217,7 @@ const formatWebhookDeliveryDate = value => {
  * do que «recebida». Três tons dizem o que fazer (agir / feito / a decorrer) e
  * o ícone diz o mesmo sem depender de cor, como pede o design system.
  */
-const PAYMENT_STATUS_TONES = Object.freeze({
-  overdue: { tone: 'ruby', icon: 'i-lucide-alert-triangle' },
-  failed: { tone: 'ruby', icon: 'i-lucide-x-circle' },
-  chargeback: { tone: 'ruby', icon: 'i-lucide-alert-octagon' },
-  received: { tone: 'teal', icon: 'i-lucide-check-circle-2' },
-  confirmed: { tone: 'teal', icon: 'i-lucide-check' },
-  refunded: { tone: 'amber', icon: 'i-lucide-undo-2' },
-  draft: { tone: 'slate', icon: 'i-lucide-file-text' },
-  canceled: { tone: 'slate', icon: 'i-lucide-ban' },
-  pending: { tone: 'slate', icon: 'i-lucide-clock' },
-});
-
-const PAYMENT_TONE_CLASSES = Object.freeze({
-  ruby: 'bg-n-ruby-2 text-n-ruby-11',
-  teal: 'bg-n-teal-3 text-n-teal-11',
-  amber: 'bg-n-amber-2 text-n-amber-11',
-  slate: 'bg-n-alpha-2 text-n-slate-11',
-});
-
-const paymentStatusTone = status =>
-  PAYMENT_STATUS_TONES[status] || PAYMENT_STATUS_TONES.pending;
-
-const paymentStatusClass = status =>
-  PAYMENT_TONE_CLASSES[paymentStatusTone(status).tone];
-
-const paymentStatusLabel = status => {
-  switch (status) {
-    case 'draft':
-      return t('FINANCE.PAYMENTS.STATUS.DRAFT');
-    case 'confirmed':
-      return t('FINANCE.PAYMENTS.STATUS.CONFIRMED');
-    case 'received':
-      return t('FINANCE.PAYMENTS.STATUS.RECEIVED');
-    case 'overdue':
-      return t('FINANCE.PAYMENTS.STATUS.OVERDUE');
-    case 'refunded':
-      return t('FINANCE.PAYMENTS.STATUS.REFUNDED');
-    case 'chargeback':
-      return t('FINANCE.PAYMENTS.STATUS.CHARGEBACK');
-    case 'canceled':
-      return t('FINANCE.PAYMENTS.STATUS.CANCELED');
-    case 'failed':
-      return t('FINANCE.PAYMENTS.STATUS.FAILED');
-    default:
-      return t('FINANCE.PAYMENTS.STATUS.PENDING');
-  }
-};
+const estadoDaCobranca = status => getFinancePaymentStatus(status);
 
 const openPaymentDialog = () => {
   paymentDialog.value?.open();
@@ -758,9 +713,7 @@ onMounted(loadFinance);
           v-if="activeView === 'settings' && canConfigure"
           class="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]"
         >
-          <article
-            class="rounded-lg border border-n-weak bg-n-solid-1 p-5 shadow-sm"
-          >
+          <article class="rounded-lg border border-n-weak bg-n-solid-1 p-5">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <h2 class="text-base font-semibold text-n-slate-12">
@@ -833,9 +786,7 @@ onMounted(loadFinance);
             </div>
           </article>
 
-          <article
-            class="rounded-lg border border-n-weak bg-n-solid-1 p-5 shadow-sm"
-          >
+          <article class="rounded-lg border border-n-weak bg-n-solid-1 p-5">
             <i
               class="i-lucide-shield-check size-5 text-n-teal-10"
               aria-hidden="true"
@@ -851,7 +802,7 @@ onMounted(loadFinance);
 
         <section
           v-if="activeView === 'panel' && isEnabled"
-          class="rounded-lg border border-n-weak bg-n-solid-1 shadow-sm"
+          class="rounded-lg border border-n-weak bg-n-solid-1"
         >
           <div
             class="flex flex-col gap-3 border-b border-n-weak px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
@@ -1096,7 +1047,9 @@ onMounted(loadFinance);
               class="grid gap-2 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto] sm:items-center sm:gap-6"
             >
               <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-n-slate-12">
+                <p
+                  class="break-words text-sm font-medium leading-snug text-n-slate-12"
+                >
                   {{
                     payment.contact?.name ||
                     t('FINANCE.PAYMENTS.UNKNOWN_CONTACT')
@@ -1107,7 +1060,7 @@ onMounted(loadFinance);
                 </p>
               </div>
               <div class="min-w-0">
-                <p class="truncate text-sm text-n-slate-12">
+                <p class="break-words text-sm leading-snug text-n-slate-12">
                   {{
                     payment.kanban_card?.subject ||
                     t('FINANCE.PAYMENTS.NO_OPPORTUNITY')
@@ -1125,14 +1078,14 @@ onMounted(loadFinance);
               </span>
               <span
                 class="flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-                :class="paymentStatusClass(payment.status)"
+                :class="estadoDaCobranca(payment.status).class"
               >
                 <i
                   class="size-3.5 shrink-0"
-                  :class="paymentStatusTone(payment.status).icon"
+                  :class="estadoDaCobranca(payment.status).icon"
                   aria-hidden="true"
                 />
-                {{ paymentStatusLabel(payment.status) }}
+                {{ t(estadoDaCobranca(payment.status).labelKey) }}
               </span>
               <div class="flex items-center justify-end gap-1">
                 <a
@@ -1215,7 +1168,7 @@ onMounted(loadFinance);
 
         <section
           v-if="activeView === 'settings' && isEnabled && canConfigure"
-          class="rounded-lg border border-n-weak bg-n-solid-1 p-5 shadow-sm"
+          class="rounded-lg border border-n-weak bg-n-solid-1 p-5"
         >
           <div class="flex items-start justify-between gap-4">
             <div>

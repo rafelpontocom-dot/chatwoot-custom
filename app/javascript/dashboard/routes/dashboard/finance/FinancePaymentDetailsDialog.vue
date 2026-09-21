@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import FinanceAPI from 'dashboard/api/finance';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import { getFinancePaymentStatus } from 'dashboard/helper/financePaymentStatus';
 
 const props = defineProps({
   canManage: { type: Boolean, default: true },
@@ -190,6 +191,10 @@ const requestRefund = async () => {
 };
 
 defineExpose({ open });
+
+const statusDaCobranca = computed(() =>
+  getFinancePaymentStatus(payment.value?.status)
+);
 </script>
 
 <template>
@@ -212,9 +217,23 @@ defineExpose({ open });
         <p class="mb-0 text-sm font-medium text-n-slate-12">
           {{ payment.description || t('FINANCE.PAYMENTS.TITLE') }}
         </p>
-        <p class="mb-0 mt-1 text-xs text-n-slate-11">
-          {{ t(`FINANCE.PAYMENTS.STATUS.${payment.status?.toUpperCase()}`) }}
-        </p>
+        <!--
+          O estado era texto cinzento aqui, enquanto a lista já o mostrava com
+          cor e ícone. É o pior sítio para o fazer: o detalhe é onde se confirma
+          «isto foi pago?» antes de o dizer a alguém.
+        -->
+        <span
+          data-testid="finance-payment-detail-status"
+          class="mt-1.5 flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+          :class="statusDaCobranca.class"
+        >
+          <i
+            class="size-3.5 shrink-0"
+            :class="statusDaCobranca.icon"
+            aria-hidden="true"
+          />
+          {{ t(statusDaCobranca.labelKey) }}
+        </span>
       </div>
 
       <dl class="grid gap-3 sm:grid-cols-3">

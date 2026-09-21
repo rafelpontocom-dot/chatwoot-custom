@@ -18,6 +18,43 @@ const DialogStub = {
 };
 
 describe('FinancePaymentDetailsDialog', () => {
+  it('states whether it was paid with colour, icon and words — never colour alone', async () => {
+    FinanceAPI.getPayment.mockResolvedValue({
+      data: { id: 30, status: 'received', description: 'Consulta', events: [] },
+    });
+    const wrapper = mount(FinancePaymentDetailsDialog, {
+      global: { stubs: { Dialog: DialogStub } },
+    });
+
+    await wrapper.vm.open(30);
+    await flushPromises();
+
+    // O detalhe é onde se confirma «isto foi pago?» antes de o dizer a alguém,
+    // e mostrava o estado como texto cinzento enquanto a lista já tinha selo.
+    const selo = wrapper.get('[data-testid="finance-payment-detail-status"]');
+
+    expect(selo.classes()).toContain('bg-n-teal-3');
+    expect(selo.find('i').classes()).toContain('i-lucide-check-circle-2');
+    expect(selo.text()).toContain('FINANCE.PAYMENTS.STATUS.RECEIVED');
+  });
+
+  it('keeps overdue apart from failed, which share the same tone', async () => {
+    FinanceAPI.getPayment.mockResolvedValue({
+      data: { id: 31, status: 'failed', description: 'Consulta', events: [] },
+    });
+    const wrapper = mount(FinancePaymentDetailsDialog, {
+      global: { stubs: { Dialog: DialogStub } },
+    });
+
+    await wrapper.vm.open(31);
+    await flushPromises();
+
+    const selo = wrapper.get('[data-testid="finance-payment-detail-status"]');
+
+    expect(selo.classes()).toContain('bg-n-ruby-2');
+    expect(selo.find('i').classes()).toContain('i-lucide-x-circle');
+  });
+
   it('shows the safe payment event timeline without raw provider metadata', async () => {
     FinanceAPI.getPayment.mockResolvedValue({
       data: {
