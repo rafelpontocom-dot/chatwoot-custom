@@ -4,6 +4,7 @@ import Link from '@tiptap/extension-link';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import { useI18n } from 'vue-i18n';
+import { RAEVO_CONTROL_CLASS } from 'dashboard/components-next/raevo/raevoControl';
 
 const props = defineProps({
   modelValue: { type: [Object, String], default: '' },
@@ -170,7 +171,7 @@ const controls = [
         data-test="forms-rich-text-link-url"
         type="url"
         inputmode="url"
-        class="min-h-9 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_CONTROL_CLASS"
         :placeholder="t('FORMS.RICH_TEXT.LINK_URL_PLACEHOLDER')"
         @keyup.enter="applyLink"
       />

@@ -9,6 +9,7 @@ import {
   isUnaryOperator,
   operatorsFor,
 } from 'shared/helpers/forms/logic';
+import { RAEVO_SELECT_STANDALONE_CLASS } from 'dashboard/components-next/raevo/raevoControl';
 
 /**
  * A lógica de uma pergunta, no formato que o servidor valida.
@@ -223,8 +224,8 @@ const removeVariable = name => {
   );
 };
 
-const controlClass =
-  'reset-base mb-0 h-9 w-full rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2.5 text-sm text-n-slate-12 outline-none focus:border-n-teal-7';
+// Era a terceira variante de campo deste módulo, com foco teal. Sai do primitivo.
+const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
 </script>
 
 <template>
@@ -321,7 +322,7 @@ const controlClass =
               </span>
               <select
                 v-else
-                class="reset-base mb-0 h-7 w-full rounded-lg border border-solid border-n-weak bg-n-solid-1 px-1 text-micro font-bold uppercase text-n-teal-11 outline-none"
+                class="reset-base mb-0 h-7 w-full rounded-lg border border-solid border-n-weak bg-n-solid-1 px-1 text-micro font-bold uppercase text-n-slate-11 outline-none"
                 :value="combinadorDe(rule)"
                 data-test="forms-logic-combinator"
                 @change="changeCombinator(index, $event.target.value)"

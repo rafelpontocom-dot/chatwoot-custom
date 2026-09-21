@@ -23,6 +23,11 @@ import FormsSubmissionActions from './FormsSubmissionActions.vue';
 import FormsBuilderSettingsDialog from './FormsBuilderSettingsDialog.vue';
 import { getFormStarterSchema } from './starterTemplates';
 import { FORM_FIELD_GROUPS, getFormFieldGroup } from './fieldGroups';
+import {
+  RAEVO_CONTROL_CLASS,
+  RAEVO_SELECT_STANDALONE_CLASS,
+  RAEVO_TEXTAREA_CLASS,
+} from 'dashboard/components-next/raevo/raevoControl';
 
 const { t } = useI18n();
 const store = useStore();
@@ -2395,7 +2400,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.NEW_DIALOG.NAME') }}
                       <input
                         v-model="editor.name"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_CONTROL_CLASS"
                       />
                     </label>
                     <label
@@ -2404,7 +2409,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.NEW_DIALOG.SLUG') }}
                       <input
                         v-model="editor.slug"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_CONTROL_CLASS"
                       />
                     </label>
                     <label
@@ -2413,7 +2418,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.NEW_DIALOG.CATEGORY') }}
                       <select
                         v-model="editor.category"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                       >
                         <option
                           v-for="category in categories"
@@ -2430,7 +2435,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.EDITOR.LOCALE') }}
                       <select
                         v-model="editor.settings.locale"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                       >
                         <option value="">
                           {{ t('FORMS.LOCALES.ACCOUNT') }}
@@ -2472,7 +2477,7 @@ onBeforeUnmount(() => {
                           type="radio"
                           :value="false"
                           name="forms-answer-scope"
-                          class="mt-0.5 size-4 accent-n-teal-9"
+                          class="mt-0.5 size-4 accent-n-brand"
                         />
                         <span>{{ t('FORMS.EDITOR.ANSWER_SCOPE_CARD') }}</span>
                       </label>
@@ -2485,7 +2490,7 @@ onBeforeUnmount(() => {
                           type="radio"
                           :value="true"
                           name="forms-answer-scope"
-                          class="mt-0.5 size-4 accent-n-teal-9"
+                          class="mt-0.5 size-4 accent-n-brand"
                         />
                         <span>{{
                           t('FORMS.EDITOR.ANSWER_SCOPE_CONTACT')
@@ -2509,7 +2514,8 @@ onBeforeUnmount(() => {
                         :placeholder="
                           t('FORMS.EDITOR.ANSWER_VALIDITY_PLACEHOLDER')
                         "
-                        class="mt-2 min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        class="mt-2"
+                        :class="[RAEVO_CONTROL_CLASS]"
                       />
                     </label>
                   </section>
@@ -2520,7 +2526,7 @@ onBeforeUnmount(() => {
                     <textarea
                       v-model="editor.settings.description"
                       rows="2"
-                      class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      :class="RAEVO_TEXTAREA_CLASS"
                     />
                   </label>
                   <label
@@ -2533,7 +2539,7 @@ onBeforeUnmount(() => {
                       :placeholder="
                         t('FORMS.EDITOR.PRIVACY_POLICY_URL_PLACEHOLDER')
                       "
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      :class="RAEVO_CONTROL_CLASS"
                     />
                   </label>
                   <label
@@ -2543,7 +2549,7 @@ onBeforeUnmount(() => {
                     <input
                       v-model="editor.publicEnabled"
                       type="checkbox"
-                      class="size-4 accent-n-teal-9"
+                      class="size-4 accent-n-brand"
                     />
                     {{ t('FORMS.EDITOR.PUBLIC_ENABLED') }}
                   </label>
@@ -2557,7 +2563,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.EDITOR.CAPTCHA_PROVIDER') }}
                       <select
                         v-model="editor.settings.captcha_provider"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                       >
                         <option value="">
                           {{ t('FORMS.EDITOR.CAPTCHA_DISABLED') }}
@@ -2575,7 +2581,7 @@ onBeforeUnmount(() => {
                         v-model="editor.settings.captcha_site_key"
                         :disabled="!editor.settings.captcha_provider"
                         type="text"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                        :class="RAEVO_CONTROL_CLASS"
                       />
                     </label>
                   </div>
@@ -2643,7 +2649,7 @@ onBeforeUnmount(() => {
                       type="number"
                       min="1"
                       max="720"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      :class="RAEVO_CONTROL_CLASS"
                       :placeholder="t('FORMS.EDITOR.ABANDONMENT_DISABLED')"
                     />
                     <span class="text-xs font-normal leading-5 text-n-slate-10">
@@ -2660,7 +2666,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_FIELD') }}
                       <select
                         v-model="editor.settings.critical_response.field_key"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                         @change="editor.settings.critical_response.value = ''"
                       >
                         <option value="">
@@ -2683,7 +2689,7 @@ onBeforeUnmount(() => {
                         v-if="criticalResponseOptions.length"
                         v-model="editor.settings.critical_response.value"
                         :disabled="!editor.settings.critical_response.field_key"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                       >
                         <option value="">
                           {{ t('FORMS.EDITOR.CRITICAL_RESPONSE_SELECT_VALUE') }}
@@ -2701,7 +2707,7 @@ onBeforeUnmount(() => {
                         v-model="editor.settings.critical_response.value"
                         :disabled="!editor.settings.critical_response.field_key"
                         type="text"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6 disabled:cursor-not-allowed disabled:bg-n-slate-3"
+                        :class="RAEVO_CONTROL_CLASS"
                       />
                     </label>
                     <p class="text-xs leading-5 text-n-slate-10 lg:col-span-2">
@@ -2758,7 +2764,7 @@ onBeforeUnmount(() => {
                         data-test="forms-clinical-access-search"
                         type="search"
                         :placeholder="t('FORMS.EDITOR.CLINICAL_ACCESS_SEARCH')"
-                        class="min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_CONTROL_CLASS"
                       />
                     </div>
                     <div class="mt-4 grid gap-4 lg:grid-cols-2">
@@ -2783,7 +2789,7 @@ onBeforeUnmount(() => {
                               :data-test="`forms-clinical-access-user-${agent.id}`"
                               :value="agent.id"
                               type="checkbox"
-                              class="size-4 accent-n-teal-9"
+                              class="size-4 accent-n-brand"
                             />
                             <span class="min-w-0 break-words">{{
                               agent.name
@@ -2818,7 +2824,7 @@ onBeforeUnmount(() => {
                               :data-test="`forms-clinical-access-team-${team.id}`"
                               :value="team.id"
                               type="checkbox"
-                              class="size-4 accent-n-teal-9"
+                              class="size-4 accent-n-brand"
                             />
                             <span class="min-w-0 break-words">{{
                               team.name
@@ -2853,7 +2859,8 @@ onBeforeUnmount(() => {
                         :placeholder="
                           t('FORMS.EDITOR.CLINICAL_RETENTION_PLACEHOLDER')
                         "
-                        class="mt-2 min-h-10 w-full rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        class="mt-2"
+                        :class="[RAEVO_CONTROL_CLASS]"
                       />
                     </label>
                   </section>
@@ -2886,7 +2893,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.EDITOR.BOARD') }}
                       <select
                         v-model="editor.crmDestination.boardId"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                         @change="editor.crmDestination.stageId = ''"
                       >
                         <option value="" disabled />
@@ -2905,7 +2912,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.EDITOR.STAGE') }}
                       <select
                         v-model="editor.crmDestination.stageId"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                       >
                         <option value="" disabled />
                         <option
@@ -2923,7 +2930,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.EDITOR.INBOX') }}
                       <select
                         v-model="editor.crmDestination.inboxId"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                       >
                         <option value="" disabled />
                         <option
@@ -2941,7 +2948,7 @@ onBeforeUnmount(() => {
                       {{ t('FORMS.EDITOR.POLICY') }}
                       <select
                         v-model="editor.crmDestination.policy"
-                        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                        :class="RAEVO_SELECT_STANDALONE_CLASS"
                       >
                         <option value="reuse_open">
                           {{ t('FORMS.EDITOR.POLICY_REUSE') }}
@@ -3002,22 +3009,19 @@ onBeforeUnmount(() => {
       {{ t('FORMS.NEW_DIALOG.NAME') }}
       <input
         v-model="newTemplate.name"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_CONTROL_CLASS"
         @input="newTemplate.slug = slugify(newTemplate.name)"
       />
     </label>
     <label class="grid gap-1.5 text-sm font-medium text-n-slate-11">
       {{ t('FORMS.NEW_DIALOG.SLUG') }}
-      <input
-        v-model="newTemplate.slug"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-      />
+      <input v-model="newTemplate.slug" :class="RAEVO_CONTROL_CLASS" />
     </label>
     <label class="grid gap-1.5 text-sm font-medium text-n-slate-11">
       {{ t('FORMS.NEW_DIALOG.CATEGORY') }}
       <select
         v-model="newTemplate.category"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_SELECT_STANDALONE_CLASS"
       >
         <option
           v-for="category in categories"
@@ -3032,7 +3036,7 @@ onBeforeUnmount(() => {
       {{ t('FORMS.NEW_DIALOG.STARTER') }}
       <select
         v-model="newTemplate.starter"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_SELECT_STANDALONE_CLASS"
         @change="updateStarterCategory"
       >
         <option
@@ -3247,10 +3251,7 @@ onBeforeUnmount(() => {
   >
     <label class="grid gap-1.5 text-sm font-medium text-n-slate-11">
       {{ t('FORMS.FIELD_GROUPS.NAME') }}
-      <input
-        v-model="fieldGroupForm.name"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-      />
+      <input v-model="fieldGroupForm.name" :class="RAEVO_CONTROL_CLASS" />
     </label>
   </Dialog>
 
@@ -3280,7 +3281,7 @@ onBeforeUnmount(() => {
       <input
         v-model="duplicateForm.name"
         data-test="forms-duplicate-name"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_CONTROL_CLASS"
       />
     </label>
     <label class="grid gap-1.5 text-sm font-medium text-n-slate-11">
@@ -3288,7 +3289,7 @@ onBeforeUnmount(() => {
       <input
         v-model="duplicateForm.slug"
         data-test="forms-duplicate-slug"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_CONTROL_CLASS"
       />
     </label>
   </Dialog>

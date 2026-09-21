@@ -10,6 +10,7 @@
  */
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { RAEVO_CONTROL_CLASS } from 'dashboard/components-next/raevo/raevoControl';
 
 defineProps({
   fieldTypes: { type: Array, default: () => [] },
@@ -83,7 +84,8 @@ defineExpose({ focusSearch });
           v-model="query"
           data-test="forms-builder-library-search"
           :placeholder="t('FORMS.BUILDER.SEARCH_LIBRARY')"
-          class="min-h-9 w-full rounded border border-n-slate-5 bg-n-solid-1 pl-8 pr-2 text-xs text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+          class="pl-8 pr-2 text-xs"
+          :class="[RAEVO_CONTROL_CLASS]"
         />
       </div>
       <div class="mt-3 grid gap-3">
