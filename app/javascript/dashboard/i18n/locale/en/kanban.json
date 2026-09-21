@@ -24,7 +24,19 @@
     "SORT_OVERDUE": "Most overdue",
     "SORT_ACTION_RECENT": "Most recent",
     "SORT_CONVERSATIONS": "Order conversations",
-    "SORT_ACTIONS": "Order actions"
+    "SORT_ACTIONS": "Order actions",
+    "TODAY_APPOINTMENTS": "Today's schedule",
+    "EMPTY_APPOINTMENTS": "Nothing scheduled for today.",
+    "APPOINTMENT_STATUS": {
+      "SCHEDULED": "Booked",
+      "CONFIRMED": "Confirmed",
+      "CHECKED_IN": "Arrived"
+    },
+    "STALE_OPPORTUNITIES": "Stalled opportunities",
+    "STALE_DETAIL": "{stage} · {days} days in stage · limit {limit}",
+    "OVERDUE_PAYMENTS": "Overdue charges",
+    "PAYMENT_OVERDUE_SINCE": "Overdue for {days} days",
+    "PAYMENT_NO_OPPORTUNITY": "This charge is not linked to an opportunity."
   },
   "KANBAN": {
     "EYEBROW": "Sales",
@@ -1605,7 +1617,8 @@
         "JUST_NOW": "just now",
         "HOURS": "{count}h",
         "DAYS": "{count}d"
-      }
+      },
+      "MOVING_TO": "Moving to {stage}"
     },
     "CONVERSATION_DRAWER": {
       "TITLE": "Conversation",

@@ -526,6 +526,16 @@ const getStageColorOption = getKanbanStageColorOption;
 // chapado de cor. Ver docs/raevo-design-system.md §5.
 const getStageBarClass = stage => getStageColorOption(stage.color).barClass;
 
+// A cor da etapa preenche o topo inteiro: faixa sólida + tinta suave atrás do
+// cabeçalho. Sólida ATRÁS DO TEXTO não dá — nenhuma cor de texto passa nas cinco
+// etapas da paleta: o branco reprova no teal e na terminal, o preto reprova no
+// magenta e no azul. A tinta (`softClass`, o degrau 3 da rampa) passa em todas.
+// Contrastes medidos em design-system/aprovado/README.md.
+const getStageHeaderClass = stage =>
+  isNeutralStageColor(stage.color)
+    ? 'bg-n-solid-1'
+    : getStageColorOption(stage.color).softClass;
+
 const showBoard = async boardId => {
   if (!boardId) {
     selectedBoard.value = null;
@@ -1133,9 +1143,18 @@ const onCardDragEnd = () => {
   hasCardDragChanged.value = false;
 };
 
+// Quem move pelo teclado não vê o cartão saltar de coluna. O destino tem de ser
+// dito. O texto é neutro de propósito: a etapa pode exigir campos e abrir o
+// diálogo de movimento assistido em vez de mover já.
+const cardMoveAnnouncement = ref('');
+
 const moveCardToStage = (card, targetStageId) => {
   const targetStage = stages.value.find(stage => stage.id === targetStageId);
   if (!targetStage || card.kanbanStageId === targetStageId) return;
+
+  cardMoveAnnouncement.value = t('KANBAN.CARD.MOVING_TO', {
+    stage: targetStage.name,
+  });
 
   onCardDragChange(targetStage, {
     added: {
@@ -2373,6 +2392,15 @@ onUnmounted(() => {
           Arrastar colunas aqui era o único sítio onde a ordem gravava, e isso
           escondia que nas definições não gravava.
         -->
+        <!-- O destino de um movimento por teclado é anunciado aqui. -->
+        <p
+          data-testid="kanban-card-move-announcement"
+          class="sr-only"
+          role="status"
+          aria-live="polite"
+        >
+          {{ cardMoveAnnouncement }}
+        </p>
         <div class="flex min-h-0 gap-3">
           <section
             v-for="stage in stages"
@@ -2382,25 +2410,33 @@ onUnmounted(() => {
           >
             <div
               v-if="!isNeutralStageColor(stage.color)"
-              class="h-1 w-full flex-shrink-0"
+              class="h-2.5 w-full flex-shrink-0"
               :class="getStageBarClass(stage)"
               aria-hidden="true"
             />
             <header
-              class="group/stage relative flex min-h-10 items-start justify-between gap-2 border-b border-n-weak bg-n-solid-1 px-3 py-2 text-n-slate-12"
+              class="group/stage relative flex min-h-10 items-start justify-between gap-2 border-b border-n-weak px-3 py-2 text-n-slate-12"
+              :class="getStageHeaderClass(stage)"
             >
-              <div class="flex min-w-0 flex-1 items-start gap-2">
-                <h3
-                  class="min-w-0 flex-1 break-words text-base font-bold leading-6 tracking-tight text-n-slate-12"
-                >
-                  <!--
-                        Nome da etapa nunca corta: quebra em duas linhas e a
-                        coluna cresce. Etapas vão de 6 a 15 e os nomes são longos.
-                      -->
-                  <span :title="stage.description || stage.name">
-                    {{ stage.name }}
-                  </span>
-                </h3>
+              <h3
+                class="min-w-0 flex-1 break-words text-base font-bold leading-6 tracking-tight text-n-slate-12"
+              >
+                <!--
+                  Nome da etapa nunca corta: quebra em duas linhas e a coluna
+                  cresce. Etapas vão de 6 a 15 e os nomes são longos.
+                -->
+                <span :title="stage.description || stage.name">
+                  {{ stage.name }}
+                </span>
+              </h3>
+              <!--
+                Contagem, paradas e capacidade ficam AO LADO do nome, num bloco
+                que quebra. Empilhadas por baixo obrigavam a ler a coluna em duas
+                alturas para saber o mesmo.
+              -->
+              <div
+                class="flex min-w-0 flex-wrap items-center justify-end gap-1.5"
+              >
                 <button
                   v-if="stage.description"
                   type="button"
@@ -2411,14 +2447,14 @@ onUnmounted(() => {
                   <i class="i-lucide-circle-help size-4" aria-hidden="true" />
                 </button>
                 <span
-                  class="mt-0.5 flex-shrink-0 rounded-full bg-n-slate-3 px-2 py-0.5 text-micro font-bold tabular-nums text-n-slate-11"
+                  class="rounded-full bg-n-slate-3 px-2 py-0.5 text-micro font-bold tabular-nums text-n-slate-11"
                 >
                   {{ stageCardCount(stage) }}
                 </span>
                 <span
                   v-if="stageStaleCount(stage)"
                   data-testid="kanban-stage-stale-count"
-                  class="mt-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-amber-3 px-2 py-0.5 text-micro font-semibold tabular-nums text-n-amber-11"
+                  class="inline-flex items-center gap-1 rounded-full bg-n-amber-3 px-2 py-0.5 text-micro font-semibold tabular-nums text-n-amber-11"
                   :title="t('KANBAN.STAGE.STALE_TITLE')"
                 >
                   <i class="i-lucide-clock-alert size-3" aria-hidden="true" />
@@ -2431,7 +2467,7 @@ onUnmounted(() => {
                 <span
                   v-if="stageOverCapacity(stage)"
                   data-testid="kanban-stage-capacity-alert"
-                  class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-n-ruby-3 px-2 py-0.5 text-micro font-medium text-n-ruby-11"
+                  class="inline-flex items-center gap-1 rounded-full bg-n-ruby-3 px-2 py-0.5 text-micro font-medium text-n-ruby-11"
                   :title="t('KANBAN.STAGE.CAPACITY_ALERT')"
                 >
                   <i class="i-lucide-triangle-alert size-3" />

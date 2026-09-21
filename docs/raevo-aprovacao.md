@@ -225,6 +225,37 @@ Mais duas, menores: o editor de campo passa a lista à esquerda e detalhe à dir
 campo com dados passa a dizer **quantos cartões** têm valor gravado, em vez de só
 avisar que os valores ficam na base.
 
+### A direção migrou: o código é Consultório · 21/09/2026
+
+`--brand-color` passou de `#2563EB` a `#171717` no claro, e inverte para `#E5E5E5`
+no escuro. A base é acromática e o controlo deixou de ser pílula. **82 tokens**
+migrados no `_raevo-tokens.scss`, mais a escala de raio no `tailwind.config.js`.
+
+Isto muda o produto inteiro de uma vez, e é o desenhado: as telas nativas do
+Chatwoot herdam a identidade pelos tokens **sem serem editadas**, que é a razão de
+o `AGENTS.md` proibir redesenhá-las tela a tela.
+
+**A paleta de etapas não migrou.** É dado do produto, validada para daltonismo, e o
+diff do JSON gravado confirma: zero linhas de `stage`.
+
+Duas coisas que as portas apanharam:
+
+- **A invariante do raio quebrou, e com razão.** O par raio-token ↔ degrau do
+  Tailwind era de Sereno (`radius-item = lg`). Em Consultório `item = md` e `lg`
+  passa a ser o controlo. Corrigido o par, e a verificação passa a cobrir três em
+  vez de dois. Correr `extract` com a invariante quebrada teria gravado o erro como
+  verdade — é exatamente o que o script avisa.
+- **A identidade gravada não migrava com os valores.** O mockup gerado anunciava
+  «H · Sereno» com tokens de Consultório. A direção passa a sair do extractor.
+
+Verificado: 4789/4789 testes, `raevo:tokens`, `raevo:design` e `raevo:palette`
+limpos, e o mockup renderizado nos dois temas.
+
+**Nota de infraestrutura:** o hook de pre-commit chama `scss-lint`, um gem de Ruby
+descontinuado que não está instalado. Falha com `ENOENT` em qualquer commit que
+toque num `.scss` — não só nos nossos. O CI não o corre; a porta real desses
+ficheiros é o `raevo:tokens`. Fica por corrigir no `lint-staged`.
+
 ### Dez respostas · 21/09/2026
 
 Respondidas as dez perguntas em aberto. Duas das respostas valem mais do que a

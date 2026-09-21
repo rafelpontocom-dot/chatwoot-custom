@@ -16,6 +16,12 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  // As etapas do quadro, na ordem. Só servem para saber qual é a anterior e a
+  // seguinte quando se move o cartão pelo teclado.
+  stages: {
+    type: Array,
+    default: () => [],
+  },
   activeActionKey: {
     type: String,
     default: '',
@@ -31,6 +37,7 @@ const emit = defineEmits([
   'openConversation',
   'removeCard',
   'toggleSelection',
+  'moveCard',
 ]);
 
 /**
@@ -313,6 +320,44 @@ const openConversation = event => {
 
   emit('openConversation', props.card, event);
 };
+
+/**
+ * Arrastar não pode ser o único caminho. O AGENTS.md exige alternativa por
+ * teclado para todo o gesto de arrastar, e mover um cartão entre etapas só se
+ * fazia com o rato — ou passando por uma seleção em lote para mover um cartão só.
+ *
+ * Com o cartão em foco, Ctrl (ou Cmd) + seta move para a etapa vizinha. A ordem
+ * é a do array `stages`, que é a ordem do quadro.
+ */
+const adjacentStageId = direction => {
+  const index = props.stages.findIndex(
+    stage => stage.id === props.card.kanbanStageId
+  );
+  if (index === -1) return null;
+
+  return props.stages[index + direction]?.id ?? null;
+};
+
+const moveToAdjacentStage = direction => {
+  const targetStageId = adjacentStageId(direction);
+  if (!targetStageId) return;
+
+  emit('moveCard', props.card, targetStageId);
+};
+
+const onCardKeydown = event => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    openDetails(event);
+    return;
+  }
+
+  if (!event.ctrlKey && !event.metaKey) return;
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+
+  event.preventDefault();
+  moveToAdjacentStage(event.key === 'ArrowLeft' ? -1 : 1);
+};
 </script>
 
 <template>
@@ -323,10 +368,10 @@ const openConversation = event => {
     :data-conversation-id="card.conversationId"
     role="button"
     tabindex="0"
+    aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight"
     :aria-label="contactName"
     @click="openDetails"
-    @keydown.enter.prevent="openDetails"
-    @keydown.space.prevent="openDetails"
+    @keydown="onCardKeydown"
   >
     <!--
       A faixa só acende quando pede ação. Acender em todos os cartões seria

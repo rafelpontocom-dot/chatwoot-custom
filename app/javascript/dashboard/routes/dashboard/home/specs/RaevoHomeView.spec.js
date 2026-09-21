@@ -62,6 +62,111 @@ describe('RaevoHomeView', () => {
     });
   });
 
+  // Os três cartões aprovados a 21/09. A regra que se testa aqui é a do contrato:
+  // `null` é «módulo não está em uso, não mostrar o cartão»; lista vazia é «está
+  // ligado e hoje não há nada».
+  describe('the three support cards', () => {
+    const comCartoes = extra =>
+      RaevoHomeAPI.get.mockResolvedValue({
+        data: {
+          open_conversations_count: 0,
+          open_conversations: [],
+          overdue_actions: [],
+          overdue_actions_count: 0,
+          filters: { inboxes: [], boards: [] },
+          ...extra,
+        },
+      });
+
+    it("lists today's schedule as a strip", async () => {
+      comCartoes({
+        today_appointments: {
+          count: 1,
+          items: [
+            {
+              id: 3,
+              starts_at: '2026-09-21T09:15:00Z',
+              status: 'confirmed',
+              contact_name: 'Carla Pinheiro',
+              procedure_name: 'Avaliação',
+              kanban_card_id: null,
+            },
+          ],
+        },
+      });
+      const wrapper = mountHome();
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="home-today-appointments"]').exists()
+      ).toBe(true);
+      expect(wrapper.text()).toContain('Avaliação');
+      expect(wrapper.text()).toContain('Carla Pinheiro');
+    });
+
+    it('hides the charges card when Finance is not in use', async () => {
+      comCartoes({ overdue_payments: null });
+      const wrapper = mountHome();
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="home-overdue-payments"]').exists()
+      ).toBe(false);
+    });
+
+    it('shows the charges card when Finance is in use', async () => {
+      comCartoes({
+        overdue_payments: {
+          count: 11,
+          items: [
+            {
+              id: 9,
+              contact_name: 'Helena Vaz',
+              amount_cents: 124000,
+              currency: 'EUR',
+              due_on: '2026-09-15',
+              kanban_card_id: 42,
+            },
+          ],
+        },
+      });
+      const wrapper = mountHome();
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="home-overdue-payments"]').exists()
+      ).toBe(true);
+      expect(wrapper.text()).toContain('Helena Vaz');
+    });
+
+    it('lists stalled opportunities with the stage limit', async () => {
+      comCartoes({
+        stale_opportunities: {
+          count: 14,
+          count_capped: false,
+          items: [
+            {
+              kanban_card_id: 5,
+              kanban_board_id: 7,
+              kanban_board_name: 'RAEVO',
+              kanban_stage_name: 'Em negociação',
+              subject: 'Facetas 11 e 21',
+              stage_entered_at: '2026-08-29T10:00:00Z',
+              stale_days: 14,
+            },
+          ],
+        },
+      });
+      const wrapper = mountHome();
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="home-stale-opportunities"]').exists()
+      ).toBe(true);
+      expect(wrapper.text()).toContain('Facetas 11 e 21');
+    });
+  });
+
   it('shows the operational queues and opens the linked conversation', async () => {
     const wrapper = mountHome();
     await flushPromises();

@@ -5,13 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Raevo Design System — LEIA ANTES DE MEXER EM QUALQUER UI
 
-Este fork é o **Raevo**. Há **duas** direções em jogo ao mesmo tempo, e confundi-las dá
-retrabalho:
+Este fork é o **Raevo**. A direção é **A · Consultório**, aprovada a 19/09/2026 e
+migrada para o código a 21/09/2026. Durante três semanas houve duas em jogo — o
+código em H · Sereno e Consultório só como alvo gravado — e a tabela que as separava
+já não é precisa: **o código é a direção aprovada.**
 
-| | Direção | Onde vale |
-| --- | --- | --- |
-| **O que está no código** | **H · Sereno** (29/08/2026) | as telas que já existem, até cada uma migrar |
-| **O que foi aprovado** | **A · Consultório** (19/09/2026) | **tudo o que for desenhado a partir de agora** |
+O que isso quer dizer na prática: a ação é quase preta (`#171717`), a base é
+acromática, o controlo tem 10px de raio e o primário **inverte** para `#E5E5E5` no
+escuro. Ver [`design-system/aprovado/README.md`](design-system/aprovado/README.md)
+para as sete decisões e de onde veio cada valor.
 
 - **Tela nova, componente novo, diálogo novo → nasce em Consultório.** O sistema está
   gravado em [`design-system/aprovado/`](design-system/aprovado/README.md).
@@ -23,13 +25,12 @@ retrabalho:
   editada. Redesenhá-las tela a tela é o que encarece cada `git pull` do upstream.
 
 **Especificação completa e obrigatória: [`docs/raevo-design-system.md`](docs/raevo-design-system.md).**
-Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável — valem
-nas duas direções, com as duas exceções assinaladas.
+Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável.
 
-## O que Consultório muda em relação a Sereno
+## O que Consultório mudou em relação a Sereno
 
-Aplica-se a desenho novo e a cada tela quando ela migrar — não retroativamente ao que
-já está no código.
+Histórico, para quem encontrar código ou capturas antigas. **Já está aplicado** — não
+é uma migração por fazer.
 
 | Decisão | Sereno | Consultório |
 | --- | --- | --- |
@@ -60,19 +61,21 @@ a proposta C · Órbita não é o modo escuro de A — ver `docs/raevo-aprovacao
 3. **`shadow-sm` é `none` de propósito.** Em repouso o espaço separa, não a sombra. Sombra
    só para o que realmente flutua: modal, menu, drawer (`shadow-lg`).
 
-4. **Botão e campo de uma linha são pílula** (`rounded-full`, já é o padrão global).
-   Card e painel usam `rounded-xl` (13px). Textarea usa `rounded-lg`.
+4. **Botão e campo usam `rounded-lg` (10px). Card e painel usam `rounded-xl` (14px).**
+   Textarea e item de lista usam `rounded-md` (8px). O raio sai de uma fórmula sobre
+   `--radius = 10px`, não de gosto: `sm` = base−4, `md` = base−2, `lg` = base,
+   `xl` = base+4.
 
-   **Exceção em Consultório:** a pílula fica para o selo e para a barra de pesquisa;
-   botão e campo passam a `lg` (10px) e o cartão a `xl` (14px). A densidade alta tira
-   largura ao controlo, e dois botões-pílula adjacentes ficam ambíguos. Vale em tela
-   nova e em tela migrada — não mexa nas outras só por isto.
+   **A pílula (`rounded-full`) fica para o selo e para a barra de pesquisa**, e mais
+   nada. Era o padrão global em Sereno; deixou de ser a 21/09. A densidade alta tira
+   largura ao controlo, e dois botões-pílula adjacentes ficam ambíguos.
 
 5. **Estado nunca se comunica só por cor.** Sempre cor + ícone + texto. É requisito de
    acessibilidade (WCAG 2.2), não preferência estética.
 
-6. **Tipografia só na escala.** (Consultório **não mexe** nisto: a referência não
-   redefine um único degrau de tipo — a densidade dela vem da caixa, não do tipo.) Seis degraus: `text-micro` (11px, piso, só caixa alta e
+6. **Tipografia só na escala.** (A migração para Consultório **não lhe tocou**: a
+   referência não redefine um único degrau de tipo — a densidade dela vem da caixa,
+   não do tipo.) Seis degraus: `text-micro` (11px, piso, só caixa alta e
    número curto) · `text-xs` (12) · `text-sm` (14) · `text-base` (16) · `text-xl` (20) ·
    `text-3xl` (30). **Nunca `text-[Npx]`** — a auditoria achou 27 degraus distintos em uso
    porque cada tela inventou o seu. Ver `docs/raevo-design-system.md` §4.
