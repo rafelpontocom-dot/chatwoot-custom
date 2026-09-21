@@ -73,7 +73,7 @@ ainda por tomar vem no fim.
 | 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
 | 6 | Formulários | Forms | 10 | por apresentar | `RaevoField` é o único tratamento de campo |
-| 7 | Automação (Vue Flow) | Kanban | — | por apresentar | cartão de nó com dimensão estável |
+| 7 | Automação (Vue Flow) | Kanban | — | **aprovada 21/09** em três partes: [cartão de nó](https://claude.ai/artifact/U17sPjtbUM9v3fDZjwEZCH) · [painel do nó](https://claude.ai/artifact/32yjwdj7RykSaQjrLX6RZr) · lista sem artefacto | implementada; falta só o deslocamento da tela — ver abaixo |
 | 8 | Painel de conversa (nosso) | Conversation | componente novo | por apresentar | entra dentro de tela do Chatwoot |
 | 9 | Entrada (login) | — | upstream | por decidir | mexer aqui é mexer no upstream: avaliar o custo primeiro |
 
@@ -95,7 +95,7 @@ deduz do que já foi aprovado:
 | ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09** e já no código, no mesmo artefacto |
 | ~~**Definições — navegação**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — ver abaixo. Apresentada a 20/09 como «oito separadores» — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
 | ~~**Definições — Comercial**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — «Comercial» deixou de existir, ver abaixo. Apresentada a 20/09 — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
-| **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
+| ~~**Automações**~~ | `KanbanAutomations.vue`, `KanbanWorkflowNode.vue`, `KanbanWorkflowInspector.vue` | **aprovada e implementada 21/09**, em três partes — ver abaixo |
 | **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
 
 **O que herda e não precisa de aprovação** — composto de primitivos já aprovados
@@ -187,6 +187,64 @@ Mais duas propostas de arquitetura no mesmo ecrã:
   uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
 - **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
   — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
+
+### Automação — três partes em vez de um artefacto só · 21/09/2026
+
+A tela mais construída do produto: 26 tipos de nó em 8 categorias, 147 KB na
+lista e 76 KB no construtor. Um artefacto a cobrir tudo isto ficava superficial —
+o mesmo argumento que já se tinha usado para os separadores das Configurações.
+Partiu-se em três, e a terceira não precisou de artefacto nenhum.
+
+**O risco desta tela nunca foi visual.** É que acrescentar o 27.º nó é mais
+barato do que organizar os 26. A paleta já tem pesquisa e categorias
+colapsáveis — a arquitetura Node-RED que o `AGENTS.md` pede já estava feita.
+
+**7a · Cartão de nó** — cinco defeitos, todos verificáveis:
+
+| Estava | Ficou |
+| --- | --- |
+| `text-2xs` em 9 sítios | a classe **não existia** em lado nenhum; oito passam a `text-micro`, uma a `text-xs` |
+| oito matizes de categoria | a categoria é o **ícone**; a cor fica para o estado |
+| selo de estado só com cor | cada estado com ícone próprio |
+| `shadow-sm` + `hover:shadow-md` | anel de 1px em repouso |
+| altura entre ~56px e ~120px | nome em duas linhas fixas, resumo numa, rodapé sempre presente |
+
+A decisão que pesou foi tirar a cor às categorias. Oito matizes nunca passaram
+pelo validador de daltonismo, e azul, iris e violeta são três vizinhos — o
+`AGENTS.md` proíbe azul + roxo claro por ΔE 0,4. Mais fundo do que isso: neste
+produto a cor já quer dizer «etapa do funil», e duas gramáticas de cor na mesma
+cabeça não funcionam. A alternativa registada, se um dia se quiser cor de
+categoria, é **quatro** matizes da paleta validada, com as oito categorias
+fundidas em quatro grupos primeiro.
+
+**7b · Painel do nó** — era um modal centrado de 44rem com véu sobre toda a
+tela. Configurar um nó é decidir sobre o grafo, e o véu apagava exatamente isso.
+A mesma doença que as Configurações tiveram, e já descrita no próprio código.
+Passa a painel encostado à direita, 320px, sem véu, com a tela clicável por trás.
+`aria-modal` acompanha o formato — no telemóvel continua folha com véu, e aí o
+véu diz a verdade.
+
+Duas coisas que só apareceram a implementar:
+
+- As três grelhas de condição do Router empilhavam pela largura do **ecrã**, não
+  da caixa. Num monitor grande com um painel de 320px tentavam as cinco colunas
+  — que precisam de ~490px — e ficavam ilegíveis. Empilham sempre.
+- Havia uma **segunda cópia** das oito matizes de categoria, no construtor, a
+  alimentar o cabeçalho do painel. Saiu com a do cartão, senão o painel
+  contradizia o nó que está a configurar.
+
+**Por fazer, deliberadamente:** a tela não se desloca para trazer à vista um nó
+que fique por baixo do painel. É matemática de viewport que não se consegue ver
+a funcionar sem a aplicação a correr, e errá-la faz a tela saltar a cada
+seleção — pior do que um nó ocasionalmente tapado.
+
+**7c · Lista de automações** — sem artefacto, por herdar primitivos já
+aprovados. A auditoria das 4123 linhas deu sete desvios das regras e nenhuma
+decisão de arquitetura: quatro títulos que dependiam de corte (nome da
+automação, da conexão, da execução e dos modelos), duas sombras que não
+separavam nada porque `shadow-sm` é `none`, um raio de pílula num botão, um
+`shadow-xl` onde a regra pede `lg`, e um `min-h-[54px]` fora de escala que o
+conteúdo já resolvia em 48.
 
 ### Vista de lista — as quatro correções, implementadas · 21/09/2026
 
