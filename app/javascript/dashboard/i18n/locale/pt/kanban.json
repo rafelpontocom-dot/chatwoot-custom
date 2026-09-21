@@ -430,7 +430,12 @@
       "OWNER": "Responsável",
       "ACTIONS": "Ações",
       "OPEN": "Abrir conversa",
-      "EMPTY": "Nenhuma oportunidade corresponde aos filtros atuais.",
+      "EMPTY": "Ainda não há oportunidades",
+      "EMPTY_HINT": "Oportunidades novas aparecem aqui assim que forem criadas.",
+      "EMPTY_FILTERED": "Nenhuma oportunidade com estes filtros",
+      "EMPTY_FILTERED_HINT": "Lista vazia quase sempre é um filtro a mais.",
+      "CLEAR_FILTERS": "Limpar filtros",
+      "REVIEW_FILTERS": "Rever filtros",
       "PAGINATION_NOTE": "Carregue mais em cada etapa quando precisar comparar um volume maior de oportunidades.",
       "LOADING_MORE": "Carregando..."
     },

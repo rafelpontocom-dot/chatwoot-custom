@@ -427,7 +427,12 @@
       "OWNER": "Owner",
       "ACTIONS": "Actions",
       "OPEN": "Open conversation",
-      "EMPTY": "No opportunities match the current filters.",
+      "EMPTY": "No opportunities yet",
+      "EMPTY_HINT": "New opportunities land here as soon as they are created.",
+      "EMPTY_FILTERED": "No opportunities match these filters",
+      "EMPTY_FILTERED_HINT": "An empty list is almost always one filter too many.",
+      "CLEAR_FILTERS": "Clear filters",
+      "REVIEW_FILTERS": "Review filters",
       "PAGINATION_NOTE": "Load more from each stage when you need to compare a larger set of opportunities.",
       "LOADING_MORE": "Loading..."
     },
