@@ -96,7 +96,7 @@ deduz do que já foi aprovado:
 | ~~**Definições — navegação**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — ver abaixo. Apresentada a 20/09 como «oito separadores» — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
 | ~~**Definições — Comercial**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — «Comercial» deixou de existir, ver abaixo. Apresentada a 20/09 — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
 | ~~**Automações**~~ | `KanbanAutomations.vue`, `KanbanWorkflowNode.vue`, `KanbanWorkflowInspector.vue` | **aprovada e implementada 21/09**, em três partes — ver abaixo |
-| **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
+| ~~**Visão de funis**~~ | `KanbanOverview.vue` | **sem artefacto, corrigida 21/09** — a «ordenação própria» são botões de subir/descer para administrador, o mesmo padrão já aprovado nas etapas. Não havia decisão para tomar, só três títulos a depender de corte |
 
 **O que herda e não precisa de aprovação** — composto de primitivos já aprovados
 (campo, botão, selo, tabela, estado vazio, gaveta):
@@ -187,6 +187,25 @@ Mais duas propostas de arquitetura no mesmo ecrã:
   uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
 - **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
   — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
+
+### Visão de funis — o Kanban fecha mesmo · 21/09/2026
+
+Estava na lista do que «precisa de aprovação própria», por causa da «ordenação
+própria». Fui ver: são botões de subir e descer visíveis só para administrador,
+que chamam `reorderBoard`. É o mesmo padrão já aprovado para as etapas — não é
+uma ordenação nova, é a mesma. **Não havia decisão para tomar**, e apresentá-la
+teria sido o caminho caro de que este documento avisa.
+
+O que havia eram três títulos a depender de corte:
+
+| Onde | Ficou |
+| --- | --- |
+| nome do funil arquivado | quebra de palavra |
+| **nome da etapa** no selo do funil | quebra de palavra — o `AGENTS.md` nomeia «títulos de etapa» entre os proibidos, e o selo é `max-w-full` |
+| nome da caixa de entrada | continua cortado, porque o selo é estreito de propósito, mas ganhou `title` — sem ele não havia como ler o resto |
+
+Com isto o Kanban fecha: quadro, lista, filtros, gaveta, Configurações,
+Automação e visão de funis.
 
 ### Automação — três partes em vez de um artefacto só · 21/09/2026
 

@@ -422,6 +422,12 @@ describe('KanbanOverview', () => {
     expect(wrapper.text()).toContain('Won');
     expect(wrapper.text()).toContain('2');
     expect(wrapper.text()).toContain('4');
+
+    // O AGENTS.md nomeia «títulos de etapa» entre os que nunca podem depender
+    // de corte para caber, e o selo tem `max-w-full`.
+    const nome = stages[0].findAll('span')[1];
+    expect(nome.classes()).toContain('break-words');
+    expect(nome.classes()).not.toContain('truncate');
   });
 
   it('renders visible agent avatars', async () => {
