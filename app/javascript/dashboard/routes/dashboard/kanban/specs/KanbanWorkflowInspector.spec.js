@@ -4,7 +4,7 @@ import KanbanWorkflowInspector from '../components/KanbanWorkflowInspector.vue';
 import KanbanWorkflowInspectorHeader from '../components/KanbanWorkflowInspectorHeader.vue';
 
 describe('KanbanWorkflowInspector', () => {
-  it('uses a centered configuration dialog with enough desktop width for complex nodes', () => {
+  it('docks the panel to the canvas edge instead of covering it', () => {
     const wrapper = shallowMount(KanbanWorkflowInspector, {
       props: {
         nodeSelected: true,
@@ -16,12 +16,19 @@ describe('KanbanWorkflowInspector', () => {
       '[data-testid="kanban-workflow-node-drawer"]'
     );
 
-    expect(inspector.classes()).toContain('sm:left-1/2');
-    expect(inspector.classes()).toContain('sm:top-1/2');
-    expect(inspector.classes()).toContain('sm:bottom-auto');
-    expect(inspector.classes()).toContain('sm:w-[min(44rem,calc(100vw-4rem))]');
-    expect(inspector.classes()).toContain('sm:-translate-x-1/2');
-    expect(inspector.classes()).toContain('sm:-translate-y-1/2');
+    // Encostado à direita, 320px, sem centrar nem cobrir a tela.
+    expect(inspector.classes()).toContain('sm:right-4');
+    expect(inspector.classes()).toContain('sm:left-auto');
+    expect(inspector.classes()).toContain('sm:w-80');
+    expect(inspector.classes()).not.toContain('sm:-translate-x-1/2');
+
+    // Sem véu no desktop: a tela continua visível e clicável por trás.
+    expect(
+      wrapper
+        .find('[data-testid="kanban-workflow-inspector-backdrop"]')
+        .exists()
+    ).toBe(false);
+    expect(inspector.attributes('aria-modal')).toBe('false');
   });
 
   it('keeps the selected node category visible in the contextual header', () => {
@@ -37,8 +44,8 @@ describe('KanbanWorkflowInspector', () => {
           },
         },
         summary: 'Verifica o perfil da oportunidade.',
-        stateTone: 'bg-n-green-3 text-n-green-11',
-        surfaceClass: 'bg-n-violet-3 text-n-violet-11',
+        stateTone: 'bg-n-teal-3 text-n-teal-11',
+        surfaceClass: 'bg-n-alpha-1 text-n-slate-11',
         emptySummary: 'Sem resumo',
         connectLabel: 'Conectar',
         closeLabel: 'Fechar',
@@ -50,6 +57,6 @@ describe('KanbanWorkflowInspector', () => {
       wrapper
         .find('[data-testid="kanban-workflow-inspector-icon-surface"]')
         .classes()
-    ).toContain('text-n-violet-11');
+    ).toContain('text-n-slate-11');
   });
 });

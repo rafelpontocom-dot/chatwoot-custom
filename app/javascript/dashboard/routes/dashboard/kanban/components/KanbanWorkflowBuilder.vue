@@ -201,17 +201,11 @@ const nodeCategoryLabels = computed(() => ({
   INTEGRATION: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.PALETTE.INTEGRATION'),
   CONTROL: t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.END'),
 }));
-const nodeCategorySurface = category =>
-  ({
-    TRIGGER: 'bg-n-teal-3 text-n-teal-11',
-    TIME: 'bg-n-amber-3 text-n-amber-11',
-    DECISION: 'bg-n-violet-3 text-n-violet-11',
-    OPERATION: 'bg-n-cyan-3 text-n-cyan-11',
-    CUSTOMER: 'bg-n-blue-3 text-n-blue-11',
-    OPPORTUNITY: 'bg-n-iris-3 text-n-iris-11',
-    INTEGRATION: 'bg-n-slate-3 text-n-slate-11',
-    CONTROL: 'bg-n-green-3 text-n-green-11',
-  })[category] || 'bg-n-surface-2 text-n-slate-11';
+// A segunda cópia das oito matizes de categoria vivia aqui e alimentava o
+// cabeçalho do painel. Saiu com a do cartão: a categoria distingue-se pelo
+// ícone, e a cor fica para o estado. Deixá-la aqui punha o painel a contradizer
+// o nó que ele está a configurar.
+const SUPERFICIE_CATEGORIA = 'bg-n-alpha-1 text-n-slate-11';
 const addableNodeTypes = computed(() =>
   paletteGroups.value.flatMap(group => group.nodes.map(node => node.type))
 );
@@ -1309,9 +1303,7 @@ const decorateNode = node => {
         nodeCategoryLabels.value[
           getKanbanWorkflowNodeDefinition(node.type)?.category
         ],
-      categorySurface: nodeCategorySurface(
-        getKanbanWorkflowNodeDefinition(node.type)?.category
-      ),
+      categorySurface: SUPERFICIE_CATEGORIA,
       icon: getKanbanWorkflowNodeDefinition(node.type)?.icon,
       terminal: getKanbanWorkflowNodeDefinition(node.type)?.terminal,
       label: nodeLabel({ ...node, data }),

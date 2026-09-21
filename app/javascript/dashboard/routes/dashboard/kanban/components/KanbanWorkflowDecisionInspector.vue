@@ -57,7 +57,13 @@ const nodeHint = computed(() =>
         <legend class="px-1 text-xs font-semibold text-n-slate-11">
           {{ branch.label || t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.BRANCH') }}
         </legend>
-        <div class="grid gap-2 sm:grid-cols-[2rem_minmax(0,1fr)_4.5rem]">
+        <!--
+          Empilhado sempre, não só no telemóvel. O `sm:` reagia à largura do
+          ECRÃ, e o painel passou a ter 320px em qualquer monitor: as cinco
+          colunas de uma condição precisam de ~490px para serem usáveis, por
+          isso tentavam caber e ficavam ilegíveis.
+        -->
+        <div class="grid gap-2">
           <button
             type="button"
             draggable="true"
@@ -116,7 +122,7 @@ const nodeHint = computed(() =>
           v-for="(condition, index) in branch.conditions"
           :key="`${branch.id}-${index}`"
           data-testid="kanban-workflow-condition-row"
-          class="grid gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)_10rem_minmax(0,1fr)_2rem]"
+          class="grid gap-2"
         >
           <select
             v-if="index > 0"
@@ -246,7 +252,7 @@ const nodeHint = computed(() =>
         v-for="(condition, index) in data.conditions"
         :key="index"
         data-testid="kanban-workflow-filter-row"
-        class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)_2rem]"
+        class="grid gap-2"
       >
         <select
           v-model="condition.field_key"
