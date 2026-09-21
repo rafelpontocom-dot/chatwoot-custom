@@ -208,9 +208,11 @@ tinha sido proposto e porquê, para não se repetir a análise:
   expira.
 - A janela **serve como filtro por omissão** — sete dias, não três — com um
   controlo visível para alargar.
-- Por decidir, se um dia se retomar: **a secretária vê o valor?** Ela é quem
-  diz à paciente «são 450 reais», mas o valor é o dado que menos se quer
-  espalhado numa lista inteira.
+- **Decidido a 21/09: a secretária vê o valor.** Era a única pergunta em aberto,
+  e a razão que ganha é a operacional — ela é quem diz à paciente «são 450
+  reais», e escondê-lo obrigava-a a perguntar a alguém para fazer o trabalho
+  básico dela. Se um dia se retomar a vista limitada, o valor fica do lado de cá
+  do corte.
 
 **O estado com cor e ícone já existia — na lista.** Os nove estados tinham tom e
 ícone, com o raciocínio escrito no ficheiro. Faltava no **diálogo de detalhe**,
