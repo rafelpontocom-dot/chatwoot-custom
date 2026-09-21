@@ -1,6 +1,8 @@
 class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
   MAX_ITEMS = 8
-  CARD_CANDIDATE_LIMIT = 50
+  # Quantas ações atrasadas se examinam para dar o total do emblema. Acima disto o
+  # número passa a «mais de», em vez de mentir por baixo.
+  OVERDUE_COUNT_LIMIT = 200
 
   before_action :authorize_home
 
@@ -9,13 +11,23 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
   CONVERSATION_SORTS = %w[waiting recent].freeze
   ACTION_SORTS = %w[overdue recent].freeze
 
+  # `waiting` ordena por `waiting_since`, não por `last_activity_at`. A segunda mexe
+  # quando *qualquer um* age, incluindo quando somos nós a responder, e poria no topo
+  # de «quem espera há mais tempo» uma conversa acabada de responder. `waiting_since`
+  # é posto quando o contacto escreve e limpo quando a clínica responde: presente
+  # significa que a bola está connosco, que é a pergunta que esta tela faz.
+  CONVERSATION_SORT_KEYS = { 'waiting' => 'waiting_since_asc', 'recent' => 'last_activity_at_desc' }.freeze
+
   def show
     conversations = open_conversations
+    actions = overdue_actions
 
     render json: {
       open_conversations_count: conversations[:count],
       open_conversations: conversations[:items],
-      overdue_actions: overdue_actions,
+      overdue_actions_count: actions[:count],
+      overdue_actions_count_capped: actions[:count_capped],
+      overdue_actions: actions[:items],
       filters: {
         inboxes: inbox_options,
         boards: board_options,
@@ -63,19 +75,17 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
     policy_scope(KanbanBoard).active.order(:name).map { |board| { id: board.id, name: board.name } }
   end
 
+  # A ordenação é feita pela base de dados, sobre todas as conversas abertas. Ordenar
+  # em Ruby só reordenava a primeira página do finder (25 por omissão), e acima disso
+  # quem esperava há mais tempo podia ficar na página 2 e nunca aparecer.
   def open_conversations
-    finder_params = { status: 'open', sort_by: 'unread', page: 1 }
+    finder_params = { status: 'open', sort_by: CONVERSATION_SORT_KEYS.fetch(conversation_sort), page: 1 }
     finder_params[:inbox_id] = selected_inbox_id if selected_inbox_id
     result = ConversationFinder.new(Current.user, finder_params).perform
-    # Por omissão, quem espera há mais tempo aparece primeiro: a Home existe
-    # para mostrar o que está parado, não a ordem em que o banco devolveu.
-    ordered = result[:conversations].sort_by { |conversation| conversation.last_activity_at || Time.zone.at(0) }
-    ordered = ordered.reverse if conversation_sort == 'recent'
-    conversations = ordered.first(MAX_ITEMS)
 
     {
       count: result[:count][:all_count],
-      items: conversations.map { |conversation| open_conversation_payload(conversation) }
+      items: result[:conversations].first(MAX_ITEMS).map { |conversation| open_conversation_payload(conversation) }
     }
   end
 
@@ -105,15 +115,22 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
     message.content.to_s.squish.truncate(LAST_MESSAGE_LIMIT)
   end
 
+  # O emblema mostra o total, não o comprimento da lista cortada. Contar depois da
+  # policy é obrigatório: um agente pode ver o quadro e não ver a conversa do cartão.
   def overdue_actions
     board_ids = selected_board_id ? [selected_board_id] : policy_scope(KanbanBoard).pluck(:id)
-    return [] if board_ids.empty?
+    return { count: 0, count_capped: false, items: [] } if board_ids.empty?
 
-    overdue_card_candidates(board_ids).filter_map do |card|
-      next unless policy(card).show?
+    # O tecto mede-se nos candidatos carregados, não nos que sobreviveram à policy:
+    # se 200 vieram e só 150 passaram, há provavelmente mais para lá da janela.
+    candidates = overdue_card_candidates(board_ids).to_a
+    visible = candidates.select { |card| policy(card).show? }
 
-      overdue_action_payload(card)
-    end.first(MAX_ITEMS)
+    {
+      count: visible.size,
+      count_capped: candidates.size >= OVERDUE_COUNT_LIMIT,
+      items: visible.first(MAX_ITEMS).map { |card| overdue_action_payload(card) }
+    }
   end
 
   def overdue_card_candidates(board_ids)
@@ -124,7 +141,7 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
               .where('next_action_at < ?', Time.current)
               .includes(:contact, :kanban_board, :kanban_stage, :owner, :conversation, :inbox)
               .order(next_action_at: action_sort == 'recent' ? :desc : :asc, id: :asc)
-              .limit(CARD_CANDIDATE_LIMIT)
+              .limit(OVERDUE_COUNT_LIMIT)
   end
 
   def overdue_action_payload(card)

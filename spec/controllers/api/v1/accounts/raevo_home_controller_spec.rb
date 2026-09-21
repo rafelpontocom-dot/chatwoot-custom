@@ -49,11 +49,13 @@ RSpec.describe 'Raevo home API', type: :request do
       expect(row['last_message']).to eq('Bom dia, consigo remarcar?')
     end
 
-    it 'puts whoever has been waiting longest first' do
+    it 'puts whoever the clinic owes an answer to first, by waiting_since' do
       recent = create(:conversation, account: account, status: :open)
       stale = create(:conversation, account: account, status: :open)
-      recent.update!(last_activity_at: 5.minutes.ago)
-      stale.update!(last_activity_at: 6.hours.ago)
+      # last_activity_at não serve: mexe quando somos nós a responder. Aqui a
+      # conversa «recente» foi a que esperou menos tempo por resposta nossa.
+      recent.update!(waiting_since: 5.minutes.ago, last_activity_at: 6.hours.ago)
+      stale.update!(waiting_since: 6.hours.ago, last_activity_at: 5.minutes.ago)
 
       get "/api/v1/accounts/#{account.id}/raevo_home",
           headers: administrator.create_new_auth_token,
@@ -62,6 +64,30 @@ RSpec.describe 'Raevo home API', type: :request do
       ids = response.parsed_body['open_conversations'].map { |item| item['display_id'] }
 
       expect(ids.index(stale.display_id)).to be < ids.index(recent.display_id)
+    end
+
+    it 'counts every overdue action, not only the ones that fit in the list' do
+      stub_const('Api::V1::Accounts::RaevoHomeController::MAX_ITEMS', 2)
+      3.times do |index|
+        create(
+          :kanban_card,
+          :conversation_origin,
+          account: account,
+          kanban_board: board,
+          kanban_stage: stage,
+          conversation: create(:conversation, account: account, status: :open),
+          next_action_at: (index + 1).hours.ago,
+          next_action_type: 'follow_up'
+        )
+      end
+
+      get "/api/v1/accounts/#{account.id}/raevo_home",
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      expect(response.parsed_body['overdue_actions'].size).to eq(2)
+      expect(response.parsed_body['overdue_actions_count']).to eq(3)
+      expect(response.parsed_body['overdue_actions_count_capped']).to be(false)
     end
 
     it 'filters by inbox and can put the newest conversation first' do
