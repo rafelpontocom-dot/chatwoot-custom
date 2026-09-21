@@ -19,10 +19,12 @@
     "FILTER_INBOX": "Inbox",
     "FILTER_BOARD": "Funnel",
     "SORT": "Order",
-    "SORT_WAITING": "Waiting longest",
+    "SORT_WAITING": "Ours to answer",
     "SORT_RECENT": "Most recent",
     "SORT_OVERDUE": "Most overdue",
-    "SORT_ACTION_RECENT": "Most recent"
+    "SORT_ACTION_RECENT": "Most recent",
+    "SORT_CONVERSATIONS": "Order conversations",
+    "SORT_ACTIONS": "Order actions"
   },
   "KANBAN": {
     "EYEBROW": "Sales",

@@ -17,6 +17,13 @@ permissions:
 jobs:
   deployment_check:
     name: Check Deployment
+    # A review app do Heroku (chatwoot-pr-<n>.herokuapp.com) é infraestrutura do
+    # upstream. Este fork implanta por Docker/Portainer — ver
+    # docs/kanban-docker-portainer-rollout.md — por isso o URL nunca responde e
+    # o job falhava em TODO PR, depois de ~40 min a esperar (sleep 600 + 10×180).
+    # Enquanto não houver pipeline Heroku aqui, o job fica ignorado em vez de
+    # vermelho. Se um dia existir, basta apagar esta linha.
+    if: github.repository == 'chatwoot/chatwoot'
     runs-on: ubuntu-latest
     steps:
       - name: Install jq

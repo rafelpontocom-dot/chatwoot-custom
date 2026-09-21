@@ -80,6 +80,10 @@ jobs:
         run: pnpm i
       - name: Frontend i18n placeholder syntax
         run: node scripts/check_frontend_i18n_placeholders.mjs
+      - name: Design system — nenhuma cor literal no código do Raevo
+        run: pnpm run raevo:design
+      - name: Design system — tokens de acordo com design-system/raevo.tokens.json
+        run: pnpm run raevo:tokens
       - name: ESLint
         run: pnpm run eslint
 

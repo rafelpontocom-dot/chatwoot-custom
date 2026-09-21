@@ -12,6 +12,8 @@ const router = useRouter();
 const data = ref({
   open_conversations_count: 0,
   open_conversations: [],
+  overdue_actions_count: 0,
+  overdue_actions_count_capped: false,
   overdue_actions: [],
   filters: { inboxes: [], boards: [] },
 });
@@ -32,10 +34,21 @@ const hasError = ref(false);
 
 const openConversations = computed(() => data.value.open_conversations || []);
 const overdueActions = computed(() => data.value.overdue_actions || []);
+
+// O total vem do servidor, contado antes do corte. Somar o comprimento da lista
+// já cortada escondia tudo o que passasse de oito, e escondia mais quanto pior
+// estivesse a operação.
+const overdueActionsCount = computed(() =>
+  Number(data.value.overdue_actions_count || 0)
+);
+const overdueActionsLabel = computed(() =>
+  data.value.overdue_actions_count_capped
+    ? `${overdueActionsCount.value}+`
+    : String(overdueActionsCount.value)
+);
 const totalAttention = computed(
   () =>
-    Number(data.value.open_conversations_count || 0) +
-    overdueActions.value.length
+    Number(data.value.open_conversations_count || 0) + overdueActionsCount.value
 );
 
 const loadHome = async () => {
@@ -233,7 +246,7 @@ onMounted(loadHome);
               v-model="conversationSort"
               data-testid="home-sort-conversations"
               class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
-              :aria-label="t('HOME.SORT')"
+              :aria-label="t('HOME.SORT_CONVERSATIONS')"
               @change="applyChoice"
             >
               <option value="waiting">{{ t('HOME.SORT_WAITING') }}</option>
@@ -333,7 +346,7 @@ onMounted(loadHome);
               v-model="actionSort"
               data-testid="home-sort-actions"
               class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
-              :aria-label="t('HOME.SORT')"
+              :aria-label="t('HOME.SORT_ACTIONS')"
               @change="applyChoice"
             >
               <option value="overdue">{{ t('HOME.SORT_OVERDUE') }}</option>
@@ -341,7 +354,7 @@ onMounted(loadHome);
             </select>
             <RaevoStamp
               variant="danger"
-              :label="String(overdueActions.length)"
+              :label="overdueActionsLabel"
               size="sm"
             />
           </div>

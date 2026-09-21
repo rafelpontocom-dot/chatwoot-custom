@@ -1,0 +1,233 @@
+// scss-lint:disable PropertySortOrder
+// =============================================================================
+// RAEVO — direção N · Nitidez
+// GERADO por scripts/design-tokens.mjs a partir de design-system/directions/nitidez.tokens.json. Não editar à mão:
+// mude o JSON e gere outra vez, senão a porta acusa divergência.
+// =============================================================================
+:root {
+  --slate-1: 250 250 249;   // #FAFAF9
+  --slate-2: 246 246 244;   // #F6F6F4
+  --slate-3: 241 240 237;   // #F1F0ED
+  --slate-4: 235 234 230;   // #EBEAE6
+  --slate-5: 229 228 223;   // #E5E4DF
+  --slate-6: 222 221 215;   // #DEDDD7
+  --slate-7: 213 211 205;   // #D5D3CD
+  --slate-8: 194 191 183;   // #C2BFB7
+  --slate-9: 142 138 129;   // #8E8A81
+  --slate-10: 117 113 105;   // #757169
+  --slate-11: 74 71 65;   // #4A4741
+  --slate-12: 28 25 23;   // #1C1917
+  --gray-1: 250 250 249;   // #FAFAF9
+  --gray-2: 246 246 244;   // #F6F6F4
+  --gray-3: 241 240 237;   // #F1F0ED
+  --gray-4: 235 234 230;   // #EBEAE6
+  --gray-5: 229 228 223;   // #E5E4DF
+  --gray-6: 222 221 215;   // #DEDDD7
+  --gray-7: 213 211 205;   // #D5D3CD
+  --gray-8: 194 191 183;   // #C2BFB7
+  --gray-9: 142 138 129;   // #8E8A81
+  --gray-10: 117 113 105;   // #757169
+  --gray-11: 74 71 65;   // #4A4741
+  --gray-12: 28 25 23;   // #1C1917
+  --blue-1: 252 253 255;   // #FCFDFF
+  --blue-2: 248 250 255;   // #F8FAFF
+  --blue-3: 239 244 255;   // #EFF4FF
+  --blue-4: 220 230 255;   // #DCE6FF
+  --blue-5: 200 217 254;   // #C8D9FE
+  --blue-6: 191 210 254;   // #BFD2FE
+  --blue-7: 155 182 250;   // #9BB6FA
+  --blue-8: 116 152 246;   // #7498F6
+  --blue-9: 37 99 235;   // #2563EB
+  --blue-10: 29 87 216;   // #1D57D8
+  --blue-11: 29 79 215;   // #1D4FD7
+  --blue-12: 23 48 107;   // #17306B
+  --iris-3: 239 244 255;   // #EFF4FF
+  --iris-9: 37 99 235;   // #2563EB
+  --iris-11: 29 79 215;   // #1D4FD7
+  --violet-3: 244 238 253;   // #F4EEFD
+  --violet-9: 162 28 175;   // #A21CAF
+  --violet-11: 134 25 143;   // #86198F
+  --teal-1: 250 254 252;   // #FAFEFC
+  --teal-2: 244 251 248;   // #F4FBF8
+  --teal-3: 230 246 238;   // #E6F6EE
+  --teal-4: 209 238 225;   // #D1EEE1
+  --teal-5: 183 227 208;   // #B7E3D0
+  --teal-6: 150 212 187;   // #96D4BB
+  --teal-7: 106 192 163;   // #6AC0A3
+  --teal-8: 45 168 137;   // #2DA889
+  --teal-9: 15 157 143;   // #0F9D8F
+  --teal-10: 13 138 118;   // #0D8A76
+  --teal-11: 11 107 75;   // #0B6B4B
+  --teal-12: 6 60 43;   // #063C2B
+  --amber-1: 255 253 249;   // #FFFDF9
+  --amber-2: 255 250 240;   // #FFFAF0
+  --amber-3: 254 244 226;   // #FEF4E2
+  --amber-4: 253 233 199;   // #FDE9C7
+  --amber-5: 251 219 168;   // #FBDBA8
+  --amber-6: 247 201 137;   // #F7C989
+  --amber-7: 238 178 104;   // #EEB268
+  --amber-8: 223 146 55;   // #DF9237
+  --amber-9: 180 83 9;   // #B45309
+  --amber-10: 160 74 8;   // #A04A08
+  --amber-11: 147 97 10;   // #93610A
+  --amber-12: 66 41 5;   // #422905
+  --ruby-1: 255 252 252;   // #FFFCFC
+  --ruby-2: 255 248 248;   // #FFF8F8
+  --ruby-3: 254 236 236;   // #FEECEC
+  --ruby-4: 253 221 221;   // #FDDDDD
+  --ruby-5: 250 205 205;   // #FACDCD
+  --ruby-6: 243 201 201;   // #F3C9C9
+  --ruby-7: 235 170 170;   // #EBAAAA
+  --ruby-8: 227 133 133;   // #E38585
+  --ruby-9: 220 38 38;   // #DC2626
+  --ruby-10: 197 34 34;   // #C52222
+  --ruby-11: 180 35 24;   // #B42318
+  --ruby-12: 96 20 16;   // #601410
+
+  --brand-color: 37 99 235;   // #2563EB
+  --background-color: 246 246 244;   // #F6F6F4
+  --surface-1: 255 255 255;   // #FFFFFF
+  --surface-2: 255 255 255;   // #FFFFFF
+  --surface-active: 239 244 255;   // #EFF4FF
+  --solid-1: 255 255 255;   // #FFFFFF
+  --solid-2: 255 255 255;   // #FFFFFF
+  --solid-3: 255 255 255;   // #FFFFFF
+  --solid-active: 239 244 255;   // #EFF4FF
+  --card-color: 255 255 255;   // #FFFFFF
+  --border-weak: 229 228 223;   // #E5E4DF
+  --border-strong: 213 211 205;   // #D5D3CD
+  --border-container: 229 228 223;   // #E5E4DF
+  --border-blue-strong: 37 99 235;   // #2563EB
+  --border-blue: 37, 99, 235, 0.45;
+  --text-blue: 23 48 107;   // #17306B
+  --text-purple: 88 28 135;   // #581C87
+  --text-amber: 66 41 5;   // #422905
+  --solid-blue: 239 244 255;   // #EFF4FF
+  --solid-blue-2: 248 250 255;   // #F8FAFF
+  --solid-amber: 254 244 226;   // #FEF4E2
+  --solid-amber-button: 253 233 199;   // #FDE9C7
+  --solid-red: 254 236 236;   // #FEECEC
+  --solid-iris: 239 244 255;   // #EFF4FF
+  --solid-purple: 244 238 253;   // #F4EEFD
+  --label-background: 241 240 237;   // #F1F0ED
+  --label-border: 28, 25, 23, 0.07;
+  --button-color: 255 255 255;   // #FFFFFF
+  --button-hover-color: 255, 255, 255, 0.16;
+  --background-input-box: 28, 25, 23, 0.02;
+  --alpha-1: 229, 228, 223, 0.5;
+  --alpha-2: 241, 240, 237, 0.85;
+  --alpha-3: 255, 255, 255, 0.96;
+  --black-alpha-1: 28, 25, 23, 0.10;
+  --black-alpha-2: 28, 25, 23, 0.04;
+  --white-alpha: 255, 255, 255, 0.8;
+  --overlay: 28, 25, 23, 0.36;
+  --overlay-avatar: 255, 255, 255, 0.67;
+
+  --radius-card: 10px;
+  --radius-item: 8px;
+  --radius-control: 8px;
+  --radius-pill: 9999px;
+  --shadow-rest: 0 1px 2px rgb(28 25 23 / 5%);
+  --shadow-hover: 0 2px 6px rgb(28 25 23 / 8%);
+  --shadow-float: 0 14px 36px rgb(28 25 23 / 14%);
+  --raevo-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --raevo-stage-1: 37 99 235;   // #2563EB
+  --raevo-stage-2: 15 157 143;   // #0F9D8F
+  --raevo-stage-3: 180 83 9;   // #B45309
+  --raevo-stage-4: 162 28 175;   // #A21CAF
+  --raevo-stage-5: 152 160 174;   // #98A0AE
+}
+
+.dark {
+  --slate-1: 26 25 23;   // #1A1917
+  --slate-2: 32 30 28;   // #201E1C
+  --slate-3: 41 38 35;   // #292623
+  --slate-4: 48 45 41;   // #302D29
+  --slate-5: 54 50 46;   // #36322E
+  --slate-6: 63 59 54;   // #3F3B36
+  --slate-7: 74 69 63;   // #4A453F
+  --slate-8: 99 93 85;   // #635D55
+  --slate-9: 138 131 121;   // #8A8379
+  --slate-10: 163 156 145;   // #A39C91
+  --slate-11: 186 180 170;   // #BAB4AA
+  --slate-12: 240 238 234;   // #F0EEEA
+  --gray-1: 26 25 23;   // #1A1917
+  --gray-2: 32 30 28;   // #201E1C
+  --gray-3: 41 38 35;   // #292623
+  --gray-4: 48 45 41;   // #302D29
+  --gray-5: 54 50 46;   // #36322E
+  --gray-6: 63 59 54;   // #3F3B36
+  --gray-7: 74 69 63;   // #4A453F
+  --gray-8: 99 93 85;   // #635D55
+  --gray-9: 138 131 121;   // #8A8379
+  --gray-10: 163 156 145;   // #A39C91
+  --gray-11: 186 180 170;   // #BAB4AA
+  --gray-12: 240 238 234;   // #F0EEEA
+  --blue-3: 27 39 64;   // #1B2740
+  --blue-4: 32 49 84;   // #203154
+  --blue-6: 45 68 116;   // #2D4474
+  --blue-9: 91 141 239;   // #5B8DEF
+  --blue-10: 110 156 243;   // #6E9CF3
+  --blue-11: 147 182 247;   // #93B6F7
+  --blue-12: 219 232 255;   // #DBE8FF
+  --teal-3: 15 45 40;   // #0F2D28
+  --teal-9: 32 178 158;   // #20B29E
+  --teal-11: 106 216 194;   // #6AD8C2
+  --amber-3: 56 38 12;   // #38260C
+  --amber-9: 214 141 47;   // #D68D2F
+  --amber-11: 240 186 106;   // #F0BA6A
+  --ruby-3: 61 26 26;   // #3D1A1A
+  --ruby-6: 96 44 44;   // #602C2C
+  --ruby-9: 239 83 80;   // #EF5350
+  --ruby-11: 248 145 142;   // #F8918E
+  --violet-9: 192 88 205;   // #C058CD
+  --violet-11: 216 148 226;   // #D894E2
+
+  --brand-color: 91 141 239;   // #5B8DEF
+  --background-color: 20 19 18;   // #141312
+  --surface-1: 32 30 28;   // #201E1C
+  --surface-2: 41 38 35;   // #292623
+  --surface-active: 27 39 64;   // #1B2740
+  --solid-1: 32 30 28;   // #201E1C
+  --solid-2: 41 38 35;   // #292623
+  --solid-3: 48 45 41;   // #302D29
+  --solid-active: 27 39 64;   // #1B2740
+  --card-color: 41 38 35;   // #292623
+  --border-weak: 54 50 46;   // #36322E
+  --border-strong: 74 69 63;   // #4A453F
+  --border-container: 54 50 46;   // #36322E
+  --border-blue-strong: 91 141 239;   // #5B8DEF
+  --border-blue: 91, 141, 239, 0.45;
+  --text-blue: 219 232 255;   // #DBE8FF
+  --text-purple: 236 209 242;   // #ECD1F2
+  --text-amber: 250 226 186;   // #FAE2BA
+  --solid-blue: 27 39 64;   // #1B2740
+  --solid-blue-2: 22 30 46;   // #161E2E
+  --solid-amber: 56 38 12;   // #38260C
+  --solid-amber-button: 82 56 18;   // #523812
+  --solid-red: 61 26 26;   // #3D1A1A
+  --solid-iris: 27 39 64;   // #1B2740
+  --solid-purple: 48 26 56;   // #301A38
+  --label-background: 48 45 41;   // #302D29
+  --label-border: 255, 255, 255, 0.08;
+  --button-color: 232 234 238;   // #E8EAEE
+  --button-hover-color: 255, 255, 255, 0.10;
+  --background-input-box: 255, 255, 255, 0.04;
+  --alpha-1: 38, 43, 51, 0.6;
+  --alpha-2: 30, 35, 43, 0.9;
+  --alpha-3: 22, 26, 32, 0.96;
+  --black-alpha-1: 0, 0, 0, 0.4;
+  --black-alpha-2: 0, 0, 0, 0.24;
+  --white-alpha: 255, 255, 255, 0.08;
+  --overlay: 0, 0, 0, 0.6;
+  --shadow-rest: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-hover: 0 2px 8px rgb(0 0 0 / 48%);
+  --shadow-float: 0 16px 40px rgb(0 0 0 / 60%);
+
+  --raevo-stage-1: 91 141 239;   // #5B8DEF
+  --raevo-stage-2: 32 178 158;   // #20B29E
+  --raevo-stage-3: 214 141 47;   // #D68D2F
+  --raevo-stage-4: 192 88 205;   // #C058CD
+  --raevo-stage-5: 133 141 154;   // #858D9A
+}
