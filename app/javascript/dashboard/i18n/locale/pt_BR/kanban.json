@@ -24,7 +24,19 @@
     "SORT_OVERDUE": "Vencidas há mais tempo",
     "SORT_ACTION_RECENT": "Mais recentes",
     "SORT_CONVERSATIONS": "Ordenar conversas",
-    "SORT_ACTIONS": "Ordenar ações"
+    "SORT_ACTIONS": "Ordenar ações",
+    "TODAY_APPOINTMENTS": "Agenda de hoje",
+    "EMPTY_APPOINTMENTS": "Não há nada marcado para hoje.",
+    "APPOINTMENT_STATUS": {
+      "SCHEDULED": "Agendada",
+      "CONFIRMED": "Confirmada",
+      "CHECKED_IN": "Chegou"
+    },
+    "STALE_OPPORTUNITIES": "Oportunidades paradas",
+    "STALE_DETAIL": "{stage} · {days} dias na etapa · limite {limit}",
+    "OVERDUE_PAYMENTS": "Cobranças vencidas",
+    "PAYMENT_OVERDUE_SINCE": "Vencida há {days} dias",
+    "PAYMENT_NO_OPPORTUNITY": "Esta cobrança não está ligada a uma oportunidade."
   },
   "KANBAN": {
     "EYEBROW": "Comercial",

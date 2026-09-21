@@ -90,6 +90,26 @@ RSpec.describe 'Raevo home API', type: :request do
       expect(response.parsed_body['overdue_actions_count_capped']).to be(false)
     end
 
+    # O contrato dos três cartões: nil é «módulo não está em uso, não mostrar o
+    # cartão»; lista vazia é «está ligado e hoje não há nada».
+    it 'hides the charges card when Finance is not enabled for the account' do
+      get "/api/v1/accounts/#{account.id}/raevo_home",
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      expect(response.parsed_body).to have_key('overdue_payments')
+      expect(response.parsed_body['overdue_payments']).to be_nil
+    end
+
+    it 'always answers with the schedule and the stalled opportunities' do
+      get "/api/v1/accounts/#{account.id}/raevo_home",
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+      expect(response.parsed_body['today_appointments']).to include('count' => 0, 'items' => [])
+      expect(response.parsed_body['stale_opportunities']).to include('count' => 0, 'items' => [])
+    end
+
     it 'filters by inbox and can put the newest conversation first' do
       other_inbox = create(:inbox, account: account)
       waiting = create(:conversation, account: account, status: :open, last_activity_at: 3.hours.ago)

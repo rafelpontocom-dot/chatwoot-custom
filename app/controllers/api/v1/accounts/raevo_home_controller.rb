@@ -1,4 +1,6 @@
 class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
+  include RaevoHomeCards
+
   MAX_ITEMS = 8
   # Quantas ações atrasadas se examinam para dar o total do emblema. Acima disto o
   # número passa a «mais de», em vez de mentir por baixo.
@@ -19,27 +21,38 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
   CONVERSATION_SORT_KEYS = { 'waiting' => 'waiting_since_asc', 'recent' => 'last_activity_at_desc' }.freeze
 
   def show
+    render json: payload
+  end
+
+  private
+
+  def payload
     conversations = open_conversations
     actions = overdue_actions
 
-    render json: {
+    {
       open_conversations_count: conversations[:count],
       open_conversations: conversations[:items],
       overdue_actions_count: actions[:count],
       overdue_actions_count_capped: actions[:count_capped],
       overdue_actions: actions[:items],
-      filters: {
-        inboxes: inbox_options,
-        boards: board_options,
-        conversation_sort: conversation_sort,
-        action_sort: action_sort,
-        inbox_id: selected_inbox_id,
-        board_id: selected_board_id
-      }
+      today_appointments: today_appointments,
+      overdue_payments: overdue_payments,
+      stale_opportunities: stale_opportunities,
+      filters: filter_options
     }
   end
 
-  private
+  def filter_options
+    {
+      inboxes: inbox_options,
+      boards: board_options,
+      conversation_sort: conversation_sort,
+      action_sort: action_sort,
+      inbox_id: selected_inbox_id,
+      board_id: selected_board_id
+    }
+  end
 
   def authorize_home
     authorize KanbanBoard.new(account: Current.account), :index?
