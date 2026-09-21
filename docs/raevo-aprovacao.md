@@ -225,6 +225,102 @@ Mais duas, menores: o editor de campo passa a lista à esquerda e detalhe à dir
 campo com dados passa a dizer **quantos cartões** têm valor gravado, em vez de só
 avisar que os valores ficam na base.
 
+### Dez respostas · 21/09/2026
+
+Respondidas as dez perguntas em aberto. Duas das respostas valem mais do que a
+pergunta que responderam.
+
+| # | Pergunta | Resposta |
+| --- | --- | --- |
+| 1 | Os oito separadores servem? | **sim** |
+| 2 | «Apagar funil» sai da navegação? | indiferente — decidido abaixo |
+| 3 | «Agentes» e «Caixas» são o mesmo primitivo? | mal formulada — ver abaixo |
+| 4 | Comercial ganha sub-navegação? | **não compreendida — o nome é o problema** |
+| 5 | Marketing vira tabela de leitura? | **não. Fica editável** |
+| 6 | A clínica usa o preset de marketing? | por responder — reformulada abaixo |
+| 7 | Corrigir a ordenação falsa? | **sim** |
+| 8 | O servidor conta as ações antes de cortar? | **sim** |
+| 9 | Barra de filtro única no Início? | **sim** |
+| 10 | Acrescentar cartões ao Início? | **sim — agenda, cobranças, oportunidades paradas** |
+
+#### 4 — «Comercial» é um nome que o dono do produto não reconhece
+
+A pergunta foi *«o que seria o comercial?»*. É o separador que vale **62,4% do ecrã de
+definições**. Se quem manda no produto não reconhece o nome, nenhuma secretária vai
+reconhecer.
+
+A chave é `KANBAN.SETTINGS.SALES` — «Sales» em inglês, «Comercial» em português. O que
+lá está dentro não é comercial: são **os campos da oportunidade e as regras deles**.
+
+| O que lá está | Chaves |
+| --- | --- |
+| Construtor de campos — abas, grupos, 12 tipos, opções, largura, obrigatório por etapa, condições, fórmulas | a maioria das 141 |
+| Layout do cartão compacto | `CARD_LAYOUT_*` |
+| Preset de marketing (28 campos de rastreio) | `MARKETING_*` |
+| Alertas de cartão parado | `STALE_ALERTS_*` |
+| Lembretes de marcação | `APPOINTMENT_REMINDERS_*` |
+| Listas: tipos de próxima ação, motivos de perda | `NEXT_ACTION_TYPES`, `LOST_REASON_OPTIONS` |
+
+**Proposta: o separador passa a chamar-se «Campos da oportunidade».** É o que faz. A
+sub-navegação proposta na apresentação deixa de precisar de explicação: Campos ·
+Cartão · Marketing · Alertas · Listas.
+
+#### 3 — a pergunta estava mal feita
+
+Não proponho juntar Agentes com Caixas de entrada. São coisas diferentes: agentes são
+pessoas, caixas de entrada são canais (WhatsApp, Instagram, e-mail). **Os separadores
+ficam separados.**
+
+O que é igual é o **controlo**: os dois ecrãs são uma lista com pesquisa onde se marcam
+vários. Hoje esse controlo está escrito duas vezes. Proposta: escrever uma vez e usar
+duas. É invisível para quem usa — **decidido, não precisa de aprovação.**
+
+#### 2 — decidido, e corrige a minha própria proposta
+
+«Apagar funil» **fica na navegação, no fim**, como hoje. O problema que apontei não era
+a posição: era ter o mesmo peso visual de uma definição. Passa a estar separado por um
+filete e marcado como destrutivo. Enterrá-lo no fim de Geral resolvia o peso visual e
+estragava a descoberta — quem procura como apagar um funil percorre a navegação.
+
+#### 5 — a largura total já está feita
+
+O requisito «todos os campos nascem em largura total» **já está cumprido em quatro
+lugares**, e foi verificado:
+
+| Caminho | Onde | Valor |
+| --- | --- | --- |
+| Campo novo criado na interface | `KanbanBoardSettings.vue:1371` | `layoutWidth = 'full'` |
+| Preset de marketing | `KanbanBoardSettings.vue:747` | `layoutWidth: 'full'` |
+| Funil novo a partir de modelo | `create_from_template_service.rb:82` | `'width' => 'full'` |
+| Campo sem largura gravada | `KanbanBoardSettings.vue:1163` | cai em `'full'` |
+
+Meia largura continua a ser escolha de quem configura. A proposta de tornar o marketing
+uma tabela de leitura **cai**: os 28 campos ficam editáveis como estão.
+
+#### 6 — reformulada
+
+A pergunta não era clara. O preset de marketing são **28 campos de rastreio** —
+`origem_do_lead`, `utm_source`, `gclid`, `fbclid`, `fbp`, `ttclid`, `campaign_id`,
+`adset_id`, `ad_id`, `landing_page` e mais — preenchidos automaticamente por
+`Marketing::UrlAttributionParser` quando o contacto chega por um link com parâmetros.
+
+A pergunta, agora concreta: **a clínica faz anúncios pagos (Google, Meta, TikTok)?**
+Se faz, estes campos enchem-se sozinhos e a aba faz sentido. Se não faz, são 28 campos
+sempre vazios a ocupar uma aba. Não muda nada do que já foi decidido — muda só se a aba
+Marketing aparece ligada ou desligada num funil novo.
+
+#### 10 — aprovado, e deixa de ser migração
+
+Acrescentar agenda do dia, cobranças vencidas e oportunidades paradas ao Início **não é
+migrar uma tela: é construir três cartões novos**. Consequências registadas:
+
+- O `RaevoHomeController` devolve hoje duas listas. Passa a precisar de três consultas
+  novas, mais a contagem das ações (resposta 8).
+- **Financeiro é opt-in por conta** e a Agenda pode não estar em uso. Os cartões têm de
+  aparecer condicionalmente — um cartão vazio de um módulo desligado é pior que nenhum.
+- Cinco cartões não cabem na grelha de duas colunas da apresentação. O Início precisa de
+  uma **v2** antes de ser implementado.
+
 ### A base mexeu em telas já aprovadas · 20/09/2026
 
 A base avançou cinco commits enquanto as apresentações decorriam. **Sem conflito** — o
