@@ -150,7 +150,7 @@ JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pret
 | `design-system/aprovado/README.md` | as sete decisões que Consultório trava, e de onde veio cada valor |
 | `docs/raevo-aprovacao.md` | a fila de telas: o que precisa de aprovação, o que não, e o que já foi decidido |
 | `scripts/author-consultorio.mjs` | como o JSON aprovado é derivado da referência — **é aqui que se muda** |
-| `design-system/raevo.tokens.json` | o sistema **como está no código** (Sereno) — a porta `pnpm raevo:tokens` falha se divergir |
+| `design-system/raevo.tokens.json` | o sistema **como está no código** — desde 21/09 é Consultório. A porta `pnpm raevo:tokens` falha se o código divergir dele |
 | `design-system/reference.html` | referência viva, gerada dos tokens (abra no browser) |
 | `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` | fonte da verdade em CSS: cor, sombra, raio semântico |
 | `app/javascript/dashboard/assets/scss/_raevo-components.scss` | o que token não alcança |
@@ -158,7 +158,7 @@ JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pret
 | `app/javascript/dashboard/components-next/raevo/` | primitivos: `RaevoPageHeader`, `RaevoStamp` — use, não recrie |
 | `app/javascript/dashboard/constants/raevoPalette.js` | cores que viram DADO (etapa, procedimento) |
 | `docs/raevo-design-system.md` | especificação, padrões de tela, checklist de PR |
-| `output/raevo-design-2026-v2/index.html` | mockups aprovados (direção "H · Sereno") |
+| `output/raevo-design-2026-v2/index.html` | mockups de H · Sereno — **histórico**. A direção aprovada é Consultório; use `design-system/aprovado/` |
 
 ---
 
