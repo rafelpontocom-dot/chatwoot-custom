@@ -298,6 +298,57 @@ RSpec.describe 'Super Admin accounts API', type: :request do
     end
   end
 
+  describe 'POST /super_admin/accounts/{account_id}/update_raevo_ai_handoff' do
+    let!(:integration) do
+      RaevoAiIntegration.create!(account: account, clinic_id: 'clinic-demo', enabled: true, settings: { 'existing' => true })
+    end
+    let(:team) { create(:team, account: account) }
+    let(:inbox) { create(:inbox, account: account) }
+
+    it 'stores a validated handoff configuration from the Super Admin form' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/update_raevo_ai_handoff",
+           params: {
+             raevo_ai: {
+               handoff_team_id: team.id,
+               handoff_assignee_id: '',
+               handoff_allowed_inbox_ids: [inbox.id],
+               handoff_labels: 'intervencao-humana, atendimento-clinica'
+             }
+           }
+
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(integration.reload.settings).to include('existing' => true)
+      expect(integration.settings.fetch('handoff')).to eq(
+        'team_id' => team.id,
+        'assignee_id' => nil,
+        'allowed_inbox_ids' => [inbox.id],
+        'labels' => %w[intervencao-humana atendimento-clinica]
+      )
+    end
+
+    it 'does not change the handoff configuration when the destination is ambiguous' do
+      agent = create(:user)
+      create(:account_user, account: account, user: agent)
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/update_raevo_ai_handoff",
+           params: {
+             raevo_ai: {
+               handoff_team_id: team.id,
+               handoff_assignee_id: agent.id,
+               handoff_allowed_inbox_ids: [inbox.id],
+               handoff_labels: 'intervencao-humana'
+             }
+           }
+
+      expect(response).to redirect_to("http://www.example.com/super_admin/accounts/#{account.id}")
+      expect(flash[:alert]).to eq(I18n.t('super_admin.raevo_ai.handoff_update_failed'))
+      expect(integration.reload.settings).to eq('existing' => true)
+    end
+  end
+
   describe 'POST /super_admin/accounts/{account_id}/rotate_raevo_ai_command_token' do
     let!(:integration) do
       RaevoAiIntegration.create!(
