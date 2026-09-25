@@ -1,22 +1,23 @@
-# Raevo Design System — direção H · Sereno
+# Raevo Design System — padrões de tela e checklist
 
-> ### ⚠︎ Esta é a direção que está no código, não a aprovada
+> ### ⚠︎ A direção é A · Consultório, e já está no código
 >
-> Em **19/09/2026** foi aprovada a direção **[A · Consultório](../design-system/aprovado/README.md)**.
-> Ela é o alvo de **tudo o que for desenhado a partir de agora**; as telas que já existem
-> continuam em Sereno até migrarem, uma a uma, pela fila de
-> [`raevo-aprovacao.md`](./raevo-aprovacao.md).
+> Aprovada a **19/09/2026**, migrada para o código a **21/09/2026**:
+> **[A · Consultório](../design-system/aprovado/README.md)**. Este documento nasceu para
+> H · Sereno e o cabeçalho ainda dizia que o código estava em Sereno — **não está**, e
+> essa frase custou retrabalho: foi com ela que a pílula do campo sobreviveu cinco meses
+> à migração, porque quem a lia concluía que `rounded-full` continuava a ser o padrão.
 >
-> Este documento continua válido para: os padrões de tela, o checklist de PR, e as telas
-> que ainda não migraram. Onde Consultório diverge — cor de ação, raio do controlo,
-> separação por anel, modo escuro — manda o `README.md` da direção aprovada.
+> O que aqui continua a valer: **os padrões de tela, os primitivos, a acessibilidade e o
+> checklist de PR**. Onde a direção diverge — cor de ação, raio do controlo, separação
+> por anel, modo escuro — manda o `README.md` da direção aprovada, e o resumo executável
+> é o `AGENTS.md`.
 >
-> **Correção de 21/09/2026 — o raio do controlo.** O §4 abaixo diz que todo o botão e todo
-> o campo de uma linha são pílula. **Já não é verdade em lado nenhum:** a regra 4 do
-> `AGENTS.md` dá-lhes 10px, e o primitivo `components-next/raevo/raevoControl.js` foi
-> migrado. A pílula ficou reservada ao selo e à barra de pesquisa. O §4 fica como está
-> porque descreve a direção anterior, que é o que este documento é — mas não descreve o
-> código desde esta data.
+> **Correção de 25/09/2026 — a tabela de forma.** O §3 descrevia a escala de Sereno
+> (7 · 9 · 11 · 13px) e dava pílula a todo o botão e a todo o campo de uma linha. Ficou
+> assim quatro dias depois de o código migrar, com um aviso em cima em vez de uma
+> correção — e foi o aviso que falhou: quem lia a tabela concluía que `rounded-full`
+> era o padrão. A tabela está agora nos valores que o `tailwind.config.js` tem.
 
 **Status:** aprovado em 29/08/2026 · é o que o código tem, até cada tela migrar
 **Fonte da verdade em código:** `app/javascript/dashboard/assets/scss/_raevo-tokens.scss`
@@ -109,15 +110,22 @@ Duas combinações já reprovaram e estão proibidas:
 
 ## 3. Forma
 
+O raio sai de uma fórmula sobre `--radius: 10px`, não de gosto: `sm` = base−4,
+`md` = base−2, `lg` = base, `xl` = base+4.
+
 | Token Tailwind | Valor | Uso |
 | --- | --- | --- |
-| `rounded-sm` | 7px | selo, chip pequeno |
-| `rounded-md` | 9px | campo, item de lista |
-| `rounded-lg` | 11px | card de lead, item de coluna |
-| `rounded-xl` | 13px | card de página, painel, modal |
-| `rounded-full` | pílula | **todo botão e todo campo de uma linha** |
+| `rounded-sm` | 6px | chip pequeno |
+| `rounded-md` | 8px | textarea, item de lista. É também o valor de `rounded` sem sufixo |
+| `rounded-lg` | **10px** | **botão, input, select** — o controlo |
+| `rounded-xl` | 14px | card, painel, modal |
+| `rounded-full` | pílula | **só o selo e a barra de pesquisa** (`type="search"`) |
 | `.raevo-card` | mantém o raio declarado | o que é botão só por ser clicável — o chip de um agendamento. Um card alto com raio de pílula desenha uma elipse. |
 | `border` | 1px | contorno padrão |
+
+`pnpm raevo:pairs` recusa `rounded-full` em `<input>`, `<select>` e `<textarea>`, e
+recusa `rounded-[Npx]`. O que ele não vê — pílula em `<button>` — está declarado no
+topo do script.
 
 ### Campo: dois contextos, duas regras
 
@@ -125,10 +133,10 @@ Campo tem **duas** aparências, e só duas. Qualquer terceira é regressão.
 
 | Contexto | Onde | Rótulo | Controle |
 | --- | --- | --- | --- |
-| **Formulário** | criar, configurar, diálogo de ação | `text-xs`, acima do campo | pílula `rounded-full`, fundo `bg-n-surface-1`, contorno `border-n-strong` |
+| **Formulário** | criar, configurar, diálogo de ação | `text-xs`, acima do campo | `rounded-lg` (10px), fundo `bg-n-surface-1`, contorno `border-n-strong` |
 | **Ficha densa** | ler e preencher registro — ficha da oportunidade, aba de contato | `text-sm`, à esquerda, na mesma linha | sem casca: `bg-transparent`, `border-0`, mesma tipografia do valor; foco por anel |
 
-A ficha densa é a exceção deliberada ao `rounded-full` e ao rótulo de 12px acima. Motivo: ali
+A ficha densa é a exceção deliberada à casca do controlo e ao rótulo de 12px acima. Motivo: ali
 ler e preencher são o mesmo gesto, repetido dezenas de vezes por dia. A casca do formulário não
 informa nada que o `hover` da linha e o próprio `button` já não digam, e cobra por isso um salto
 de geometria a cada clique — o rótulo encolhia de 14px para 12px e o campo saltava para baixo dele.
@@ -258,14 +266,20 @@ rodapé do card criava uma faixa vazia quando não havia valor à direita.
 | `dashboard/components-next/raevo/RaevoStamp.vue` | qualquer situação/estado. Garante cor + ícone + texto por construção — não escreva selo na mão |
 
 ### Tabela
-Cabeçalho `bg-n-slate-1`, rótulo 9px caixa alta. Linha de 52px. Situação como pílula
-com ícone. Valor à direita, tabular.
+Cabeçalho `bg-n-slate-1`, rótulo `text-micro` (11px) em caixa alta — 9px está abaixo do
+piso da escala (regra 6). Linha de 52px. Situação como selo com ícone, que é um dos dois
+sítios onde a pílula fica. Valor à direita, tabular.
 
 ---
 
 ## 6. Acessibilidade — requisito, não acabamento
 
-- Contraste de texto ≥ 4,5:1. Ícone e borda ≥ 3:1.
+- Contraste de texto ≥ 4,5:1. Ícone e borda ≥ 3:1. Texto grande (≥ `text-xl`) ≥ 3:1.
+- **O contraste é do par, não do token.** `--brand-color` inverte para `#E5E5E5`
+  no escuro por decisão; `text-white` não inverte. Os dois valores estavam certos
+  e o botão primário do produto inteiro ficou a **1,26:1**. Emparelhe com o token
+  que inverte: `n-solid-1` ou `--brand-foreground`.
+  `pnpm raevo:pairs` mede isto nos dois modos e recusa o que reprova.
 - Foco sempre visível: contorno de 2px na cor de ação, deslocado 2px. Já é global.
 - Alvo de toque ≥ 24px (WCAG 2.2 · 2.5.8). Já é global para `button`.
 - Nenhuma ação crítica só por arrastar — sempre um caminho por teclado ou menu.
@@ -280,7 +294,8 @@ com ícone. Valor à direita, tabular.
 | --- | --- | --- |
 | `class="bg-[#2563EB]"` ou `style="color:#111"` | quebra tema escuro e o próximo redesign | `bg-n-brand`, `text-n-slate-12` |
 | `shadow-sm` esperando sombra | é `none` de propósito | deixe o espaço separar |
-| Botão retangular | a pílula é a assinatura | `rounded-full` (já é padrão) |
+| `rounded-full` em campo, select ou botão | era a assinatura de Sereno; **deixou de ser a 21/09/2026** — a densidade alta tira largura ao controlo | `rounded-lg` (10px). A pílula fica para o selo e para a barra de pesquisa |
+| `bg-n-brand text-white` | o fundo inverte no escuro, o branco não: dá 1,26:1 | `text-n-solid-1`, que inverte com ele |
 | Nova cor de etapa sem validar | risco de daltonismo | rode o validador |
 | Cor sozinha para estado | falha WCAG | cor + ícone + texto |
 | Editar `_next-colors.scss` | conflito em todo `git pull` | edite `_raevo-tokens.scss` |
@@ -291,7 +306,8 @@ com ícone. Valor à direita, tabular.
 ## 8. Verificação antes de abrir PR
 
 ```bash
-# nenhum componente do Raevo escreve cor literal?
+# cor literal, tamanho fora da escala, par de contraste e geometria?
+# (corre check-design-tokens.mjs e check-design-pairs.mjs)
 pnpm raevo:design
 
 # código e design-system/raevo.tokens.json continuam de acordo?

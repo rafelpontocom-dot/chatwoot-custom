@@ -129,15 +129,37 @@ Exemplos prontos: `KanbanAutomations.spec.js`, `KanbanBoardSettings.spec.js`.
 ## Antes de abrir PR
 
 ```bash
-pnpm raevo:design    # falha se algum componente do Raevo escrever cor literal
+pnpm raevo:design    # cor literal, tamanho fora da escala, E o par + a geometria
 pnpm raevo:tokens    # falha se o código divergir do sistema gravado — inclui a direção aprovada
 pnpm raevo:palette   # revalida a paleta de etapas
 ```
 
+`raevo:design` corre **duas** verificações. A segunda
+(`scripts/check-design-pairs.mjs`, também isolável em `pnpm raevo:pairs`) existe
+porque as outras portas verificam o **valor** dos tokens e nunca o **par** que o
+componente faz com eles — e foi por aí que passaram os dois piores defeitos que
+este produto teve:
+
+- O campo continuou pílula cinco meses depois de a regra 4 lhe dar 10px, porque a
+  forma vivia numa constante de `raevoControl.js` — um `.js` que a porta nem lia.
+- O botão primário ficou a **1,26:1** em modo escuro. Os dois tokens estavam
+  certos; errado era juntá-los. `bg-n-brand` inverte para `#E5E5E5`, `text-white`
+  não inverte.
+
+Ela mede contraste nos dois modos com os valores que o browser resolve — a
+cascata inteira, `_next-colors.scss` e `_raevo-tokens.scss` por cima — e recusa
+o que reprova a WCAG 2.2 (4,5:1 para texto, 3:1 para texto grande e para
+controlo só-de-ícone). Também recusa pílula em `<input>`, `<select>` e
+`<textarea>` (a pesquisa é a exceção) e raio arbitrário `rounded-[Npx]`.
+
+O que ela **não** vê está declarado no topo do próprio script. Leia antes de a
+tomar por garantia.
+
 Mexeu na direção aprovada? Não edite o JSON à mão: mude `scripts/author-consultorio.mjs`,
 rode `pnpm raevo:aprovado` e leia o diff de `consultorio.tokens.json`.
 
-As duas primeiras rodam em CI (`custom_checks.yml`, job `lint-frontend`).
+As duas primeiras rodam em CI (`custom_checks.yml`, job `lint-frontend`) — e
+`raevo:design` leva a verificação de pares consigo, sem mexer no workflow.
 
 Mudou um token de propósito? Rode `pnpm raevo:tokens:extract` e **leia o diff do
 JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pretendia.
@@ -153,7 +175,8 @@ JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pret
 | `design-system/raevo.tokens.json` | o sistema **como está no código** — desde 21/09 é Consultório. A porta `pnpm raevo:tokens` falha se o código divergir dele |
 | `design-system/reference.html` | referência viva, gerada dos tokens (abra no browser) |
 | `app/javascript/dashboard/assets/scss/_raevo-tokens.scss` | fonte da verdade em CSS: cor, sombra, raio semântico |
-| `app/javascript/dashboard/assets/scss/_raevo-components.scss` | o que token não alcança |
+| `app/javascript/dashboard/assets/scss/_raevo-components.scss` | o que token não alcança — e onde vive o par corrigido de `bg-n-brand` |
+| `scripts/check-design-pairs.mjs` | a porta que olha para **pares e geometria**, não para valores. Mede contraste nos dois modos |
 | `tailwind.config.js` | raio, borda, sombra e fonte do produto inteiro |
 | `app/javascript/dashboard/components-next/raevo/` | primitivos: `RaevoPageHeader`, `RaevoStamp` — use, não recrie |
 | `app/javascript/dashboard/constants/raevoPalette.js` | cores que viram DADO (etapa, procedimento) |

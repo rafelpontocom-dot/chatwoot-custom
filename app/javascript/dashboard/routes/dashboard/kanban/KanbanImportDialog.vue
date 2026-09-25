@@ -327,7 +327,7 @@ defineExpose({ abrir });
             <select
               v-model="mapping[coluna]"
               :data-testid="`kanban-import-map-${coluna}`"
-              class="reset-base mb-0 h-9 w-full rounded-full border border-solid border-n-strong bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+              class="reset-base mb-0 h-9 w-full rounded-lg border border-solid border-n-strong bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
             >
               <option value="">{{ t('KANBAN.IMPORT.IGNORE') }}</option>
               <optgroup :label="t('KANBAN.IMPORT.GROUP_OPPORTUNITY')">

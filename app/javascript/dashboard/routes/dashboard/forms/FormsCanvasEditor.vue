@@ -333,7 +333,7 @@ watch(
 
             <div
               v-else-if="answerKind === 'long'"
-              class="max-w-xl rounded-lg border border-n-weak bg-n-solid-1 px-4 py-3 text-base text-n-slate-9"
+              class="max-w-xl rounded-lg border border-n-weak bg-n-solid-1 px-4 py-3 text-base text-n-slate-11"
             >
               {{ t('FORMS.CANVAS.ANSWER_HINT') }}
             </div>
