@@ -108,6 +108,21 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.stage_mapping_update_failed')
   end
 
+  def update_raevo_ai_handoff
+    integration = requested_resource.raevo_ai_integration
+    raise RaevoAi::HandoffConfigurator::InvalidConfiguration, 'integration is not provisioned' unless integration
+
+    RaevoAi::HandoffConfigurator.new(integration: integration).configure!(
+      team_id: raevo_ai_provisioning_params[:handoff_team_id],
+      assignee_id: raevo_ai_provisioning_params[:handoff_assignee_id],
+      allowed_inbox_ids: raevo_ai_provisioning_params[:handoff_allowed_inbox_ids],
+      labels: raevo_ai_provisioning_params[:handoff_labels]
+    )
+    redirect_to [namespace, requested_resource], notice: t('super_admin.raevo_ai.handoff_updated')
+  rescue RaevoAi::HandoffConfigurator::InvalidConfiguration
+    redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.handoff_update_failed')
+  end
+
   def activate_raevo_ai
     unless ActiveModel::Type::Boolean.new.cast(params[:token_deployed])
       return redirect_to [namespace, requested_resource], alert: t('super_admin.raevo_ai.token_not_deployed')
@@ -164,6 +179,8 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
   def raevo_ai_provisioning_params
     params.require(:raevo_ai).permit(
       :clinic_id, :command_token, :board_key, :board_id, :initial_stage_id, :token_deployed,
+      :handoff_team_id, :handoff_assignee_id, :handoff_labels,
+      handoff_allowed_inbox_ids: [],
       stage_mappings: SEMANTIC_STAGE_EVENTS.keys
     )
   end

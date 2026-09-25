@@ -3,6 +3,10 @@
 <% stages = boards.flat_map { |board| board.kanban_stages.active.ordered.map { |stage| [board, stage] } } %>
 <% configured_board = integration&.settings&.dig('crm', 'boards')&.values&.first || {} %>
 <% configured_stages = configured_board.fetch('stages', {}) %>
+<% handoff = integration&.settings&.fetch('handoff', {}) || {} %>
+<% teams = account.teams.order(:name) %>
+<% agents = account.users.order(:name) %>
+<% inboxes = account.inboxes.order(:name) %>
 
 <section class="main-content__body">
   <hr class="my-8 border-n-weak">
@@ -73,6 +77,39 @@
       </div>
       <div class="form-actions">
         <%= form.submit 'Provision AI' %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if integration.present? %>
+    <hr class="my-8 border-n-weak">
+    <h3 class="text-base text-n-slate-12"><%= t('super_admin.raevo_ai.handoff_configuration') %></h3>
+    <p class="text-sm text-n-slate-11"><%= t('super_admin.raevo_ai.handoff_description') %></p>
+    <%= form_with scope: :raevo_ai, url: update_raevo_ai_handoff_super_admin_account_path(account), method: :post, class: 'form' do |form| %>
+      <div class="field-unit">
+        <%= form.label :handoff_team_id, t('super_admin.raevo_ai.handoff_team') %>
+        <%= form.select :handoff_team_id, teams.map { |team| [team.name, team.id] }, { include_blank: t('super_admin.raevo_ai.no_team'), selected: handoff['team_id'] } %>
+      </div>
+      <div class="field-unit">
+        <%= form.label :handoff_assignee_id, t('super_admin.raevo_ai.handoff_assignee') %>
+        <%= form.select :handoff_assignee_id, agents.map { |agent| [agent.name, agent.id] }, { include_blank: t('super_admin.raevo_ai.no_assignee'), selected: handoff['assignee_id'] } %>
+      </div>
+      <p class="text-xs text-n-slate-10"><%= t('super_admin.raevo_ai.handoff_destination_help') %></p>
+      <fieldset class="field-unit">
+        <legend><%= t('super_admin.raevo_ai.handoff_inboxes') %></legend>
+        <% inboxes.each do |inbox| %>
+          <div>
+            <%= check_box_tag 'raevo_ai[handoff_allowed_inbox_ids][]', inbox.id, Array(handoff['allowed_inbox_ids']).include?(inbox.id), id: "raevo_ai_handoff_inbox_#{inbox.id}" %>
+            <%= label_tag "raevo_ai_handoff_inbox_#{inbox.id}", inbox.name %>
+          </div>
+        <% end %>
+      </fieldset>
+      <div class="field-unit">
+        <%= form.label :handoff_labels, t('super_admin.raevo_ai.handoff_labels') %>
+        <%= form.text_field :handoff_labels, value: Array(handoff['labels']).join(', '), required: true %>
+      </div>
+      <div class="form-actions">
+        <%= form.submit t('super_admin.raevo_ai.save_handoff') %>
       </div>
     <% end %>
   <% end %>
