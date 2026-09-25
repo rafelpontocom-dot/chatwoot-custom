@@ -143,6 +143,22 @@ textarea,
   --raevo-radius-control: 10px;
 }
 
+// --- O primário invertido e o `text-white` que o upstream escreve ----------------
+// Decisão 1 de Consultório: a ação inverte para `#E5E5E5` no escuro. O upstream
+// emparelha o primário com `text-white` — correto enquanto o primário dele era
+// azul, ilegível quando é quase branco: **1,26:1**, contra os 4,5:1 da WCAG 2.2.
+//
+// São 29 sítios, oito deles em ficheiros que o upstream mantém (`Button.vue`, o
+// seletor de datas, o editor, o menu de contexto). Editá-los é o que a regra 2
+// proíbe: paga-se em conflito a cada `git pull`. `--brand-foreground` já existe e
+// já inverte — o que lhe faltava era alguém a usá-lo.
+//
+// Duas classes (0,2,0) vencem `.text-white` (0,1,0) sem `!important`, sem tocar em
+// markup, e cobrem qualquer sítio novo que repita o par. Dá 14,23:1.
+.dark .bg-n-brand.text-white {
+  color: rgb(var(--brand-foreground));
+}
+
 // --- Movimento -------------------------------------------------------------------
 @media (prefers-reduced-motion: reduce) {
   *,

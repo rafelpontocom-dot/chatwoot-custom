@@ -255,7 +255,7 @@ const estado = state => ESTADOS[state] || ESTADOS.draft;
   <button
     v-else-if="data.canAddAfter"
     type="button"
-    class="nodrag nopan absolute -right-3 top-full z-10 flex p-0 size-6 -translate-y-1/2 items-center justify-center rounded-full border border-solid border-n-brand bg-n-surface-1 text-n-brand shadow-sm hover:bg-n-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-n-brand"
+    class="nodrag nopan absolute -right-3 top-full z-10 flex p-0 size-6 -translate-y-1/2 items-center justify-center rounded-full border border-solid border-n-brand bg-n-surface-1 text-n-brand shadow-sm hover:bg-n-brand hover:text-n-solid-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
     :aria-label="data.addAfterLabel"
     @click.stop="data.addAfter(data.id)"
   >
