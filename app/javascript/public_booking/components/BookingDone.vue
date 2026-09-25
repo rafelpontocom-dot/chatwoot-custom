@@ -233,7 +233,7 @@ const confirmCancel = () => {
         </button>
         <button
           type="button"
-          class="rounded-full border border-solid border-n-ruby-9 bg-n-ruby-9 px-4 py-[9px] text-ui font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-n-brand/40 disabled:opacity-60"
+          class="rounded-full border border-solid border-n-ruby-9 bg-n-ruby-9 px-4 py-[9px] text-ui font-semibold text-n-solid-1 outline-none focus-visible:ring-2 focus-visible:ring-n-brand/40 disabled:opacity-60"
           :disabled="busy"
           data-testid="public-booking-cancel-confirm"
           @click="confirmCancel"

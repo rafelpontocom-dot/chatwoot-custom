@@ -3221,7 +3221,7 @@ watch(invitationPendingRevocation, async invitation => {
             ref="formInvitationRevocationConfirmButton"
             type="button"
             data-testid="form-invitation-revoke-confirm"
-            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8 disabled:cursor-not-allowed disabled:opacity-50"
+            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-n-solid-1 outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="isRevokingFormInvitation"
             @click="revokeFormInvitation"
           >
@@ -3268,7 +3268,7 @@ watch(invitationPendingRevocation, async invitation => {
           <button
             type="button"
             data-testid="kanban-opportunity-discard-changes"
-            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8"
+            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-n-solid-1 outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8"
             @click="discardChanges"
           >
             {{ t('KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.DISCARD') }}
@@ -3335,7 +3335,7 @@ watch(invitationPendingRevocation, async invitation => {
           <button
             type="button"
             data-testid="kanban-opportunity-confirm-transfer"
-            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8 disabled:opacity-50"
+            class="rounded-md bg-n-ruby-9 px-3 py-2 text-sm font-medium text-n-solid-1 outline-none hover:bg-n-ruby-10 focus:ring-2 focus:ring-n-ruby-8 disabled:opacity-50"
             :disabled="isSaving || !pendingPipelineTransfer.lostReason.trim()"
             @click="confirmPipelineTransfer"
           >

@@ -5121,7 +5121,7 @@ onMounted(async () => {
                     <select
                       v-model="bulkTargetSection"
                       data-testid="kanban-settings-bulk-target"
-                      class="reset-base mb-0 h-8 rounded-full border border-solid border-n-strong bg-n-surface-1 px-3 text-xs text-n-slate-12 outline-none focus:border-n-brand"
+                      class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-strong bg-n-surface-1 px-3 text-xs text-n-slate-12 outline-none focus:border-n-brand"
                       :aria-label="t('KANBAN.SETTINGS.SALES.MOVE_SELECTED_TO')"
                       @change="moveSelectedFieldsToSection(bulkTargetSection)"
                     >
@@ -5571,7 +5571,7 @@ onMounted(async () => {
                           v-model="formulaPreviewValues[candidate.key]"
                           :data-testid="`kanban-settings-formula-preview-${candidate.key}`"
                           type="number"
-                          class="reset-base mb-0 h-8 w-full rounded-full border border-solid border-n-strong bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                          class="reset-base mb-0 h-8 w-full rounded-lg border border-solid border-n-strong bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
                         />
                       </label>
                     </div>
