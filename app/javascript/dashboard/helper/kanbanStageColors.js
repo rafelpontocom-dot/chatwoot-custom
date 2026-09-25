@@ -1,14 +1,18 @@
 /**
- * Raevo · Sereno — cores de etapa do funil.
+ * Raevo — cores de etapa do funil.
  *
- * No Sereno a etapa NÃO é um cabeçalho chapado de cor com texto branco. É uma
- * barra fina no topo da coluna + um ponto ao lado do nome. A cor identifica,
- * não domina. Por isso cada opção expõe variantes em vez de uma classe só:
+ * A etapa NÃO é um cabeçalho chapado de cor com texto branco, e isso foi medido,
+ * não escolhido: nenhuma cor de texto passa nas cinco etapas da paleta — o branco
+ * reprova no teal e na terminal, o preto reprova no magenta e no azul.
  *
- *   barClass   barra de 5px no topo da coluna
+ * É uma faixa sólida no topo da coluna mais uma tinta suave atrás do cabeçalho.
+ * A cor identifica, não domina. Por isso cada opção expõe variantes em vez de
+ * uma classe só:
+ *
+ *   barClass   faixa sólida no topo da coluna (10px)
  *   dotClass   ponto ao lado do nome da etapa
  *   inkClass   cor do ícone da etapa
- *   softClass  fundo suave, para contagem e realce discreto
+ *   softClass  tinta suave: fundo do cabeçalho da coluna, contagem, realce
  *   swatchClass  amostra no seletor de cor (usada nas Configurações)
  *   headerClass  mantida por compatibilidade — é igual a swatchClass
  *

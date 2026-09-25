@@ -41,13 +41,13 @@ const tailwindConfig = {
   theme: {
     extend: {
       fontFamily: {
-        // Raevo · Sereno — a pilha vem do token --raevo-font-sans, definido em
+        // Raevo — a pilha vem do token --raevo-font-sans, definido em
         // _raevo-tokens.scss. Trocar de fonte é mexer lá, não aqui.
         sans: 'var(--raevo-font-sans)',
         inter: 'var(--raevo-font-sans)',
         interDisplay: 'var(--raevo-font-sans)',
       },
-      // Raevo · Sereno — a forma do produto inteiro sai daqui.
+      // Raevo — a forma do produto inteiro sai daqui.
       // Trocar um valor abaixo muda toda ocorrência de `rounded-lg`, `border`
       // ou `shadow-sm` no Chatwoot e no Raevo. Ver docs/raevo-design-system.md.
       // Consultório: o raio sai de uma fórmula, --radius = 10px.

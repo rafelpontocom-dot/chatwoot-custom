@@ -2,6 +2,12 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { getKanbanNextActionState } from 'dashboard/helper/kanbanNextAction';
+import {
+  getKanbanStageColorOption,
+  isNeutralStageColor,
+} from 'dashboard/helper/kanbanStageColors';
+
 const props = defineProps({
   stages: {
     type: Array,
@@ -19,6 +25,12 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  // O vazio quase sempre é filtro a mais. Sem saber se há filtros ativos, a
+  // lista só podia dizer «não há nada» — que é verdade e não ajuda.
+  hasActiveFilters: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -27,12 +39,18 @@ const emit = defineEmits([
   'toggleSelection',
   'toggleVisibleSelection',
   'loadMoreStageCards',
+  'clearFilters',
+  'openFilters',
 ]);
 const { t } = useI18n();
 
 const rows = computed(() =>
   props.stages.flatMap(stage =>
-    (stage.cards || []).map(card => ({ ...card, stageName: stage.name }))
+    (stage.cards || []).map(card => ({
+      ...card,
+      stageName: stage.name,
+      stageColor: stage.color,
+    }))
   )
 );
 const stagesWithMore = computed(() =>
@@ -76,19 +94,27 @@ const amount = card => {
   }).format(cents / 100);
 };
 
-const nextAction = card => {
-  if (!card.nextActionAt && !card.nextActionType) {
-    return t('KANBAN.CARD.NEXT_ACTION.MISSING');
-  }
+// A mesma tabela de estados do cartão do quadro. A próxima ação é o que se vem
+// cá procurar, e comunicá-la só por cor de texto reprovava na regra 5.
+const nextActionState = card =>
+  getKanbanNextActionState(
+    card.nextActionStatus || card.next_action_status || ''
+  ) || getKanbanNextActionState('missing');
 
-  return card.nextActionType || t('KANBAN.CARD.NEXT_ACTION.FUTURE');
-};
+const nextAction = card =>
+  card.nextActionType ||
+  card.next_action_type ||
+  t(nextActionState(card).labelKey);
 
-const nextActionClass = card => {
-  if (card.nextActionStatus === 'overdue') return 'text-n-ruby-11';
-  if (card.nextActionStatus === 'due_today') return 'text-n-amber-11';
-  return 'text-n-slate-11';
-};
+// A etapa tem cor no quadro e na gaveta. Perdê-la aqui obrigava a ler o que
+// noutro sítio se reconhecia.
+const stageChipClass = card =>
+  getKanbanStageColorOption(card.stageColor).softClass;
+
+const stageDotClass = card =>
+  isNeutralStageColor(card.stageColor)
+    ? 'bg-n-slate-8'
+    : getKanbanStageColorOption(card.stageColor).dotClass;
 
 const lastActivity = card =>
   card.lastActivityAt || card.last_activity_at
@@ -151,9 +177,17 @@ const lastActivity = card =>
             class="min-w-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand/40"
             @click="emit('openDetails', card)"
           >
-            <span class="block truncate font-medium text-n-slate-12">{{
-              card.subject || contactName(card)
-            }}</span>
+            <!--
+              Duas linhas, não uma cortada. O AGENTS.md proíbe que título de
+              oportunidade dependa de `truncate` para caber, e numa lista de
+              comparação é pior: compara-se o que não se lê. A altura fica
+              estável porque o limite são duas linhas, não um comprimento
+              qualquer.
+            -->
+            <span
+              class="block break-words font-medium leading-snug text-n-slate-12 line-clamp-2"
+              >{{ card.subject || contactName(card) }}</span
+            >
             <span class="block truncate text-xs text-n-slate-11">
               {{ contactName(card) }}
               {{ t('KANBAN.OVERVIEW.SEPARATOR') }}
@@ -166,7 +200,17 @@ const lastActivity = card =>
             <span class="text-xs text-n-slate-10 md:hidden">
               {{ t('KANBAN.LIST.STAGE') }}
             </span>
-            <span class="truncate">{{ card.stageName }}</span>
+            <span
+              class="inline-flex min-w-0 max-w-full items-start gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium leading-snug text-n-slate-12"
+              :class="stageChipClass(card)"
+            >
+              <span
+                class="mt-1 size-1.5 shrink-0 rounded-full"
+                :class="stageDotClass(card)"
+                aria-hidden="true"
+              />
+              <span class="break-words">{{ card.stageName }}</span>
+            </span>
           </span>
           <span
             class="col-start-2 flex min-w-0 items-center justify-between gap-3 font-medium text-n-slate-12 md:col-auto md:block"
@@ -178,12 +222,21 @@ const lastActivity = card =>
           </span>
           <span
             class="col-start-2 flex min-w-0 items-center justify-between gap-3 md:col-auto md:block"
-            :class="nextActionClass(card)"
           >
             <span class="text-xs text-n-slate-10 md:hidden">
               {{ t('KANBAN.LIST.NEXT_ACTION') }}
             </span>
-            <span class="truncate">{{ nextAction(card) }}</span>
+            <span
+              class="inline-flex min-w-0 max-w-full items-start gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium leading-snug"
+              :class="nextActionState(card).class"
+            >
+              <i
+                class="mt-0.5 size-3 shrink-0"
+                :class="nextActionState(card).icon"
+                aria-hidden="true"
+              />
+              <span class="break-words">{{ nextAction(card) }}</span>
+            </span>
           </span>
           <span
             class="col-start-2 flex min-w-0 items-center justify-between gap-3 text-n-slate-11 md:col-auto md:block"
@@ -206,9 +259,56 @@ const lastActivity = card =>
         </article>
       </div>
 
-      <p v-else class="mb-0 p-8 text-center text-sm text-n-slate-11">
-        {{ t('KANBAN.LIST.EMPTY') }}
-      </p>
+      <div
+        v-else
+        data-testid="kanban-list-empty"
+        class="flex flex-col items-center gap-1 p-8 text-center"
+      >
+        <span
+          class="mb-1 grid size-10 place-items-center rounded-md bg-n-alpha-1 text-n-slate-11"
+        >
+          <i class="i-lucide-package-open size-5" aria-hidden="true" />
+        </span>
+        <b class="text-base font-medium text-n-slate-12">
+          {{
+            hasActiveFilters
+              ? t('KANBAN.LIST.EMPTY_FILTERED')
+              : t('KANBAN.LIST.EMPTY')
+          }}
+        </b>
+        <p class="mb-0 max-w-prose text-sm text-n-slate-11">
+          {{
+            hasActiveFilters
+              ? t('KANBAN.LIST.EMPTY_FILTERED_HINT')
+              : t('KANBAN.LIST.EMPTY_HINT')
+          }}
+        </p>
+        <!--
+          Só aparece com filtros ativos: oferecer «Limpar filtros» quando não há
+          filtro nenhum é prometer uma saída que não existe.
+        -->
+        <div
+          v-if="hasActiveFilters"
+          class="mt-2 flex flex-wrap justify-center gap-2"
+        >
+          <button
+            type="button"
+            data-testid="kanban-list-clear-filters"
+            class="flex h-8 items-center rounded-lg bg-n-brand px-2.5 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-n-brand/40"
+            @click="emit('clearFilters')"
+          >
+            {{ t('KANBAN.LIST.CLEAR_FILTERS') }}
+          </button>
+          <button
+            type="button"
+            data-testid="kanban-list-review-filters"
+            class="flex h-8 items-center rounded-lg border border-solid border-n-weak px-2.5 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-1 focus-visible:ring-2 focus-visible:ring-n-brand/40"
+            @click="emit('openFilters')"
+          >
+            {{ t('KANBAN.LIST.REVIEW_FILTERS') }}
+          </button>
+        </div>
+      </div>
     </div>
     <div v-if="stagesWithMore.length" class="mt-3 grid gap-2">
       <div

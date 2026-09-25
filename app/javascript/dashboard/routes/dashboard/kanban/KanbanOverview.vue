@@ -211,7 +211,9 @@ onMounted(async () => {
               class="flex items-center justify-between gap-3 rounded-md border border-n-weak p-3"
             >
               <div class="min-w-0">
-                <p class="mb-0 truncate text-sm font-medium text-n-slate-12">
+                <p
+                  class="mb-0 break-words text-sm font-medium leading-snug text-n-slate-12"
+                >
                   {{ board.name }}
                 </p>
                 <p class="mb-0 text-xs text-n-slate-11">
@@ -380,6 +382,7 @@ onMounted(async () => {
                       :key="inbox.id"
                       class="inline-flex max-w-40 items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2.5 py-1 text-xs font-medium text-n-slate-11"
                       data-testid="overview-inbox-pill"
+                      :title="inbox.name"
                     >
                       <i
                         :class="inboxIcon(inbox)"
@@ -410,14 +413,14 @@ onMounted(async () => {
               <span
                 v-for="stage in boardStages(board)"
                 :key="stage.id"
-                class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium text-n-slate-11"
+                class="inline-flex max-w-full items-start gap-1.5 rounded-full border border-n-weak bg-n-surface-1 px-2 py-1 text-xs font-medium leading-snug text-n-slate-11"
                 data-testid="overview-stage-pill"
               >
                 <span
-                  class="size-2 flex-shrink-0 rounded-full"
+                  class="mt-1 size-2 flex-shrink-0 rounded-full"
                   :class="getKanbanStageColorClass(stage.color)"
                 />
-                <span class="truncate">{{ stage.name }}</span>
+                <span class="break-words">{{ stage.name }}</span>
                 <span
                   class="inline-flex min-w-5 justify-center rounded-full bg-n-alpha-2 px-1.5 py-0.5 text-micro font-semibold text-n-slate-12"
                 >

@@ -2226,7 +2226,7 @@ onMounted(load);
       <template #actions>
         <button
           type="button"
-          class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-n-slate-11 hover:bg-n-slate-3 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+          class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-n-slate-11 hover:bg-n-slate-3 hover:text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
           @click="
             router.push({
               name: 'kanban_board_show',
@@ -2401,7 +2401,7 @@ onMounted(load);
                 </button>
                 <div
                   v-if="showBirthdayVariableMenu"
-                  class="absolute bottom-full left-0 z-20 grid max-h-64 w-64 gap-1 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-xl"
+                  class="absolute bottom-full left-0 z-20 grid max-h-64 w-64 gap-1 overflow-y-auto rounded-md border border-n-weak bg-n-surface-1 p-1 shadow-lg"
                 >
                   <input
                     v-model="birthdayVariableQuery"
@@ -2498,7 +2498,7 @@ onMounted(load);
     >
       <section
         data-testid="kanban-automation-editor-header"
-        class="relative z-10 flex min-h-[54px] flex-wrap items-center gap-2 border-b border-n-weak bg-n-surface-1 px-4 py-2 shadow-sm lg:flex-nowrap lg:px-6"
+        class="relative z-10 flex min-h-12 flex-wrap items-center gap-2 border-b border-n-weak bg-n-surface-1 px-4 py-2 lg:flex-nowrap lg:px-6"
       >
         <div
           data-testid="kanban-automation-editor-identity"
@@ -3137,7 +3137,7 @@ onMounted(load);
           class="h-8 rounded px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-n-brand"
           :class="
             activeTab === tab.key
-              ? 'bg-n-surface-1 text-n-slate-12 shadow-sm'
+              ? 'bg-n-surface-1 text-n-slate-12 ring-1 ring-n-weak'
               : 'text-n-slate-11 hover:text-n-slate-12'
           "
           :aria-selected="activeTab === tab.key"
@@ -3181,9 +3181,10 @@ onMounted(load);
               aria-hidden="true"
             />
             <span class="grid min-w-0 gap-1">
-              <span class="truncate text-sm font-medium text-n-slate-12">{{
-                template.name
-              }}</span>
+              <span
+                class="line-clamp-2 text-sm font-medium leading-snug text-n-slate-12"
+                >{{ template.name }}</span
+              >
               <span class="line-clamp-2 text-xs leading-5 text-n-slate-11">{{
                 template.description
               }}</span>
@@ -3205,7 +3206,9 @@ onMounted(load);
               aria-hidden="true"
             />
             <span class="grid min-w-0 gap-1">
-              <span class="truncate text-sm font-medium text-n-slate-12">
+              <span
+                class="line-clamp-2 text-sm font-medium leading-snug text-n-slate-12"
+              >
                 {{ t('KANBAN.AUTOMATIONS_WORKSPACE.TEMPLATES.BIRTHDAY.TITLE') }}
               </span>
               <span class="line-clamp-2 text-xs leading-5 text-n-slate-11">
@@ -3242,7 +3245,9 @@ onMounted(load);
                 :aria-label="rule.name"
                 @click="openRule(rule)"
               >
-                <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                <p
+                  class="m-0 break-words text-sm font-medium leading-snug text-n-slate-12"
+                >
                   {{ rule.name }}
                 </p>
                 <p class="m-0 mt-1 text-xs text-n-slate-11">
@@ -3736,7 +3741,9 @@ onMounted(load);
           >
             <div class="flex items-center justify-between gap-3 px-4 py-3">
               <div class="min-w-0">
-                <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                <p
+                  class="m-0 break-words text-sm font-medium leading-snug text-n-slate-12"
+                >
                   {{ connection.name }}
                 </p>
                 <p class="m-0 mt-1 truncate text-xs text-n-slate-11">
@@ -4005,7 +4012,9 @@ onMounted(load);
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <p class="m-0 truncate text-sm font-medium text-n-slate-12">
+                <p
+                  class="m-0 break-words text-sm font-medium leading-snug text-n-slate-12"
+                >
                   {{ execution.ruleName }}
                 </p>
                 <p class="m-0 mt-1 text-xs text-n-slate-11">

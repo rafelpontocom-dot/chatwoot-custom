@@ -83,7 +83,7 @@ const setGroupOpen = (key, event) => {
         </p>
         <span
           data-testid="kanban-workflow-palette-count"
-          class="inline-flex min-w-5 items-center justify-center rounded-full bg-n-surface-1 px-1.5 py-0.5 text-2xs font-semibold text-n-slate-11 ring-1 ring-n-weak"
+          class="inline-flex min-w-5 items-center justify-center rounded-full bg-n-surface-1 px-1.5 py-0.5 text-micro font-semibold text-n-slate-11 ring-1 ring-n-weak"
         >
           {{ groups.reduce((total, group) => total + group.nodes.length, 0) }}
         </span>
@@ -120,7 +120,7 @@ const setGroupOpen = (key, event) => {
             aria-hidden="true"
           />
           <span class="flex-1">{{ group.label }}</span>
-          <span class="text-2xs font-medium text-n-slate-10">
+          <span class="text-xs font-medium text-n-slate-10">
             {{ group.nodes.length }}
           </span>
           <i

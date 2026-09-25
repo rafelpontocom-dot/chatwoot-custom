@@ -1,5 +1,9 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
+import {
+  RAEVO_CONTROL_CLASS,
+  RAEVO_SELECT_STANDALONE_CLASS,
+} from 'dashboard/components-next/raevo/raevoControl';
 
 /**
  * A aparência do formulário: marca, logótipo e tema.
@@ -32,7 +36,7 @@ const removeBrandLogo = () => emit('removeBrandLogo');
         :value="settings.brand_name"
         :placeholder="t('FORMS.EDITOR.BRAND_NAME_PLACEHOLDER')"
         data-test="design-brand-name"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_CONTROL_CLASS"
         @input="alterar('brand_name', $event.target.value)"
       />
     </label>
@@ -42,7 +46,7 @@ const removeBrandLogo = () => emit('removeBrandLogo');
         :value="settings.brand_logo_url"
         type="url"
         :placeholder="t('FORMS.EDITOR.BRAND_LOGO_URL_PLACEHOLDER')"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_CONTROL_CLASS"
         @input="alterar('brand_logo_url', $event.target.value)"
       />
     </label>
@@ -58,7 +62,7 @@ const removeBrandLogo = () => emit('removeBrandLogo');
           class="size-10 rounded border border-n-slate-4 bg-n-solid-1 object-contain p-1"
         />
         <label
-          class="inline-flex min-h-10 cursor-pointer items-center rounded border border-n-slate-5 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+          class="inline-flex min-h-10 cursor-pointer items-center rounded border border-n-slate-5 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-brand/30"
         >
           <input
             type="file"
@@ -92,7 +96,7 @@ const removeBrandLogo = () => emit('removeBrandLogo');
       <select
         :value="settings.theme"
         data-test="design-theme"
-        class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+        :class="RAEVO_SELECT_STANDALONE_CLASS"
         @change="alterar('theme', $event.target.value)"
       >
         <option value="calm">

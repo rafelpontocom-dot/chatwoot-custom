@@ -5,6 +5,11 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import FormRichTextEditor from './FormRichTextEditor.vue';
 import FormsDesignPanel from './FormsDesignPanel.vue';
 import FormsLogicPanel from './FormsLogicPanel.vue';
+import {
+  RAEVO_CONTROL_CLASS,
+  RAEVO_SELECT_STANDALONE_CLASS,
+  RAEVO_TEXTAREA_CLASS,
+} from 'dashboard/components-next/raevo/raevoControl';
 
 // A mesma definição serve às duas superfícies. Em `inline` ela é a terceira
 // coluna do editor, sempre presente: deixa de haver um modal a tapar o
@@ -199,7 +204,7 @@ defineExpose({ open, close });
               {{ t('FORMS.CONTENT_BLOCKS.HEADING') }}
               <input
                 :value="contentBlock.content"
-                class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_CONTROL_CLASS"
                 @input="updateContentBlock('content', $event.target.value)"
               />
             </label>
@@ -222,7 +227,7 @@ defineExpose({ open, close });
                   {{ t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD') }}
                 </p>
                 <label
-                  class="inline-flex min-h-10 w-fit cursor-pointer items-center rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+                  class="inline-flex min-h-10 w-fit cursor-pointer items-center rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-brand/30"
                 >
                   <input
                     data-test="forms-content-image-upload"
@@ -248,7 +253,7 @@ defineExpose({ open, close });
                   :value="contentBlock.url"
                   data-test="forms-content-image-url"
                   type="url"
-                  class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                  :class="RAEVO_CONTROL_CLASS"
                   @input="updateContentBlock('url', $event.target.value)"
                 />
               </label>
@@ -256,7 +261,7 @@ defineExpose({ open, close });
                 {{ t('FORMS.CONTENT_BLOCKS.IMAGE_ALT') }}
                 <input
                   :value="contentBlock.alt"
-                  class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                  :class="RAEVO_CONTROL_CLASS"
                   @input="updateContentBlock('alt', $event.target.value)"
                 />
               </label>
@@ -264,7 +269,7 @@ defineExpose({ open, close });
                 {{ t('FORMS.CONTENT_BLOCKS.IMAGE_CAPTION') }}
                 <input
                   :value="contentBlock.caption"
-                  class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                  :class="RAEVO_CONTROL_CLASS"
                   @input="updateContentBlock('caption', $event.target.value)"
                 />
               </label>
@@ -293,7 +298,7 @@ defineExpose({ open, close });
               <input
                 :value="field.label"
                 data-test="forms-builder-question-label"
-                class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_CONTROL_CLASS"
                 @input="updateField('label', $event.target.value)"
               />
             </label>
@@ -301,7 +306,7 @@ defineExpose({ open, close });
               {{ t('FORMS.EDITOR.FIELD_TYPE') }}
               <select
                 :value="field.type"
-                class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
                 @change="emit('fieldTypeChanged', $event.target.value)"
               >
                 <option
@@ -318,7 +323,7 @@ defineExpose({ open, close });
               <textarea
                 :value="field.helpText"
                 rows="2"
-                class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_TEXTAREA_CLASS"
                 @input="updateField('helpText', $event.target.value)"
               />
             </label>
@@ -331,7 +336,7 @@ defineExpose({ open, close });
                 :value="field.options.join('\n')"
                 data-test="forms-builder-field-options"
                 rows="4"
-                class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_TEXTAREA_CLASS"
                 @input="updateOptions"
               />
               <span class="text-xs font-normal leading-5 text-n-slate-10">
@@ -344,7 +349,7 @@ defineExpose({ open, close });
               <input
                 :checked="field.required"
                 type="checkbox"
-                class="size-4 accent-n-teal-9"
+                class="size-4 accent-n-brand"
                 @change="updateField('required', $event.target.checked)"
               />
               {{ t('FORMS.EDITOR.FIELD_REQUIRED') }}
@@ -354,7 +359,7 @@ defineExpose({ open, close });
               class="group rounded border border-n-slate-4 bg-n-slate-2"
             >
               <summary
-                class="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 text-sm font-medium text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-teal-6 [&::-webkit-details-marker]:hidden"
+                class="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 text-sm font-medium text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand/30 [&::-webkit-details-marker]:hidden"
               >
                 {{ t('FORMS.BUILDER.ADVANCED') }}
                 <span
@@ -371,7 +376,7 @@ defineExpose({ open, close });
                     <select
                       :value="field.contactTarget"
                       data-test="forms-builder-contact-target"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      :class="RAEVO_SELECT_STANDALONE_CLASS"
                       @change="
                         updateField('contactTarget', $event.target.value)
                       "
@@ -392,7 +397,7 @@ defineExpose({ open, close });
                     {{ t('FORMS.EDITOR.CUSTOM_MAPPING') }}
                     <input
                       :value="field.customAttribute"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      :class="RAEVO_CONTROL_CLASS"
                       :placeholder="
                         t('FORMS.EDITOR.CUSTOM_MAPPING_PLACEHOLDER')
                       "
@@ -409,7 +414,7 @@ defineExpose({ open, close });
                     <select
                       :value="field.opportunityTarget"
                       data-test="forms-builder-opportunity-target"
-                      class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                      :class="RAEVO_SELECT_STANDALONE_CLASS"
                       @change="
                         updateField('opportunityTarget', $event.target.value)
                       "
@@ -435,7 +440,7 @@ defineExpose({ open, close });
                   <select
                     :value="field.visibleWhenField"
                     data-test="forms-builder-condition-field"
-                    class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    :class="RAEVO_SELECT_STANDALONE_CLASS"
                     @change="updateConditionField($event.target.value)"
                   >
                     <option value="">
@@ -458,7 +463,7 @@ defineExpose({ open, close });
                   <select
                     v-if="conditionValues.length"
                     :value="field.visibleWhenValue"
-                    class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    :class="RAEVO_SELECT_STANDALONE_CLASS"
                     @change="
                       updateField('visibleWhenValue', $event.target.value)
                     "
@@ -475,7 +480,7 @@ defineExpose({ open, close });
                   <input
                     v-else
                     :value="field.visibleWhenValue"
-                    class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                    :class="RAEVO_CONTROL_CLASS"
                     @input="
                       updateField('visibleWhenValue', $event.target.value)
                     "
@@ -486,7 +491,7 @@ defineExpose({ open, close });
             <div class="flex items-center gap-2 border-t border-n-slate-4 pt-4">
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_UP')"
                 :title="t('FORMS.ACTIONS.MOVE_UP')"
                 :disabled="fieldIndex <= 0"
@@ -496,7 +501,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :title="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :disabled="fieldIndex < 0 || fieldIndex === fieldCount - 1"
@@ -506,7 +511,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex min-h-9 items-center gap-2 rounded px-2 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                class="inline-flex min-h-9 items-center gap-2 rounded px-2 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                 :aria-label="t('FORMS.BUILDER.DUPLICATE_QUESTION')"
                 :title="t('FORMS.BUILDER.DUPLICATE_QUESTION')"
                 data-test="forms-builder-duplicate-question"
@@ -540,7 +545,7 @@ defineExpose({ open, close });
               {{ t('FORMS.EDITOR.SECTION_TITLE') }}
               <input
                 :value="section.title"
-                class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_CONTROL_CLASS"
                 @input="updateSection('title', $event.target.value)"
               />
             </label>
@@ -550,7 +555,7 @@ defineExpose({ open, close });
                 :value="section.description"
                 data-test="forms-builder-section-description"
                 rows="3"
-                class="rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_TEXTAREA_CLASS"
                 @input="updateSection('description', $event.target.value)"
               />
             </label>
@@ -558,7 +563,7 @@ defineExpose({ open, close });
               {{ t('FORMS.CONTENT_BLOCKS.LAYOUT') }}
               <select
                 :value="section.layout"
-                class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+                :class="RAEVO_SELECT_STANDALONE_CLASS"
                 @change="updateSection('layout', $event.target.value)"
               >
                 <option value="single">
@@ -572,7 +577,7 @@ defineExpose({ open, close });
             <div class="flex items-center gap-2 border-t border-n-slate-4 pt-4">
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_UP')"
                 :title="t('FORMS.ACTIONS.MOVE_UP')"
                 :disabled="sectionIndex <= 0"
@@ -583,7 +588,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :title="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :disabled="

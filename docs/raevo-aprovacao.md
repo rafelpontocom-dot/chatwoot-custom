@@ -67,13 +67,13 @@ ainda por tomar vem no fim.
 
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | pronta a implementar; a lacuna do teclado fica em separado |
+| 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09, fechada 21/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | quadro, lista, filtros e gaveta implementados; o atalho de teclado do cartão também |
 | 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | pronta a implementar; `truncate` do assunto e tira de abas ficam em separado |
 | 3 | Início | Home | 1 | **apresentada 20/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. Três achados de dados abertos — ver abaixo |
-| 4 | Financeiro | Finance | 3 | por apresentar | estado de cobrança sem depender de cor |
+| 4 | Financeiro | Finance | 3 | **sem artefacto, corrigida 21/09** | a permissão limitada foi adiada por decisão do produto, e o estado com cor+ícone já existia na lista — faltava no detalhe |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
 | 6 | Formulários | Forms | 10 | por apresentar | `RaevoField` é o único tratamento de campo |
-| 7 | Automação (Vue Flow) | Kanban | — | por apresentar | cartão de nó com dimensão estável |
+| 7 | Automação (Vue Flow) | Kanban | — | **aprovada 21/09** em três partes: [cartão de nó](https://claude.ai/artifact/U17sPjtbUM9v3fDZjwEZCH) · [painel do nó](https://claude.ai/artifact/32yjwdj7RykSaQjrLX6RZr) · lista sem artefacto | implementada; falta só o deslocamento da tela — ver abaixo |
 | 8 | Painel de conversa (nosso) | Conversation | componente novo | por apresentar | entra dentro de tela do Chatwoot |
 | 9 | Entrada (login) | — | upstream | por decidir | mexer aqui é mexer no upstream: avaliar o custo primeiro |
 
@@ -91,12 +91,12 @@ deduz do que já foi aprovado:
 
 | Superfície | Ficheiro | Porquê precisa |
 | --- | --- | --- |
-| ~~**Vista de lista**~~ | `KanbanListView.vue` (8 KB) | **aprovada 20/09** com o painel de filtros — [ver](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
-| ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09**, no mesmo artefacto |
-| **Definições — oito separadores** | `KanbanBoardSettings.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
-| **Definições — Comercial** | `KanbanBoardSettings.vue` | **apresentada 20/09** — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
-| **Automações** | `KanbanAutomations.vue` (146 KB) | é a tela 7 da fila; tela de canvas, com regras próprias no `AGENTS.md` |
-| **Visão de funis** | `KanbanOverview.vue` (17 KB) | lista de quadros com ordenação própria |
+| ~~**Vista de lista**~~ | `KanbanListView.vue` | **aprovada 20/09** e **implementada 21/09** — as quatro correções, ver abaixo. [Artefacto](https://claude.ai/artifact/Fz5vKHs88RxhmUZFh8Fnmm) |
+| ~~**Painel de filtros**~~ | dentro de `KanbanView.vue` | **aprovada 20/09** e já no código, no mesmo artefacto |
+| ~~**Definições — navegação**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — ver abaixo. Apresentada a 20/09 como «oito separadores» — [ver](https://claude.ai/artifact/QhRFTYWLU4zqbepe4pR3dy) |
+| ~~**Definições — Comercial**~~ | `KanbanBoardSettings.vue` | **aprovada 21/09** e implementada — «Comercial» deixou de existir, ver abaixo. Apresentada a 20/09 — [ver](https://claude.ai/artifact/BffGSQm15W3rGxhh2vWM6g) |
+| ~~**Automações**~~ | `KanbanAutomations.vue`, `KanbanWorkflowNode.vue`, `KanbanWorkflowInspector.vue` | **aprovada e implementada 21/09**, em três partes — ver abaixo |
+| ~~**Visão de funis**~~ | `KanbanOverview.vue` | **sem artefacto, corrigida 21/09** — a «ordenação própria» são botões de subir/descer para administrador, o mesmo padrão já aprovado nas etapas. Não havia decisão para tomar, só três títulos a depender de corte |
 
 **O que herda e não precisa de aprovação** — composto de primitivos já aprovados
 (campo, botão, selo, tabela, estado vazio, gaveta):
@@ -187,6 +187,191 @@ Mais duas propostas de arquitetura no mesmo ecrã:
   uma definição, e não se navega para apagar. Proposta: zona de perigo no fim de Geral.
 - **«Agentes» e «Caixas de entrada» são o mesmo componente.** Têm as mesmas seis chaves
   — é o mesmo seletor múltiplo com pesquisa. Proposta: um primitivo só, usado duas vezes.
+
+### Financeiro — a vista limitada foi adiada, e a tela encolheu · 21/09/2026
+
+A tela 4 estava na fila por duas razões: «estado de cobrança sem depender de
+cor», e decidir o que a secretária vê sem permissão financeira. **Ambas caíram**,
+por razões diferentes.
+
+**A permissão limitada foi adiada por decisão do produto.** Todos veem, e a
+estratégia fica para quando houver uso real a observar. Fica registado o que
+tinha sido proposto e porquê, para não se repetir a análise:
+
+- A janela de 3–5 dias **não serve como permissão**. Uma paciente que ligue ao
+  8.º dia deixa a secretária sem resposta para um sim/não, obrigando-a a
+  interromper quem tem permissão financeira. E 3–5 dias não cobre um fim de
+  semana: pagamento à sexta, pergunta à segunda.
+- O corte que faria sentido não é a **idade** do registo, é o **detalhe
+  financeiro**: estado e data para toda a gente; valores, taxas, meio de
+  pagamento, tentativas e IDs de provedor atrás de permissão. Esse corte não
+  expira.
+- A janela **serve como filtro por omissão** — sete dias, não três — com um
+  controlo visível para alargar.
+- **Decidido a 21/09: a secretária vê o valor.** Era a única pergunta em aberto,
+  e a razão que ganha é a operacional — ela é quem diz à paciente «são 450
+  reais», e escondê-lo obrigava-a a perguntar a alguém para fazer o trabalho
+  básico dela. Se um dia se retomar a vista limitada, o valor fica do lado de cá
+  do corte.
+
+**O estado com cor e ícone já existia — na lista.** Os nove estados tinham tom e
+ícone, com o raciocínio escrito no ficheiro. Faltava no **diálogo de detalhe**,
+que mostrava o estado como texto cinzento — o pior sítio possível, porque o
+detalhe é onde se confirma «isto foi pago?» antes de o dizer a alguém. A causa é
+a de sempre: o tratamento vivia dentro do `FinanceView.vue`, e o diálogo não lhe
+chegava. Passou para `helper/financePaymentStatus.js` e serve os dois.
+
+Mais três desvios: o **nome do contacto** e o **assunto da oportunidade**
+dependiam de corte (quarta vez que o assunto aparece assim), e quatro
+`shadow-sm` mortos em cartões que já se separam pela borda.
+
+### Visão de funis — o Kanban fecha mesmo · 21/09/2026
+
+Estava na lista do que «precisa de aprovação própria», por causa da «ordenação
+própria». Fui ver: são botões de subir e descer visíveis só para administrador,
+que chamam `reorderBoard`. É o mesmo padrão já aprovado para as etapas — não é
+uma ordenação nova, é a mesma. **Não havia decisão para tomar**, e apresentá-la
+teria sido o caminho caro de que este documento avisa.
+
+O que havia eram três títulos a depender de corte:
+
+| Onde | Ficou |
+| --- | --- |
+| nome do funil arquivado | quebra de palavra |
+| **nome da etapa** no selo do funil | quebra de palavra — o `AGENTS.md` nomeia «títulos de etapa» entre os proibidos, e o selo é `max-w-full` |
+| nome da caixa de entrada | continua cortado, porque o selo é estreito de propósito, mas ganhou `title` — sem ele não havia como ler o resto |
+
+Com isto o Kanban fecha: quadro, lista, filtros, gaveta, Configurações,
+Automação e visão de funis.
+
+### Automação — três partes em vez de um artefacto só · 21/09/2026
+
+A tela mais construída do produto: 26 tipos de nó em 8 categorias, 147 KB na
+lista e 76 KB no construtor. Um artefacto a cobrir tudo isto ficava superficial —
+o mesmo argumento que já se tinha usado para os separadores das Configurações.
+Partiu-se em três, e a terceira não precisou de artefacto nenhum.
+
+**O risco desta tela nunca foi visual.** É que acrescentar o 27.º nó é mais
+barato do que organizar os 26. A paleta já tem pesquisa e categorias
+colapsáveis — a arquitetura Node-RED que o `AGENTS.md` pede já estava feita.
+
+**7a · Cartão de nó** — cinco defeitos, todos verificáveis:
+
+| Estava | Ficou |
+| --- | --- |
+| `text-2xs` em 9 sítios | a classe **não existia** em lado nenhum; oito passam a `text-micro`, uma a `text-xs` |
+| oito matizes de categoria | a categoria é o **ícone**; a cor fica para o estado |
+| selo de estado só com cor | cada estado com ícone próprio |
+| `shadow-sm` + `hover:shadow-md` | anel de 1px em repouso |
+| altura entre ~56px e ~120px | nome em duas linhas fixas, resumo numa, rodapé sempre presente |
+
+A decisão que pesou foi tirar a cor às categorias. Oito matizes nunca passaram
+pelo validador de daltonismo, e azul, iris e violeta são três vizinhos — o
+`AGENTS.md` proíbe azul + roxo claro por ΔE 0,4. Mais fundo do que isso: neste
+produto a cor já quer dizer «etapa do funil», e duas gramáticas de cor na mesma
+cabeça não funcionam. A alternativa registada, se um dia se quiser cor de
+categoria, é **quatro** matizes da paleta validada, com as oito categorias
+fundidas em quatro grupos primeiro.
+
+**7b · Painel do nó** — era um modal centrado de 44rem com véu sobre toda a
+tela. Configurar um nó é decidir sobre o grafo, e o véu apagava exatamente isso.
+A mesma doença que as Configurações tiveram, e já descrita no próprio código.
+Passa a painel encostado à direita, 320px, sem véu, com a tela clicável por trás.
+`aria-modal` acompanha o formato — no telemóvel continua folha com véu, e aí o
+véu diz a verdade.
+
+Duas coisas que só apareceram a implementar:
+
+- As três grelhas de condição do Router empilhavam pela largura do **ecrã**, não
+  da caixa. Num monitor grande com um painel de 320px tentavam as cinco colunas
+  — que precisam de ~490px — e ficavam ilegíveis. Empilham sempre.
+- Havia uma **segunda cópia** das oito matizes de categoria, no construtor, a
+  alimentar o cabeçalho do painel. Saiu com a do cartão, senão o painel
+  contradizia o nó que está a configurar.
+
+**Por fazer, deliberadamente:** a tela não se desloca para trazer à vista um nó
+que fique por baixo do painel. É matemática de viewport que não se consegue ver
+a funcionar sem a aplicação a correr, e errá-la faz a tela saltar a cada
+seleção — pior do que um nó ocasionalmente tapado.
+
+**7c · Lista de automações** — sem artefacto, por herdar primitivos já
+aprovados. A auditoria das 4123 linhas deu sete desvios das regras e nenhuma
+decisão de arquitetura: quatro títulos que dependiam de corte (nome da
+automação, da conexão, da execução e dos modelos), duas sombras que não
+separavam nada porque `shadow-sm` é `none`, um raio de pílula num botão, um
+`shadow-xl` onde a regra pede `lg`, e um `min-h-[54px]` fora de escala que o
+conteúdo já resolvia em 48.
+
+### Vista de lista — as quatro correções, implementadas · 21/09/2026
+
+Aprovada a 20/09, implementada a 21/09. Com ela o **Pipeline fecha**: quadro,
+lista, painel de filtros e gaveta da oportunidade estão todos no código.
+
+| Elemento | Estava | Ficou |
+| --- | --- | --- |
+| Assunto da oportunidade | `truncate`, uma linha | duas linhas com quebra de palavra |
+| Etapa | texto simples, sem cor | selo com a cor da etapa e um ponto |
+| Próxima ação | só cor de texto | selo com cor + ícone + texto |
+| Sem resultados | uma frase centrada | ícone, título, explicação e saída |
+
+Duas notas que não estavam no artefacto e que a implementação obrigou a decidir:
+
+- **As ações do vazio só aparecem com filtros ativos.** O artefacto mostrava
+  «Limpar filtros» e «Rever filtros» sempre. Oferecer uma saída quando não há
+  filtro nenhum é prometer o que não existe: a lista passa a distinguir «ainda
+  não há oportunidades» de «nenhuma com estes filtros», e só a segunda tem
+  botões.
+- **A tabela de estados da próxima ação passou a ser partilhada.** Estava dentro
+  do `KanbanConversationCard.vue`; a lista precisava da mesma e copiá-la ia
+  divergir. Vive agora em `app/javascript/dashboard/helper/kanbanNextAction.js`
+  e serve as duas superfícies. O assunto cortado apareceu três vezes neste
+  produto precisamente porque cada tela resolvia o seu.
+
+### Definições — «Comercial» morreu e repartiu-se · 21/09/2026
+
+Decidido e implementado no mesmo dia. A contagem de chaves acima (141, 62,4% do
+ecrã) já não descreve o código: os campos saíram para a entrada «Campos» antes
+desta decisão, e agora sai o resto.
+
+O diagnóstico: **«Comercial» não era uma categoria, era o resto.** Sobraram lá
+quatro coisas sem nada em comum — layout do cartão, um segundo editor de campos
+em JSON, alertas de oportunidade parada e lembretes de agendamento. Nenhum nome
+honesto cobre as quatro, e um rótulo de navegação que não prevê o conteúdo
+obriga a abrir para saber o que lá está.
+
+| Estava em «Comercial» | Foi para | Porquê |
+| --- | --- | --- |
+| Layout do cartão compacto e pré-visualização | **«Cartão»** (`i-lucide-credit-card`) | é o que se vê no quadro, não é comercial |
+| JSON avançado | **«Campos»**, dobrado num `<details>` «Editar em JSON» | editava o mesmo `custom_field_definitions` que «Campos» edita com UI — dois editores para o mesmo dado |
+| Alertas de oportunidade parada | **«Avisos»** (`i-lucide-bell-ring`) | é uma regra de aviso |
+| Lembretes de agendamento | **«Avisos»** | é a mesma regra: «se X, avisa a equipa» |
+
+Navegação final, oito entradas: Geral · Acesso · **Cartão** · Campos ·
+**Avisos** · Agenda · Automação · — Apagar funil.
+
+Duas decisões que ficam registadas porque são contra-intuitivas:
+
+- **Os dois avisos ficam declarativos, não vão para o Vue Flow.** Formalmente são
+  automações, e o `AGENTS.md` diz que automação vive no Vue Flow. Um interruptor e
+  um número é a forma certa para quem trabalha na recepção; uma tela não é. Para
+  «Avisos» não crescer até ser um segundo motor, a secção diz em texto que são
+  estas duas regras e que o resto vive em Automação.
+- **O JSON não foi apagado.** É saída de emergência para o que a UI de campos
+  ainda não alcança. Dobrado, e num sítio cujo nome o anuncia.
+
+O que acelerou a decisão: o rail «Oportunidades paradas» do Início lê
+`kanban_board.stale_days_for_stage` — a definição que o alimenta estava enterrada
+debaixo de uma entrada chamada «Comercial», onde ninguém a ia procurar.
+
+**Duas propostas de 20/09 que o código resolveu de outra maneira**, e que ficam
+corrigidas aqui:
+
+- «Apagar funil sai da navegação, para uma zona de perigo no fim de Geral» —
+  **não foi isso**. Ficou na navegação, no fim, separado por um filete e em rubi.
+  Enterrá-lo dentro de Geral resolvia o peso visual e estragava a descoberta: quem
+  procura como apagar um funil percorre a lista da navegação.
+- «Agentes e Caixas de entrada são o mesmo componente, um primitivo só» — **já
+  está feito**, fundidos na entrada «Acesso».
 
 ### Quantos grupos de campos existem — respondido pelo código · 20/09/2026
 

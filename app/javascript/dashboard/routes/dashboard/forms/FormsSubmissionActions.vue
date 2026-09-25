@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { RAEVO_SELECT_STANDALONE_CLASS } from 'dashboard/components-next/raevo/raevoControl';
 
 /**
  * O que acontece quando uma resposta chega.
@@ -36,8 +37,8 @@ const { t } = useI18n();
 const modesFor = kind =>
   ALWAYS_AUTOMATIC.includes(kind) ? ['automatic'] : MODES;
 
-const controlClass =
-  'reset-base mb-0 min-h-9 w-full rounded border border-solid border-n-slate-5 bg-n-solid-1 px-2.5 text-sm text-n-slate-12 outline-none focus:border-n-teal-7';
+// Era a quarta variante de campo deste módulo, com foco teal. Sai do primitivo.
+const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
 
 const escrever = actions => emit('update', actions);
 
@@ -195,7 +196,7 @@ const podeConfigurar = computed(() => !props.isSensitiveHealth);
 
       <button
         type="button"
-        class="min-h-9 w-full rounded border border-dashed border-n-slate-5 text-sm font-semibold text-n-slate-11 transition hover:border-n-teal-7 hover:text-n-teal-11"
+        class="min-h-9 w-full rounded border border-dashed border-n-slate-5 text-sm font-semibold text-n-slate-11 transition hover:border-n-brand hover:text-n-brand"
         data-test="forms-action-add"
         @click="adicionar"
       >

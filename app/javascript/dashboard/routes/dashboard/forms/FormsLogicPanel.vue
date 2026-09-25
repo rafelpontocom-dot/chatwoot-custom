@@ -9,6 +9,7 @@ import {
   isUnaryOperator,
   operatorsFor,
 } from 'shared/helpers/forms/logic';
+import { RAEVO_SELECT_STANDALONE_CLASS } from 'dashboard/components-next/raevo/raevoControl';
 
 /**
  * A lógica de uma pergunta, no formato que o servidor valida.
@@ -223,8 +224,8 @@ const removeVariable = name => {
   );
 };
 
-const controlClass =
-  'reset-base mb-0 h-9 w-full rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2.5 text-sm text-n-slate-12 outline-none focus:border-n-teal-7';
+// Era a terceira variante de campo deste módulo, com foco teal. Sai do primitivo.
+const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
 </script>
 
 <template>
@@ -254,7 +255,7 @@ const controlClass =
         </h4>
         <button
           type="button"
-          class="rounded px-2 py-1 text-xs font-semibold text-n-teal-11 hover:bg-n-teal-3"
+          class="rounded px-2 py-1 text-xs font-semibold text-n-brand hover:bg-n-alpha-2"
           data-test="forms-logic-add-variable"
           @click="addVariable"
         >
@@ -270,7 +271,7 @@ const controlClass =
         class="flex items-center gap-2"
       >
         <span
-          class="flex-1 truncate rounded-full bg-n-teal-3 px-2.5 py-0.5 text-xs font-semibold text-n-teal-11"
+          class="flex-1 truncate rounded-full bg-n-brand/10 px-2.5 py-0.5 text-xs font-semibold text-n-brand"
         >
           {{ variable.name }}&nbsp;·&nbsp;{{ variable.initial }}
         </span>
@@ -315,13 +316,13 @@ const controlClass =
               <!-- A primeira linha diz QUANDO; as seguintes dizem E ou OU. -->
               <span
                 v-if="!posicao"
-                class="text-micro font-bold uppercase tracking-wide text-n-teal-11"
+                class="text-micro font-bold uppercase tracking-wide text-n-brand"
               >
                 {{ t('FORMS.LOGIC.WHEN') }}
               </span>
               <select
                 v-else
-                class="reset-base mb-0 h-7 w-full rounded-lg border border-solid border-n-weak bg-n-solid-1 px-1 text-micro font-bold uppercase text-n-teal-11 outline-none"
+                class="reset-base mb-0 h-7 w-full rounded-lg border border-solid border-n-weak bg-n-solid-1 px-1 text-micro font-bold uppercase text-n-slate-11 outline-none"
                 :value="combinadorDe(rule)"
                 data-test="forms-logic-combinator"
                 @change="changeCombinator(index, $event.target.value)"
@@ -436,7 +437,7 @@ const controlClass =
             <span />
             <button
               type="button"
-              class="min-h-7 rounded border border-dashed border-n-weak text-micro font-semibold text-n-slate-11 hover:border-n-teal-7 hover:text-n-teal-11"
+              class="min-h-7 rounded border border-dashed border-n-weak text-micro font-semibold text-n-slate-11 hover:border-n-brand hover:text-n-brand"
               data-test="forms-logic-add-condition"
               @click="addCondition(index)"
             >
@@ -446,7 +447,7 @@ const controlClass =
 
           <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2">
             <span
-              class="text-micro font-bold uppercase tracking-wide text-n-teal-11"
+              class="text-micro font-bold uppercase tracking-wide text-n-brand"
             >
               {{ t('FORMS.LOGIC.THEN') }}
             </span>
@@ -546,7 +547,7 @@ const controlClass =
 
         <button
           type="button"
-          class="mt-1 min-h-9 w-full rounded-lg border border-dashed border-n-weak text-sm font-semibold text-n-slate-11 hover:border-n-teal-7 hover:text-n-teal-11"
+          class="mt-1 min-h-9 w-full rounded-lg border border-dashed border-n-weak text-sm font-semibold text-n-slate-11 hover:border-n-brand hover:text-n-brand"
           data-test="forms-logic-add-rule"
           @click="addRule"
         >

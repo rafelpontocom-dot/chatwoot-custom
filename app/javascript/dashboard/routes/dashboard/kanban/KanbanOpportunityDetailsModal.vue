@@ -1683,7 +1683,14 @@ watch(invitationPendingRevocation, async invitation => {
       class="flex items-start justify-between gap-4 border-b border-n-weak px-5 py-3"
     >
       <div class="min-w-0">
-        <h2 class="mb-0 truncate text-base font-semibold text-n-slate-12">
+        <!--
+          O assunto da oportunidade nunca corta: quebra de palavra. É a manchete
+          da gaveta e o AGENTS.md proíbe `truncate` aqui — cortar o título obriga
+          a abrir para saber o que se está a ver.
+        -->
+        <h2
+          class="mb-0 break-words text-base font-semibold leading-snug text-n-slate-12"
+        >
           <input
             v-show="isEditingSubject"
             ref="headerSubjectInput"
@@ -1929,37 +1936,53 @@ watch(invitationPendingRevocation, async invitation => {
         class="flex min-h-full flex-col gap-5"
         @submit.prevent="saveCard"
       >
+        <!--
+          A tira de abas rola na horizontal em vez de quebrar linha. Com
+          `flex-wrap` ela crescia em altura a cada aba nova — e como é `sticky`,
+          comia o painel que está a tentar mostrar. O número de abas não é fixo:
+          calendário, financeiro e formulários entram por módulo, e cada secção
+          de campos acrescenta uma.
+
+          Rolar sem rato está resolvido: `handleTabKeydown` navega com as setas e
+          o foco traz a aba para a vista.
+        -->
         <nav
-          ref="tabList"
-          class="sticky top-0 z-10 flex min-w-0 flex-wrap gap-x-1 border-b border-n-weak bg-n-solid-1"
+          class="sticky top-0 z-10 flex min-w-0 items-stretch border-b border-n-weak bg-n-solid-1"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL')"
-          role="tablist"
         >
-          <button
-            v-for="tab in opportunityTabs.filter(tab => tab.key !== 'timeline')"
-            :id="`kanban-opportunity-tab-${tab.key}`"
-            :key="tab.key"
-            type="button"
-            :data-testid="`kanban-opportunity-tab-${tab.key}`"
-            class="border-solid whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
-            role="tab"
-            :aria-selected="activeTabKey === tab.key"
-            aria-controls="kanban-opportunity-tab-panel"
-            :class="
-              activeTabKey === tab.key
-                ? 'border-n-brand text-n-brand'
-                : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
-            "
-            @click="activeTabKey = tab.key"
-            @keydown="handleTabKeydown"
+          <div
+            ref="tabList"
+            class="flex min-w-0 flex-1 gap-x-1 overflow-x-auto"
+            role="tablist"
           >
-            {{ tab.label }}
-          </button>
+            <button
+              v-for="tab in opportunityTabs.filter(
+                tab => tab.key !== 'timeline'
+              )"
+              :id="`kanban-opportunity-tab-${tab.key}`"
+              :key="tab.key"
+              type="button"
+              :data-testid="`kanban-opportunity-tab-${tab.key}`"
+              class="border-solid whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
+              role="tab"
+              :aria-selected="activeTabKey === tab.key"
+              aria-controls="kanban-opportunity-tab-panel"
+              :class="
+                activeTabKey === tab.key
+                  ? 'border-n-brand text-n-brand'
+                  : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
+              "
+              @click="activeTabKey = tab.key"
+              @keydown="handleTabKeydown"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
           <button
             v-if="canManageFields"
             type="button"
             data-testid="kanban-opportunity-add-tab"
-            class="flex p-0 size-9 shrink-0 items-center justify-center border-b-2 border-transparent text-n-slate-11 hover:text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
+            class="flex p-0 size-9 shrink-0 items-center justify-center border-s border-solid border-n-weak border-b-2 border-b-transparent text-n-slate-11 hover:text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
             :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
             :title="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
             @click="emit('manageFields', { action: 'newTab' })"
@@ -2519,7 +2542,7 @@ watch(invitationPendingRevocation, async invitation => {
                 >
                   <div class="min-w-0">
                     <p
-                      class="mb-0 truncate text-sm font-medium text-n-slate-12"
+                      class="mb-0 break-words text-sm font-medium text-n-slate-12"
                     >
                       {{ payment.description || t('FINANCE.PAYMENTS.TITLE') }}
                     </p>

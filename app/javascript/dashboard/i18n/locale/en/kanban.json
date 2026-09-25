@@ -19,7 +19,7 @@
     "FILTER_INBOX": "Inbox",
     "FILTER_BOARD": "Funnel",
     "SORT": "Order",
-    "SORT_WAITING": "Ours to answer",
+    "SORT_WAITING": "Longest without a reply",
     "SORT_RECENT": "Most recent",
     "SORT_OVERDUE": "Most overdue",
     "SORT_ACTION_RECENT": "Most recent",
@@ -36,7 +36,15 @@
     "STALE_DETAIL": "{stage} · {days} days in stage · limit {limit}",
     "OVERDUE_PAYMENTS": "Overdue charges",
     "PAYMENT_OVERDUE_SINCE": "Overdue for {days} days",
-    "PAYMENT_NO_OPPORTUNITY": "This charge is not linked to an opportunity."
+    "PAYMENT_NO_OPPORTUNITY": "This charge is not linked to an opportunity.",
+    "FILTERS": "Viewing",
+    "FILTER_PERIOD": "Period",
+    "PERIOD": {
+      "ALL": "Any date",
+      "today": "Today",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days"
+    }
   },
   "KANBAN": {
     "EYEBROW": "Sales",
@@ -419,7 +427,12 @@
       "OWNER": "Owner",
       "ACTIONS": "Actions",
       "OPEN": "Open conversation",
-      "EMPTY": "No opportunities match the current filters.",
+      "EMPTY": "No opportunities yet",
+      "EMPTY_HINT": "New opportunities land here as soon as they are created.",
+      "EMPTY_FILTERED": "No opportunities match these filters",
+      "EMPTY_FILTERED_HINT": "An empty list is almost always one filter too many.",
+      "CLEAR_FILTERS": "Clear filters",
+      "REVIEW_FILTERS": "Review filters",
       "PAGINATION_NOTE": "Load more from each stage when you need to compare a larger set of opportunities.",
       "LOADING_MORE": "Loading..."
     },
@@ -609,7 +622,9 @@
         "LEGACY_FIELD_HELP": "Optional. Mirrors the next appointment to an existing field while the team moves to Calendar."
       },
       "SALES": {
-        "TITLE": "Sales",
+        "CARD_NAV": "Card",
+        "ALERTS_NAV": "Alerts",
+        "ALERTS_SCOPE": "These two rules run on their own. Anything else belongs in Automations.",
         "NEXT_ACTION_TYPES": "Next action types",
         "NEXT_ACTION_TYPES_PLACEHOLDER": "One action type per line",
         "LOST_REASON_OPTIONS": "Lost reasons",
@@ -764,7 +779,7 @@
           "LOST": "Lost"
         },
         "SHOW_ON_CARD": "Show on compact card",
-        "ADVANCED_JSON": "Advanced JSON",
+        "ADVANCED_JSON": "Edit as JSON",
         "STALE_ALERTS": "Stale card alerts",
         "STALE_ALERTS_DESCRIPTION": "Set how many days an opportunity can remain in each stage before it is marked as stale.",
         "STALE_ALERTS_SUMMARY": "{count} stages configured",

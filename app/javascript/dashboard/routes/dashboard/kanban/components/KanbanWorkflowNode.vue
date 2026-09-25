@@ -13,40 +13,43 @@ const selectNode = event => {
   props.data.select?.(props.data.id);
 };
 
-const categoryTone = category =>
-  ({
-    TRIGGER: 'border-n-teal-5',
-    TIME: 'border-n-amber-5',
-    DECISION: 'border-n-violet-4',
-    OPERATION: 'border-n-cyan-5',
-    CUSTOMER: 'border-n-blue-5',
-    OPPORTUNITY: 'border-n-iris-4',
-    INTEGRATION: 'border-n-slate-7',
-    CONTROL: 'border-n-green-5',
-  })[category] || 'border-n-weak';
+// A largura vivia repetida cinco vezes como valor mágico. As ramificações TÊM
+// de acompanhar o corpo, senão o nó parte-se ao meio à primeira alteração.
+const LARGURA = 'w-[9.5rem]';
 
-const categorySurface = category =>
-  ({
-    TRIGGER: 'bg-n-teal-3 text-n-teal-11',
-    TIME: 'bg-n-amber-3 text-n-amber-11',
-    DECISION: 'bg-n-violet-3 text-n-violet-11',
-    OPERATION: 'bg-n-cyan-3 text-n-cyan-11',
-    CUSTOMER: 'bg-n-blue-3 text-n-blue-11',
-    OPPORTUNITY: 'bg-n-iris-3 text-n-iris-11',
-    INTEGRATION: 'bg-n-slate-3 text-n-slate-11',
-    CONTROL: 'bg-n-green-3 text-n-green-11',
-  })[category] || 'bg-n-surface-2 text-n-slate-11';
+// A categoria era oito matizes: teal, âmbar, violeta, ciano, azul, iris, slate,
+// verde. Nunca passaram pelo validador de daltonismo, e azul + iris + violeta
+// são três vizinhos — o AGENTS.md proíbe azul + roxo claro por ΔE 0,4. Com oito
+// matizes tudo tem cor e nada significa; pior, neste produto a cor já quer dizer
+// «etapa do funil». A categoria passa a ser o ícone, e a cor fica para a única
+// coisa que precisa de a gastar: o estado.
+//
+// Sete estados em quatro cores deixavam três pares indistinguíveis — válido e
+// concluído ambos verdes, inválido e falhou ambos rubi, rascunho e ignorado
+// ambos cinzentos. O ícone é o que os separa, como a regra 5 obriga.
+const ESTADOS = {
+  draft: {
+    class: 'bg-n-alpha-2 text-n-slate-11',
+    icon: 'i-lucide-pencil-line',
+  },
+  valid: { class: 'bg-n-teal-3 text-n-teal-11', icon: 'i-lucide-check' },
+  invalid: {
+    class: 'bg-n-ruby-3 text-n-ruby-11',
+    icon: 'i-lucide-circle-alert',
+  },
+  waiting: { class: 'bg-n-amber-3 text-n-amber-11', icon: 'i-lucide-pause' },
+  completed: {
+    class: 'bg-n-teal-3 text-n-teal-11',
+    icon: 'i-lucide-circle-check',
+  },
+  skipped: {
+    class: 'bg-n-alpha-2 text-n-slate-11',
+    icon: 'i-lucide-skip-forward',
+  },
+  failed: { class: 'bg-n-ruby-3 text-n-ruby-11', icon: 'i-lucide-x' },
+};
 
-const stateTone = state =>
-  ({
-    draft: 'bg-n-slate-3 text-n-slate-11',
-    valid: 'bg-n-green-3 text-n-green-11',
-    invalid: 'bg-n-ruby-3 text-n-ruby-11',
-    waiting: 'bg-n-amber-3 text-n-amber-11',
-    completed: 'bg-n-green-3 text-n-green-11',
-    skipped: 'bg-n-slate-3 text-n-slate-11',
-    failed: 'bg-n-ruby-3 text-n-ruby-11',
-  })[state] || 'bg-n-slate-3 text-n-slate-11';
+const estado = state => ESTADOS[state] || ESTADOS.draft;
 </script>
 
 <template>
@@ -56,48 +59,51 @@ const stateTone = state =>
     :position="Position.Left"
     class="!size-3 !border-2 !border-n-surface-1 !bg-n-slate-9"
   />
+  <!--
+    Em repouso o anel de 1px separa; a sombra fica para o que flutua. `shadow-sm`
+    é `none` de propósito, por isso o cartão não tinha separação nenhuma em
+    repouso e depois saltava com `hover:shadow-md` — o contrário da regra 3.
+  -->
   <div
     data-testid="kanban-workflow-node-card"
     :data-category="data.category"
     :aria-label="data.label"
     role="group"
     tabindex="0"
-    class="w-[9.5rem] rounded-lg border border-n-weak border-t-4 bg-n-surface-1 px-3 py-2 shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-n-brand"
-    :class="
-      data.invalid
-        ? 'border-n-ruby-9 ring-2 ring-n-ruby-9/20'
-        : categoryTone(data.category)
-    "
+    class="grid content-start gap-1 rounded-lg bg-n-surface-1 px-3 py-2 ring-1 transition-[box-shadow] hover:ring-n-slate-6 focus:outline-none focus:ring-2 focus:ring-n-brand"
+    :class="[LARGURA, data.invalid ? 'ring-2 ring-n-ruby-9' : 'ring-n-weak']"
     @keydown.enter="selectNode"
     @keydown.space="selectNode"
   >
-    <div class="flex items-start justify-between gap-2">
-      <div class="flex min-w-0 items-center gap-2">
-        <span
-          class="flex size-7 shrink-0 items-center justify-center rounded-md"
-          :class="categorySurface(data.category)"
+    <div class="flex items-start gap-2">
+      <span
+        class="flex size-7 shrink-0 items-center justify-center rounded-md bg-n-alpha-1 text-n-slate-11"
+      >
+        <i
+          v-if="data.icon"
+          data-testid="kanban-workflow-node-icon"
+          class="size-3.5"
+          :class="data.icon"
+          aria-hidden="true"
+        />
+      </span>
+      <div class="min-w-0 flex-1">
+        <p
+          data-testid="kanban-workflow-node-category"
+          class="m-0 truncate text-micro font-semibold uppercase tracking-wide text-n-slate-10"
         >
-          <i
-            v-if="data.icon"
-            data-testid="kanban-workflow-node-icon"
-            class="size-3.5"
-            :class="data.icon"
-            aria-hidden="true"
-          />
-        </span>
-        <div class="min-w-0">
-          <p
-            data-testid="kanban-workflow-node-category"
-            class="m-0 break-words text-2xs font-semibold uppercase tracking-wide text-n-slate-10"
-          >
-            {{ data.categoryLabel || data.category }}
-          </p>
-          <p
-            class="m-0 line-clamp-2 break-words text-xs font-semibold text-n-slate-12"
-          >
-            {{ data.label }}
-          </p>
-        </div>
+          {{ data.categoryLabel || data.category }}
+        </p>
+        <!--
+          Duas linhas fixas, não uma cortada: «Enviar mensagem de seguimento no
+          WhatsApp» não cabe numa. A altura é a mesma para todos os nós, com
+          nome curto ou longo — é o que dá dimensão estável ao cartão.
+        -->
+        <p
+          class="m-0 line-clamp-2 min-h-8 break-words text-xs font-semibold leading-snug text-n-slate-12"
+        >
+          {{ data.label }}
+        </p>
       </div>
       <i
         v-if="data.invalid"
@@ -105,32 +111,39 @@ const stateTone = state =>
         aria-hidden="true"
       />
     </div>
-    <p
-      v-if="data.summary"
-      class="m-0 mt-1 line-clamp-2 break-words text-xs text-n-slate-10"
-    >
+    <p class="m-0 h-4 truncate text-micro leading-4 text-n-slate-10">
       {{ data.summary }}
     </p>
-    <span
-      v-if="data.stateLabel"
-      data-testid="kanban-workflow-node-state"
-      class="mt-1.5 inline-flex rounded-full px-1.5 py-0.5 text-2xs font-medium"
-      :class="stateTone(data.state)"
-    >
-      {{ data.stateLabel }}
-    </span>
-    <div
-      v-if="data.chips?.length"
-      data-testid="kanban-workflow-node-chips"
-      class="mt-1.5 flex max-w-full gap-1 overflow-hidden border-t border-n-weak pt-1.5"
-    >
+    <!--
+      O rodapé está sempre presente, mesmo vazio. Aparecer e desaparecer com o
+      conteúdo era metade da instabilidade de altura.
+    -->
+    <div class="flex min-h-5 items-center gap-1.5">
       <span
-        v-for="chip in data.chips"
-        :key="chip"
-        data-testid="kanban-workflow-node-chip"
-        class="max-w-full shrink-0 truncate rounded bg-n-surface-2 px-1.5 py-0.5 text-2xs text-n-slate-11"
+        v-if="data.stateLabel"
+        data-testid="kanban-workflow-node-state"
+        class="inline-flex min-w-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-micro font-medium"
+        :class="estado(data.state).class"
       >
-        {{ chip }}
+        <i
+          class="size-2.5 shrink-0"
+          :class="estado(data.state).icon"
+          aria-hidden="true"
+        />
+        <span class="truncate">{{ data.stateLabel }}</span>
+      </span>
+      <!--
+        A fila de chips crescia em altura e empurrava o cartão. Passa a contagem;
+        o detalhe vive no inspector, que é onde se configura.
+      -->
+      <span
+        v-if="data.chips?.length"
+        data-testid="kanban-workflow-node-chips"
+        class="ml-auto inline-flex shrink-0 items-center gap-1 text-micro tabular-nums text-n-slate-10"
+        :title="data.chips.join(' · ')"
+      >
+        <i class="i-lucide-sliders-horizontal size-2.5" aria-hidden="true" />
+        {{ data.chips.length }}
       </span>
     </div>
   </div>
@@ -138,7 +151,8 @@ const stateTone = state =>
     <div
       v-for="branch in data.branches"
       :key="branch.id"
-      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      :class="LARGURA"
+      class="nodrag nopan relative -mt-px flex items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 break-words">{{ branch.label }}</span>
       <button
@@ -157,7 +171,8 @@ const stateTone = state =>
       />
     </div>
     <div
-      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
+      :class="LARGURA"
+      class="nodrag nopan relative -mt-px flex items-center gap-2 border border-n-weak bg-n-surface-2 px-3 py-1.5 text-xs font-medium text-n-slate-11"
     >
       <span class="min-w-0 flex-1 break-words">{{ data.fallbackLabel }}</span>
       <button
@@ -180,7 +195,8 @@ const stateTone = state =>
     <div
       v-for="option in data.options"
       :key="option.id"
-      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      :class="LARGURA"
+      class="nodrag nopan relative -mt-px flex items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
       <button
@@ -216,7 +232,8 @@ const stateTone = state =>
     <div
       v-for="output in data.outputs"
       :key="output.id"
-      class="nodrag nopan relative -mt-px flex w-[9.5rem] items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
+      :class="LARGURA"
+      class="nodrag nopan relative -mt-px flex items-center gap-2 border border-n-weak bg-n-surface-1 px-3 py-1.5 text-xs text-n-slate-11 first:mt-1"
     >
       <span class="min-w-0 flex-1 truncate">{{ output.label }}</span>
       <button
@@ -238,7 +255,7 @@ const stateTone = state =>
   <button
     v-else-if="data.canAddAfter"
     type="button"
-    class="nodrag nopan absolute -right-3 top-full z-10 flex p-0 size-6 -translate-y-1/2 items-center justify-center rounded-full border border-solid border-n-brand bg-n-surface-1 text-n-brand shadow-sm hover:bg-n-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-n-brand"
+    class="nodrag nopan absolute -right-3 top-full z-10 flex p-0 size-6 -translate-y-1/2 items-center justify-center rounded-full border border-solid border-n-brand bg-n-surface-1 text-n-brand shadow-sm hover:bg-n-brand hover:text-n-solid-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
     :aria-label="data.addAfterLabel"
     @click.stop="data.addAfter(data.id)"
   >

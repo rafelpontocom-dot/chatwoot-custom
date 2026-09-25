@@ -19,7 +19,7 @@
     "FILTER_INBOX": "Caixa de entrada",
     "FILTER_BOARD": "Funil",
     "SORT": "Ordem",
-    "SORT_WAITING": "É a nossa vez",
+    "SORT_WAITING": "Sem resposta há mais tempo",
     "SORT_RECENT": "Mais recentes",
     "SORT_OVERDUE": "Vencidas há mais tempo",
     "SORT_ACTION_RECENT": "Mais recentes",
@@ -36,7 +36,15 @@
     "STALE_DETAIL": "{stage} · {days} dias na etapa · limite {limit}",
     "OVERDUE_PAYMENTS": "Cobranças vencidas",
     "PAYMENT_OVERDUE_SINCE": "Vencida há {days} dias",
-    "PAYMENT_NO_OPPORTUNITY": "Esta cobrança não está ligada a uma oportunidade."
+    "PAYMENT_NO_OPPORTUNITY": "Esta cobrança não está ligada a uma oportunidade.",
+    "FILTERS": "A ver",
+    "FILTER_PERIOD": "Período",
+    "PERIOD": {
+      "ALL": "Qualquer data",
+      "today": "Hoje",
+      "7d": "Últimos 7 dias",
+      "30d": "Últimos 30 dias"
+    }
   },
   "KANBAN": {
     "EYEBROW": "Comercial",
@@ -422,7 +430,12 @@
       "OWNER": "Responsável",
       "ACTIONS": "Ações",
       "OPEN": "Abrir conversa",
-      "EMPTY": "Nenhuma oportunidade corresponde aos filtros atuais.",
+      "EMPTY": "Ainda não há oportunidades",
+      "EMPTY_HINT": "Oportunidades novas aparecem aqui assim que forem criadas.",
+      "EMPTY_FILTERED": "Nenhuma oportunidade com estes filtros",
+      "EMPTY_FILTERED_HINT": "Lista vazia quase sempre é um filtro a mais.",
+      "CLEAR_FILTERS": "Limpar filtros",
+      "REVIEW_FILTERS": "Rever filtros",
       "PAGINATION_NOTE": "Carregue mais em cada etapa quando precisar comparar um volume maior de oportunidades.",
       "LOADING_MORE": "Carregando..."
     },
@@ -612,7 +625,9 @@
         "LEGACY_FIELD_HELP": "Opcional. Espelha a próxima consulta em um campo existente enquanto a equipe migra para a Agenda."
       },
       "SALES": {
-        "TITLE": "Comercial",
+        "CARD_NAV": "Cartão",
+        "ALERTS_NAV": "Avisos",
+        "ALERTS_SCOPE": "Estas duas regras funcionam sozinhas. Qualquer outra pertence a Automações.",
         "STANDARD_FIELDS": "Campos padrão",
         "STANDARD_FIELDS_DESCRIPTION": "Todas as oportunidades têm estes campos. Não podem ser removidos e apenas alguns têm opções configuráveis.",
         "STANDARD_FIELD_OPTIONS": "Opções",
@@ -773,7 +788,7 @@
           "LOST": "Perdida"
         },
         "SHOW_ON_CARD": "Mostrar no card compacto",
-        "ADVANCED_JSON": "JSON avançado",
+        "ADVANCED_JSON": "Editar em JSON",
         "STALE_ALERTS": "Alertas de oportunidade parada",
         "STALE_ALERTS_DESCRIPTION": "Defina quantos dias uma oportunidade pode permanecer em cada etapa antes de ser marcada como parada.",
         "STALE_ALERTS_SUMMARY": "{count} etapas configuradas",

@@ -100,7 +100,7 @@ const removeEdge = () => {
       <button
         type="button"
         data-testid="kanban-workflow-edge-insert"
-        class="flex p-0 size-6 items-center justify-center rounded border border-solid border-n-weak bg-n-surface-1 text-n-brand hover:bg-n-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-n-brand"
+        class="flex p-0 size-6 items-center justify-center rounded border border-solid border-n-weak bg-n-surface-1 text-n-brand hover:bg-n-brand hover:text-n-solid-1 focus:outline-none focus:ring-2 focus:ring-n-brand"
         :aria-label="sourceNode?.data?.addAfterLabel"
         :title="sourceNode?.data?.addAfterLabel"
         @click.stop="insertAfter"

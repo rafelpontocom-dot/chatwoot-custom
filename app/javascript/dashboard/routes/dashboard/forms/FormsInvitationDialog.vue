@@ -5,6 +5,10 @@ import FormsAPI from 'dashboard/api/forms';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
+import {
+  RAEVO_CONTROL_CLASS,
+  RAEVO_SELECT_STANDALONE_CLASS,
+} from 'dashboard/components-next/raevo/raevoControl';
 
 const props = defineProps({
   contact: { type: Object, required: true },
@@ -135,10 +139,7 @@ defineExpose({ open });
       <template v-else>
         <label class="grid gap-1.5 text-sm font-medium text-n-slate-11">
           {{ t('FORMS.INVITATION.TEMPLATE') }}
-          <select
-            v-model="templateId"
-            class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
-          >
+          <select v-model="templateId" :class="RAEVO_SELECT_STANDALONE_CLASS">
             <option
               v-for="template in publishedTemplates"
               :key="template.id"
@@ -160,7 +161,7 @@ defineExpose({ open });
             <input
               v-model="expiresAt"
               type="datetime-local"
-              class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+              :class="RAEVO_CONTROL_CLASS"
             />
           </label>
           <label class="grid gap-1.5 text-sm font-medium text-n-slate-11">
@@ -171,7 +172,7 @@ defineExpose({ open });
               max="100"
               type="number"
               :disabled="selectedTemplateIsSensitiveHealth"
-              class="min-h-10 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6"
+              :class="RAEVO_CONTROL_CLASS"
             />
           </label>
         </div>

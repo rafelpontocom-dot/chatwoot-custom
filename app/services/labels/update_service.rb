@@ -18,6 +18,14 @@ class Labels::UpdateService
       end
     end
 
+    rename_on_kanban_cards
+  end
+
+  private
+
+  # Extensão do Raevo: a oportunidade também carrega rótulos. Vive num método à
+  # parte para o `perform` do upstream ficar intocado.
+  def rename_on_kanban_cards
     tagged_kanban_cards.find_in_batches do |card_batch|
       card_batch.each do |card|
         card.label_list.remove(old_label_title)
@@ -26,8 +34,6 @@ class Labels::UpdateService
       end
     end
   end
-
-  private
 
   def tagged_conversations
     account.conversations.tagged_with(old_label_title)

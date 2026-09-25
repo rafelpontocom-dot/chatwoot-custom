@@ -4,6 +4,10 @@ RSpec.describe LlmFormatter::ContactLlmFormatter do
   let(:account) { create(:account) }
   let(:contact) { create(:contact, account: account, name: 'John Doe', email: 'john@example.com', phone_number: '+1234567890') }
   let(:formatter) { described_class.new(contact) }
+  # Toda a conta do Raevo nasce com «Data de nascimento» (Account#after_create →
+  # Accounts::ProvisionStandardContactAttributesService), por isso o formatador
+  # emite-a sempre, antes de qualquer atributo criado depois.
+  let(:standard_attribute) { "#{Accounts::ProvisionStandardContactAttributesService::DATE_OF_BIRTH_NAME}: " }
 
   describe '#format' do
     context 'when contact has no notes' do
@@ -16,6 +20,7 @@ RSpec.describe LlmFormatter::ContactLlmFormatter do
           'Phone: +1234567890',
           'Location: ',
           'Country Code: ',
+          standard_attribute,
           'Contact Notes:',
           'No notes for this contact'
         ].join("\n")
@@ -39,6 +44,7 @@ RSpec.describe LlmFormatter::ContactLlmFormatter do
           'Phone: +1234567890',
           'Location: ',
           'Country Code: ',
+          standard_attribute,
           'Contact Notes:',
           ' - First interaction',
           ' - Follow up needed'
@@ -66,6 +72,7 @@ RSpec.describe LlmFormatter::ContactLlmFormatter do
           'Phone: +1234567890',
           'Location: ',
           'Country Code: ',
+          standard_attribute,
           'Company: Acme Inc',
           'Contact Notes:',
           'No notes for this contact'

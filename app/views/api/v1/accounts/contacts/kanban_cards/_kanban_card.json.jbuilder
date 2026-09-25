@@ -2,10 +2,13 @@ include_metadata ||= false
 
 json.id kanban_card.id
 json.origin kanban_card.origin
-json.subject kanban_card.subject.presence || "#{kanban_card.contact.name.presence || "Contact ##{kanban_card.contact_id}"} - #{kanban_card.inbox.name.presence || "Inbox ##{kanban_card.inbox_id}"}"
+contact_label = kanban_card.contact.name.presence || "Contact ##{kanban_card.contact_id}"
+inbox_label = kanban_card.inbox.name.presence || "Inbox ##{kanban_card.inbox_id}"
+json.subject kanban_card.subject.presence || "#{contact_label} - #{inbox_label}"
 if include_metadata
   json.due_at kanban_card.due_at&.iso8601
-  json.labels kanban_card.labels.map(&:name).filter_map { |title| labels_by_title[title] } do |label|
+  card_labels = kanban_card.labels.map(&:name).filter_map { |title| labels_by_title[title] }
+  json.labels card_labels do |label|
     json.extract! label, :id, :title, :color, :description
   end
 end
