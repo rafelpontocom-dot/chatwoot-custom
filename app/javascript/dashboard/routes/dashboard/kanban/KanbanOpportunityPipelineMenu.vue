@@ -213,7 +213,7 @@ watch(
               :key="stage.id"
               type="button"
               role="menuitem"
-              class="flex min-h-8 items-center gap-2 rounded px-2 text-left text-sm outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+              class="flex min-h-8 items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
               :class="
                 String(stage.id) === String(selectedStageId) &&
                 String(board.id) === String(boardId)
