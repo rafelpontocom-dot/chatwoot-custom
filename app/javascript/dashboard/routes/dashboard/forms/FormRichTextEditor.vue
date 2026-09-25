@@ -35,7 +35,7 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class:
-        'min-h-32 rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-sm leading-6 text-n-slate-12 outline-none focus:border-n-teal-9 focus:ring-2 focus:ring-n-teal-6',
+        'min-h-32 rounded border border-n-slate-5 bg-n-solid-1 px-3 py-2 text-sm leading-6 text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/30',
     },
   },
   onUpdate: ({ editor: instance }) => {
@@ -134,9 +134,9 @@ const controls = [
         v-for="control in controls"
         :key="control.key"
         type="button"
-        class="inline-flex p-0 size-8 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+        class="inline-flex p-0 size-8 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
         :class="{
-          'bg-n-teal-3 text-n-teal-11':
+          'bg-n-brand/10 text-n-brand':
             (control.key === 'bold' && editor?.isActive('bold')) ||
             (control.key === 'italic' && editor?.isActive('italic')) ||
             (control.key === 'strike' && editor?.isActive('strike')) ||
@@ -178,14 +178,14 @@ const controls = [
       <button
         data-test="forms-rich-text-link-apply"
         type="button"
-        class="inline-flex min-h-9 items-center justify-center rounded bg-n-teal-9 px-3 text-sm font-medium text-n-solid-1 transition hover:bg-n-teal-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+        class="inline-flex min-h-9 items-center justify-center rounded bg-n-brand px-3 text-sm font-medium text-n-solid-1 transition hover:bg-n-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
         @click="applyLink"
       >
         {{ t('FORMS.RICH_TEXT.APPLY_LINK') }}
       </button>
       <button
         type="button"
-        class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+        class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
         :aria-label="t('FORMS.ACTIONS.CLOSE')"
         :title="t('FORMS.ACTIONS.CLOSE')"
         @click="closeLinkEditor"

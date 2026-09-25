@@ -1731,7 +1731,7 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="flex min-h-10 items-center gap-2 rounded px-3 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3"
-            :class="{ 'bg-n-teal-3 text-n-teal-11': activeTab === 'templates' }"
+            :class="{ 'bg-n-brand/10 text-n-brand': activeTab === 'templates' }"
             @click="activeTab = 'templates'"
           >
             <span class="i-lucide-file-text size-4" aria-hidden="true" />
@@ -1741,7 +1741,7 @@ onBeforeUnmount(() => {
             type="button"
             class="flex min-h-10 items-center gap-2 rounded px-3 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3"
             :class="{
-              'bg-n-teal-3 text-n-teal-11': activeTab === 'submissions',
+              'bg-n-brand/10 text-n-brand': activeTab === 'submissions',
             }"
             @click="
               activeTab = 'submissions';
@@ -1885,7 +1885,7 @@ onBeforeUnmount(() => {
             <div class="flex min-w-0 items-start gap-2">
               <button
                 type="button"
-                class="mt-0.5 flex p-0 size-8 shrink-0 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                class="mt-0.5 flex p-0 size-8 shrink-0 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                 :aria-label="t('FORMS.ACTIONS.BACK_TO_LIST')"
                 :title="t('FORMS.ACTIONS.BACK_TO_LIST')"
                 data-test="forms-back-to-list"
@@ -1905,7 +1905,7 @@ onBeforeUnmount(() => {
                     class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold"
                     :class="
                       isPublished
-                        ? 'bg-n-teal-3 text-n-teal-11'
+                        ? 'bg-n-brand/10 text-n-brand'
                         : 'bg-n-amber-3 text-n-amber-11'
                     "
                   >
@@ -1939,7 +1939,7 @@ onBeforeUnmount(() => {
                   </span>
                   <button
                     type="button"
-                    class="rounded px-1 font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                    class="rounded px-1 font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                     @click="discardLocalDraft"
                   >
                     {{ t('FORMS.BUILDER.DISCARD_DRAFT') }}
@@ -1986,7 +1986,7 @@ onBeforeUnmount(() => {
             <div class="flex shrink-0 items-center gap-2">
               <details class="relative">
                 <summary
-                  class="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-slate-2 focus-visible:ring-2 focus-visible:ring-n-teal-6 [&::-webkit-details-marker]:hidden"
+                  class="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-slate-2 focus-visible:ring-2 focus-visible:ring-n-brand/30 [&::-webkit-details-marker]:hidden"
                 >
                   <span
                     class="i-lucide-list-checks size-4"
@@ -2114,7 +2114,7 @@ onBeforeUnmount(() => {
                 </h3>
                 <button
                   type="button"
-                  class="inline-flex p-0 size-8 items-center justify-center rounded text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                  class="inline-flex p-0 size-8 items-center justify-center rounded text-n-brand transition hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                   :aria-label="t('FORMS.BUILDER.ADD_SECTION')"
                   :title="t('FORMS.BUILDER.ADD_SECTION')"
                   @click="addSection"
@@ -2151,13 +2151,13 @@ onBeforeUnmount(() => {
                     class="rounded border p-2"
                     :class="
                       sectionIndex === activeBuilderSectionIndex
-                        ? 'border-n-teal-7 bg-n-teal-2'
+                        ? 'border-n-brand bg-n-brand/5'
                         : 'border-n-slate-4 bg-n-solid-1'
                     "
                   >
                     <button
                       type="button"
-                      class="flex min-h-9 w-full items-center gap-2 rounded px-1 text-left text-sm font-semibold text-n-slate-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                      class="flex min-h-9 w-full items-center gap-2 rounded px-1 text-left text-sm font-semibold text-n-slate-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                       :data-test="`forms-builder-section-${sectionIndex}`"
                       @click="selectBuilderSection(sectionIndex)"
                     >
@@ -2181,10 +2181,10 @@ onBeforeUnmount(() => {
                       >
                         <button
                           type="button"
-                          class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                          class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                           :class="
                             block.id === selectedBuilderContentBlockId
-                              ? 'bg-n-solid-1 font-semibold text-n-teal-11'
+                              ? 'bg-n-solid-1 font-semibold text-n-brand'
                               : 'text-n-slate-11'
                           "
                           :data-test="`forms-builder-content-${block.id}`"
@@ -2213,10 +2213,10 @@ onBeforeUnmount(() => {
                         <li>
                           <button
                             type="button"
-                            class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                            class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                             :class="
                               field.key === selectedBuilderFieldKey
-                                ? 'bg-n-solid-1 font-semibold text-n-teal-11'
+                                ? 'bg-n-solid-1 font-semibold text-n-brand'
                                 : 'text-n-slate-11'
                             "
                             :data-test="`forms-builder-field-${field.key}`"
@@ -2237,7 +2237,7 @@ onBeforeUnmount(() => {
                     </Draggable>
                     <button
                       type="button"
-                      class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                      class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                       :data-test="`forms-builder-add-content-${sectionIndex}`"
                       @click="focusBuilderLibrary(section)"
                     >
@@ -2249,7 +2249,7 @@ onBeforeUnmount(() => {
                     </button>
                     <button
                       type="button"
-                      class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                      class="mt-2 inline-flex min-h-8 items-center gap-1 rounded px-2 text-xs font-medium text-n-brand transition hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                       :data-test="`forms-builder-add-question-${sectionIndex}`"
                       @click="focusBuilderLibrary(section)"
                     >
@@ -2270,7 +2270,7 @@ onBeforeUnmount(() => {
               />
               <button
                 type="button"
-                class="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded px-3 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                class="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded px-3 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                 @click="openSaveFieldGroupDialog"
               >
                 <span
@@ -2377,7 +2377,7 @@ onBeforeUnmount(() => {
                 class="flex min-h-9 items-center rounded px-3 text-start text-sm font-medium transition"
                 :class="
                   settingsSection === item.id
-                    ? 'bg-n-teal-3 text-n-teal-11'
+                    ? 'bg-n-brand/10 text-n-brand'
                     : 'text-n-slate-11 hover:bg-n-slate-3'
                 "
                 :aria-current="settingsSection === item.id ? 'page' : undefined"
@@ -2632,7 +2632,7 @@ onBeforeUnmount(() => {
                       target="_blank"
                       rel="noopener noreferrer"
                       data-test="forms-public-preview"
-                      class="inline-flex min-h-8 shrink-0 items-center rounded px-2 text-sm font-medium text-n-teal-11 transition hover:bg-n-teal-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                      class="inline-flex min-h-8 shrink-0 items-center rounded px-2 text-sm font-medium text-n-brand transition hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                     >
                       {{ t('FORMS.ACTIONS.PREVIEW') }}
                     </a>
@@ -2745,7 +2745,7 @@ onBeforeUnmount(() => {
                         </p>
                       </div>
                       <span
-                        class="shrink-0 rounded-full bg-n-teal-3 px-2.5 py-1 text-xs font-semibold text-n-teal-11"
+                        class="shrink-0 rounded-full bg-n-brand/10 px-2.5 py-1 text-xs font-semibold text-n-brand"
                       >
                         {{
                           t('FORMS.EDITOR.CLINICAL_ACCESS_SELECTED', {
@@ -2874,7 +2874,7 @@ onBeforeUnmount(() => {
                 >
                   <div class="flex items-start gap-3">
                     <span
-                      class="i-lucide-route mt-0.5 size-4 shrink-0 text-n-teal-10"
+                      class="i-lucide-route mt-0.5 size-4 shrink-0 text-n-brand"
                       aria-hidden="true"
                     />
                     <div>

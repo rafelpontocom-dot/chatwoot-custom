@@ -62,7 +62,7 @@ const removeBrandLogo = () => emit('removeBrandLogo');
           class="size-10 rounded border border-n-slate-4 bg-n-solid-1 object-contain p-1"
         />
         <label
-          class="inline-flex min-h-10 cursor-pointer items-center rounded border border-n-slate-5 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+          class="inline-flex min-h-10 cursor-pointer items-center rounded border border-n-slate-5 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-brand/30"
         >
           <input
             type="file"

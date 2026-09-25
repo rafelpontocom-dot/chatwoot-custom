@@ -196,7 +196,7 @@ const podeConfigurar = computed(() => !props.isSensitiveHealth);
 
       <button
         type="button"
-        class="min-h-9 w-full rounded border border-dashed border-n-slate-5 text-sm font-semibold text-n-slate-11 transition hover:border-n-teal-7 hover:text-n-teal-11"
+        class="min-h-9 w-full rounded border border-dashed border-n-slate-5 text-sm font-semibold text-n-slate-11 transition hover:border-n-brand hover:text-n-brand"
         data-test="forms-action-add"
         @click="adicionar"
       >

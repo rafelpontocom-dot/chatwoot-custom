@@ -255,7 +255,7 @@ const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
         </h4>
         <button
           type="button"
-          class="rounded px-2 py-1 text-xs font-semibold text-n-teal-11 hover:bg-n-teal-3"
+          class="rounded px-2 py-1 text-xs font-semibold text-n-brand hover:bg-n-alpha-2"
           data-test="forms-logic-add-variable"
           @click="addVariable"
         >
@@ -271,7 +271,7 @@ const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
         class="flex items-center gap-2"
       >
         <span
-          class="flex-1 truncate rounded-full bg-n-teal-3 px-2.5 py-0.5 text-xs font-semibold text-n-teal-11"
+          class="flex-1 truncate rounded-full bg-n-brand/10 px-2.5 py-0.5 text-xs font-semibold text-n-brand"
         >
           {{ variable.name }}&nbsp;·&nbsp;{{ variable.initial }}
         </span>
@@ -316,7 +316,7 @@ const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
               <!-- A primeira linha diz QUANDO; as seguintes dizem E ou OU. -->
               <span
                 v-if="!posicao"
-                class="text-micro font-bold uppercase tracking-wide text-n-teal-11"
+                class="text-micro font-bold uppercase tracking-wide text-n-brand"
               >
                 {{ t('FORMS.LOGIC.WHEN') }}
               </span>
@@ -437,7 +437,7 @@ const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
             <span />
             <button
               type="button"
-              class="min-h-7 rounded border border-dashed border-n-weak text-micro font-semibold text-n-slate-11 hover:border-n-teal-7 hover:text-n-teal-11"
+              class="min-h-7 rounded border border-dashed border-n-weak text-micro font-semibold text-n-slate-11 hover:border-n-brand hover:text-n-brand"
               data-test="forms-logic-add-condition"
               @click="addCondition(index)"
             >
@@ -447,7 +447,7 @@ const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
 
           <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2">
             <span
-              class="text-micro font-bold uppercase tracking-wide text-n-teal-11"
+              class="text-micro font-bold uppercase tracking-wide text-n-brand"
             >
               {{ t('FORMS.LOGIC.THEN') }}
             </span>
@@ -547,7 +547,7 @@ const controlClass = RAEVO_SELECT_STANDALONE_CLASS;
 
         <button
           type="button"
-          class="mt-1 min-h-9 w-full rounded-lg border border-dashed border-n-weak text-sm font-semibold text-n-slate-11 hover:border-n-teal-7 hover:text-n-teal-11"
+          class="mt-1 min-h-9 w-full rounded-lg border border-dashed border-n-weak text-sm font-semibold text-n-slate-11 hover:border-n-brand hover:text-n-brand"
           data-test="forms-logic-add-rule"
           @click="addRule"
         >

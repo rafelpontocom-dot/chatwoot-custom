@@ -62,7 +62,7 @@ defineExpose({ focusSearch });
     open
   >
     <summary
-      class="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 px-2 text-xs font-semibold text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-teal-6 [&::-webkit-details-marker]:hidden"
+      class="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 px-2 text-xs font-semibold text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand/30 [&::-webkit-details-marker]:hidden"
     >
       <span>{{ t('FORMS.BUILDER.LIBRARY') }}</span>
       <span
@@ -100,12 +100,12 @@ defineExpose({ focusSearch });
               v-for="type in fieldTypes.filter(item => matches(item.label))"
               :key="type.value"
               type="button"
-              class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+              class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
               :data-test="`forms-builder-library-field-${type.value}`"
               @click="emit('addField', type.value)"
             >
               <span
-                class="i-lucide-circle-plus size-3.5 text-n-teal-10"
+                class="i-lucide-circle-plus size-3.5 text-n-brand"
                 aria-hidden="true"
               />
               {{ type.label }}
@@ -125,13 +125,13 @@ defineExpose({ focusSearch });
               )"
               :key="block.value"
               type="button"
-              class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+              class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
               :data-test="`forms-builder-library-content-${block.value}`"
               @click="emit('addContent', block.value)"
             >
               <span
                 :class="block.icon"
-                class="size-3.5 text-n-teal-10"
+                class="size-3.5 text-n-brand"
                 aria-hidden="true"
               />
               {{ block.label }}
@@ -151,12 +151,12 @@ defineExpose({ focusSearch });
               )"
               :key="group.id"
               type="button"
-              class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+              class="flex min-h-8 w-full items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
               :data-test="`forms-builder-library-group-${group.id}`"
               @click="emit('addGroup', group.id)"
             >
               <span
-                class="i-lucide-layout-template size-3.5 shrink-0 text-n-teal-10"
+                class="i-lucide-layout-template size-3.5 shrink-0 text-n-slate-10"
                 aria-hidden="true"
               />
               <span class="min-w-0 break-words">
@@ -172,12 +172,12 @@ defineExpose({ focusSearch });
             >
               <button
                 type="button"
-                class="flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                class="flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left text-xs font-medium text-n-slate-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                 :data-test="`forms-builder-library-saved-${group.id}`"
                 @click="emit('addSavedGroup', group)"
               >
                 <span
-                  class="i-lucide-bookmark size-3.5 shrink-0 text-n-teal-10"
+                  class="i-lucide-bookmark size-3.5 shrink-0 text-n-slate-10"
                   aria-hidden="true"
                 />
                 <span class="min-w-0 break-words">

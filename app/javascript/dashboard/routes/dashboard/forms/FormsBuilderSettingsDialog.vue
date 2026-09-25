@@ -227,7 +227,7 @@ defineExpose({ open, close });
                   {{ t('FORMS.CONTENT_BLOCKS.IMAGE_UPLOAD') }}
                 </p>
                 <label
-                  class="inline-flex min-h-10 w-fit cursor-pointer items-center rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-teal-6"
+                  class="inline-flex min-h-10 w-fit cursor-pointer items-center rounded border border-n-slate-5 bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 transition hover:bg-n-slate-2 focus-within:ring-2 focus-within:ring-n-brand/30"
                 >
                   <input
                     data-test="forms-content-image-upload"
@@ -359,7 +359,7 @@ defineExpose({ open, close });
               class="group rounded border border-n-slate-4 bg-n-slate-2"
             >
               <summary
-                class="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 text-sm font-medium text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-teal-6 [&::-webkit-details-marker]:hidden"
+                class="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 text-sm font-medium text-n-slate-11 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand/30 [&::-webkit-details-marker]:hidden"
               >
                 {{ t('FORMS.BUILDER.ADVANCED') }}
                 <span
@@ -491,7 +491,7 @@ defineExpose({ open, close });
             <div class="flex items-center gap-2 border-t border-n-slate-4 pt-4">
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_UP')"
                 :title="t('FORMS.ACTIONS.MOVE_UP')"
                 :disabled="fieldIndex <= 0"
@@ -501,7 +501,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :title="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :disabled="fieldIndex < 0 || fieldIndex === fieldCount - 1"
@@ -511,7 +511,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex min-h-9 items-center gap-2 rounded px-2 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6"
+                class="inline-flex min-h-9 items-center gap-2 rounded px-2 text-sm font-medium text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30"
                 :aria-label="t('FORMS.BUILDER.DUPLICATE_QUESTION')"
                 :title="t('FORMS.BUILDER.DUPLICATE_QUESTION')"
                 data-test="forms-builder-duplicate-question"
@@ -577,7 +577,7 @@ defineExpose({ open, close });
             <div class="flex items-center gap-2 border-t border-n-slate-4 pt-4">
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_UP')"
                 :title="t('FORMS.ACTIONS.MOVE_UP')"
                 :disabled="sectionIndex <= 0"
@@ -588,7 +588,7 @@ defineExpose({ open, close });
               </button>
               <button
                 type="button"
-                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-teal-6 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex p-0 size-9 items-center justify-center rounded text-n-slate-11 transition hover:bg-n-slate-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/30 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :title="t('FORMS.ACTIONS.MOVE_DOWN')"
                 :disabled="
