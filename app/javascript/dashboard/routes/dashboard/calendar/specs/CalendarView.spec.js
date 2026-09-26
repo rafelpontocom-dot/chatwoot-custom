@@ -39,12 +39,25 @@ const mountCalendar = () =>
     global: {
       stubs: {
         // Ver AGENTS.md, «Armadilha conhecida em testes».
+        // Na densidade `list` o primitivo é um `<button>` que emite `select`.
+        // O stub tem de o ser também, senão os filtros da barra lateral não
+        // são clicáveis no teste e a cobertura passa a ser de nada.
         RaevoKpiCard: {
-          props: ['label', 'value', 'delta', 'deltaIsGood', 'footer', 'note'],
+          props: [
+            'label',
+            'value',
+            'delta',
+            'deltaIsGood',
+            'footer',
+            'note',
+            'density',
+          ],
+          emits: ['select'],
           template:
-            '<div><i>{{ label }}</i><b>{{ value }}</b>' +
+            '<button type="button" @click="$emit(\'select\')">' +
+            '<i>{{ label }}</i><b>{{ value }}</b>' +
             "<s v-if=\"delta\">{{ deltaIsGood ? 'melhor' : 'pior' }} {{ delta }}</s>" +
-            '<u>{{ footer }}</u><em>{{ note }}</em></div>',
+            '<u>{{ footer }}</u><em>{{ note }}</em></button>',
         },
         KanbanCalendarBookingDialog: {
           setup(_, { expose }) {
@@ -201,6 +214,117 @@ describe('CalendarView', () => {
       expect(wrapper.find('[data-testid="calendar-topbar"]').exists()).toBe(
         true
       );
+    });
+  });
+
+  // Os quatro indicadores moram na barra lateral e cada um é um caminho: clicar
+  // leva ao recorte que ele conta. O que se afirma aqui é a correspondência
+  // entre o número e o pedido que o clique faz — se discordarem, o utilizador
+  // clica num 2 e vê outra coisa.
+  describe('the indicator filters in the sidebar', () => {
+    const comResumo = () =>
+      CalendarAPI.getSummary.mockResolvedValue({
+        data: {
+          today: { count: 14, unconfirmed: 3 },
+          completed: { current: 52, previous: 44 },
+          no_show: { current: 4, previous: 6 },
+          canceled: { current: 2, previous: 2 },
+          month_total: 58,
+        },
+      });
+
+    // O pedido da grelha é o que NÃO pede `scheduled` — esse é o da lista «por
+    // confirmar», que tem período e situação próprios.
+    const pedidoDaGrelha = () =>
+      CalendarAPI.getAppointments.mock.calls
+        .map(([arg]) => arg)
+        .findLast(arg => arg.status !== 'scheduled');
+
+    it('puts the four indicators in the sidebar as buttons', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const filtros = wrapper
+        .get('[data-testid="calendar-indicator-filters"]')
+        .findAll('button');
+
+      expect(filtros).toHaveLength(4);
+      expect(
+        wrapper
+          .get('[data-testid="calendar-kpi-filter-completed"]')
+          .find('b')
+          .text()
+      ).toBe('52');
+    });
+
+    // «Concluídas no mês 52» conta o mês. Se o clique levasse à semana, o
+    // número do botão e a grelha discordavam.
+    it('asks for the whole month when a monthly indicator is clicked', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      await wrapper
+        .get('[data-testid="calendar-kpi-filter-completed"]')
+        .trigger('click');
+      await flushPromises();
+
+      const pedido = pedidoDaGrelha();
+      expect(pedido.status).toBe('completed');
+      const dias =
+        (new Date(pedido.ends_at) - new Date(pedido.starts_at)) / 86400000;
+      expect(dias).toBeGreaterThan(27);
+    });
+
+    it('asks for a single day when the indicator for today is clicked', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      await wrapper
+        .get('[data-testid="calendar-kpi-filter-today"]')
+        .trigger('click');
+      await flushPromises();
+
+      const pedido = pedidoDaGrelha();
+      expect(pedido.status).toBeUndefined();
+      const dias =
+        (new Date(pedido.ends_at) - new Date(pedido.starts_at)) / 86400000;
+      expect(dias).toBeLessThanOrEqual(1);
+    });
+
+    // Sem o segundo clique, um filtro posto daqui só se tirava no selector de
+    // situação — que fica acima, não diz que foi ele, e deixava a vista de mês
+    // para trás.
+    it('undoes the filter when the active indicator is clicked again', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const faltas = wrapper.get('[data-testid="calendar-kpi-filter-no-show"]');
+      await faltas.trigger('click');
+      await flushPromises();
+      expect(pedidoDaGrelha().status).toBe('no_show');
+      expect(faltas.attributes('aria-pressed')).toBe('true');
+
+      await faltas.trigger('click');
+      await flushPromises();
+      expect(pedidoDaGrelha().status).toBeUndefined();
+      expect(faltas.attributes('aria-pressed')).toBe('false');
+    });
+
+    // A barra lateral é `lg:flex` e não existe abaixo dos 1024px. A banda do
+    // cabeçalho fica `lg:hidden` para que os quatro números não desapareçam em
+    // tablet e telemóvel — é a mesma fonte em duas densidades, uma por largura.
+    it('keeps the header band for the widths without a sidebar', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper.get('[data-testid="calendar-indicators"]').classes()
+      ).toContain('lg:hidden');
     });
   });
 

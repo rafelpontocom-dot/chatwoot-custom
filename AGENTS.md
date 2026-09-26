@@ -135,11 +135,15 @@ a proposta C · Órbita não é o modo escuro de A — ver `docs/raevo-aprovacao
 «nesta tela o número é o assunto, ou é a moldura dele?», e a quanto espaço a
 moldura tem direito.
 
-| | Caixa | Número | Rodapé | Fila no Pipeline | Onde |
+| | Caixa | Número | Rodapé | Elemento | Onde |
 | --- | --- | --- | --- | --- | --- |
-| `card` (omissão) | própria | 30px | sob filete | 139px | Início, Financeiro, IA |
-| `strip` | nenhuma | 16px | por baixo | 76px | — |
-| `inline` | nenhuma | 14px | **não há** | **28px** | Pipeline, Agenda |
+| `card` (omissão) | própria | 30px | sob filete | `<div>` | Início, Financeiro, IA |
+| `strip` | nenhuma | 16px | por baixo | `<div>` | — |
+| `inline` | nenhuma | 14px | **não há** | `<div>` | cabeçalho do Pipeline |
+| `list` | nenhuma | 14px | **não há** | **`<button>`** | coluna da Agenda |
+
+(Fila no Pipeline: `card` 139px, `strip` 76px, `inline` 28px. `list` empilha, logo não faz
+fila: 45px por item numa coluna.)
 
 `inline` é a única que **perde informação de propósito**: fica o rótulo, o valor e
 o selo de variação, e o rodapé não é desenhado. É a troca que a faz caber no canto
@@ -152,6 +156,11 @@ confirmar», na Agenda, que não existe em mais lado nenhum do produto. Só apar
 quando tem o que dizer. **Uma nota por fila, no máximo:** cada uma custa largura,
 e se a linha quebrar volta a ter duas alturas — que é o problema que ela resolve.
 
+Na Agenda os quatro vivem na **coluna, debaixo de «Situação»**, em `list`. A banda do
+cabeçalho ficou `lg:hidden`: a coluna é `lg:flex` e não existe abaixo dos 1024px, logo sem
+a banda os números desapareciam em tablet e telemóvel. Mesma fonte, duas densidades, uma
+por largura.
+
 No Pipeline a linha mora no **canto inferior direito da caixa do cabeçalho**, e a
 legenda de saúde das etapas vem **por baixo dela, também à direita**: a legenda
 explica a barra das colunas, é apoio, e apoio vem depois do dado. Na Agenda, que
@@ -159,6 +168,19 @@ tem barra de uma linha e não caixa, a linha é a banda logo abaixo dela.
 
 O selo de variação custa **1px** — cabe na linha do número. Medido: 27px sem ele,
 28px com ele. Não é por espaço que se tira uma seta.
+
+**`list` é o indicador como caminho, e é a única que interage.** Numa coluna estreita ao
+lado da superfície de trabalho, o número não é conteúdo nem moldura: é a porta para o
+recorte que conta. Clicar filtra, e **o período do destino é o período do número** —
+«Concluídas no mês» leva ao mês, não à semana, senão o botão e a grelha discordam. Segundo
+clique desfaz. O estado activo vem de fora (`aria-pressed` + classe) e por **dois** canais,
+filete de 2px e fundo, porque `n-slate-3` e `n-slate-4` não se distinguem a olho.
+
+**Mudar de densidade não é mudar só de tamanho.** `list` empilha porque foi medido: a 199px
+de coluna, rótulo-à-esquerda/número-à-direita dava filas de 28/44/29/44px. E o rótulo passou
+a `text-n-slate-11`: `-10` sobre o fundo de `hover` mede 4,35:1. **A porta de pares não
+apanha nada disto** — o fundo vem de quem chama, a cor vem do primitivo, nunca coexistem no
+mesmo atributo. Par novo entre primitivo e chamador mede-se à mão.
 
 **Não desenhe uma linha de números à mão numa tela.** Foi por aí que o produto
 chegou a três tratamentos de cartão de número; uma quarta variante inventada num
@@ -202,10 +224,14 @@ os props e renderizá-los:
 
 ```js
 RaevoKpiCard: {
-  props: ['label', 'value', 'delta', 'footer', 'note'],
+  props: ['label', 'value', 'delta', 'footer', 'note', 'density'],
+  emits: ['select'],
+  // Em `list` o primitivo é um `<button>` que emite `select`. Se o stub for um
+  // `<div>`, o filtro não é clicável no teste e a cobertura passa a ser de nada.
   template:
-    '<div><i>{{ label }}</i><b>{{ value }}</b><s>{{ delta }}</s>' +
-    '<u>{{ footer }}</u><em>{{ note }}</em></div>',
+    '<button type="button" @click="$emit(\'select\')">' +
+    '<i>{{ label }}</i><b>{{ value }}</b><s>{{ delta }}</s>' +
+    '<u>{{ footer }}</u><em>{{ note }}</em></button>',
 },
 ```
 

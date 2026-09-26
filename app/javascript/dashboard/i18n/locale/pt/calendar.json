@@ -13,6 +13,7 @@
     "ALL_RESOURCES": "Todas as agendas",
     "STATUS_FILTER": "Situação",
     "ALL_STATUSES": "Todos os status",
+    "INDICATORS_TITLE": "Resumo",
     "UNCONFIRMED_TITLE": "Por confirmar",
     "UNCONFIRMED_OPEN": "Abrir {contact} às {time}",
     "SEARCH": "Buscar agenda",
@@ -409,6 +410,7 @@
       "COMPLETED_MONTH": "Concluídas no mês",
       "NO_SHOW_MONTH": "Faltas no mês",
       "CANCELED_MONTH": "Canceladas no mês",
+      "FILTER": "Filtrar a agenda por {label} ({value})",
       "UNCONFIRMED": "{count} por confirmar"
     }
   },

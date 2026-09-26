@@ -13,6 +13,7 @@
     "ALL_RESOURCES": "All calendars",
     "STATUS_FILTER": "Status",
     "ALL_STATUSES": "All statuses",
+    "INDICATORS_TITLE": "Summary",
     "UNCONFIRMED_TITLE": "To confirm",
     "UNCONFIRMED_OPEN": "Open {contact} at {time}",
     "SEARCH": "Search calendar",
@@ -409,6 +410,7 @@
       "COMPLETED_MONTH": "Completed this month",
       "NO_SHOW_MONTH": "No-shows this month",
       "CANCELED_MONTH": "Cancelled this month",
+      "FILTER": "Filter the calendar by {label} ({value})",
       "UNCONFIRMED": "{count} to confirm"
     }
   },

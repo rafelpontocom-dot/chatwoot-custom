@@ -126,6 +126,80 @@ describe('RaevoKpiCard', () => {
     expect(montar({ density: 'inline' }).html()).not.toContain('rounded-full');
   });
 
+  // `list` é a única densidade que interage, e a única cuja raiz muda de
+  // elemento. Se voltar a ser um `<div>`, deixa de ser alcançável por teclado
+  // sem que nada no ecrã mude — é a regressão mais silenciosa que esta peça tem.
+  describe('list density', () => {
+    it('is a button that emits select, and only in this density', async () => {
+      const linha = montar({ density: 'list' });
+      const botao = linha.get('button');
+
+      expect(botao.attributes('type')).toBe('button');
+      expect(montar({ density: 'strip' }).find('button').exists()).toBe(false);
+
+      await botao.trigger('click');
+      expect(linha.emitted('select')).toHaveLength(1);
+    });
+
+    // O estado activo vem de fora — quem filtra sabe o que está filtrado, o
+    // cartão não. Se a herança de atributos parar no comentário do topo do
+    // template, o `aria-pressed` do chamador evapora-se sem aviso.
+    it('lets the caller mark it as the pressed filter', () => {
+      const linha = mount(RaevoKpiCard, {
+        props: { label: 'Faltas no mês', value: '4', density: 'list' },
+        attrs: { 'aria-pressed': 'true' },
+        global: {
+          stubs: {
+            RaevoStamp: { props: ['label'], template: '<s>{{ label }}</s>' },
+          },
+        },
+      });
+
+      expect(linha.get('button').attributes('aria-pressed')).toBe('true');
+    });
+
+    // Um `<p>` dentro de um `<button>` não é conteúdo válido, e `_base.scss` dá
+    // `mb-2` a todo o `<p>`. As outras três densidades ficam com o seu.
+    it('renders the label without a paragraph', () => {
+      expect(montar({ density: 'list' }).find('p').exists()).toBe(false);
+      expect(montar({ density: 'strip' }).find('p').exists()).toBe(true);
+    });
+
+    // Um `<a>` dentro de um `<button>` também não é válido: o canto não abre.
+    it('never draws the corner link', () => {
+      const comDestino = { to: '/app/x', toLabel: 'Abrir' };
+
+      expect(
+        montar({ ...comDestino, density: 'list' })
+          .find('a')
+          .exists()
+      ).toBe(false);
+      expect(montar(comDestino).find('a').exists()).toBe(true);
+    });
+
+    it('keeps the delta and drops the footer', () => {
+      const linha = montar({
+        density: 'list',
+        delta: '-33%',
+        footer: '6 no mês passado',
+      });
+
+      expect(linha.text()).toContain('-33%');
+      expect(linha.text()).not.toContain('6 no mês passado');
+    });
+
+    // O outro lado da mudança que introduziu `list`: a chave repetida no objeto
+    // de classes apagava o degrau de `inline` em silêncio.
+    it('leaves the inline type step alone', () => {
+      expect(montar({ density: 'inline' }).get('span.text-sm').exists()).toBe(
+        true
+      );
+      expect(montar({ density: 'list' }).get('span.text-sm').exists()).toBe(
+        true
+      );
+    });
+  });
+
   it('does not open the second grid column without a destination', () => {
     // O `CardAction` da referência só abre a 2ª coluna quando há acção. Sem `to`,
     // o cartão não deixa um espaço reservado a um link que não existe.

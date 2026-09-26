@@ -873,6 +873,7 @@ const agendaIndicators = computed(() => {
     {
       chave: 'today',
       label: t('CALENDAR.INDICATORS.TODAY'),
+      filtro: { view: 'day', status: 'all' },
       value: String(r.today.count),
       delta: '',
       deltaIsGood: true,
@@ -883,6 +884,7 @@ const agendaIndicators = computed(() => {
     {
       chave: 'completed',
       label: t('CALENDAR.INDICATORS.COMPLETED_MONTH'),
+      filtro: { view: 'month', status: 'completed' },
       value: String(r.completed.current),
       delta: concluidas.texto,
       deltaIsGood: concluidas.bom,
@@ -890,6 +892,7 @@ const agendaIndicators = computed(() => {
     {
       chave: 'no-show',
       label: t('CALENDAR.INDICATORS.NO_SHOW_MONTH'),
+      filtro: { view: 'month', status: 'no_show' },
       value: String(r.no_show.current),
       delta: faltas.texto,
       deltaIsGood: faltas.bom,
@@ -897,12 +900,51 @@ const agendaIndicators = computed(() => {
     {
       chave: 'canceled',
       label: t('CALENDAR.INDICATORS.CANCELED_MONTH'),
+      filtro: { view: 'month', status: 'canceled' },
       value: String(r.canceled.current),
       delta: canceladas.texto,
       deltaIsGood: canceladas.bom,
     },
   ];
 });
+
+/**
+ * Os indicadores da barra lateral são o caminho para o recorte que contam.
+ *
+ * «Concluídas no mês 2» conta o mês; clicar leva à vista de mês com a situação
+ * em «Concluídas», que é exactamente o conjunto que deu o 2. Se levasse à semana
+ * corrente, o número no botão e o que se vê na grelha discordavam — que é a
+ * forma mais rápida de alguém deixar de confiar nos dois.
+ */
+const isThisMonth = date => {
+  const hoje = new Date();
+  return (
+    date.getMonth() === hoje.getMonth() &&
+    date.getFullYear() === hoje.getFullYear()
+  );
+};
+
+const indicadorAtivo = filtro =>
+  view.value === filtro.view &&
+  selectedStatus.value === filtro.status &&
+  (filtro.view === 'day'
+    ? isToday(selectedDate.value)
+    : isThisMonth(selectedDate.value));
+
+const aplicarFiltroIndicador = filtro => {
+  // Segundo clique desfaz. Sem isto, um filtro posto daqui só se tira no
+  // selector de situação — que fica acima, não diz que foi ele, e deixa a vista
+  // de mês para trás.
+  if (indicadorAtivo(filtro)) {
+    view.value = 'week';
+    selectedStatus.value = 'all';
+    selectedDate.value = new Date();
+    return;
+  }
+  view.value = filtro.view;
+  selectedStatus.value = filtro.status;
+  selectedDate.value = new Date();
+};
 
 // A primeira importação do Google corre em segundo plano logo a seguir a ligar.
 const GOOGLE_FIRST_IMPORT_DELAY = 5000;
@@ -1034,7 +1076,7 @@ onMounted(() => {
     <div
       v-if="agendaIndicators.length"
       data-testid="calendar-indicators"
-      class="flex flex-wrap items-baseline justify-end gap-x-5 gap-y-1 border-b border-n-weak px-4 py-1"
+      class="flex flex-wrap items-baseline justify-end gap-x-5 gap-y-1 border-b border-n-weak px-4 py-1 lg:hidden"
     >
       <RaevoKpiCard
         v-for="indicador in agendaIndicators"
@@ -1163,17 +1205,60 @@ onMounted(() => {
         </div>
 
         <!--
+          Os quatro indicadores moram aqui, e cada um é um botão que filtra:
+          «Concluídas no mês» leva ao mês com a situação em «Concluídas». O
+          instinto de clicar num número à espera de que filtre passa a ser
+          recompensado em vez de traído.
+
+          A banda do cabeçalho não desapareceu — ficou `lg:hidden`. Esta coluna
+          é `lg:flex` e **não existe abaixo dos 1024px**; sem a banda, em
+          tablet e telemóvel os quatro números deixavam de existir. É a mesma
+          fonte (`agendaIndicators`) em duas densidades, uma por largura, que é
+          para o que as densidades servem.
+        -->
+        <div
+          v-if="agendaIndicators.length"
+          data-testid="calendar-indicator-filters"
+          class="shrink-0"
+        >
+          <p class="mb-1.5 text-xs font-semibold text-n-slate-12">
+            {{ t('CALENDAR.INDICATORS_TITLE') }}
+          </p>
+          <div class="grid gap-0.5">
+            <RaevoKpiCard
+              v-for="indicador in agendaIndicators"
+              :key="indicador.chave"
+              :data-testid="`calendar-kpi-filter-${indicador.chave}`"
+              density="list"
+              :label="indicador.label"
+              :value="indicador.value"
+              :delta="indicador.delta"
+              :delta-is-good="indicador.deltaIsGood"
+              :aria-pressed="indicadorAtivo(indicador.filtro)"
+              :class="
+                indicadorAtivo(indicador.filtro)
+                  ? 'border-s-2 border-solid border-n-brand bg-n-slate-4 font-semibold'
+                  : 'border-s-2 border-solid border-transparent bg-n-background'
+              "
+              :aria-label="
+                t('CALENDAR.INDICATORS.FILTER', {
+                  label: indicador.label,
+                  value: indicador.value,
+                })
+              "
+              @select="aplicarFiltroIndicador(indicador.filtro)"
+            />
+          </div>
+        </div>
+
+        <!--
           O fundo da barra lateral estava vazio, e o que vai para lá não são os
           agregados do mês: é a única coisa de hoje sobre a qual se AGE. Cada
-          linha abre o diálogo da marcação — o número do cabeçalho diz que há
-          três por confirmar, e aqui diz-se quais, e chega-se lá num clique.
+          linha abre o diálogo da marcação — o número diz que há três por
+          confirmar, e aqui diz-se quais, e chega-se lá num clique.
 
           Só aparece quando há alguma. Sem nada por confirmar a coluna fica
           calada, como o resto da tela.
-
-          O contador do cabeçalho não sai por isto: a barra lateral é
-          `lg:flex` e não existe abaixo dos 1024px. Tirá-lo apagaria o sinal
-          em portátil pequeno, tablet e telemóvel.
         -->
         <div
           v-if="unconfirmedToday.length"

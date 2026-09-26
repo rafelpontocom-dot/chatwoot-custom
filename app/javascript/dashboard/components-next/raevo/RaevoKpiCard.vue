@@ -35,6 +35,21 @@
  *   Rodapé por baixo, sem filete. ≈76px de fila.
  * - `inline`: **só rótulo e valor**, numa linha, sem caixa, sem variação e sem
  *   rodapé. ≈24px de fila, e cabe no canto de um cabeçalho que já existe.
+ * - `list`: a anatomia da faixa **dentro de um `<button>`**, para coluna
+ *   estreita. Rótulo em cima, número e variação por baixo, ≈42px. Serve a barra
+ *   lateral, onde o indicador não é moldura nem conteúdo do topo: é o
+ *   **caminho** para o recorte que ele conta. Clicar filtra.
+ *
+ *   Empilha, e não rótulo-à-esquerda/número-à-direita, porque **foi medido**:
+ *   a 199px de coluna, «Concluídas no mês» com selo de variação parte em duas
+ *   linhas e «Faltas no mês» não — quatro filas de alturas 28/44/29/44 e quatro
+ *   números em quatro posições diferentes. Empilhado, todas as filas medem o
+ *   mesmo e os números alinham.
+ *
+ * `list` é a única que interage, e por isso é a única cujo elemento de raiz
+ * muda: nasce `<button>`, emite `select`, e o estado activo vem de fora por
+ * `aria-pressed` e por classe. Quem a usa tem de dar `aria-label` — o nome
+ * acessível de um botão de filtro é a acção, não a soma do rótulo com o número.
  *
  * `inline` é a única que **perde informação de propósito**, e isso está aqui em
  * letra gorda porque é a decisão e não um efeito colateral: o rodapé não
@@ -85,16 +100,20 @@ const props = defineProps({
    * custa largura à linha, e a linha existe para não custar altura.
    */
   note: { type: String, default: '' },
-  /** `card`, `strip` ou `inline`. Ver o bloco acima: a escolha é uma regra. */
+  /** `card`, `strip`, `inline` ou `list`. Ver o bloco acima: a escolha é uma regra. */
   density: {
     type: String,
     default: 'card',
-    validator: valor => ['card', 'strip', 'inline'].includes(valor),
+    validator: valor => ['card', 'strip', 'inline', 'list'].includes(valor),
   },
 });
 
+// Só `list` emite: é a única densidade que é um controlo.
+const emit = defineEmits(['select']);
+
 const emCartao = computed(() => props.density === 'card');
 const emLinha = computed(() => props.density === 'inline');
+const emLista = computed(() => props.density === 'list');
 
 // Sem valor ainda medido, mostra-se o travessão. Um zero mentiria, e um cartão
 // em branco desalinharia a fila.
@@ -113,16 +132,40 @@ const display = computed(() =>
     para o script tirava o par de baixo do olhar da porta — que foi exatamente
     como a pílula do campo sobreviveu cinco meses.
   -->
-  <div
+  <component
+    :is="emLista ? 'button' : 'div'"
+    :type="emLista ? 'button' : undefined"
     :class="{
       'grid grid-cols-[1fr_auto] items-start gap-1 rounded-xl border border-solid border-n-weak bg-n-solid-1 p-card':
         density === 'card',
       'grid grid-cols-[1fr_auto] items-start gap-0.5': density === 'strip',
       'flex items-baseline gap-control-gap whitespace-nowrap':
         density === 'inline',
+      'grid w-full gap-0.5 rounded-md px-1 py-1 text-left outline-none hover:bg-n-slate-3 focus-visible:ring-2 focus-visible:ring-n-brand/40':
+        density === 'list',
     }"
+    @click="emLista && emit('select')"
   >
+    <!--
+      O rótulo de `list` é `text-n-slate-11`, e as outras densidades ficam em
+      `-10`: só `list` tem fundo em hover e no estado activo, e `-10` sobre
+      `n-slate-3` mede 4,35:1 e sobre `n-slate-4` 4,12:1 — reprova a WCAG nos
+      dois. A porta de pares não apanha isto, porque o fundo vem de quem chama
+      e a cor do texto vem daqui: nunca coexistem no mesmo atributo.
+
+      Em `list` o rótulo é um `<span>`, não um `<p>`: `_base.scss` dá `mb-2` e
+      `leading-[1.65]` a todo o `<p>`, e um parágrafo dentro de um `<button>`
+      não é conteúdo válido. As outras três continuam em `<p>` de propósito —
+      trocá-lo mexia no ritmo vertical das seis telas que já as usam.
+    -->
+    <span
+      v-if="emLista"
+      class="break-words text-micro font-bold uppercase tracking-[0.12em] text-n-slate-11"
+    >
+      {{ label }}
+    </span>
     <p
+      v-else
       :class="{
         'col-start-1 text-xs text-n-slate-10': density === 'card',
         'col-start-1 text-micro font-bold uppercase tracking-[0.12em] text-n-slate-10':
@@ -135,7 +178,7 @@ const display = computed(() =>
     </p>
 
     <RouterLink
-      v-if="to && !emLinha"
+      v-if="to && !emLinha && !emLista"
       :to="to"
       :aria-label="toLabel"
       :title="toLabel"
@@ -143,7 +186,10 @@ const display = computed(() =>
     >
       <span class="i-lucide-arrow-up-right size-icon" />
     </RouterLink>
-    <span v-else-if="$slots.action && !emLinha" class="col-start-2 row-start-1">
+    <span
+      v-else-if="$slots.action && !emLinha && !emLista"
+      class="col-start-2 row-start-1"
+    >
       <slot name="action" />
     </span>
 
@@ -153,10 +199,12 @@ const display = computed(() =>
       alinhamento com o rótulo, que é o que faz o par ler-se como uma coisa só.
     -->
     <component
-      :is="emLinha ? 'span' : 'div'"
+      :is="emLinha || emLista ? 'span' : 'div'"
       :class="{
-        'col-start-1 flex flex-wrap items-center gap-control-gap': !emLinha,
+        'col-start-1 flex flex-wrap items-center gap-control-gap':
+          !emLinha && !emLista,
         'inline-flex items-baseline gap-control-gap': emLinha,
+        'inline-flex items-baseline gap-control-gap': emLista,
       }"
     >
       <span
@@ -164,7 +212,7 @@ const display = computed(() =>
         :class="{
           'text-3xl': density === 'card',
           'text-base': density === 'strip',
-          'text-sm': density === 'inline',
+          'text-sm': emLinha || emLista,
         }"
       >
         {{ display }}
@@ -198,7 +246,7 @@ const display = computed(() =>
       Em linha não há rodapé nenhum: é o que `inline` troca por caber no canto.
     -->
     <p
-      v-if="footer && !emLinha"
+      v-if="footer && !emLinha && !emLista"
       class="col-start-1"
       :class="
         emCartao
@@ -208,5 +256,5 @@ const display = computed(() =>
     >
       {{ footer }}
     </p>
-  </div>
+  </component>
 </template>

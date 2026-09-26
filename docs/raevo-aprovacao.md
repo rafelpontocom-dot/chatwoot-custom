@@ -832,6 +832,43 @@ commits mexem em telas que já passaram por aqui:
 implementar, a base mexe-se. Antes de implementar uma tela aprovada, comparar sempre com
 o código do dia — não com o mockup.
 
+### Os indicadores da Agenda descem para a coluna, e passam a filtrar · 26/09/2026
+
+**Isto revê a decisão de hoje de manhã**, e a revisão veio do dono do produto: os quatro
+indicadores vão mesmo para baixo de «Situação», e **cada um é clicável**.
+
+O que eu tinha respondido era que a coluna é `hidden … lg:flex` e não existe abaixo dos
+1024px, logo mover os números para lá apagava-os em tablet e telemóvel. O argumento
+continua verdadeiro — **o que estava errado era concluir dele que os números não podiam
+descer.** A conclusão certa é que não podem descer *e mais nada*:
+
+- Na coluna (≥1024px) ficam os quatro em densidade `list`, cada um um `<button>`.
+- Abaixo dos 1024px a banda do cabeçalho continua onde estava, agora `lg:hidden`.
+
+É a mesma fonte (`agendaIndicators`) em duas densidades, uma por largura. Não são dois
+tratamentos do mesmo número — é o que as densidades existem para fazer.
+
+**E o segundo argumento que eu tinha usado caiu por terra sozinho.** Eu escrevi que
+«alguém vai clicar em "4 faltas" à espera de que filtre». A resposta a isso não é
+esconder o número: é **fazê-lo filtrar**. O instinto estava certo; o desenho é que não o
+servia.
+
+Cada um leva ao recorte que conta — «Concluídas no mês 2» leva ao **mês** com a situação
+em «Concluído», não à semana. Se o período do destino não fosse o do número, o botão e a
+grelha discordavam. Segundo clique desfaz: sem isso, o filtro só se tirava no selector de
+situação, que fica acima, não diz que foi ele e deixava a vista de mês para trás.
+
+Medido na jornada real: bloco de 210px na coluna a 1280px (filas de 45/46/46/46px, todas
+iguais); banda de 73px a 900px. Ordem de tabulação a partir de «Situação»: os quatro
+filtros e depois as linhas de «Por confirmar», com anel visível e `:focus-visible` a
+casar.
+
+**Um defeito apanhado pela medição, que nenhuma porta teria apanhado:** o rótulo em
+`text-n-slate-10` sobre o fundo de `hover` mede 4,35:1 e sobre o do estado activo 4,12:1
+— reprova a WCAG nos dois. A porta de pares não o vê porque o fundo vem de quem chama e
+a cor vem do primitivo: nunca coexistem no mesmo atributo. Passou a `-11` (7,17:1 e
+6,80:1).
+
 ## Achados abertos
 
 ### O selo de variação aponta para «bom», não para onde o número foi · 26/09/2026
