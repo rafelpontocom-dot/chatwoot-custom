@@ -44,7 +44,10 @@
       "today": "Hoje",
       "7d": "Últimos 7 dias",
       "30d": "Últimos 30 dias"
-    }
+    },
+    "KPI_NEXT_AT": "próxima às {time}",
+    "KPI_CHARGES": "{count} cobranças",
+    "KPI_NOTHING_TODAY": "nada hoje"
   },
   "KANBAN": {
     "EYEBROW": "Comercial",

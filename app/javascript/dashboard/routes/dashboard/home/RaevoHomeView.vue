@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import RaevoHomeAPI from 'dashboard/api/raevoHome';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
+import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
 import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
 
 const { t, locale } = useI18n();
@@ -67,6 +68,91 @@ const totalAttention = computed(
   () =>
     Number(data.value.open_conversations_count || 0) + overdueActionsCount.value
 );
+
+// --- Os quatro indicadores do sistema aprovado -------------------------------
+// A fila que abre a tela. Cada número aqui é servido pelo `RaevoHomeController`;
+// nenhum é derivado da lista cortada, que mostra oito e esconderia o resto.
+//
+// **Nenhum cartão tem variação.** O artefacto desenha setas de mês a mês e o
+// servidor desta tela não guarda histórico nenhum — só o estado de agora. Um
+// delta inventado aqui seria pior do que a ausência dele, porque parece
+// informação. As setas entram quando o backend souber comparar.
+//
+// O rodapé de «Conversas» e de «Ações» diz o PERÍODO, que é o que o número
+// realmente cobre: as duas listas são limitadas pelo filtro no topo, e sem isto
+// o número não diz de quando é.
+// A mesma forma que o `<option>` do filtro de período já usa, mais abaixo neste
+// ficheiro. Uma segunda mecânica para o mesmo rótulo divergiria no dia em que
+// alguém acrescentasse um período.
+const periodLabel = computed(() => t(`HOME.PERIOD.${period.value || 'ALL'}`));
+
+const nextAppointmentFooter = computed(() => {
+  const items = todayAppointments.value?.items || [];
+  if (!items.length) return t('HOME.KPI_NOTHING_TODAY');
+  // `items` vem sempre ordenado por `starts_at` no servidor, não pelo filtro de
+  // ordenação — por isso o primeiro é de facto o próximo.
+  return t('HOME.KPI_NEXT_AT', {
+    time: new Date(items[0].starts_at).toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  });
+});
+
+const overduePaymentsTotal = computed(() => {
+  const card = overduePayments.value;
+  if (!card) return null;
+  const items = card.items || [];
+  if (!items.length) return null;
+  const cents = items.reduce(
+    (soma, payment) => soma + Number(payment.amount_cents || 0),
+    0
+  );
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: items[0].currency || 'BRL',
+  }).format(cents / 100);
+});
+
+const homeIndicators = computed(() => {
+  const cards = [
+    {
+      chave: 'conversations',
+      label: t('HOME.OPEN_CONVERSATIONS'),
+      value: String(data.value.open_conversations_count ?? 0),
+      footer: periodLabel.value,
+    },
+    {
+      chave: 'actions',
+      label: t('HOME.OVERDUE_ACTIONS'),
+      value: overdueActionsLabel.value,
+      footer: periodLabel.value,
+    },
+  ];
+
+  // Agenda e Financeiro são opt-in: `null` quer dizer «módulo não está em uso».
+  // O cartão não aparece, em vez de mostrar zero e sugerir que está vazio.
+  if (todayAppointments.value) {
+    cards.push({
+      chave: 'agenda',
+      label: t('HOME.TODAY_APPOINTMENTS'),
+      value: String(todayAppointments.value.count ?? 0),
+      footer: nextAppointmentFooter.value,
+    });
+  }
+  if (overduePayments.value) {
+    cards.push({
+      chave: 'overdue-payments',
+      label: t('HOME.OVERDUE_PAYMENTS'),
+      value: overduePaymentsTotal.value,
+      footer: t('HOME.KPI_CHARGES', {
+        count: overduePayments.value.count ?? 0,
+      }),
+    });
+  }
+
+  return cards;
+});
 
 const loadHome = async () => {
   isLoading.value = true;
@@ -310,6 +396,27 @@ onMounted(loadHome);
             {{ t(`HOME.PERIOD.${value || 'ALL'}`) }}
           </option>
         </select>
+      </div>
+
+      <!--
+        A fila de indicadores do sistema aprovado, logo depois dos filtros que a
+        determinam: o número sem o âmbito não diz de quando é. Agenda e
+        Financeiro só aparecem se o módulo estiver em uso — `null` do servidor
+        quer dizer «não mostrar», e um zero ali sugeriria que está vazio.
+      -->
+      <div
+        v-if="homeIndicators.length"
+        data-testid="home-indicators"
+        class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        <RaevoKpiCard
+          v-for="indicador in homeIndicators"
+          :key="indicador.chave"
+          :data-testid="`home-kpi-${indicador.chave}`"
+          :label="indicador.label"
+          :value="indicador.value"
+          :footer="indicador.footer"
+        />
       </div>
       <!--
         A agenda é a única lista com forma de tempo, e é o que a secretaria vê
