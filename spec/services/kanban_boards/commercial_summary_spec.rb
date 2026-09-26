@@ -11,7 +11,9 @@ RSpec.describe KanbanBoards::CommercialSummary do
   it 'sums only what is still open into the pipeline value' do
     create(:kanban_card, **card_attributes, amount_cents: 480_000)
     create(:kanban_card, **card_attributes, amount_cents: 120_000, won_at: Time.zone.now)
-    create(:kanban_card, **card_attributes, amount_cents: 90_000, lost_at: Time.zone.now)
+    # `lost_at` sem `lost_reason` não passa a validação do cartão, por isso a
+    # razão vem sempre com a data — aqui e na taxa de fecho, mais abaixo.
+    create(:kanban_card, **card_attributes, amount_cents: 90_000, lost_at: Time.zone.now, lost_reason: 'Preço')
     create(:kanban_card, **card_attributes, amount_cents: 70_000, archived_at: Time.zone.now)
 
     expect(described_class.new(board: board).call[:pipeline_value][:current]).to eq(480_000)
@@ -21,7 +23,7 @@ RSpec.describe KanbanBoards::CommercialSummary do
     travel_to Time.zone.parse('2026-09-18 10:00') do
       create(:kanban_card, **card_attributes, won_at: Time.zone.parse('2026-09-04'))
       create(:kanban_card, **card_attributes, won_at: Time.zone.parse('2026-09-06'))
-      create(:kanban_card, **card_attributes, lost_at: Time.zone.parse('2026-09-08'))
+      create(:kanban_card, **card_attributes, lost_at: Time.zone.parse('2026-09-08'), lost_reason: 'Sem resposta')
 
       resumo = described_class.new(board: board).call[:close_rate]
 

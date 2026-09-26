@@ -34,14 +34,24 @@ RSpec.describe RaevoAi::CommandRecorder do
         payload: payload
       ).claim
 
-      expect do
+      # Compara pelo NOME da classe, não pela constante: em teste o Rails recarrega
+      # código (`cache_classes = false`), e a constante que o `described_class` fechou
+      # ao carregar o ficheiro pode já não ser a que o matcher resolve na execução —
+      # mesmo nome, objeto diferente, e a comparação por identidade falha.
+      erro = begin
         described_class.new(
           integration: integration,
           action_id: 'act-handoff-001',
           command_type: 'handoff.apply',
           payload: { 'reason' => 'operational_failure' }
         ).claim
-      end.to raise_error(RaevoAi::CommandRecorder::Conflict)
+        nil
+      rescue StandardError => e
+        e
+      end
+
+      expect(erro.class.name).to eq('RaevoAi::CommandRecorder::Conflict')
+      expect(erro.message).to eq('action_id was already claimed with a different command')
     end
   end
 end

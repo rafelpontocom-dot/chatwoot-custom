@@ -27,7 +27,9 @@ class LlmFormatter::ContactLlmFormatter < LlmFormatter::DefaultLlmFormatter
     attributes << "Phone: #{@record.phone_number}"
     attributes << "Location: #{@record.location}"
     attributes << "Country Code: #{@record.country_code}"
-    @record.account.custom_attribute_definitions.with_attribute_model('contact_attribute').each do |attribute|
+    # Ordem explícita: o mesmo contacto tem de dar o mesmo prompt, e uma consulta sem
+    # `order` devolve a ordem física das linhas, que muda com o uso da tabela.
+    @record.account.custom_attribute_definitions.with_attribute_model('contact_attribute').order(:id).each do |attribute|
       attributes << "#{attribute.attribute_display_name}: #{@record.custom_attributes[attribute.attribute_key]}"
     end
     attributes.join("\n")
