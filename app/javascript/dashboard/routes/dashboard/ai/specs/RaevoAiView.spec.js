@@ -52,6 +52,13 @@ const mountView = () =>
             '<nav><button v-for="tab in tabs" :key="tab.key" type="button" :data-testid="\'tab-\' + tab.key" @click="$emit(\'tabChanged\', tab)">{{ tab.label }}</button></nav>',
         },
         RaevoAiKnowledgePanel: true,
+        // Stubado sem props, o cartão engole rótulo, valor e rodapé, e a fila de
+        // indicadores fica vazia no teste. Está documentado no AGENTS.md.
+        RaevoKpiCard: {
+          props: ['label', 'value', 'delta', 'footer', 'to', 'toLabel'],
+          template:
+            '<div><i>{{ label }}</i><b>{{ value }}</b><s>{{ delta }}</s><u>{{ footer }}</u><a v-if="to" :aria-label="toLabel" /></div>',
+        },
         RouterLink: { props: ['to'], template: '<a><slot /></a>' },
         RaevoField: {
           props: ['label', 'hint', 'error'],
@@ -181,6 +188,38 @@ describe('RaevoAiView', () => {
       'RAEVO_AI.JOURNEY.LINK_CONVERSATIONS'
     );
     expect(wrapper.find('[data-testid="ai-attendance"]').text()).toContain('5');
+  });
+
+  it('opens service with the conversations count, and with no trend arrow anywhere', async () => {
+    RaevoAiAPI.getOverview.mockResolvedValue({
+      data: {
+        status: 'active',
+        usage: {
+          conversations: 308,
+          responses_delivered: 741,
+          handoffs: 26,
+          first_response_seconds: 95,
+        },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const atendimento = wrapper.find('[data-testid="ai-attendance"]');
+    const cartoes = atendimento.findAll('div > i');
+
+    // As conversas deixam de viver só dentro das legendas: são o denominador das
+    // outras três e abrem a fila.
+    expect(cartoes[0].text()).toBe('RAEVO_AI.ATTENDANCE.CONVERSATIONS');
+    expect(atendimento.findAll('div > b')[0].text()).toBe('308');
+    expect(cartoes).toHaveLength(4);
+
+    // A ponte devolve uma janela e não a anterior, logo não há base para
+    // comparar. Se alguém puser aqui um delta, este teste cai.
+    atendimento.findAll('div > s').forEach(selo => {
+      expect(selo.text()).toBe('');
+    });
   });
 
   it('follows the clinic board: opportunity, pre-booked, booked, won', async () => {

@@ -31,13 +31,13 @@ Chatwoot e redesenhá-la encarece cada `git pull`).
 | **Início** | ✅ | fila de quatro, opt-in por módulo. Sem variação: o servidor desta tela não guarda histórico |
 | **Pipeline** | ✅ | fila de quatro; `KanbanBoards::CommercialSummary` novo |
 | **Agenda** | ✅ | fila de quatro por contagem de `status` |
+| **Visão de funil** | ✅ | tela própria, `KanbanBoards::FunnelSummary` novo. Quatro contagens por etapa, nunca somadas: entraram e avançaram são fluxo na janela, perdidas é fecho na janela, abertas é agora |
+| **IA** | ✅ | a fila passou a `RaevoKpiCard` e ganhou as conversas, que eram o denominador das outras três e viviam só dentro das legendas |
 
 ### O que falta, e o que impede
 
 | Tela | O que falta | Porquê não está feito |
 | --- | --- | --- |
-| **Visão de funil** | conversão e perda por etapa | Derivável de `KanbanCardEvent` (`stage_changed`), mas exige análise de eventos por par de etapas num período. É trabalho real, não um cartão |
-| **IA** | quatro métricas de atendimento | `raevo_ai/overview_controller` serve estado, não métrica. Precisa de agregações novas sobre conversas e mensagens |
 | **Marketing** | custo por lead, receita atribuída | **Bloqueado por falta de dados.** Não existe schema para custo de campanha nem para atribuição de receita. Implementar exige decidir como a clínica introduz esses dados — é produto, não frontend |
 | **Agenda · ocupação** | taxa de ocupação | Exige cruzar regras de disponibilidade por dia e por recurso, sobreposições de data, blocos externos e durações. Uma ocupação errada é pior do que nenhuma |
 
@@ -53,7 +53,21 @@ uma derivável e isso está escrito:
 - «Taxa de ocupação» → não substituída; fica de fora com a razão acima
 
 Há testes que afirmam a **ausência** de setas onde não há base de comparação. Se
-alguém puser lá um delta, o teste cai.
+alguém puser lá um delta, o teste cai. Na IA a ausência é por a ponte devolver uma
+janela e não a anterior; na Visão de funil, a conversão de uma etapa onde nada
+entrou vem `nil` e sai como travessão.
+
+### Uma correcção a este documento · 26/09/2026
+
+A linha que estava aqui sobre a IA dizia que ela «precisa de agregações novas
+sobre conversas e mensagens». **Estava errada.** As métricas já existiam:
+`RaevoAi::OverviewClient` traz `conversations`, `responses_delivered`,
+`first_response_seconds`, `handoffs`, `pre_scheduled`, `appointments` e
+`payments` da ponte, e `RaevoAi::FunnelMetrics` acrescenta
+`opportunities_created` desta base. O que faltava era a **anatomia**: a tela
+desenhava-as num `<dl>` empilhado — o quarto tratamento de cartão de número no
+produto — em vez do `RaevoKpiCard` que serve as outras cinco. A dívida era de
+apresentação, não de dados, e ficou mais pequena do que este documento dizia.
 
 ---
 
