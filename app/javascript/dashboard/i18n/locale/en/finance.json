@@ -40,7 +40,12 @@
         "OPEN": "Open",
         "RECEIVED": "Received",
         "OVERDUE": "Overdue",
-        "EMPTY_VALUE": "—"
+        "EMPTY_VALUE": "—",
+        "AVERAGE_TICKET": "Average ticket",
+        "CHARGES": "{count} charges",
+        "OVERDUE_AGE": "{count} charges · {days} days",
+        "LAST_MONTH": "{value} last month",
+        "NO_BASELINE": "no month to compare"
       },
       "FILTERS": {
         "SEARCH": "Search contact, phone, email or description",

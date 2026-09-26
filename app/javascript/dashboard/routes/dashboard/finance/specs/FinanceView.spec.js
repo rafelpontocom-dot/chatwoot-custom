@@ -82,6 +82,13 @@ const mountFinance = () =>
           template:
             '<header><slot name="actions" /><slot name="filters" /><slot name="tabs" /><slot /></header>',
         },
+        // O mesmo com o cartão de indicador: stubado, engole rótulo, valor e
+        // rodapé, e a fila de quatro fica vazia no teste.
+        RaevoKpiCard: {
+          props: ['label', 'value', 'delta', 'footer'],
+          template:
+            '<div><i>{{ label }}</i><b>{{ value }}</b><s>{{ delta }}</s><u>{{ footer }}</u></div>',
+        },
       },
     },
   });
@@ -510,6 +517,11 @@ describe('FinanceView', () => {
         open: [{ currency: 'BRL', count: 1, amount_cents: 15_025 }],
         received: [{ currency: 'BRL', count: 2, amount_cents: 30_000 }],
         overdue: [],
+        month: {
+          received: [{ currency: 'BRL', count: 2, amount_cents: 30_000 }],
+          received_previous: [{ currency: 'BRL', count: 2, amount_cents: 20_000 }],
+        },
+        overdue_oldest_due_on: null,
       },
     });
     const wrapper = mountFinance();
@@ -519,6 +531,36 @@ describe('FinanceView', () => {
     expect(summary.text()).toContain('FINANCE.PAYMENTS.SUMMARY.OPEN');
     expect(summary.text()).toContain('FINANCE.PAYMENTS.SUMMARY.RECEIVED');
     expect(summary.text()).toContain('150,25');
+  });
+
+  it('measures the average ticket and the month-over-month change, and invents neither', async () => {
+    FinanceAPI.getModule.mockResolvedValue({
+      data: { enabled: true, market: 'BR', lock_version: 0 },
+    });
+    FinanceAPI.getPaymentsSummary.mockResolvedValue({
+      data: {
+        open: [{ currency: 'BRL', count: 3, amount_cents: 90_000 }],
+        received: [{ currency: 'BRL', count: 4, amount_cents: 40_000 }],
+        overdue: [{ currency: 'BRL', count: 1, amount_cents: 12_900 }],
+        month: {
+          received: [{ currency: 'BRL', count: 4, amount_cents: 40_000 }],
+          received_previous: [{ currency: 'BRL', count: 5, amount_cents: 25_000 }],
+        },
+        overdue_oldest_due_on: null,
+      },
+    });
+    const wrapper = mountFinance();
+    await flushPromises();
+
+    const ticket = wrapper.get('[data-testid="finance-kpi-ticket"]');
+    // 40.000 / 4 = 100,00 este mês; 25.000 / 5 = 50,00 no anterior → +100%
+    expect(ticket.text()).toContain('100,00');
+    expect(ticket.text()).toContain('+100%');
+
+    // «A vencer» e «Vencido» não têm mês anterior no servidor: ficam sem seta,
+    // em vez de mostrarem uma variação que ninguém mediu.
+    expect(wrapper.get('[data-testid="finance-kpi-open"]').find('s').text()).toBe('');
+    expect(wrapper.get('[data-testid="finance-kpi-overdue"]').find('s').text()).toBe('');
   });
 
   it('sends compact payment filters to the server', async () => {

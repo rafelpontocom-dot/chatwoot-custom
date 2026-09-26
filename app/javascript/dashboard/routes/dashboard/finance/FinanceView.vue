@@ -16,6 +16,7 @@ import FinancePaymentDialog from './FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from './FinancePaymentDetailsDialog.vue';
 import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
+import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
 import { getFinancePaymentStatus } from 'dashboard/helper/financePaymentStatus';
 
 const { t } = useI18n();
@@ -32,7 +33,13 @@ const financeModule = ref(null);
 const connections = ref([]);
 const payments = ref([]);
 const webhookDeliveries = ref([]);
-const paymentSummary = ref({ open: [], received: [], overdue: [] });
+const paymentSummary = ref({
+  open: [],
+  received: [],
+  overdue: [],
+  month: { received: [], received_previous: [] },
+  overdue_oldest_due_on: null,
+});
 const paymentDialog = ref(null);
 const paymentDetailsDialog = ref(null);
 const isLoading = ref(true);
@@ -194,6 +201,116 @@ const formatAmount = payment =>
     currency: payment.currency || 'BRL',
   }).format((payment.amount_cents || 0) / 100);
 
+// --- Os quatro indicadores do sistema aprovado -------------------------------
+// A fila de quatro cartões que abre a tela. Cada número aqui é MEDIDO: nenhum
+// indicador ganha variação que o servidor não saiba calcular. «A vencer» e
+// «Vencido» ficam sem seta porque não temos o mês anterior deles — e um delta
+// inventado é pior do que nenhum, porque parece informação.
+//
+// O resumo vem agrupado por moeda (uma conta pode cobrar em BRL e em EUR:
+// Portugal é controle manual em euros). Um número grande só pode ser de uma
+// moeda, então a primeira — o servidor ordena — é o valor.
+const principal = totais => totais?.[0] ?? null;
+const somaDe = totais => {
+  const t = principal(totais);
+  return t ? formatAmount(t) : null;
+};
+const contarDe = totais =>
+  (totais || []).reduce((soma, total) => soma + (total.count || 0), 0);
+
+const variacao = (agora, antes) => {
+  if (!agora || !antes?.amount_cents) return { texto: '', subiu: true };
+  const pct =
+    ((agora.amount_cents - antes.amount_cents) / antes.amount_cents) * 100;
+  return {
+    texto: `${pct >= 0 ? '+' : '\u2212'}${Math.abs(pct).toFixed(0)}%`,
+    subiu: pct >= 0,
+  };
+};
+
+const ticketDe = totais => {
+  const t = principal(totais);
+  if (!t?.count) return null;
+  return formatAmount({
+    currency: t.currency,
+    amount_cents: Math.round(t.amount_cents / t.count),
+  });
+};
+
+const diasEmAtraso = computed(() => {
+  const vencimento = paymentSummary.value.overdue_oldest_due_on;
+  if (!vencimento) return 0;
+  const dias = Math.floor(
+    (Date.now() - new Date(`${vencimento}T12:00:00`).getTime()) / 86400000
+  );
+  return Math.max(0, dias);
+});
+
+const indicadores = computed(() => {
+  const resumo = paymentSummary.value;
+  const mes = resumo.month || {};
+  const receb = variacao(principal(mes.received), principal(mes.received_previous));
+  const ticket = variacao(
+    principal(mes.received) && {
+      amount_cents: Math.round(
+        principal(mes.received).amount_cents /
+          (principal(mes.received).count || 1)
+      ),
+    },
+    principal(mes.received_previous) && {
+      amount_cents: Math.round(
+        principal(mes.received_previous).amount_cents /
+          (principal(mes.received_previous).count || 1)
+      ),
+    }
+  );
+  const ticketAnterior = ticketDe(mes.received_previous);
+
+  return [
+    {
+      chave: 'received',
+      label: t('FINANCE.PAYMENTS.SUMMARY.RECEIVED'),
+      value: somaDe(resumo.received),
+      delta: receb.texto,
+      deltaIsGood: receb.subiu,
+      footer: t('FINANCE.PAYMENTS.SUMMARY.CHARGES', {
+        count: contarDe(resumo.received),
+      }),
+    },
+    {
+      chave: 'open',
+      label: t('FINANCE.PAYMENTS.SUMMARY.OPEN'),
+      value: somaDe(resumo.open),
+      delta: '',
+      deltaIsGood: true,
+      footer: t('FINANCE.PAYMENTS.SUMMARY.CHARGES', {
+        count: contarDe(resumo.open),
+      }),
+    },
+    {
+      chave: 'overdue',
+      label: t('FINANCE.PAYMENTS.SUMMARY.OVERDUE'),
+      value: somaDe(resumo.overdue),
+      delta: '',
+      deltaIsGood: false,
+      footer: t('FINANCE.PAYMENTS.SUMMARY.OVERDUE_AGE', {
+        count: contarDe(resumo.overdue),
+        days: diasEmAtraso.value,
+      }),
+    },
+    {
+      chave: 'ticket',
+      label: t('FINANCE.PAYMENTS.SUMMARY.AVERAGE_TICKET'),
+      value: ticketDe(mes.received),
+      delta: ticket.texto,
+      deltaIsGood: ticket.subiu,
+      footer: ticketAnterior
+        ? t('FINANCE.PAYMENTS.SUMMARY.LAST_MONTH', { value: ticketAnterior })
+        : t('FINANCE.PAYMENTS.SUMMARY.NO_BASELINE'),
+    },
+  ];
+});
+
 const formatDueDate = dueOn => {
   if (!dueOn) return t('FINANCE.PAYMENTS.NO_DUE_DATE');
 
@@ -271,7 +388,13 @@ async function loadPaymentSummary() {
     );
     paymentSummary.value = data;
   } catch {
-    paymentSummary.value = { open: [], received: [], overdue: [] };
+    paymentSummary.value = {
+      open: [],
+      received: [],
+      overdue: [],
+      month: { received: [], received_previous: [] },
+      overdue_oldest_due_on: null,
+    };
   }
 }
 
@@ -665,8 +788,8 @@ onMounted(loadFinance);
             v-if="canConfigure"
             type="button"
             data-testid="finance-toggle-settings"
-            class="flex p-0 size-9 items-center justify-center rounded-full border border-solid border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
-            :class="activeView === 'settings' ? 'bg-n-blue-3 text-n-brand' : ''"
+            class="flex p-0 size-9 items-center justify-center rounded-lg border border-solid border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+            :class="activeView === 'settings' ? 'bg-n-brand/10 text-n-brand' : ''"
             :aria-pressed="activeView === 'settings'"
             :aria-label="
               activeView === 'settings'
@@ -829,73 +952,19 @@ onMounted(loadFinance);
           </div>
 
           <div
-            class="grid gap-px border-b border-n-weak bg-n-weak sm:grid-cols-3"
+            class="grid gap-3 border-b border-n-weak p-card sm:grid-cols-2 lg:grid-cols-4"
             data-testid="finance-payments-summary"
           >
-            <div class="bg-n-solid-1 px-5 py-3">
-              <p class="mb-1 text-xs font-medium text-n-slate-10">
-                {{ t('FINANCE.PAYMENTS.SUMMARY.OPEN') }}
-              </p>
-              <p class="mb-0 text-sm font-semibold text-n-slate-12">
-                <template v-if="paymentSummary.open?.length">
-                  <span
-                    v-for="total in paymentSummary.open"
-                    :key="total.currency"
-                    class="mr-2 last:mr-0"
-                  >
-                    {{ formatAmount(total) }}
-                  </span>
-                </template>
-                <template v-else>
-                  {{ t('FINANCE.PAYMENTS.SUMMARY.EMPTY_VALUE') }}
-                </template>
-              </p>
-            </div>
-            <div class="bg-n-solid-1 px-5 py-3">
-              <p class="mb-1 text-xs font-medium text-n-slate-10">
-                {{ t('FINANCE.PAYMENTS.SUMMARY.RECEIVED') }}
-              </p>
-              <p class="mb-0 text-sm font-semibold text-n-slate-12">
-                <template v-if="paymentSummary.received?.length">
-                  <span
-                    v-for="total in paymentSummary.received"
-                    :key="total.currency"
-                    class="mr-2 last:mr-0"
-                  >
-                    {{ formatAmount(total) }}
-                  </span>
-                </template>
-                <template v-else>
-                  {{ t('FINANCE.PAYMENTS.SUMMARY.EMPTY_VALUE') }}
-                </template>
-              </p>
-            </div>
-            <div class="bg-n-solid-1 px-5 py-3">
-              <p class="mb-1 text-xs font-medium text-n-slate-10">
-                {{ t('FINANCE.PAYMENTS.SUMMARY.OVERDUE') }}
-              </p>
-              <p
-                class="mb-0 text-sm font-semibold"
-                :class="
-                  paymentSummary.overdue?.length
-                    ? 'text-n-ruby-11'
-                    : 'text-n-slate-11'
-                "
-              >
-                <template v-if="paymentSummary.overdue?.length">
-                  <span
-                    v-for="total in paymentSummary.overdue"
-                    :key="total.currency"
-                    class="mr-2 last:mr-0"
-                  >
-                    {{ formatAmount(total) }}
-                  </span>
-                </template>
-                <template v-else>
-                  {{ t('FINANCE.PAYMENTS.SUMMARY.EMPTY_VALUE') }}
-                </template>
-              </p>
-            </div>
+            <RaevoKpiCard
+              v-for="indicador in indicadores"
+              :key="indicador.chave"
+              :data-testid="`finance-kpi-${indicador.chave}`"
+              :label="indicador.label"
+              :value="indicador.value"
+              :delta="indicador.delta"
+              :delta-is-good="indicador.deltaIsGood"
+              :footer="indicador.footer"
+            />
           </div>
 
           <form

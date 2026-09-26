@@ -124,7 +124,19 @@ stubs: {
 }
 ```
 
-Exemplos prontos: `KanbanAutomations.spec.js`, `KanbanBoardSettings.spec.js`.
+O mesmo vale para **`RaevoKpiCard`**: stubado, engole rótulo, valor, variação e
+rodapé, e a fila de quatro indicadores fica vazia no teste. O stub tem de declarar
+os props e renderizá-los:
+
+```js
+RaevoKpiCard: {
+  props: ['label', 'value', 'delta', 'footer'],
+  template: '<div><i>{{ label }}</i><b>{{ value }}</b><s>{{ delta }}</s><u>{{ footer }}</u></div>',
+},
+```
+
+Exemplos prontos: `KanbanAutomations.spec.js`, `KanbanBoardSettings.spec.js`,
+`FinanceView.spec.js`.
 
 ## Antes de abrir PR
 
