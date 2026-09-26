@@ -27,6 +27,39 @@ para as sete decisões e de onde veio cada valor.
 **Especificação completa e obrigatória: [`docs/raevo-design-system.md`](docs/raevo-design-system.md).**
 Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável.
 
+## Toda mudança de UI passa pelo design system — e por esta ordem
+
+Não é conselho: é a sequência de trabalho. **Antes** de escrever markup, e **outra vez** antes
+de abrir PR.
+
+1. **Já existe primitivo?** `components-next/raevo/` — `RaevoPageHeader`, `RaevoKpiCard`,
+   `RaevoStamp`, `RaevoField`. Se existe, usa-se; não se recria nem se desenha à mão. Foi por
+   se ter recriado que o produto chegou a três tratamentos de cartão de número e a três de
+   campo dentro do mesmo diálogo.
+2. **O padrão está escrito?** `docs/raevo-design-system.md` §5 tem cabeçalho de página,
+   indicador (as três densidades), card de lead, tabela, coluna do funil, estado de consulta.
+   Cor no §2, forma no §3, tipografia no §4.
+3. **O valor está gravado?** `design-system/raevo.tokens.json` é o sistema como está no código
+   e `design-system/aprovado/consultorio.tokens.json` é a direção aprovada. Token que falta
+   nasce em `_raevo-tokens.scss`, nunca no componente.
+4. **A tela já existe?** Então não muda sem passar por
+   [`docs/raevo-aprovacao.md`](docs/raevo-aprovacao.md) — e a decisão fica lá escrita, com o
+   que se ganhou e o que se perdeu.
+5. **As portas correm** (`pnpm raevo:design`, `raevo:tokens`, `raevo:palette`) e a **porta
+   visual** de cinco passos, com jornada real e capturas antes/depois.
+
+**Ordem de precedência quando as fontes divergirem**, porque divergem:
+
+| | |
+| --- | --- |
+| **1. O código** | `_raevo-tokens.scss`, `tailwind.config.js`, `components-next/raevo/`. É o que o utilizador vê e o que as portas medem |
+| **2. `design-system/`** | os tokens gravados. `pnpm raevo:tokens` falha se o código divergir deles — é essa falha que os mantém honestos |
+| **3. `docs/`** | a especificação e a fila de aprovação. Explicam o porquê; o valor está acima |
+| **4. Os artefactos** | o demonstrador e a referência navegável no claude.ai são **espelhos para humanos**. Nunca são fonte: um token muda no código e o artefacto fica desactualizado sem ninguém dar por isso |
+
+**Mudou alguma coisa nas três primeiras? Actualize também o artefacto**, na mesma passagem. Um
+espelho desactualizado é pior do que nenhum, porque alguém desenha a partir dele.
+
 ## O que Consultório mudou em relação a Sereno
 
 Histórico, para quem encontrar código ou capturas antigas. **Já está aplicado** — não
@@ -249,6 +282,18 @@ JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pret
 | `app/javascript/dashboard/constants/raevoPalette.js` | cores que viram DADO (etapa, procedimento) |
 | `docs/raevo-design-system.md` | especificação, padrões de tela, checklist de PR |
 | `output/raevo-design-2026-v2/index.html` | mockups de H · Sereno — **histórico**. A direção aprovada é Consultório; use `design-system/aprovado/` |
+
+E os espelhos no claude.ai, que **não são fonte** (ver a ordem de precedência acima) mas são o
+que se mostra a quem não lê código:
+
+| Artefacto | Papel |
+| --- | --- |
+| [Raevo · Sistema Aprovado](https://claude.ai/artifact/2ACSDXn19DZKFWUos9pnaA) | o demonstrador: catorze telas na direção aprovada, **mais a secção «O sistema, em números»** — cor, tipografia, raio, caixa e as três densidades do indicador, com os valores |
+| [Indicadores no canto](https://claude.ai/artifact/AM7QHMa8pwVaiZ7K5GteSL) | a decisão de 26/09 entre as duas propostas de fila, com as medições e as capturas |
+
+**Mudou token, primitivo ou padrão? Actualize o demonstrador na mesma passagem.** Um espelho
+desactualizado é pior do que nenhum: alguém desenha a partir dele e a divergência só aparece na
+revisão.
 
 ---
 
