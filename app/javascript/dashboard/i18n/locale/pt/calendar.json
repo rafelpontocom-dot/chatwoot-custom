@@ -13,6 +13,8 @@
     "ALL_RESOURCES": "Todas as agendas",
     "STATUS_FILTER": "Situação",
     "ALL_STATUSES": "Todos os status",
+    "UNCONFIRMED_TITLE": "Por confirmar",
+    "UNCONFIRMED_OPEN": "Abrir {contact} às {time}",
     "SEARCH": "Buscar agenda",
     "SEARCH_PLACEHOLDER": "Buscar paciente ou oportunidade",
     "GRID_LABEL": "Agenda de atendimentos",

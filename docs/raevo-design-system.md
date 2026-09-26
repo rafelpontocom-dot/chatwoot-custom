@@ -257,6 +257,41 @@ alguém puser uma em cada indicador, a linha quebra e volta a ter duas alturas.
 No Pipeline nenhum indicador leva nota, e é escolha: o que o rodapé lá levava (o valor fechado,
 o denominador da taxa) está na faixa **Resumo**, a um clique no cabeçalho.
 
+### A coluna lateral da Agenda — o que fica no fundo
+
+A barra lateral da Agenda (`w-56`, 224px, com `px-3`) tem o mini-mês, as agendas e o filtro de
+situação, e depois disso **acabava**: uns 400px de nada até ao fundo do ecrã.
+
+O que vai para lá **não são os agregados do mês.** Duas razões, e a primeira é factual: a barra
+é `hidden … lg:flex`, ou seja **não existe abaixo dos 1024px** — mover os indicadores para lá
+apagava-os em portátil pequeno, tablet e telemóvel. A segunda é de leitura: o fundo de uma
+coluna de filtros é o sítio mais frio da tela, e misturar leitura com filtro convida a clicar
+num número à espera de que filtre.
+
+O que vai para lá é a **lista accionável**: as marcações de hoje ainda por confirmar, uma por
+linha, com a hora e o nome, cada uma um `<button>` que abre o diálogo da marcação. O contador
+continua na linha do cabeçalho — diz que há três; a lista diz **quais**, e chega-se lá num
+clique.
+
+Três regras que a lista segue, e que valem para o que vier a ocupar aquele espaço:
+
+- **Pedido próprio.** `appointments` é o que a vista carregou: do período no ecrã, filtrado pela
+  situação e pela pesquisa. Derivar dali daria uma lista que fica vazia mal alguém navegue para
+  outra semana — uma lista que mente é pior do que nenhuma.
+- **Só aparece quando tem o que dizer.** Sem nada por confirmar a coluna fica calada: não há
+  secção vazia nem «tudo confirmado» a ocupar espaço.
+- **Nada depende de `truncate`.** O nome quebra por palavra; a hora é `tabular-nums` e não
+  encolhe. Par mais apertado medido: 7,17:1 em `hover`, 7,81:1 em repouso.
+- **Ordena quem mostra.** `AppointmentsIndexQuery` não tem `ORDER BY` — devolve o que o
+  Postgres der, e com `.distinct` a ordem é mesmo indefinida. A grelha não se importa, porque
+  posiciona cada marcação pela hora; uma **lista** fora de ordem é um defeito que se lê à
+  primeira. Ordena-se no cliente, não no `query`: mudar o `scope` mexia na grelha, que não
+  pediu nada.
+
+**O que muda de estado, recarrega tudo o que o mostra.** Confirmar uma marcação recarrega a
+grelha, as contagens **e** a lista. Antes só a grelha recarregava, e o contador do cabeçalho
+ficava a dizer o valor de quando a tela abriu.
+
 **O selo de variação custa 1px.** Medido: 27px sem ele, 28px com ele — cabe na linha do número.
 Não é por espaço que se tira uma seta, e tirá-la faz a tela deixar de dizer se uma taxa de
 fecho de 50% veio de 30% ou de 70%.

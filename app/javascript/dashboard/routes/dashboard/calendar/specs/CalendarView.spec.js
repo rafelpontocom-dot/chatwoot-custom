@@ -204,6 +204,117 @@ describe('CalendarView', () => {
     });
   });
 
+  // O fundo da barra lateral estava vazio. O que vai para lá é a única coisa de
+  // hoje sobre a qual se age — e cada linha leva à marcação.
+  describe('the unconfirmed list in the sidebar', () => {
+    const porConfirmar = [
+      {
+        id: 91,
+        starts_at: '2026-09-26T09:00:00.000Z',
+        ends_at: '2026-09-26T09:30:00.000Z',
+        status: 'scheduled',
+        contact: { id: 1, name: 'Ana Ribeiro' },
+        procedure: { id: 1, name: 'Consulta inicial' },
+      },
+      {
+        id: 92,
+        starts_at: '2026-09-26T10:00:00.000Z',
+        ends_at: '2026-09-26T10:30:00.000Z',
+        status: 'scheduled',
+        contact: { id: 2, name: 'Rui Salgado' },
+        procedure: { id: 1, name: 'Consulta inicial' },
+      },
+    ];
+
+    // A lista tem pedido próprio: só o que pede `status: 'scheduled'` a recebe.
+    // A grelha continua a receber o que a vista dela pediu.
+    const comPorConfirmar = () =>
+      CalendarAPI.getAppointments.mockImplementation(({ status }) =>
+        Promise.resolve({ data: status === 'scheduled' ? porConfirmar : [] })
+      );
+
+    it("lists today's unconfirmed appointments with the time and the name", async () => {
+      comPorConfirmar();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const lista = wrapper.get('[data-testid="calendar-unconfirmed"]');
+
+      expect(lista.findAll('button')).toHaveLength(2);
+      expect(lista.text()).toContain('Ana Ribeiro');
+      expect(lista.text()).toContain('Rui Salgado');
+    });
+
+    // O ponto todo: `appointments` é o que a VISTA carregou, filtrado pelo
+    // período, pela situação e pela pesquisa. Derivar a lista dali dava uma
+    // lista que fica vazia mal alguém navegue para outra semana.
+    it('asks for today on its own, apart from what the grid is showing', async () => {
+      comPorConfirmar();
+      mountCalendar();
+      await flushPromises();
+
+      const pedidos = CalendarAPI.getAppointments.mock.calls.map(
+        ([arg]) => arg
+      );
+      const daLista = pedidos.filter(arg => arg.status === 'scheduled');
+
+      const UM_DIA = 24 * 60 * 60 * 1000;
+
+      expect(daLista).toHaveLength(1);
+      // Uma janela de um dia, e sem a pesquisa nem o recurso que a vista aplica.
+      expect(
+        new Date(daLista[0].ends_at) - new Date(daLista[0].starts_at)
+      ).toBe(UM_DIA);
+      expect(daLista[0].q).toBeUndefined();
+    });
+
+    // O endpoint não tem `ORDER BY`: devolve o que o Postgres der. A grelha
+    // não se importa, porque posiciona pela hora; a lista importa-se.
+    it('puts the rows in order of time, whatever order the server sent', async () => {
+      CalendarAPI.getAppointments.mockImplementation(({ status }) =>
+        Promise.resolve({
+          data:
+            status === 'scheduled' ? [porConfirmar[1], porConfirmar[0]] : [],
+        })
+      );
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const linhas = wrapper
+        .get('[data-testid="calendar-unconfirmed"]')
+        .findAll('button')
+        .map(linha => linha.attributes('data-testid'));
+
+      expect(linhas).toEqual([
+        'calendar-unconfirmed-91',
+        'calendar-unconfirmed-92',
+      ]);
+    });
+
+    it('opens the appointment dialog from a row', async () => {
+      comPorConfirmar();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      await wrapper
+        .get('[data-testid="calendar-unconfirmed-91"]')
+        .trigger('click');
+
+      expect(abrirDetalhes).toHaveBeenCalledWith(91);
+    });
+
+    // Sem nada por confirmar a coluna fica calada: não há secção vazia nem
+    // «tudo confirmado» a ocupar espaço.
+    it('stays quiet when there is nothing to confirm', async () => {
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="calendar-unconfirmed"]').exists()
+      ).toBe(false);
+    });
+  });
+
   it('shows every day of the selected week', async () => {
     const wrapper = mountCalendar();
     await flushPromises();
@@ -773,7 +884,12 @@ describe('CalendarView', () => {
       await flushPromises();
 
       const [pedido] = CalendarAPI.getBusyBlocks.mock.calls.at(-1);
-      const [pedidoConsultas] = CalendarAPI.getAppointments.mock.calls.at(-1);
+      // O pedido da GRELHA, identificado pelo que é e não pela ordem: a lista
+      // de «por confirmar» usa o mesmo endpoint com `status: 'scheduled'`, e
+      // era ela a última chamada.
+      const pedidoConsultas = CalendarAPI.getAppointments.mock.calls
+        .map(([arg]) => arg)
+        .findLast(arg => arg.status !== 'scheduled');
       expect(pedido.starts_at).toBe(pedidoConsultas.starts_at);
       expect(pedido.ends_at).toBe(pedidoConsultas.ends_at);
 

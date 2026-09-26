@@ -13,6 +13,8 @@
     "ALL_RESOURCES": "All calendars",
     "STATUS_FILTER": "Status",
     "ALL_STATUSES": "All statuses",
+    "UNCONFIRMED_TITLE": "To confirm",
+    "UNCONFIRMED_OPEN": "Open {contact} at {time}",
     "SEARCH": "Search calendar",
     "SEARCH_PLACEHOLDER": "Search patient or opportunity",
     "GRID_LABEL": "Appointments calendar",
