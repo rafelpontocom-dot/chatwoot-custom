@@ -7,6 +7,56 @@ Este documento é a outra metade: **nenhuma tela existente muda sem passar por a
 
 ---
 
+## O demonstrador do sistema aprovado · 26/09/2026
+
+O artefacto [`2ACSDXn19DZKFWUos9pnaA`](https://claude.ai/artifact/2ACSDXn19DZKFWUos9pnaA)
+mostra catorze telas na direção aprovada. Ele **não** era um plano de
+implementação — a fila abaixo trata tela a tela, e o artefacto tem ecrãs que não
+têm linha nenhuma nela. Isso custou confiança: o produto ficou com a cor e o raio
+certos e sem a caixa, sem os indicadores, e a distância era estrutural e não um
+atraso de backlog.
+
+Decisão do produto a 26/09: **o demonstrador passa a ser especificação**, sem
+aprovação tela a tela, exceto a Conversa, que sai de âmbito (é tela nativa do
+Chatwoot e redesenhá-la encarece cada `git pull`).
+
+### O que está implementado
+
+| Tela | Estado | Nota |
+| --- | --- | --- |
+| **A caixa** (densidade) | ✅ | `density` da direção aprovada nunca tinha chegado ao código. Treze valores em `_raevo-tokens.scss`, utilitárias nomeadas no Tailwind, e uma invariante em `raevo:tokens` que compara o código com a direção |
+| **Primitivos** | ✅ | `RaevoKpiCard` (abre cinco telas) e `RaevoTimeline` (histórico em trilho) |
+| **Financeiro** | ✅ | fila de quatro; `PaymentsSummary` ganhou o recorte mês-a-mês por `paid_at` e a idade da mais antiga em atraso |
+| **Oportunidade** | ✅ | valor como manchete a 30px, assunto a 20px, últimos três eventos em linha |
+| **Início** | ✅ | fila de quatro, opt-in por módulo. Sem variação: o servidor desta tela não guarda histórico |
+| **Pipeline** | ✅ | fila de quatro; `KanbanBoards::CommercialSummary` novo |
+| **Agenda** | ✅ | fila de quatro por contagem de `status` |
+
+### O que falta, e o que impede
+
+| Tela | O que falta | Porquê não está feito |
+| --- | --- | --- |
+| **Visão de funil** | conversão e perda por etapa | Derivável de `KanbanCardEvent` (`stage_changed`), mas exige análise de eventos por par de etapas num período. É trabalho real, não um cartão |
+| **IA** | quatro métricas de atendimento | `raevo_ai/overview_controller` serve estado, não métrica. Precisa de agregações novas sobre conversas e mensagens |
+| **Marketing** | custo por lead, receita atribuída | **Bloqueado por falta de dados.** Não existe schema para custo de campanha nem para atribuição de receita. Implementar exige decidir como a clínica introduz esses dados — é produto, não frontend |
+| **Agenda · ocupação** | taxa de ocupação | Exige cruzar regras de disponibilidade por dia e por recurso, sobreposições de data, blocos externos e durações. Uma ocupação errada é pior do que nenhuma |
+
+### A regra que atravessa tudo o que foi implementado
+
+**Nenhum número inventado.** Onde o servidor sabe comparar, o cartão tem seta;
+onde não sabe, não tem. Onde a métrica não existe no modelo, foi substituída por
+uma derivável e isso está escrito:
+
+- «A receber hoje» → **Cobranças vencidas** (o servidor não sabe a primeira)
+- «Taxa de qualificação» → **Taxa de fecho** (`KanbanStage::CATEGORIES` é
+  `open · won · lost`; não há qualificação no modelo)
+- «Taxa de ocupação» → não substituída; fica de fora com a razão acima
+
+Há testes que afirmam a **ausência** de setas onde não há base de comparação. Se
+alguém puser lá um delta, o teste cai.
+
+---
+
 ## O processo
 
 Por tela, sempre nesta ordem:
@@ -68,11 +118,11 @@ ainda por tomar vem no fim.
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09, fechada 21/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | quadro, lista, filtros e gaveta implementados; o atalho de teclado do cartão também |
-| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | pronta a implementar; `truncate` do assunto e tira de abas ficam em separado |
-| 3 | Início | Home | 1 | **apresentada 20/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. Três achados de dados abertos — ver abaixo |
-| 4 | Financeiro | Finance | 3 | **sem artefacto, corrigida 21/09** | a permissão limitada foi adiada por decisão do produto, e o estado com cor+ícone já existia na lista — faltava no detalhe |
+| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09, implementada 26/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | manchete do valor, assunto a 20px e histórico em trilho. A coluna fixa do demonstrador não entrou: dois testes travam a gaveta em uma coluna, «so the commercial context cannot overlap fields» |
+| 3 | Início | Home | 1 | **apresentada 20/09, indicadores em 26/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. A fila de quatro indicadores entrou; sem setas, porque o controlador não guarda histórico |
+| 4 | Financeiro | Finance | 3 | **sem artefacto, corrigida 21/09, indicadores em 25/09** | a permissão limitada foi adiada por decisão do produto. O estado com cor+ícone faltava no detalhe; a fila de quatro substituiu a faixa de três células |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
-| 6 | Formulários | Forms | 10 | por apresentar | `RaevoField` é o único tratamento de campo |
+| 6 | Formulários | Forms | 10 | **sem artefacto, migrados 21–25/09** | os 81 controlos passam pelo primitivo; teal deixou de ser cor de ação |
 | 7 | Automação (Vue Flow) | Kanban | — | **aprovada 21/09** em três partes: [cartão de nó](https://claude.ai/artifact/U17sPjtbUM9v3fDZjwEZCH) · [painel do nó](https://claude.ai/artifact/32yjwdj7RykSaQjrLX6RZr) · lista sem artefacto | implementada; falta só o deslocamento da tela — ver abaixo |
 | 8 | Painel de conversa (nosso) | Conversation | componente novo | por apresentar | entra dentro de tela do Chatwoot |
 | 9 | Entrada (login) | — | upstream | por decidir | mexer aqui é mexer no upstream: avaliar o custo primeiro |

@@ -28,28 +28,40 @@
 const BASE =
   'reset-base mb-0 w-full border border-solid border-n-strong bg-n-surface-1 ' +
   'text-sm text-n-slate-12 ' +
-  'outline-none transition-colors placeholder:text-n-slate-9 ' +
+  'outline-none transition-colors placeholder:text-n-slate-10 ' +
   'focus:border-n-brand focus:ring-2 focus:ring-n-brand/20 ' +
   'disabled:cursor-not-allowed disabled:opacity-60';
 
-/** input, e qualquer controle de uma linha */
-export const RAEVO_CONTROL_CLASS = `h-10 rounded-lg px-3 ${BASE}`;
+/**
+ * input, e qualquer controle de uma linha.
+ *
+ * `h-control` e `px-control` saem de `--raevo-control-h` (32px) e
+ * `--raevo-control-px` (10px) — a CAIXA de Consultório, que a direção aprovada
+ * grava em `density` e que só chegou ao código a 25/09/2026. Estavam aqui 40px e
+ * 12px, um degrau e meio mais largos, e era a maior razão de o produto não se
+ * parecer com o sistema aprovado. A referência é densa de propósito: é produto
+ * de trabalho, não sítio institucional.
+ *
+ * O «compacto» abaixo estava a 36px — MAIOR do que este padrão. O degrau pequeno
+ * da escala aprovada é 28px, e é o que ele usa agora.
+ */
+export const RAEVO_CONTROL_CLASS = `h-control rounded-lg px-control ${BASE}`;
 
 /** select — mesma casca; o chevron é desenhado pelo RaevoField */
 // `bg-none` apaga a seta que uma regra global desenha como background-image no
 // select. Sem isso o campo mostra dois chevrons: o global e o do RaevoField.
-export const RAEVO_SELECT_CLASS = `h-10 appearance-none rounded-lg bg-none px-3 pr-10 ${BASE}`;
+export const RAEVO_SELECT_CLASS = `h-control appearance-none rounded-lg bg-none px-control pr-8 ${BASE}`;
 
 /** select fora de um RaevoField — ninguém lhe desenha o chevron, por isso
  * mantém (sem `bg-none`) a seta que `_base.scss` já pinta em todo o produto. */
-export const RAEVO_SELECT_STANDALONE_CLASS = `h-10 appearance-none rounded-lg px-3 pr-8 ${BASE}`;
+export const RAEVO_SELECT_STANDALONE_CLASS = `h-control appearance-none rounded-lg px-control pr-7 ${BASE}`;
 
 /** textarea — `rounded-md` (8px): várias linhas pedem canto mais fechado que o controle */
-export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-md px-3 py-2.5 ${BASE}`;
+export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-md px-control py-cell ${BASE}`;
 
 /** `input[type=color]` — é uma amostra de cor, não um campo de texto: o
  * conteúdo é a própria cor, por isso não leva padding horizontal de texto. */
-export const RAEVO_SWATCH_CLASS = `h-10 cursor-pointer rounded-lg p-1 ${BASE}`;
+export const RAEVO_SWATCH_CLASS = `h-control cursor-pointer rounded-lg p-1 ${BASE}`;
 
 /**
  * Ficha densa — o controle que não desenha caixa.
@@ -69,7 +81,7 @@ export const RAEVO_SWATCH_CLASS = `h-10 cursor-pointer rounded-lg p-1 ${BASE}`;
 const INLINE_BASE =
   'reset-base mb-0 w-full border-0 bg-transparent px-0 ' +
   'text-sm leading-5 text-n-slate-12 ' +
-  'outline-none placeholder:text-n-slate-9 ' +
+  'outline-none placeholder:text-n-slate-10 ' +
   'focus:ring-2 focus:ring-n-brand/30 focus:rounded-md ' +
   'disabled:cursor-not-allowed disabled:opacity-60';
 
@@ -89,8 +101,8 @@ export const RAEVO_INLINE_TEXTAREA_CLASS = `min-h-20 resize-y py-0.5 ${INLINE_BA
  */
 const COMPACT_BASE = BASE.replace('text-sm', 'text-ui');
 
-export const RAEVO_COMPACT_CONTROL_CLASS = `h-9 rounded-lg px-3 ${COMPACT_BASE}`;
+export const RAEVO_COMPACT_CONTROL_CLASS = `h-control-sm rounded-lg px-control ${COMPACT_BASE}`;
 
-export const RAEVO_COMPACT_SELECT_CLASS = `h-9 appearance-none rounded-lg bg-none px-3 pr-9 ${COMPACT_BASE}`;
+export const RAEVO_COMPACT_SELECT_CLASS = `h-control-sm appearance-none rounded-lg bg-none px-control pr-7 ${COMPACT_BASE}`;
 
-export const RAEVO_COMPACT_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-3 py-2 ${COMPACT_BASE}`;
+export const RAEVO_COMPACT_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-control py-cell ${COMPACT_BASE}`;

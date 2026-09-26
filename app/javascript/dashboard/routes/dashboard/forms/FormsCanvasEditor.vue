@@ -264,7 +264,7 @@ watch(
             v-model="field.label"
             rows="1"
             data-test="forms-canvas-question"
-            class="reset-base w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-2xl font-semibold leading-tight tracking-tight text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:ring-0 sm:text-3xl"
+            class="reset-base w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-2xl font-semibold leading-tight tracking-tight text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-0 sm:text-3xl"
             :placeholder="t('FORMS.CANVAS.QUESTION_PLACEHOLDER')"
             :aria-label="t('FORMS.CANVAS.QUESTION_PLACEHOLDER')"
             @input="autosize($event.target)"
@@ -274,7 +274,7 @@ watch(
           <input
             v-model="field.helpText"
             data-test="forms-canvas-help"
-            class="reset-base mt-2 w-full border-0 bg-transparent p-0 text-base text-n-slate-11 outline-none placeholder:text-n-slate-9 focus:ring-0"
+            class="reset-base mt-2 w-full border-0 bg-transparent p-0 text-base text-n-slate-11 outline-none placeholder:text-n-slate-10 focus:ring-0"
             :placeholder="t('FORMS.CANVAS.HELP_PLACEHOLDER')"
             :aria-label="t('FORMS.CANVAS.HELP_PLACEHOLDER')"
           />
@@ -295,7 +295,7 @@ watch(
                 <input
                   :value="optionLabel(option)"
                   :data-test="`forms-canvas-option-${index}`"
-                  class="reset-base min-w-0 flex-1 border-0 bg-transparent px-1 py-1 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:ring-0"
+                  class="reset-base min-w-0 flex-1 border-0 bg-transparent px-1 py-1 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:ring-0"
                   :placeholder="t('FORMS.CANVAS.OPTION_PLACEHOLDER')"
                   :aria-label="
                     t('FORMS.CANVAS.OPTION_NUMBER', { number: index + 1 })

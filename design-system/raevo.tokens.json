@@ -909,6 +909,26 @@
       ]
     }
   },
+  "density": {
+    "control": {
+      "xs": "24px",
+      "sm": "28px",
+      "DEFAULT": "32px",
+      "lg": "36px"
+    },
+    "controlPaddingX": "10px",
+    "controlGap": "6px",
+    "iconSize": "16px",
+    "tableCell": "8px",
+    "tableHead": "40px",
+    "cardSpacing": "16px",
+    "cardSpacingSm": "12px",
+    "sidebar": {
+      "DEFAULT": "256px",
+      "rail": "48px",
+      "mobile": "288px"
+    }
+  },
   "shape": {
     "radius": {
       "tailwind": {

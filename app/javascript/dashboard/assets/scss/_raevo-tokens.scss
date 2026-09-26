@@ -191,10 +191,35 @@
 
   --raevo-radius-card: 14px;
   --raevo-radius-item: 8px;
-  --raevo-radius-control: 10px;   // controles são pílulas
+  --raevo-radius-control: 10px;   // 10px desde 21/09/2026 — deixou de ser pílula
   --raevo-shadow-rest: none;         // em repouso o ar separa, não a sombra
   --raevo-shadow-hover: 0 4px 16px rgb(10 10 10 / 9%);
   --raevo-shadow-float: 0 16px 40px rgb(10 10 10 / 14%);
+
+  // --- Densidade -------------------------------------------------------------
+  // A terceira parte de Consultório, e a que faltava. A direção aprovada tem três:
+  // cor, raio e CAIXA — «a densidade vem da caixa, não do tipo», porque a
+  // referência não redefine um único degrau de tipografia. Cor e raio migraram a
+  // 21/09; a caixa não, e nenhuma porta deu por isso: `raevo:tokens` comparava
+  // cor, etapa, forma e tipografia, e nunca densidade. Era esta a razão de o
+  // produto não se parecer com o sistema aprovado.
+  //
+  // Valores de design-system/aprovado/consultorio.tokens.json, bloco `density`,
+  // medidos da referência. A porta agora compara os dois.
+  --raevo-control-h-xs: 24px;
+  --raevo-control-h-sm: 28px;
+  --raevo-control-h: 32px;        // botão e campo: h-8 na referência
+  --raevo-control-h-lg: 36px;
+  --raevo-control-px: 10px;       // px-2.5
+  --raevo-control-gap: 6px;       // gap-1.5
+  --raevo-icon-size: 16px;
+  --raevo-table-cell: 8px;        // td p-2
+  --raevo-table-head: 40px;       // th h-10
+  --raevo-card-spacing: 16px;     // --card-spacing = spacing(4)
+  --raevo-card-spacing-sm: 12px;
+  --raevo-sidebar-w: 256px;       // 16rem
+  --raevo-sidebar-rail: 48px;     // 3rem — colapsa para ícones, não desaparece
+  --raevo-sidebar-mobile: 288px;  // 18rem
 
   // Cores de etapa do funil — validadas para daltonismo.
   // Pior par ΔE 9,7 (deuteranopia) · ΔE 22,6 (visão normal). Não trocar sem

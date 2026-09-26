@@ -40,7 +40,12 @@
         "OPEN": "Em aberto",
         "RECEIVED": "Recebido",
         "OVERDUE": "Vencido",
-        "EMPTY_VALUE": "—"
+        "EMPTY_VALUE": "—",
+        "AVERAGE_TICKET": "Ticket médio",
+        "CHARGES": "{count} cobranças",
+        "OVERDUE_AGE": "{count} cobranças · {days} dias",
+        "LAST_MONTH": "{value} no mês passado",
+        "NO_BASELINE": "sem mês para comparar"
       },
       "FILTERS": {
         "SEARCH": "Buscar por contacto, telefone, e-mail ou descrição",

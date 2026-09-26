@@ -65,7 +65,12 @@ class KanbanCalendar::WorkingHoursSheet
     { date: date.iso8601, closed: false, note: note, ranges: ranges_for(date_rules) }
   end
 
+  # Ordena pelo que o payload mostra — 'HH:MM' — e não pelo objeto da coluna. A
+  # coluna é `time`, e o Rails devolve-a como um `Time` com data postiça: ordenar
+  # por esse objeto é ordenar por (data, hora), quando a saída só tem a hora. Se as
+  # datas postiças não coincidirem, a ordem lida deixa de ser a ordem mostrada.
   def ranges_for(rules)
-    rules.sort_by(&:starts_at_local).map { |rule| { from: rule.starts_at_local.strftime('%H:%M'), to: rule.ends_at_local.strftime('%H:%M') } }
+    rules.map { |rule| { from: rule.starts_at_local.strftime('%H:%M'), to: rule.ends_at_local.strftime('%H:%M') } }
+         .sort_by { |range| range[:from] }
   end
 end

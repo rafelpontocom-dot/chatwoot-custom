@@ -201,6 +201,9 @@ const lerDoCodigo = () => {
   const shadow = lerEntradas(recortarBloco(tailwind, 'boxShadow'));
   const fontSize = lerEntradas(recortarBloco(tailwind, 'fontSize'));
 
+  // `--raevo-x` do bloco claro; a densidade não tem variante escura.
+  const v = nome => claro.raevo[nome]?.value ?? null;
+
   const etapas = hexesDe(palette, 'RAEVO_STAGE_COLORS');
   const terminal = hexesDe(palette, 'RAEVO_TERMINAL_COLOR')[0];
   const extrasSeletor = hexesDe(palette, 'RAEVO_PICKER_COLORS');
@@ -239,6 +242,29 @@ const lerDoCodigo = () => {
         ),
       },
       accessibility: medirPaleta(etapas),
+    },
+    // A CAIXA: a terceira parte de Consultório. Ficou fora do código de 21/09 a
+    // 25/09/2026 porque nada aqui a lia — e por isso nada a comparava com a
+    // direção aprovada. O produto tinha a cor e o raio certos e a caixa errada.
+    density: {
+      control: {
+        xs: v('control-h-xs'),
+        sm: v('control-h-sm'),
+        DEFAULT: v('control-h'),
+        lg: v('control-h-lg'),
+      },
+      controlPaddingX: v('control-px'),
+      controlGap: v('control-gap'),
+      iconSize: v('icon-size'),
+      tableCell: v('table-cell'),
+      tableHead: v('table-head'),
+      cardSpacing: v('card-spacing'),
+      cardSpacingSm: v('card-spacing-sm'),
+      sidebar: {
+        DEFAULT: v('sidebar-w'),
+        rail: v('sidebar-rail'),
+        mobile: v('sidebar-mobile'),
+      },
     },
     shape: {
       radius: {
@@ -296,6 +322,29 @@ const invariantes = t => {
       `--raevo-stage-${t.stage.palette.length + 1} (${terminalToken.hex}) ≠ ` +
         `RAEVO_TERMINAL_COLOR (${t.stage.terminal})`
     );
+
+  // A CAIXA tem de bater com a direção aprovada.
+  //
+  // Esta é a invariante que faltava, e a lacuna custou o produto inteiro: cor e
+  // raio migraram para Consultório a 21/09/2026, a densidade não, e a porta
+  // comparava cor, etapa, forma e tipografia — nunca a caixa. Resultado: os
+  // tokens estavam certos, o `consultorio.tokens.json` afirmava botão de 32px e
+  // célula de 8px, e o código não tinha nenhum dos dois. Quatro dias em que a
+  // porta passava a dizer «em acordo» sobre um desacordo.
+  try {
+    const aprovada = JSON.parse(ler(`${P.approved}/consultorio.tokens.json`));
+    if (aprovada.density) {
+      // `note` é a prosa que explica de onde vieram os números; não é valor.
+      const { note, ...caixa } = aprovada.density;
+      for (const d of diferencas(caixa, t.density, 'density'))
+        falhas.push(
+          `${d.caminho}: a direção aprovada diz ${JSON.stringify(d.json)}, ` +
+            `o código diz ${JSON.stringify(d.codigo)}`
+        );
+    }
+  } catch (e) {
+    falhas.push(`não foi possível comparar a densidade com a direção aprovada: ${e.message}`);
+  }
 
   if (t.stage.validatorArgs.join(',') !== t.stage.palette.join(','))
     falhas.push(
@@ -713,7 +762,7 @@ if (comando === 'extract') {
   const nApr = conta(P.approved);
   console.log(
     `✓ ${cores} tokens de cor, ${codigo.stage.palette.length + 1} etapas, a escala de ` +
-      `forma, ${nApr} direção(ões) aprovada(s) e ${nDir} proposta(s) em acordo.`
+      `forma, a caixa, ${nApr} direção(ões) aprovada(s) e ${nDir} proposta(s) em acordo.`
   );
 } else {
   console.error(

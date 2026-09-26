@@ -66,6 +66,38 @@ const tailwindConfig = {
       borderWidth: {
         DEFAULT: '1px',
       },
+      // Raevo — a CAIXA de Consultório, a terceira parte da direção aprovada.
+      // Chaves NOMEADAS de propósito: redefinir a escala numérica do Tailwind
+      // mudaria `h-8` e `p-2` no Chatwoot inteiro. Assim `h-control` e `p-cell`
+      // são nossas, e o produto do upstream não sente nada.
+      // Os valores vivem em --raevo-* (_raevo-tokens.scss), que é onde a regra 1
+      // manda; aqui só se dá nome de utilitária ao token.
+      height: {
+        'control-xs': 'var(--raevo-control-h-xs)',
+        'control-sm': 'var(--raevo-control-h-sm)',
+        control: 'var(--raevo-control-h)',
+        'control-lg': 'var(--raevo-control-h-lg)',
+        th: 'var(--raevo-table-head)',
+      },
+      minHeight: {
+        control: 'var(--raevo-control-h)',
+        'control-lg': 'var(--raevo-control-h-lg)',
+      },
+      width: {
+        sidebar: 'var(--raevo-sidebar-w)',
+        rail: 'var(--raevo-sidebar-rail)',
+        'sidebar-mobile': 'var(--raevo-sidebar-mobile)',
+      },
+      size: {
+        icon: 'var(--raevo-icon-size)',
+      },
+      spacing: {
+        control: 'var(--raevo-control-px)',
+        'control-gap': 'var(--raevo-control-gap)',
+        cell: 'var(--raevo-table-cell)',
+        card: 'var(--raevo-card-spacing)',
+        'card-sm': 'var(--raevo-card-spacing-sm)',
+      },
       boxShadow: {
         // Em repouso o ar separa. Sombra só para o que flutua de verdade.
         none: 'none',

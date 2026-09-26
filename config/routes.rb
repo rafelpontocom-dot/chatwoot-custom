@@ -160,6 +160,9 @@ Rails.application.routes.draw do
           end
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           namespace :calendar do
+            # Os indicadores que abrem a Agenda. Pedido próprio: a grelha recarrega
+            # a cada navegação de dia, as contagens do mês não precisam.
+            get :summary, to: 'summaries#show'
             resources :procedures, only: [:index, :show, :create, :update, :destroy] do
               member do
                 get :availability_preview
@@ -264,6 +267,7 @@ Rails.application.routes.draw do
             get :archived, on: :collection
             patch :reorder, on: :member, to: 'kanban_boards/positions#update'
             patch :restore, on: :member
+            get :summary, on: :member, to: 'kanban_boards/summaries#show'
             post :duplicate, on: :member, to: 'kanban_boards/duplicates#create'
 
             scope module: :kanban_boards do

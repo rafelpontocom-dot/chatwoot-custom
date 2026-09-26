@@ -25,6 +25,13 @@ const mountHome = () =>
           template: '<header><slot name="actions" /><slot /></header>',
         },
         RaevoStamp: true,
+        // Stubado por omissão, o cartão engole rótulo, valor e rodapé.
+        // Ver AGENTS.md, «Armadilha conhecida em testes».
+        RaevoKpiCard: {
+          props: ['label', 'value', 'footer'],
+          template:
+            '<div><i>{{ label }}</i><b>{{ value }}</b><u>{{ footer }}</u></div>',
+        },
       },
     },
   });
@@ -77,6 +84,74 @@ describe('RaevoHomeView', () => {
           ...extra,
         },
       });
+
+    // A fila de indicadores herda o mesmo contrato dos cartões: opt-in por
+    // módulo. E não tem variação nenhuma — o servidor desta tela não guarda
+    // histórico, e um delta inventado parece informação.
+    it('opens with two indicators when neither module is in use', async () => {
+      comCartoes({});
+      const wrapper = mountHome();
+      await flushPromises();
+
+      const fila = wrapper.get('[data-testid="home-indicators"]');
+      expect(fila.findAll('[data-testid^="home-kpi-"]')).toHaveLength(2);
+      expect(wrapper.find('[data-testid="home-kpi-agenda"]').exists()).toBe(
+        false
+      );
+      expect(
+        wrapper.find('[data-testid="home-kpi-overdue-payments"]').exists()
+      ).toBe(false);
+    });
+
+    it('adds the agenda and the overdue total when the modules are in use', async () => {
+      comCartoes({
+        today_appointments: {
+          count: 4,
+          items: [
+            {
+              id: 3,
+              starts_at: '2026-09-21T09:15:00Z',
+              status: 'confirmed',
+              contact_name: 'Carla Pinheiro',
+              procedure_name: 'Avaliação',
+              kanban_card_id: null,
+            },
+          ],
+        },
+        overdue_payments: {
+          count: 2,
+          items: [
+            {
+              id: 1,
+              amount_cents: 12_900,
+              currency: 'BRL',
+              due_on: '2026-09-02',
+            },
+            {
+              id: 2,
+              amount_cents: 2_100,
+              currency: 'BRL',
+              due_on: '2026-09-11',
+            },
+          ],
+        },
+      });
+      const wrapper = mountHome();
+      await flushPromises();
+
+      expect(
+        wrapper.get('[data-testid="home-kpi-agenda"]').find('b').text()
+      ).toBe('4');
+      // 12.900 + 2.100 centavos = 150,00. A asserção ignora separadores porque o
+      // valor é formatado na localização de quem vê, e o teste corre em en-US.
+      expect(
+        wrapper
+          .get('[data-testid="home-kpi-overdue-payments"]')
+          .find('b')
+          .text()
+          .replace(/\D/g, '')
+      ).toBe('15000');
+    });
 
     it("lists today's schedule as a strip", async () => {
       comCartoes({

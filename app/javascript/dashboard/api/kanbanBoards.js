@@ -60,6 +60,12 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.patch(`${this.url}/${boardId}/restore`);
   }
 
+  // Os quatro indicadores do Pipeline. Pedido próprio e não parte do `show` do
+  // quadro: o quadro recarrega a cada arrastar, as agregações não precisam.
+  getBoardSummary(boardId) {
+    return axios.get(`${this.url}/${boardId}/summary`);
+  }
+
   duplicateBoard(boardId) {
     return axios.post(`${this.url}/${boardId}/duplicate`);
   }

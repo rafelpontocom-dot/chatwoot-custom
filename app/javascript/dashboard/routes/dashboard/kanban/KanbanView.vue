@@ -27,6 +27,7 @@ import KanbanImportDialog from './KanbanImportDialog.vue';
 import KanbanOpportunityPicker from './KanbanOpportunityPicker.vue';
 import KanbanListView from './KanbanListView.vue';
 import KanbanConversationDrawer from './KanbanConversationDrawer.vue';
+import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -39,6 +40,7 @@ const inboxes = useMapGetter('inboxes/getAllInboxes');
 const isFetchingBoards = useMapGetter('kanbanBoards/kanbanBoardsLoading');
 const { isAdmin } = useAdmin();
 const selectedBoard = ref(null);
+const commercialSummary = ref(null);
 const isFetchingBoard = ref(false);
 const selectedOpportunityCardId = ref(null);
 const opportunityTriggerElement = ref(null);
@@ -542,6 +544,21 @@ const getStageHeaderClass = stage =>
     ? 'bg-n-solid-1'
     : getStageColorOption(stage.color).softClass;
 
+// Pedido próprio, com falha própria. Se as agregações caírem, o Pipeline continua
+// a funcionar sem a fila de indicadores — que é informação de apoio, não a tela.
+const loadCommercialSummary = async boardId => {
+  if (!boardId) {
+    commercialSummary.value = null;
+    return;
+  }
+  try {
+    const { data } = await KanbanBoardsAPI.getBoardSummary(boardId);
+    commercialSummary.value = data;
+  } catch {
+    commercialSummary.value = null;
+  }
+};
+
 const showBoard = async boardId => {
   if (!boardId) {
     selectedBoard.value = null;
@@ -559,6 +576,7 @@ const showBoard = async boardId => {
     stageCardsLoading.value = {};
     stageCardsErrors.value = {};
     selectedBoard.value = normalizeKanbanPayload(response.data);
+    loadCommercialSummary(boardId);
     if (requestedOpportunityCardId.value) {
       selectedOpportunityCardId.value = requestedOpportunityCardId.value;
     }
@@ -571,6 +589,91 @@ const showBoard = async boardId => {
     isFetchingBoard.value = false;
   }
 };
+
+// --- Os quatro indicadores que abrem o Pipeline -------------------------------
+// Cada valor é medido, e cada variação compara mês com mês anterior. Onde o mês
+// anterior não existe — conta nova, primeiro mês — não há seta: `null` do
+// servidor passa a rodapé «sem mês para comparar», em vez de uma seta a zero.
+const somaEmMoeda = cents =>
+  new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: commercialSummary.value?.currency || 'BRL',
+  }).format(Number(cents || 0) / 100);
+
+const variacaoDe = (agora, antes, maiorEhMelhor = true) => {
+  if (agora === null || antes === null || antes === undefined || !antes) {
+    return { texto: '', bom: true };
+  }
+  const pct = ((agora - antes) / Math.abs(antes)) * 100;
+  return {
+    texto: `${pct >= 0 ? '+' : '\u2212'}${Math.abs(pct).toFixed(0)}%`,
+    bom: pct >= 0 === maiorEhMelhor,
+  };
+};
+
+const commercialIndicators = computed(() => {
+  const r = commercialSummary.value;
+  if (!r) return [];
+
+  const funil = variacaoDe(r.pipeline_value.current, r.pipeline_value.previous);
+  const fecho = variacaoDe(r.close_rate.current, r.close_rate.previous);
+  // Ciclo mais curto é melhor: a seta inverte-se.
+  const ciclo = variacaoDe(r.cycle_days.current, r.cycle_days.previous, false);
+  const ganhas = variacaoDe(r.won.current.count, r.won.previous.count);
+
+  return [
+    {
+      chave: 'pipeline',
+      label: t('KANBAN.INDICATORS.PIPELINE_VALUE'),
+      value: somaEmMoeda(r.pipeline_value.current),
+      delta: funil.texto,
+      deltaIsGood: funil.bom,
+      footer: r.pipeline_value.previous
+        ? t('KANBAN.INDICATORS.LAST_MONTH', {
+            value: somaEmMoeda(r.pipeline_value.previous),
+          })
+        : t('KANBAN.INDICATORS.NO_BASELINE'),
+    },
+    {
+      chave: 'close-rate',
+      label: t('KANBAN.INDICATORS.CLOSE_RATE'),
+      value: r.close_rate.current === null ? null : `${r.close_rate.current}%`,
+      delta: fecho.texto,
+      deltaIsGood: fecho.bom,
+      footer: t('KANBAN.INDICATORS.CLOSED_COUNT', {
+        count: r.close_rate.closed,
+      }),
+    },
+    {
+      chave: 'cycle',
+      label: t('KANBAN.INDICATORS.CYCLE_DAYS'),
+      value:
+        r.cycle_days.current === null
+          ? null
+          : t('KANBAN.INDICATORS.DAYS', { count: r.cycle_days.current }),
+      delta: ciclo.texto,
+      deltaIsGood: ciclo.bom,
+      footer:
+        r.cycle_days.previous === null
+          ? t('KANBAN.INDICATORS.NO_BASELINE')
+          : t('KANBAN.INDICATORS.LAST_MONTH', {
+              value: t('KANBAN.INDICATORS.DAYS', {
+                count: r.cycle_days.previous,
+              }),
+            }),
+    },
+    {
+      chave: 'won',
+      label: t('KANBAN.INDICATORS.WON_MONTH'),
+      value: String(r.won.current.count),
+      delta: ganhas.texto,
+      deltaIsGood: ganhas.bom,
+      footer: t('KANBAN.INDICATORS.WON_AMOUNT_FOOTER', {
+        value: somaEmMoeda(r.won.current.amount_cents),
+      }),
+    },
+  ];
+});
 
 const refreshSelectedBoard = async () => {
   if (!selectedBoard.value?.id) return;
@@ -2146,6 +2249,29 @@ onUnmounted(() => {
           </div>
         </template>
       </header>
+
+      <!--
+        A fila que abre o Pipeline no sistema aprovado, entre o cabeçalho e as
+        colunas. Não substitui a faixa de relatório que vem abaixo: aquela dá o
+        estado de agora decomposto por etapa, responsável e motivo de perda; esta
+        dá a dimensão temporal — mês contra mês anterior — e o ciclo.
+      -->
+      <div
+        v-if="commercialIndicators.length"
+        data-testid="kanban-indicators"
+        class="grid gap-3 px-4 pb-3 sm:grid-cols-2 lg:grid-cols-4 lg:px-6"
+      >
+        <RaevoKpiCard
+          v-for="indicador in commercialIndicators"
+          :key="indicador.chave"
+          :data-testid="`kanban-kpi-${indicador.chave}`"
+          :label="indicador.label"
+          :value="indicador.value"
+          :delta="indicador.delta"
+          :delta-is-good="indicador.deltaIsGood"
+          :footer="indicador.footer"
+        />
+      </div>
 
       <section
         v-if="salesSummary && showSalesSummary"

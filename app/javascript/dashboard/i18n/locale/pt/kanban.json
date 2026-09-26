@@ -44,7 +44,10 @@
       "today": "Hoje",
       "7d": "Últimos 7 dias",
       "30d": "Últimos 30 dias"
-    }
+    },
+    "KPI_NEXT_AT": "próxima às {time}",
+    "KPI_CHARGES": "{count} cobranças",
+    "KPI_NOTHING_TODAY": "nada hoje"
   },
   "KANBAN": {
     "EYEBROW": "Comercial",
@@ -1401,7 +1404,9 @@
         "CUSTOM_FIELDS_CHANGED": "{count} campos alterados",
         "CHANGE_TRANSITION": "{before} → {after}",
         "ENTERED_STAGE": "Entrou na etapa {stage}",
-        "CREATED_IN_STAGE": "Criada na etapa {stage}"
+        "CREATED_IN_STAGE": "Criada na etapa {stage}",
+        "RECENT": "Últimos eventos",
+        "SEE_ALL": "Ver histórico completo"
       },
       "TITLE": "Detalhes da oportunidade",
       "TITLE_WITH_BOARD": "Editar oportunidade em {boardName}",
@@ -1536,7 +1541,10 @@
       "OWNER_NONE": "Sem responsável",
       "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança.",
       "BOOLEAN_YES": "Sim",
-      "BOOLEAN_NO": "Não"
+      "BOOLEAN_NO": "Não",
+      "AMOUNT_HEADLINE_ESTIMATE": "estimativa",
+      "AMOUNT_HEADLINE_RECEIVED": "{value} recebidos",
+      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda"
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",
@@ -1680,6 +1688,17 @@
       "FAILED": "A importação não chegou ao fim.",
       "DOWNLOAD_FAILED": "Descarregar as linhas que não entraram",
       "PREVIEW": "Primeiras linhas do ficheiro"
+    },
+    "INDICATORS": {
+      "PIPELINE_VALUE": "Valor em funil",
+      "CLOSE_RATE": "Taxa de fecho",
+      "CYCLE_DAYS": "Ciclo médio",
+      "WON_MONTH": "Ganhas no mês",
+      "DAYS": "{count} dias",
+      "CLOSED_COUNT": "{count} fechadas",
+      "WON_AMOUNT_FOOTER": "{value} fechados",
+      "LAST_MONTH": "{value} no mês passado",
+      "NO_BASELINE": "sem mês para comparar"
     }
   }
 }

@@ -305,9 +305,14 @@ function contrasteInsuficiente(fonte) {
     const piso = grafico || /\btext-(xl|2xl|3xl)\b/.test(texto) ? 3 : 4.5;
     for (const fundo of fundos) {
       for (const frente of frentes) {
-        // prefixos diferentes (`hover:bg` com `text` sem estado) não são o mesmo
-        // momento: medi-los produziria alarme falso.
-        if (fundo[1] !== frente[1]) continue;
+        // Prefixos diferentes (`hover:bg` com `text` sem estado) não são o mesmo
+        // momento: medi-los produziria alarme falso. A exceção é `placeholder:`,
+        // que se desenha SOBRE o fundo do próprio controlo, sem estado nenhum —
+        // e era por aqui que passava um `placeholder:text-n-slate-9` a 2,58:1 no
+        // primitivo que trinta ficheiros herdam.
+        const mesmoMomento =
+          fundo[1] === frente[1] || (!fundo[1] && frente[1] === 'placeholder:');
+        if (!mesmoMomento) continue;
         for (const modo of ['light', 'dark']) {
           if (CORRIGIDOS.has(`${modo}|${fundo[2]}|${frente[2]}`)) continue;
           const bg = resolver(modo, fundo[2]);
