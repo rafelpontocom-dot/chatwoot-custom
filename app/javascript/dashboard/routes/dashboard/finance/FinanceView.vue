@@ -212,8 +212,8 @@ const formatAmount = payment =>
 // moeda, então a primeira — o servidor ordena — é o valor.
 const principal = totais => totais?.[0] ?? null;
 const somaDe = totais => {
-  const t = principal(totais);
-  return t ? formatAmount(t) : null;
+  const total = principal(totais);
+  return total ? formatAmount(total) : null;
 };
 const contarDe = totais =>
   (totais || []).reduce((soma, total) => soma + (total.count || 0), 0);
@@ -229,11 +229,11 @@ const variacao = (agora, antes) => {
 };
 
 const ticketDe = totais => {
-  const t = principal(totais);
-  if (!t?.count) return null;
+  const total = principal(totais);
+  if (!total?.count) return null;
   return formatAmount({
-    currency: t.currency,
-    amount_cents: Math.round(t.amount_cents / t.count),
+    currency: total.currency,
+    amount_cents: Math.round(total.amount_cents / total.count),
   });
 };
 
@@ -249,7 +249,10 @@ const diasEmAtraso = computed(() => {
 const indicadores = computed(() => {
   const resumo = paymentSummary.value;
   const mes = resumo.month || {};
-  const receb = variacao(principal(mes.received), principal(mes.received_previous));
+  const receb = variacao(
+    principal(mes.received),
+    principal(mes.received_previous)
+  );
   const ticket = variacao(
     principal(mes.received) && {
       amount_cents: Math.round(
@@ -789,7 +792,9 @@ onMounted(loadFinance);
             type="button"
             data-testid="finance-toggle-settings"
             class="flex p-0 size-9 items-center justify-center rounded-lg border border-solid border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
-            :class="activeView === 'settings' ? 'bg-n-brand/10 text-n-brand' : ''"
+            :class="
+              activeView === 'settings' ? 'bg-n-brand/10 text-n-brand' : ''
+            "
             :aria-pressed="activeView === 'settings'"
             :aria-label="
               activeView === 'settings'

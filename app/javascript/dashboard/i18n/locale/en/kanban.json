@@ -1398,7 +1398,9 @@
         "CUSTOM_FIELDS_CHANGED": "{count} fields changed",
         "CHANGE_TRANSITION": "{before} → {after}",
         "ENTERED_STAGE": "Entered {stage}",
-        "CREATED_IN_STAGE": "Created in {stage}"
+        "CREATED_IN_STAGE": "Created in {stage}",
+        "RECENT": "Latest activity",
+        "SEE_ALL": "See full history"
       },
       "TITLE": "Opportunity details",
       "TITLE_WITH_BOARD": "Edit opportunity in {boardName}",

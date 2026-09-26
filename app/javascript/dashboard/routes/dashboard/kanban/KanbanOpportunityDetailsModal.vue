@@ -10,6 +10,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
+import RaevoTimeline from 'dashboard/components-next/raevo/RaevoTimeline.vue';
 import { getRandomColor } from 'dashboard/helper/labelColor';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -287,30 +288,6 @@ const financeSummary = computed(() => {
     latestReceivedAt,
   };
 });
-// O valor é a manchete da oportunidade, não um campo entre dezoito.
-//
-// No sistema aprovado ele abre a ficha em 30px, com uma linha de contexto ao
-// lado — «estimativa», ou quanto já entrou. Estava a 14px numa linha de campo
-// de 140px de rótulo, indistinguível do telemóvel e do convénio, e é o número
-// pelo qual se decide se vale a pena insistir nesta oportunidade.
-//
-// A linha editável fica onde está: promover a manchete não tira a edição.
-const amountContext = computed(() => {
-  if (!amountDisplay.value) {
-    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_EMPTY');
-  }
-  const { receivedCents, currency } = financeSummary.value;
-  if (!receivedCents) {
-    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_ESTIMATE');
-  }
-  return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_RECEIVED', {
-    value: new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currency || accountCurrency.value,
-    }).format(receivedCents / 100),
-  });
-});
-
 const contactDetails = computed(() => [
   {
     key: 'name',
@@ -548,6 +525,30 @@ const amountDisplay = computed(() => {
     style: 'currency',
     currency: amountCurrency.value || accountCurrency.value,
   }).format(n);
+});
+
+// O valor é a manchete da oportunidade, não um campo entre dezoito.
+//
+// No sistema aprovado ele abre a ficha em 30px, com uma linha de contexto ao
+// lado — «estimativa», ou quanto já entrou. Estava a 14px numa linha de campo
+// de 140px de rótulo, indistinguível do telemóvel e do convénio, e é o número
+// pelo qual se decide se vale a pena insistir nesta oportunidade.
+//
+// A linha editável fica onde está: promover a manchete não tira a edição.
+const amountContext = computed(() => {
+  if (!amountDisplay.value) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_EMPTY');
+  }
+  const { receivedCents, currency } = financeSummary.value;
+  if (!receivedCents) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_ESTIMATE');
+  }
+  return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_RECEIVED', {
+    value: new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currency || accountCurrency.value,
+    }).format(receivedCents / 100),
+  });
 });
 const selectableLostReasonOptions = computed(() => {
   const options = [...props.lostReasonOptions];
@@ -1293,6 +1294,19 @@ function timelineEventChanges(event) {
       };
     });
 }
+// A cor do ponto no trilho. É redundante de propósito: o que o evento é está
+// escrito no título, e a cor só acelera a leitura de uma lista longa. Azul fica
+// para a mudança de etapa porque nesta direção o azul É etapa.
+const TIMELINE_TONES = {
+  card_won: 'success',
+  next_action_completed: 'success',
+  card_lost: 'danger',
+  next_action_scheduled: 'warning',
+  stage_changed: 'info',
+};
+const timelineEventTone = event =>
+  TIMELINE_TONES[event.event_type] || 'neutral';
+
 const timelineEventLabel = event => {
   const enteredStage = event.metadata?.to_stage?.name;
   const createdStage = event.metadata?.entered_stage?.name;
@@ -1329,6 +1343,20 @@ const timelineEventMeta = event => {
     event.actor?.name || t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.SYSTEM');
   return `${actorName} - ${new Date(event.occurred_at).toLocaleString()}`;
 };
+// Os dois consumidores do mesmo histórico: os últimos três ao lado do contexto
+// comercial, e a lista inteira no separador. O mapeamento é um só — duas cópias
+// divergiriam no dia em que alguém acrescentasse um tipo de evento.
+const timelineItems = computed(() =>
+  timeline.value.map(event => ({
+    id: event.id,
+    title: timelineEventLabel(event),
+    meta: timelineEventMeta(event),
+    tone: timelineEventTone(event),
+    changes: timelineEventChanges(event),
+    automations: event.automations || [],
+  }))
+);
+const timelineRecentItems = computed(() => timelineItems.value.slice(0, 3));
 
 const buildCardPayload = extraPayload => ({
   subject: subject.value.trim(),
@@ -2161,6 +2189,34 @@ watch(invitationPendingRevocation, async invitation => {
                   </div>
                 </div>
               </section>
+              <!--
+                Os últimos três eventos ao lado do contexto comercial, que é
+                onde o sistema aprovado os põe. Coluna fixa não serve aqui: dois
+                testes deste ficheiro travam a gaveta em UMA coluna, «so the
+                commercial context cannot overlap fields», e o 1.35fr/1fr do
+                artefacto foi desenhado para página inteira, não para gaveta.
+                O histórico completo continua no separador.
+              -->
+              <section
+                v-if="timelineRecentItems.length"
+                data-testid="kanban-opportunity-recent-activity"
+                class="grid gap-2 rounded-xl border border-solid border-n-weak bg-n-solid-1 p-card"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.RECENT') }}
+                  </h3>
+                  <button
+                    type="button"
+                    data-testid="kanban-opportunity-see-full-history"
+                    class="rounded-lg px-2 py-1 text-xs font-medium text-n-slate-11 outline-none hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40"
+                    @click="activeTabKey = timelineTab.key"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.SEE_ALL') }}
+                  </button>
+                </div>
+                <RaevoTimeline :items="timelineRecentItems" />
+              </section>
               <section
                 data-testid="kanban-opportunity-commercial-group"
                 class="grid"
@@ -2882,51 +2938,43 @@ watch(invitationPendingRevocation, async invitation => {
                 {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY') }}
               </p>
               <template v-else>
-                <article
-                  v-for="event in timeline"
-                  :key="event.id"
-                  class="grid gap-1 border-b border-n-weak pb-3 last:border-0"
-                >
-                  <strong class="text-sm text-n-slate-12">
-                    {{ timelineEventLabel(event) }}
-                  </strong>
-                  <span class="text-xs text-n-slate-11">
-                    {{ timelineEventMeta(event) }}
-                  </span>
-                  <span
-                    v-for="change in timelineEventChanges(event)"
-                    :key="change.key"
-                    data-testid="kanban-opportunity-timeline-change"
-                    class="text-xs text-n-slate-11"
-                  >
-                    {{ change.transition }}
-                  </span>
-                  <div
-                    v-for="automation in event.automations || []"
-                    :key="automation.id"
-                    class="mt-1 grid gap-1 rounded-md bg-n-surface-2 px-2 py-1.5 text-xs text-n-slate-11"
-                  >
-                    <span class="font-medium text-n-slate-12">
-                      {{ automation.rule_name }}
-                    </span>
-                    <span>
-                      {{ automation.status }}
-                      <template v-if="automation.scheduled_at">
-                        {{
-                          ` - ${new Date(
-                            automation.scheduled_at
-                          ).toLocaleString()}`
-                        }}
-                      </template>
+                <RaevoTimeline :items="timelineItems">
+                  <template #extra="{ item }">
+                    <span
+                      v-for="change in item.changes"
+                      :key="change.key"
+                      data-testid="kanban-opportunity-timeline-change"
+                      class="text-xs text-n-slate-10"
+                    >
+                      {{ change.transition }}
                     </span>
                     <span
-                      v-if="automation.error_message"
-                      class="text-n-ruby-11"
+                      v-for="automation in item.automations"
+                      :key="automation.id"
+                      class="mt-1 grid gap-1 rounded-md bg-n-surface-2 px-2 py-1.5 text-xs text-n-slate-10"
                     >
-                      {{ automation.error_message }}
+                      <span class="font-medium text-n-slate-12">
+                        {{ automation.rule_name }}
+                      </span>
+                      <span>
+                        {{ automation.status }}
+                        <template v-if="automation.scheduled_at">
+                          {{
+                            ` - ${new Date(
+                              automation.scheduled_at
+                            ).toLocaleString()}`
+                          }}
+                        </template>
+                      </span>
+                      <span
+                        v-if="automation.error_message"
+                        class="text-n-ruby-11"
+                      >
+                        {{ automation.error_message }}
+                      </span>
                     </span>
-                  </div>
-                </article>
+                  </template>
+                </RaevoTimeline>
               </template>
             </section>
 

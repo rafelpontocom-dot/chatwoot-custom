@@ -519,7 +519,9 @@ describe('FinanceView', () => {
         overdue: [],
         month: {
           received: [{ currency: 'BRL', count: 2, amount_cents: 30_000 }],
-          received_previous: [{ currency: 'BRL', count: 2, amount_cents: 20_000 }],
+          received_previous: [
+            { currency: 'BRL', count: 2, amount_cents: 20_000 },
+          ],
         },
         overdue_oldest_due_on: null,
       },
@@ -544,7 +546,9 @@ describe('FinanceView', () => {
         overdue: [{ currency: 'BRL', count: 1, amount_cents: 12_900 }],
         month: {
           received: [{ currency: 'BRL', count: 4, amount_cents: 40_000 }],
-          received_previous: [{ currency: 'BRL', count: 5, amount_cents: 25_000 }],
+          received_previous: [
+            { currency: 'BRL', count: 5, amount_cents: 25_000 },
+          ],
         },
         overdue_oldest_due_on: null,
       },
@@ -559,8 +563,12 @@ describe('FinanceView', () => {
 
     // «A vencer» e «Vencido» não têm mês anterior no servidor: ficam sem seta,
     // em vez de mostrarem uma variação que ninguém mediu.
-    expect(wrapper.get('[data-testid="finance-kpi-open"]').find('s').text()).toBe('');
-    expect(wrapper.get('[data-testid="finance-kpi-overdue"]').find('s').text()).toBe('');
+    expect(
+      wrapper.get('[data-testid="finance-kpi-open"]').find('s').text()
+    ).toBe('');
+    expect(
+      wrapper.get('[data-testid="finance-kpi-overdue"]').find('s').text()
+    ).toBe('');
   });
 
   it('sends compact payment filters to the server', async () => {

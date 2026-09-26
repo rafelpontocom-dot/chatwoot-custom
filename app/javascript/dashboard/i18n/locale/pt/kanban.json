@@ -1401,7 +1401,9 @@
         "CUSTOM_FIELDS_CHANGED": "{count} campos alterados",
         "CHANGE_TRANSITION": "{before} → {after}",
         "ENTERED_STAGE": "Entrou na etapa {stage}",
-        "CREATED_IN_STAGE": "Criada na etapa {stage}"
+        "CREATED_IN_STAGE": "Criada na etapa {stage}",
+        "RECENT": "Últimos eventos",
+        "SEE_ALL": "Ver histórico completo"
       },
       "TITLE": "Detalhes da oportunidade",
       "TITLE_WITH_BOARD": "Editar oportunidade em {boardName}",
