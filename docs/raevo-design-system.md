@@ -257,6 +257,103 @@ alguém puser uma em cada indicador, a linha quebra e volta a ter duas alturas.
 No Pipeline nenhum indicador leva nota, e é escolha: o que o rodapé lá levava (o valor fechado,
 o denominador da taxa) está na faixa **Resumo**, a um clique no cabeçalho.
 
+### A quarta densidade: `list` — o indicador como caminho
+
+`card`, `strip` e `inline` respondem a «o número é o assunto desta tela, ou a moldura
+dele?». `list` responde a outra pergunta: **e se o número for o caminho?**
+
+Numa coluna estreita ao lado da superfície de trabalho, um indicador não é conteúdo nem
+moldura — é a porta para o recorte que ele conta. `list` é a anatomia da faixa dentro de
+um `<button>`: rótulo em caixa alta em cima, número e variação por baixo, ≈45px.
+
+| | `card` | `strip` | `inline` | `list` |
+| --- | --- | --- | --- | --- |
+| Caixa | própria | nenhuma | nenhuma | nenhuma |
+| Número | 30px | 16px | 14px | 14px |
+| Rodapé | sob filete | por baixo | não há | não há |
+| Nota | — | — | sim | não |
+| Elemento | `<div>` | `<div>` | `<div>` | **`<button>`** |
+| Onde | Início, Financeiro, IA | — | cabeçalho do Pipeline | coluna da Agenda |
+
+Três coisas que `list` traz e que não são gosto:
+
+- **Empilha, e não rótulo-à-esquerda/número-à-direita.** Foi medido: a 199px de coluna,
+  «Concluídas no mês» com selo parte em duas linhas e «Faltas no mês» não — filas de
+  28/44/29/44px e quatro números em quatro posições diferentes. Empilhado, todas medem
+  45px e os números alinham.
+- **O rótulo é `text-n-slate-11`, não `-10` como as outras três.** `list` é a única com
+  fundo em `hover` e no estado activo, e `-10` sobre `n-slate-3` mede **4,35:1** e sobre
+  `n-slate-4` **4,12:1** — reprova a WCAG nos dois. A porta de pares não apanha isto:
+  o fundo vem de quem chama e a cor do texto vem do primitivo, logo nunca coexistem no
+  mesmo atributo. Mede-se à mão.
+- **O rótulo é `<span>`, não `<p>`.** `_base.scss` dá `mb-2` e `leading-[1.65]` a todo o
+  `<p>`, e um parágrafo dentro de um `<button>` não é conteúdo válido. As outras três
+  ficam em `<p>`: trocá-lo mexia no ritmo vertical das seis telas que já as usam.
+
+**O estado activo vem de fora**, por `aria-pressed` e por classe: quem filtra sabe o que
+está filtrado, o cartão não. E vem por dois canais, não um — filete de 2px à esquerda em
+`border-n-brand` **e** fundo `n-slate-4` —, porque `n-slate-3` (hover) e `n-slate-4`
+(activo) diferem em seis pontos de luz e ninguém distingue os dois a olho.
+
+### O indicador que filtra — a Agenda
+
+Os quatro indicadores da Agenda moram na coluna, debaixo de «Situação», e **cada um é um
+botão que filtra**:
+
+| Indicador | Leva a |
+| --- | --- |
+| Marcações hoje | vista de dia, hoje, todas as situações |
+| Concluídas no mês | vista de mês, situação «Concluído» |
+| Faltas no mês | vista de mês, situação «Faltou» |
+| Canceladas no mês | vista de mês, situação «Cancelado» |
+
+**O período do destino é o período que o número conta.** «Concluídas no mês 2» leva ao
+mês; se levasse à semana corrente, o número no botão e a grelha discordavam — que é a
+forma mais rápida de alguém deixar de confiar nos dois.
+
+**Segundo clique desfaz.** Sem isso, um filtro posto daqui só se tirava no selector de
+situação — que fica acima, não diz que foi ele, e deixava a vista de mês para trás.
+
+**A banda do cabeçalho não morreu: ficou `lg:hidden`.** A coluna é `lg:flex` e não existe
+abaixo dos 1024px; sem a banda, em tablet e telemóvel os quatro números deixavam de
+existir. É a mesma fonte (`agendaIndicators`) em duas densidades, uma por largura — que é
+para o que as densidades servem. Medido: coluna 210px a 1280px, banda 73px a 900px.
+
+### A coluna lateral da Agenda — o que fica no fundo
+
+A barra lateral da Agenda (`w-56`, 224px, com `px-3`) tem o mini-mês, as agendas e o filtro de
+situação, e depois disso **acabava**: uns 400px de nada até ao fundo do ecrã.
+
+O que vai para lá **não são os agregados do mês.** Duas razões, e a primeira é factual: a barra
+é `hidden … lg:flex`, ou seja **não existe abaixo dos 1024px** — mover os indicadores para lá
+apagava-os em portátil pequeno, tablet e telemóvel. A segunda é de leitura: o fundo de uma
+coluna de filtros é o sítio mais frio da tela, e misturar leitura com filtro convida a clicar
+num número à espera de que filtre.
+
+O que vai para lá é a **lista accionável**: as marcações de hoje ainda por confirmar, uma por
+linha, com a hora e o nome, cada uma um `<button>` que abre o diálogo da marcação. O contador
+continua na linha do cabeçalho — diz que há três; a lista diz **quais**, e chega-se lá num
+clique.
+
+Três regras que a lista segue, e que valem para o que vier a ocupar aquele espaço:
+
+- **Pedido próprio.** `appointments` é o que a vista carregou: do período no ecrã, filtrado pela
+  situação e pela pesquisa. Derivar dali daria uma lista que fica vazia mal alguém navegue para
+  outra semana — uma lista que mente é pior do que nenhuma.
+- **Só aparece quando tem o que dizer.** Sem nada por confirmar a coluna fica calada: não há
+  secção vazia nem «tudo confirmado» a ocupar espaço.
+- **Nada depende de `truncate`.** O nome quebra por palavra; a hora é `tabular-nums` e não
+  encolhe. Par mais apertado medido: 7,17:1 em `hover`, 7,81:1 em repouso.
+- **Ordena quem mostra.** `AppointmentsIndexQuery` não tem `ORDER BY` — devolve o que o
+  Postgres der, e com `.distinct` a ordem é mesmo indefinida. A grelha não se importa, porque
+  posiciona cada marcação pela hora; uma **lista** fora de ordem é um defeito que se lê à
+  primeira. Ordena-se no cliente, não no `query`: mudar o `scope` mexia na grelha, que não
+  pediu nada.
+
+**O que muda de estado, recarrega tudo o que o mostra.** Confirmar uma marcação recarrega a
+grelha, as contagens **e** a lista. Antes só a grelha recarregava, e o contador do cabeçalho
+ficava a dizer o valor de quando a tela abriu.
+
 **O selo de variação custa 1px.** Medido: 27px sem ele, 28px com ele — cabe na linha do número.
 Não é por espaço que se tira uma seta, e tirá-la faz a tela deixar de dizer se uma taxa de
 fecho de 50% veio de 30% ou de 70%.

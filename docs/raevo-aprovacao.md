@@ -219,6 +219,49 @@ usa — e 68px continua abaixo dos 84px da faixa que substituiu. **O que isto
 confirma é a regra:** uma nota por fila, no máximo. A segunda parte a linha em
 qualquer idioma.
 
+### A coluna lateral da Agenda ganha a lista de confirmações · 26/09/2026
+
+O dono do produto perguntou se os indicadores não podiam ir para baixo da
+Situação, na barra lateral — que acaba ali e deixa uns 400px vazios até ao fundo
+do ecrã. O vazio é real; mover os indicadores para lá não era a resposta, por uma
+razão factual antes de qualquer argumento de gosto:
+
+**A barra é `hidden … lg:flex`. Não existe abaixo dos 1024px.** Pôr lá os
+indicadores apagava-os em portátil pequeno, tablet e telemóvel. A faixa sobrevive
+a todas as larguras.
+
+E, mesmo em desktop, os 37px que se poupavam eram o imóvel mais barato que
+restava — viemos de 151 → 84 → 37 — pagos com os números no canto mais frio da
+tela e com leitura misturada com filtro: alguém vai clicar em «4 faltas» à espera
+de que filtre.
+
+**Decisão: o vazio recebe a lista accionável, não os agregados.** As marcações de
+hoje ainda por confirmar, uma por linha, hora e nome, cada uma um botão que abre
+o diálogo da marcação. O contador continua na linha do cabeçalho — diz que há
+três; a lista diz quais, e chega-se lá num clique. E o instinto de clicar passa a
+ser recompensado em vez de traído.
+
+O contador **não** sai da linha por causa disto: é o sinal que sobrevive abaixo
+dos 1024px, onde a lista não existe. A redundância é deliberada e tem dono —
+cada um responde a uma pergunta diferente («há alguma coisa para fazer hoje?» e
+«o quê, e leva-me lá»).
+
+**Uma correcção que veio ao de cima.** A lista tem pedido próprio, e teve de ter:
+`appointments` é o que a vista carregou — do período no ecrã, filtrado pela
+situação e pela pesquisa. Derivar a lista dali dava uma lista vazia mal alguém
+navegasse para outra semana ou filtrasse por «Concluídas». **E a mesma auditoria
+apanhou um defeito que já lá estava:** confirmar uma marcação recarregava só a
+grelha, e as contagens do cabeçalho ficavam a dizer o valor de quando a tela
+abriu. Agora o que muda de estado recarrega tudo o que o mostra.
+
+**E uma segunda, que só aparece quando se lê o `query`:**
+`AppointmentsIndexQuery#filtered_scope` termina em `.distinct` e **não tem `ORDER BY`** —
+a ordem das marcações é a que o Postgres der. Nunca incomodou porque o único consumidor
+era a grelha, que posiciona cada marcação pela hora e ignora a ordem da lista. Uma lista
+é o primeiro consumidor a quem a ordem importa: «10:00, 09:00, 09:30» é um defeito que se
+lê à primeira. Ordena-se **no cliente** — mexer no `scope` mexia na grelha, que não pediu
+nada e que já funciona.
+
 ---
 
 ## O processo
@@ -789,7 +832,105 @@ commits mexem em telas que já passaram por aqui:
 implementar, a base mexe-se. Antes de implementar uma tela aprovada, comparar sempre com
 o código do dia — não com o mockup.
 
+### Os indicadores da Agenda descem para a coluna, e passam a filtrar · 26/09/2026
+
+**Isto revê a decisão de hoje de manhã**, e a revisão veio do dono do produto: os quatro
+indicadores vão mesmo para baixo de «Situação», e **cada um é clicável**.
+
+O que eu tinha respondido era que a coluna é `hidden … lg:flex` e não existe abaixo dos
+1024px, logo mover os números para lá apagava-os em tablet e telemóvel. O argumento
+continua verdadeiro — **o que estava errado era concluir dele que os números não podiam
+descer.** A conclusão certa é que não podem descer *e mais nada*:
+
+- Na coluna (≥1024px) ficam os quatro em densidade `list`, cada um um `<button>`.
+- Abaixo dos 1024px a banda do cabeçalho continua onde estava, agora `lg:hidden`.
+
+É a mesma fonte (`agendaIndicators`) em duas densidades, uma por largura. Não são dois
+tratamentos do mesmo número — é o que as densidades existem para fazer.
+
+**E o segundo argumento que eu tinha usado caiu por terra sozinho.** Eu escrevi que
+«alguém vai clicar em "4 faltas" à espera de que filtre». A resposta a isso não é
+esconder o número: é **fazê-lo filtrar**. O instinto estava certo; o desenho é que não o
+servia.
+
+Cada um leva ao recorte que conta — «Concluídas no mês 2» leva ao **mês** com a situação
+em «Concluído», não à semana. Se o período do destino não fosse o do número, o botão e a
+grelha discordavam. Segundo clique desfaz: sem isso, o filtro só se tirava no selector de
+situação, que fica acima, não diz que foi ele e deixava a vista de mês para trás.
+
+Medido na jornada real: bloco de 210px na coluna a 1280px (filas de 45/46/46/46px, todas
+iguais); banda de 73px a 900px. Ordem de tabulação a partir de «Situação»: os quatro
+filtros e depois as linhas de «Por confirmar», com anel visível e `:focus-visible` a
+casar.
+
+**Um defeito apanhado pela medição, que nenhuma porta teria apanhado:** o rótulo em
+`text-n-slate-10` sobre o fundo de `hover` mede 4,35:1 e sobre o do estado activo 4,12:1
+— reprova a WCAG nos dois. A porta de pares não o vê porque o fundo vem de quem chama e
+a cor vem do primitivo: nunca coexistem no mesmo atributo. Passou a `-11` (7,17:1 e
+6,80:1).
+
 ## Achados abertos
+
+### O selo de variação aponta para «bom», não para onde o número foi · 26/09/2026
+
+Encontrado nas capturas da lista da Agenda, não no código: a faixa diz
+**«Faltas no mês 1 ↑ −67%»**. Seta para cima, número negativo, lado a lado, a 6px
+um do outro.
+
+A causa está em `RaevoKpiCard.vue`, numa linha:
+
+```vue
+:icon="deltaIsGood ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'"
+```
+
+A seta sai de `deltaIsGood`, não do sinal. Em «Faltas» descer é bom, logo `bom = true`,
+logo seta para cima — enquanto o texto ao lado diz −67%.
+
+**E foi escrito assim de propósito**, o que é o que torna isto uma decisão e não um
+descuido: a regra 5 proíbe comunicar estado só por cor, e a seta é o canal não-cromático
+do par bom/mau. Trocá-la pelo sinal resolve a contradição e deixa «bom ou mau» a viver
+**só no verde e no vermelho** — que é exactamente o que a regra 5 proíbe.
+
+Três saídas, e nenhuma é de graça:
+
+1. **Seta = sinal, e o juízo sai do selo.** O selo passa a dizer o que aconteceu; se
+   subir é bom ou mau passa a ser conhecimento do domínio («faltas a descer é bom»).
+   Honesto e legível; perde a leitura de relance para quem não conhece a métrica.
+2. **Seta = sinal, e o juízo ganha canal próprio** — um ✓/! antes do número, ou a
+   moldura do selo. Cumpre a regra 5; custa largura numa linha que existe para não
+   custar altura, e são 28px.
+3. **Fica como está e a seta ganha rótulo acessível** («desceu 67%, o que é bom»).
+   Não resolve nada para quem vê: a contradição continua no ecrã.
+
+**Não decidido aqui.** `RaevoKpiCard` está em seis telas; mudar a seta muda todas, e isso
+passa por esta fila. A minha recomendação é a 2, com o juízo na moldura do selo e não num
+ícone extra — não acrescenta elemento, só muda o que o selo desenha à volta do texto.
+
+### O diálogo da marcação diz outra hora e noutra língua · 26/09/2026
+
+Encontrado na jornada da lista: clicar na linha das **09:00** abre o diálogo a dizer
+**«Saturday, September 26, 2026 at 10:00 AM»**. A marcação 25 está gravada a `09:00`; a
+grelha diz 09:00, a lista diz 09:00, o diálogo diz 10:00.
+
+Uma linha, dois defeitos (`CalendarAppointmentDetailsDialog.vue`):
+
+```js
+new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'full',
+  timeStyle: 'short',
+  timeZone: appointment.value?.timezone,
+})
+```
+
+- **`undefined` como locale** dá a língua do browser, não a da aplicação. O resto da
+  Agenda usa `intlLocale.value`. É por isso que sai inglês num diálogo português.
+- **`timeZone` da marcação** faz o diálogo desenhar no fuso do agendamento enquanto a
+  grelha e a lista desenham no do browser. Mostrar a marcação no fuso dela é defensável
+  — mostrar «10:00» sem dizer *de que fuso*, ao lado de uma grelha que diz 09:00, não é.
+
+Anterior a este trabalho e noutro ficheiro: fica aqui, não foi corrigido de passagem.
+Correcção proposta: `intlLocale` no primeiro argumento, e ou cair no fuso do browser, ou
+manter o da marcação **com o nome do fuso escrito ao lado da hora**.
 
 ### Pipeline — arrastar não tem alternativa por teclado · 20/09/2026
 

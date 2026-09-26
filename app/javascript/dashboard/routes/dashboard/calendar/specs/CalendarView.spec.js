@@ -39,12 +39,25 @@ const mountCalendar = () =>
     global: {
       stubs: {
         // Ver AGENTS.md, «Armadilha conhecida em testes».
+        // Na densidade `list` o primitivo é um `<button>` que emite `select`.
+        // O stub tem de o ser também, senão os filtros da barra lateral não
+        // são clicáveis no teste e a cobertura passa a ser de nada.
         RaevoKpiCard: {
-          props: ['label', 'value', 'delta', 'deltaIsGood', 'footer', 'note'],
+          props: [
+            'label',
+            'value',
+            'delta',
+            'deltaIsGood',
+            'footer',
+            'note',
+            'density',
+          ],
+          emits: ['select'],
           template:
-            '<div><i>{{ label }}</i><b>{{ value }}</b>' +
+            '<button type="button" @click="$emit(\'select\')">' +
+            '<i>{{ label }}</i><b>{{ value }}</b>' +
             "<s v-if=\"delta\">{{ deltaIsGood ? 'melhor' : 'pior' }} {{ delta }}</s>" +
-            '<u>{{ footer }}</u><em>{{ note }}</em></div>',
+            '<u>{{ footer }}</u><em>{{ note }}</em></button>',
         },
         KanbanCalendarBookingDialog: {
           setup(_, { expose }) {
@@ -201,6 +214,228 @@ describe('CalendarView', () => {
       expect(wrapper.find('[data-testid="calendar-topbar"]').exists()).toBe(
         true
       );
+    });
+  });
+
+  // Os quatro indicadores moram na barra lateral e cada um é um caminho: clicar
+  // leva ao recorte que ele conta. O que se afirma aqui é a correspondência
+  // entre o número e o pedido que o clique faz — se discordarem, o utilizador
+  // clica num 2 e vê outra coisa.
+  describe('the indicator filters in the sidebar', () => {
+    const comResumo = () =>
+      CalendarAPI.getSummary.mockResolvedValue({
+        data: {
+          today: { count: 14, unconfirmed: 3 },
+          completed: { current: 52, previous: 44 },
+          no_show: { current: 4, previous: 6 },
+          canceled: { current: 2, previous: 2 },
+          month_total: 58,
+        },
+      });
+
+    // O pedido da grelha é o que NÃO pede `scheduled` — esse é o da lista «por
+    // confirmar», que tem período e situação próprios.
+    const pedidoDaGrelha = () =>
+      CalendarAPI.getAppointments.mock.calls
+        .map(([arg]) => arg)
+        .findLast(arg => arg.status !== 'scheduled');
+
+    it('puts the four indicators in the sidebar as buttons', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const filtros = wrapper
+        .get('[data-testid="calendar-indicator-filters"]')
+        .findAll('button');
+
+      expect(filtros).toHaveLength(4);
+      expect(
+        wrapper
+          .get('[data-testid="calendar-kpi-filter-completed"]')
+          .find('b')
+          .text()
+      ).toBe('52');
+    });
+
+    // «Concluídas no mês 52» conta o mês. Se o clique levasse à semana, o
+    // número do botão e a grelha discordavam.
+    it('asks for the whole month when a monthly indicator is clicked', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      await wrapper
+        .get('[data-testid="calendar-kpi-filter-completed"]')
+        .trigger('click');
+      await flushPromises();
+
+      const pedido = pedidoDaGrelha();
+      expect(pedido.status).toBe('completed');
+      const dias =
+        (new Date(pedido.ends_at) - new Date(pedido.starts_at)) / 86400000;
+      expect(dias).toBeGreaterThan(27);
+    });
+
+    it('asks for a single day when the indicator for today is clicked', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      await wrapper
+        .get('[data-testid="calendar-kpi-filter-today"]')
+        .trigger('click');
+      await flushPromises();
+
+      const pedido = pedidoDaGrelha();
+      expect(pedido.status).toBeUndefined();
+      const dias =
+        (new Date(pedido.ends_at) - new Date(pedido.starts_at)) / 86400000;
+      expect(dias).toBeLessThanOrEqual(1);
+    });
+
+    // Sem o segundo clique, um filtro posto daqui só se tirava no selector de
+    // situação — que fica acima, não diz que foi ele, e deixava a vista de mês
+    // para trás.
+    it('undoes the filter when the active indicator is clicked again', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const faltas = wrapper.get('[data-testid="calendar-kpi-filter-no-show"]');
+      await faltas.trigger('click');
+      await flushPromises();
+      expect(pedidoDaGrelha().status).toBe('no_show');
+      expect(faltas.attributes('aria-pressed')).toBe('true');
+
+      await faltas.trigger('click');
+      await flushPromises();
+      expect(pedidoDaGrelha().status).toBeUndefined();
+      expect(faltas.attributes('aria-pressed')).toBe('false');
+    });
+
+    // A barra lateral é `lg:flex` e não existe abaixo dos 1024px. A banda do
+    // cabeçalho fica `lg:hidden` para que os quatro números não desapareçam em
+    // tablet e telemóvel — é a mesma fonte em duas densidades, uma por largura.
+    it('keeps the header band for the widths without a sidebar', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper.get('[data-testid="calendar-indicators"]').classes()
+      ).toContain('lg:hidden');
+    });
+  });
+
+  // O fundo da barra lateral estava vazio. O que vai para lá é a única coisa de
+  // hoje sobre a qual se age — e cada linha leva à marcação.
+  describe('the unconfirmed list in the sidebar', () => {
+    const porConfirmar = [
+      {
+        id: 91,
+        starts_at: '2026-09-26T09:00:00.000Z',
+        ends_at: '2026-09-26T09:30:00.000Z',
+        status: 'scheduled',
+        contact: { id: 1, name: 'Ana Ribeiro' },
+        procedure: { id: 1, name: 'Consulta inicial' },
+      },
+      {
+        id: 92,
+        starts_at: '2026-09-26T10:00:00.000Z',
+        ends_at: '2026-09-26T10:30:00.000Z',
+        status: 'scheduled',
+        contact: { id: 2, name: 'Rui Salgado' },
+        procedure: { id: 1, name: 'Consulta inicial' },
+      },
+    ];
+
+    // A lista tem pedido próprio: só o que pede `status: 'scheduled'` a recebe.
+    // A grelha continua a receber o que a vista dela pediu.
+    const comPorConfirmar = () =>
+      CalendarAPI.getAppointments.mockImplementation(({ status }) =>
+        Promise.resolve({ data: status === 'scheduled' ? porConfirmar : [] })
+      );
+
+    it("lists today's unconfirmed appointments with the time and the name", async () => {
+      comPorConfirmar();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const lista = wrapper.get('[data-testid="calendar-unconfirmed"]');
+
+      expect(lista.findAll('button')).toHaveLength(2);
+      expect(lista.text()).toContain('Ana Ribeiro');
+      expect(lista.text()).toContain('Rui Salgado');
+    });
+
+    // O ponto todo: `appointments` é o que a VISTA carregou, filtrado pelo
+    // período, pela situação e pela pesquisa. Derivar a lista dali dava uma
+    // lista que fica vazia mal alguém navegue para outra semana.
+    it('asks for today on its own, apart from what the grid is showing', async () => {
+      comPorConfirmar();
+      mountCalendar();
+      await flushPromises();
+
+      const pedidos = CalendarAPI.getAppointments.mock.calls.map(
+        ([arg]) => arg
+      );
+      const daLista = pedidos.filter(arg => arg.status === 'scheduled');
+
+      const UM_DIA = 24 * 60 * 60 * 1000;
+
+      expect(daLista).toHaveLength(1);
+      // Uma janela de um dia, e sem a pesquisa nem o recurso que a vista aplica.
+      expect(
+        new Date(daLista[0].ends_at) - new Date(daLista[0].starts_at)
+      ).toBe(UM_DIA);
+      expect(daLista[0].q).toBeUndefined();
+    });
+
+    // O endpoint não tem `ORDER BY`: devolve o que o Postgres der. A grelha
+    // não se importa, porque posiciona pela hora; a lista importa-se.
+    it('puts the rows in order of time, whatever order the server sent', async () => {
+      CalendarAPI.getAppointments.mockImplementation(({ status }) =>
+        Promise.resolve({
+          data:
+            status === 'scheduled' ? [porConfirmar[1], porConfirmar[0]] : [],
+        })
+      );
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const linhas = wrapper
+        .get('[data-testid="calendar-unconfirmed"]')
+        .findAll('button')
+        .map(linha => linha.attributes('data-testid'));
+
+      expect(linhas).toEqual([
+        'calendar-unconfirmed-91',
+        'calendar-unconfirmed-92',
+      ]);
+    });
+
+    it('opens the appointment dialog from a row', async () => {
+      comPorConfirmar();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      await wrapper
+        .get('[data-testid="calendar-unconfirmed-91"]')
+        .trigger('click');
+
+      expect(abrirDetalhes).toHaveBeenCalledWith(91);
+    });
+
+    // Sem nada por confirmar a coluna fica calada: não há secção vazia nem
+    // «tudo confirmado» a ocupar espaço.
+    it('stays quiet when there is nothing to confirm', async () => {
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="calendar-unconfirmed"]').exists()
+      ).toBe(false);
     });
   });
 
@@ -773,7 +1008,12 @@ describe('CalendarView', () => {
       await flushPromises();
 
       const [pedido] = CalendarAPI.getBusyBlocks.mock.calls.at(-1);
-      const [pedidoConsultas] = CalendarAPI.getAppointments.mock.calls.at(-1);
+      // O pedido da GRELHA, identificado pelo que é e não pela ordem: a lista
+      // de «por confirmar» usa o mesmo endpoint com `status: 'scheduled'`, e
+      // era ela a última chamada.
+      const pedidoConsultas = CalendarAPI.getAppointments.mock.calls
+        .map(([arg]) => arg)
+        .findLast(arg => arg.status !== 'scheduled');
       expect(pedido.starts_at).toBe(pedidoConsultas.starts_at);
       expect(pedido.ends_at).toBe(pedidoConsultas.ends_at);
 

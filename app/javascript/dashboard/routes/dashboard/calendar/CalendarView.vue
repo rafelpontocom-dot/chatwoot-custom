@@ -335,6 +335,68 @@ const loadResources = async () => {
   }
 };
 
+// --- Os indicadores que abrem a Agenda ---------------------------------------
+// **A taxa de ocupação do artefacto não está aqui.** Calculá-la exige cruzar as
+// regras de disponibilidade por dia e por recurso, as sobreposições de data, os
+// blocos externos e as durações — e cada um desses tem casos que mudariam o
+// número. Uma ocupação errada é pior do que nenhuma: é sobre ela que se decide
+// abrir ou fechar agenda. O que está aqui é contagem de estado, que a coluna
+// `status` conhece exatamente.
+const agendaSummary = ref(null);
+
+// Falha própria: se as contagens caírem, a grelha continua. São apoio, não a tela.
+const loadAgendaSummary = async () => {
+  try {
+    const { data } = await calendarAPI.getSummary();
+    agendaSummary.value = data;
+  } catch {
+    agendaSummary.value = null;
+  }
+};
+
+// As marcações de hoje ainda por confirmar, que ficam no fundo da barra lateral.
+//
+// Pedido PRÓPRIO, e é o ponto. `appointments` é o que a VISTA carregou — do
+// período que está no ecrã, filtrado pela situação escolhida e pela pesquisa.
+// Derivar a lista dali daria uma lista que mente: fica vazia assim que alguém
+// navega para outra semana ou filtra por «Concluídas», e a secretaria fica a
+// pensar que não há nada para confirmar.
+const unconfirmedToday = ref([]);
+
+const loadUnconfirmedToday = async () => {
+  const inicio = new Date();
+  inicio.setHours(0, 0, 0, 0);
+  const fim = new Date(inicio);
+  fim.setDate(fim.getDate() + 1);
+
+  try {
+    const { data } = await calendarAPI.getAppointments({
+      starts_at: isoDate(inicio),
+      ends_at: isoDate(fim),
+      status: 'scheduled',
+    });
+    // Ordenar é obrigatório, não zelo: `AppointmentsIndexQuery` não tem
+    // `ORDER BY` — devolve o que o Postgres der. A grelha não se importa,
+    // porque posiciona cada marcação pela hora; uma LISTA fora de ordem é um
+    // defeito que se lê à primeira.
+    unconfirmedToday.value = [...data].sort(
+      (a, b) => new Date(a.starts_at) - new Date(b.starts_at)
+    );
+  } catch {
+    // Falha própria, como as contagens: a grelha não depende desta lista.
+    unconfirmedToday.value = [];
+  }
+};
+
+// O que muda quando um agendamento muda de estado: a grelha, as contagens e a
+// lista. Antes só a grelha recarregava — confirmar uma marcação deixava o
+// «3 por confirmar» do cabeçalho a dizer o valor de quando a tela abriu.
+const refreshAgenda = async () => {
+  await loadAppointments();
+  loadAgendaSummary();
+  loadUnconfirmedToday();
+};
+
 /** Meia hora é o que o balão de criação rápida assume quando não há melhor. */
 const FALLBACK_DURATION = 30;
 
@@ -727,7 +789,7 @@ const changeAppointmentStatus = async action => {
       appointment: { action, lock_version: agendamento.lock_version },
     });
     closeEventPopover();
-    await loadAppointments();
+    await refreshAgenda();
   } catch (statusError) {
     // O diálogo mostra o motivo da recusa; o balão não tem onde o dizer.
     openAppointmentDetails();
@@ -768,25 +830,6 @@ watch(
 );
 watch(searchQuery, debouncedLoadAppointments);
 watch(() => route.query?.appointmentId, openRequestedAppointment);
-// --- Os indicadores que abrem a Agenda ---------------------------------------
-// **A taxa de ocupação do artefacto não está aqui.** Calculá-la exige cruzar as
-// regras de disponibilidade por dia e por recurso, as sobreposições de data, os
-// blocos externos e as durações — e cada um desses tem casos que mudariam o
-// número. Uma ocupação errada é pior do que nenhuma: é sobre ela que se decide
-// abrir ou fechar agenda. O que está aqui é contagem de estado, que a coluna
-// `status` conhece exatamente.
-const agendaSummary = ref(null);
-
-// Falha própria: se as contagens caírem, a grelha continua. São apoio, não a tela.
-const loadAgendaSummary = async () => {
-  try {
-    const { data } = await calendarAPI.getSummary();
-    agendaSummary.value = data;
-  } catch {
-    agendaSummary.value = null;
-  }
-};
-
 const variacaoAgenda = (agora, antes, maiorEhMelhor) => {
   if (!antes) return { texto: '', bom: true };
   const pct = ((agora - antes) / antes) * 100;
@@ -830,6 +873,7 @@ const agendaIndicators = computed(() => {
     {
       chave: 'today',
       label: t('CALENDAR.INDICATORS.TODAY'),
+      filtro: { view: 'day', status: 'all' },
       value: String(r.today.count),
       delta: '',
       deltaIsGood: true,
@@ -840,6 +884,7 @@ const agendaIndicators = computed(() => {
     {
       chave: 'completed',
       label: t('CALENDAR.INDICATORS.COMPLETED_MONTH'),
+      filtro: { view: 'month', status: 'completed' },
       value: String(r.completed.current),
       delta: concluidas.texto,
       deltaIsGood: concluidas.bom,
@@ -847,6 +892,7 @@ const agendaIndicators = computed(() => {
     {
       chave: 'no-show',
       label: t('CALENDAR.INDICATORS.NO_SHOW_MONTH'),
+      filtro: { view: 'month', status: 'no_show' },
       value: String(r.no_show.current),
       delta: faltas.texto,
       deltaIsGood: faltas.bom,
@@ -854,12 +900,51 @@ const agendaIndicators = computed(() => {
     {
       chave: 'canceled',
       label: t('CALENDAR.INDICATORS.CANCELED_MONTH'),
+      filtro: { view: 'month', status: 'canceled' },
       value: String(r.canceled.current),
       delta: canceladas.texto,
       deltaIsGood: canceladas.bom,
     },
   ];
 });
+
+/**
+ * Os indicadores da barra lateral são o caminho para o recorte que contam.
+ *
+ * «Concluídas no mês 2» conta o mês; clicar leva à vista de mês com a situação
+ * em «Concluídas», que é exactamente o conjunto que deu o 2. Se levasse à semana
+ * corrente, o número no botão e o que se vê na grelha discordavam — que é a
+ * forma mais rápida de alguém deixar de confiar nos dois.
+ */
+const isThisMonth = date => {
+  const hoje = new Date();
+  return (
+    date.getMonth() === hoje.getMonth() &&
+    date.getFullYear() === hoje.getFullYear()
+  );
+};
+
+const indicadorAtivo = filtro =>
+  view.value === filtro.view &&
+  selectedStatus.value === filtro.status &&
+  (filtro.view === 'day'
+    ? isToday(selectedDate.value)
+    : isThisMonth(selectedDate.value));
+
+const aplicarFiltroIndicador = filtro => {
+  // Segundo clique desfaz. Sem isto, um filtro posto daqui só se tira no
+  // selector de situação — que fica acima, não diz que foi ele, e deixa a vista
+  // de mês para trás.
+  if (indicadorAtivo(filtro)) {
+    view.value = 'week';
+    selectedStatus.value = 'all';
+    selectedDate.value = new Date();
+    return;
+  }
+  view.value = filtro.view;
+  selectedStatus.value = filtro.status;
+  selectedDate.value = new Date();
+};
 
 // A primeira importação do Google corre em segundo plano logo a seguir a ligar.
 const GOOGLE_FIRST_IMPORT_DELAY = 5000;
@@ -869,6 +954,7 @@ onMounted(() => {
   loadResources();
   loadProcedures();
   loadAgendaSummary();
+  loadUnconfirmedToday();
   openRequestedAppointment(route.query?.appointmentId);
   if (route.query?.google_calendar === 'connected') {
     setTimeout(loadAppointments, GOOGLE_FIRST_IMPORT_DELAY);
@@ -990,7 +1076,7 @@ onMounted(() => {
     <div
       v-if="agendaIndicators.length"
       data-testid="calendar-indicators"
-      class="flex flex-wrap items-baseline justify-end gap-x-5 gap-y-1 border-b border-n-weak px-4 py-1"
+      class="flex flex-wrap items-baseline justify-end gap-x-5 gap-y-1 border-b border-n-weak px-4 py-1 lg:hidden"
     >
       <RaevoKpiCard
         v-for="indicador in agendaIndicators"
@@ -1116,6 +1202,106 @@ onMounted(() => {
               {{ status.label }}
             </option>
           </select>
+        </div>
+
+        <!--
+          Os quatro indicadores moram aqui, e cada um é um botão que filtra:
+          «Concluídas no mês» leva ao mês com a situação em «Concluídas». O
+          instinto de clicar num número à espera de que filtre passa a ser
+          recompensado em vez de traído.
+
+          A banda do cabeçalho não desapareceu — ficou `lg:hidden`. Esta coluna
+          é `lg:flex` e **não existe abaixo dos 1024px**; sem a banda, em
+          tablet e telemóvel os quatro números deixavam de existir. É a mesma
+          fonte (`agendaIndicators`) em duas densidades, uma por largura, que é
+          para o que as densidades servem.
+        -->
+        <div
+          v-if="agendaIndicators.length"
+          data-testid="calendar-indicator-filters"
+          class="shrink-0"
+        >
+          <p class="mb-1.5 text-xs font-semibold text-n-slate-12">
+            {{ t('CALENDAR.INDICATORS_TITLE') }}
+          </p>
+          <div class="grid gap-0.5">
+            <RaevoKpiCard
+              v-for="indicador in agendaIndicators"
+              :key="indicador.chave"
+              :data-testid="`calendar-kpi-filter-${indicador.chave}`"
+              density="list"
+              :label="indicador.label"
+              :value="indicador.value"
+              :delta="indicador.delta"
+              :delta-is-good="indicador.deltaIsGood"
+              :aria-pressed="indicadorAtivo(indicador.filtro)"
+              :class="
+                indicadorAtivo(indicador.filtro)
+                  ? 'border-s-2 border-solid border-n-brand bg-n-slate-4 font-semibold'
+                  : 'border-s-2 border-solid border-transparent bg-n-background'
+              "
+              :aria-label="
+                t('CALENDAR.INDICATORS.FILTER', {
+                  label: indicador.label,
+                  value: indicador.value,
+                })
+              "
+              @select="aplicarFiltroIndicador(indicador.filtro)"
+            />
+          </div>
+        </div>
+
+        <!--
+          O fundo da barra lateral estava vazio, e o que vai para lá não são os
+          agregados do mês: é a única coisa de hoje sobre a qual se AGE. Cada
+          linha abre o diálogo da marcação — o número diz que há três por
+          confirmar, e aqui diz-se quais, e chega-se lá num clique.
+
+          Só aparece quando há alguma. Sem nada por confirmar a coluna fica
+          calada, como o resto da tela.
+        -->
+        <div
+          v-if="unconfirmedToday.length"
+          data-testid="calendar-unconfirmed"
+          class="shrink-0"
+        >
+          <p
+            class="mb-1.5 flex items-baseline gap-control-gap text-xs font-semibold text-n-slate-12"
+          >
+            {{ t('CALENDAR.UNCONFIRMED_TITLE') }}
+            <span class="text-micro font-bold tabular-nums text-n-slate-10">
+              {{ unconfirmedToday.length }}
+            </span>
+          </p>
+          <ul class="mb-0 grid list-none gap-0.5 p-0">
+            <li v-for="marcacao in unconfirmedToday" :key="marcacao.id">
+              <button
+                type="button"
+                :data-testid="`calendar-unconfirmed-${marcacao.id}`"
+                :aria-label="
+                  t('CALENDAR.UNCONFIRMED_OPEN', {
+                    time: formatTime(marcacao.starts_at),
+                    contact: marcacao.contact.name,
+                  })
+                "
+                class="flex w-full items-baseline gap-control-gap rounded-md px-1 py-1 text-left outline-none hover:bg-n-slate-3 focus-visible:ring-2 focus-visible:ring-n-brand/40"
+                @click="appointmentDetailsDialog?.open(marcacao.id)"
+              >
+                <span
+                  class="shrink-0 text-xs tabular-nums text-n-slate-11"
+                  aria-hidden="true"
+                >
+                  {{ formatTime(marcacao.starts_at) }}
+                </span>
+                <span
+                  class="min-w-0 break-words text-xs text-n-slate-12"
+                  aria-hidden="true"
+                >
+                  {{ marcacao.contact.name }}
+                </span>
+              </button>
+            </li>
+          </ul>
         </div>
       </aside>
 
@@ -1441,7 +1627,7 @@ onMounted(() => {
     />
     <CalendarAppointmentDetailsDialog
       ref="appointmentDetailsDialog"
-      @updated="loadAppointments"
+      @updated="refreshAgenda"
     />
   </main>
 </template>
