@@ -66,6 +66,12 @@ class KanbanBoardsAPI extends ApiClient {
     return axios.get(`${this.url}/${boardId}/summary`);
   }
 
+  // A Visão de funil: entradas, avanços, perdas e abertas por etapa. Pedido
+  // separado dos indicadores porque percorre a tabela de eventos.
+  getBoardFunnel(boardId) {
+    return axios.get(`${this.url}/${boardId}/funnel`);
+  }
+
   duplicateBoard(boardId) {
     return axios.post(`${this.url}/${boardId}/duplicate`);
   }

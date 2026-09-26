@@ -12,6 +12,13 @@ class Api::V1::Accounts::KanbanBoards::SummariesController < Api::V1::Accounts::
     render json: KanbanBoards::CommercialSummary.new(board: @kanban_board).call
   end
 
+  # A Visão de funil. Acção separada de propósito: percorre a tabela de eventos e
+  # não tem de correr junto com os indicadores, que abrem o quadro.
+  def funnel
+    authorize @kanban_board, :show?
+    render json: KanbanBoards::FunnelSummary.new(board: @kanban_board).call
+  end
+
   private
 
   def fetch_kanban_board

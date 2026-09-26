@@ -1070,6 +1070,18 @@ const openBoardSettings = () => {
   });
 };
 
+const openBoardFunnel = () => {
+  if (!selectedBoard.value?.id) return;
+
+  router.push({
+    name: 'kanban_board_funnel',
+    params: {
+      accountId: route.params.accountId,
+      boardId: selectedBoard.value.id,
+    },
+  });
+};
+
 const openBoardAutomations = () => {
   if (!selectedBoard.value?.id) return;
 
@@ -1882,6 +1894,15 @@ onUnmounted(() => {
                         class="i-lucide-chart-no-axes-combined size-4 text-n-slate-10"
                       />
                       {{ t('KANBAN.REPORTS.SUMMARY') }}
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="kanban-board-funnel-button"
+                      class="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
+                      @click="openBoardFunnel"
+                    >
+                      <i class="i-lucide-filter size-4 text-n-slate-10" />
+                      {{ t('KANBAN.FUNNEL.TITLE') }}
                     </button>
                     <template v-if="isAdmin">
                       <div class="my-0.5 border-t border-n-weak" />
