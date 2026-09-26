@@ -1697,6 +1697,25 @@
       "WON_AMOUNT_FOOTER": "{value} closed",
       "LAST_MONTH": "{value} last month",
       "NO_BASELINE": "no month to compare"
+    },
+    "FUNNEL": {
+      "TITLE": "Funnel view",
+      "BACK": "Back to board",
+      "WINDOW": "last {count} days",
+      "READING": "Entered and advanced are movement in the window. Lost is what closed in the window. Open is where things stand now.",
+      "STAGE": "Stage",
+      "ENTERED": "Entered",
+      "ADVANCED": "Advanced",
+      "CONVERSION": "Conversion",
+      "LOST": "Lost",
+      "OPEN": "Open",
+      "NO_CONVERSION": "nothing entered this stage",
+      "EMPTY": "No movement in this window",
+      "EMPTY_DESCRIPTION": "Nothing entered or left a stage in the last {count} days. Move an opportunity and it shows up here.",
+      "NO_STAGES": "This board has no stages yet",
+      "LOADING": "Reading the funnel",
+      "ERROR": "The funnel could not be read",
+      "RETRY": "Try again"
     }
   }
 }

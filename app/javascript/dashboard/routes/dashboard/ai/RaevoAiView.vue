@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
+import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import RaevoAiKnowledgePanel from './RaevoAiKnowledgePanel.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
@@ -243,6 +244,17 @@ const firstResponse = computed(() => {
 });
 
 const attendanceMetrics = computed(() => [
+  // As conversas abrem a fila porque são o denominador das outras três: uma taxa
+  // de entrega de 80% sobre seis conversas não é a mesma informação que sobre
+  // seiscentas. Estava só dentro das legendas.
+  {
+    key: 'CONVERSATIONS',
+    label: t('RAEVO_AI.ATTENDANCE.CONVERSATIONS'),
+    value: numero(usage.value.conversations),
+    caption: t('RAEVO_AI.ATTENDANCE.WINDOW_FOOTER', {
+      count: windowDays.value,
+    }),
+  },
   {
     key: 'RESPONSES',
     label: t('RAEVO_AI.ATTENDANCE.RESPONSES'),
@@ -1061,37 +1073,32 @@ const setupRows = computed(() => [
                     {{ t('RAEVO_AI.ATTENDANCE.TITLE') }}
                   </h3>
 
-                  <dl
-                    class="mt-3 flex flex-col gap-px overflow-hidden rounded-lg bg-n-weak"
-                  >
-                    <div
+                  <!--
+                    A fila de indicadores do sistema aprovado, e não um quarto
+                    tratamento de cartão de número: `RaevoKpiCard` já serve as
+                    outras cinco telas. Duas colunas porque esta secção é meia
+                    largura — a fila de quatro adapta-se, a anatomia não muda.
+
+                    Nenhum cartão leva variação: a ponte devolve uma janela e
+                    não a anterior, logo não há base para comparar. O
+                    `HANDOFF_NOTE` abaixo diz porquê, no caso em que a ausência
+                    de seta é mais fácil de ler como esquecimento.
+                  -->
+                  <div class="mt-3 grid gap-card-sm sm:grid-cols-2">
+                    <RaevoKpiCard
                       v-for="item in attendanceMetrics"
                       :key="item.key"
-                      class="bg-n-solid-1 px-3 py-2.5"
-                    >
-                      <dt class="text-xs text-n-slate-10">
-                        {{ item.label }}
-                      </dt>
-                      <dd
-                        class="mt-0.5 text-base font-semibold tabular-nums text-n-slate-12"
-                      >
-                        {{ item.value ?? '—' }}
-                        <small
-                          v-if="item.caption"
-                          class="mt-0.5 block text-micro font-normal text-n-slate-10"
-                        >
-                          {{ item.caption }}
-                        </small>
-                        <router-link
-                          v-if="item.link"
-                          :to="{ ...item.link, params: { accountId } }"
-                          class="mt-1 inline-flex text-micro font-semibold text-n-blue-11"
-                        >
-                          {{ t('RAEVO_AI.ATTENDANCE.OPEN_LIST') }}
-                        </router-link>
-                      </dd>
-                    </div>
-                  </dl>
+                      :label="item.label"
+                      :value="item.value ?? ''"
+                      :footer="item.caption || ''"
+                      :to="
+                        item.link
+                          ? { ...item.link, params: { accountId } }
+                          : null
+                      "
+                      :to-label="t('RAEVO_AI.ATTENDANCE.OPEN_LIST')"
+                    />
+                  </div>
 
                   <p
                     class="mt-3 rounded-lg bg-n-alpha-1 px-3 py-2 text-xs leading-5 text-n-slate-11"

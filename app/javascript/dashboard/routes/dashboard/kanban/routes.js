@@ -2,6 +2,7 @@ import { frontendURL } from '../../../helper/URLHelper';
 import KanbanOverview from './KanbanOverview.vue';
 import KanbanView from './KanbanView.vue';
 import KanbanBoardSettings from './KanbanBoardSettings.vue';
+import KanbanFunnelView from './KanbanFunnelView.vue';
 import KanbanAutomations from './KanbanAutomations.vue';
 
 const meta = {
@@ -19,6 +20,12 @@ export const routes = [
     path: frontendURL('accounts/:accountId/kanban/:boardId'),
     name: 'kanban_board_show',
     component: KanbanView,
+    meta,
+  },
+  {
+    path: frontendURL('accounts/:accountId/kanban/:boardId/funnel'),
+    name: 'kanban_board_funnel',
+    component: KanbanFunnelView,
     meta,
   },
   {

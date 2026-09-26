@@ -268,6 +268,7 @@ Rails.application.routes.draw do
             patch :reorder, on: :member, to: 'kanban_boards/positions#update'
             patch :restore, on: :member
             get :summary, on: :member, to: 'kanban_boards/summaries#show'
+            get :funnel, on: :member, to: 'kanban_boards/summaries#funnel'
             post :duplicate, on: :member, to: 'kanban_boards/duplicates#create'
 
             scope module: :kanban_boards do

@@ -1695,6 +1695,25 @@
       "WON_AMOUNT_FOOTER": "{value} fechados",
       "LAST_MONTH": "{value} no mês passado",
       "NO_BASELINE": "sem mês para comparar"
+    },
+    "FUNNEL": {
+      "TITLE": "Visão de funil",
+      "BACK": "Voltar ao quadro",
+      "WINDOW": "últimos {count} dias",
+      "READING": "Entraram e avançaram é movimento na janela. Perdidas é o que fechou na janela. Abertas é como está agora.",
+      "STAGE": "Etapa",
+      "ENTERED": "Entraram",
+      "ADVANCED": "Avançaram",
+      "CONVERSION": "Conversão",
+      "LOST": "Perdidas",
+      "OPEN": "Abertas",
+      "NO_CONVERSION": "nada entrou nesta etapa",
+      "EMPTY": "Sem movimento nesta janela",
+      "EMPTY_DESCRIPTION": "Nada entrou nem saiu de uma etapa nos últimos {count} dias. Mova uma oportunidade e ela aparece aqui.",
+      "NO_STAGES": "Este quadro ainda não tem etapas",
+      "LOADING": "A ler o funil",
+      "ERROR": "Não foi possível ler o funil",
+      "RETRY": "Tentar outra vez"
     }
   }
 }

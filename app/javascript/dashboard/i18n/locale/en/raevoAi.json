@@ -254,6 +254,8 @@
     },
     "ATTENDANCE": {
       "EYEBROW": "SERVICE",
+      "CONVERSATIONS": "Conversations",
+      "WINDOW_FOOTER": "in the last %{count} days",
       "TITLE": "Volume and response",
       "RESPONSES": "Responses delivered",
       "HANDOFFS": "Handoffs applied",
