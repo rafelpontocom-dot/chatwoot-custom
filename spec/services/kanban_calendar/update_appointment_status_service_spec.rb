@@ -25,7 +25,13 @@ RSpec.describe KanbanCalendar::UpdateAppointmentStatusService do
       contact: contact,
       procedure: procedure,
       resource_ids: [resource.id],
-      starts_at: Time.zone.parse('2026-08-10 13:00:00'),
+      # 13:00 na agenda, não 13:00 no fuso ambiente. A janela padrão de uma agenda
+      # nova é 08:00–18:00 local, por isso o que este spec marca tem de ser lido no
+      # fuso dela: com `Time.zone.parse` a mesma linha significa 13:00 UTC, que em
+      # São Paulo é 10:00 — passa por sorte, e deixa de passar se alguma coisa que
+      # corra antes mexer no `Time.zone`. É a convenção que os specs vizinhos deste
+      # directório já seguem (`availability_query_spec.rb`).
+      starts_at: ActiveSupport::TimeZone['America/Sao_Paulo'].parse('2026-08-10 13:00:00'),
       timezone: 'America/Sao_Paulo'
     ).perform!
   end
