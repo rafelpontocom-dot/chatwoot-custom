@@ -1532,7 +1532,10 @@
       "OWNER_NONE": "Sem responsável",
       "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança.",
       "BOOLEAN_YES": "Sim",
-      "BOOLEAN_NO": "Não"
+      "BOOLEAN_NO": "Não",
+      "AMOUNT_HEADLINE_ESTIMATE": "estimativa",
+      "AMOUNT_HEADLINE_RECEIVED": "{value} recebidos",
+      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda"
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",

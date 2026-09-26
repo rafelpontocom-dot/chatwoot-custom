@@ -1534,7 +1534,10 @@
       "ADD_ATTRIBUTE_PLACEHOLDER": "Select a field",
       "ADD_ATTRIBUTE_ACTION": "Add",
       "ATTRIBUTE_EMPTY": "Not set",
-      "CONTACT_LABELS": "Contact labels"
+      "CONTACT_LABELS": "Contact labels",
+      "AMOUNT_HEADLINE_ESTIMATE": "estimate",
+      "AMOUNT_HEADLINE_RECEIVED": "{value} received",
+      "AMOUNT_HEADLINE_EMPTY": "no amount yet"
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",

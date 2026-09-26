@@ -287,6 +287,30 @@ const financeSummary = computed(() => {
     latestReceivedAt,
   };
 });
+// O valor é a manchete da oportunidade, não um campo entre dezoito.
+//
+// No sistema aprovado ele abre a ficha em 30px, com uma linha de contexto ao
+// lado — «estimativa», ou quanto já entrou. Estava a 14px numa linha de campo
+// de 140px de rótulo, indistinguível do telemóvel e do convénio, e é o número
+// pelo qual se decide se vale a pena insistir nesta oportunidade.
+//
+// A linha editável fica onde está: promover a manchete não tira a edição.
+const amountContext = computed(() => {
+  if (!amountDisplay.value) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_EMPTY');
+  }
+  const { receivedCents, currency } = financeSummary.value;
+  if (!receivedCents) {
+    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_ESTIMATE');
+  }
+  return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_RECEIVED', {
+    value: new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currency || accountCurrency.value,
+    }).format(receivedCents / 100),
+  });
+});
+
 const contactDetails = computed(() => [
   {
     key: 'name',
@@ -1689,7 +1713,7 @@ watch(invitationPendingRevocation, async invitation => {
           a abrir para saber o que se está a ver.
         -->
         <h2
-          class="mb-0 break-words text-base font-semibold leading-snug text-n-slate-12"
+          class="mb-0 break-words text-xl font-semibold leading-snug tracking-tight text-n-slate-12"
         >
           <input
             v-show="isEditingSubject"
@@ -2018,6 +2042,17 @@ watch(invitationPendingRevocation, async invitation => {
         >
           <section class="grid min-w-0 content-start gap-4">
             <template v-if="activeTabKey === 'details'">
+              <div
+                data-testid="kanban-opportunity-amount-headline"
+                class="flex flex-wrap items-baseline gap-control-gap"
+              >
+                <span
+                  class="whitespace-nowrap text-3xl font-semibold tracking-tight tabular-nums text-n-slate-12"
+                >
+                  {{ amountDisplay || '—' }}
+                </span>
+                <span class="text-xs text-n-slate-10">{{ amountContext }}</span>
+              </div>
               <section
                 data-testid="kanban-opportunity-next-action-section"
                 class="grid gap-2 border-b border-n-weak pb-3"
