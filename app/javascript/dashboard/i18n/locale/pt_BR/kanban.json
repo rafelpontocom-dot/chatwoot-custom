@@ -1690,10 +1690,7 @@
       "CLOSE_RATE": "Taxa de fecho",
       "CYCLE_DAYS": "Ciclo médio",
       "WON_MONTH": "Ganhas no mês",
-      "DAYS": "{count} dias",
-      "CLOSED_COUNT": "{count} fechadas",
-      "WON_AMOUNT_FOOTER": "{value} fechados",
-      "LAST_MONTH": "{value} no mês passado"
+      "DAYS": "{count} dias"
     },
     "FUNNEL": {
       "TITLE": "Visão de funil",

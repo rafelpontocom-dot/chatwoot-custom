@@ -136,24 +136,20 @@ describe('CalendarView', () => {
       expect(faltas.find('s').text()).toContain('33%');
     });
 
-    // Numa conta sem marcações no mês não há denominador. O rodapé fica VAZIO em
-    // vez de trazer «sem mês para comparar»: três dos quatro indicadores diziam
-    // o mesmo, e a fila gastava a sua linha mais larga a desculpar-se.
-    it('leaves the footer empty when there is no month to divide by', async () => {
-      CalendarAPI.getSummary.mockResolvedValue({
-        data: {
-          today: { count: 0, unconfirmed: 0 },
-          completed: { current: 0, previous: 0 },
-          no_show: { current: 0, previous: 0 },
-          canceled: { current: 0, previous: 0 },
-          month_total: 0,
-        },
-      });
+    // A linha leva rótulo, valor e variação, e mais nada: o rodapé («33,3% do
+    // mês», «3 por confirmar») saiu com a densidade `inline`. Se alguém o
+    // voltar a passar, a linha cresce para três linhas e a grelha de horas
+    // perde a hora que esta mudança lhe devolveu.
+    it('sends no footer to the indicator line', async () => {
+      comResumo();
       const wrapper = mountCalendar();
       await flushPromises();
 
       expect(
         wrapper.get('[data-testid="calendar-kpi-completed"]').find('u').text()
+      ).toBe('');
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-today"]').find('u').text()
       ).toBe('');
     });
 

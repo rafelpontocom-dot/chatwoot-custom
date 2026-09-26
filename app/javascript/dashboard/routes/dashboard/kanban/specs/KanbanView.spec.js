@@ -626,6 +626,22 @@ describe('KanbanView realtime events', () => {
       );
     });
 
+    // A ordem é a decisão e não um detalhe de estilo: os números primeiro, a
+    // legenda de saúde por baixo. A legenda explica a barra das colunas — é
+    // apoio, e apoio vem depois do dado.
+    it('puts the numbers above the stage health legend', async () => {
+      comResumo();
+      const wrapper = await mountView();
+
+      const html = wrapper
+        .get('[data-testid="kanban-workspace-header"]')
+        .html();
+
+      expect(html.indexOf('kanban-indicators')).toBeLessThan(
+        html.indexOf('kanban-health-legend')
+      );
+    });
+
     it('keeps the board working when the indicators request fails', async () => {
       const wrapper = await mountView();
 

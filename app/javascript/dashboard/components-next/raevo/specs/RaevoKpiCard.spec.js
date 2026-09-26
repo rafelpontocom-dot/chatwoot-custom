@@ -76,6 +76,35 @@ describe('RaevoKpiCard', () => {
     );
   });
 
+  // `inline` é a única densidade que PERDE informação de propósito: fica o
+  // rótulo, o valor e a variação, e o rodapé não é desenhado. É a troca que a
+  // faz caber no canto de um cabeçalho que já existe, e se alguém a desfizer a
+  // linha volta a ter três linhas de altura.
+  it('drops the footer in inline density and keeps the change stamp', () => {
+    const linha = montar({
+      density: 'inline',
+      delta: '-29%',
+      footer: '6 fechadas',
+    });
+
+    expect(linha.text()).toContain('Valor em funil');
+    expect(linha.text()).toContain('R$ 61,3k');
+    expect(linha.find('s').text()).toBe('-29%');
+    expect(linha.text()).not.toContain('6 fechadas');
+  });
+
+  // O número desce ao degrau de 14px e a caixa desaparece: é o que separa a
+  // linha da faixa, que fica com caixa nenhuma mas número a 16px.
+  it('uses the smallest type step and no box in inline density', () => {
+    const linha = montar({ density: 'inline' });
+
+    expect(linha.find('div').classes()).not.toContain('p-card');
+    expect(linha.get('span.text-sm').exists()).toBe(true);
+    expect(montar({ density: 'strip' }).get('span.text-base').exists()).toBe(
+      true
+    );
+  });
+
   it('does not open the second grid column without a destination', () => {
     // O `CardAction` da referência só abre a 2ª coluna quando há acção. Sem `to`,
     // o cartão não deixa um espaço reservado a um link que não existe.

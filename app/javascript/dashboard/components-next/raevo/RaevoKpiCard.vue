@@ -24,20 +24,26 @@
  * O número usa `tabular-nums` e não parte: numa fila de quatro, dígitos de
  * larguras diferentes fazem os cartões dançarem quando os dados mudam.
  *
- * ## As duas densidades, e quando cada uma é a certa
- *
- * `density="card"` é o cartão inteiro: caixa própria, número a 30px, rodapé sob
- * um filete. Serve onde o indicador É o conteúdo do topo da tela.
- *
- * `density="strip"` é a mesma anatomia sem caixa, com o rótulo em caixa alta e o
- * número a 16px. Serve onde o indicador é CONTEXTO e a superfície de trabalho
- * tem de aparecer sem rolar: no Pipeline a fila de quatro cartões empurrava as
- * colunas 134px para baixo, e na Agenda fazia o mesmo à grelha de horas. A
- * mesma fila em faixa ocupa cerca de 50px, e cabe dentro da caixa do cabeçalho.
+ * ## As três densidades, e quando cada uma é a certa
  *
  * A densidade não é gosto: é a resposta a «o número é o assunto desta tela, ou
- * é a moldura dele?». As duas vivem aqui de propósito — uma faixa desenhada à
- * mão em cada tela seria o quarto tratamento de número deste produto.
+ * é a moldura dele?» — e, quando é moldura, a quanto espaço ela tem direito.
+ *
+ * - `card` (omissão): caixa própria, número a 30px, rodapé sob um filete.
+ *   Serve onde o indicador É o conteúdo do topo da tela. ≈139px de fila.
+ * - `strip`: a mesma anatomia sem caixa, rótulo em caixa alta, número a 16px.
+ *   Rodapé por baixo, sem filete. ≈76px de fila.
+ * - `inline`: **só rótulo e valor**, numa linha, sem caixa, sem variação e sem
+ *   rodapé. ≈24px de fila, e cabe no canto de um cabeçalho que já existe.
+ *
+ * `inline` é a única que **perde informação de propósito**, e isso está aqui em
+ * letra gorda porque é a decisão e não um efeito colateral: a variação e o
+ * contexto não aparecem. Quem a usa aceita que a tela deixa de dizer se o número
+ * subiu ou desceu — ou põe a variação ao alcance de um clique, como o Pipeline e
+ * a Agenda fazem com o botão de detalhe.
+ *
+ * As três vivem aqui de propósito. Uma linha de números desenhada à mão em cada
+ * tela seria o quarto tratamento de número deste produto.
  */
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
@@ -67,15 +73,16 @@ const props = defineProps({
   to: { type: [String, Object], default: null },
   /** Rótulo acessível do canto — obrigatório com `to`: é controlo só de ícone. */
   toLabel: { type: String, default: '' },
-  /** `card` onde o número é o conteúdo, `strip` onde é contexto. Ver acima. */
+  /** `card`, `strip` ou `inline`. Ver o bloco acima: a escolha é uma regra. */
   density: {
     type: String,
     default: 'card',
-    validator: valor => ['card', 'strip'].includes(valor),
+    validator: valor => ['card', 'strip', 'inline'].includes(valor),
   },
 });
 
-const emFaixa = computed(() => props.density === 'strip');
+const emCartao = computed(() => props.density === 'card');
+const emLinha = computed(() => props.density === 'inline');
 
 // Sem valor ainda medido, mostra-se o travessão. Um zero mentiria, e um cartão
 // em branco desalinharia a fila.
@@ -95,26 +102,28 @@ const display = computed(() =>
     como a pílula do campo sobreviveu cinco meses.
   -->
   <div
-    class="grid grid-cols-[1fr_auto] items-start"
-    :class="
-      emFaixa
-        ? 'gap-0.5'
-        : 'gap-1 rounded-xl border border-solid border-n-weak bg-n-solid-1 p-card'
-    "
+    :class="{
+      'grid grid-cols-[1fr_auto] items-start gap-1 rounded-xl border border-solid border-n-weak bg-n-solid-1 p-card':
+        density === 'card',
+      'grid grid-cols-[1fr_auto] items-start gap-0.5': density === 'strip',
+      'flex items-baseline gap-control-gap whitespace-nowrap':
+        density === 'inline',
+    }"
   >
     <p
-      class="col-start-1"
-      :class="
-        emFaixa
-          ? 'text-micro font-bold uppercase tracking-[0.12em] text-n-slate-10'
-          : 'text-xs text-n-slate-10'
-      "
+      :class="{
+        'col-start-1 text-xs text-n-slate-10': density === 'card',
+        'col-start-1 text-micro font-bold uppercase tracking-[0.12em] text-n-slate-10':
+          density === 'strip',
+        'text-micro font-bold uppercase tracking-[0.12em] text-n-slate-10':
+          density === 'inline',
+      }"
     >
       {{ label }}
     </p>
 
     <RouterLink
-      v-if="to"
+      v-if="to && !emLinha"
       :to="to"
       :aria-label="toLabel"
       :title="toLabel"
@@ -122,14 +131,29 @@ const display = computed(() =>
     >
       <span class="i-lucide-arrow-up-right size-icon" />
     </RouterLink>
-    <span v-else-if="$slots.action" class="col-start-2 row-start-1">
+    <span v-else-if="$slots.action && !emLinha" class="col-start-2 row-start-1">
       <slot name="action" />
     </span>
 
-    <div class="col-start-1 flex flex-wrap items-center gap-control-gap">
+    <!--
+      Em linha o número não precisa de contentor: é um irmão do rótulo, no mesmo
+      `flex`, alinhado pela linha de base. Um `div` a mais aqui partia o
+      alinhamento com o rótulo, que é o que faz o par ler-se como uma coisa só.
+    -->
+    <component
+      :is="emLinha ? 'span' : 'div'"
+      :class="{
+        'col-start-1 flex flex-wrap items-center gap-control-gap': !emLinha,
+        'inline-flex items-baseline gap-control-gap': emLinha,
+      }"
+    >
       <span
         class="whitespace-nowrap font-semibold tracking-tight tabular-nums text-n-slate-12"
-        :class="emFaixa ? 'text-base' : 'text-3xl'"
+        :class="{
+          'text-3xl': density === 'card',
+          'text-base': density === 'strip',
+          'text-sm': density === 'inline',
+        }"
       >
         {{ display }}
       </span>
@@ -140,7 +164,7 @@ const display = computed(() =>
         :icon="deltaIsGood ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'"
         :label="delta"
       />
-    </div>
+    </component>
 
     <!--
       Em faixa o rodapé não leva filete: quatro filetes curtos lado a lado, um
@@ -150,14 +174,16 @@ const display = computed(() =>
       E fica em `text-xs`, não em `text-micro`: o rodapé é texto corrido, e
       `micro` está reservado a selo, contador e cabeçalho em caixa alta — está
       escrito em `tailwind.config.js`, ao lado do degrau.
+
+      Em linha não há rodapé nenhum: é o que `inline` troca por caber no canto.
     -->
     <p
-      v-if="footer"
+      v-if="footer && !emLinha"
       class="col-start-1"
       :class="
-        emFaixa
-          ? 'text-xs text-n-slate-10'
-          : 'border-t border-solid border-n-weak pt-cell text-xs text-n-slate-10'
+        emCartao
+          ? 'border-t border-solid border-n-weak pt-cell text-xs text-n-slate-10'
+          : 'text-xs text-n-slate-10'
       "
     >
       {{ footer }}

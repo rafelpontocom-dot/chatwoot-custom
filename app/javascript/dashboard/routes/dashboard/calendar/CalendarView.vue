@@ -796,6 +796,10 @@ const variacaoAgenda = (agora, antes, maiorEhMelhor) => {
   };
 };
 
+// Como no Pipeline, a linha leva rótulo, valor e variação. O rodapé saiu com a
+// densidade `inline`: «33,3% do mês» e «3 por confirmar» eram a terceira linha
+// de cada indicador. `month_total` e `today.unconfirmed` continuam a vir do
+// servidor e deixaram de ter consumidor aqui.
 const agendaIndicators = computed(() => {
   const r = agendaSummary.value;
   if (!r) return [];
@@ -812,15 +816,6 @@ const agendaIndicators = computed(() => {
     r.canceled.previous,
     false
   );
-  // Sem marcações no mês não há denominador, e o rodapé fica vazio em vez de
-  // trazer uma frase a dizer isso: três dos quatro indicadores diziam o mesmo, e
-  // a fila gastava a linha mais larga a desculpar-se.
-  const doMes = valor =>
-    r.month_total
-      ? t('CALENDAR.INDICATORS.OF_MONTH', {
-          percent: ((valor / r.month_total) * 100).toFixed(1),
-        })
-      : '';
 
   return [
     {
@@ -829,9 +824,6 @@ const agendaIndicators = computed(() => {
       value: String(r.today.count),
       delta: '',
       deltaIsGood: true,
-      footer: r.today.unconfirmed
-        ? t('CALENDAR.INDICATORS.UNCONFIRMED', { count: r.today.unconfirmed })
-        : t('CALENDAR.INDICATORS.ALL_CONFIRMED'),
     },
     {
       chave: 'completed',
@@ -839,7 +831,6 @@ const agendaIndicators = computed(() => {
       value: String(r.completed.current),
       delta: concluidas.texto,
       deltaIsGood: concluidas.bom,
-      footer: doMes(r.completed.current),
     },
     {
       chave: 'no-show',
@@ -847,7 +838,6 @@ const agendaIndicators = computed(() => {
       value: String(r.no_show.current),
       delta: faltas.texto,
       deltaIsGood: faltas.bom,
-      footer: doMes(r.no_show.current),
     },
     {
       chave: 'canceled',
@@ -855,7 +845,6 @@ const agendaIndicators = computed(() => {
       value: String(r.canceled.current),
       delta: canceladas.texto,
       deltaIsGood: canceladas.bom,
-      footer: doMes(r.canceled.current),
     },
   ];
 });
@@ -989,18 +978,17 @@ onMounted(() => {
     <div
       v-if="agendaIndicators.length"
       data-testid="calendar-indicators"
-      class="grid grid-cols-2 gap-x-6 gap-y-cell border-b border-n-weak px-4 py-cell sm:grid-cols-4"
+      class="flex flex-wrap items-baseline justify-end gap-x-5 gap-y-1 border-b border-n-weak px-4 py-1"
     >
       <RaevoKpiCard
         v-for="indicador in agendaIndicators"
         :key="indicador.chave"
         :data-testid="`calendar-kpi-${indicador.chave}`"
-        density="strip"
+        density="inline"
         :label="indicador.label"
         :value="indicador.value"
         :delta="indicador.delta"
         :delta-is-good="indicador.deltaIsGood"
-        :footer="indicador.footer"
       />
     </div>
 

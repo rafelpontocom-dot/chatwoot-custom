@@ -406,11 +406,7 @@
       "TODAY": "Appointments today",
       "COMPLETED_MONTH": "Completed this month",
       "NO_SHOW_MONTH": "No-shows this month",
-      "CANCELED_MONTH": "Cancelled this month",
-      "UNCONFIRMED": "{count} to confirm",
-      "ALL_CONFIRMED": "all confirmed",
-      "OF_MONTH": "{percent}% of the month",
-      "LAST_MONTH": "{count} last month"
+      "CANCELED_MONTH": "Cancelled this month"
     }
   },
   "CALENDAR_SETUP": {

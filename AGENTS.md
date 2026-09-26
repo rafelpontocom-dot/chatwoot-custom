@@ -96,26 +96,38 @@ a proposta C · Órbita não é o modo escuro de A — ver `docs/raevo-aprovacao
    Em `shallowMount`, `RaevoField` precisa de stub que renderize o slot com
    `control-class`/`field-id` — senão todos os campos somem do teste.
 
-## Indicador: cartão onde é conteúdo, faixa onde é contexto
+## Indicador: cartão onde é conteúdo, linha onde é contexto
 
-`RaevoKpiCard` tem duas densidades, e a escolha **não é gosto** — é a resposta a
-«nesta tela o número é o assunto, ou é a moldura dele?».
+`RaevoKpiCard` tem três densidades, e a escolha **não é gosto** — é a resposta a
+«nesta tela o número é o assunto, ou é a moldura dele?», e a quanto espaço a
+moldura tem direito.
 
-- `density="card"` (omissão): caixa própria, número a 30px, rodapé sob um filete.
-  Para o Início, o Financeiro, a IA — onde a fila **é** o topo da tela.
-- `density="strip"`: a mesma anatomia sem caixa, rótulo em caixa alta e número a
-  16px. Para o Pipeline e a Agenda — onde a superfície de trabalho (as colunas, a
-  grelha de horas) tem de aparecer sem rolar. No Pipeline a faixa mora **dentro**
-  da caixa do cabeçalho; na Agenda, que tem barra de uma linha e não caixa, é a
-  banda logo abaixo dela.
+| | Caixa | Número | Rodapé | Fila no Pipeline | Onde |
+| --- | --- | --- | --- | --- | --- |
+| `card` (omissão) | própria | 30px | sob filete | 139px | Início, Financeiro, IA |
+| `strip` | nenhuma | 16px | por baixo | 76px | — |
+| `inline` | nenhuma | 14px | **não há** | **28px** | Pipeline, Agenda |
 
-**Não desenhe uma faixa de números à mão numa tela.** Foi por aí que o produto
+`inline` é a única que **perde informação de propósito**: fica o rótulo, o valor e
+o selo de variação, e o rodapé não é desenhado. É a troca que a faz caber no canto
+de um cabeçalho que já existe. Quem a usa aceita que «6 fechadas» — o denominador
+da taxa — e «3 por confirmar» deixam de aparecer.
+
+No Pipeline a linha mora no **canto inferior direito da caixa do cabeçalho**, e a
+legenda de saúde das etapas vem **por baixo dela, também à direita**: a legenda
+explica a barra das colunas, é apoio, e apoio vem depois do dado. Na Agenda, que
+tem barra de uma linha e não caixa, a linha é a banda logo abaixo dela.
+
+O selo de variação custa **1px** — cabe na linha do número. Medido: 27px sem ele,
+28px com ele. Não é por espaço que se tira uma seta.
+
+**Não desenhe uma linha de números à mão numa tela.** Foi por aí que o produto
 chegou a três tratamentos de cartão de número; uma quarta variante inventada num
 template é o mesmo erro com outro nome.
 
 **Rodapé vazio em vez de «sem mês para comparar».** Numa conta nova três dos
-quatro indicadores diziam isso, e a fila gastava a sua linha mais larga a
-desculpar-se. A ausência de seta já diz que não há base de comparação.
+quatro indicadores diziam isso. A ausência de seta já diz que não há base de
+comparação. (Com `inline` a questão não se põe: não há rodapé.)
 
 ## Paleta de etapas do funil — travada
 
@@ -472,7 +484,8 @@ Cinco armadilhas que custaram tempo, para não voltarem a custar:
 **Meça, não só capture.** `boundingBox()` sobre o cabeçalho, a faixa e a
 superfície de trabalho transforma «ficou muito grande» num número que se discute.
 Foi assim que se soube que a fila de indicadores valia 139px no Pipeline e 151px
-na Agenda, e que a faixa os põe em 76px e 84px.
+na Agenda, que a faixa os punha em 76px e 84px, e que a linha os põe em 28px e
+37px — e que o selo de variação, que parecia caro, custa 1px.
 
 O que a porta encontrou à primeira execução, e não teria encontrado sem ela: uma
 tela que não preenchia a largura (≈375px vazios em 1280) e uma conversão de 0%

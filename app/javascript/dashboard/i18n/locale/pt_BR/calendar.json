@@ -406,11 +406,7 @@
       "TODAY": "Marcações hoje",
       "COMPLETED_MONTH": "Concluídas no mês",
       "NO_SHOW_MONTH": "Faltas no mês",
-      "CANCELED_MONTH": "Canceladas no mês",
-      "UNCONFIRMED": "{count} por confirmar",
-      "ALL_CONFIRMED": "todas confirmadas",
-      "OF_MONTH": "{percent}% do mês",
-      "LAST_MONTH": "{count} no mês passado"
+      "CANCELED_MONTH": "Canceladas no mês"
     }
   },
   "CALENDAR_SETUP": {

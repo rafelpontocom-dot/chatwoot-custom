@@ -131,6 +131,48 @@ quando `won_at` antecede `created_at`, e o importador não impede. E
 mudança — a Agenda compara por percentagem do mês. Ficam registadas em vez de
 corrigidas de passagem: nenhuma das duas é desta mudança.
 
+### A faixa ainda era grande: a linha · 26/09/2026
+
+O dono do produto olhou para a faixa de 76px e disse o mesmo de antes: continua
+grande. Pediu tudo no canto, e duas propostas para escolher. Foram construídas e
+**medidas na aplicação real**, com os mesmos dados nas duas:
+
+| | Pipeline | Agenda |
+| --- | --- | --- |
+| Quatro cartões (origem) | 139px | 151px |
+| Faixa | 76px | 84px |
+| A · linha sem variação | 27px | 36px |
+| **B · linha com variação (escolhida)** | **28px** | **37px** |
+
+**O que decidiu foi a medição, e não era óbvio antes dela: a diferença entre A e
+B é de um pixel.** O selo de variação cabe na linha do número — não abre linha
+nova. Tirar as setas não poupava espaço; só fazia a tela deixar de dizer se a
+taxa de fecho de 50% vinha de 30% ou de 70%. O dono do produto escolheu **B**.
+
+Duas coisas que a escolha trava:
+
+- A linha mora no **canto inferior direito da caixa do cabeçalho**, e a legenda
+  de saúde das etapas vem **por baixo dela, também à direita** — pedido explícito
+  do dono do produto, e a leitura certa: a legenda explica a barra das colunas,
+  é apoio, e apoio vem depois do dado.
+- Não flutua sobre o quadro. Ali taparia os cartões da última coluna e o
+  «Adicionar item», que é justamente para onde se arrasta.
+
+**O que se perdeu, e foi aceite.** O rodapé desapareceu. Com ele foram-se «{count}
+fechadas» — o denominador da taxa, e uma taxa de 100% sobre uma cobrança fechada
+não é a mesma informação que sobre trinta — e «{count} por confirmar», que na
+Agenda era o sinal mais accionável da linha. As chaves `CLOSED_COUNT`,
+`WON_AMOUNT_FOOTER`, `LAST_MONTH`, `OF_MONTH`, `UNCONFIRMED` e `ALL_CONFIRMED`
+ficaram órfãs e saíram dos três catálogos. **Se voltarem a fazer falta, a via é o
+painel de detalhe** — a mesma linha com um botão que abre a faixa completa: em
+repouso custa os mesmos 28px e nada se perde. Foi proposta e não foi escolhida;
+fica aqui para não ser redescoberta do zero.
+
+O ciclo médio negativo que aparecia nas capturas anteriores era da semente, não
+do código: havia cartões com `won_at` anterior ao `created_at`. Os dados de
+demonstração foram corrigidos. **O defeito de produto continua por corrigir** —
+o importador não impede um `won_at` anterior à criação.
+
 ---
 
 ## O processo

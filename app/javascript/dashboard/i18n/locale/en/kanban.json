@@ -1692,10 +1692,7 @@
       "CLOSE_RATE": "Close rate",
       "CYCLE_DAYS": "Average cycle",
       "WON_MONTH": "Won this month",
-      "DAYS": "{count} days",
-      "CLOSED_COUNT": "{count} closed",
-      "WON_AMOUNT_FOOTER": "{value} closed",
-      "LAST_MONTH": "{value} last month"
+      "DAYS": "{count} days"
     },
     "FUNNEL": {
       "TITLE": "Funnel view",
