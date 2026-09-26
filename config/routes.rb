@@ -264,6 +264,7 @@ Rails.application.routes.draw do
             get :archived, on: :collection
             patch :reorder, on: :member, to: 'kanban_boards/positions#update'
             patch :restore, on: :member
+            get :summary, on: :member, to: 'kanban_boards/summaries#show'
             post :duplicate, on: :member, to: 'kanban_boards/duplicates#create'
 
             scope module: :kanban_boards do

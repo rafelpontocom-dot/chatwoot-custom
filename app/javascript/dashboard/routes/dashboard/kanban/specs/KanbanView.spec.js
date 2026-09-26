@@ -78,6 +78,7 @@ vi.mock('dashboard/api/kanbanBoards', () => ({
     getArchivedCards: vi.fn(),
     restoreCardById: vi.fn(),
     bulkUpdateCards: vi.fn(),
+    getBoardSummary: vi.fn(),
   },
 }));
 
@@ -327,6 +328,11 @@ const mountView = async (
     KanbanBoardsAPI.getArchivedCards.mockResolvedValue({ data: [] });
   }
   KanbanBoardsAPI.restoreCardById.mockResolvedValue({ data: {} });
+  // Por omissão o resumo comercial FALHA: é informação de apoio, e o Pipeline tem
+  // de funcionar sem ele. Os testes que o querem sobrepõem o mock.
+  if (!KanbanBoardsAPI.getBoardSummary.getMockImplementation()) {
+    KanbanBoardsAPI.getBoardSummary.mockRejectedValue(new Error('sem resumo'));
+  }
   KanbanBoardsAPI.bulkUpdateCards.mockResolvedValue({
     data: { updated_count: 1 },
   });
@@ -339,6 +345,15 @@ const mountView = async (
       stubs: {
         OnClickOutside: {
           template: '<div><slot /></div>',
+        },
+        // Ver AGENTS.md, «Armadilha conhecida em testes»: stubado por omissão, o
+        // cartão engole rótulo, valor, variação e rodapé.
+        RaevoKpiCard: {
+          props: ['label', 'value', 'delta', 'deltaIsGood', 'footer'],
+          template:
+            '<div><i>{{ label }}</i><b>{{ value }}</b>' +
+            "<s v-if=\"delta\">{{ deltaIsGood ? 'arrow-up' : 'arrow-down' }} {{ delta }}</s>" +
+            '<u>{{ footer }}</u></div>',
         },
         Button: {
           name: 'Button',
@@ -525,6 +540,87 @@ describe('KanbanView realtime events', () => {
     mockRoute.query = {};
     vi.clearAllMocks();
     vi.useRealTimers();
+  });
+
+  describe('the commercial indicators', () => {
+    const comResumo = extra =>
+      KanbanBoardsAPI.getBoardSummary.mockResolvedValue({
+        data: {
+          currency: 'BRL',
+          pipeline_value: { current: 6_130_000, previous: 5_470_000 },
+          close_rate: { current: 28.4, previous: 30.9, closed: 32 },
+          cycle_days: { current: 11, previous: 13 },
+          won: {
+            current: { count: 9, amount_cents: 3_820_000 },
+            previous: { count: 6, amount_cents: 2_100_000 },
+          },
+          ...extra,
+        },
+      });
+
+    it('opens the pipeline with four measured indicators', async () => {
+      comResumo();
+      const wrapper = await mountView();
+
+      const fila = wrapper.get('[data-testid="kanban-indicators"]');
+      expect(fila.findAll('[data-testid^="kanban-kpi-"]')).toHaveLength(4);
+      // A taxa é montada aqui como texto, por isso aparece. O ciclo passa por
+      // `t()` com interpolação, e o mock de i18n deste spec devolve a chave —
+      // o que se pode afirmar dele é a variação, que também é montada aqui.
+      expect(
+        wrapper.get('[data-testid="kanban-kpi-close-rate"]').text()
+      ).toContain('28.4%');
+      expect(wrapper.get('[data-testid="kanban-kpi-cycle"]').text()).toContain(
+        '15%'
+      );
+    });
+
+    // Ciclo mais curto é melhor, portanto descer é bom: a seta não pode herdar o
+    // sinal do número. 11 dias contra 13 é uma melhoria de 15%.
+    it('reads a shorter cycle as an improvement', async () => {
+      comResumo();
+      const wrapper = await mountView();
+
+      const ciclo = wrapper.get('[data-testid="kanban-kpi-cycle"]');
+      expect(ciclo.text()).toContain('15%');
+      expect(ciclo.html()).toContain('arrow-up');
+    });
+
+    // Conta nova: não há mês anterior. Sem seta, e o rodapé diz porquê — em vez
+    // de uma variação de zero, que pareceria estabilidade.
+    it('shows no arrow when there is no previous month to compare', async () => {
+      comResumo({
+        pipeline_value: { current: 100_000, previous: 0 },
+        close_rate: { current: null, previous: null, closed: 0 },
+        cycle_days: { current: null, previous: null },
+        won: {
+          current: { count: 0, amount_cents: 0 },
+          previous: { count: 0, amount_cents: 0 },
+        },
+      });
+      const wrapper = await mountView();
+
+      const funil = wrapper.get('[data-testid="kanban-kpi-pipeline"]');
+      expect(funil.html()).not.toContain('arrow-up');
+      expect(funil.html()).not.toContain('arrow-down');
+      // Sem fechadas, a taxa não existe e a tela não passa valor. O travessão que
+      // o utilizador vê é do `RaevoKpiCard` e está coberto no spec dele — aqui
+      // afirma-se o contrato: nada em vez de «0%», que seria uma medição falsa.
+      expect(
+        wrapper.get('[data-testid="kanban-kpi-close-rate"]').find('b').text()
+      ).toBe('');
+    });
+
+    it('keeps the board working when the indicators request fails', async () => {
+      const wrapper = await mountView();
+
+      expect(wrapper.find('[data-testid="kanban-indicators"]').exists()).toBe(
+        false
+      );
+      expect(
+        wrapper.find('[data-testid="kanban-workspace-header"]').exists()
+      ).toBe(true);
+    });
   });
 
   it('registers the kanban realtime bus listener on mount', async () => {

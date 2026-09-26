@@ -1688,6 +1688,17 @@
       "FAILED": "A importação não chegou ao fim.",
       "DOWNLOAD_FAILED": "Descarregar as linhas que não entraram",
       "PREVIEW": "Primeiras linhas do ficheiro"
+    },
+    "INDICATORS": {
+      "PIPELINE_VALUE": "Valor em funil",
+      "CLOSE_RATE": "Taxa de fecho",
+      "CYCLE_DAYS": "Ciclo médio",
+      "WON_MONTH": "Ganhas no mês",
+      "DAYS": "{count} dias",
+      "CLOSED_COUNT": "{count} fechadas",
+      "WON_AMOUNT_FOOTER": "{value} fechados",
+      "LAST_MONTH": "{value} no mês passado",
+      "NO_BASELINE": "sem mês para comparar"
     }
   }
 }

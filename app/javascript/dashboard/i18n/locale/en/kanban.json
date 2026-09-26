@@ -1686,6 +1686,17 @@
       "FAILED": "The import could not be finished.",
       "DOWNLOAD_FAILED": "Download the rows that did not import",
       "PREVIEW": "First rows of the file"
+    },
+    "INDICATORS": {
+      "PIPELINE_VALUE": "Pipeline value",
+      "CLOSE_RATE": "Close rate",
+      "CYCLE_DAYS": "Average cycle",
+      "WON_MONTH": "Won this month",
+      "DAYS": "{count} days",
+      "CLOSED_COUNT": "{count} closed",
+      "WON_AMOUNT_FOOTER": "{value} closed",
+      "LAST_MONTH": "{value} last month",
+      "NO_BASELINE": "no month to compare"
     }
   }
 }
