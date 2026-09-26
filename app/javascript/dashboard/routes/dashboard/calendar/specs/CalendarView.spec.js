@@ -26,6 +26,7 @@ vi.mock('dashboard/api/calendar', () => ({
     getResources: vi.fn(),
     getProcedures: vi.fn(),
     createAppointment: vi.fn(),
+    getSummary: vi.fn(),
   },
 }));
 
@@ -37,6 +38,14 @@ const mountCalendar = () =>
   shallowMount(CalendarView, {
     global: {
       stubs: {
+        // Ver AGENTS.md, «Armadilha conhecida em testes».
+        RaevoKpiCard: {
+          props: ['label', 'value', 'delta', 'deltaIsGood', 'footer'],
+          template:
+            '<div><i>{{ label }}</i><b>{{ value }}</b>' +
+            "<s v-if=\"delta\">{{ deltaIsGood ? 'melhor' : 'pior' }} {{ delta }}</s>" +
+            '<u>{{ footer }}</u></div>',
+        },
         KanbanCalendarBookingDialog: {
           setup(_, { expose }) {
             expose({ open: abrirDialogo });
@@ -83,6 +92,61 @@ describe('CalendarView', () => {
     CalendarAPI.getAppointments.mockResolvedValue({ data: [] });
     CalendarAPI.getBusyBlocks.mockResolvedValue({ data: [] });
     CalendarAPI.getResources.mockResolvedValue({ data: [] });
+    // Por omissão os indicadores FALHAM: são apoio, e a grelha tem de funcionar
+    // sem eles. Os testes que os querem sobrepõem o mock.
+    CalendarAPI.getSummary.mockRejectedValue(new Error('sem resumo'));
+  });
+
+  describe('the agenda indicators', () => {
+    const comResumo = () =>
+      CalendarAPI.getSummary.mockResolvedValue({
+        data: {
+          today: { count: 14, unconfirmed: 3 },
+          completed: { current: 52, previous: 44 },
+          no_show: { current: 4, previous: 6 },
+          canceled: { current: 2, previous: 2 },
+          month_total: 58,
+        },
+      });
+
+    it('opens the agenda with four measured indicators', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper
+          .get('[data-testid="calendar-indicators"]')
+          .findAll('[data-testid^="calendar-kpi-"]')
+      ).toHaveLength(4);
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-today"]').find('b').text()
+      ).toBe('14');
+    });
+
+    // Faltar menos é melhor, portanto descer é bom: a seta não herda o sinal do
+    // número. Quatro faltas contra seis é uma melhoria de 33%.
+    it('reads fewer no-shows as an improvement', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const faltas = wrapper.get('[data-testid="calendar-kpi-no-show"]');
+      expect(faltas.find('s').text()).toContain('melhor');
+      expect(faltas.find('s').text()).toContain('33%');
+    });
+
+    it('keeps the grid working when the indicators request fails', async () => {
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="calendar-indicators"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid="calendar-topbar"]').exists()).toBe(
+        true
+      );
+    });
   });
 
   it('shows every day of the selected week', async () => {

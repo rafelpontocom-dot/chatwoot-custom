@@ -10,6 +10,12 @@ class CalendarAPI extends ApiClient {
     return axios.get(`${this.url}/appointments`, { params });
   }
 
+  // Os indicadores que abrem a Agenda. Pedido próprio: a grelha recarrega a cada
+  // navegação de dia, as contagens do mês não precisam.
+  getSummary() {
+    return axios.get(`${this.url}/summary`);
+  }
+
   getAppointment(id) {
     return axios.get(`${this.url}/appointments/${id}`);
   }

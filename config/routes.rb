@@ -160,6 +160,9 @@ Rails.application.routes.draw do
           end
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           namespace :calendar do
+            # Os indicadores que abrem a Agenda. Pedido próprio: a grelha recarrega
+            # a cada navegação de dia, as contagens do mês não precisam.
+            get :summary, to: 'summaries#show'
             resources :procedures, only: [:index, :show, :create, :update, :destroy] do
               member do
                 get :availability_preview

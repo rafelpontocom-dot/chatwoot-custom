@@ -401,6 +401,17 @@
       "PERMISSION_DENIED": "Google did not grant access to the calendar. Connect again and tick the box that lets Raevo see and edit your calendar events.",
       "ERROR": "Google Calendar could not be connected. Try again from Settings › Agendas.",
       "DISMISS": "Dismiss"
+    },
+    "INDICATORS": {
+      "TODAY": "Appointments today",
+      "COMPLETED_MONTH": "Completed this month",
+      "NO_SHOW_MONTH": "No-shows this month",
+      "CANCELED_MONTH": "Cancelled this month",
+      "UNCONFIRMED": "{count} to confirm",
+      "ALL_CONFIRMED": "all confirmed",
+      "OF_MONTH": "{percent}% of the month",
+      "LAST_MONTH": "{count} last month",
+      "NO_BASELINE": "no month to compare"
     }
   },
   "CALENDAR_SETUP": {

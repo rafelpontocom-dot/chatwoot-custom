@@ -401,6 +401,17 @@
       "PERMISSION_DENIED": "O Google não deu acesso ao calendário. Ligue de novo e marque a caixa que permite ao Raevo ver e editar os eventos do calendário.",
       "ERROR": "Não foi possível ligar o Google Calendar. Tente de novo em Configurações › Agendas.",
       "DISMISS": "Fechar aviso"
+    },
+    "INDICATORS": {
+      "TODAY": "Marcações hoje",
+      "COMPLETED_MONTH": "Concluídas no mês",
+      "NO_SHOW_MONTH": "Faltas no mês",
+      "CANCELED_MONTH": "Canceladas no mês",
+      "UNCONFIRMED": "{count} por confirmar",
+      "ALL_CONFIRMED": "todas confirmadas",
+      "OF_MONTH": "{percent}% do mês",
+      "LAST_MONTH": "{count} no mês passado",
+      "NO_BASELINE": "sem mês para comparar"
     }
   },
   "CALENDAR_SETUP": {

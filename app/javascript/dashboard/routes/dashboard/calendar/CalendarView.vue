@@ -14,6 +14,7 @@ import {
 import CalendarAppointmentDetailsDialog from './CalendarAppointmentDetailsDialog.vue';
 import CalendarEventPopover from './CalendarEventPopover.vue';
 import CalendarQuickCreate from './CalendarQuickCreate.vue';
+import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
 
 const { t, locale } = useI18n();
 
@@ -767,6 +768,95 @@ watch(
 );
 watch(searchQuery, debouncedLoadAppointments);
 watch(() => route.query?.appointmentId, openRequestedAppointment);
+// --- Os indicadores que abrem a Agenda ---------------------------------------
+// **A taxa de ocupação do artefacto não está aqui.** Calculá-la exige cruzar as
+// regras de disponibilidade por dia e por recurso, as sobreposições de data, os
+// blocos externos e as durações — e cada um desses tem casos que mudariam o
+// número. Uma ocupação errada é pior do que nenhuma: é sobre ela que se decide
+// abrir ou fechar agenda. O que está aqui é contagem de estado, que a coluna
+// `status` conhece exatamente.
+const agendaSummary = ref(null);
+
+// Falha própria: se as contagens caírem, a grelha continua. São apoio, não a tela.
+const loadAgendaSummary = async () => {
+  try {
+    const { data } = await calendarAPI.getSummary();
+    agendaSummary.value = data;
+  } catch {
+    agendaSummary.value = null;
+  }
+};
+
+const variacaoAgenda = (agora, antes, maiorEhMelhor) => {
+  if (!antes) return { texto: '', bom: true };
+  const pct = ((agora - antes) / antes) * 100;
+  return {
+    texto: `${pct >= 0 ? '+' : '\u2212'}${Math.abs(pct).toFixed(0)}%`,
+    bom: pct >= 0 === maiorEhMelhor,
+  };
+};
+
+const agendaIndicators = computed(() => {
+  const r = agendaSummary.value;
+  if (!r) return [];
+
+  const concluidas = variacaoAgenda(
+    r.completed.current,
+    r.completed.previous,
+    true
+  );
+  // Faltar e cancelar menos é melhor: a seta inverte-se nos dois.
+  const faltas = variacaoAgenda(r.no_show.current, r.no_show.previous, false);
+  const canceladas = variacaoAgenda(
+    r.canceled.current,
+    r.canceled.previous,
+    false
+  );
+  const doMes = valor =>
+    r.month_total
+      ? t('CALENDAR.INDICATORS.OF_MONTH', {
+          percent: ((valor / r.month_total) * 100).toFixed(1),
+        })
+      : t('CALENDAR.INDICATORS.NO_BASELINE');
+
+  return [
+    {
+      chave: 'today',
+      label: t('CALENDAR.INDICATORS.TODAY'),
+      value: String(r.today.count),
+      delta: '',
+      deltaIsGood: true,
+      footer: r.today.unconfirmed
+        ? t('CALENDAR.INDICATORS.UNCONFIRMED', { count: r.today.unconfirmed })
+        : t('CALENDAR.INDICATORS.ALL_CONFIRMED'),
+    },
+    {
+      chave: 'completed',
+      label: t('CALENDAR.INDICATORS.COMPLETED_MONTH'),
+      value: String(r.completed.current),
+      delta: concluidas.texto,
+      deltaIsGood: concluidas.bom,
+      footer: doMes(r.completed.current),
+    },
+    {
+      chave: 'no-show',
+      label: t('CALENDAR.INDICATORS.NO_SHOW_MONTH'),
+      value: String(r.no_show.current),
+      delta: faltas.texto,
+      deltaIsGood: faltas.bom,
+      footer: doMes(r.no_show.current),
+    },
+    {
+      chave: 'canceled',
+      label: t('CALENDAR.INDICATORS.CANCELED_MONTH'),
+      value: String(r.canceled.current),
+      delta: canceladas.texto,
+      deltaIsGood: canceladas.bom,
+      footer: doMes(r.canceled.current),
+    },
+  ];
+});
+
 // A primeira importação do Google corre em segundo plano logo a seguir a ligar.
 const GOOGLE_FIRST_IMPORT_DELAY = 5000;
 
@@ -774,6 +864,7 @@ onMounted(() => {
   loadAppointments();
   loadResources();
   loadProcedures();
+  loadAgendaSummary();
   openRequestedAppointment(route.query?.appointmentId);
   if (route.query?.google_calendar === 'connected') {
     setTimeout(loadAppointments, GOOGLE_FIRST_IMPORT_DELAY);
@@ -883,6 +974,23 @@ onMounted(() => {
         <i class="i-lucide-settings-2 size-4" aria-hidden="true" />
       </button>
     </header>
+
+    <div
+      v-if="agendaIndicators.length"
+      data-testid="calendar-indicators"
+      class="grid gap-3 py-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
+      <RaevoKpiCard
+        v-for="indicador in agendaIndicators"
+        :key="indicador.chave"
+        :data-testid="`calendar-kpi-${indicador.chave}`"
+        :label="indicador.label"
+        :value="indicador.value"
+        :delta="indicador.delta"
+        :delta-is-good="indicador.deltaIsGood"
+        :footer="indicador.footer"
+      />
+    </div>
 
     <div
       v-if="googleCalendarNotice"
