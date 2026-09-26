@@ -4735,7 +4735,7 @@ onMounted(async () => {
                     v-model="customFieldPaletteSearch"
                     data-testid="kanban-settings-field-palette-search"
                     type="search"
-                    class="reset-base mb-0 min-w-0 flex-1 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 [&::-webkit-search-cancel-button]:appearance-none"
+                    class="reset-base mb-0 min-w-0 flex-1 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 [&::-webkit-search-cancel-button]:appearance-none"
                     :placeholder="t('KANBAN.SETTINGS.SALES.SEARCH_FIELDS')"
                   />
                   <button

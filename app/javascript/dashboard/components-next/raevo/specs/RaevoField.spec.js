@@ -82,7 +82,11 @@ describe('RaevoField', () => {
     // Regra 4 do AGENTS.md. Era pílula até 21/09/2026, e ficou pílula depois da
     // migração porque o raio de um componente não é um token: as portas
     // verificam cor e escala, e passaram por cima disto.
-    expect(RAEVO_CONTROL_CLASS).toContain('h-10');
+    // A caixa de Consultório: 32px e 10px, via token. `h-10` eram 40px, um degrau
+    // e meio acima do que a direção aprovada grava em `density`.
+    expect(RAEVO_CONTROL_CLASS).toContain('h-control');
+    expect(RAEVO_CONTROL_CLASS).toContain('px-control');
+    expect(RAEVO_CONTROL_CLASS).not.toContain('h-10');
     expect(RAEVO_CONTROL_CLASS).toContain('rounded-lg');
     expect(RAEVO_CONTROL_CLASS).not.toContain('rounded-full');
     expect(RAEVO_SELECT_CLASS).toContain('rounded-lg');

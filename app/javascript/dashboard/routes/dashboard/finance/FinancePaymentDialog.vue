@@ -257,7 +257,7 @@ defineExpose({ open });
           data-testid="finance-payment-contact-search"
           type="search"
           :placeholder="t('FINANCE.PAYMENTS.SEARCH_CONTACT')"
-          class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           @input="onContactInput"
         />
         <span v-if="isSearchingContacts" class="text-xs text-n-slate-11">
@@ -286,7 +286,7 @@ defineExpose({ open });
             data-testid="finance-payment-amount"
             inputmode="decimal"
             :placeholder="t('FINANCE.PAYMENTS.AMOUNT_PLACEHOLDER')"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           />
           <span
             v-if="isBelowAsaasMinimum"
@@ -340,7 +340,7 @@ defineExpose({ open });
               paymentContact?.phone_number ||
               t('FINANCE.PAYMENTS.MOBILE_NUMBER_PLACEHOLDER')
             "
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           />
           <span class="text-xs text-n-slate-11">
             {{ t('FINANCE.PAYMENTS.MOBILE_NUMBER_HINT') }}
@@ -355,7 +355,7 @@ defineExpose({ open });
             data-testid="finance-payment-cpf-cnpj"
             inputmode="numeric"
             :placeholder="t('FINANCE.PAYMENTS.CPF_CNPJ_PLACEHOLDER')"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
           />
         </label>
       </div>
@@ -369,7 +369,7 @@ defineExpose({ open });
           data-testid="finance-payment-description"
           rows="3"
           :placeholder="t('FINANCE.PAYMENTS.DESCRIPTION_PLACEHOLDER')"
-          class="resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-9 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
+          class="resize-y rounded-md border border-n-weak bg-n-surface-1 px-3 py-2 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-10 focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
         />
       </label>
 
