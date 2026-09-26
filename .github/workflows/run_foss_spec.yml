@@ -115,17 +115,25 @@ jobs:
 
       - name: Run backend tests (parallelized)
         run: |
-          # Get all spec files and split them using round-robin distribution
-          # This ensures slow tests are distributed evenly across all nodes
-          SPEC_FILES=($(find spec -name '*_spec.rb' | sort))
-          TESTS=""
-
-          for i in "${!SPEC_FILES[@]}"; do
-            # Assign spec to this node if: index % total == node_index
-            if [ $(( i % ${{ matrix.ci_node_total }} )) -eq ${{ matrix.ci_node_index }} ]; then
-              TESTS="$TESTS ${SPEC_FILES[$i]}"
-            fi
-          done
+          # Split the specs by a STABLE hash of the path, not by the index in a
+          # sorted list.
+          #
+          # With the index, adding one spec file shifted every file after it
+          # alphabetically into the next shard. Whoever added the file inherited
+          # somebody else's latent order-dependent spec, on their PR, with no
+          # relation to their change. That happened five times in two PRs.
+          # With the hash, a new file moves only itself.
+          #
+          # This does NOT make the suite order-independent: it stops re-rolling
+          # the shards on every added file. Hunting the order dependencies is
+          # the job of order_dependency_hunt.yml, on purpose and with a recorded
+          # seed, instead of by accident on a stranger's pull request.
+          TESTS=$(ruby -rdigest -e '
+            total, index = ARGV.map(&:to_i)
+            puts Dir.glob("spec/**/*_spec.rb").sort.select { |f|
+              Digest::MD5.hexdigest(f)[0, 8].to_i(16) % total == index
+            }.join(" ")
+          ' ${{ matrix.ci_node_total }} ${{ matrix.ci_node_index }})
 
           if [ -n "$TESTS" ]; then
             bundle exec rspec --profile=10 --format progress --format json --out tmp/rspec_results.json $TESTS

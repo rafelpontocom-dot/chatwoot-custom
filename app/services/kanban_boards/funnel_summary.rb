@@ -80,12 +80,23 @@ class KanbanBoards::FunnelSummary
       category: stage.category,
       entered: entered,
       advanced: advanced,
-      # Sem entradas não há conversão — e zero por cento diria que ninguém
-      # avançou, quando não houve ninguém para avançar.
-      conversion: entered.zero? ? nil : (advanced.to_f / entered * 100).round(1),
+      conversion: conversion(stage, entered, advanced),
       lost: perdidas.fetch(stage.id, 0),
       open: abertas.fetch(stage.id, 0)
     }
+  end
+
+  # Duas razões para não haver conversão, e as duas dão travessão em vez de zero.
+  #
+  # Sem entradas, porque zero por cento diria que ninguém avançou quando não
+  # houve ninguém para avançar. E numa etapa TERMINAL — ganho ou perdido —
+  # porque sair dela não é o que se está a medir: uma etapa de fecho com «0%»
+  # lê-se como um funil que trava ali, quando é o funil a acabar. O selo ao lado
+  # do nome diz qual das duas é.
+  def conversion(stage, entered, advanced)
+    return nil if entered.zero? || stage.category != 'open'
+
+    (advanced.to_f / entered * 100).round(1)
   end
 
   # Entrar numa etapa é chegar a ela: ou o cartão nasceu lá, ou foi movido para

@@ -41,6 +41,16 @@ RSpec.describe KanbanBoards::FunnelSummary do
     expect(linha(segunda)).to include(entered: 0, conversion: nil)
   end
 
+  # Sair de uma etapa terminal não é o que o funil mede: uma etapa de fecho com
+  # «0%» lê-se como um funil que trava ali, quando é o funil a acabar.
+  it 'reports no conversion for a terminal stage, where advancing is not a thing' do
+    fecho = create(:kanban_stage, account: account, kanban_board: board, position: 3, category: 'won')
+    card = create(:kanban_card, **card_attributes, kanban_stage: primeira)
+    card.update!(kanban_stage: fecho)
+
+    expect(linha(fecho)).to include(entered: 1, advanced: 0, conversion: nil)
+  end
+
   # As quatro contagens respondem a perguntas diferentes, e a tela mostra-as lado
   # a lado em vez de as somar: uma oportunidade que entrou e ainda está aberta não
   # é uma perda.
