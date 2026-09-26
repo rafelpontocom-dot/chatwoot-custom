@@ -1,0 +1,106 @@
+# Caça às dependências de ordem, de propósito.
+#
+# Porque existe. O `run_foss_spec` reparte os specs por um hash estável do
+# caminho, para que acrescentar um ficheiro não desloque os outros. Isso resolve
+# a injustiça — ninguém herda o spec frágil de outra pessoa na sua PR — mas não
+# torna a suite independente de ordem. Sem este trabalho, a estabilidade seria
+# esconderijo: as dependências continuariam lá, caladas, à espera.
+#
+# O que faz. Baralha os ficheiros com uma semente, reparte-os, e corre cada
+# pedaço com `--order random` na MESMA semente. Varia o agrupamento e a ordem ao
+# mesmo tempo, que é precisamente o que a estrada das PRs não pode fazer.
+#
+# Como se lê uma falha. A semente aparece no log e no resumo. Reproduz-se com
+# `workflow_dispatch` a passar a mesma semente. Uma falha aqui é um spec que
+# depende de quem correu antes — é um defeito real, não ruído; corrige-se o
+# spec, nunca se desliga o teste.
+#
+# Custo. Uma corrida por semana, mais as manuais. Para desligar a semanal, apaga
+# o bloco `schedule`; o `workflow_dispatch` continua a servir.
+name: Order dependency hunt
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Semente a reproduzir (vazio = a do run)'
+        required: false
+        default: ''
+  schedule:
+    # Domingo, 04:13 UTC. Minuto fora da hora cheia de propósito: à hora cheia o
+    # agendador do GitHub está congestionado e a corrida fica à espera.
+    - cron: '13 4 * * 0'
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk_total: [4]
+        chunk_index: [0, 1, 2, 3]
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ''
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Strip enterprise code
+        run: |
+          rm -rf enterprise
+          rm -rf spec/enterprise
+
+      - name: Create database
+        run: bundle exec rake db:create
+
+      - name: Seed database
+        run: bundle exec rake db:schema:load
+
+      - name: Run a chunk in random order
+        run: |
+          SEED="${INPUT_SEED:-$GITHUB_RUN_ID}"
+          echo "semente=$SEED"
+          echo "### Semente \`$SEED\` · pedaço ${{ matrix.chunk_index }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Reproduz com workflow_dispatch e esta semente." >> "$GITHUB_STEP_SUMMARY"
+
+          TESTS=$(ruby -e '
+            seed, total, index = ARGV.map(&:to_i)
+            ficheiros = Dir.glob("spec/**/*_spec.rb").sort.shuffle(random: Random.new(seed))
+            pedaco = (ficheiros.size.to_f / total).ceil
+            puts ficheiros.each_slice(pedaco).to_a.fetch(index, []).join(" ")
+          ' "$SEED" ${{ matrix.chunk_total }} ${{ matrix.chunk_index }})
+
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec --order "random:$SEED" --format progress $TESTS
+          fi
+        env:
+          INPUT_SEED: ${{ github.event.inputs.seed }}
+          NODE_OPTIONS: --openssl-legacy-provider

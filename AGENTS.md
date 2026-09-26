@@ -173,6 +173,28 @@ rode `pnpm raevo:aprovado` e leia o diff de `consultorio.tokens.json`.
 As duas primeiras rodam em CI (`custom_checks.yml`, job `lint-frontend`) — e
 `raevo:design` leva a verificação de pares consigo, sem mexer no workflow.
 
+### Acrescentou um ficheiro de spec? Já não parte os shards dos outros
+
+O `run_foss_spec` repartia os specs por `find spec | sort` e `indice % 16`. Um
+ficheiro novo deslocava **todos** os que vinham depois dele em ordem alfabética
+para o shard seguinte, e quem o acrescentou herdava o spec frágil de outra
+pessoa, na sua PR, sem relação nenhuma com a sua mudança. Aconteceu cinco vezes
+em dois PRs.
+
+Desde 26/09 a repartição usa um **hash estável do caminho**: um ficheiro novo
+muda de shard só a si — verificado, zero deslocamentos. O preço é o equilíbrio
+por contagem de ficheiros ficar mais largo (40 a 56 por shard, contra 49–50
+antes); em tempo de parede não se nota, porque o desequilíbrio já vinha da
+duração dos specs e não da contagem.
+
+**Isto não torna a suite independente de ordem, e não pode virar esconderijo.**
+Quem caça as dependências de ordem é o `order_dependency_hunt.yml`: baralha os
+ficheiros com uma semente, reparte, e corre cada pedaço com `--order random` na
+mesma semente — varia agrupamento e ordem ao mesmo tempo, que é o que a estrada
+das PRs não pode fazer. Corre à semana e a pedido; a semente vai no resumo do
+trabalho, para se reproduzir. **Uma falha ali é um spec que depende de quem
+correu antes — corrige-se o spec, nunca se desliga o teste.**
+
 Mudou um token de propósito? Rode `pnpm raevo:tokens:extract` e **leia o diff do
 JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pretendia.
 
@@ -374,6 +396,49 @@ pnpm skills:install visual-testing agentic-browser-testing   # só algumas
 Requer o `gh` autenticado. Os passos 4 e 5 (`agentic-browser-testing` e `visual-testing`)
 precisam da aplicação a correr e de um browser: não são análise de código e não podem ser
 dados por cumpridos sem uma jornada real e screenshots antes/depois.
+
+### Levantar a aplicação numa sessão de nuvem — receita provada a 26/09/2026
+
+Durante meses os passos 4 e 5 foram dados como impossíveis fora da máquina do
+programador, porque `rbenv install 3.4.4` falha: o proxy de egresso recusa
+`cache.ruby-lang.org`. **Só o Ruby estava em falta.** Postgres 16, Redis,
+Chromium e o rubygems.org estão todos ao alcance, e o Ruby vem pré-construído do
+mesmo sítio de onde o GitHub Actions o tira:
+
+```bash
+curl -sSL -o /tmp/ruby.tar.gz \
+  https://github.com/ruby/ruby-builder/releases/download/toolcache/ruby-3.4.4-ubuntu-24.04.tar.gz
+mkdir -p /opt/hostedtoolcache/Ruby/3.4.4 && tar xzf /tmp/ruby.tar.gz -C /opt/hostedtoolcache/Ruby/3.4.4
+export PATH=/opt/hostedtoolcache/Ruby/3.4.4/x64/bin:$PATH
+
+apt-get install -y libpq-dev postgresql-16-pgvector   # o `pg` não compila sem o primeiro;
+bundle install                                         # o schema não carrega sem o segundo
+
+su postgres -c "/usr/lib/postgresql/16/bin/initdb -D /tmp/pgdata -U postgres --auth=trust"
+su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pgdata -o '-k /tmp/pgrun -c listen_addresses=127.0.0.1' -l /tmp/pg.log start"
+redis-server --daemonize yes
+
+cp .env.example .env   # POSTGRES_HOST=127.0.0.1, REDIS_URL=redis://127.0.0.1:6379
+bundle exec rake db:create db:schema:load && bundle exec rails db:seed   # john@acme.inc / Password1!
+bin/vite dev &
+ruby bin/rails s -p 3000 -b 127.0.0.1 &     # invoque o `ruby` pelo caminho absoluto:
+                                            # o `bin/rails` apanha o rbenv 3.3.6 e falha
+```
+
+Três armadilhas que custaram tempo, para não voltarem a custar:
+
+- **`rspec` passa a correr.** Vale mais do que as capturas: os specs de Ruby
+  deixam de ser escritos às cegas.
+- **O Chromium do Playwright precisa de `--no-proxy-server`**, senão tenta o
+  proxy de egresso para chegar a `127.0.0.1`. E **`waitUntil: 'networkidle'`
+  nunca resolve** com o Vite em dev: o websocket do HMR fica aberto. Use
+  `'load'` e uma espera explícita.
+- **O ecrã de entrada não declara `type=email`/`type=password`.** Preencha
+  `form input` por ordem e clique no botão pelo texto.
+
+O que a porta encontrou à primeira execução, e não teria encontrado sem ela: uma
+tela que não preenchia a largura (≈375px vazios em 1280) e uma conversão de 0%
+numa etapa terminal, onde avançar não é coisa que exista.
 
 Todo controle só por ícone precisa de rótulo acessível e tooltip. Títulos de etapa, oportunidade, procedimento e campo nunca podem depender de `truncate` para caber: use quebra de palavra, largura estável ou detalhe progressivo. Não introduza efeitos, sombras, gradientes ou animações sem ajudar o usuário a compreender estado, prioridade ou transição.
 

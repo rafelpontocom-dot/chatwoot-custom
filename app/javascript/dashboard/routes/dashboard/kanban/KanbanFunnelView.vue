@@ -87,7 +87,9 @@ onMounted(carregar);
 </script>
 
 <template>
-  <section class="flex h-full flex-col gap-card overflow-y-auto p-3 lg:p-6">
+  <section
+    class="flex h-full w-full flex-col gap-card overflow-y-auto p-3 lg:p-6"
+  >
     <RaevoPageHeader
       :eyebrow="t('KANBAN.EYEBROW')"
       :title="t('KANBAN.FUNNEL.TITLE')"
