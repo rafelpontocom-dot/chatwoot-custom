@@ -628,11 +628,15 @@ const commercialIndicators = computed(() => {
       value: somaEmMoeda(r.pipeline_value.current),
       delta: funil.texto,
       deltaIsGood: funil.bom,
+      // Sem mês anterior não há contexto, e o rodapé fica vazio em vez de trazer
+      // uma frase a dizer isso. Numa conta nova três dos quatro indicadores
+      // diziam «sem mês para comparar» — a fila gastava a sua linha mais larga a
+      // desculpar-se. A ausência de seta já diz que não há base.
       footer: r.pipeline_value.previous
         ? t('KANBAN.INDICATORS.LAST_MONTH', {
             value: somaEmMoeda(r.pipeline_value.previous),
           })
-        : t('KANBAN.INDICATORS.NO_BASELINE'),
+        : '',
     },
     {
       chave: 'close-rate',
@@ -655,7 +659,7 @@ const commercialIndicators = computed(() => {
       deltaIsGood: ciclo.bom,
       footer:
         r.cycle_days.previous === null
-          ? t('KANBAN.INDICATORS.NO_BASELINE')
+          ? ''
           : t('KANBAN.INDICATORS.LAST_MONTH', {
               value: t('KANBAN.INDICATORS.DAYS', {
                 count: r.cycle_days.previous,
@@ -2269,30 +2273,36 @@ onUnmounted(() => {
             </div>
           </div>
         </template>
-      </header>
 
-      <!--
-        A fila que abre o Pipeline no sistema aprovado, entre o cabeçalho e as
-        colunas. Não substitui a faixa de relatório que vem abaixo: aquela dá o
-        estado de agora decomposto por etapa, responsável e motivo de perda; esta
-        dá a dimensão temporal — mês contra mês anterior — e o ciclo.
-      -->
-      <div
-        v-if="commercialIndicators.length"
-        data-testid="kanban-indicators"
-        class="grid gap-3 px-4 pb-3 sm:grid-cols-2 lg:grid-cols-4 lg:px-6"
-      >
-        <RaevoKpiCard
-          v-for="indicador in commercialIndicators"
-          :key="indicador.chave"
-          :data-testid="`kanban-kpi-${indicador.chave}`"
-          :label="indicador.label"
-          :value="indicador.value"
-          :delta="indicador.delta"
-          :delta-is-good="indicador.deltaIsGood"
-          :footer="indicador.footer"
-        />
-      </div>
+        <!--
+          A fila que abre o Pipeline no sistema aprovado. Mora DENTRO da caixa do
+          cabeçalho, em faixa, e não em quatro cartões por baixo dela: aqui o
+          assunto da tela são as colunas, e a fila de cartões empurrava-as para
+          fora do ecrã. `density="strip"` é a mesma anatomia — rótulo, número,
+          variação, rodapé — na caixa que o contexto pede. Ver `RaevoKpiCard`.
+
+          Não substitui a faixa de relatório que vem abaixo: aquela dá o estado
+          de agora decomposto por etapa, responsável e motivo de perda; esta dá a
+          dimensão temporal — mês contra mês anterior — e o ciclo.
+        -->
+        <div
+          v-if="commercialIndicators.length"
+          data-testid="kanban-indicators"
+          class="grid grid-cols-2 gap-x-6 gap-y-cell border-t border-solid border-n-weak pt-cell sm:grid-cols-4"
+        >
+          <RaevoKpiCard
+            v-for="indicador in commercialIndicators"
+            :key="indicador.chave"
+            :data-testid="`kanban-kpi-${indicador.chave}`"
+            density="strip"
+            :label="indicador.label"
+            :value="indicador.value"
+            :delta="indicador.delta"
+            :delta-is-good="indicador.deltaIsGood"
+            :footer="indicador.footer"
+          />
+        </div>
+      </header>
 
       <section
         v-if="salesSummary && showSalesSummary"

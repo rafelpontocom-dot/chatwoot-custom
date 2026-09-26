@@ -812,12 +812,15 @@ const agendaIndicators = computed(() => {
     r.canceled.previous,
     false
   );
+  // Sem marcações no mês não há denominador, e o rodapé fica vazio em vez de
+  // trazer uma frase a dizer isso: três dos quatro indicadores diziam o mesmo, e
+  // a fila gastava a linha mais larga a desculpar-se.
   const doMes = valor =>
     r.month_total
       ? t('CALENDAR.INDICATORS.OF_MONTH', {
           percent: ((valor / r.month_total) * 100).toFixed(1),
         })
-      : t('CALENDAR.INDICATORS.NO_BASELINE');
+      : '';
 
   return [
     {
@@ -975,15 +978,24 @@ onMounted(() => {
       </button>
     </header>
 
+    <!--
+      A fila da Agenda em faixa, e não em quatro cartões: aqui o assunto é a
+      grelha de horas, e os cartões empurravam-na para baixo do ecrã — a semana
+      abria às 8:00 e só chegava às 15:00 sem rolar. A Agenda não tem caixa de
+      cabeçalho (a barra é de uma linha, ao estilo Google), por isso a faixa é a
+      banda logo abaixo dela, com o mesmo `px-4` e o mesmo filete, e lê-se como
+      continuação do cabeçalho. Ver `RaevoKpiCard`.
+    -->
     <div
       v-if="agendaIndicators.length"
       data-testid="calendar-indicators"
-      class="grid gap-3 py-3 sm:grid-cols-2 lg:grid-cols-4"
+      class="grid grid-cols-2 gap-x-6 gap-y-cell border-b border-n-weak px-4 py-cell sm:grid-cols-4"
     >
       <RaevoKpiCard
         v-for="indicador in agendaIndicators"
         :key="indicador.chave"
         :data-testid="`calendar-kpi-${indicador.chave}`"
+        density="strip"
         :label="indicador.label"
         :value="indicador.value"
         :delta="indicador.delta"

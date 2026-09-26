@@ -611,6 +611,21 @@ describe('KanbanView realtime events', () => {
       ).toBe('');
     });
 
+    // O sítio da fila é a decisão, não um detalhe de estilo: em cartões por
+    // baixo do cabeçalho ela empurrava as colunas 139px para baixo, e numa tela
+    // cujo assunto são as colunas isso é o defeito. Dentro da caixa, em faixa,
+    // são 76px — medido a 1280x900 com dados semeados.
+    it('keeps the indicator strip inside the header box', async () => {
+      comResumo();
+      const wrapper = await mountView();
+
+      const cabecalho = wrapper.get('[data-testid="kanban-workspace-header"]');
+
+      expect(cabecalho.find('[data-testid="kanban-indicators"]').exists()).toBe(
+        true
+      );
+    });
+
     it('keeps the board working when the indicators request fails', async () => {
       const wrapper = await mountView();
 

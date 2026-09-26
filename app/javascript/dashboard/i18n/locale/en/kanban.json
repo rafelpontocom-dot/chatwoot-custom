@@ -1695,8 +1695,7 @@
       "DAYS": "{count} days",
       "CLOSED_COUNT": "{count} closed",
       "WON_AMOUNT_FOOTER": "{value} closed",
-      "LAST_MONTH": "{value} last month",
-      "NO_BASELINE": "no month to compare"
+      "LAST_MONTH": "{value} last month"
     },
     "FUNNEL": {
       "TITLE": "Funnel view",

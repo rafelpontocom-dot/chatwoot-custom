@@ -410,8 +410,7 @@
       "UNCONFIRMED": "{count} por confirmar",
       "ALL_CONFIRMED": "todas confirmadas",
       "OF_MONTH": "{percent}% do mês",
-      "LAST_MONTH": "{count} no mês passado",
-      "NO_BASELINE": "sem mês para comparar"
+      "LAST_MONTH": "{count} no mês passado"
     }
   },
   "CALENDAR_SETUP": {

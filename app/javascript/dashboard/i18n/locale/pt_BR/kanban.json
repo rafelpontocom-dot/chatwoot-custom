@@ -1693,8 +1693,7 @@
       "DAYS": "{count} dias",
       "CLOSED_COUNT": "{count} fechadas",
       "WON_AMOUNT_FOOTER": "{value} fechados",
-      "LAST_MONTH": "{value} no mês passado",
-      "NO_BASELINE": "sem mês para comparar"
+      "LAST_MONTH": "{value} no mês passado"
     },
     "FUNNEL": {
       "TITLE": "Visão de funil",

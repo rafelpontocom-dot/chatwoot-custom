@@ -96,6 +96,27 @@ a proposta C · Órbita não é o modo escuro de A — ver `docs/raevo-aprovacao
    Em `shallowMount`, `RaevoField` precisa de stub que renderize o slot com
    `control-class`/`field-id` — senão todos os campos somem do teste.
 
+## Indicador: cartão onde é conteúdo, faixa onde é contexto
+
+`RaevoKpiCard` tem duas densidades, e a escolha **não é gosto** — é a resposta a
+«nesta tela o número é o assunto, ou é a moldura dele?».
+
+- `density="card"` (omissão): caixa própria, número a 30px, rodapé sob um filete.
+  Para o Início, o Financeiro, a IA — onde a fila **é** o topo da tela.
+- `density="strip"`: a mesma anatomia sem caixa, rótulo em caixa alta e número a
+  16px. Para o Pipeline e a Agenda — onde a superfície de trabalho (as colunas, a
+  grelha de horas) tem de aparecer sem rolar. No Pipeline a faixa mora **dentro**
+  da caixa do cabeçalho; na Agenda, que tem barra de uma linha e não caixa, é a
+  banda logo abaixo dela.
+
+**Não desenhe uma faixa de números à mão numa tela.** Foi por aí que o produto
+chegou a três tratamentos de cartão de número; uma quarta variante inventada num
+template é o mesmo erro com outro nome.
+
+**Rodapé vazio em vez de «sem mês para comparar».** Numa conta nova três dos
+quatro indicadores diziam isso, e a fila gastava a sua linha mais larga a
+desculpar-se. A ausência de seta já diz que não há base de comparação.
+
 ## Paleta de etapas do funil — travada
 
 `#2563EB` `#0F9D8F` `#B45309` `#A21CAF` (+ `#98A0AE` para etapa terminal).
@@ -425,16 +446,33 @@ ruby bin/rails s -p 3000 -b 127.0.0.1 &     # invoque o `ruby` pelo caminho abso
                                             # o `bin/rails` apanha o rbenv 3.3.6 e falha
 ```
 
-Três armadilhas que custaram tempo, para não voltarem a custar:
+Cinco armadilhas que custaram tempo, para não voltarem a custar:
 
+- **Levante o Rails com `DISABLE_MINI_PROFILER=1`.** Esta é a que custou mais:
+  sem ela, `/app/login` demora **57 segundos** (o log culpa o ActiveRecord, e a
+  culpa não é dele), e ao fim de meia dúzia de pedidos deixa de responder de
+  todo. O `rack-mini-profiler` guarda um ficheiro por pedido em
+  `tmp/miniprofiler/` e relê a pasta inteira a cada um. Com a variável ligada, a
+  mesma página serve em **0,8s**. Limpe também a pasta se já lá estiverem
+  centenas de ficheiros.
+- **Para capturas, `bin/vite build` vale mais do que `bin/vite dev`.** Em dev o
+  primeiro carregamento transforma milhares de módulos um a um e o Vue pode não
+  montar em sete minutos — o `<div id="app">` fica vazio sem um único erro na
+  consola, que é o pior modo de falhar. Uma build (≈2min) serve páginas
+  instantâneas; volta-se a construir depois de cada alteração.
 - **`rspec` passa a correr.** Vale mais do que as capturas: os specs de Ruby
   deixam de ser escritos às cegas.
 - **O Chromium do Playwright precisa de `--no-proxy-server`**, senão tenta o
   proxy de egresso para chegar a `127.0.0.1`. E **`waitUntil: 'networkidle'`
   nunca resolve** com o Vite em dev: o websocket do HMR fica aberto. Use
-  `'load'` e uma espera explícita.
+  `'load'` — ou `'commit'` mais uma espera por seletor, que é mais robusto.
 - **O ecrã de entrada não declara `type=email`/`type=password`.** Preencha
   `form input` por ordem e clique no botão pelo texto.
+
+**Meça, não só capture.** `boundingBox()` sobre o cabeçalho, a faixa e a
+superfície de trabalho transforma «ficou muito grande» num número que se discute.
+Foi assim que se soube que a fila de indicadores valia 139px no Pipeline e 151px
+na Agenda, e que a faixa os põe em 76px e 84px.
 
 O que a porta encontrou à primeira execução, e não teria encontrado sem ela: uma
 tela que não preenchia a largura (≈375px vazios em 1280) e uma conversão de 0%

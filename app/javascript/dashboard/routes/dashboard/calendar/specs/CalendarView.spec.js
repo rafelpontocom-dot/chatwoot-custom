@@ -136,6 +136,27 @@ describe('CalendarView', () => {
       expect(faltas.find('s').text()).toContain('33%');
     });
 
+    // Numa conta sem marcações no mês não há denominador. O rodapé fica VAZIO em
+    // vez de trazer «sem mês para comparar»: três dos quatro indicadores diziam
+    // o mesmo, e a fila gastava a sua linha mais larga a desculpar-se.
+    it('leaves the footer empty when there is no month to divide by', async () => {
+      CalendarAPI.getSummary.mockResolvedValue({
+        data: {
+          today: { count: 0, unconfirmed: 0 },
+          completed: { current: 0, previous: 0 },
+          no_show: { current: 0, previous: 0 },
+          canceled: { current: 0, previous: 0 },
+          month_total: 0,
+        },
+      });
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-completed"]').find('u').text()
+      ).toBe('');
+    });
+
     it('keeps the grid working when the indicators request fails', async () => {
       const wrapper = mountCalendar();
       await flushPromises();

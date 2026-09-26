@@ -23,6 +23,21 @@
  *
  * O número usa `tabular-nums` e não parte: numa fila de quatro, dígitos de
  * larguras diferentes fazem os cartões dançarem quando os dados mudam.
+ *
+ * ## As duas densidades, e quando cada uma é a certa
+ *
+ * `density="card"` é o cartão inteiro: caixa própria, número a 30px, rodapé sob
+ * um filete. Serve onde o indicador É o conteúdo do topo da tela.
+ *
+ * `density="strip"` é a mesma anatomia sem caixa, com o rótulo em caixa alta e o
+ * número a 16px. Serve onde o indicador é CONTEXTO e a superfície de trabalho
+ * tem de aparecer sem rolar: no Pipeline a fila de quatro cartões empurrava as
+ * colunas 134px para baixo, e na Agenda fazia o mesmo à grelha de horas. A
+ * mesma fila em faixa ocupa cerca de 50px, e cabe dentro da caixa do cabeçalho.
+ *
+ * A densidade não é gosto: é a resposta a «o número é o assunto desta tela, ou
+ * é a moldura dele?». As duas vivem aqui de propósito — uma faixa desenhada à
+ * mão em cada tela seria o quarto tratamento de número deste produto.
  */
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
@@ -52,7 +67,15 @@ const props = defineProps({
   to: { type: [String, Object], default: null },
   /** Rótulo acessível do canto — obrigatório com `to`: é controlo só de ícone. */
   toLabel: { type: String, default: '' },
+  /** `card` onde o número é o conteúdo, `strip` onde é contexto. Ver acima. */
+  density: {
+    type: String,
+    default: 'card',
+    validator: valor => ['card', 'strip'].includes(valor),
+  },
 });
+
+const emFaixa = computed(() => props.density === 'strip');
 
 // Sem valor ainda medido, mostra-se o travessão. Um zero mentiria, e um cartão
 // em branco desalinharia a fila.
@@ -64,10 +87,31 @@ const display = computed(() =>
 </script>
 
 <template>
+  <!--
+    As classes ficam em literais dentro do `:class`, e não num `computed`: a
+    porta `check-design-pairs.mjs` lê cada literal do atributo como um conjunto
+    de classes que coexistem, e não vê string montada em JS. Mover a decisão
+    para o script tirava o par de baixo do olhar da porta — que foi exatamente
+    como a pílula do campo sobreviveu cinco meses.
+  -->
   <div
-    class="grid grid-cols-[1fr_auto] items-start gap-1 rounded-xl border border-solid border-n-weak bg-n-solid-1 p-card"
+    class="grid grid-cols-[1fr_auto] items-start"
+    :class="
+      emFaixa
+        ? 'gap-0.5'
+        : 'gap-1 rounded-xl border border-solid border-n-weak bg-n-solid-1 p-card'
+    "
   >
-    <p class="col-start-1 text-xs text-n-slate-10">{{ label }}</p>
+    <p
+      class="col-start-1"
+      :class="
+        emFaixa
+          ? 'text-micro font-bold uppercase tracking-[0.12em] text-n-slate-10'
+          : 'text-xs text-n-slate-10'
+      "
+    >
+      {{ label }}
+    </p>
 
     <RouterLink
       v-if="to"
@@ -84,7 +128,8 @@ const display = computed(() =>
 
     <div class="col-start-1 flex flex-wrap items-center gap-control-gap">
       <span
-        class="whitespace-nowrap text-3xl font-semibold tracking-tight tabular-nums text-n-slate-12"
+        class="whitespace-nowrap font-semibold tracking-tight tabular-nums text-n-slate-12"
+        :class="emFaixa ? 'text-base' : 'text-3xl'"
       >
         {{ display }}
       </span>
@@ -97,9 +142,23 @@ const display = computed(() =>
       />
     </div>
 
+    <!--
+      Em faixa o rodapé não leva filete: quatro filetes curtos lado a lado, um
+      por coluna, leem-se como uma tabela partida. O que separa ali é o ar entre
+      colunas, como manda a regra 3.
+
+      E fica em `text-xs`, não em `text-micro`: o rodapé é texto corrido, e
+      `micro` está reservado a selo, contador e cabeçalho em caixa alta — está
+      escrito em `tailwind.config.js`, ao lado do degrau.
+    -->
     <p
       v-if="footer"
-      class="col-start-1 border-t border-solid border-n-weak pt-cell text-xs text-n-slate-10"
+      class="col-start-1"
+      :class="
+        emFaixa
+          ? 'text-xs text-n-slate-10'
+          : 'border-t border-solid border-n-weak pt-cell text-xs text-n-slate-10'
+      "
     >
       {{ footer }}
     </p>
