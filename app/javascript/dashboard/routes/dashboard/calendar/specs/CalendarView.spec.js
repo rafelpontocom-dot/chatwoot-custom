@@ -136,6 +136,23 @@ describe('CalendarView', () => {
       expect(faltas.find('s').text()).toContain('33%');
     });
 
+    // A linha leva rótulo, valor e variação, e mais nada: o rodapé («33,3% do
+    // mês», «3 por confirmar») saiu com a densidade `inline`. Se alguém o
+    // voltar a passar, a linha cresce para três linhas e a grelha de horas
+    // perde a hora que esta mudança lhe devolveu.
+    it('sends no footer to the indicator line', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-completed"]').find('u').text()
+      ).toBe('');
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-today"]').find('u').text()
+      ).toBe('');
+    });
+
     it('keeps the grid working when the indicators request fails', async () => {
       const wrapper = mountCalendar();
       await flushPromises();

@@ -69,6 +69,110 @@ desenhava-as num `<dl>` empilhado — o quarto tratamento de cartão de número 
 produto — em vez do `RaevoKpiCard` que serve as outras cinco. A dívida era de
 apresentação, não de dados, e ficou mais pequena do que este documento dizia.
 
+### A fila de indicadores tinha uma densidade só · 26/09/2026
+
+O dono do produto viu a fila no Pipeline e na Agenda e disse o mesmo das duas:
+«ficou muito grande». Tinha razão, e a causa não era o tamanho dos cartões — era
+o **papel** deles. Nas duas telas o assunto não é o número: é o quadro de
+colunas, é a grelha de horas. Quatro cartões de 139px empurravam a superfície de
+trabalho para fora do ecrã, e era isso que se sentia.
+
+Havia um segundo defeito, que o texto colado pelo dono do produto mostra melhor
+do que qualquer descrição: numa conta sem histórico, **três dos quatro rodapés
+diziam «sem mês para comparar»**. A fila gastava a sua linha mais larga a
+desculpar-se, exatamente no caso em que há menos para mostrar.
+
+**Decisão.** `RaevoKpiCard` passa a ter duas densidades, e a escolha entre elas é
+uma regra e não um gosto:
+
+- `density="card"` — caixa própria, número a 30px, rodapé sob um filete. Para o
+  Início, o Financeiro e a IA, onde a fila **é** o topo da tela.
+- `density="strip"` — a mesma anatomia sem caixa, rótulo em caixa alta, número a
+  16px. Para o Pipeline e a Agenda, onde a superfície de trabalho tem de aparecer
+  sem rolar.
+
+No Pipeline a faixa mora **dentro da caixa do cabeçalho**, separada por um
+filete: era o que o dono do produto tinha pedido. A Agenda não tem caixa de
+cabeçalho — a barra é de uma linha, ao estilo Google — por isso ali a faixa é a
+banda logo abaixo dela, com o mesmo `px-4` e o mesmo filete, e lê-se como
+continuação do cabeçalho. É a mesma forma no sítio que cada tela tem.
+
+O rodapé passa a ficar **vazio** onde não há base de comparação, em vez de trazer
+a frase. A ausência de seta já diz que não há mês anterior; a chave `NO_BASELINE`
+de `KANBAN.INDICATORS` e de `CALENDAR.INDICATORS` deixou de ser usada e saiu dos
+três catálogos. (A de `FINANCE` fica: essa tela continua a usá-la, e mantém a
+densidade de cartão.)
+
+**O que a porta visual mediu**, a 1280×900, na aplicação real com dados semeados:
+
+| | Pipeline | Agenda |
+| --- | --- | --- |
+| Fila, antes | 139px | 151px |
+| Fila, depois | **76px** | **84px** |
+| Superfície de trabalho começa a | 362px → **311px** | 240px → **176px** |
+| Efeito visível | — | a semana abria às 8:00 e parava nas 15:00; agora chega às 16:00 |
+
+Capturas de claro e de escuro nas duas telas. No escuro o rótulo e o rodapé ficam
+a 6,94:1 sobre a caixa do cabeçalho e a 7,66:1 sobre o fundo da Agenda; no claro,
+4,74:1 nos dois — o par mais apertado, e passa os 4,5:1 da WCAG 2.2. O rodapé usa
+`text-xs` e não `text-micro`: `micro` está reservado a selo, contador e cabeçalho
+em caixa alta, e o rodapé é texto corrido.
+
+**O que NÃO mudou, e porquê.** O Financeiro e a IA abrem também com uma fila de
+quatro cartões sobre uma lista, e a mesma leitura aplica-se-lhes. Ficaram como
+estavam porque o pedido nomeou duas telas, e mudar as outras duas sem o dizer é
+alargar âmbito por conta própria. Com a densidade já no primitivo, aplicá-la a
+cada uma é uma linha por tela.
+
+**Duas coisas que as capturas mostram e esta mudança não resolve.** O «Ciclo
+médio» aparece como **−6 dias** nos dados semeados: um ciclo negativo é possível
+quando `won_at` antecede `created_at`, e o importador não impede. E
+`CALENDAR.INDICATORS.LAST_MONTH` já não era usada por tela nenhuma antes desta
+mudança — a Agenda compara por percentagem do mês. Ficam registadas em vez de
+corrigidas de passagem: nenhuma das duas é desta mudança.
+
+### A faixa ainda era grande: a linha · 26/09/2026
+
+O dono do produto olhou para a faixa de 76px e disse o mesmo de antes: continua
+grande. Pediu tudo no canto, e duas propostas para escolher. Foram construídas e
+**medidas na aplicação real**, com os mesmos dados nas duas:
+
+| | Pipeline | Agenda |
+| --- | --- | --- |
+| Quatro cartões (origem) | 139px | 151px |
+| Faixa | 76px | 84px |
+| A · linha sem variação | 27px | 36px |
+| **B · linha com variação (escolhida)** | **28px** | **37px** |
+
+**O que decidiu foi a medição, e não era óbvio antes dela: a diferença entre A e
+B é de um pixel.** O selo de variação cabe na linha do número — não abre linha
+nova. Tirar as setas não poupava espaço; só fazia a tela deixar de dizer se a
+taxa de fecho de 50% vinha de 30% ou de 70%. O dono do produto escolheu **B**.
+
+Duas coisas que a escolha trava:
+
+- A linha mora no **canto inferior direito da caixa do cabeçalho**, e a legenda
+  de saúde das etapas vem **por baixo dela, também à direita** — pedido explícito
+  do dono do produto, e a leitura certa: a legenda explica a barra das colunas,
+  é apoio, e apoio vem depois do dado.
+- Não flutua sobre o quadro. Ali taparia os cartões da última coluna e o
+  «Adicionar item», que é justamente para onde se arrasta.
+
+**O que se perdeu, e foi aceite.** O rodapé desapareceu. Com ele foram-se «{count}
+fechadas» — o denominador da taxa, e uma taxa de 100% sobre uma cobrança fechada
+não é a mesma informação que sobre trinta — e «{count} por confirmar», que na
+Agenda era o sinal mais accionável da linha. As chaves `CLOSED_COUNT`,
+`WON_AMOUNT_FOOTER`, `LAST_MONTH`, `OF_MONTH`, `UNCONFIRMED` e `ALL_CONFIRMED`
+ficaram órfãs e saíram dos três catálogos. **Se voltarem a fazer falta, a via é o
+painel de detalhe** — a mesma linha com um botão que abre a faixa completa: em
+repouso custa os mesmos 28px e nada se perde. Foi proposta e não foi escolhida;
+fica aqui para não ser redescoberta do zero.
+
+O ciclo médio negativo que aparecia nas capturas anteriores era da semente, não
+do código: havia cartões com `won_at` anterior ao `created_at`. Os dados de
+demonstração foram corrigidos. **O defeito de produto continua por corrigir** —
+o importador não impede um `won_at` anterior à criação.
+
 ---
 
 ## O processo

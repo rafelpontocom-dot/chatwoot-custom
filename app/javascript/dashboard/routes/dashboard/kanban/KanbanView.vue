@@ -611,6 +611,11 @@ const variacaoDe = (agora, antes, maiorEhMelhor = true) => {
   };
 };
 
+// A linha do cabeçalho leva rótulo, valor e variação — e mais nada. O rodapé
+// («6 fechadas», «R$ 54,7k no mês passado») saiu com a densidade `inline`: era
+// a terceira linha de cada indicador, e é ela que a linha troca por caber no
+// canto. Fica dito aqui porque `closed` e `amount_cents` continuam a vir do
+// servidor e deixaram de ter consumidor nesta tela.
 const commercialIndicators = computed(() => {
   const r = commercialSummary.value;
   if (!r) return [];
@@ -628,11 +633,6 @@ const commercialIndicators = computed(() => {
       value: somaEmMoeda(r.pipeline_value.current),
       delta: funil.texto,
       deltaIsGood: funil.bom,
-      footer: r.pipeline_value.previous
-        ? t('KANBAN.INDICATORS.LAST_MONTH', {
-            value: somaEmMoeda(r.pipeline_value.previous),
-          })
-        : t('KANBAN.INDICATORS.NO_BASELINE'),
     },
     {
       chave: 'close-rate',
@@ -640,9 +640,6 @@ const commercialIndicators = computed(() => {
       value: r.close_rate.current === null ? null : `${r.close_rate.current}%`,
       delta: fecho.texto,
       deltaIsGood: fecho.bom,
-      footer: t('KANBAN.INDICATORS.CLOSED_COUNT', {
-        count: r.close_rate.closed,
-      }),
     },
     {
       chave: 'cycle',
@@ -653,14 +650,6 @@ const commercialIndicators = computed(() => {
           : t('KANBAN.INDICATORS.DAYS', { count: r.cycle_days.current }),
       delta: ciclo.texto,
       deltaIsGood: ciclo.bom,
-      footer:
-        r.cycle_days.previous === null
-          ? t('KANBAN.INDICATORS.NO_BASELINE')
-          : t('KANBAN.INDICATORS.LAST_MONTH', {
-              value: t('KANBAN.INDICATORS.DAYS', {
-                count: r.cycle_days.previous,
-              }),
-            }),
     },
     {
       chave: 'won',
@@ -668,9 +657,6 @@ const commercialIndicators = computed(() => {
       value: String(r.won.current.count),
       delta: ganhas.texto,
       deltaIsGood: ganhas.bom,
-      footer: t('KANBAN.INDICATORS.WON_AMOUNT_FOOTER', {
-        value: somaEmMoeda(r.won.current.amount_cents),
-      }),
     },
   ];
 });
@@ -1641,29 +1627,58 @@ onUnmounted(() => {
         class="relative m-3 grid gap-3 rounded-xl border border-n-weak bg-n-solid-1 px-4 py-3 lg:mx-6"
       >
         <!--
-          Legenda das cores, uma só vez. Repeti-la por coluna seria ruído, e sem
-          ela a barra de saúde é bonita e muda.
+          O rodapé do cabeçalho, e a ordem é a decisão: os NÚMEROS primeiro,
+          alinhados à direita, e a legenda de saúde por baixo deles, também à
+          direita. A legenda explica a barra das colunas — é apoio, e apoio
+          vem depois do dado.
+
+          `density="inline"` é a terceira densidade de `RaevoKpiCard`: só rótulo
+          e valor, mais o selo de variação, numa linha. Ver o componente para o
+          que ela troca por caber aqui.
         -->
-        <div
-          v-if="viewMode === 'kanban' && stages.length"
-          data-testid="kanban-health-legend"
-          class="order-last flex flex-wrap items-center gap-x-4 gap-y-1 text-micro text-n-slate-10"
-        >
-          <span class="font-semibold uppercase tracking-wide">
-            {{ t('KANBAN.STAGE.HEALTH_LEGEND') }}
-          </span>
-          <span class="inline-flex items-center gap-1.5">
-            <i class="h-1 w-4 rounded-full bg-n-teal-9" aria-hidden="true" />
-            {{ t('KANBAN.STAGE.HEALTH_OK') }}
-          </span>
-          <span class="inline-flex items-center gap-1.5">
-            <i class="h-1 w-4 rounded-full bg-n-amber-9" aria-hidden="true" />
-            {{ t('KANBAN.STAGE.HEALTH_WARN') }}
-          </span>
-          <span class="inline-flex items-center gap-1.5">
-            <i class="h-1 w-4 rounded-full bg-n-ruby-9" aria-hidden="true" />
-            {{ t('KANBAN.STAGE.HEALTH_STUCK') }}
-          </span>
+        <div class="order-last flex flex-col items-end gap-1">
+          <div
+            v-if="commercialIndicators.length"
+            data-testid="kanban-indicators"
+            class="flex flex-wrap items-baseline justify-end gap-x-5 gap-y-1"
+          >
+            <RaevoKpiCard
+              v-for="indicador in commercialIndicators"
+              :key="indicador.chave"
+              :data-testid="`kanban-kpi-${indicador.chave}`"
+              density="inline"
+              :label="indicador.label"
+              :value="indicador.value"
+              :delta="indicador.delta"
+              :delta-is-good="indicador.deltaIsGood"
+            />
+          </div>
+
+          <!--
+            Repetir a legenda por coluna seria ruído, e sem ela a barra de saúde
+            é bonita e muda.
+          -->
+          <div
+            v-if="viewMode === 'kanban' && stages.length"
+            data-testid="kanban-health-legend"
+            class="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-micro text-n-slate-10"
+          >
+            <span class="font-semibold uppercase tracking-wide">
+              {{ t('KANBAN.STAGE.HEALTH_LEGEND') }}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="h-1 w-4 rounded-full bg-n-teal-9" aria-hidden="true" />
+              {{ t('KANBAN.STAGE.HEALTH_OK') }}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="h-1 w-4 rounded-full bg-n-amber-9" aria-hidden="true" />
+              {{ t('KANBAN.STAGE.HEALTH_WARN') }}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="h-1 w-4 rounded-full bg-n-ruby-9" aria-hidden="true" />
+              {{ t('KANBAN.STAGE.HEALTH_STUCK') }}
+            </span>
+          </div>
         </div>
 
         <div
@@ -2270,29 +2285,6 @@ onUnmounted(() => {
           </div>
         </template>
       </header>
-
-      <!--
-        A fila que abre o Pipeline no sistema aprovado, entre o cabeçalho e as
-        colunas. Não substitui a faixa de relatório que vem abaixo: aquela dá o
-        estado de agora decomposto por etapa, responsável e motivo de perda; esta
-        dá a dimensão temporal — mês contra mês anterior — e o ciclo.
-      -->
-      <div
-        v-if="commercialIndicators.length"
-        data-testid="kanban-indicators"
-        class="grid gap-3 px-4 pb-3 sm:grid-cols-2 lg:grid-cols-4 lg:px-6"
-      >
-        <RaevoKpiCard
-          v-for="indicador in commercialIndicators"
-          :key="indicador.chave"
-          :data-testid="`kanban-kpi-${indicador.chave}`"
-          :label="indicador.label"
-          :value="indicador.value"
-          :delta="indicador.delta"
-          :delta-is-good="indicador.deltaIsGood"
-          :footer="indicador.footer"
-        />
-      </div>
 
       <section
         v-if="salesSummary && showSalesSummary"

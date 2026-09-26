@@ -611,6 +611,37 @@ describe('KanbanView realtime events', () => {
       ).toBe('');
     });
 
+    // O sítio da fila é a decisão, não um detalhe de estilo: em cartões por
+    // baixo do cabeçalho ela empurrava as colunas 139px para baixo, e numa tela
+    // cujo assunto são as colunas isso é o defeito. Dentro da caixa, em faixa,
+    // são 76px — medido a 1280x900 com dados semeados.
+    it('keeps the indicator strip inside the header box', async () => {
+      comResumo();
+      const wrapper = await mountView();
+
+      const cabecalho = wrapper.get('[data-testid="kanban-workspace-header"]');
+
+      expect(cabecalho.find('[data-testid="kanban-indicators"]').exists()).toBe(
+        true
+      );
+    });
+
+    // A ordem é a decisão e não um detalhe de estilo: os números primeiro, a
+    // legenda de saúde por baixo. A legenda explica a barra das colunas — é
+    // apoio, e apoio vem depois do dado.
+    it('puts the numbers above the stage health legend', async () => {
+      comResumo();
+      const wrapper = await mountView();
+
+      const html = wrapper
+        .get('[data-testid="kanban-workspace-header"]')
+        .html();
+
+      expect(html.indexOf('kanban-indicators')).toBeLessThan(
+        html.indexOf('kanban-health-legend')
+      );
+    });
+
     it('keeps the board working when the indicators request fails', async () => {
       const wrapper = await mountView();
 

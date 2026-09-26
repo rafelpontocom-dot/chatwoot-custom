@@ -27,6 +27,39 @@ para as sete decisões e de onde veio cada valor.
 **Especificação completa e obrigatória: [`docs/raevo-design-system.md`](docs/raevo-design-system.md).**
 Leia antes de escrever CSS ou markup. As regras abaixo são o resumo executável.
 
+## Toda mudança de UI passa pelo design system — e por esta ordem
+
+Não é conselho: é a sequência de trabalho. **Antes** de escrever markup, e **outra vez** antes
+de abrir PR.
+
+1. **Já existe primitivo?** `components-next/raevo/` — `RaevoPageHeader`, `RaevoKpiCard`,
+   `RaevoStamp`, `RaevoField`. Se existe, usa-se; não se recria nem se desenha à mão. Foi por
+   se ter recriado que o produto chegou a três tratamentos de cartão de número e a três de
+   campo dentro do mesmo diálogo.
+2. **O padrão está escrito?** `docs/raevo-design-system.md` §5 tem cabeçalho de página,
+   indicador (as três densidades), card de lead, tabela, coluna do funil, estado de consulta.
+   Cor no §2, forma no §3, tipografia no §4.
+3. **O valor está gravado?** `design-system/raevo.tokens.json` é o sistema como está no código
+   e `design-system/aprovado/consultorio.tokens.json` é a direção aprovada. Token que falta
+   nasce em `_raevo-tokens.scss`, nunca no componente.
+4. **A tela já existe?** Então não muda sem passar por
+   [`docs/raevo-aprovacao.md`](docs/raevo-aprovacao.md) — e a decisão fica lá escrita, com o
+   que se ganhou e o que se perdeu.
+5. **As portas correm** (`pnpm raevo:design`, `raevo:tokens`, `raevo:palette`) e a **porta
+   visual** de cinco passos, com jornada real e capturas antes/depois.
+
+**Ordem de precedência quando as fontes divergirem**, porque divergem:
+
+| | |
+| --- | --- |
+| **1. O código** | `_raevo-tokens.scss`, `tailwind.config.js`, `components-next/raevo/`. É o que o utilizador vê e o que as portas medem |
+| **2. `design-system/`** | os tokens gravados. `pnpm raevo:tokens` falha se o código divergir deles — é essa falha que os mantém honestos |
+| **3. `docs/`** | a especificação e a fila de aprovação. Explicam o porquê; o valor está acima |
+| **4. Os artefactos** | o demonstrador e a referência navegável no claude.ai são **espelhos para humanos**. Nunca são fonte: um token muda no código e o artefacto fica desactualizado sem ninguém dar por isso |
+
+**Mudou alguma coisa nas três primeiras? Actualize também o artefacto**, na mesma passagem. Um
+espelho desactualizado é pior do que nenhum, porque alguém desenha a partir dele.
+
 ## O que Consultório mudou em relação a Sereno
 
 Histórico, para quem encontrar código ou capturas antigas. **Já está aplicado** — não
@@ -95,6 +128,39 @@ a proposta C · Órbita não é o modo escuro de A — ver `docs/raevo-aprovacao
 
    Em `shallowMount`, `RaevoField` precisa de stub que renderize o slot com
    `control-class`/`field-id` — senão todos os campos somem do teste.
+
+## Indicador: cartão onde é conteúdo, linha onde é contexto
+
+`RaevoKpiCard` tem três densidades, e a escolha **não é gosto** — é a resposta a
+«nesta tela o número é o assunto, ou é a moldura dele?», e a quanto espaço a
+moldura tem direito.
+
+| | Caixa | Número | Rodapé | Fila no Pipeline | Onde |
+| --- | --- | --- | --- | --- | --- |
+| `card` (omissão) | própria | 30px | sob filete | 139px | Início, Financeiro, IA |
+| `strip` | nenhuma | 16px | por baixo | 76px | — |
+| `inline` | nenhuma | 14px | **não há** | **28px** | Pipeline, Agenda |
+
+`inline` é a única que **perde informação de propósito**: fica o rótulo, o valor e
+o selo de variação, e o rodapé não é desenhado. É a troca que a faz caber no canto
+de um cabeçalho que já existe. Quem a usa aceita que «6 fechadas» — o denominador
+da taxa — e «3 por confirmar» deixam de aparecer.
+
+No Pipeline a linha mora no **canto inferior direito da caixa do cabeçalho**, e a
+legenda de saúde das etapas vem **por baixo dela, também à direita**: a legenda
+explica a barra das colunas, é apoio, e apoio vem depois do dado. Na Agenda, que
+tem barra de uma linha e não caixa, a linha é a banda logo abaixo dela.
+
+O selo de variação custa **1px** — cabe na linha do número. Medido: 27px sem ele,
+28px com ele. Não é por espaço que se tira uma seta.
+
+**Não desenhe uma linha de números à mão numa tela.** Foi por aí que o produto
+chegou a três tratamentos de cartão de número; uma quarta variante inventada num
+template é o mesmo erro com outro nome.
+
+**Rodapé vazio em vez de «sem mês para comparar».** Numa conta nova três dos
+quatro indicadores diziam isso. A ausência de seta já diz que não há base de
+comparação. (Com `inline` a questão não se põe: não há rodapé.)
 
 ## Paleta de etapas do funil — travada
 
@@ -216,6 +282,18 @@ JSON** — ele mostra tudo que a mudança moveu, inclusive o que você não pret
 | `app/javascript/dashboard/constants/raevoPalette.js` | cores que viram DADO (etapa, procedimento) |
 | `docs/raevo-design-system.md` | especificação, padrões de tela, checklist de PR |
 | `output/raevo-design-2026-v2/index.html` | mockups de H · Sereno — **histórico**. A direção aprovada é Consultório; use `design-system/aprovado/` |
+
+E os espelhos no claude.ai, que **não são fonte** (ver a ordem de precedência acima) mas são o
+que se mostra a quem não lê código:
+
+| Artefacto | Papel |
+| --- | --- |
+| [Raevo · Sistema Aprovado](https://claude.ai/artifact/2ACSDXn19DZKFWUos9pnaA) | o demonstrador: catorze telas na direção aprovada, **mais a secção «O sistema, em números»** — cor, tipografia, raio, caixa e as três densidades do indicador, com os valores |
+| [Indicadores no canto](https://claude.ai/artifact/AM7QHMa8pwVaiZ7K5GteSL) | a decisão de 26/09 entre as duas propostas de fila, com as medições e as capturas |
+
+**Mudou token, primitivo ou padrão? Actualize o demonstrador na mesma passagem.** Um espelho
+desactualizado é pior do que nenhum: alguém desenha a partir dele e a divergência só aparece na
+revisão.
 
 ---
 
@@ -425,16 +503,34 @@ ruby bin/rails s -p 3000 -b 127.0.0.1 &     # invoque o `ruby` pelo caminho abso
                                             # o `bin/rails` apanha o rbenv 3.3.6 e falha
 ```
 
-Três armadilhas que custaram tempo, para não voltarem a custar:
+Cinco armadilhas que custaram tempo, para não voltarem a custar:
 
+- **Levante o Rails com `DISABLE_MINI_PROFILER=1`.** Esta é a que custou mais:
+  sem ela, `/app/login` demora **57 segundos** (o log culpa o ActiveRecord, e a
+  culpa não é dele), e ao fim de meia dúzia de pedidos deixa de responder de
+  todo. O `rack-mini-profiler` guarda um ficheiro por pedido em
+  `tmp/miniprofiler/` e relê a pasta inteira a cada um. Com a variável ligada, a
+  mesma página serve em **0,8s**. Limpe também a pasta se já lá estiverem
+  centenas de ficheiros.
+- **Para capturas, `bin/vite build` vale mais do que `bin/vite dev`.** Em dev o
+  primeiro carregamento transforma milhares de módulos um a um e o Vue pode não
+  montar em sete minutos — o `<div id="app">` fica vazio sem um único erro na
+  consola, que é o pior modo de falhar. Uma build (≈2min) serve páginas
+  instantâneas; volta-se a construir depois de cada alteração.
 - **`rspec` passa a correr.** Vale mais do que as capturas: os specs de Ruby
   deixam de ser escritos às cegas.
 - **O Chromium do Playwright precisa de `--no-proxy-server`**, senão tenta o
   proxy de egresso para chegar a `127.0.0.1`. E **`waitUntil: 'networkidle'`
   nunca resolve** com o Vite em dev: o websocket do HMR fica aberto. Use
-  `'load'` e uma espera explícita.
+  `'load'` — ou `'commit'` mais uma espera por seletor, que é mais robusto.
 - **O ecrã de entrada não declara `type=email`/`type=password`.** Preencha
   `form input` por ordem e clique no botão pelo texto.
+
+**Meça, não só capture.** `boundingBox()` sobre o cabeçalho, a faixa e a
+superfície de trabalho transforma «ficou muito grande» num número que se discute.
+Foi assim que se soube que a fila de indicadores valia 139px no Pipeline e 151px
+na Agenda, que a faixa os punha em 76px e 84px, e que a linha os põe em 28px e
+37px — e que o selo de variação, que parecia caro, custa 1px.
 
 O que a porta encontrou à primeira execução, e não teria encontrado sem ela: uma
 tela que não preenchia a largura (≈375px vazios em 1280) e uma conversão de 0%
