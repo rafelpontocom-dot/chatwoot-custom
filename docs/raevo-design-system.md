@@ -238,9 +238,24 @@ quatro, dígitos de larguras diferentes fazem os cartões dançarem quando os da
 
 **`inline` é a única que perde informação de propósito.** Fica o rótulo, o valor e o selo de
 variação; o rodapé não é desenhado. É a troca que a faz caber no canto de um cabeçalho que já
-existe, e quem a usa aceita que «6 fechadas» — o denominador da taxa — e «3 por confirmar»
-deixem de aparecer. Se voltarem a fazer falta, a via é um botão de detalhe que abre a faixa
-completa: em repouso continua a custar os mesmos 28px.
+existe, e quem a usa aceita que «R$ 54,7k no mês passado» e «33,3% do mês» deixem de aparecer.
+
+**A exceção é `note`**, e tem regra própria. Um qualificador curto que anda colado ao número,
+só em `inline`, e só onde a variação NÃO ocupa aquele lugar — «Marcações hoje» não compara com
+mês nenhum. Existe para o caso em que o rodapé levava a única informação daquela fila sobre a
+qual se **age**: «3 por confirmar» é o que faz alguém pegar no telefone, e não existe em mais
+lado nenhum do produto (a Agenda não tem faixa de resumo). Separa-se do número por um ponto
+que é elemento e não texto — um `·` literal acusa a regra de i18n, e um separador é forma, não
+conteúdo.
+
+**Não é o rodapé de volta.** O rodapé é contexto que explica o número; a nota é uma parte do
+número que não cabe no número. E só aparece quando tem o que dizer: sem nenhuma por confirmar
+não há nota, porque «todas confirmadas» era a mesma frase a desculpar-se que se tirou do resto
+da fila. Cada nota custa largura, e a linha existe precisamente para não custar altura — se
+alguém puser uma em cada indicador, a linha quebra e volta a ter duas alturas.
+
+No Pipeline nenhum indicador leva nota, e é escolha: o que o rodapé lá levava (o valor fechado,
+o denominador da taxa) está na faixa **Resumo**, a um clique no cabeçalho.
 
 **O selo de variação custa 1px.** Medido: 27px sem ele, 28px com ele — cabe na linha do número.
 Não é por espaço que se tira uma seta, e tirá-la faz a tela deixar de dizer se uma taxa de

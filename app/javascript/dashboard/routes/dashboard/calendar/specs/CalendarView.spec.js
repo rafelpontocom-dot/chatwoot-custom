@@ -40,11 +40,11 @@ const mountCalendar = () =>
       stubs: {
         // Ver AGENTS.md, «Armadilha conhecida em testes».
         RaevoKpiCard: {
-          props: ['label', 'value', 'delta', 'deltaIsGood', 'footer'],
+          props: ['label', 'value', 'delta', 'deltaIsGood', 'footer', 'note'],
           template:
             '<div><i>{{ label }}</i><b>{{ value }}</b>' +
             "<s v-if=\"delta\">{{ deltaIsGood ? 'melhor' : 'pior' }} {{ delta }}</s>" +
-            '<u>{{ footer }}</u></div>',
+            '<u>{{ footer }}</u><em>{{ note }}</em></div>',
         },
         KanbanCalendarBookingDialog: {
           setup(_, { expose }) {
@@ -150,6 +150,44 @@ describe('CalendarView', () => {
       ).toBe('');
       expect(
         wrapper.get('[data-testid="calendar-kpi-today"]').find('u').text()
+      ).toBe('');
+    });
+
+    // «3 por confirmar» é a única coisa daquela fila sobre a qual se age, e não
+    // existe em mais lado nenhum do produto: a Agenda não tem faixa de resumo.
+    // Por isso volta como nota colada ao número — o indicador de hoje não
+    // compara com mês nenhum, logo aquele lugar está livre.
+    it('keeps the unconfirmed count beside the number of appointments today', async () => {
+      comResumo();
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const hoje = wrapper.get('[data-testid="calendar-kpi-today"]');
+
+      // O mock de i18n deste spec devolve a chave, não a frase interpolada: o que
+      // se afirma é o contrato — a nota é passada, e a seta não ocupa o lugar.
+      expect(hoje.find('b').text()).toBe('14');
+      expect(hoje.find('em').text()).toBe('CALENDAR.INDICATORS.UNCONFIRMED');
+      expect(hoje.find('s').exists()).toBe(false);
+    });
+
+    // Sem nenhuma por confirmar não há nada para fazer, e «todas confirmadas»
+    // era a mesma frase a desculpar-se que se tirou do resto da fila.
+    it('says nothing when every appointment today is confirmed', async () => {
+      CalendarAPI.getSummary.mockResolvedValue({
+        data: {
+          today: { count: 14, unconfirmed: 0 },
+          completed: { current: 52, previous: 44 },
+          no_show: { current: 4, previous: 6 },
+          canceled: { current: 2, previous: 2 },
+          month_total: 58,
+        },
+      });
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-today"]').find('em').text()
       ).toBe('');
     });
 
