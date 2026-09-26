@@ -105,6 +105,27 @@ describe('RaevoKpiCard', () => {
     );
   });
 
+  // A nota é a única coisa que sobrevive ao corte do rodapé, e só em linha: é o
+  // qualificador que anda colado ao número quando a variação não ocupa aquele
+  // lugar. Em cartão e em faixa o rodapé já faz esse trabalho, e uma nota ali
+  // seria uma segunda voz a dizer o mesmo.
+  it('carries the note beside the number, and only in inline density', () => {
+    const comNota = { note: '3 por confirmar' };
+
+    expect(montar({ ...comNota, density: 'inline' }).text()).toContain(
+      '3 por confirmar'
+    );
+    expect(montar({ ...comNota, density: 'strip' }).text()).not.toContain(
+      '3 por confirmar'
+    );
+    expect(montar(comNota).text()).not.toContain('3 por confirmar');
+  });
+
+  it('draws nothing when there is no note', () => {
+    // Nota vazia não deixa separador órfão: o ponto e o texto saem juntos.
+    expect(montar({ density: 'inline' }).html()).not.toContain('rounded-full');
+  });
+
   it('does not open the second grid column without a destination', () => {
     // O `CardAction` da referência só abre a 2ª coluna quando há acção. Sem `to`,
     // o cartão não deixa um espaço reservado a um link que não existe.

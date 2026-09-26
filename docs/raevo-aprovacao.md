@@ -173,6 +173,52 @@ do código: havia cartões com `won_at` anterior ao `created_at`. Os dados de
 demonstração foram corrigidos. **O defeito de produto continua por corrigir** —
 o importador não impede um `won_at` anterior à criação.
 
+### «Por confirmar» volta, e só ela · 26/09/2026
+
+Depois de fundida a linha, o dono do produto perguntou o que era exactamente o
+rodapé que se tinha perdido. A resposta obrigou a **corrigir o que eu tinha dito
+antes**: eu falara em duas informações sem outra casa, e a conta não era essa.
+
+| Onde | Rodapé | Tem outra casa? |
+| --- | --- | --- |
+| Valor em funil | `R$ 54,7k no mês passado` | sim — a seta diz o mesmo em percentagem |
+| Taxa de fecho | `6 fechadas` | sim — ganhas + perdidas na faixa **Resumo** |
+| Ciclo médio | `13 dias no mês passado` | sim — a seta |
+| Ganhas no mês | `R$ 31.700,00 fechados` | sim — `wonAmountCents` na faixa **Resumo** |
+| **Marcações hoje** | **`3 por confirmar`** | **não** |
+| Concluídas / Faltas / Canceladas | `33,3% do mês` | não, mas é escala e não acção |
+
+Ou seja: no Pipeline não se perdeu quase nada, porque a faixa **Resumo** já
+existia e carrega o valor fechado e as contagens. Na Agenda perdeu-se a sério —
+`agendaSummary` só alimenta aquela linha, não há faixa de resumo nenhuma, e
+**«por confirmar» é a única coisa daquela fila sobre a qual se age**: é o que faz
+a secretaria pegar no telefone.
+
+**Decisão.** Volta, e só ela, como a prop `note` de `RaevoKpiCard`: um
+qualificador curto colado ao número, em `inline`, no indicador que **não tem
+variação a ocupar aquele lugar** — hoje não compara com mês nenhum. Zero altura
+acrescentada; o espaço já estava livre.
+
+Não volta o painel de detalhe que eu tinha proposto: para uma informação só, era
+um clique a mais e um componente a mais para o mesmo resultado. E não volta
+«todas confirmadas» — sem nenhuma por confirmar não há nada para fazer, e era a
+mesma frase a desculpar-se que se tirou do resto da fila.
+
+As percentagens do mês ficam de fora: são escala, e a escala não tem para onde
+ir sem o total do mês, que não aparece no ecrã. Se fizerem falta, a via é dar à
+Agenda uma faixa de resumo como a do Pipeline — não é encher a linha.
+
+**O que a porta visual mediu, e o que ela apanhou.** Em português a linha
+continua nos **37px** — a nota cabe, e o espaço estava mesmo livre. Em inglês
+**quebra para duas linhas (68px)**, porque os rótulos do catálogo `en` são bem
+mais longos («NO-SHOWS THIS MONTH» contra «FALTAS NO MÊS») e faltavam uns 12px.
+
+Fica assim, de propósito. Apertar o `gap-x-5` para caber o inglês seria afinar a
+geometria do produto ao comprimento de strings de um catálogo que este fork não
+usa — e 68px continua abaixo dos 84px da faixa que substituiu. **O que isto
+confirma é a regra:** uma nota por fila, no máximo. A segunda parte a linha em
+qualquer idioma.
+
 ---
 
 ## O processo

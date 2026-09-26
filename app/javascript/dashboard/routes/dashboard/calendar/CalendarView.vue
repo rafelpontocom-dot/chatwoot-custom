@@ -796,10 +796,19 @@ const variacaoAgenda = (agora, antes, maiorEhMelhor) => {
   };
 };
 
-// Como no Pipeline, a linha leva rótulo, valor e variação. O rodapé saiu com a
-// densidade `inline`: «33,3% do mês» e «3 por confirmar» eram a terceira linha
-// de cada indicador. `month_total` e `today.unconfirmed` continuam a vir do
-// servidor e deixaram de ter consumidor aqui.
+// Como no Pipeline, a linha leva rótulo, valor e variação, e o rodapé saiu com a
+// densidade `inline`. Com UMA exceção: «por confirmar».
+//
+// As percentagens do mês eram escala e perderam-se; essas a linha dispensa. Mas
+// «3 por confirmar» não era escala — era a única coisa daquela fila sobre a qual
+// se AGE, e não existe em mais lado nenhum do produto (a Agenda não tem faixa de
+// resumo; `agendaSummary` só alimenta esta linha). Volta como `note`, colada ao
+// número, no indicador que não tem variação a ocupar aquele lugar: hoje não
+// compara com mês nenhum.
+//
+// E só quando há alguma por confirmar. «Todas confirmadas» era a mesma frase a
+// desculpar-se que se tirou do resto da fila: não há nada para fazer, não ocupa
+// largura.
 const agendaIndicators = computed(() => {
   const r = agendaSummary.value;
   if (!r) return [];
@@ -824,6 +833,9 @@ const agendaIndicators = computed(() => {
       value: String(r.today.count),
       delta: '',
       deltaIsGood: true,
+      note: r.today.unconfirmed
+        ? t('CALENDAR.INDICATORS.UNCONFIRMED', { count: r.today.unconfirmed })
+        : '',
     },
     {
       chave: 'completed',
@@ -989,6 +1001,7 @@ onMounted(() => {
         :value="indicador.value"
         :delta="indicador.delta"
         :delta-is-good="indicador.deltaIsGood"
+        :note="indicador.note"
       />
     </div>
 

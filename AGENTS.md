@@ -143,8 +143,14 @@ moldura tem direito.
 
 `inline` é a única que **perde informação de propósito**: fica o rótulo, o valor e
 o selo de variação, e o rodapé não é desenhado. É a troca que a faz caber no canto
-de um cabeçalho que já existe. Quem a usa aceita que «6 fechadas» — o denominador
-da taxa — e «3 por confirmar» deixam de aparecer.
+de um cabeçalho que já existe.
+
+**A exceção é a prop `note`**: um qualificador curto colado ao número, só em
+`inline`, e só onde a variação não ocupa aquele lugar. Serve o caso em que o
+rodapé levava a única coisa daquela fila sobre a qual se **age** — «3 por
+confirmar», na Agenda, que não existe em mais lado nenhum do produto. Só aparece
+quando tem o que dizer. **Uma nota por fila, no máximo:** cada uma custa largura,
+e se a linha quebrar volta a ter duas alturas — que é o problema que ela resolve.
 
 No Pipeline a linha mora no **canto inferior direito da caixa do cabeçalho**, e a
 legenda de saúde das etapas vem **por baixo dela, também à direita**: a legenda
@@ -196,8 +202,10 @@ os props e renderizá-los:
 
 ```js
 RaevoKpiCard: {
-  props: ['label', 'value', 'delta', 'footer'],
-  template: '<div><i>{{ label }}</i><b>{{ value }}</b><s>{{ delta }}</s><u>{{ footer }}</u></div>',
+  props: ['label', 'value', 'delta', 'footer', 'note'],
+  template:
+    '<div><i>{{ label }}</i><b>{{ value }}</b><s>{{ delta }}</s>' +
+    '<u>{{ footer }}</u><em>{{ note }}</em></div>',
 },
 ```
 

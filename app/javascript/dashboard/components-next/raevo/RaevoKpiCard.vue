@@ -37,8 +37,9 @@
  *   rodapé. ≈24px de fila, e cabe no canto de um cabeçalho que já existe.
  *
  * `inline` é a única que **perde informação de propósito**, e isso está aqui em
- * letra gorda porque é a decisão e não um efeito colateral: a variação e o
- * contexto não aparecem. Quem a usa aceita que a tela deixa de dizer se o número
+ * letra gorda porque é a decisão e não um efeito colateral: o rodapé não
+ * aparece. A exceção é `note` — um qualificador curto ao lado do número, para
+ * o indicador que não tem variação a ocupar aquele lugar. Quem a usa aceita que a tela deixa de dizer se o número
  * subiu ou desceu — ou põe a variação ao alcance de um clique, como o Pipeline e
  * a Agenda fazem com o botão de detalhe.
  *
@@ -73,6 +74,17 @@ const props = defineProps({
   to: { type: [String, Object], default: null },
   /** Rótulo acessível do canto — obrigatório com `to`: é controlo só de ícone. */
   toLabel: { type: String, default: '' },
+  /**
+   * Um qualificador curto que anda colado ao número, e só em `inline`. Existe
+   * para o caso em que a variação NÃO ocupa aquele lugar — «Marcações hoje» não
+   * compara com mês nenhum — e onde a informação que o rodapé levava é a que se
+   * age sobre: «3 por confirmar» é o que faz alguém pegar no telefone.
+   *
+   * Não é o rodapé de volta. O rodapé é contexto que explica o número; isto é
+   * uma parte do número que não cabe no número. Use com parcimónia: cada um
+   * custa largura à linha, e a linha existe para não custar altura.
+   */
+  note: { type: String, default: '' },
   /** `card`, `strip` ou `inline`. Ver o bloco acima: a escolha é uma regra. */
   density: {
     type: String,
@@ -164,6 +176,14 @@ const display = computed(() =>
         :icon="deltaIsGood ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'"
         :label="delta"
       />
+      <!--
+        O ponto é elemento e não texto: um «·» literal no template acusa a regra
+        de i18n (nada de texto solto), e um separador não é conteúdo — é forma.
+      -->
+      <template v-if="note && emLinha">
+        <i class="size-1 rounded-full bg-n-slate-8" aria-hidden="true" />
+        <span class="text-xs text-n-slate-10">{{ note }}</span>
+      </template>
     </component>
 
     <!--
