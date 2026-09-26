@@ -6,7 +6,14 @@ RSpec.describe Integrations::Cloudflare::RealtimeKitCredentialsValidator do
   let(:api_token) { 'api_token' }
   let(:token_verify_url) { 'https://api.cloudflare.com/client/v4/user/tokens/verify' }
   let(:apps_url) { "https://api.cloudflare.com/client/v4/accounts/#{account_id}/realtime/kit/apps" }
-  let(:apps_page_size) { described_class::APPS_PAGE_SIZE }
+  # `described_class` fica preso à classe que existia quando este ficheiro foi
+  # lido, e em teste o Rails recarrega código (`cache_classes = false`): a
+  # constante do mesmo nome passa a ser outro objeto. O `stub_const` resolve
+  # pelo NOME, logo estufa a fresca — e tanto a chamada como o tamanho de
+  # página têm de sair dessa, senão o stub do WebMock fica registado com um
+  # `per_page` e o código pede outro.
+  let(:validador) { Object.const_get(described_class.name) }
+  let(:apps_page_size) { validador::APPS_PAGE_SIZE }
 
   it 'accepts an active token with access to the requested RealtimeKit app' do
     stub_token_verify(status: 'active')
@@ -40,12 +47,12 @@ RSpec.describe Integrations::Cloudflare::RealtimeKitCredentialsValidator do
   end
 
   it 'accepts a RealtimeKit App ID from a later apps page' do
-    stub_const("#{described_class}::APPS_PAGE_SIZE", 1)
+    stub_const("#{validador}::APPS_PAGE_SIZE", 1)
     stub_token_verify(status: 'active')
     stub_apps_list([{ id: 'another_app_id' }], page_no: 1, total_count: 2)
     stub_apps_list([{ id: app_id }], page_no: 2, total_count: 2)
 
-    expect(described_class.validate(account_id, app_id, api_token).success?).to be true
+    expect(validador.validate(account_id, app_id, api_token).success?).to be true
   end
 
   it 'rejects blank credentials without making a network call' do

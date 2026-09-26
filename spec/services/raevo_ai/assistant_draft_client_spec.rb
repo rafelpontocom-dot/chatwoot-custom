@@ -53,13 +53,23 @@ RSpec.describe RaevoAi::AssistantDraftClient do
     with_modified_env RAEVO_AI_SERVICE_URL: 'https://elis.internal', RAEVO_AI_SERVICE_TOKEN: 'bridge-secret' do
       allow(HTTParty).to receive(:put).and_return(response)
 
-      expect do
+      # Compara pelo NOME da classe, não pela constante: em teste o Rails
+      # recarrega código (`cache_classes = false`), e a classe que o
+      # `described_class` fechou ao carregar o ficheiro deixa de ser a que o
+      # matcher resolve na execução — mesmo nome, objeto diferente. Só se vê
+      # quando este ficheiro calha correr depois de um recarregamento.
+      erro = begin
         described_class.new(integration: integration).save(
           editable_clusters: editable_clusters,
           expected_revision: '2026-09-07T12:00:00.000Z',
           actor_ref: 'chatwoot:3:6'
         )
-      end.to raise_error(RaevoAi::AssistantDraftClient::Conflict)
+        nil
+      rescue StandardError => e
+        e
+      end
+
+      expect(erro.class.name).to eq('RaevoAi::AssistantDraftClient::Conflict')
     end
   end
 
