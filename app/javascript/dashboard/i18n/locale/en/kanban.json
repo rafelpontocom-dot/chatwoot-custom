@@ -620,6 +620,8 @@
         "PROCEDURES_LOADING": "Loading procedures...",
         "PROCEDURES_EMPTY": "No procedures have been created in Calendar.",
         "PROCEDURES_HELP": "Without a selection, every active procedure can be used in this funnel.",
+        "PROCEDURES_PUBLISHED_WARNING": "These procedures are published on the booking page but are not on this funnel's list, so nobody can book them: {procedimentos}.",
+        "PROCEDURES_PUBLISHED_ADD": "Add to the list",
         "LEGACY_FIELD": "Compatibility field",
         "LEGACY_FIELD_NONE": "Do not mirror to a field",
         "LEGACY_FIELD_HELP": "Optional. Mirrors the next appointment to an existing field while the team moves to Calendar."

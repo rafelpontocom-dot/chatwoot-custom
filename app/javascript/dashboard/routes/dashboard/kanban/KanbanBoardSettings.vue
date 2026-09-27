@@ -127,6 +127,7 @@ const showStaleAlerts = ref(false);
 const showInternalAppointmentReminder = ref(false);
 const calendarProcedures = ref([]);
 const calendarProceduresLoading = ref(false);
+const calendarBookingPage = ref(null);
 const automationRules = ref([]);
 const automationRulesLoading = ref(false);
 const automationRulesSaving = ref(false);
@@ -489,6 +490,38 @@ const calendarProcedureOptions = computed(() =>
     label: procedure.name,
   }))
 );
+
+// Publicar um procedimento na pagina de agendamento e nao o por na lista deste
+// funil fazia toda marcacao ser recusada no fim, sem nada dizer antes. A pagina
+// ja nao oferece o que o funil recusa; aqui avisa-se quem pode arrumar, e no
+// lugar onde se arruma.
+const bookingPageUsesThisBoard = computed(
+  () =>
+    Boolean(calendarBookingPage.value?.active) &&
+    Number(calendarBookingPage.value?.kanban_board_id) === boardId.value
+);
+
+const publishedProceduresOutsideBoard = computed(() => {
+  if (!form.calendarEnabled) return [];
+  if (!bookingPageUsesThisBoard.value) return [];
+
+  const chosen = form.calendarProcedureIds.map(Number);
+  if (chosen.length === 0) return [];
+
+  return calendarProcedures.value.filter(
+    procedure =>
+      procedure.active &&
+      procedure.public_booking_enabled &&
+      !chosen.includes(Number(procedure.id))
+  );
+});
+
+const addProceduresOutsideBoard = () => {
+  form.calendarProcedureIds = [
+    ...form.calendarProcedureIds,
+    ...publishedProceduresOutsideBoard.value.map(procedure => procedure.id),
+  ];
+};
 
 const linesFromText = value =>
   String(value || '')
@@ -1297,6 +1330,15 @@ const fetchCalendarProcedures = async () => {
     calendarProcedures.value = [];
   } finally {
     calendarProceduresLoading.value = false;
+  }
+};
+
+const fetchCalendarBookingPage = async () => {
+  try {
+    const response = await CalendarAPI.getBookingPage();
+    calendarBookingPage.value = response.data || null;
+  } catch (error) {
+    calendarBookingPage.value = null;
   }
 };
 
@@ -3308,6 +3350,7 @@ const duplicateBoard = async () => {
 onMounted(async () => {
   await fetchSettings();
   await fetchCalendarProcedures();
+  await fetchCalendarBookingPage();
   await fetchAutomationRules();
   await fetchCadences();
   await fetchAppointmentReminderRules();
@@ -4079,6 +4122,32 @@ onMounted(async () => {
               <p class="text-xs text-n-slate-11">
                 {{ t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_HELP') }}
               </p>
+              <div
+                v-if="publishedProceduresOutsideBoard.length"
+                data-testid="kanban-settings-calendar-procedures-warning"
+                class="grid gap-2 rounded-lg border border-n-amber-5 bg-n-amber-2 px-3 py-2"
+              >
+                <p class="text-xs text-n-slate-12">
+                  {{
+                    t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_PUBLISHED_WARNING', {
+                      procedimentos: publishedProceduresOutsideBoard
+                        .map(procedure => procedure.name)
+                        .join(', '),
+                    })
+                  }}
+                </p>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  class="justify-self-start"
+                  data-testid="kanban-settings-calendar-procedures-warning-add"
+                  :label="
+                    t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_PUBLISHED_ADD')
+                  "
+                  @click="addProceduresOutsideBoard"
+                />
+              </div>
             </div>
 
             <label class="grid gap-1 text-sm font-medium text-n-slate-12">

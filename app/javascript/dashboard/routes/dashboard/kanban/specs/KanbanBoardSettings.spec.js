@@ -3,6 +3,7 @@ import { nextTick } from 'vue';
 import { createStore } from 'vuex';
 import KanbanBoardSettings from '../KanbanBoardSettings.vue';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
+import CalendarAPI from 'dashboard/api/calendar';
 import { useAlert } from 'dashboard/composables';
 import ptBRKanbanMessages from 'dashboard/i18n/locale/pt_BR/kanban.json';
 
@@ -34,6 +35,13 @@ vi.mock('vue-router', () => ({
 
 vi.mock('dashboard/composables', () => ({
   useAlert: vi.fn(),
+}));
+
+vi.mock('dashboard/api/calendar', () => ({
+  default: {
+    getProcedures: vi.fn(),
+    getBookingPage: vi.fn(),
+  },
 }));
 
 vi.mock('dashboard/api/kanbanBoards', () => ({
@@ -325,6 +333,8 @@ describe('KanbanBoardSettings', () => {
       },
     });
     KanbanBoardsAPI.deleteCadence.mockResolvedValue({ data: {} });
+    CalendarAPI.getProcedures.mockResolvedValue({ data: [] });
+    CalendarAPI.getBookingPage.mockResolvedValue({ data: { active: false } });
   });
 
   it('uses the workspace background instead of a full white settings canvas', async () => {
@@ -444,6 +454,97 @@ describe('KanbanBoardSettings', () => {
   // Marcar consulta espelha a data neste campo sozinho. A data de início do
   // card era digitada à mão e não acompanhava a remarcação: o lembrete saía na
   // data errada, ou não saía.
+  // Publicar um procedimento e nao o por na lista do funil recusava toda
+  // marcacao no fim, em silencio. O aviso vive onde se arruma.
+  it('warns about a published procedure this funnel does not accept', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 7,
+          name: 'Consulta de avaliação',
+          active: true,
+          public_booking_enabled: true,
+        },
+        {
+          id: 8,
+          name: 'Retorno',
+          active: true,
+          public_booking_enabled: true,
+        },
+        {
+          id: 9,
+          name: 'Interno',
+          active: true,
+          public_booking_enabled: false,
+        },
+      ],
+    });
+    CalendarAPI.getBookingPage.mockResolvedValue({
+      data: { active: true, kanban_board_id: 10 },
+    });
+
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          calendar_enabled: true,
+          calendar_procedure_ids: [7],
+        },
+      },
+    });
+
+    const aviso = wrapper.find(
+      '[data-testid="kanban-settings-calendar-procedures-warning"]'
+    );
+    expect(aviso.exists()).toBe(true);
+    expect(aviso.text()).toContain(
+      'KANBAN.SETTINGS.CALENDAR.PROCEDURES_PUBLISHED_WARNING'
+    );
+
+    await wrapper
+      .find('[data-testid="kanban-settings-calendar-procedures-warning-add"]')
+      .trigger('click');
+    await nextTick();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-calendar-procedures-warning"]')
+        .exists()
+    ).toBe(false);
+  });
+
+  it('keeps quiet when the booking page points at another funnel', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 8,
+          name: 'Retorno',
+          active: true,
+          public_booking_enabled: true,
+        },
+      ],
+    });
+    CalendarAPI.getBookingPage.mockResolvedValue({
+      data: { active: true, kanban_board_id: 99 },
+    });
+
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          calendar_enabled: true,
+          calendar_procedure_ids: [7],
+        },
+      },
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-calendar-procedures-warning"]')
+        .exists()
+    ).toBe(false);
+  });
+
   it('points appointment reminders at the field the calendar keeps in sync', async () => {
     const { wrapper } = await mountSettings({
       getSettingsResponse: {

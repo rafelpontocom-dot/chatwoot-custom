@@ -623,6 +623,8 @@
         "PROCEDURES_LOADING": "Carregando procedimentos...",
         "PROCEDURES_EMPTY": "Nenhum procedimento cadastrado na Agenda.",
         "PROCEDURES_HELP": "Sem seleção, todos os procedimentos ativos podem ser usados neste funil.",
+        "PROCEDURES_PUBLISHED_WARNING": "Estes procedimentos estão publicados na página de agendamento mas não estão na lista deste funil, então ninguém consegue marcá-los: {procedimentos}.",
+        "PROCEDURES_PUBLISHED_ADD": "Incluir na lista",
         "LEGACY_FIELD": "Campo de compatibilidade",
         "LEGACY_FIELD_NONE": "Não espelhar em campo",
         "LEGACY_FIELD_HELP": "Opcional. Espelha a próxima consulta em um campo existente enquanto a equipe migra para a Agenda."
