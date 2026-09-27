@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import BookingDone from '../components/BookingDone.vue';
 import BookingForm from '../components/BookingForm.vue';
 import BookingMonth from '../components/BookingMonth.vue';
+import BookingTimes from '../components/BookingTimes.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ locale: ref('pt_BR'), t: key => key }),
@@ -108,6 +109,34 @@ describe('BookingForm', () => {
     expect(
       wrapper.find('[data-testid="public-booking-submit"]').text()
     ).toContain('PUBLIC_BOOKING.CONFIRM');
+  });
+});
+
+describe('BookingTimes', () => {
+  it('says there is no room ahead instead of showing an empty day', () => {
+    const wrapper = mount(BookingTimes, {
+      props: {
+        timezone: 'America/Recife',
+        timezones: ['America/Recife'],
+        noRoomAhead: true,
+        clinicWhatsapp: '(81) 3333-0000',
+      },
+    });
+
+    const aviso = wrapper.find('[data-testid="public-booking-no-room"]');
+    expect(aviso.exists()).toBe(true);
+    expect(aviso.text()).toContain('PUBLIC_BOOKING.NO_ROOM_BODY');
+    expect(aviso.text()).toContain('PUBLIC_BOOKING.NO_ROOM_WHATSAPP');
+  });
+
+  it('keeps the pick-a-day heading when there is room', () => {
+    const wrapper = mount(BookingTimes, {
+      props: { timezone: 'America/Recife', timezones: ['America/Recife'] },
+    });
+
+    expect(
+      wrapper.find('[data-testid="public-booking-no-room"]').exists()
+    ).toBe(false);
   });
 });
 

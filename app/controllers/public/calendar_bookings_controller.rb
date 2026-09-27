@@ -140,10 +140,7 @@ class Public::CalendarBookingsController < PublicController
   end
 
   def fetch_procedure
-    @procedure = @booking_page.account.kanban_calendar_procedures.active.find_by!(
-      public_booking_enabled: true,
-      public_slug: params[:procedure_slug]
-    )
+    @procedure = public_procedures.find_by!(public_slug: params[:procedure_slug])
   rescue ActiveRecord::RecordNotFound
     render json: { message: 'Booking page not found' }, status: :not_found
   end
@@ -242,8 +239,16 @@ class Public::CalendarBookingsController < PublicController
     }
   end
 
+  # A página só oferece o que o funil de destino aceita: publicar um
+  # procedimento que ele recusa levava o paciente até «confirmar» e devolvia
+  # uma recusa em inglês.
   def public_procedures
-    @booking_page.account.kanban_calendar_procedures.active.where(public_booking_enabled: true).order(:name)
+    scope = @booking_page.account.kanban_calendar_procedures.active.where(public_booking_enabled: true).order(:name)
+    board = @booking_page.kanban_board
+    return scope.none unless board&.calendar_module_enabled?
+
+    allowed = board.configured_calendar_procedure_ids
+    allowed.empty? ? scope : scope.where(id: allowed)
   end
 
   def public_resources
@@ -258,7 +263,7 @@ class Public::CalendarBookingsController < PublicController
   end
 
   def render_invalid_request
-    render json: { message: 'Invalid booking request' }, status: :unprocessable_entity
+    render json: { message: 'Invalid booking request', code: 'invalid_request' }, status: :unprocessable_entity
   end
 
   def captcha_required?

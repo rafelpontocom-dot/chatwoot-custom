@@ -80,6 +80,17 @@ RSpec.describe 'Public calendar booking in three steps', type: :request do
     expect(KanbanCard.where(contact: contact).count).to eq(1)
   end
 
+  it 'hides a procedure the destination funnel does not accept, and refuses its direct link' do
+    outra = KanbanCalendarProcedure.create!(account: account, name: 'Retorno', duration_minutes: 30)
+    board.update!(calendar_procedure_ids: [outra.id])
+
+    get "/agendar/#{page.public_token}.json"
+    expect(response.parsed_body['procedures']).to be_empty
+
+    get "#{base}.json"
+    expect(response).to have_http_status(:not_found)
+  end
+
   it 'refuses a second hold on a time someone is already filling in' do
     hold!
     hold!

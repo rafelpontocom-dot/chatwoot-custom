@@ -111,9 +111,6 @@ const confirmCancel = () => {
     </h2>
     <p class="mb-0 max-w-[46ch] text-sm text-n-slate-11">
       {{ headline }}
-      <template v-if="booking.status === 'confirmed'">
-        {{ t('PUBLIC_BOOKING.DONE.WHATSAPP_SENT') }}
-      </template>
       <template v-if="booking.status === 'awaiting_payment'">
         {{ t('PUBLIC_BOOKING.DONE.AWAITING') }}
       </template>

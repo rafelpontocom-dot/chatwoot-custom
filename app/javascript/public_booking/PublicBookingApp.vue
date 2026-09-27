@@ -42,6 +42,8 @@ const isLoadingSlots = ref(false);
 const isSaving = ref(false);
 const notice = ref('');
 const secondsLeft = ref(null);
+// Nenhum dia com vaga nos meses consultados.
+const noRoomAhead = ref(false);
 let countdown = null;
 let polling = null;
 
@@ -102,6 +104,9 @@ const errorText = error => {
   if (error.status === 429) return t('PUBLIC_BOOKING.ERRORS.TOO_MANY');
   if (error.code === 'payment_failed')
     return t('PUBLIC_BOOKING.ERRORS.PAYMENT_FAILED');
+  // O servidor recusa em inglês; o paciente lê na língua da página.
+  if (error.code === 'invalid_request')
+    return t('PUBLIC_BOOKING.REQUEST_ERROR');
   return error.message || t('PUBLIC_BOOKING.REQUEST_ERROR');
 };
 
@@ -124,8 +129,13 @@ const loadSlots = async day => {
   }
 };
 
-const loadMonth = async ({ pickFirst = true, tries = 2 } = {}) => {
+const loadMonth = async ({
+  pickFirst = true,
+  tries = 2,
+  first = true,
+} = {}) => {
   isLoadingMonth.value = true;
+  if (first) noRoomAhead.value = false;
   try {
     const query = new URLSearchParams({ month: monthKey(month.value) });
     if (professionalId.value)
@@ -140,9 +150,12 @@ const loadMonth = async ({ pickFirst = true, tries = 2 } = {}) => {
         month.value.getMonth() + 1,
         1
       );
-      await loadMonth({ pickFirst, tries: tries - 1 });
+      await loadMonth({ pickFirst, tries: tries - 1, first: false });
       return;
     }
+    // Procurou nos meses seguintes e não achou nada: o paciente tem de saber
+    // disso, em vez de ver um calendário todo apagado num mês que não pediu.
+    if (!availableDays.value.length && first) noRoomAhead.value = true;
     if (pickFirst && availableDays.value.length)
       await loadSlots(availableDays.value[0]);
     else if (!availableDays.value.includes(selectedDay.value)) {
@@ -545,6 +558,8 @@ onBeforeUnmount(() => {
             :timezones="timezones"
             :loading="isLoadingSlots"
             :busy-starts-at="pickingStartsAt"
+            :no-room-ahead="noRoomAhead"
+            :clinic-whatsapp="clinic.whatsapp || ''"
             @pick="pick"
           />
         </div>

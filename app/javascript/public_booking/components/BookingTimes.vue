@@ -11,6 +11,8 @@ defineProps({
   timezones: { type: Array, required: true },
   loading: { type: Boolean, default: false },
   busyStartsAt: { type: String, default: '' },
+  noRoomAhead: { type: Boolean, default: false },
+  clinicWhatsapp: { type: String, default: '' },
 });
 
 const emit = defineEmits(['pick', 'update:timezone']);
@@ -24,8 +26,29 @@ const bcp47 = computed(() => locale.value.replace('_', '-'));
     data-testid="public-booking-times"
   >
     <h3 class="mb-0 text-ui font-semibold text-n-slate-12">
-      {{ day ? formatLongDay(day, bcp47) : t('PUBLIC_BOOKING.PICK_DAY') }}
+      {{
+        noRoomAhead
+          ? t('PUBLIC_BOOKING.NO_ROOM_TITLE')
+          : day
+            ? formatLongDay(day, bcp47)
+            : t('PUBLIC_BOOKING.PICK_DAY')
+      }}
     </h3>
+    <!--
+      Sem vaga nos meses consultados, o calendário fica todo apagado e o
+      paciente não sabe o que fazer. Aqui ele lê o motivo e o contato.
+    -->
+    <p
+      v-if="noRoomAhead"
+      class="mb-0 text-xs text-n-slate-10"
+      data-testid="public-booking-no-room"
+      aria-live="polite"
+    >
+      {{ t('PUBLIC_BOOKING.NO_ROOM_BODY') }}
+      <template v-if="clinicWhatsapp">
+        {{ t('PUBLIC_BOOKING.NO_ROOM_WHATSAPP', { whatsapp: clinicWhatsapp }) }}
+      </template>
+    </p>
     <p v-if="day" class="mb-1 text-xs text-n-slate-10" aria-live="polite">
       {{
         loading
