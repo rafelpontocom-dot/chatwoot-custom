@@ -70,6 +70,10 @@ class Contact < ApplicationRecord
   # trilha de acesso e prazo de retenção próprios (`Forms::ClinicalRetentionService`),
   # e apagá-la por arrasto seria decidir isso sem quem tem de decidir.
   has_many :form_submissions, dependent: :restrict_with_exception
+  # Consulta e oportunidade guardam o histórico da clínica, e o banco recusa
+  # apagar o contato por causa delas: sem isto a exclusão devolvia 500.
+  has_many :kanban_calendar_appointments, dependent: :restrict_with_exception
+  has_many :kanban_cards, dependent: :restrict_with_exception
   before_validation :prepare_contact_attributes
   after_create_commit :dispatch_create_event, :ip_lookup
   after_update_commit :dispatch_update_event

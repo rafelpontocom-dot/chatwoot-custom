@@ -323,6 +323,7 @@ pt_BR:
   contacts:
     online:
       delete: '%{contact_name} está Online, por favor, tente novamente mais tarde'
+      in_use: Este contato tem consultas ou oportunidades no CRM e não pode ser apagado. Apague-as antes, ou junte o contato a outro.
   integration_apps:
     #Note: webhooks and dashboard_apps don't need short_description as they use different modal components
     dashboard_apps:

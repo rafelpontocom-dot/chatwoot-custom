@@ -742,6 +742,26 @@ RSpec.describe 'Contacts API', type: :request do
         expect(response).to have_http_status(:success)
       end
 
+      # Sem isto a exclusão batia na chave estrangeira e devolvia 500.
+      it 'refuses, with a readable message, a contact that has an appointment' do
+        allow(OnlineStatusTracker).to receive(:get_presence).and_return(false)
+        procedure = KanbanCalendarProcedure.create!(account: account, name: 'Consulta', duration_minutes: 30)
+        resource = KanbanCalendarResource.create!(account: account, name: 'Dra. Ana', resource_type: 'user',
+                                                  timezone: 'America/Sao_Paulo')
+        KanbanCalendar::BookAppointmentService.new(
+          account: account, contact: contact, procedure: procedure, resource_ids: [resource.id],
+          starts_at: ActiveSupport::TimeZone['America/Sao_Paulo'].parse('2026-10-14 13:00:00'),
+          timezone: 'America/Sao_Paulo', dispatch_events: false
+        ).perform!
+
+        delete "/api/v1/accounts/#{account.id}/contacts/#{contact.id}",
+               headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['message']).to eq(I18n.t('contacts.online.in_use'))
+        expect(contact.reload).to be_present
+      end
+
       it 'does not delete the contact if online' do
         allow(OnlineStatusTracker).to receive(:get_presence).and_return(true)
 

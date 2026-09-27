@@ -107,6 +107,8 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
 
     @contact.destroy!
     head :ok
+  rescue ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey
+    render_error({ message: I18n.t('contacts.online.in_use') }, :unprocessable_entity)
   end
 
   def avatar
