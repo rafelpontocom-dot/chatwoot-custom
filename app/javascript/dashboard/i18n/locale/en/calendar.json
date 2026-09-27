@@ -297,7 +297,8 @@
       },
       "CLINIC_NAME": "Clinic name",
       "CLINIC_ADDRESS": "Address shown on the page",
-      "CLINIC_WHATSAPP": "Clinic WhatsApp"
+      "CLINIC_WHATSAPP": "Clinic WhatsApp",
+      "NO_PERMISSION": "Only an administrator can change the calendar settings."
     },
     "DETAIL": {
       "TITLE": "Appointment details",
@@ -418,6 +419,8 @@
     "NAV_LABEL": "Calendar settings",
     "BACK": "Back to calendar",
     "RAIL_LABEL": "Calendar",
+    "NO_PERMISSION_TITLE": "Only an administrator sets up the calendar",
+    "NO_PERMISSION_BODY": "Ask an administrator for the change you need. You can still see the calendar and book appointments.",
     "NAV": {
       "PROCEDURES": "Procedures",
       "AVAILABILITY": "Availability",
@@ -447,7 +450,8 @@
       "DAYS": "{count} day | {count} days",
       "ACCOUNT_DEFAULT": "Account default · {value}",
       "AND": "and",
-      "OR": "or"
+      "OR": "or",
+      "ANY_OF": "any of {names}"
     },
     "WEEKDAYS": {
       "SUNDAY": "Sunday",
@@ -611,6 +615,7 @@
           "OWN": "Hours for this procedure only"
         },
         "HELP_RESOURCES": "With each calendar's hours, {procedure} only shows when {resources} are free at the same time.",
+        "HELP_RESOURCES_ONE": "With each calendar's hours, {procedure} shows when {resources} is free.",
         "HELP_RESOURCES_EMPTY": "Choose this procedure's calendars in Who attends.",
         "HELP_SCHEDULE": "The named schedule sets the windows; the calendars still need to be free.",
         "HELP_OWN": "A week just for {procedure}; the calendars still need to be free.",

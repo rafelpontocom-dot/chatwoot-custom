@@ -25,20 +25,30 @@ const modeOptions = computed(() =>
 
 // Um por tipo: entre profissionais basta um livre («Dr. Bruno ou Dra. Ana»);
 // sala e equipamento entram juntos.
-const resourceNames = computed(() => {
+const resourceGroups = computed(() => {
   const chosen = draft.value.resource_ids
     .map(id => resources.value.find(resource => resource.id === id))
     .filter(Boolean);
-  const byType = ['user', 'room', 'equipment', 'generic']
+  return ['user', 'room', 'equipment', 'generic']
     .map(type =>
       chosen
         .filter(resource => resource.resource_type === type)
         .map(resource => resource.name)
     )
     .filter(names => names.length)
-    .map(names => names.join(` ${t('CALENDAR_SETUP.COMMON.OR')} `));
-  if (byType.length < 2) return byType.join('');
-  return `${byType.slice(0, -1).join(', ')} ${t('CALENDAR_SETUP.COMMON.AND')} ${byType[byType.length - 1]}`;
+    .map(names =>
+      names.length === 1
+        ? names[0]
+        : t('CALENDAR_SETUP.COMMON.ANY_OF', {
+            names: names.join(` ${t('CALENDAR_SETUP.COMMON.OR')} `),
+          })
+    );
+});
+
+const resourceNames = computed(() => {
+  const groups = resourceGroups.value;
+  if (groups.length < 2) return groups.join('');
+  return `${groups.slice(0, -1).join(', ')} ${t('CALENDAR_SETUP.COMMON.AND')} ${groups[groups.length - 1]}`;
 });
 
 const help = computed(() => {
@@ -48,6 +58,13 @@ const help = computed(() => {
   };
   if (draft.value.when_mode === 'resources' && !resourceNames.value)
     return t('CALENDAR_SETUP.PROCEDURE.WHEN.HELP_RESOURCES_EMPTY');
+  // Com um só grupo, «ao mesmo tempo» não faz sentido: entre profissionais
+  // basta um estar livre. A frase antiga dizia «A ou B ao mesmo tempo».
+  if (
+    draft.value.when_mode === 'resources' &&
+    resourceGroups.value.length === 1
+  )
+    return t('CALENDAR_SETUP.PROCEDURE.WHEN.HELP_RESOURCES_ONE', params);
   return t(
     `CALENDAR_SETUP.PROCEDURE.WHEN.HELP_${draft.value.when_mode.toUpperCase()}`,
     params

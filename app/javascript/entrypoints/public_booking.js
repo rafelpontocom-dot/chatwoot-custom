@@ -27,6 +27,10 @@ const base = {
   NEXT_MONTH: 'Próximo mês',
   NO_ROOM_HINT: 'Dias sem destaque não têm vaga para esta combinação.',
   PICK_DAY: 'Escolha um dia',
+  NO_ROOM_TITLE: 'Sem horário disponível',
+  NO_ROOM_BODY:
+    'Não encontramos vaga para este procedimento nos próximos meses.',
+  NO_ROOM_WHATSAPP: 'Fale com a clínica pelo WhatsApp {whatsapp}.',
   LOADING_SLOTS: 'Buscando horários…',
   FREE_TIMES:
     'Nenhum horário livre | 1 horário livre | {count} horários livres',
@@ -70,7 +74,6 @@ const base = {
     WHEN: '{day}, às {time}',
     WITH: 'com {name}',
     IN: 'na {room}',
-    WHATSAPP_SENT: ' Enviamos a confirmação no seu WhatsApp.',
     AWAITING: ' O horário fica reservado até o pagamento ser confirmado.',
     PAID: 'Pago por {method} · {amount}',
     PAYMENT_PENDING: 'Pagamento pendente · {amount}',
@@ -101,9 +104,12 @@ const messages = {
       CONFIRM: 'Confirmar marcação',
       CONFIRMING: 'A confirmar…',
       REQUEST_ERROR: 'Não foi possível concluir a marcação.',
+      NO_ROOM_TITLE: 'Sem horário disponível',
+      NO_ROOM_BODY:
+        'Não encontrámos vaga para este procedimento nos próximos meses.',
+      NO_ROOM_WHATSAPP: 'Fale com a clínica pelo WhatsApp {whatsapp}.',
       DONE: {
         ...base.DONE,
-        WHATSAPP_SENT: ' Enviámos a confirmação para o seu WhatsApp.',
       },
     },
   },

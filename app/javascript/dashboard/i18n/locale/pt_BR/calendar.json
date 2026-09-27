@@ -297,7 +297,8 @@
       },
       "CLINIC_NAME": "Nome da clínica",
       "CLINIC_ADDRESS": "Endereço mostrado na página",
-      "CLINIC_WHATSAPP": "WhatsApp da clínica"
+      "CLINIC_WHATSAPP": "WhatsApp da clínica",
+      "NO_PERMISSION": "Só um administrador pode mudar as configurações da agenda."
     },
     "DETAIL": {
       "TITLE": "Detalhes do agendamento",
@@ -368,7 +369,7 @@
       "CONTACT": "Buscar paciente",
       "PROCEDURE": "Procedimento",
       "SEARCHING": "Buscando...",
-      "SAVE": "Guardar",
+      "SAVE": "Salvar",
       "MORE_OPTIONS": "Mais opções",
       "NO_RESOURCE": "Nenhum profissional disponível para este procedimento.",
       "ERROR": "Não foi possível marcar. Tente de novo."
@@ -418,6 +419,8 @@
     "NAV_LABEL": "Configurações da agenda",
     "BACK": "Voltar à agenda",
     "RAIL_LABEL": "Agenda",
+    "NO_PERMISSION_TITLE": "Só administrador configura a agenda",
+    "NO_PERMISSION_BODY": "Peça a mudança a um administrador. Ver a agenda e marcar consultas continua liberado.",
     "NAV": {
       "PROCEDURES": "Procedimentos",
       "AVAILABILITY": "Disponibilidade",
@@ -447,7 +450,8 @@
       "DAYS": "{count} dia | {count} dias",
       "ACCOUNT_DEFAULT": "Padrão da conta · {value}",
       "AND": "e",
-      "OR": "ou"
+      "OR": "ou",
+      "ANY_OF": "qualquer um entre {names}"
     },
     "WEEKDAYS": {
       "SUNDAY": "Domingo",
@@ -611,6 +615,7 @@
           "OWN": "Horário só deste procedimento"
         },
         "HELP_RESOURCES": "Com «horário de cada agenda», {procedure} só aparece quando {resources} estão livres ao mesmo tempo.",
+        "HELP_RESOURCES_ONE": "Com «horário de cada agenda», {procedure} aparece quando {resources} está livre.",
         "HELP_RESOURCES_EMPTY": "Escolha em «Quem atende» as agendas deste procedimento.",
         "HELP_SCHEDULE": "O horário nomeado decide as janelas; as agendas ainda precisam de estar livres.",
         "HELP_OWN": "Uma semana só para {procedure}; as agendas ainda precisam de estar livres.",
