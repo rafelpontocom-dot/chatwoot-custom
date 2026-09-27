@@ -129,6 +129,29 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+      # Três specs pedem a casca HTML das páginas públicas (agendamento e
+      # formulários). O vite_ruby monta os assets por omissão em `test`, mas sem
+      # Node não consegue, e os três davam 500 — verde local, vermelho aqui.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - name: Install pnpm dependencies
+        run: pnpm i
+      # O build de teste leva uns cinco minutos, e a maioria dos pushes não toca
+      # no frontend. Em cache pela impressão digital das fontes: quando nada
+      # mudou, o vite_ruby vê o digest e salta o build.
+      - name: Cache test assets
+        uses: actions/cache@v4
+        with:
+          path: public/vite-test
+          key: vite-test-${{ hashFiles('app/javascript/**', 'vite.config.ts', 'config/vite.json', 'package.json', 'pnpm-lock.yaml') }}
+      - name: Build test assets for the public page specs
+        env:
+          RAILS_ENV: test
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: bundle exec vite build --mode=test
       - name: Strip enterprise code
         run: |
           rm -rf enterprise
