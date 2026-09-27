@@ -11,8 +11,8 @@ RSpec.describe V2::Reports::LabelSummaryBuilder do
   let(:params) do
     {
       business_hours: business_hours,
-      since: (Time.zone.today - 3.days).to_time.to_i.to_s,
-      until: Time.zone.today.end_of_day.to_time.to_i.to_s,
+      since: (Time.zone.today - 3.days).in_time_zone.to_i.to_s,
+      until: Time.zone.today.in_time_zone.end_of_day.to_i.to_s,
       timezone_offset: 0
     }
   end
@@ -322,11 +322,15 @@ RSpec.describe V2::Reports::LabelSummaryBuilder do
       let(:unique_label_name) { SecureRandom.uuid }
       let(:test_label) { create(:label, title: unique_label_name, account: account2) }
       let(:test_date) { Date.new(2025, 6, 15) }
+      # `travel_to` leva o relógio para a meia-noite no fuso do Rails, mas
+      # `Date#to_time` usa o fuso do sistema: numa máquina em -03 a janela
+      # começava três horas depois dos eventos e a contagem dava 0. O CI nunca
+      # apanhou porque roda em UTC, onde os dois coincidem.
       let(:account2_builder) do
         described_class.new(account: account2, params: {
                               business_hours: false,
-                              since: test_date.to_time.to_i.to_s,
-                              until: test_date.end_of_day.to_time.to_i.to_s,
+                              since: test_date.in_time_zone.to_i.to_s,
+                              until: test_date.in_time_zone.end_of_day.to_i.to_s,
                               timezone_offset: 0
                             })
       end

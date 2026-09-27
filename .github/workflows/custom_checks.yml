@@ -154,9 +154,21 @@ jobs:
           # installs, and fails identically in the upstream fork (stage_entered_at NOT NULL
           # and a parity normalized_subject mismatch). Not relevant to this deployment.
           SPECS=$(find spec -path '*kanban*' -name '*_spec.rb' ! -path '*lib/tasks*' | sort)
+          # Só o caminho com «kanban» deixava de fora quase sessenta specs nossos:
+          # a Agenda (spec/**/calendar), o Painel de IA (spec/**/raevo), a página
+          # pública e os formulários. Um deles podia quebrar sem o CI dar por isso.
+          SPECS="$SPECS $(find spec -name '*_spec.rb' \( -path '*calendar*' -o -path '*raevo*' -o -path '*forms*' \) ! -path '*kanban*' ! -path '*lib/tasks*' | sort | tr '\n' ' ')"
           [ -f spec/models/channel/whatsapp_spec.rb ] && SPECS="$SPECS spec/models/channel/whatsapp_spec.rb"
           [ -f spec/models/message_spec.rb ] && SPECS="$SPECS spec/models/message_spec.rb"
           [ -d spec/services/whatsapp ] && SPECS="$SPECS spec/services/whatsapp"
+          # Contato e vínculo contato/caixa: a trava «uma conversa por contato» e a
+          # recusa de apagar contato com consulta vivem aqui, não em spec/**/kanban.
+          [ -f spec/builders/contact_inbox_builder_spec.rb ] && SPECS="$SPECS spec/builders/contact_inbox_builder_spec.rb"
+          [ -f spec/controllers/api/v1/accounts/contacts_controller_spec.rb ] && SPECS="$SPECS spec/controllers/api/v1/accounts/contacts_controller_spec.rb"
+          [ -f spec/models/contact_spec.rb ] && SPECS="$SPECS spec/models/contact_spec.rb"
+          # Relatórios: ficavam fora, e um deles estava vermelho desde sempre por
+          # depender do fuso da máquina — em UTC passava, e o CI roda em UTC.
+          [ -d spec/builders/v2/reports ] && SPECS="$SPECS spec/builders/v2/reports"
           echo "Running:"; echo "$SPECS" | tr ' ' '\n'
           bundle exec rspec --profile=10 --format progress $SPECS
         env:
