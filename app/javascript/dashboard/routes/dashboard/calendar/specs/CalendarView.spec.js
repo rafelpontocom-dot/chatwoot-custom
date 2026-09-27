@@ -19,6 +19,10 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: empurraRota, replace: trocaRota }),
 }));
 
+vi.mock('dashboard/composables/useAdmin', () => ({
+  useAdmin: () => ({ isAdmin: ref(true) }),
+}));
+
 vi.mock('dashboard/api/calendar', () => ({
   default: {
     getAppointments: vi.fn(),

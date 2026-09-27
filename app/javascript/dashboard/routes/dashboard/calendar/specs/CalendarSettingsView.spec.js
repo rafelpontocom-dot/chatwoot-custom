@@ -1,5 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import CalendarSettingsView from '../CalendarSettingsView.vue';
 
@@ -16,9 +16,16 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: vi.fn(), push: empurra }),
 }));
 
+const papel = ref('administrator');
+
 vi.mock('dashboard/composables/store', () => ({
   useMapGetter: () => ref(7),
   useStore: () => ({ dispatch: vi.fn().mockResolvedValue() }),
+  useStoreGetters: () => ({
+    getCurrentRole: computed(() => papel.value),
+    getCurrentUser: computed(() => ({ id: 1 })),
+    getCurrentAccountId: computed(() => 7),
+  }),
 }));
 
 vi.mock('../setup/useCalendarSetup', () => ({
@@ -124,6 +131,22 @@ describe('CalendarSettingsView', () => {
       path: '/app/accounts/7/calendar/settings/procedures/5/setup',
       query: { publicar: '1' },
     });
+  });
+
+  // Configurar a agenda é de administrador: o agente via as telas e levava um
+  // «Request failed with status code 401» em inglês.
+  it('explica, em vez de mostrar as telas, quando quem entra não é administrador', () => {
+    papel.value = 'agent';
+    const wrapper = monta();
+
+    expect(
+      wrapper.find('[data-testid="calendar-settings-no-permission"]').exists()
+    ).toBe(true);
+    expect(wrapper.find('[data-testid="secao"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="calendar-settings-nav"]').exists()).toBe(
+      false
+    );
+    papel.value = 'administrator';
   });
 
   it('marca a secção aberta para quem usa leitor de ecrã', () => {

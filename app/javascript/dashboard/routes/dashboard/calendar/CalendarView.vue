@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { debounce } from '@chatwoot/utils';
 import calendarAPI from 'dashboard/api/calendar';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { frontendURL } from 'dashboard/helper/URLHelper';
 import KanbanCalendarBookingDialog from '../kanban/KanbanCalendarBookingDialog.vue';
 import {
@@ -17,6 +18,8 @@ import CalendarQuickCreate from './CalendarQuickCreate.vue';
 import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
 
 const { t, locale } = useI18n();
+// Configurar a agenda é de administrador: o atalho não aparece para quem não pode.
+const { isAdmin } = useAdmin();
 
 // `pt_BR` é o nome do catálogo, não uma etiqueta BCP-47: passá-lo ao `Intl`
 // atira "Incorrect locale information provided".
@@ -1054,6 +1057,7 @@ onMounted(() => {
       </div>
 
       <button
+        v-if="isAdmin"
         type="button"
         data-testid="calendar-open-settings"
         class="flex p-0 size-9 shrink-0 items-center justify-center rounded-full border border-solid border-n-weak text-n-slate-11 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"

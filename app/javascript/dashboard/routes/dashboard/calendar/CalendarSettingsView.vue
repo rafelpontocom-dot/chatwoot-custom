@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { frontendURL } from 'dashboard/helper/URLHelper';
 
 import CalendarSettingsDialog from './CalendarSettingsDialog.vue';
@@ -17,6 +18,9 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const currentAccountId = useMapGetter('getCurrentAccountId');
+// Configurar a agenda é de administrador, como o servidor já decide. Sem isto,
+// um agente via as telas e recebia «Request failed with status code 401».
+const { isAdmin } = useAdmin();
 const { loadAll } = useCalendarSetup();
 
 // Configurações da agenda no padrão do mockup aprovado: barra lateral de 196px
@@ -77,6 +81,7 @@ onMounted(loadAll);
     data-testid="calendar-settings-view"
   >
     <nav
+      v-if="isAdmin"
       class="hidden w-[196px] shrink-0 content-start gap-0.5 overflow-y-auto border-r border-solid border-n-weak bg-n-surface-2 px-2.5 py-3 md:grid"
       :aria-label="t('CALENDAR_SETUP.NAV_LABEL')"
       data-testid="calendar-settings-nav"
@@ -119,59 +124,77 @@ onMounted(loadAll);
       class="min-w-0 flex-1 overflow-y-auto bg-n-solid-1"
       data-testid="calendar-settings-content"
     >
-      <label
-        class="grid gap-1 border-b border-solid border-n-weak px-5 py-3 md:hidden"
+      <section
+        v-if="!isAdmin"
+        class="grid content-start gap-2 px-5 py-[18px]"
+        data-testid="calendar-settings-no-permission"
       >
-        <span class="text-xs font-medium text-n-slate-11">{{
-          t('CALENDAR_SETUP.NAV_LABEL')
-        }}</span>
-        <select
-          :value="activeSection.id"
-          class="reset-base mb-0 h-9 w-full appearance-none rounded-lg border border-solid border-n-strong bg-n-solid-1 px-3 text-ui text-n-slate-12"
-          @change="goTo($event.target.value)"
-        >
-          <option
-            v-for="section in SECTIONS"
-            :key="section.id"
-            :value="section.id"
-          >
-            {{
-              t(
-                `CALENDAR_SETUP.NAV.${section.id.toUpperCase().replace('-', '_')}`
-              )
-            }}
-          </option>
-        </select>
-      </label>
-
-      <component
-        :is="activeSection.component"
-        v-if="activeSection.component"
-        :item-id="String(route.params.itemId || '')"
-        :tab="String(route.params.tab || 'setup')"
-        @navigate="options => goTo(activeSection.id, options)"
-        @section="section => goTo(section)"
-      />
-
-      <section v-else class="grid content-start gap-4 px-5 py-[18px]">
         <SetupHead
-          :title="
-            t(
-              `CALENDAR_SETUP.NAV.${activeSection.id.toUpperCase().replace('-', '_')}`
-            )
-          "
-          :description="
-            t(
-              `CALENDAR_SETUP.LEGACY_DESCRIPTIONS.${activeSection.id.toUpperCase().replace('-', '_')}`
-            )
-          "
+          :title="t('CALENDAR_SETUP.NO_PERMISSION_TITLE')"
+          :description="t('CALENDAR_SETUP.NO_PERMISSION_BODY')"
         />
-        <CalendarSettingsDialog
-          :key="activeSection.legacy"
-          :tab="activeSection.legacy"
-          @open-procedure="openProcedureToPublish"
-        />
+        <router-link
+          :to="baseUrl"
+          class="justify-self-start rounded-md px-2.5 py-2 text-ui font-medium text-n-brand no-underline outline-none hover:bg-n-alpha-1 focus-visible:ring-2 focus-visible:ring-n-brand/40"
+        >
+          {{ t('CALENDAR_SETUP.BACK') }}
+        </router-link>
       </section>
+      <template v-else>
+        <label
+          class="grid gap-1 border-b border-solid border-n-weak px-5 py-3 md:hidden"
+        >
+          <span class="text-xs font-medium text-n-slate-11">{{
+            t('CALENDAR_SETUP.NAV_LABEL')
+          }}</span>
+          <select
+            :value="activeSection.id"
+            class="reset-base mb-0 h-9 w-full appearance-none rounded-lg border border-solid border-n-strong bg-n-solid-1 px-3 text-ui text-n-slate-12"
+            @change="goTo($event.target.value)"
+          >
+            <option
+              v-for="section in SECTIONS"
+              :key="section.id"
+              :value="section.id"
+            >
+              {{
+                t(
+                  `CALENDAR_SETUP.NAV.${section.id.toUpperCase().replace('-', '_')}`
+                )
+              }}
+            </option>
+          </select>
+        </label>
+
+        <component
+          :is="activeSection.component"
+          v-if="activeSection.component"
+          :item-id="String(route.params.itemId || '')"
+          :tab="String(route.params.tab || 'setup')"
+          @navigate="options => goTo(activeSection.id, options)"
+          @section="section => goTo(section)"
+        />
+
+        <section v-else class="grid content-start gap-4 px-5 py-[18px]">
+          <SetupHead
+            :title="
+              t(
+                `CALENDAR_SETUP.NAV.${activeSection.id.toUpperCase().replace('-', '_')}`
+              )
+            "
+            :description="
+              t(
+                `CALENDAR_SETUP.LEGACY_DESCRIPTIONS.${activeSection.id.toUpperCase().replace('-', '_')}`
+              )
+            "
+          />
+          <CalendarSettingsDialog
+            :key="activeSection.legacy"
+            :tab="activeSection.legacy"
+            @open-procedure="openProcedureToPublish"
+          />
+        </section>
+      </template>
     </div>
   </div>
 </template>
