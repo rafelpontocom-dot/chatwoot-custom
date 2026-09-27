@@ -332,6 +332,18 @@ describe ContactInboxBuilder do
         expect(contact_inbox.id).to eq(existing_contact_inbox.id)
       end
 
+      # O WAHA manda um identificador novo a cada mensagem: com a trava ligada,
+      # o vínculo que o contato já tem vence, senão nasce uma conversa por mensagem.
+      it 'reuses the contact inbox even when a brand new source id arrives, with the lock on' do
+        api_inbox.update!(lock_to_single_conversation: true)
+        existing_contact_inbox = create(:contact_inbox, contact: contact, inbox: api_inbox, source_id: SecureRandom.uuid)
+
+        contact_inbox = described_class.new(contact: contact, inbox: api_inbox, source_id: SecureRandom.uuid).perform
+
+        expect(contact_inbox.id).to eq(existing_contact_inbox.id)
+        expect(api_inbox.contact_inboxes.where(contact: contact).count).to eq(1)
+      end
+
       it 'keeps creating a contact inbox per call when the inbox allows many conversations' do
         existing_contact_inbox = create(:contact_inbox, contact: contact, inbox: api_inbox, source_id: SecureRandom.uuid)
 
