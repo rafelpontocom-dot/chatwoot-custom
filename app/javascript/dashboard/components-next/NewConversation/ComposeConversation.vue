@@ -190,34 +190,25 @@ const createConversation = async ({ payload, isFromWhatsApp }) => {
   }
 };
 
-const onPopoverShow = () => {
-  // Flag to prevent triggering drag n drop,
-  // When compose modal is active
-  emitter.emit(BUS_EVENTS.NEW_CONVERSATION_MODAL, true);
-};
-
-const onPopoverHide = () => {
-  emitter.emit(BUS_EVENTS.NEW_CONVERSATION_MODAL, false);
-  emit('close');
-};
-
 // Com `contactId` fixo o campo de busca fica desligado: se o contato não chegar,
 // o «Para:» fica em branco e não há como escolher ninguém. Quem abre o compositor
 // a partir do funil não passou pela tela de Contatos, então o contato não está no
 // store — é preciso ir buscá-lo.
-watch(
-  () => props.contactId,
-  id => {
-    if (id && !contactById.value(id)) store.dispatch('contacts/show', { id });
-  },
-  { immediate: true }
-);
+//
+// `getContactById` devolve `{}` quando não conhece o id, e `{}` é verdadeiro:
+// testar o objeto dizia sempre que o contato existia, e a busca das caixas ia
+// com `id` indefinido — 404, lista vazia, «Não há caixas de entrada disponíveis».
+// O que se pergunta é pelo `id`, não pelo objeto.
+const contactInStore = id => {
+  const record = contactById.value(id);
+  return record?.id ? record : null;
+};
 
 // As caixas vêm de `contactable_inboxes`, não dos vínculos que o contato já tem.
 // Uma oportunidade que nunca teve conversa tem contato sem vínculo nenhum: pelos
-// vínculos a lista vinha vazia e a tela dizia «Nenhuma caixa de entrada
-// disponível para este contato». O que interessa é por onde ele PODE ser
-// alcançado, que é o mesmo caminho do contato escolhido na busca.
+// vínculos a lista vinha vazia e a tela dizia que não havia caixa disponível. O
+// que interessa é por onde ele PODE ser alcançado — o mesmo caminho que o contato
+// escolhido na busca já usava.
 const withContactableInboxes = async contact => {
   isFetchingInboxes.value = true;
   try {
@@ -233,10 +224,39 @@ const withContactableInboxes = async contact => {
   }
 };
 
+// Só ao abrir. Num funil com 23 oportunidades sem conversa há 23 destes na tela,
+// e buscar contato e caixas ao montar eram 46 pedidos para abrir um quadro.
+const loadFixedContact = async () => {
+  const id = props.contactId;
+  if (!id) return;
+
+  if (!contactInStore(id)) await store.dispatch('contacts/show', { id });
+  const contact = contactInStore(id);
+  if (!contact) return;
+
+  selectedContact.value = { ...contact, contactInboxes: [] };
+  const contactInboxes = await withContactableInboxes(contact);
+  if (selectedContact.value?.id === contact.id) {
+    selectedContact.value = { ...selectedContact.value, contactInboxes };
+  }
+};
+
+const onPopoverShow = () => {
+  // Flag to prevent triggering drag n drop,
+  // When compose modal is active
+  emitter.emit(BUS_EVENTS.NEW_CONVERSATION_MODAL, true);
+  loadFixedContact();
+};
+
+const onPopoverHide = () => {
+  emitter.emit(BUS_EVENTS.NEW_CONVERSATION_MODAL, false);
+  emit('close');
+};
+
 watch(
   activeContact,
-  async (currentContact, previousContact) => {
-    if (currentContact && props.contactId) {
+  (currentContact, previousContact) => {
+    if (currentContact?.id && props.contactId) {
       // Reset on contact change
       if (currentContact?.id !== previousContact?.id) {
         clearSelectedContact();
@@ -244,13 +264,15 @@ watch(
         formState.message = '';
       }
 
-      // O contato entra já, para o «Para:» não ficar em branco enquanto as
-      // caixas carregam.
-      selectedContact.value = { ...currentContact, contactInboxes: [] };
-      const contactInboxes = await withContactableInboxes(currentContact);
-      if (selectedContact.value?.id === currentContact.id) {
-        selectedContact.value = { ...selectedContact.value, contactInboxes };
-      }
+      // First process the contactable inboxes to get the right structure
+      const processedInboxes = processContactableInboxes(
+        currentContact.contactInboxes || []
+      );
+      // Then Merge processedInboxes with the inboxes list
+      selectedContact.value = {
+        ...currentContact,
+        contactInboxes: mergeInboxDetails(processedInboxes, inboxesList.value),
+      };
     }
   },
   { immediate: true, deep: true }
