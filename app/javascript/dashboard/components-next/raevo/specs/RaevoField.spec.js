@@ -3,6 +3,9 @@ import RaevoField from '../RaevoField.vue';
 import {
   RAEVO_CONTROL_CLASS,
   RAEVO_SELECT_CLASS,
+  RAEVO_SELECT_STANDALONE_CLASS,
+  RAEVO_COMPACT_SELECT_CLASS,
+  RAEVO_INLINE_SELECT_CLASS,
   RAEVO_TEXTAREA_CLASS,
 } from '../raevoControl';
 
@@ -97,5 +100,20 @@ describe('RaevoField', () => {
         expect(cls).toContain('border-n-strong');
       }
     );
+  });
+  it('keeps the inherited vertical padding off every select, so the text is not clipped', () => {
+    // Medido em produção: o `select` vinha com 8px em cima e 8px em baixo, de
+    // `field-base` no `_base.scss` do upstream. Num controle de 28px sobravam
+    // 10px para uma linha de 18px e o texto saía cortado ao meio — em todos os
+    // selects do produto, não só nos da Agenda. O `input` ao lado vinha a zero,
+    // porque para ele existe a saída `reset-base`; para o `select` não existe.
+    [
+      RAEVO_SELECT_CLASS,
+      RAEVO_SELECT_STANDALONE_CLASS,
+      RAEVO_COMPACT_SELECT_CLASS,
+      RAEVO_INLINE_SELECT_CLASS,
+    ].forEach(cls => {
+      expect(cls).toContain('py-0');
+    });
   });
 });

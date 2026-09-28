@@ -50,11 +50,18 @@ export const RAEVO_CONTROL_CLASS = `h-control rounded-lg px-control ${BASE}`;
 /** select — mesma casca; o chevron é desenhado pelo RaevoField */
 // `bg-none` apaga a seta que uma regra global desenha como background-image no
 // select. Sem isso o campo mostra dois chevrons: o global e o do RaevoField.
-export const RAEVO_SELECT_CLASS = `h-control appearance-none rounded-lg bg-none px-control pr-8 ${BASE}`;
+// `py-0` é a outra metade da mesma defesa que o `mb-0` acima. `_base.scss` dá a
+// `select` a regra `field-base`, que traz `py-2` — 8px em cima e 8px em baixo.
+// Num controle de 28px sobram 10px para uma linha de 18px, e o texto sai cortado
+// ao meio; no de 32px sobram 14px para uma linha de 20px. Medido em produção,
+// lado a lado com um `input` da mesma linha, que vem com padding vertical zero.
+// A altura é dada por `h-control*`: o padding do upstream não acrescenta nada
+// aqui além do corte.
+export const RAEVO_SELECT_CLASS = `h-control appearance-none rounded-lg bg-none px-control py-0 pr-8 ${BASE}`;
 
 /** select fora de um RaevoField — ninguém lhe desenha o chevron, por isso
  * mantém (sem `bg-none`) a seta que `_base.scss` já pinta em todo o produto. */
-export const RAEVO_SELECT_STANDALONE_CLASS = `h-control appearance-none rounded-lg px-control pr-7 ${BASE}`;
+export const RAEVO_SELECT_STANDALONE_CLASS = `h-control appearance-none rounded-lg px-control py-0 pr-7 ${BASE}`;
 
 /** textarea — `rounded-md` (8px): várias linhas pedem canto mais fechado que o controle */
 export const RAEVO_TEXTAREA_CLASS = `min-h-20 resize-none rounded-md px-control py-cell ${BASE}`;
@@ -89,7 +96,7 @@ const INLINE_BASE =
 export const RAEVO_INLINE_CONTROL_CLASS = `min-h-8 ${INLINE_BASE}`;
 
 /** select em ficha densa — o chevron continua a ser do RaevoField */
-export const RAEVO_INLINE_SELECT_CLASS = `min-h-8 appearance-none bg-none pr-6 ${INLINE_BASE}`;
+export const RAEVO_INLINE_SELECT_CLASS = `min-h-8 appearance-none bg-none py-0 pr-6 ${INLINE_BASE}`;
 
 /** textarea em ficha densa — cresce para baixo, sem sair da coluna do valor */
 export const RAEVO_INLINE_TEXTAREA_CLASS = `min-h-20 resize-y py-0.5 ${INLINE_BASE}`;
@@ -103,6 +110,6 @@ const COMPACT_BASE = BASE.replace('text-sm', 'text-ui');
 
 export const RAEVO_COMPACT_CONTROL_CLASS = `h-control-sm rounded-lg px-control ${COMPACT_BASE}`;
 
-export const RAEVO_COMPACT_SELECT_CLASS = `h-control-sm appearance-none rounded-lg bg-none px-control pr-7 ${COMPACT_BASE}`;
+export const RAEVO_COMPACT_SELECT_CLASS = `h-control-sm appearance-none rounded-lg bg-none px-control py-0 pr-7 ${COMPACT_BASE}`;
 
 export const RAEVO_COMPACT_TEXTAREA_CLASS = `min-h-20 resize-none rounded-lg px-control py-cell ${COMPACT_BASE}`;
