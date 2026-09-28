@@ -201,9 +201,41 @@ const onPopoverHide = () => {
   emit('close');
 };
 
+// Com `contactId` fixo o campo de busca fica desligado: se o contato não chegar,
+// o «Para:» fica em branco e não há como escolher ninguém. Quem abre o compositor
+// a partir do funil não passou pela tela de Contatos, então o contato não está no
+// store — é preciso ir buscá-lo.
+watch(
+  () => props.contactId,
+  id => {
+    if (id && !contactById.value(id)) store.dispatch('contacts/show', { id });
+  },
+  { immediate: true }
+);
+
+// As caixas vêm de `contactable_inboxes`, não dos vínculos que o contato já tem.
+// Uma oportunidade que nunca teve conversa tem contato sem vínculo nenhum: pelos
+// vínculos a lista vinha vazia e a tela dizia «Nenhuma caixa de entrada
+// disponível para este contato». O que interessa é por onde ele PODE ser
+// alcançado, que é o mesmo caminho do contato escolhido na busca.
+const withContactableInboxes = async contact => {
+  isFetchingInboxes.value = true;
+  try {
+    const contactableInboxes = await fetchContactableInboxes(contact.id);
+    return mergeInboxDetails(contactableInboxes, inboxesList.value);
+  } catch (error) {
+    return mergeInboxDetails(
+      processContactableInboxes(contact.contactInboxes || []),
+      inboxesList.value
+    );
+  } finally {
+    isFetchingInboxes.value = false;
+  }
+};
+
 watch(
   activeContact,
-  (currentContact, previousContact) => {
+  async (currentContact, previousContact) => {
     if (currentContact && props.contactId) {
       // Reset on contact change
       if (currentContact?.id !== previousContact?.id) {
@@ -212,15 +244,13 @@ watch(
         formState.message = '';
       }
 
-      // First process the contactable inboxes to get the right structure
-      const processedInboxes = processContactableInboxes(
-        currentContact.contactInboxes || []
-      );
-      // Then Merge processedInboxes with the inboxes list
-      selectedContact.value = {
-        ...currentContact,
-        contactInboxes: mergeInboxDetails(processedInboxes, inboxesList.value),
-      };
+      // O contato entra já, para o «Para:» não ficar em branco enquanto as
+      // caixas carregam.
+      selectedContact.value = { ...currentContact, contactInboxes: [] };
+      const contactInboxes = await withContactableInboxes(currentContact);
+      if (selectedContact.value?.id === currentContact.id) {
+        selectedContact.value = { ...selectedContact.value, contactInboxes };
+      }
     }
   },
   { immediate: true, deep: true }
