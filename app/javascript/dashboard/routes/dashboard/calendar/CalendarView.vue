@@ -185,6 +185,10 @@ const appointmentAccent = appointment => {
 };
 
 const calendarStatuses = computed(() => [
+  // «Em pé» é o mesmo conjunto que o indicador «Marcações hoje» conta. Existe
+  // para o número e o destino do clique serem o mesmo recorte — e porque um dia
+  // cheio de consultas canceladas não é um dia cheio.
+  { value: 'active', label: t('CALENDAR.DETAIL.STATUS.ACTIVE') },
   { value: 'scheduled', label: t('CALENDAR.DETAIL.STATUS.SCHEDULED') },
   { value: 'confirmed', label: t('CALENDAR.DETAIL.STATUS.CONFIRMED') },
   { value: 'checked_in', label: t('CALENDAR.DETAIL.STATUS.CHECKED_IN') },
@@ -855,6 +859,16 @@ const variacaoAgenda = (agora, antes, maiorEhMelhor) => {
 // E só quando há alguma por confirmar. «Todas confirmadas» era a mesma frase a
 // desculpar-se que se tirou do resto da fila: não há nada para fazer, não ocupa
 // largura.
+// Uma nota por fila, no máximo: «por confirmar» é sobre o que se age, e ganha
+// dos bloqueios quando as duas coisas existem no mesmo dia.
+const notaDeHoje = hoje => {
+  if (hoje.unconfirmed)
+    return t('CALENDAR.INDICATORS.UNCONFIRMED', { count: hoje.unconfirmed });
+  if (hoje.busy_blocks)
+    return t('CALENDAR.INDICATORS.BUSY_BLOCKS', { count: hoje.busy_blocks });
+  return '';
+};
+
 const agendaIndicators = computed(() => {
   const r = agendaSummary.value;
   if (!r) return [];
@@ -875,14 +889,16 @@ const agendaIndicators = computed(() => {
   return [
     {
       chave: 'today',
+      // O número conta consultas; a grade mostra também os bloqueios importados
+      // do Google e do Feegow, que não são consultas. Um dia com cinco bloqueios
+      // e nenhuma marcação lia-se «Marcações hoje 0» com cinco blocos à vista —
+      // certo e ilegível ao mesmo tempo. A nota diz o que são os outros blocos.
       label: t('CALENDAR.INDICATORS.TODAY'),
-      filtro: { view: 'day', status: 'all' },
+      filtro: { view: 'day', status: 'active' },
       value: String(r.today.count),
       delta: '',
       deltaIsGood: true,
-      note: r.today.unconfirmed
-        ? t('CALENDAR.INDICATORS.UNCONFIRMED', { count: r.today.unconfirmed })
-        : '',
+      note: notaDeHoje(r.today),
     },
     {
       chave: 'completed',

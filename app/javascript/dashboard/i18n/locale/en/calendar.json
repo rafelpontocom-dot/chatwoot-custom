@@ -340,6 +340,7 @@
       "NO_SHOW": "Mark no-show",
       "CANCEL": "Cancel",
       "STATUS": {
+        "ACTIVE": "Still standing",
         "SCHEDULED": "Scheduled",
         "CONFIRMED": "Confirmed",
         "CHECKED_IN": "Checked in",
@@ -396,8 +397,8 @@
       "ALL_DAY_SHORT": "Busy",
       "ALL_DAY_ARIA": "Busy all day in Google Calendar: {resources}",
       "SOURCE": {
-        "GOOGLE_CALENDAR": "Busy in Google",
-        "FEEGOW": "Busy in Feegow"
+        "GOOGLE_CALENDAR": "Busy · Google",
+        "FEEGOW": "Busy · Feegow"
       }
     },
     "GOOGLE_NOTICE": {
@@ -412,7 +413,8 @@
       "NO_SHOW_MONTH": "No-shows this month",
       "CANCELED_MONTH": "Cancelled this month",
       "FILTER": "Filter the calendar by {label} ({value})",
-      "UNCONFIRMED": "{count} to confirm"
+      "UNCONFIRMED": "{count} to confirm",
+      "BUSY_BLOCKS": "{count} blocked from another calendar"
     }
   },
   "CALENDAR_SETUP": {
@@ -578,6 +580,9 @@
         "GROUP_HINT": "How the patient sees it",
         "NAME": "Name",
         "LINK": "Public link",
+        "OPEN_LINK": "Open the booking page for this procedure",
+        "COPY_LINK": "Copy the address",
+        "LINK_COPIED": "Address copied",
         "DESCRIPTION": "Description",
         "DURATION": "Duration",
         "LOCATION": "Location",

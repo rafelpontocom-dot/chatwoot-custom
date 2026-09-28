@@ -340,6 +340,7 @@
       "NO_SHOW": "Registrar falta",
       "CANCEL": "Cancelar",
       "STATUS": {
+        "ACTIVE": "Em pé",
         "SCHEDULED": "Agendado",
         "CONFIRMED": "Confirmado",
         "CHECKED_IN": "Chegou",
@@ -396,8 +397,8 @@
       "ALL_DAY_SHORT": "Ocupado",
       "ALL_DAY_ARIA": "Dia ocupado na Google Agenda: {resources}",
       "SOURCE": {
-        "GOOGLE_CALENDAR": "Ocupado no Google",
-        "FEEGOW": "Ocupado no Feegow"
+        "GOOGLE_CALENDAR": "Ocupado · Google",
+        "FEEGOW": "Ocupado · Feegow"
       }
     },
     "GOOGLE_NOTICE": {
@@ -412,7 +413,8 @@
       "NO_SHOW_MONTH": "Faltas no mês",
       "CANCELED_MONTH": "Canceladas no mês",
       "FILTER": "Filtrar a agenda por {label} ({value})",
-      "UNCONFIRMED": "{count} por confirmar"
+      "UNCONFIRMED": "{count} por confirmar",
+      "BUSY_BLOCKS": "{count} bloqueio(s) de outra agenda"
     }
   },
   "CALENDAR_SETUP": {
@@ -578,6 +580,9 @@
         "GROUP_HINT": "Como o paciente vê",
         "NAME": "Nome",
         "LINK": "Link público",
+        "OPEN_LINK": "Abrir a página de agendamento deste procedimento",
+        "COPY_LINK": "Copiar o endereço",
+        "LINK_COPIED": "Endereço copiado",
         "DESCRIPTION": "Descrição",
         "DURATION": "Duração",
         "LOCATION": "Local",

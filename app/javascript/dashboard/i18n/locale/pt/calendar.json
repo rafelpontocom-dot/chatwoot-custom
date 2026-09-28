@@ -20,8 +20,8 @@
     "SEARCH_PLACEHOLDER": "Buscar paciente ou oportunidade",
     "GRID_LABEL": "Agenda de atendimentos",
     "WEEKDAY": "Dia {day}",
-    "APPOINTMENT_LABEL": "{equipa}, {contact}, {procedure}",
-    "APPOINTMENT_CARD_TITLE": "{equipa} - {contact}",
+    "APPOINTMENT_LABEL": "{time}, {contact}, {procedure}",
+    "APPOINTMENT_CARD_TITLE": "{time} - {contact}",
     "LOADING": "Carregando agenda...",
     "LOAD_ERROR_TITLE": "Não foi possível carregar a agenda.",
     "RETRY": "Tentar novamente",
@@ -340,6 +340,7 @@
       "NO_SHOW": "Registrar falta",
       "CANCEL": "Cancelar",
       "STATUS": {
+        "ACTIVE": "De pé",
         "SCHEDULED": "Marcado",
         "CONFIRMED": "Confirmado",
         "CHECKED_IN": "Chegou",
@@ -360,7 +361,7 @@
         "NO_SHOW": "Falta registrada"
       }
     },
-    "BOOK_SLOT_LABEL": "Marcar {day} às {equipa}",
+    "BOOK_SLOT_LABEL": "Marcar {day} às {time}",
     "MY_CALENDARS": "Minhas agendas",
     "NO_RESOURCES_YET": "Nenhuma agenda cadastrada.",
     "VIEW": "Visualização",
@@ -396,8 +397,8 @@
       "ALL_DAY_SHORT": "Ocupado",
       "ALL_DAY_ARIA": "Dia ocupado no Google Calendar: {resources}",
       "SOURCE": {
-        "GOOGLE_CALENDAR": "Ocupado no Google",
-        "FEEGOW": "Ocupado no Feegow"
+        "GOOGLE_CALENDAR": "Ocupado · Google",
+        "FEEGOW": "Ocupado · Feegow"
       }
     },
     "GOOGLE_NOTICE": {
@@ -412,7 +413,8 @@
       "NO_SHOW_MONTH": "Faltas no mês",
       "CANCELED_MONTH": "Canceladas no mês",
       "FILTER": "Filtrar a agenda por {label} ({value})",
-      "UNCONFIRMED": "{count} por confirmar"
+      "UNCONFIRMED": "{count} por confirmar",
+      "BUSY_BLOCKS": "{count} bloqueio(s) de outra agenda"
     }
   },
   "CALENDAR_SETUP": {
@@ -578,6 +580,9 @@
         "GROUP_HINT": "Como o paciente vê",
         "NAME": "Nome",
         "LINK": "Link público",
+        "OPEN_LINK": "Abrir a página de marcação deste procedimento",
+        "COPY_LINK": "Copiar o endereço",
+        "LINK_COPIED": "Endereço copiado",
         "DESCRIPTION": "Descrição",
         "DURATION": "Duração",
         "LOCATION": "Local",

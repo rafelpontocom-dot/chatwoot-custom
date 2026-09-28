@@ -21,10 +21,19 @@ class KanbanCalendar::AppointmentsIndexQuery
     result = result.within(Time.zone.parse(@starts_at), Time.zone.parse(@ends_at)) if date_range_provided?
     result = result.where(kanban_card: @kanban_card) if @kanban_card
     result = result.where(contact: @contact) if @contact
-    result = result.where(status: @status) if @status.present?
+    result = result.where(status: statuses_filter) if @status.present?
     result = result.merge(search_scope) if @query.present?
     result = filter_resources(result) if @resource_ids.present?
     result
+  end
+
+  # `active` não é um status gravado: é o conjunto que o indicador «Marcações
+  # hoje» conta — o que ainda está de pé. Sem ele, o número contava um recorte e
+  # o clique levava a outro, e os dois discordavam na cara de quem lê.
+  def statuses_filter
+    return KanbanCalendarAppointment::ACTIVE_STATUSES if @status.to_s == 'active'
+
+    @status
   end
 
   def date_range_provided?

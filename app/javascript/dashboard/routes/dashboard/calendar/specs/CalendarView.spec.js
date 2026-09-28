@@ -115,16 +115,41 @@ describe('CalendarView', () => {
   });
 
   describe('the agenda indicators', () => {
-    const comResumo = () =>
+    const comResumo = (today = { count: 14, unconfirmed: 3, busy_blocks: 0 }) =>
       CalendarAPI.getSummary.mockResolvedValue({
         data: {
-          today: { count: 14, unconfirmed: 3 },
+          today,
           completed: { current: 52, previous: 44 },
           no_show: { current: 4, previous: 6 },
           canceled: { current: 2, previous: 2 },
           month_total: 58,
         },
       });
+
+    // Um dia sem marcação nenhuma e com cinco blocos importados lia-se
+    // «Marcações hoje 0» com cinco blocos à vista. A nota diz o que são.
+    it('says what the other blocks of the day are when nothing was booked', async () => {
+      comResumo({ count: 0, unconfirmed: 0, busy_blocks: 5 });
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      // A nota vive na faixa `inline` (a de baixo dos 1024px). A coluna lateral
+      // usa `list`, que por decisão do design system não desenha rodapé nem nota.
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-today"]').text()
+      ).toContain('CALENDAR.INDICATORS.BUSY_BLOCKS');
+    });
+
+    // Uma nota por fila: «por confirmar» é sobre o que se age, e ganha.
+    it('prefers the unconfirmed note when both would fit', async () => {
+      comResumo({ count: 4, unconfirmed: 2, busy_blocks: 5 });
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      const texto = wrapper.get('[data-testid="calendar-kpi-today"]').text();
+      expect(texto).toContain('CALENDAR.INDICATORS.UNCONFIRMED');
+      expect(texto).not.toContain('CALENDAR.INDICATORS.BUSY_BLOCKS');
+    });
 
     it('opens the agenda with four measured indicators', async () => {
       comResumo();
@@ -226,10 +251,10 @@ describe('CalendarView', () => {
   // entre o número e o pedido que o clique faz — se discordarem, o utilizador
   // clica num 2 e vê outra coisa.
   describe('the indicator filters in the sidebar', () => {
-    const comResumo = () =>
+    const comResumo = (today = { count: 14, unconfirmed: 3, busy_blocks: 0 }) =>
       CalendarAPI.getSummary.mockResolvedValue({
         data: {
-          today: { count: 14, unconfirmed: 3 },
+          today,
           completed: { current: 52, previous: 44 },
           no_show: { current: 4, previous: 6 },
           canceled: { current: 2, previous: 2 },
@@ -281,7 +306,10 @@ describe('CalendarView', () => {
       expect(dias).toBeGreaterThan(27);
     });
 
-    it('asks for a single day when the indicator for today is clicked', async () => {
+    // O número conta o que está de pé; o destino passou a contar o mesmo. Antes
+    // levava ao dia com todos os status, e num dia só de canceladas a grade
+    // mostrava duas enquanto o indicador dizia zero.
+    it('asks for a single day, and for the same set it counted', async () => {
       comResumo();
       const wrapper = mountCalendar();
       await flushPromises();
@@ -292,7 +320,7 @@ describe('CalendarView', () => {
       await flushPromises();
 
       const pedido = pedidoDaGrelha();
-      expect(pedido.status).toBeUndefined();
+      expect(pedido.status).toBe('active');
       const dias =
         (new Date(pedido.ends_at) - new Date(pedido.starts_at)) / 86400000;
       expect(dias).toBeLessThanOrEqual(1);

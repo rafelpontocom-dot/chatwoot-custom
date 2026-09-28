@@ -36,12 +36,22 @@ class KanbanCalendar::AgendaSummary
 
   # Hoje conta o que ainda está de pé — marcado, confirmado ou com o doente já
   # na clínica. Uma falta de ontem não é «marcação de hoje».
+  #
+  # `busy_blocks` conta os bloqueios importados de fora (Google, Feegow) que caem
+  # hoje. Não são marcações e por isso não entram na contagem — mas aparecem na
+  # grade, e sem este número o dia lê-se «Marcações hoje 0» com cinco blocos à
+  # vista. O zero fica certo e ilegível ao mesmo tempo.
   def today
     escopo = appointments.active.where(starts_at: zone.now.all_day)
     {
       count: escopo.count,
-      unconfirmed: escopo.where(status: 'scheduled').count
+      unconfirmed: escopo.where(status: 'scheduled').count,
+      busy_blocks: busy_blocks_today
     }
+  end
+
+  def busy_blocks_today
+    KanbanCalendarExternalBusyBlock.where(account_id: @account.id, starts_at: zone.now.all_day).count
   end
 
   def current_month
