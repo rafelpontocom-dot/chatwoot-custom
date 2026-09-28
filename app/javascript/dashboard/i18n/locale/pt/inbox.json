@@ -36,7 +36,7 @@
       "SLA_MISSED_RESOLUTION": "Quebra SLA",
       "PARTICIPATING_CONVERSATION_NEW_MESSAGE": "Nova mensagem",
       "ASSIGNED_CONVERSATION_NEW_MESSAGE": "Nova mensagem",
-      "SNOOZED_UNTIL": "Adiado para {equipa}",
+      "SNOOZED_UNTIL": "Adiado para {time}",
       "SNOOZED_ENDS": "Adiamento encerrado"
     },
     "NO_CONTENT": "Sem conteúdo disponível",

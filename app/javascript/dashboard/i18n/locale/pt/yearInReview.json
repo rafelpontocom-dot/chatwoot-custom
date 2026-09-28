@@ -33,10 +33,10 @@
     "PERSONALITY": {
       "TITLE": "Seu estilo de atendimento é",
       "MESSAGES": {
-        "SWIFT_HELPER": "Você respondia em média em {equipa}. Mais rápido que a maioria das notificações.",
-        "QUICK_RESPONDER": "Você respondia em média em {equipa}. A caixa de entrada mal teve tempo de esperar.",
-        "STEADY_SUPPORT": "Você respondia em média em {equipa}. Ritmo tranquilo, respostas bem feitas.",
-        "THOUGHTFUL_ADVISOR": "Você respondia em média em {equipa}. Sem pressa, mas com capricho."
+        "SWIFT_HELPER": "Você respondia em média em {time}. Mais rápido que a maioria das notificações.",
+        "QUICK_RESPONDER": "Você respondia em média em {time}. A caixa de entrada mal teve tempo de esperar.",
+        "STEADY_SUPPORT": "Você respondia em média em {time}. Ritmo tranquilo, respostas bem feitas.",
+        "THOUGHTFUL_ADVISOR": "Você respondia em média em {time}. Sem pressa, mas com capricho."
       }
     },
     "THANK_YOU": {

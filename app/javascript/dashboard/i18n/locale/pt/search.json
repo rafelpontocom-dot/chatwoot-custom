@@ -34,8 +34,8 @@
     "EMAIL_SUBJECT": "Assunto",
     "PRIVATE": "Nota privada",
     "TRANSCRIPT": "Transcrição",
-    "CREATED_AT": "criado {equipa}",
-    "UPDATED_AT": "atualizado {equipa}",
+    "CREATED_AT": "criado {time}",
+    "UPDATED_AT": "atualizado {time}",
     "SORT_BY": {
       "RELEVANCE": "Relevância"
     },

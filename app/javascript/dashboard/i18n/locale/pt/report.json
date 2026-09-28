@@ -136,8 +136,8 @@
       "UNKNOWN_INBOX": "Caixa de entrada desconhecida",
       "UNASSIGNED_AGENT": "Sem responsável",
       "NO_MESSAGE_CONTENT": "Mensagem sem conteúdo",
-      "MESSAGE_CREATED_AT": "Mensagem criada às {equipa}",
-      "EVENT_OCCURRED_AT": "Evento ocorreu às {equipa}",
+      "MESSAGE_CREATED_AT": "Mensagem criada às {time}",
+      "EVENT_OCCURRED_AT": "Evento ocorreu às {time}",
       "INCOMING_MESSAGE": "Mensagem recebida",
       "OUTGOING_MESSAGE": "Mensagem enviada"
     },
@@ -510,7 +510,7 @@
       "SAVING": "A guardar...",
       "SAVED": "Notas guardadas com sucesso",
       "SAVE_ERROR": "Falha ao guardar as notas",
-      "UPDATED_BY": "Atualizado por {name} {equipa}",
+      "UPDATED_BY": "Atualizado por {name} {time}",
       "UPDATED_BY_LABEL": "Atualizado por",
       "PAYWALL": {
         "TITLE": "Atualize para adicionar notas de avaliação",
