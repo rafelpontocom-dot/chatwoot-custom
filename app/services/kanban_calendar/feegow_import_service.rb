@@ -7,7 +7,10 @@
 class KanbanCalendar::FeegowImportService
   PROVIDER = 'feegow'.freeze
   PAST_WINDOW = 1.day
-  FUTURE_WINDOW = 180.days
+  # O Feegow rejeita uma busca cuja distância entre as datas alcance seis meses.
+  # Como também olhamos um dia para trás, 178 dias à frente mantêm a janela em
+  # 179 dias e abaixo desse limite estrito.
+  FUTURE_WINDOW = 178.days
   DEFAULT_DURATION_MINUTES = 30
   TIME_ZONE = 'America/Sao_Paulo'.freeze
   CANCELLED_STATUSES = %w[cancelado cancelada faltou desmarcado].freeze

@@ -63,7 +63,15 @@ class KanbanCalendar::FeegowClient
   end
 
   def error_message(response, body)
-    body['message'].presence || body['erro'].presence || "Feegow #{response.status}"
+    body['message'].presence || body['erro'].presence || error_content(body) || "Feegow #{response.status}"
+  end
+
+  # Em erros, o Feegow frequentemente usa `content` para a mensagem. Só textos
+  # entram no estado da conexão: estruturas de resposta podem conter dados que
+  # não pertencem à tela de configuração.
+  def error_content(body)
+    content = body['content']
+    content if content.is_a?(String) && content.present?
   end
 
   def base_url

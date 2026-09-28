@@ -43,6 +43,16 @@ RSpec.describe KanbanCalendar::FeegowClient do
     expect { client.professionals }.to raise_error(KanbanCalendar::FeegowApiError, /Token inválido/)
   end
 
+  it 'keeps the Feegow conflict detail when an appointment search is rejected' do
+    stub_request(:get, search_url)
+      .with(query: hash_including('profissional_id' => '9', 'data_start' => '27-09-2026', 'data_end' => '27-03-2027'))
+      .to_return(status: 409, body: { success: false, content: 'Intervalo de data deve ser menor que 6 meses.' }.to_json)
+
+    expect do
+      client.appointments(professional_id: 9, from: Date.new(2026, 9, 27), to: Date.new(2027, 3, 27))
+    end.to raise_error(KanbanCalendar::FeegowApiError, /Intervalo de data deve ser menor que 6 meses/)
+  end
+
   it 'reports Feegow being out of reach as a Feegow error, not a crash' do
     stub_request(:get, 'https://api.feegow.test/v1/api/professional/list').to_timeout
 

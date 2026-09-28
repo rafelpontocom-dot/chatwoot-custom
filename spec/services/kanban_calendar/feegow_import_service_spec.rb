@@ -51,6 +51,18 @@ RSpec.describe KanbanCalendar::FeegowImportService do
     expect(client).not_to have_received(:appointments)
   end
 
+  it 'queries a window strictly shorter than the Feegow six-month limit' do
+    agenda('Dra. Anna', { 'professional_id' => 9 })
+
+    import(9 => [])
+
+    expect(client).to have_received(:appointments).with(
+      professional_id: 9,
+      from: now.to_date - described_class::PAST_WINDOW,
+      to: now.to_date + 178.days
+    )
+  end
+
   # Consulta cancelada devolve o horário; mantê-la bloqueada esconderia vaga.
   it 'ignores cancelled appointments' do
     resource = agenda('Dra. Anna', { 'professional_id' => 9 })
