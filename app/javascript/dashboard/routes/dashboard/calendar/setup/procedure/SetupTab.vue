@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import { RAEVO_PICKER_COLORS } from 'dashboard/constants/raevoPalette';
 import SetupGroup from '../shared/SetupGroup.vue';
@@ -12,6 +13,7 @@ import { useProcedureDraft } from './procedureDraft';
 const { t } = useI18n();
 const { draft, bookingPageUrl, errors } = useProcedureDraft();
 
+const COPY_FEEDBACK_MS = 2000;
 const DURATIONS = [10, 15, 20, 30, 40, 45, 50, 60, 75, 90, 120, 150, 180, 240];
 const LOCATIONS = ['in_person', 'video', 'phone', 'other'];
 const COLOR_NAMES = [
@@ -31,6 +33,25 @@ const linkPrefix = computed(() => {
 });
 
 const slugPlaceholder = computed(() => toSlug(draft.value.name));
+
+// O endereço só existe depois de publicar e de ter slug gravado. Antes disso o
+// que está na tela é a moldura do campo, não um link — abrir levaria a 404.
+const publicUrl = computed(() => {
+  if (!draft.value.public_booking_enabled) return '';
+  const slug = draft.value.public_slug || slugPlaceholder.value;
+  if (!bookingPageUrl.value || !slug) return '';
+  return `${bookingPageUrl.value}/${slug}`;
+});
+
+const copied = ref(false);
+const copyPublicUrl = async () => {
+  if (!publicUrl.value) return;
+  await copyTextToClipboard(publicUrl.value);
+  copied.value = true;
+  setTimeout(() => {
+    copied.value = false;
+  }, COPY_FEEDBACK_MS);
+};
 
 const durationOptions = computed(() => {
   const values = new Set([...DURATIONS, Number(draft.value.duration_minutes)]);
@@ -77,9 +98,48 @@ const durationOptions = computed(() => {
               v-model="draft.public_slug"
               type="text"
               :placeholder="slugPlaceholder"
-              class="reset-base mb-0 h-full w-[45%] min-w-[8rem] shrink-0 border-0 bg-transparent pr-3 text-ui font-semibold text-n-slate-12 outline-none"
+              class="reset-base mb-0 h-full w-[45%] min-w-[8rem] shrink-0 border-0 bg-transparent pr-2 text-ui font-semibold text-n-slate-12 outline-none"
               data-testid="calendar-procedure-slug"
             />
+            <!--
+              Publicado, o endereço deixa de ser moldura e passa a ser coisa que
+              se manda ao paciente: abrir para conferir, copiar para enviar.
+            -->
+            <span v-if="publicUrl" class="flex shrink-0 items-center pr-1">
+              <a
+                :href="publicUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="calendar-procedure-open-link"
+                :title="t('CALENDAR_SETUP.PROCEDURE.SETUP.OPEN_LINK')"
+                :aria-label="t('CALENDAR_SETUP.PROCEDURE.SETUP.OPEN_LINK')"
+                class="flex size-7 items-center justify-center rounded-md text-n-slate-10 hover:bg-n-alpha-2 hover:text-n-slate-12"
+              >
+                <i class="i-lucide-external-link size-4" aria-hidden="true" />
+              </a>
+              <button
+                type="button"
+                data-testid="calendar-procedure-copy-link"
+                :title="
+                  copied
+                    ? t('CALENDAR_SETUP.PROCEDURE.SETUP.LINK_COPIED')
+                    : t('CALENDAR_SETUP.PROCEDURE.SETUP.COPY_LINK')
+                "
+                :aria-label="
+                  copied
+                    ? t('CALENDAR_SETUP.PROCEDURE.SETUP.LINK_COPIED')
+                    : t('CALENDAR_SETUP.PROCEDURE.SETUP.COPY_LINK')
+                "
+                class="flex size-7 items-center justify-center rounded-md p-0 text-n-slate-10 hover:bg-n-alpha-2 hover:text-n-slate-12"
+                @click="copyPublicUrl"
+              >
+                <i
+                  :class="copied ? 'i-lucide-check' : 'i-lucide-copy'"
+                  class="size-4"
+                  aria-hidden="true"
+                />
+              </button>
+            </span>
           </div>
         </template>
       </RaevoField>
