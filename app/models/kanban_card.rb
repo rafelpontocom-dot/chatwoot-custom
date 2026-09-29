@@ -169,7 +169,9 @@ class KanbanCard < ApplicationRecord
   validate :due_at_after_starts_at
   validate :lost_reason_present_when_lost
   validate :won_and_lost_are_mutually_exclusive
-  validate :required_custom_fields_present
+  # Campos obrigatórios bloqueiam avanço e reativação, não o arquivamento. Um
+  # cartão legado precisa poder sair do quadro mesmo se a configuração mudou.
+  validate :required_custom_fields_present, if: :active?
   validate :validate_account_consistency
 
   scope :active, -> { where(active: true) }

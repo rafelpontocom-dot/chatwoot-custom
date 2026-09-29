@@ -1217,6 +1217,25 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(card.archived_by).to eq(agent)
     end
 
+    it 'archives a card when fields became required after it was created' do
+      card = create_manual_card
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'oferta_interesse',
+            label: 'Oferta de interesse',
+            field_type: 'text',
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      delete stable_card_url(card), headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:no_content)
+      expect(card.reload).not_to be_active
+    end
+
     it 'restores an archived card by stable ID' do
       card = create_manual_card
       card.archive!(actor: agent)

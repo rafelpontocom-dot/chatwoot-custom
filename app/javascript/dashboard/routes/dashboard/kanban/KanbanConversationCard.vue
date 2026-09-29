@@ -79,17 +79,6 @@ const hasSupportedPriority = computed(() =>
 const contactThumbnail = computed(
   () => contact.value?.thumbnail || contact.value?.avatarUrl || ''
 );
-const assignee = computed(
-  () =>
-    props.card.owner ||
-    props.card.assignee ||
-    conversation.value?.meta?.assignee ||
-    null
-);
-const assigneeName = computed(() => assignee.value?.name || '');
-const assigneeThumbnail = computed(
-  () => assignee.value?.thumbnail || assignee.value?.avatarUrl || ''
-);
 const subject = computed(() => props.card.subject || '');
 
 /**
@@ -438,14 +427,6 @@ const onCardKeydown = event => {
             {{ cardSubtitle }}
           </p>
         </div>
-
-        <Avatar
-          v-if="assigneeName"
-          :name="assigneeName"
-          :src="assigneeThumbnail"
-          :size="18"
-          rounded-full
-        />
       </div>
 
       <dl

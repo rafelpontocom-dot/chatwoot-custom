@@ -86,6 +86,15 @@ const toggleConversationLayout = () => {
       </span>
     </div>
     <div class="flex items-center gap-1">
+      <RouterLink
+        data-testid="conversation-search"
+        :to="{ name: 'search', params: { tab: 'conversations' } }"
+        class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+        :aria-label="$t('CHAT_LIST.SEARCH.INPUT')"
+        :title="$t('CHAT_LIST.SEARCH.INPUT')"
+      >
+        <i class="i-lucide-search size-4" aria-hidden="true" />
+      </RouterLink>
       <template v-if="hasAppliedFilters && !hasActiveFolders">
         <div class="relative">
           <NextButton

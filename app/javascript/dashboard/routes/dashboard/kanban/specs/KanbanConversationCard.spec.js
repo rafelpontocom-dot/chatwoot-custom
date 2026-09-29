@@ -118,23 +118,14 @@ describe('KanbanConversationCard', () => {
     vi.clearAllMocks();
   });
 
-  it('renders an existing conversation card', () => {
+  it('renders only the contact avatar on an existing conversation card', () => {
     const wrapper = mountCard();
 
     expect(wrapper.text()).toContain('Enterprise expansion');
     expect(wrapper.text()).toContain('Jane Doe');
-    expect(wrapper.text()).toContain('Agent Smith');
+    expect(wrapper.text()).not.toContain('Agent Smith');
+    expect(wrapper.findAllComponents({ name: 'Avatar' })).toHaveLength(1);
     expect(wrapper.findComponent({ name: 'ChannelIcon' }).exists()).toBe(true);
-  });
-
-  it('shows the commercial owner when the opportunity has one', () => {
-    const wrapper = mountCard({
-      card: buildManualCard({
-        owner: { name: 'Ana Comercial', thumbnail: 'ana.png' },
-      }),
-    });
-
-    expect(wrapper.text()).toContain('Ana Comercial');
   });
 
   it('does not format an empty opportunity value as zero', () => {
