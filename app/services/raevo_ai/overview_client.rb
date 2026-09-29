@@ -74,11 +74,7 @@ class RaevoAi::OverviewClient
   def sanitize(payload)
     raise RaevoAi::UpstreamError, 'Raevo AI service unavailable' unless payload.is_a?(Hash)
 
-    # `usage_30d` é o nome antigo do runtime. Aceita-se os dois porque os dois
-    # serviços implantam separadamente: durante o rollout um Chatwoot novo pode
-    # falar com um runtime antigo, e o painel não deve ficar sem números por
-    # isso. O recurso sai quando o runtime em produção já enviar `usage`.
-    usage = payload['usage'] || payload['usage_30d']
+    usage = payload['usage']
     usage = {} unless usage.is_a?(Hash)
 
     sanitized = payload.slice(*PUBLIC_FIELDS).merge(

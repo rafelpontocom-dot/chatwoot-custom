@@ -101,4 +101,17 @@ RSpec.describe KanbanCalendar::FeegowImportService do
       .to raise_error(KanbanCalendar::FeegowApiError)
     expect(connection.reload).to have_attributes(status: 'error', last_error: 'Token inválido')
   end
+
+  it 'records an unavailable Feegow service for scheduled imports' do
+    agenda('Dra. Anna', { 'professional_id' => 9 })
+    allow(client).to receive(:appointments)
+      .and_raise(KanbanCalendar::FeegowApiError, 'Feegow could not be reached (ConnectionFailed)')
+
+    expect { described_class.new(connection: connection, client: client, now: now).perform! }
+      .to raise_error(KanbanCalendar::FeegowApiError, 'Feegow could not be reached (ConnectionFailed)')
+
+    expect(connection.reload).to have_attributes(
+      status: 'error', last_error: 'Feegow could not be reached (ConnectionFailed)'
+    )
+  end
 end

@@ -182,9 +182,7 @@ RSpec.describe RaevoAi::OverviewClient do
     end
   end
 
-  it 'still reads a runtime that has not been renamed yet' do
-    # Os dois serviços implantam separadamente. Um Chatwoot novo a falar com um
-    # runtime antigo não pode deixar a clínica sem números.
+  it 'does not expose the removed usage_30d alias' do
     corpo = { 'status' => 'active', 'usage_30d' => { 'conversations' => 12 } }.to_json
     response = instance_double(HTTParty::Response, success?: true, body: corpo)
 
@@ -193,7 +191,7 @@ RSpec.describe RaevoAi::OverviewClient do
 
       resultado = described_class.new(integration: integration).fetch
 
-      expect(resultado['usage']).to eq('conversations' => 12)
+      expect(resultado['usage']).to eq({})
     end
   end
 
