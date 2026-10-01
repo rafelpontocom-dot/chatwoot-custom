@@ -351,6 +351,7 @@ que se mostra a quem não lê código:
 | --- | --- |
 | [Raevo · Sistema Aprovado](https://claude.ai/artifact/2ACSDXn19DZKFWUos9pnaA) | o demonstrador: catorze telas na direção aprovada, **mais a secção «O sistema, em números»** — cor, tipografia, raio, caixa e as três densidades do indicador, com os valores |
 | [Indicadores no canto](https://claude.ai/artifact/AM7QHMa8pwVaiZ7K5GteSL) | a decisão de 26/09 entre as duas propostas de fila, com as medições e as capturas |
+| [A coluna da oportunidade](https://claude.ai/artifact/DmSLDVWe2Ew2rx8kcBbMcD) | a decisão de 01/10 sobre a tira de abas: as duas propostas iniciais, a pesquisa que reprovou a escolhida, e a A′ que ficou |
 
 **Mudou token, primitivo ou padrão? Actualize o demonstrador na mesma passagem.** Um espelho
 desactualizado é pior do que nenhum: alguém desenha a partir dele e a divergência só aparece na
