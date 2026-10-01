@@ -1437,7 +1437,8 @@
         "GENERAL": "Geral",
         "CALENDAR": "Agenda",
         "MARKETING": "Marketing",
-        "TIMELINE": "Histórico"
+        "TIMELINE": "Histórico",
+        "MORE": "+{count} mais"
       },
       "DESCRIPTION_PLACEHOLDER": "Adicione uma observação para esta oportunidade",
       "OWNER": "Responsável comercial",

@@ -869,6 +869,61 @@ casar.
 a cor vem do primitivo: nunca coexistem no mesmo atributo. Passou a `-11` (7,17:1 e
 6,80:1).
 
+### A coluna da oportunidade na gaveta do Pipeline · 01/10/2026
+
+A tela já existia, por isso passou por aqui. **E passou duas vezes: a primeira decisão foi
+revogada pela pesquisa de mercado, antes de se escrever uma linha de código.**
+
+**O que estava medido**, na gaveta a 1280×900, com três secções configuradas e Financeiro e
+Formulários ligados:
+
+| | Antes | Depois |
+| --- | --- | --- |
+| Coluna | 352px | **432px** (+23%) |
+| Formulário | 309px | **389px** |
+| Tira de abas | 197px úteis para 571px de conteúdo | **cabe: 319 em 319** |
+| Abas alcançáveis sem rolar | **2 de 8** | 3 na tira + 5 no menu contado |
+| Caixa da ficha | 676px, a cortar um campo a meio | **823px**, 8px de sobra |
+| «Últimos eventos» | 104px a duplicar o separador Histórico | fora |
+| «Adicionar ao Kanban» | solto por baixo da caixa | fora **no funil**; fica em Conversas |
+| Morto no fundo | **123px** | 8px |
+
+**A decisão que foi revogada.** Eu propus duas linhas de navegação — tira fixa em cima,
+fichas das secções por baixo — e recomendei-a. O dono do produto escolheu-a e pediu a
+verificação antes de implementar. A verificação reprovou-a: **Carbon, Material, CMS Design
+System e ICDS nomeiam duas linhas de abas como erro**, e a Nielsen Norman diz que oito
+secções curtas é o perfil do acordeão, não o das abas. O que ficou foi a correção
+documentada (PatternFly, ServiceNow): **uma linha, e «+N mais» no fim**.
+
+Ficou também registado o que o mercado faz nesta posição exacta: o Pipedrive usa secções
+dobráveis na ficha do negócio ao lado do quadro. **Essa continua na fila** — ver abaixo.
+
+**Dois defeitos apanhados pela porta visual, nenhum deles visível em teste:**
+
+1. **A medição corria antes de a ficha existir.** O formulário só nasce quando `card` chega;
+   em `onMounted` o `tabList` ainda era `null`, o `ResizeObserver` nunca se ligava, e a tira
+   ficava com as oito abas dentro de um `overflow-hidden` — cortadas, e agora sem sequer
+   rolar para lá chegar. Passou na primeira execução por sorte (o módulo financeiro resolveu
+   depois e disparou o `watch`) e falhou na segunda.
+2. **O rótulo do botão fazia cascata.** A primeira versão punha ali o nome da secção activa;
+   como o botão é `shrink-0`, o rótulo mais largo encolhia a tira e empurrava mais uma aba
+   para o menu. Escolher uma secção escondida fazia desaparecer uma visível — a mesma tira
+   instável que a ordem fixa existe para evitar.
+
+### Secções dobráveis na coluna da oportunidade · na fila desde 01/10/2026
+
+A alternativa que a pesquisa trouxe e que não foi implementada: substituir a tira de abas por
+secções que abrem e fecham, como o Pipedrive faz nesta mesma posição. Nenhum sistema de design
+a reprova, os títulos ficam todos visíveis sem menu, e aguenta quinze secções sem mudar de
+comportamento.
+
+**Não entrou porque mede pior onde a queixa doía:** a secção aberta fica com ~400px de tecto
+em vez dos 605 que a tira de uma linha lhe dá, porque divide a coluna com os cabeçalhos das
+outras oito. A queixa que deu origem a este trabalho foi falta de espaço.
+
+**Quando reabrir:** no dia em que um funil real passe das doze secções. Aí a tira fica com
+«+9 mais» e o acordeão passa a ser a resposta certa.
+
 ## Achados abertos
 
 ### O selo de variação aponta para «bom», não para onde o número foi · 26/09/2026

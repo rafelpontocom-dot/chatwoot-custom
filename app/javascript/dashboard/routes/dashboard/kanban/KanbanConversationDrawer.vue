@@ -86,12 +86,21 @@ watch(() => [props.show, props.conversationId], activateConversation, {
           is-inbox-view
           is-on-expanded-layout
         />
+        <!--
+          27rem e não 22: a ficha vivia em 309px de formulário, e a 309px o
+          rótulo «O que foi combinado?» quebrava em duas linhas antes de chegar
+          ao campo. Medido na gaveta: a conversa fica com 720px, acima dos 640
+          onde o compositor começa a apertar.
+        -->
         <aside
           v-if="hasConversation"
           data-testid="kanban-drawer-opportunity"
-          class="hidden min-h-0 w-[22rem] shrink-0 overflow-y-auto border-l border-n-weak bg-n-surface-2 p-2 lg:block"
+          class="hidden min-h-0 w-[27rem] shrink-0 overflow-y-auto border-l border-n-weak bg-n-surface-2 p-2 lg:block"
         >
-          <KanbanConversationOpportunity :conversation-id="conversationId" />
+          <KanbanConversationOpportunity
+            :conversation-id="conversationId"
+            from-board
+          />
         </aside>
       </div>
     </aside>

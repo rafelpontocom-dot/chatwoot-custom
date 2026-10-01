@@ -1434,7 +1434,8 @@
         "GENERAL": "General",
         "CALENDAR": "Calendar",
         "MARKETING": "Marketing",
-        "TIMELINE": "Timeline"
+        "TIMELINE": "Timeline",
+        "MORE": "+{count} more"
       },
       "DESCRIPTION_PLACEHOLDER": "Add a note for this opportunity",
       "OWNER": "Sales owner",
