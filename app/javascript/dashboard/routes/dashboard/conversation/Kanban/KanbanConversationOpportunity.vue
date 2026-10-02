@@ -20,6 +20,18 @@ const props = defineProps({
     type: [Number, String],
     required: true,
   },
+  /**
+   * A ficha foi aberta a partir do funil, e não da barra lateral da conversa.
+   *
+   * Muda duas coisas, e as duas pela mesma razão: ali a oportunidade **já está
+   * num funil**, porque foi de lá que a gaveta abriu. «Adicionar ao Kanban» não
+   * tem o que fazer, e o espaço que ele ocupava — mais os 123px que sobravam
+   * por baixo — passa para a ficha, que estava a cortar campos a meio.
+   */
+  fromBoard: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const { t } = useI18n();
@@ -98,7 +110,7 @@ const onUpdated = () => loadCards({ silent: true });
 </script>
 
 <template>
-  <div class="grid gap-2">
+  <div :class="fromBoard ? 'flex h-full min-h-0 flex-col gap-2' : 'grid gap-2'">
     <p
       v-if="isLoading"
       data-testid="kanban-conversation-opportunity-loading"
@@ -134,11 +146,19 @@ const onUpdated = () => loadCards({ silent: true });
       </label>
 
       <!--
-        A ficha inteira, em modo gaveta: cresce até ao fim da barra lateral e
-        rola por dentro, em vez de empurrar a conversa.
+        A ficha inteira, em modo gaveta: cresce até ao fim da coluna e rola por
+        dentro, em vez de empurrar a conversa.
+
+        Vinda do funil, a caixa vai até ao fim: o `max-h` estava calculado para
+        a barra lateral da conversa e, na gaveta, acabava 123px antes do fundo —
+        cortava um campo a meio e deixava espaço vazio por baixo.
       -->
       <div
-        class="-mx-2 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-lg border border-n-weak"
+        :class="
+          fromBoard
+            ? '-mx-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-n-weak'
+            : '-mx-2 flex max-h-[calc(100vh-14rem)] min-h-[28rem] flex-col overflow-hidden rounded-lg border border-n-weak'
+        "
       >
         <KanbanOpportunityDetailsModal
           :key="selectedCard.id"
@@ -166,7 +186,13 @@ const onUpdated = () => loadCards({ silent: true });
         />
       </div>
 
+      <!--
+        Só fora do funil. Na gaveta do Pipeline a oportunidade já está no funil
+        — foi de lá que a gaveta abriu —, e o botão ficava solto por baixo da
+        caixa a propor o que já estava feito.
+      -->
       <button
+        v-if="!fromBoard"
         type="button"
         data-testid="kanban-conversation-new-opportunity"
         class="justify-self-start rounded-md px-1 py-1 text-xs font-medium text-n-brand outline-none hover:underline focus-visible:ring-2 focus-visible:ring-n-brand"
@@ -175,7 +201,7 @@ const onUpdated = () => loadCards({ silent: true });
         {{ t('CONVERSATION_SIDEBAR.KANBAN.ADD') }}
       </button>
       <KanbanConversationCards
-        v-if="showCreateForm"
+        v-if="showCreateForm && !fromBoard"
         :conversation-id="conversationId"
       />
     </template>

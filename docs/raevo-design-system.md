@@ -257,6 +257,42 @@ alguém puser uma em cada indicador, a linha quebra e volta a ter duas alturas.
 No Pipeline nenhum indicador leva nota, e é escolha: o que o rodapé lá levava (o valor fechado,
 o denominador da taxa) está na faixa **Resumo**, a um clique no cabeçalho.
 
+### A tira de abas numa coluna estreita — uma linha, e «+N mais»
+
+**Duas linhas de navegação acima do conteúdo é um anti-padrão com nome.** Carbon («em
+ecrãs estreitos as abas não devem quebrar para várias linhas nem empilhar-se; devem rolar»),
+Material («linha única, e não umas por baixo das outras»), CMS Design System («evite abas a
+transbordar para novas linhas; se não cabem, considere outro padrão») e ICDS («os rótulos
+mostram-se sempre numa linha»). O que PatternFly e o Horizon mandam fazer quando não cabem é
+passá-las uma a uma para um menu **«+N mais»**, sempre o último da direita.
+
+A gaveta de conversa do Pipeline fazia a terceira coisa, que é pior do que as duas: **rolava
+sem dizer que rolava.** Medido antes: 571px de abas em 197px úteis — 374px invisíveis, sem
+seta, sem sombra, sem contagem, e «Financeiro» cortado a meio da palavra.
+
+Regras, por ordem de importância:
+
+- **Uma linha, sempre.** `overflow-hidden` na tira, nunca `flex-wrap`, nunca
+  `overflow-x-auto`. Rolar escondido é o defeito; quebrar é o anti-padrão.
+- **O que não cabe desce para «+N mais»**, e a contagem é o aviso. O defeito nunca foi haver
+  abas escondidas: foi não haver nada a dizer que existem.
+- **A ordem é fixa.** Promover a aba usada para a tira dá uma tira que muda de lugar debaixo
+  de quem está a trabalhar.
+- **O rótulo do botão não muda de largura.** Pôr lá o nome da secção activa parece melhor e
+  não é: o botão é `shrink-0`, um rótulo mais largo encolhe a tira, o `ResizeObserver` dispara
+  e mais uma aba desce — escolher uma secção escondida fazia desaparecer uma visível. Quem
+  está onde lê-se pela marca no botão, pelo `title`, e pelo item em `n-brand` dentro do menu.
+- **As setas atravessam o menu.** `ArrowLeft`/`ArrowRight` percorrem **todas** as secções,
+  inclusive as escondidas; quando a próxima está no menu, o foco vai para o botão. Sem isto o
+  teclado pára na primeira escondida.
+- **Quantas cabem mede-se no browser**, com uma régua fora do ecrã e um `ResizeObserver`. Não
+  é constante: muda com o idioma, com os nomes que a clínica der às secções e com a largura da
+  gaveta. **E a medição espera pela ficha, não pela montagem** — o formulário só existe depois
+  de `card` chegar, e medir em `onMounted` deixava a tira com todas as abas dentro de um
+  `overflow-hidden`, cortadas e agora sem sequer rolar para lá chegar.
+- **O `+` de criar secção vive no fim**: no fim da tira quando não há transbordo, no fim do
+  menu quando há. No meio da tira lia-se como se pertencesse à aba seguinte.
+
 ### A quarta densidade: `list` — o indicador como caminho
 
 `card`, `strip` e `inline` respondem a «o número é o assunto desta tela, ou a moldura

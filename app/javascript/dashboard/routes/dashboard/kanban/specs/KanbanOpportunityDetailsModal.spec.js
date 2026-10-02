@@ -1039,13 +1039,43 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(titulo.classes()).not.toContain('truncate');
   });
 
-  it('scrolls the tab strip instead of letting it grow in height', async () => {
+  // A tira rolava, e rolar sem aviso era o defeito: medido na gaveta do
+  // Pipeline, 571px de abas em 197px úteis — 374px invisíveis, sem seta nem
+  // contagem. Agora o que não cabe desce para «+N mais». O que esta asserção
+  // trava é o que continua proibido nos dois casos: crescer em altura.
+  it('never lets the tab strip grow in height', async () => {
     const wrapper = await mountModal();
     const tiras = wrapper.find('[role="tablist"]');
 
-    // `flex-wrap` empilhava as abas e, como a tira é sticky, comia o painel.
-    expect(tiras.classes()).toContain('overflow-x-auto');
     expect(tiras.classes()).not.toContain('flex-wrap');
+    expect(tiras.classes()).toContain('overflow-hidden');
+  });
+
+  // O bloco «Últimos eventos» gastava 104px do painel para mostrar UM evento e um
+  // link «Ver histórico completo» — para o separador Histórico, que está na
+  // mesma tira, a dois centímetros dali. O histórico inteiro continua lá.
+  it('does not repeat the timeline inside the general tab', async () => {
+    const wrapper = await mountModal();
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-recent-activity"]')
+        .exists()
+    ).toBe(false);
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-tab-timeline"]').exists()
+    ).toBe(true);
+  });
+
+  // O `+` de criar secção morava no MEIO da tira, entre as abas e o Histórico
+  // preso à direita — lia-se como se pertencesse ao Histórico. Sem transbordo
+  // fica no fim da tira; com transbordo desce para o fim do menu.
+  it('puts the add-section control at the end of the strip', async () => {
+    const wrapper = await mountModal();
+    const botoes = wrapper.findAll('nav button');
+    const ultimo = botoes[botoes.length - 1];
+
+    expect(ultimo.attributes('data-testid')).toBe('kanban-opportunity-add-tab');
   });
 
   it('keeps drawer content in one column so the commercial context cannot overlap fields', async () => {

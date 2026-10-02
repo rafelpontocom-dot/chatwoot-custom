@@ -190,6 +190,33 @@ template é o mesmo erro com outro nome.
 quatro indicadores diziam isso. A ausência de seta já diz que não há base de
 comparação. (Com `inline` a questão não se põe: não há rodapé.)
 
+## Tira de abas: uma linha, e «+N mais» — nunca duas
+
+**Duas linhas de navegação acima do conteúdo é um anti-padrão nomeado** por Carbon, Material,
+CMS Design System e ICDS. Quando as abas não cabem, o que se faz é passá-las para um menu
+contado no fim da tira — é o que PatternFly e Horizon mandam, e é o que a gaveta do Pipeline
+faz desde 01/10.
+
+O defeito que isto corrige **nunca foi haver abas escondidas**: foi a tira rolar sem dizer que
+rolava. Medido antes: 571px de abas em 197px úteis, 374px invisíveis, sem seta nem contagem.
+
+Cinco regras, e quatro delas vieram de defeitos reais:
+
+1. **`overflow-hidden` na tira.** Nunca `flex-wrap` (anti-padrão), nunca `overflow-x-auto`
+   (esconde sem avisar).
+2. **A ordem é fixa.** Promover a aba usada dá uma tira que muda debaixo de quem trabalha.
+3. **O rótulo do botão não muda de largura.** Pôr lá o nome da secção activa encolhe a tira
+   — o botão é `shrink-0` — e empurra mais uma aba para o menu: escolher uma escondida fazia
+   desaparecer uma visível.
+4. **As setas atravessam o menu.** Quando a próxima secção está escondida, o foco vai para o
+   botão. Sem isto o teclado pára na primeira.
+5. **Medir espera pela ficha, não pela montagem.** Em `onMounted` o contentor ainda não
+   existe, o `ResizeObserver` não se liga, e a tira fica com tudo dentro de um
+   `overflow-hidden`. Passou numa execução e falhou na seguinte — é uma corrida, mede-se duas
+   vezes.
+
+Ver `docs/raevo-design-system.md` §5 e a decisão em `docs/raevo-aprovacao.md`.
+
 ## Paleta de etapas do funil — travada
 
 `#2563EB` `#0F9D8F` `#B45309` `#A21CAF` (+ `#98A0AE` para etapa terminal).
@@ -324,6 +351,7 @@ que se mostra a quem não lê código:
 | --- | --- |
 | [Raevo · Sistema Aprovado](https://claude.ai/artifact/2ACSDXn19DZKFWUos9pnaA) | o demonstrador: catorze telas na direção aprovada, **mais a secção «O sistema, em números»** — cor, tipografia, raio, caixa e as três densidades do indicador, com os valores |
 | [Indicadores no canto](https://claude.ai/artifact/AM7QHMa8pwVaiZ7K5GteSL) | a decisão de 26/09 entre as duas propostas de fila, com as medições e as capturas |
+| [A coluna da oportunidade](https://claude.ai/artifact/DmSLDVWe2Ew2rx8kcBbMcD) | a decisão de 01/10 sobre a tira de abas: as duas propostas iniciais, a pesquisa que reprovou a escolhida, e a A′ que ficou |
 
 **Mudou token, primitivo ou padrão? Actualize o demonstrador na mesma passagem.** Um espelho
 desactualizado é pior do que nenhum: alguém desenha a partir dele e a divergência só aparece na

@@ -41,9 +41,9 @@ const settings = {
   calendar_procedure_ids: [7],
 };
 
-const mountPanel = () =>
+const mountPanel = (props = {}) =>
   shallowMount(KanbanConversationOpportunity, {
-    props: { conversationId: 55 },
+    props: { conversationId: 55, ...props },
     global: {
       stubs: {
         KanbanConversationCards: {
@@ -182,5 +182,51 @@ describe('KanbanConversationOpportunity', () => {
         .find('[data-testid="kanban-conversation-opportunity-loading"]')
         .exists()
     ).toBe(false);
+  });
+
+  // Aberta a partir do funil, a oportunidade JÁ está num funil — foi de lá que a
+  // gaveta abriu. O botão ficava solto por baixo da caixa a propor o que já
+  // estava feito, e os 123px por baixo dele ficavam vazios enquanto a ficha
+  // cortava um campo a meio lá em cima.
+  describe('opened from the board', () => {
+    it('drops the «add to kanban» button', async () => {
+      const wrapper = mountPanel({ fromBoard: true });
+      await flushPromises();
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-conversation-new-opportunity"]')
+          .exists()
+      ).toBe(false);
+    });
+
+    it('keeps the button in the conversation sidebar', async () => {
+      const wrapper = mountPanel();
+      await flushPromises();
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-conversation-new-opportunity"]')
+          .exists()
+      ).toBe(true);
+    });
+
+    // O `max-h` estava calculado para a barra lateral da conversa. Na gaveta
+    // acabava 123px antes do fundo da coluna.
+    it('lets the record run to the bottom of the column', async () => {
+      const daGaveta = mountPanel({ fromBoard: true });
+      await flushPromises();
+      const caixaGaveta = daGaveta.find('.-mx-2');
+
+      expect(caixaGaveta.classes()).toContain('flex-1');
+      expect(caixaGaveta.classes()).not.toContain('max-h-[calc(100vh-14rem)]');
+
+      const daConversa = mountPanel();
+      await flushPromises();
+
+      expect(daConversa.find('.-mx-2').classes()).toContain(
+        'max-h-[calc(100vh-14rem)]'
+      );
+    });
   });
 });

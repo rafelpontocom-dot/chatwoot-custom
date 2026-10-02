@@ -1,5 +1,12 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
@@ -701,6 +708,190 @@ const opportunityTabs = computed(() => {
   ];
 });
 
+/**
+ * A tira de abas: UMA linha, e o que não cabe desce para um menu contado.
+ *
+ * Duas linhas de navegação acima do conteúdo é um anti-padrão com nome — Carbon
+ * («as abas não devem quebrar para várias linhas»), Material («linha única»),
+ * CMS Design System («se não cabem numa linha, considere outro padrão») e ICDS
+ * («os rótulos mostram-se sempre numa linha»). O transbordo contado é a correção
+ * que o PatternFly e o Horizon mandam fazer.
+ *
+ * O defeito que isto corrige não é haver abas escondidas: é a tira rolar sem
+ * dizer que rola. Medido na gaveta do Pipeline antes desta mudança: 571px de
+ * abas em 197px úteis — 374px invisíveis, sem seta nem sombra nem contagem, e
+ * «Financeiro» cortado a meio da palavra.
+ *
+ * A ordem é FIXA. Promover a aba usada para a tira dava uma tira que muda de
+ * lugar debaixo de quem está a trabalhar.
+ */
+const tabRuler = ref(null);
+const tabStripWidth = ref(0);
+const tabNaturalWidths = ref(new Map());
+// Medida do botão «+N mais» com a contagem mais larga que o produto produz.
+const TAB_OVERFLOW_RESERVE = 86;
+
+const measureTabs = () => {
+  const ruler = tabRuler.value;
+  const strip = tabList.value;
+  if (!ruler || !strip) return;
+
+  tabNaturalWidths.value = new Map(
+    Array.from(ruler.querySelectorAll('[data-tab-ruler]'), node => [
+      node.dataset.tabRuler,
+      node.getBoundingClientRect().width,
+    ])
+  );
+  tabStripWidth.value = strip.getBoundingClientRect().width;
+};
+
+const visibleTabCount = computed(() => {
+  const widths = tabNaturalWidths.value;
+  const available = tabStripWidth.value;
+  const tabs = opportunityTabs.value;
+  // Antes da primeira medição mostram-se todas: o painel abre com a tira certa
+  // e encolhe no frame seguinte, em vez de abrir com uma aba só.
+  if (!available || !widths.size) return tabs.length;
+
+  const cumulative = [];
+  tabs.reduce((total, tab) => {
+    const next = total + (widths.get(tab.key) || 0);
+    cumulative.push(next);
+    return next;
+  }, 0);
+
+  // Enquanto sobrarem abas, é preciso guardar espaço para o «+N mais».
+  const firstThatDoesNotFit = cumulative.findIndex(
+    (total, index) =>
+      total + (index + 1 < tabs.length ? TAB_OVERFLOW_RESERVE : 0) > available
+  );
+  if (firstThatDoesNotFit < 0) return tabs.length;
+
+  // Uma aba visível é o mínimo: uma tira só com o menu não diz onde se está.
+  return Math.max(firstThatDoesNotFit, 1);
+});
+
+const visibleTabs = computed(() =>
+  opportunityTabs.value.slice(0, visibleTabCount.value)
+);
+const overflowTabs = computed(() =>
+  opportunityTabs.value.slice(visibleTabCount.value)
+);
+const activeTabIsOverflowed = computed(() =>
+  overflowTabs.value.some(tab => tab.key === activeTabKey.value)
+);
+/**
+ * O rótulo é SEMPRE «+N mais», e isso é uma correção, não uma simplificação.
+ *
+ * A primeira versão punha ali o nome da secção activa. Medido na jornada: o
+ * botão é `shrink-0`, logo um rótulo mais largo encolhe a tira, o
+ * `ResizeObserver` dispara, e mais uma aba desce para o menu — escolher uma
+ * secção escondida fazia desaparecer uma visível. É a mesma tira a mudar
+ * debaixo de quem trabalha que a ordem fixa existe para evitar, por outra porta.
+ *
+ * Quem está onde continua a ler-se: o botão fica com a marca do separador
+ * activo, o `title` diz o nome, e no menu a secção activa vem em `n-brand` com
+ * `aria-current`.
+ */
+const overflowButtonLabel = computed(() =>
+  t('KANBAN.OPPORTUNITY_DETAILS.TABS.MORE', {
+    count: overflowTabs.value.length,
+  })
+);
+const overflowButtonTitle = computed(() => {
+  const active = overflowTabs.value.find(tab => tab.key === activeTabKey.value);
+  return active ? active.label : t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL');
+});
+
+const showTabOverflow = ref(false);
+const tabOverflowButton = ref(null);
+const tabOverflowMenu = ref(null);
+
+const closeTabOverflow = ({ restoreFocus = false } = {}) => {
+  if (!showTabOverflow.value) return;
+
+  showTabOverflow.value = false;
+  if (restoreFocus) tabOverflowButton.value?.focus();
+};
+
+const pickOverflowTab = key => {
+  activeTabKey.value = key;
+  closeTabOverflow({ restoreFocus: true });
+};
+
+const handleTabKeydown = async event => {
+  const currentIndex = opportunityTabs.value.findIndex(
+    tab => tab.key === activeTabKey.value
+  );
+  if (currentIndex < 0) return;
+
+  let nextIndex = currentIndex;
+  if (event.key === 'ArrowRight') {
+    nextIndex = (currentIndex + 1) % opportunityTabs.value.length;
+  } else if (event.key === 'ArrowLeft') {
+    nextIndex =
+      (currentIndex - 1 + opportunityTabs.value.length) %
+      opportunityTabs.value.length;
+  } else if (event.key === 'Home') {
+    nextIndex = 0;
+  } else if (event.key === 'End') {
+    nextIndex = opportunityTabs.value.length - 1;
+  } else {
+    return;
+  }
+
+  event.preventDefault();
+  activeTabKey.value = opportunityTabs.value[nextIndex].key;
+  await nextTick();
+  // As setas percorrem as secções todas, inclusive as que desceram para o
+  // «+N mais». Quando a próxima está lá, o foco vai para o botão do menu — que
+  // já mostra o nome dela —, em vez de se perder num elemento que não existe.
+  const focusTarget =
+    tabList.value?.querySelector(
+      `#kanban-opportunity-tab-${activeTabKey.value}`
+    ) || tabOverflowButton.value;
+  focusTarget?.focus();
+};
+
+const handleOverflowKeydown = event => {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+    closeTabOverflow({ restoreFocus: true });
+    return;
+  }
+
+  // Sem isto as setas paravam na primeira secção escondida: `handleTabKeydown`
+  // só estava ligado aos botões visíveis, e o foco ficava preso no «+N mais»
+  // sem forma de chegar às restantes pelo teclado.
+  handleTabKeydown(event);
+};
+
+let tabResizeObserver = null;
+
+/**
+ * Medir tem de esperar pela ficha, não pela montagem.
+ *
+ * O formulário — e com ele a tira e a régua — só existe depois de `card`
+ * chegar. Em `onMounted` o `tabList` ainda é `null`, portanto o
+ * `ResizeObserver` nunca se ligava e a medição nunca acontecia: `visibleTabCount`
+ * caía no ramo «ainda não medi, mostra todas» e a tira ficava com as oito abas
+ * dentro de um `overflow-hidden` — 651px de conteúdo em 353px, cortados, e
+ * agora sem sequer rolar para lá chegar.
+ *
+ * Apanhado na segunda passagem da porta visual. Na primeira passou por sorte:
+ * o módulo financeiro resolveu depois da ficha, `opportunityTabs` mudou, e o
+ * `watch` mediu.
+ */
+const syncTabStrip = async () => {
+  await nextTick();
+  measureTabs();
+  if (tabResizeObserver || typeof ResizeObserver === 'undefined') return;
+  if (!tabList.value) return;
+
+  tabResizeObserver = new ResizeObserver(measureTabs);
+  tabResizeObserver.observe(tabList.value);
+};
+
 const normalizeCard = payload =>
   Object.fromEntries(
     Object.entries({
@@ -1356,7 +1547,6 @@ const timelineItems = computed(() =>
     automations: event.automations || [],
   }))
 );
-const timelineRecentItems = computed(() => timelineItems.value.slice(0, 3));
 
 const buildCardPayload = extraPayload => ({
   subject: subject.value.trim(),
@@ -1654,35 +1844,6 @@ const handleModalKeydown = event => {
   showUnsavedChanges.value = true;
 };
 
-const handleTabKeydown = async event => {
-  const currentIndex = opportunityTabs.value.findIndex(
-    tab => tab.key === activeTabKey.value
-  );
-  if (currentIndex < 0) return;
-
-  let nextIndex = currentIndex;
-  if (event.key === 'ArrowRight') {
-    nextIndex = (currentIndex + 1) % opportunityTabs.value.length;
-  } else if (event.key === 'ArrowLeft') {
-    nextIndex =
-      (currentIndex - 1 + opportunityTabs.value.length) %
-      opportunityTabs.value.length;
-  } else if (event.key === 'Home') {
-    nextIndex = 0;
-  } else if (event.key === 'End') {
-    nextIndex = opportunityTabs.value.length - 1;
-  } else {
-    return;
-  }
-
-  event.preventDefault();
-  activeTabKey.value = opportunityTabs.value[nextIndex].key;
-  await nextTick();
-  tabList.value
-    ?.querySelector(`#kanban-opportunity-tab-${activeTabKey.value}`)
-    ?.focus();
-};
-
 const editSubject = async () => {
   isEditingSubject.value = true;
   await nextTick();
@@ -1690,6 +1851,14 @@ const editSubject = async () => {
 };
 
 defineExpose({ requestClose });
+
+const handleDocumentPointerDown = event => {
+  if (!showTabOverflow.value) return;
+  if (tabOverflowMenu.value?.contains(event.target)) return;
+  if (tabOverflowButton.value?.contains(event.target)) return;
+
+  closeTabOverflow();
+};
 
 onMounted(() => {
   loadCard();
@@ -1699,7 +1868,21 @@ onMounted(() => {
   // sem as definicoes carregadas o bloco de contato volta a mostrar
   // apenas os atributos que ja tinham valor
   store.dispatch('attributes/get');
+
+  // Quantas abas cabem não é uma constante: muda com o idioma, com os nomes que
+  // a clínica deu às secções e com a largura da gaveta, que o utilizador mexe.
+  syncTabStrip();
+  document.addEventListener('pointerdown', handleDocumentPointerDown);
 });
+
+onBeforeUnmount(() => {
+  tabResizeObserver?.disconnect();
+  document.removeEventListener('pointerdown', handleDocumentPointerDown);
+});
+
+// `card` é o que faz a ficha — e a tira — existir; `opportunityTabs` muda quando
+// se liga o Financeiro ou se cria uma secção. Os dois mandam medir outra vez.
+watch([card, opportunityTabs], syncTabStrip);
 
 watch(activeTabKey, tab => {
   if (tab === 'finance') loadFinancePayments();
@@ -1998,19 +2181,43 @@ watch(invitationPendingRevocation, async invitation => {
           Rolar sem rato está resolvido: `handleTabKeydown` navega com as setas e
           o foco traz a aba para a vista.
         -->
+        <!--
+          UMA linha de abas, e o que não cabe desce para «+N mais». Ver o bloco
+          de comentário em `visibleTabCount`: duas linhas de navegação é um
+          anti-padrão nomeado por quatro sistemas de design, e a tira que rolava
+          escondia 374px dos seus 571px sem dizer nada a ninguém.
+        -->
         <nav
           class="sticky top-0 z-10 flex min-w-0 items-stretch border-b border-n-weak bg-n-solid-1"
           :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL')"
         >
+          <!--
+            Régua: a mesma tira fora do ecrã, para medir a largura natural de
+            cada aba. Sem ela não há como saber quantas cabem — e o número
+            depende do idioma e dos nomes que a clínica der às secções.
+          -->
+          <div
+            ref="tabRuler"
+            aria-hidden="true"
+            class="pointer-events-none invisible absolute left-0 top-0 flex gap-x-1 whitespace-nowrap"
+          >
+            <span
+              v-for="tab in opportunityTabs"
+              :key="`ruler-${tab.key}`"
+              :data-tab-ruler="tab.key"
+              class="px-3 py-2.5 text-xs font-semibold"
+            >
+              {{ tab.label }}
+            </span>
+          </div>
+
           <div
             ref="tabList"
-            class="flex min-w-0 flex-1 gap-x-1 overflow-x-auto"
+            class="flex min-w-0 flex-1 gap-x-1 overflow-hidden"
             role="tablist"
           >
             <button
-              v-for="tab in opportunityTabs.filter(
-                tab => tab.key !== 'timeline'
-              )"
+              v-for="tab in visibleTabs"
               :id="`kanban-opportunity-tab-${tab.key}`"
               :key="tab.key"
               type="button"
@@ -2030,8 +2237,70 @@ watch(invitationPendingRevocation, async invitation => {
               {{ tab.label }}
             </button>
           </div>
+
+          <div v-if="overflowTabs.length" class="relative shrink-0">
+            <button
+              ref="tabOverflowButton"
+              type="button"
+              data-testid="kanban-opportunity-tab-overflow"
+              class="border-solid h-full whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
+              :class="
+                activeTabIsOverflowed
+                  ? 'border-n-brand text-n-brand'
+                  : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
+              "
+              aria-haspopup="menu"
+              :aria-expanded="showTabOverflow"
+              :title="overflowButtonTitle"
+              @click="showTabOverflow = !showTabOverflow"
+              @keydown="handleOverflowKeydown"
+            >
+              {{ overflowButtonLabel }}
+            </button>
+            <div
+              v-if="showTabOverflow"
+              ref="tabOverflowMenu"
+              data-testid="kanban-opportunity-tab-overflow-menu"
+              role="menu"
+              class="absolute end-0 top-full z-20 mt-1 grid min-w-[11rem] gap-0.5 rounded-lg border border-solid border-n-weak bg-n-solid-1 p-1 shadow-lg"
+              @keydown="handleOverflowKeydown"
+            >
+              <button
+                v-for="tab in overflowTabs"
+                :key="`overflow-${tab.key}`"
+                type="button"
+                role="menuitem"
+                :data-testid="`kanban-opportunity-tab-overflow-${tab.key}`"
+                class="rounded-md px-2 py-1.5 text-left text-xs font-medium outline-none hover:bg-n-slate-3 focus-visible:ring-2 focus-visible:ring-n-brand/40"
+                :class="
+                  activeTabKey === tab.key
+                    ? 'text-n-brand'
+                    : 'text-n-slate-11 hover:text-n-slate-12'
+                "
+                :aria-current="activeTabKey === tab.key ? 'true' : null"
+                @click="pickOverflowTab(tab.key)"
+              >
+                {{ tab.label }}
+              </button>
+              <template v-if="canManageFields">
+                <span class="my-0.5 h-px bg-n-weak" aria-hidden="true" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="kanban-opportunity-add-tab"
+                  class="rounded-md px-2 py-1.5 text-left text-xs font-medium text-n-slate-10 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40"
+                  @click="
+                    closeTabOverflow();
+                    emit('manageFields', { action: 'newTab' });
+                  "
+                >
+                  {{ t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB') }}
+                </button>
+              </template>
+            </div>
+          </div>
           <button
-            v-if="canManageFields"
+            v-else-if="canManageFields"
             type="button"
             data-testid="kanban-opportunity-add-tab"
             class="flex p-0 size-9 shrink-0 items-center justify-center border-s border-solid border-n-weak border-b-2 border-b-transparent text-n-slate-11 hover:text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
@@ -2040,24 +2309,6 @@ watch(invitationPendingRevocation, async invitation => {
             @click="emit('manageFields', { action: 'newTab' })"
           >
             <i class="i-lucide-plus size-4" />
-          </button>
-          <button
-            :id="`kanban-opportunity-tab-${timelineTab.key}`"
-            type="button"
-            :data-testid="`kanban-opportunity-tab-${timelineTab.key}`"
-            class="border-solid whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
-            role="tab"
-            :aria-selected="activeTabKey === timelineTab.key"
-            aria-controls="kanban-opportunity-tab-panel"
-            :class="
-              activeTabKey === timelineTab.key
-                ? 'border-n-brand text-n-brand'
-                : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
-            "
-            @click="activeTabKey = timelineTab.key"
-            @keydown="handleTabKeydown"
-          >
-            {{ timelineTab.label }}
           </button>
         </nav>
 
@@ -2188,34 +2439,6 @@ watch(invitationPendingRevocation, async invitation => {
                     <span v-if="historyItem.note">{{ historyItem.note }}</span>
                   </div>
                 </div>
-              </section>
-              <!--
-                Os últimos três eventos ao lado do contexto comercial, que é
-                onde o sistema aprovado os põe. Coluna fixa não serve aqui: dois
-                testes deste ficheiro travam a gaveta em UMA coluna, «so the
-                commercial context cannot overlap fields», e o 1.35fr/1fr do
-                artefacto foi desenhado para página inteira, não para gaveta.
-                O histórico completo continua no separador.
-              -->
-              <section
-                v-if="timelineRecentItems.length"
-                data-testid="kanban-opportunity-recent-activity"
-                class="grid gap-2 rounded-xl border border-solid border-n-weak bg-n-solid-1 p-card"
-              >
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.RECENT') }}
-                  </h3>
-                  <button
-                    type="button"
-                    data-testid="kanban-opportunity-see-full-history"
-                    class="rounded-lg px-2 py-1 text-xs font-medium text-n-slate-11 outline-none hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40"
-                    @click="activeTabKey = timelineTab.key"
-                  >
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.SEE_ALL') }}
-                  </button>
-                </div>
-                <RaevoTimeline :items="timelineRecentItems" />
               </section>
               <section
                 data-testid="kanban-opportunity-commercial-group"
