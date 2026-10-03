@@ -1,14 +1,17 @@
 import { shallowMount } from '@vue/test-utils';
 import ChatListHeader from '../ChatListHeader.vue';
 
-vi.mock('dashboard/composables/useUISettings', () => ({
-  useUISettings: () => ({
-    uiSettings: { value: {} },
-    updateUISettings: vi.fn(),
-  }),
-}));
+vi.mock('dashboard/composables/useUISettings', async () => {
+  const { ref } = await import('vue');
+  return {
+    useUISettings: () => ({
+      uiSettings: ref({}),
+      updateUISettings: vi.fn(),
+    }),
+  };
+});
 
-const mountHeader = () =>
+const mountHeader = props =>
   shallowMount(ChatListHeader, {
     props: {
       pageTitle: 'Conversations',
@@ -16,35 +19,83 @@ const mountHeader = () =>
       hasActiveFolders: false,
       activeStatus: 'open',
       isOnExpandedLayout: false,
-      conversationStats: {},
+      conversationStats: { allCount: 12 },
       isListLoading: false,
+      ...props,
     },
     global: {
+      mocks: { $t: key => key },
       stubs: {
         RouterLink: {
           name: 'RouterLink',
           props: ['to'],
           template: '<a><slot /></a>',
         },
-        ConversationBasicFilter: true,
-        SwitchLayout: true,
-        NextButton: true,
       },
     },
   });
 
+const contactFilter = { id: 7, name: 'Jane Doe' };
+
 describe('ChatListHeader', () => {
-  it('offers a conversation search shortcut that opens native search', () => {
+  it('opens native conversation search', () => {
     const wrapper = mountHeader();
     const searchLink = wrapper.find('[data-testid="conversation-search"]');
 
     expect(searchLink.exists()).toBe(true);
-    expect(searchLink.attributes('aria-label')).toBe(
-      'Search for People, Chats, Saved Replies ..'
-    );
+    expect(searchLink.attributes('aria-label')).toBe('CHAT_LIST.SEARCH.INPUT');
     expect(wrapper.findComponent({ name: 'RouterLink' }).props('to')).toEqual({
       name: 'search',
       params: { tab: 'conversations' },
     });
+  });
+  it('renders the page title and the filter button without filters', () => {
+    const wrapper = mountHeader();
+
+    expect(wrapper.find('h1').text()).toBe('Conversations');
+    expect(wrapper.find('#toggleConversationFilterButton').exists()).toBe(true);
+    expect(wrapper.find('[icon="i-lucide-chevron-left"]').exists()).toBe(false);
+  });
+
+  it('keeps the page title and the filter button for non contact filters', () => {
+    const wrapper = mountHeader({ hasAppliedFilters: true });
+
+    expect(wrapper.find('h1').text()).toBe('Conversations');
+    expect(wrapper.find('#toggleConversationFilterButton').exists()).toBe(true);
+    expect(wrapper.find('[icon="i-lucide-chevron-left"]').exists()).toBe(true);
+  });
+
+  it('names the contact and hides the filter button when scoped to a contact', () => {
+    const wrapper = mountHeader({ hasAppliedFilters: true, contactFilter });
+
+    expect(wrapper.find('h1').text()).toBe('Jane Doe');
+    expect(wrapper.find('#toggleConversationFilterButton').exists()).toBe(
+      false
+    );
+    expect(wrapper.find('[icon="i-lucide-chevron-left"]').exists()).toBe(true);
+  });
+
+  it('falls back to the page title when the scoped contact has no name', () => {
+    const wrapper = mountHeader({
+      hasAppliedFilters: true,
+      contactFilter: { id: 7, name: '' },
+    });
+
+    expect(wrapper.find('h1').text()).toBe('Conversations');
+    expect(wrapper.find('#toggleConversationFilterButton').exists()).toBe(
+      false
+    );
+  });
+
+  it('keeps the folder controls when a folder is active', () => {
+    const wrapper = mountHeader({
+      hasAppliedFilters: true,
+      hasActiveFolders: true,
+      contactFilter,
+    });
+
+    expect(wrapper.find('h1').text()).toBe('Conversations');
+    expect(wrapper.find('[icon="i-lucide-pen-line"]').exists()).toBe(true);
+    expect(wrapper.find('[icon="i-lucide-trash-2"]').exists()).toBe(true);
   });
 });

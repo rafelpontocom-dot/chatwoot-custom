@@ -1,6 +1,6 @@
 <script setup>
 import '@chatwoot/ninja-keys';
-import { ref, computed, watchEffect, onMounted } from 'vue';
+import { ref, toRef, computed, watch, watchEffect, onMounted } from 'vue';
 import { useStore } from 'dashboard/composables/store';
 import { useTrack } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
@@ -11,6 +11,8 @@ import { useGoToCommandHotKeys } from 'dashboard/composables/commands/useGoToCom
 import { useBulkActionsHotKeys } from 'dashboard/composables/commands/useBulkActionsHotKeys';
 import { useConversationHotKeys } from 'dashboard/composables/commands/useConversationHotKeys';
 import { useRaevoHotKeys } from 'dashboard/composables/commands/useRaevoHotKeys';
+import { useMacroHotKeys } from 'dashboard/composables/commands/useMacroHotKeys';
+import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
 import wootConstants from 'dashboard/constants/globals';
 import {
   GENERAL_EVENTS,
@@ -25,11 +27,19 @@ import {
 } from 'dashboard/helper/commandbar/events';
 import { emitter } from 'shared/helpers/mitt';
 
+const props = defineProps({
+  isPaywalled: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const store = useStore();
 const { t, tm } = useI18n();
 const { resolvedLocale } = useLocale();
 
 const ninjakeys = ref(null);
+const resolveAttributesModalRef = ref(null);
 
 // Added selectedSnoozeType to track the selected snooze type
 // So if the selected snooze type is "custom snooze" then we set selectedSnoozeType with the CMD action id
@@ -38,10 +48,27 @@ const selectedSnoozeType = ref(null);
 
 const { goToAppearanceHotKeys } = useAppearanceHotKeys();
 const { inboxHotKeys } = useInboxHotKeys();
-const { goToCommandHotKeys } = useGoToCommandHotKeys();
+const { goToCommandHotKeys } = useGoToCommandHotKeys(
+  toRef(props, 'isPaywalled')
+);
 const { bulkActionsHotKeys } = useBulkActionsHotKeys();
 const { conversationHotKeys } = useConversationHotKeys();
 const { raevoHotKeys } = useRaevoHotKeys();
+const {
+  macroHotKeys,
+  pendingAttributes,
+  submitPendingAttributes,
+  dismissPendingAttributes,
+} = useMacroHotKeys();
+
+watch(pendingAttributes, pending => {
+  if (pending) {
+    resolveAttributesModalRef.value?.open(
+      pending.missing,
+      pending.customAttributes
+    );
+  }
+});
 
 const SNOOZE_PARENT_IDS = [
   'snooze_conversation',
@@ -64,6 +91,10 @@ const placeholder = computed(() =>
 const SNOOZE_PRESET_IDS = new Set(Object.values(wootConstants.SNOOZE_OPTIONS));
 
 const hotKeys = computed(() => {
+  if (props.isPaywalled) {
+    return [...goToAppearanceHotKeys.value, ...goToCommandHotKeys.value];
+  }
+
   const allActions = [
     ...dynamicSnoozeActions.value,
     ...inboxHotKeys.value,
@@ -72,6 +103,7 @@ const hotKeys = computed(() => {
     ...goToAppearanceHotKeys.value,
     ...bulkActionsHotKeys.value,
     ...conversationHotKeys.value,
+    ...macroHotKeys.value,
   ];
   // When dynamic NLP snooze suggestions exist, hide all preset snooze actions to avoid duplication
   if (!dynamicSnoozeActions.value.length) return allActions;
@@ -230,6 +262,11 @@ onMounted(() => {
     @change="onCommandBarChange"
     @selected="onSelected"
     @closed="onClosed"
+  />
+  <ConversationResolveAttributesModal
+    ref="resolveAttributesModalRef"
+    @submit="submitPendingAttributes"
+    @close="dismissPendingAttributes"
   />
 </template>
 

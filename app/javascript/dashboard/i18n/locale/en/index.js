@@ -5,6 +5,7 @@ import attributesMgmt from './attributesMgmt.json';
 import auditLogs from './auditLogs.json';
 import automation from './automation.json';
 import bulkActions from './bulkActions.json';
+import calls from './calls.json';
 import campaign from './campaign.json';
 import calendar from './calendar.json';
 import finance from './finance.json';
@@ -43,6 +44,7 @@ import sla from './sla.json';
 import snooze from './snooze.json';
 import teamsSettings from './teamsSettings.json';
 import whatsappTemplates from './whatsappTemplates.json';
+import whatsappTemplateMgmt from './whatsappTemplateMgmt.json';
 import contentTemplates from './contentTemplates.json';
 import mfa from './mfa.json';
 import onboarding from './onboarding.json';
@@ -57,6 +59,7 @@ export default {
   ...auditLogs,
   ...automation,
   ...bulkActions,
+  ...calls,
   ...campaign,
   ...calendar,
   ...finance,
@@ -95,6 +98,7 @@ export default {
   ...snooze,
   ...teamsSettings,
   ...whatsappTemplates,
+  ...whatsappTemplateMgmt,
   ...contentTemplates,
   ...mfa,
   ...onboarding,

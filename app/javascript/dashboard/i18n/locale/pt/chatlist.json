@@ -44,12 +44,10 @@
     },
     "CHAT_TIME_STAMP": {
       "CREATED": {
-        "LATEST": "Criado",
         "OLDEST": "Criada em:"
       },
       "LAST_ACTIVITY": {
-        "NOT_ACTIVE": "Última atividade:",
-        "ACTIVE": "Última atividade"
+        "NOT_ACTIVE": "Última atividade:"
       }
     },
     "SORT_ORDER_ITEMS": {
@@ -144,6 +142,7 @@
     "SHOW_QUOTED_TEXT": "Mostrar texto citado",
     "MESSAGE_READ": "Lida",
     "SENDING": "Enviando",
-    "UNREAD_COUNT_OVERFLOW": "9+"
+    "UNREAD_COUNT_OVERFLOW": "9+",
+    "FETCH_ERROR": "Couldn't load conversations. Please try again."
   }
 }

@@ -998,6 +998,7 @@
       "3xl"
     ],
     "extras": {
+      "xxxs": "0.5rem",
       "xxs": "0.625rem",
       "micro": [
         "11px",

@@ -83,6 +83,10 @@
       "FACEBOOK_LOADING": "Carregando as suas Páginas do Facebook…",
       "FACEBOOK_NO_PAGES": "Nenhuma Página disponível para conectar. Todas as suas Páginas já estão conectadas.",
       "FACEBOOK_ERROR": "Não foi possível conectar ao Facebook. Tente de novo."
+    },
+    "META_RESTRICTION": {
+      "MESSAGE": "Inbox setup for Facebook, Instagram, and WhatsApp is temporarily unavailable due to an API-level issue on Meta’s side, not a problem with Chatwoot. We’re working closely with Meta to resolve it as quickly as possible.",
+      "STATUS_LINK": "View status updates"
     }
   }
 }

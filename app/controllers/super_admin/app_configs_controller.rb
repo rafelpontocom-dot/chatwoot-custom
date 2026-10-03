@@ -18,6 +18,19 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     'marketing' => %w[MARKETING_META_APP_ID MARKETING_META_APP_SECRET MARKETING_META_VERIFY_TOKEN
                       MARKETING_META_OAUTH_CALLBACK_URL]
   }.freeze
+  GENERAL_CONFIGS = %w[ENABLE_ACCOUNT_SIGNUP FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS WEBHOOK_TIMEOUT MAXIMUM_FILE_UPLOAD_SIZE
+                       WIDGET_TOKEN_EXPIRY].freeze
+  META_INCIDENT_CONFIGS = %w[DISABLE_META_INBOX_CREATION DISABLE_META_MESSAGE_SENDING].freeze
+  SHOPIFY_CONFIGS = %w[
+    ENABLE_SHOPIFY_INTEGRATION
+    SHOPIFY_CLIENT_ID
+    SHOPIFY_CLIENT_SECRET
+    SHOPIFY_APP_STORE_URL
+    SHOPIFY_PARTNER_ORGANIZATION_ID
+    SHOPIFY_PARTNER_APP_ID
+    SHOPIFY_PARTNER_ACCESS_TOKEN
+    SHOPIFY_PARTNER_API_VERSION
+  ].freeze
 
   before_action :set_config
   before_action :allowed_configs
@@ -35,8 +48,9 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
   end
 
   def create
-    errors = []
+    errors = shopify_partner_config_errors
     params['app_config'].each do |key, value|
+      break if errors.any?
       next unless @allowed_configs.include?(key)
 
       i = InstallationConfig.where(name: key).first_or_create(value: value, locked: false)
@@ -58,10 +72,25 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
   end
 
   def allowed_configs
-    @allowed_configs = CONFIG_GROUPS.fetch(
-      @config,
-      %w[ENABLE_ACCOUNT_SIGNUP FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS WEBHOOK_TIMEOUT MAXIMUM_FILE_UPLOAD_SIZE WIDGET_TOKEN_EXPIRY]
-    )
+    general_configs = GENERAL_CONFIGS + (ChatwootApp.chatwoot_cloud? ? META_INCIDENT_CONFIGS : [])
+
+    @allowed_configs = CONFIG_GROUPS.fetch(@config, general_configs)
+    @allowed_configs = SHOPIFY_CONFIGS if @config == 'shopify'
+    @allowed_configs += ['SLACK_SIGNING_SECRET'] if @config == 'slack'
+    @allowed_configs
+  end
+
+  def shopify_partner_config_errors
+    return [] unless @config == 'shopify'
+
+    saved_values = InstallationConfig.where(name: Shopify::PartnerConfiguration::KEYS).each_with_object({}) do |config, values|
+      values[config.name] = config.value
+    end
+    submitted_values = params.fetch('app_config', {}).permit(*SHOPIFY_CONFIGS).to_h
+    Shopify::PartnerConfiguration.validate_for_save!(saved_values.merge(submitted_values))
+    []
+  rescue Shopify::PartnerClient::ConfigurationError => e
+    [e.message]
   end
 
   def success_notice

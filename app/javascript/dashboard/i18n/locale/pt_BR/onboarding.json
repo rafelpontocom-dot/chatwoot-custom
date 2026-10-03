@@ -16,7 +16,7 @@
     },
     "PLACEHOLDERS": {
       "SELECT_ROLE": "Selecione sua função",
-      "ENTER_WEBSITE": "www.exemplo.com",
+      "ENTER_WEBSITE": "www.example.com",
       "SELECT_LANGUAGE": "Selecione o idioma",
       "SELECT_TIMEZONE": "Selecionar fuso horário",
       "SELECT_COMPANY_SIZE": "Selecione tamanho da empresa",
@@ -83,6 +83,10 @@
       "FACEBOOK_LOADING": "Carregando as suas Páginas do Facebook…",
       "FACEBOOK_NO_PAGES": "Nenhuma Página disponível para conectar. Todas as suas Páginas já estão conectadas.",
       "FACEBOOK_ERROR": "Não foi possível conectar ao Facebook. Tente de novo."
+    },
+    "META_RESTRICTION": {
+      "MESSAGE": "A configuração de caixas de entrada do Facebook, Instagram e WhatsApp está temporariamente indisponível devido a um problema na API da Meta, e não por uma falha no Chatwoot. Estamos trabalhando em conjunto com a Meta para resolver a situação o mais rápido possível.",
+      "STATUS_LINK": "Ver atualizações de status"
     }
   }
 }

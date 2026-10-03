@@ -59,7 +59,8 @@
       "CONTACT_LABELS": "Etiquetas de contacto",
       "PREVIOUS_CONVERSATIONS": "Conversas anteriores",
       "NO_RECORDS_FOUND": "Nenhum atributo encontrado"
-    }
+    },
+    "WHATSAPP_USERNAME": "WhatsApp username"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "Editar contacto",
@@ -472,6 +473,9 @@
           },
           "TWITTER": {
             "PLACEHOLDER": "Adicionar Twitter"
+          },
+          "WHATSAPP": {
+            "PLACEHOLDER": "Add WhatsApp"
           }
         }
       },
@@ -686,6 +690,9 @@
         "DISCARD": "Descartar",
         "SEND": "Enviar ({keyCode})"
       }
+    },
+    "CONTACT_CREATE": {
+      "ERROR_MESSAGE": "We couldn’t create the contact. Please try again."
     }
   }
 }

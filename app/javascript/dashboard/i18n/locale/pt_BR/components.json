@@ -64,10 +64,24 @@
     "BULLET_LIST": "Lista com marcadores",
     "ORDERED_LIST": "Lista numerada",
     "TABLE": "Tabela",
-    "IMAGE": "Imagem"
+    "IMAGE": "Imagem",
+    "VIDEO": "Vídeo",
+    "DIVIDER": "Divisor"
   },
   "APP_SIDEBAR": {
     "COLLAPSE": "Recolher menu",
     "EXPAND": "Expandir menu"
+  },
+  "VIDEO_EMBED": {
+    "TAB_EMBED": "Incorporar link",
+    "TAB_UPLOAD": "Enviar arquivo",
+    "PLACEHOLDER": "Cole o link de um vídeo",
+    "HINT": "Funciona com links do YouTube, Vimeo, Loom, Wistia, Arcade, Bunny, CodePen, GuideJar e arquivos mp4",
+    "ERROR": "Este link de vídeo não parece ser compatível",
+    "UPLOAD_LABEL": "Escolha um arquivo de vídeo",
+    "UPLOAD_HINT": "MP4 · até {size}MB · ou arraste e solte aqui",
+    "UPLOAD_ERROR": "Apenas arquivos MP4 podem ser enviados",
+    "ADD": "Incorporar",
+    "CANCEL": "Cancelar"
   }
 }
