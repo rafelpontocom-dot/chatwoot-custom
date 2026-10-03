@@ -109,3 +109,4 @@ Procfile.worktree
 # Raevo — mockups, auditorias e material de referência, fora do build
 output/
 Typeform web */
+.nodeterm/project.json

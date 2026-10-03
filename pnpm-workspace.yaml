@@ -1,0 +1,9 @@
+packages:
+  - '.'
+
+overrides:
+  vite: 6.4.2
+  vitest: 3.0.5
+  'minimatch@<4': 3.1.5
+  'minimatch@>=9.0.0 <9.0.7': 9.0.9
+  rollup: '>=4.59.0'

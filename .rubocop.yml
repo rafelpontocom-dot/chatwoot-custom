@@ -22,6 +22,10 @@ Metrics/ClassLength:
     # linha. Cada módulo do Raevo acrescenta as suas, e encurtar a classe para
     # caber num limite não a tornaria mais legível.
     - 'app/models/account.rb'
+    # Integrações Raevo e recursos upstream coexistem nestas classes de extensão.
+    - 'app/controllers/super_admin/accounts_controller.rb'
+    - 'app/services/whatsapp/providers/whatsapp_cloud_service.rb'
+    - 'config/initializers/rack_attack.rb'
 
 Metrics/MethodLength:
   Max: 19

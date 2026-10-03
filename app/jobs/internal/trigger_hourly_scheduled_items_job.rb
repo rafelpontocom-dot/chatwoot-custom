@@ -5,6 +5,7 @@ class Internal::TriggerHourlyScheduledItemsJob < ApplicationJob
     # Marketing: token do Meta expirando e formularios que o anunciante mexeu.
     Marketing::FlagExpiringConnectionsJob.perform_later
     Marketing::SyncLeadFormsSchedulerJob.perform_later
+    Channels::Whatsapp::HealthSyncSchedulerJob.perform_later
   end
 end
 

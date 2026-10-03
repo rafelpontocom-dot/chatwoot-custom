@@ -198,15 +198,13 @@ const hasActiveChild = computed(() => {
   return activeChild.value !== undefined;
 });
 
-const handleCollapsedClick = () => {
-  if (hasChildren.value && hasAccessibleChildren.value) {
-    const firstItem = accessibleItems.value[0];
-    router.push(firstItem.to);
-  }
-};
+// Groups that only hold children link to their first accessible child
+const linkTo = computed(() => props.to ?? accessibleItems.value[0]?.to);
 
 const toggleTrigger = () => {
-  if (
+  if (!hasChildren.value && props.to) {
+    router.push(props.to);
+  } else if (
     props.navigateOnExpand &&
     hasAccessibleChildren.value &&
     !isExpanded.value &&
@@ -256,6 +254,7 @@ watch(
     <!-- Collapsed State -->
     <template v-if="isCollapsed">
       <div
+        ref="triggerRef"
         class="relative"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
@@ -295,7 +294,7 @@ watch(
         :icon
         :name
         :label
-        :to
+        :to="linkTo"
         :getter-keys="getterKeys"
         :is-active="isActive"
         :has-active-child="hasActiveChild"

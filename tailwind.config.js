@@ -23,6 +23,7 @@ const tailwindConfig = {
   darkMode: 'class',
   content: [
     './enterprise/app/views/**/*.erb',
+    './app/javascript/superadmin_pages/**/*.vue',
     './app/javascript/widget/**/*.vue',
     './app/javascript/v3/**/*.vue',
     './app/javascript/public_form/**/*.vue',
@@ -269,6 +270,7 @@ const tailwindConfig = {
     },
     fontSize: {
       ...defaultTheme.fontSize,
+      xxxs: '0.5rem',
       xxs: '0.625rem',
       // Raevo — a auditoria contou 27 degraus de tipografia em uso. `micro` é o
       // único degrau abaixo de 12px e existe só para selo, contador e cabeçalho

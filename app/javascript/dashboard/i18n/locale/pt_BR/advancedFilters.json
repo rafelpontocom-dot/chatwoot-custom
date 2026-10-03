@@ -117,6 +117,8 @@
           "ERROR_MESSAGE": "Erro ao excluir segmento."
         }
       }
-    }
+    },
+    "MULTI_VALUE_INPUT_PLACEHOLDER": "Digite um valor e pressione Enter para adicionar mais",
+    "MULTI_VALUE_INPUT_PLACEHOLDER_SHORT": "Digite um valor"
   }
 }

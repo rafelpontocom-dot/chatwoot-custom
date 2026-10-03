@@ -1,5 +1,9 @@
 import { mount } from '@vue/test-utils';
+import { withFullI18n } from 'test-i18n';
+
 import RaevoAiOpportunityPanel from '../RaevoAiOpportunityPanel.vue';
+
+withFullI18n();
 
 const fields = [
   { key: 'raevo_ai_summary', label: 'Resumo do atendimento' },
