@@ -1,5 +1,5 @@
 <script setup>
-import { computed, toRef } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import { useChannelIcon, useChannelBrandIcon } from './provider';
 import Icon from 'next/icon/Icon.vue';
 
@@ -22,6 +22,14 @@ const inboxRef = toRef(props, 'inbox');
 
 const channelIcon = useChannelIcon(inboxRef);
 const brandIcon = useChannelBrandIcon(inboxRef);
+const hasAvatarError = ref(false);
+
+watch(
+  () => props.inbox.avatar_url,
+  () => {
+    hasAvatarError.value = false;
+  }
+);
 
 const icon = computed(() =>
   props.useBrandIcon && brandIcon.value ? brandIcon.value : channelIcon.value
@@ -34,10 +42,11 @@ const icon = computed(() =>
          lado. Uma caixa «Canal da API» ligada ao WhatsApp não tem como se
          distinguir pelo tipo, e o glifo `{}` não diz a ninguém que canal é. -->
     <img
-      v-if="inbox.avatar_url"
+      v-if="inbox.avatar_url && !hasAvatarError"
       :src="inbox.avatar_url"
       alt=""
       class="size-full rounded-full object-cover"
+      @error="hasAvatarError = true"
     />
     <Icon v-else :icon="icon" class="size-full" />
   </span>

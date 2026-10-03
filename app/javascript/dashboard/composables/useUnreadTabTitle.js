@@ -1,4 +1,4 @@
-import { watch } from 'vue';
+import { onUnmounted, watch } from 'vue';
 import { useMapGetter } from 'dashboard/composables/store';
 
 const MAX_VISIBLE_COUNT = 99;
@@ -26,4 +26,8 @@ export const useUnreadTabTitle = () => {
     },
     { immediate: true }
   );
+
+  onUnmounted(() => {
+    document.title = baseTitle;
+  });
 };

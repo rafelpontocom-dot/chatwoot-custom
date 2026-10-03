@@ -45,10 +45,34 @@ Nenhum dos dois é apanhável por lint ou por teste com filhos stubados. Só apa
 
 Componente do upstream que o Raevo altera ganha um teste com o router verdadeiro, não com `RouterLink` stubado (`sidebar/specs/SidebarGroupHeader.spec.js` é o modelo).
 
+### Validação executável depois do incidente
+
+- O teste do cabeçalho foi executado com a resolução quebrada (`router-link` com `href`, sem `to`) e falhou ao clicar. Com a correção, passa. Não basta registrar um teste que só foi visto verde.
+- `ContactsForm.spec.js` monta os perfis sociais em PT-BR e PT-PT, verifica todos os textos de exemplo e edita o perfil WhatsApp. Remover o seu texto de exemplo reproduz a exceção de `placeholder.length`.
+- O check `frontend-tests` inclui os módulos Raevo e também barra lateral, formulário de contato, imagem do canal, foco da navegação e título da guia. Esses contratos compartilhados não podem ficar fora do CI por não terem `kanban` no caminho.
+- O check `backend-tests` termina com o smoke Playwright de navegação. Usa Rails real, banco de teste e dados próprios, entra pela tela de login e navega por clique. Confere Pipeline, abertura do contato e carregamento da imagem da caixa. Erros da aplicação e respostas de API com falha reprovam o teste. As capturas e traces ficam no artefato `raevo-navigation-smoke` do GitHub Actions.
+- A publicação da imagem exige os quatro jobs da rodada mais recente de `custom_checks.yml` aprovados no mesmo SHA. Checks do upstream com nomes iguais não substituem os checks Raevo. O workflow manual falha antes do build se algum ainda estiver em execução, estiver ausente ou tiver falhado.
+
+Para repetir localmente, use um banco de teste isolado, sem reaproveitar os dados de produção:
+
+```sh
+export RAILS_ENV=test
+export POSTGRES_DATABASE=raevo_navigation_smoke_test
+export REDIS_URL=redis://127.0.0.1:6379/15
+export FRONTEND_URL=http://127.0.0.1:3011
+bundle exec rails db:create db:schema:load db:migrate
+bundle exec rails runner script/raevo/navigation_smoke_seed.rb
+pnpm exec playwright install chromium
+pnpm exec playwright test --config tests/playwright/playwright.navigation.config.ts
+```
+
+`db:schema:load` apaga as tabelas desse banco: use somente o banco isolado acima. A jornada precisa dos assets de teste compilados (`bundle exec vite build --mode=test`) ou do Vite em modo test, de PostgreSQL/Redis e de libvips, como a imagem Docker. O seed recusa execução fora de `RAILS_ENV=test` e deve rodar uma vez por banco novo. O Playwright levanta e encerra o servidor na porta 3011. A contagem no título continua dependente de `conversation_unread_counts`; esta correção não altera a escolha da conta em produção. Só a conta sintética tem a flag habilitada, com uma mensagem não lida para validar o título. Ao sair do dashboard, o título original é restaurado, evitando contadores acumulados ao entrar novamente.
+
 ## Checklist de release
 
 - [ ] ficheiros resolvidos à mão relidos contra os dois lados;
 - [ ] varrimento por clique sem erro de consola;
+- [ ] smoke de navegação aprovado no CI, com capturas revisadas;
 
 - [ ] versão upstream e SHA Raevo registrados na imagem;
 - [ ] migrations listadas e aplicadas somente pelo container `chatwoot_api`;

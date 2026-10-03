@@ -98,8 +98,19 @@ jobs:
           cache: 'pnpm'
       - name: Install pnpm dependencies
         run: pnpm i
-      - name: Kanban frontend tests
-        run: TZ=UTC pnpm exec vitest run --no-coverage kanban
+      - name: Raevo frontend contracts and shared navigation
+        run: |
+          TZ=UTC pnpm exec vitest run --no-coverage \
+            kanban \
+            routes/dashboard/calendar/specs \
+            routes/dashboard/finance/specs \
+            routes/dashboard/forms/specs \
+            routes/dashboard/home/specs \
+            components-next/sidebar/specs \
+            components-next/Contacts/ContactsForm/specs \
+            components-next/icon/specs \
+            composables/spec/useSidebarFocus.spec.js \
+            composables/spec/useUnreadTabTitle.spec.js
 
   backend-tests:
     runs-on: ubuntu-latest
@@ -197,3 +208,27 @@ jobs:
         env:
           RAILS_ENV: test
           NODE_OPTIONS: --openssl-legacy-provider
+      - name: Install browser for the navigation smoke test
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          sudo apt-get install -y libvips42
+      - name: Seed isolated browser navigation data
+        env:
+          RAILS_ENV: test
+        run: bundle exec rails runner script/raevo/navigation_smoke_seed.rb
+      - name: Click through the real dashboard after the upgrade
+        env:
+          RAILS_ENV: test
+          DISABLE_MINI_PROFILER: '1'
+          FRONTEND_URL: http://127.0.0.1:3011
+          VITE_RUBY_AUTO_BUILD: 'false'
+        run: pnpm exec playwright test --config tests/playwright/playwright.navigation.config.ts
+      - name: Upload navigation screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raevo-navigation-smoke
+          path: |
+            tests/playwright/playwright-report
+            tests/playwright/test-results/navigation
+          if-no-files-found: ignore
