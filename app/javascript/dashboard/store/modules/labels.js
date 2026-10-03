@@ -4,6 +4,15 @@ import LabelsAPI from '../../api/labels';
 import AnalyticsHelper from '../../helper/AnalyticsHelper';
 import { LABEL_EVENTS } from '../../helper/AnalyticsHelper/events';
 
+// A ordem manual vale em todo o lado onde as etiquetas se listam. Sem posição,
+// a etiqueta vai para o fim e desempata por nome — que é a ordem de sempre para
+// a conta que nunca reordenou.
+const compareLabels = (a, b) => {
+  const positionDiff = (a.position ?? Infinity) - (b.position ?? Infinity);
+  if (positionDiff) return positionDiff;
+  return a.title.localeCompare(b.title);
+};
+
 export const state = {
   records: [],
   uiFlags: {
@@ -24,7 +33,7 @@ export const getters = {
   getLabelsOnSidebar(_state) {
     return _state.records
       .filter(record => record.show_on_sidebar)
-      .sort((a, b) => a.title.localeCompare(b.title));
+      .sort(compareLabels);
   },
   getLabelById: _state => id => {
     return _state.records.find(record => record.id === Number(id)) || {};
@@ -48,10 +57,7 @@ export const actions = {
     commit(types.SET_LABEL_UI_FLAG, { isFetching: true });
     try {
       const response = await LabelsAPI.get(true);
-      const sortedLabels = response.data.payload.sort((a, b) =>
-        a.title.localeCompare(b.title)
-      );
-      commit(types.SET_LABELS, sortedLabels);
+      commit(types.SET_LABELS, response.data.payload.sort(compareLabels));
     } catch (error) {
       // Ignore error
     } finally {
@@ -81,6 +87,20 @@ export const actions = {
       commit(types.EDIT_LABEL, response.data);
     } catch (error) {
       throw new Error(error);
+    } finally {
+      commit(types.SET_LABEL_UI_FLAG, { isUpdating: false });
+    }
+  },
+
+  reorder: async function reorderLabels({ commit }, labelIds) {
+    commit(types.SET_LABEL_UI_FLAG, { isUpdating: true });
+    try {
+      await LabelsAPI.reorder(labelIds);
+      // A cópia local das etiquetas só se renova pelo aviso em tempo real, e
+      // `cache_keys` é servido de cache até 5 minutos: sem isto, recarregar a
+      // página devolvia a ordem antiga a quem acabou de a mudar.
+      const response = await LabelsAPI.refetchAndCommit();
+      commit(types.SET_LABELS, response.data.payload);
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isUpdating: false });
     }

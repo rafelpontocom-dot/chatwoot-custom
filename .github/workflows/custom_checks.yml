@@ -80,6 +80,10 @@ jobs:
         run: pnpm i
       - name: Frontend i18n placeholder syntax
         run: node scripts/check_frontend_i18n_placeholders.mjs
+      - name: Validate upstream customization contracts
+        run: |
+          node --test scripts/tests/raevo-upstream-audit.test.mjs
+          node scripts/raevo-upstream-audit.mjs --check-contracts
       - name: Design system — nenhuma cor literal no código do Raevo
         run: pnpm run raevo:design
       - name: Design system — tokens de acordo com design-system/raevo.tokens.json
@@ -98,8 +102,23 @@ jobs:
           cache: 'pnpm'
       - name: Install pnpm dependencies
         run: pnpm i
-      - name: Kanban frontend tests
-        run: TZ=UTC pnpm exec vitest run --no-coverage kanban
+      - name: Raevo frontend contracts and shared navigation
+        run: |
+          TZ=UTC pnpm exec vitest run --no-coverage \
+            kanban \
+            routes/dashboard/calendar/specs \
+            routes/dashboard/finance/specs \
+            routes/dashboard/forms/specs \
+            routes/dashboard/home/specs \
+            components-next/sidebar/specs \
+            components-next/Contacts/ContactsForm/specs \
+            components-next/icon/specs \
+            components/widgets/conversation/specs/ConversationCard.spec.js \
+            components/widgets/conversation/specs/ConversationChannelIdentity.spec.js \
+            helper/specs/sidebarSort.spec.js \
+            routes/dashboard/settings/inbox/settingsPage/specs/ConfigurationPage.spec.js \
+            composables/spec/useSidebarFocus.spec.js \
+            composables/spec/useUnreadTabTitle.spec.js
 
   backend-tests:
     runs-on: ubuntu-latest
@@ -189,6 +208,7 @@ jobs:
           [ -f spec/builders/contact_inbox_builder_spec.rb ] && SPECS="$SPECS spec/builders/contact_inbox_builder_spec.rb"
           [ -f spec/controllers/api/v1/accounts/contacts_controller_spec.rb ] && SPECS="$SPECS spec/controllers/api/v1/accounts/contacts_controller_spec.rb"
           [ -f spec/models/contact_spec.rb ] && SPECS="$SPECS spec/models/contact_spec.rb"
+          [ -f spec/controllers/api/v1/accounts/labels_controller_spec.rb ] && SPECS="$SPECS spec/controllers/api/v1/accounts/labels_controller_spec.rb"
           # Relatórios: ficavam fora, e um deles estava vermelho desde sempre por
           # depender do fuso da máquina — em UTC passava, e o CI roda em UTC.
           [ -d spec/builders/v2/reports ] && SPECS="$SPECS spec/builders/v2/reports"
@@ -197,3 +217,27 @@ jobs:
         env:
           RAILS_ENV: test
           NODE_OPTIONS: --openssl-legacy-provider
+      - name: Install browser for the navigation smoke test
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          sudo apt-get install -y libvips42
+      - name: Seed isolated browser navigation data
+        env:
+          RAILS_ENV: test
+        run: bundle exec rails runner script/raevo/navigation_smoke_seed.rb
+      - name: Click through the real dashboard after the upgrade
+        env:
+          RAILS_ENV: test
+          DISABLE_MINI_PROFILER: '1'
+          FRONTEND_URL: http://127.0.0.1:3011
+          VITE_RUBY_AUTO_BUILD: 'false'
+        run: pnpm exec playwright test --config tests/playwright/playwright.navigation.config.ts
+      - name: Upload navigation screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raevo-navigation-smoke
+          path: |
+            tests/playwright/playwright-report
+            tests/playwright/test-results/navigation
+          if-no-files-found: ignore

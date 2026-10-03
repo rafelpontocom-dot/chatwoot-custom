@@ -3,12 +3,12 @@ import { computed } from 'vue';
 import { frontendURL } from 'dashboard/helper/URLHelper.js';
 import { dynamicTime } from 'shared/helpers/timeHelper';
 import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
-import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { useInbox } from 'dashboard/composables/useInbox';
 import { ATTACHMENT_TYPES } from 'dashboard/components-next/message/constants.js';
 
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import FileChip from 'next/message/chips/File.vue';
 import AudioChip from 'next/message/chips/Audio.vue';
 import TranscribedText from './TranscribedText.vue';
@@ -66,12 +66,6 @@ const createdAtTime = computed(() => {
 
 const inboxName = computed(() => inbox.value?.name);
 
-const inboxIcon = computed(() => {
-  if (!inbox.value) return null;
-  const { channelType, medium, voiceEnabled } = inbox.value;
-  return getInboxIconByType(channelType, medium, 'fill', voiceEnabled);
-});
-
 const fileAttachments = computed(() => {
   return props.attachments.filter(
     attachment => attachment.fileType !== ATTACHMENT_TYPES.AUDIO
@@ -107,11 +101,11 @@ const audioAttachments = computed(() => {
           <div v-if="inboxName" class="w-px h-3 bg-n-strong" />
           <div v-if="inboxName" class="flex items-center gap-1.5 flex-shrink-0">
             <div
-              v-if="inboxIcon"
+              v-if="inbox"
               class="flex items-center justify-center flex-shrink-0 rounded-full bg-n-alpha-2 size-4"
             >
-              <Icon
-                :icon="inboxIcon"
+              <ChannelIcon
+                :inbox="inbox"
                 class="flex-shrink-0 text-n-slate-11 size-2.5"
               />
             </div>

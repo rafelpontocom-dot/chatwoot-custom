@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n';
 import camelcaseKeys from 'camelcase-keys';
 import { initializeAudioAlerts } from 'dashboard/helper/scriptHelpers';
 import { useStoreGetters } from 'dashboard/composables/store';
+import { DEFAULT_AUDIO_ALERT_EVENTS } from './constants';
 
 const getters = useStoreGetters();
 const currentUser = computed(() => getters.getCurrentUser.value);
@@ -28,7 +29,8 @@ const i18nKeyPrefix = 'PROFILE_SETTINGS.FORM.AUDIO_NOTIFICATIONS_SECTION';
 const initializeNotificationUISettings = newUISettings => {
   const updatedUISettings = camelcaseKeys(newUISettings);
 
-  audioAlert.value = updatedUISettings.enableAudioAlerts;
+  audioAlert.value =
+    updatedUISettings.enableAudioAlerts || DEFAULT_AUDIO_ALERT_EVENTS;
   playAudioWhenTabIsInactive.value = !updatedUISettings.alwaysPlayAudioAlert;
   alertIfUnreadConversationExist.value =
     updatedUISettings.alertIfUnreadAssignedConversationExist;

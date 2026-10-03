@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref, onBeforeMount } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { dynamicTime, shortTimestamp } from 'shared/helpers/timeHelper';
 import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
 import {
@@ -11,6 +10,7 @@ import {
 import { NOTIFICATION_TYPES_MAPPING } from 'dashboard/routes/dashboard/inbox/helpers/InboxViewHelpers';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import CardPriorityIcon from 'dashboard/components-next/Conversation/ConversationCard/CardPriorityIcon.vue';
 import SLACardLabel from 'dashboard/components-next/Conversation/ConversationCard/SLACardLabel.vue';
@@ -50,11 +50,6 @@ const meta = computed(() => primaryActor.value?.meta);
 const assigneeMeta = computed(() => meta.value?.sender);
 const isUnread = computed(() => !props.inboxItem?.readAt);
 const inbox = computed(() => props.stateInbox);
-
-const inboxIcon = computed(() => {
-  const { channelType, medium, voiceEnabled } = inbox.value;
-  return getInboxIconByType(channelType, medium, 'fill', voiceEnabled);
-});
 
 const hasSlaThreshold = computed(() => {
   return slaCardLabel.value?.hasSlaThreshold && primaryActor.value?.slaPolicyId;
@@ -227,12 +222,12 @@ onBeforeMount(contextMenuActions.close);
           class="[&>svg]:size-4"
         />
         <div
-          v-if="inboxIcon"
+          v-if="inbox.channelType || inbox.channel_type"
           v-tooltip.left="inbox?.name"
           class="flex items-center justify-center flex-shrink-0 rounded-full bg-n-alpha-2 size-4"
         >
-          <Icon
-            :icon="inboxIcon"
+          <ChannelIcon
+            :inbox="inbox"
             class="flex-shrink-0 text-n-slate-11 size-2.5"
           />
         </div>

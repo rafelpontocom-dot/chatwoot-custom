@@ -1,5 +1,5 @@
 class Api::V1::Accounts::LabelsController < Api::V1::Accounts::BaseController
-  before_action :fetch_label, except: [:index, :create]
+  before_action :fetch_label, except: [:index, :create, :reorder]
   before_action :check_authorization
 
   def index
@@ -14,6 +14,17 @@ class Api::V1::Accounts::LabelsController < Api::V1::Accounts::BaseController
 
   def update
     @label.update!(permitted_params)
+  end
+
+  def reorder
+    label_ids = params.require(:label_ids).map(&:to_i)
+    labels = Current.account.labels.find(label_ids).index_by(&:id)
+
+    Label.transaction do
+      label_ids.each_with_index { |label_id, index| labels[label_id].update!(position: index) }
+    end
+
+    head :ok
   end
 
   def destroy
