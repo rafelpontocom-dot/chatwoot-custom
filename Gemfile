@@ -78,6 +78,7 @@ gem 'dotenv-rails', '>= 3.0.0'
 gem 'foreman'
 gem 'puma', '~> 7.2', '>= 7.2.1'
 gem 'vite_rails'
+gem 'rack-proxy', '~> 1.0', '>= 1.0.3'
 # metrics on heroku
 gem 'barnes'
 

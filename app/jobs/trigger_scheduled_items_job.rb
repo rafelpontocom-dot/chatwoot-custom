@@ -2,11 +2,7 @@ class TriggerScheduledItemsJob < ApplicationJob
   queue_as :scheduled_jobs
 
   def perform
-    # trigger the scheduled campaign jobs
-    Campaign.where(campaign_type: :one_off,
-                   campaign_status: :active).where(scheduled_at: 3.days.ago..Time.current).all.find_each(batch_size: 100) do |campaign|
-      Campaigns::TriggerOneoffCampaignJob.perform_later(campaign)
-    end
+    trigger_oneoff_campaigns
 
     # Job to reopen snoozed conversations
     Conversations::ReopenSnoozedConversationsJob.perform_later
@@ -55,6 +51,15 @@ class TriggerScheduledItemsJob < ApplicationJob
 
     # Job to trigger pending executions
     AutomationRules::TriggerPendingExecutionsJob.perform_later
+  end
+
+  private
+
+  def trigger_oneoff_campaigns
+    Campaign.where(campaign_type: :one_off,
+                   campaign_status: :active).where(scheduled_at: 3.days.ago..Time.current).all.find_each(batch_size: 100) do |campaign|
+      Campaigns::TriggerOneoffCampaignJob.perform_later(campaign)
+    end
   end
 end
 

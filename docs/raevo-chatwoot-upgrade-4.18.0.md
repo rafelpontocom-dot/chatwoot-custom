@@ -27,7 +27,7 @@ Nao mover arquivos nativos para uma pasta de copias a ser reaplicada: isso escon
 ## Portas para promover
 
 - [x] `git diff --check`, nenhum marcador de conflito e `bundle check`.
-- [x] `pnpm install --frozen-lockfile`, lint, testes de frontend e `bin/vite build --mode=test` (build anterior passou; repeticao final reutilizou o cache sem mudancas observadas).
+- [x] `pnpm install --frozen-lockfile`, lint, testes de frontend e `bin/vite build --mode=test --force`.
 - [x] RSpec direcionado de Super Admin, WhatsApp, importacao, CRM e formularios: 1.682 exemplos, 0 falhas.
 - [ ] Teste Rails com banco limpo: `RAILS_ENV=test bundle exec rails db:test:prepare` e suites direcionadas; a rodada atual usou o banco local existente.
 - [ ] Em staging, `bundle exec rails db:migrate` no servico API, nunca somente no admin; confirmar `db:migrate:status`.
@@ -38,5 +38,7 @@ Nao mover arquivos nativos para uma pasta de copias a ser reaplicada: isso escon
 Frontend direcionado: 53 arquivos e 890 testes foram executados. Quatro testes do painel Raevo AI dependiam das traducoes completas removidas do setup global pelo upstream; apos usar `withFullI18n`, os quatro passaram. `pnpm install --frozen-lockfile --ignore-scripts`, ESLint dos arquivos ajustados, Prettier, placeholders i18n e checks de design Raevo passaram. Histoire ainda declara peer de Vite ate v5, enquanto este upgrade usa Vite 6; acompanhar em CI.
 
 Nenhuma migration de producao foi executada nesta branch. O merge tambem nao publica imagem nem altera a stack Swarm.
+
+O CI inicial apontou tres ajustes: inventario de tokens sem o `xxxs` novo do upstream, uma quebra de Prettier em spec mesclado e `TriggerScheduledItemsJob#perform` uma linha acima do limite do RuboCop. Os tres foram corrigidos e verificados localmente. O `bundle-audit` identificou `rack-proxy 0.7.7`; a cadeia `vite_rails`/`vite_ruby` foi atualizada para 3.11.1, `vite-plugin-ruby` para 5.2.5 e `rack-proxy` para 1.0.3. O audit atual retorna nenhuma vulnerabilidade; o build forçado pelo wrapper passou com rede disponivel.
 
 O merge em branch de upgrade nao equivale a deploy. A tag anterior permite retornar ao codigo anterior; o banco exige compatibilidade e backup antes da migracao.

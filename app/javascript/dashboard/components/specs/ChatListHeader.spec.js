@@ -43,9 +43,7 @@ describe('ChatListHeader', () => {
     const searchLink = wrapper.find('[data-testid="conversation-search"]');
 
     expect(searchLink.exists()).toBe(true);
-    expect(searchLink.attributes('aria-label')).toBe(
-      'CHAT_LIST.SEARCH.INPUT'
-    );
+    expect(searchLink.attributes('aria-label')).toBe('CHAT_LIST.SEARCH.INPUT');
     expect(wrapper.findComponent({ name: 'RouterLink' }).props('to')).toEqual({
       name: 'search',
       params: { tab: 'conversations' },
