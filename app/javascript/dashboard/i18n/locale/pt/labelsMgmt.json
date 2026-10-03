@@ -72,6 +72,12 @@
         "ERROR_MESSAGE": "Ocorreu um erro, por favor, tente novamente"
       }
     },
+    "REORDER": {
+      "MOVE_UP": "Mover para cima",
+      "MOVE_DOWN": "Mover para baixo",
+      "SEARCH_HINT": "Limpe a pesquisa para reordenar as etiquetas",
+      "ERROR_MESSAGE": "Não foi possível guardar a nova ordem. Tente novamente."
+    },
     "DELETE": {
       "BUTTON_TEXT": "Excluir",
       "API": {

@@ -5,6 +5,7 @@ export const SIDEBAR_SORT_KEYS = Object.freeze({
   ALPHABETICAL_DESC: 'alphabetical_desc',
   UNREAD_COUNT_DESC: 'unread_count_desc',
   UNREAD_COUNT_ASC: 'unread_count_asc',
+  MANUAL: 'manual',
 });
 
 export const SIDEBAR_SORT_SECTIONS = Object.freeze({
@@ -40,6 +41,7 @@ export const SIDEBAR_SORT_OPTIONS_BY_SECTION = Object.freeze({
     SIDEBAR_SORT_KEYS.UNREAD_COUNT_ASC,
   ],
   [SIDEBAR_SORT_SECTIONS.LABELS]: [
+    SIDEBAR_SORT_KEYS.MANUAL,
     SIDEBAR_SORT_KEYS.CREATED_DESC,
     SIDEBAR_SORT_KEYS.CREATED_ASC,
     SIDEBAR_SORT_KEYS.ALPHABETICAL_ASC,
@@ -145,6 +147,9 @@ export const sortSidebarItems = (
   items,
   { sortBy, labelKey, unreadCountKey = () => 0 }
 ) => {
+  // A ordem manual já vem de quem chama: é a que o administrador gravou.
+  if (sortBy === SIDEBAR_SORT_KEYS.MANUAL) return (items || []).slice();
+
   return (items || []).slice().sort((a, b) => {
     if (sortBy === SIDEBAR_SORT_KEYS.CREATED_DESC) {
       const createdDiff = getCreatedValue(b) - getCreatedValue(a);

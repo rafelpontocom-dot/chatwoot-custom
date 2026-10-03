@@ -531,7 +531,9 @@ Rails.application.routes.draw do
               patch :update
             end
           end
-          resources :labels, only: [:index, :show, :create, :update, :destroy]
+          resources :labels, only: [:index, :show, :create, :update, :destroy] do
+            post :reorder, on: :collection
+          end
 
           resources :notifications, only: [:index, :update, :destroy] do
             collection do

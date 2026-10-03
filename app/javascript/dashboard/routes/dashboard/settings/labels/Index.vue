@@ -83,6 +83,24 @@ const confirmDeletion = () => {
   deleteLabel(selectedLabel.value.id);
 };
 
+// Reordenar sobre uma lista filtrada trocaria a etiqueta com uma vizinha que
+// não se vê, por isso os botões só valem com a pesquisa vazia.
+const canReorder = computed(
+  () => !searchQuery.value.trim() && !uiFlags.value.isUpdating
+);
+
+const moveLabel = async (index, offset) => {
+  const labelIds = records.value.map(label => label.id);
+  const [labelId] = labelIds.splice(index, 1);
+  labelIds.splice(index + offset, 0, labelId);
+
+  try {
+    await store.dispatch('labels/reorder', labelIds);
+  } catch (error) {
+    useAlert(t('LABEL_MGMT.REORDER.ERROR_MESSAGE'));
+  }
+};
+
 const tableHeaders = computed(() => {
   return [
     t('LABEL_MGMT.LIST.TABLE_HEADER.NAME'),
@@ -136,7 +154,11 @@ onBeforeMount(() => {
         "
       >
         <template #row="{ items }">
-          <BaseTableRow v-for="label in items" :key="label.title" :item="label">
+          <BaseTableRow
+            v-for="(label, index) in items"
+            :key="label.title"
+            :item="label"
+          >
             <template #default>
               <BaseTableCell>
                 <span class="text-body-main text-n-slate-12">
@@ -164,6 +186,32 @@ onBeforeMount(() => {
 
               <BaseTableCell align="end">
                 <div class="flex gap-3 justify-end flex-shrink-0">
+                  <Button
+                    v-tooltip.top="
+                      canReorder
+                        ? $t('LABEL_MGMT.REORDER.MOVE_UP')
+                        : $t('LABEL_MGMT.REORDER.SEARCH_HINT')
+                    "
+                    :aria-label="$t('LABEL_MGMT.REORDER.MOVE_UP')"
+                    icon="i-lucide-arrow-up"
+                    slate
+                    sm
+                    :disabled="!canReorder || index === 0"
+                    @click="moveLabel(index, -1)"
+                  />
+                  <Button
+                    v-tooltip.top="
+                      canReorder
+                        ? $t('LABEL_MGMT.REORDER.MOVE_DOWN')
+                        : $t('LABEL_MGMT.REORDER.SEARCH_HINT')
+                    "
+                    :aria-label="$t('LABEL_MGMT.REORDER.MOVE_DOWN')"
+                    icon="i-lucide-arrow-down"
+                    slate
+                    sm
+                    :disabled="!canReorder || index === items.length - 1"
+                    @click="moveLabel(index, 1)"
+                  />
                   <Button
                     v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
                     icon="i-woot-edit-pen"

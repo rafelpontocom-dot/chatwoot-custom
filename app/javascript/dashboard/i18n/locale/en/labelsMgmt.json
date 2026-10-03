@@ -72,6 +72,12 @@
         "ERROR_MESSAGE": "There was an error, please try again"
       }
     },
+    "REORDER": {
+      "MOVE_UP": "Move up",
+      "MOVE_DOWN": "Move down",
+      "SEARCH_HINT": "Clear the search to reorder labels",
+      "ERROR_MESSAGE": "Could not save the new order. Please try again."
+    },
     "DELETE": {
       "BUTTON_TEXT": "Delete",
       "API": {

@@ -5,6 +5,7 @@
 #  id              :bigint           not null, primary key
 #  color           :string           default("#1f93ff"), not null
 #  description     :text
+#  position        :integer
 #  show_on_sidebar :boolean
 #  title           :string
 #  created_at      :datetime         not null
@@ -28,7 +29,9 @@ class Label < ApplicationRecord
             uniqueness: { scope: :account_id }
 
   after_update_commit :update_associated_models
-  default_scope { order(:title) }
+  # Sem ordem manual a posição é nula e, em Postgres, nulo vem por último: a conta
+  # que nunca reordenou continua alfabética.
+  default_scope { order(:position, :title) }
 
   before_validation do
     self.title = title.downcase if attribute_present?('title')
