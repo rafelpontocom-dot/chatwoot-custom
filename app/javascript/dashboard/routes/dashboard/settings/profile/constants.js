@@ -42,6 +42,13 @@ export const EVENT_TYPES = {
   UNASSIGNED: 'unassigned',
 };
 
+// Quem nunca escolheu ouve as suas conversas e as que ainda não são de ninguém.
+// Antes a omissão era o silêncio, e uma conta nova não avisava de nada.
+export const DEFAULT_AUDIO_ALERT_EVENTS = [
+  EVENT_TYPES.ASSIGNED,
+  EVENT_TYPES.UNASSIGNED,
+].join('+');
+
 export const ALERT_EVENTS = [
   {
     value: EVENT_TYPES.ASSIGNED,

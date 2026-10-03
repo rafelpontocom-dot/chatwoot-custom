@@ -18,6 +18,7 @@ import SidebarProfileMenu from './SidebarProfileMenu.vue';
 import SidebarChangelogCard from './SidebarChangelogCard.vue';
 import SidebarChangelogButton from './SidebarChangelogButton.vue';
 import ChannelLeaf from './ChannelLeaf.vue';
+import { useUnreadTabTitle } from 'dashboard/composables/useUnreadTabTitle';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import EmojiIcon from 'next/emoji-icon-picker/EmojiIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
@@ -137,6 +138,8 @@ const toggleShortcutModalFn = show => {
 };
 
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
+
+useUnreadTabTitle();
 
 const { isSidebarFocused } = useSidebarFocus();
 const { setSidebarFocus } = useRequestSidebarFocus();
