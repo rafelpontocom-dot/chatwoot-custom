@@ -2,6 +2,16 @@ import { mount } from '@vue/test-utils';
 import ChannelIcon from '../ChannelIcon.vue';
 
 describe('ChannelIcon', () => {
+  it('uses the configured image for camelCase inbox payloads too', () => {
+    const wrapper = mount(ChannelIcon, {
+      props: {
+        inbox: { channelType: 'Channel::Api', avatarUrl: '/api-channel.png' },
+      },
+    });
+
+    expect(wrapper.find('img').attributes('src')).toBe('/api-channel.png');
+  });
+
   it('renders the uploaded inbox image instead of the channel glyph', () => {
     const wrapper = mount(ChannelIcon, {
       props: {

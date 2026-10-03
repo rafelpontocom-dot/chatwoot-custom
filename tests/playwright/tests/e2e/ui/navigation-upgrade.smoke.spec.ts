@@ -94,6 +94,31 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
       contentType: 'image/png',
     });
     expect(pageErrors, `Unhandled errors on ${label}`).toEqual([]);
+    if (label === 'Inicio') {
+      await page.setViewportSize({ width: 1440, height: 500 });
+      const scrollArea = page
+        .locator('div.overflow-y-auto')
+        .filter({ has: page.locator('main') })
+        .last();
+      await expect
+        .poll(() =>
+          scrollArea.evaluate(
+            element => element.scrollHeight - element.clientHeight
+          )
+        )
+        .toBeGreaterThan(0);
+      await scrollArea.evaluate(element => {
+        element.scrollTop = element.scrollHeight;
+      });
+      await expect
+        .poll(() => scrollArea.evaluate(element => element.scrollTop))
+        .toBeGreaterThan(0);
+      await testInfo.attach('Inicio com rolagem', {
+        body: await page.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      await page.setViewportSize({ width: 1440, height: 900 });
+    }
   }
 
   const currentUrl = page.url();
@@ -145,6 +170,88 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     page.getByText(/^Carregando conversas/i).filter({ visible: true })
   ).toHaveCount(0);
   await testInfo.attach('Caixa com imagem', {
+    body: await page.screenshot({ animations: 'disabled' }),
+    contentType: 'image/png',
+  });
+
+  const compactLayoutButton = page
+    .getByRole('button')
+    .filter({ has: page.locator('.i-lucide-arrow-left-to-line') });
+  if (await compactLayoutButton.isVisible()) {
+    await compactLayoutButton.click();
+    await expect(page.locator('.conversation.grid')).toHaveCount(0);
+    await expect.poll(() => pendingApiRequests.size).toBe(0);
+  }
+  for (const layout of ['compacto', 'expandido']) {
+    if (layout === 'expandido') {
+      await page
+        .getByRole('button')
+        .filter({ has: page.locator('.i-lucide-arrow-right-to-line') })
+        .click();
+      await expect(page.locator('.conversation.grid').first()).toBeVisible();
+    }
+    for (const [tab, contactName, count] of [
+      [/^Minhas/, 'Pedro Raevo Assigned Smoke', 1],
+      [/^Não atribuídas/, 'Pedro Raevo Smoke', 1],
+      [/^Todos/, 'Pedro Raevo Smoke', 2],
+    ] as const) {
+      await page
+        .locator('a')
+        .filter({ hasText: tab })
+        .filter({ visible: true })
+        .click();
+      const rows = page.locator('.conversation');
+      await expect(rows).toHaveCount(count);
+      await expect(rows.filter({ hasText: contactName })).toBeVisible();
+      const channelImages = rows.locator('[title="Smoke API"] img');
+      await expect(channelImages).toHaveCount(count);
+      for (const channelImage of await channelImages.all()) {
+        await expect(channelImage).toBeVisible();
+        await expect
+          .poll(() =>
+            channelImage.evaluate(
+              (element: HTMLImageElement) => element.naturalWidth
+            )
+          )
+          .toBeGreaterThan(0);
+      }
+      await expect.poll(() => pendingApiRequests.size).toBe(0);
+      await testInfo.attach(`Conversas ${tab.source} ${layout}`, {
+        body: await page.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+    }
+  }
+
+  // Use the real settings screen and API, not an in-memory order assertion.
+  await expect.poll(() => pendingApiRequests.size).toBe(0);
+  await sidebar
+    .getByTitle(/^Configurações$/, { exact: true })
+    .filter({ visible: true })
+    .first()
+    .click();
+  await sidebar
+    .getByTitle(/^Etiquetas$/, { exact: true })
+    .filter({ visible: true })
+    .first()
+    .click();
+  const labelRows = page.locator('tbody tr');
+  await expect(labelRows).toHaveCount(2);
+  await expect(labelRows.first()).toContainText('alpha-smoke');
+  const reorderResponse = page.waitForResponse(
+    response =>
+      /\/labels\/reorder$/.test(response.url()) &&
+      response.request().method() === 'POST'
+  );
+  await labelRows
+    .filter({ hasText: 'zulu-smoke' })
+    .getByRole('button', { name: 'Mover para cima', exact: true })
+    .click();
+  expect((await reorderResponse).status()).toBe(200);
+  await expect(labelRows.first()).toContainText('zulu-smoke');
+  await page.reload();
+  await expect(labelRows.first()).toContainText('zulu-smoke');
+  await testInfo.attach('Etiquetas com ordem persistida', {
     body: await page.screenshot({ animations: 'disabled' }),
     contentType: 'image/png',
   });

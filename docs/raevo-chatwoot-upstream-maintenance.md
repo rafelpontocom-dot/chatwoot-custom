@@ -40,6 +40,7 @@ Nenhum dos dois é apanhável por lint ou por teste com filhos stubados. Só apa
    ```
 
    No 4.18 foram 27 fora dos ficheiros de tradução. Cada um é relido contra os dois lados (`git merge-file -p --diff3`), à procura de resolução que ficou com metade de cada.
+
 2. **Listar os ficheiros que os dois lados alteraram sem conflito.** Um mapa fixo, uma lista de opções ou uma assinatura de função mudados pelo upstream partem código Raevo que o git considera intacto.
 3. **Varrer as telas no browser, por clique.** Entrar, clicar em cada item da barra lateral por ordem, abrir um funil, uma oportunidade, uma conversa e um contato, com a consola aberta. Erro de consola ou item que desaparece reprova o upgrade. Carregar a URL diretamente não chega: os dois defeitos só apareciam ao navegar.
 
@@ -80,6 +81,96 @@ pnpm exec playwright test --config tests/playwright/playwright.navigation.config
 - [ ] testes customizados e lint concluídos;
 - [ ] fluxos canário: conversa, oportunidade, agendamento, cobrança e automação;
 - [ ] rollback definido para a imagem anterior e nenhuma migration destrutiva sem plano reversível.
+
+## Passo a passo obrigatório
+
+Não existe garantia de zero regressões em um fork. A estrutura abaixo torna as mudanças rastreáveis e bloqueia a imagem quando faltam verificações automatizadas. A aceitação no ambiente publicado continua necessária.
+
+### 1. Preservar a versão atual
+
+- Registrar branch, SHA, tag e digest da imagem nos três serviços do Swarm. Registrar também as migrations aplicadas e as variáveis necessárias, sem copiar segredos para o Git.
+- Fazer backup restaurável do PostgreSQL e dos anexos antes de migrations. Confirmar como restaurar, não somente que o arquivo existe.
+- Trabalhar em branch e worktree próprios, sem alterar alterações locais de outra pessoa. Criar uma tag imutável de pré-upgrade e outra da base upstream comprovada pelo histórico.
+- Buscar a tag exata da versão desejada e o histórico completo. Não identificar a base por `package.json`, pela data de um arquivo ou pela presença de uma funcionalidade.
+
+### 2. Gerar o inventário antes do merge
+
+No worktree de upgrade, executar:
+
+```sh
+node scripts/raevo-upstream-audit.mjs --check-contracts
+node --test scripts/tests/raevo-upstream-audit.test.mjs
+node scripts/raevo-upstream-audit.mjs \
+  --raevo <tag-raevo-pre-upgrade> \
+  --upstream <tag-upstream> > /tmp/raevo-upstream-audit.json
+```
+
+O relatório registra os SHAs, a base comum real, todos os arquivos alterados pelos dois lados, os testes associados e colisões de versões de migration. Recusa clones rasos e referências inexistentes. A lista inclui mudanças que o Git juntaria automaticamente, não apenas conflitos. `unregisteredOverlaps` exige revisão manual e atualização do catálogo `config/raevo/upstream-contracts.json`; não significa que esses arquivos sejam seguros.
+
+O catálogo associa caminhos nativos modificados a contratos e testes existentes. Ele não prova cobertura semântica nem substitui a revisão. Novos contratos compartilhados entram no catálogo e no CI junto com a implementação.
+
+### 3. Resolver e revisar
+
+- Relacionar todos os conflitos e todos os overlaps automáticos do relatório. Para cada um, registrar: comportamento upstream, comportamento Raevo preservado, decisão e teste.
+- Comparar assinaturas de funções, props, rotas, opções de campos, policies, eventos e listas de tradução. Verificar também extensões em `enterprise/`.
+- Não manter uma pasta espelho de arquivos nativos antigos para copiá-los depois do upgrade: isso apagaria correções e recursos novos. Extensões de domínio ficam em módulos próprios; adaptações do núcleo ficam no histórico Git e no catálogo de contratos.
+- Resolver traduções por chave, sem substituir um JSON inteiro por uma das versões. Conferir PT-BR/PT-PT e as chaves dos módulos Raevo.
+- Revisar dependências e regenerar locks com o gerenciador correto. Conferir migrations próprias e upstream, incluindo timestamps repetidos, schema e compatibilidade de rollback. Não apagar migrations já aplicadas.
+
+Contratos mínimos a preservar:
+
+| Área                | Regressão/aceite obrigatório                                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navegação           | Pipeline e todos os módulos por clique, barra lateral presente, router real                                                                     |
+| Contatos            | Todos os perfis sociais novos, tradução real, edição e salvamento                                                                               |
+| Identidade da caixa | Imagem em canais, Minhas/Não atribuídas/Todos, layouts compacto/expandido, histórico, notificações e busca; fallback quando ausente ou inválida |
+| Etiquetas           | Ordem manual salva, isolamento entre contas e autorização; ordenação da barra lateral respeitada                                                |
+| Início              | Conteúdo alcançável por rolagem, inclusive janela baixa                                                                                         |
+| Superadmin          | Liberação de módulos e configurações de conta/instalação mantidas                                                                               |
+| WhatsApp            | Nome do atendente, saudação e opções da caixa preservadas                                                                                       |
+| Marca/idioma        | Logo, favicon, login, nome da instalação e PT-BR/PT-PT preservados                                                                              |
+| Notificações        | Som e contagem da guia respeitam preferências/flags, sem habilitar flags de produção implicitamente                                             |
+| CRM                 | Oportunidade, calendário, financeiro, formulários e automação mantêm dados, permissões e vínculos                                               |
+
+### 4. Aprovar o código e a imagem
+
+- Testar componentes reais nos contratos compartilhados. Stubs de router, traduções e componentes filhos não podem ser a única evidência.
+- Para um bug conhecido, demonstrar que o novo teste falha com o comportamento quebrado e passa com a correção.
+- Executar CI customizado e testes upstream relevantes. Rodar a jornada Playwright com Rails, assets e API reais, navegando por clique. Não ignorar erros de API ou de console para tornar o smoke verde.
+- Revisar screenshots e traces; sucesso de build não comprova disposição visual correta.
+- Publicar somente a imagem do SHA aprovado. Alteração posterior, inclusive resolução de conflito ou tradução, exige nova rodada. O gate de `build_and_push.yml` verifica a rodada mais recente de `custom_checks.yml` do mesmo SHA.
+
+### 5. Aceitar no ambiente publicado
+
+- Aplicar primeiro em staging/canário com backup e image digest registrados. Admin, API e Sidekiq devem usar a mesma imagem e as mesmas chaves de criptografia necessárias.
+- Executar migrations uma vez pelo serviço API e conferir `db:migrate:status`. Uma mudança só de frontend não exige migration nova; versões acumuladas podem ter migrations pendentes.
+- Navegar por clique no domínio real, sem cache antigo. Repetir os contratos da tabela com uma conta sintética, incluindo caixa com imagem e conta sem imagem.
+- Simular criação/edição de oportunidade, agendamento/remarcação, cobrança sandbox, formulário e execução de automação sem enviar mensagens reais a clientes. Testar também permissões de secretária e administrador.
+- Verificar edição concorrente e volume representativo antes de ampliar a liberação. Registrar console, respostas de API, screenshot, IDs sintéticos e resultado. Nunca registrar tokens ou dados clínicos nas evidências.
+- Se houver regressão, interromper a liberação. Retornar à imagem anterior apenas se compatível com o schema atual; restauração de banco exige decisão e plano próprio. Não executar `db:rollback` às cegas.
+
+### Registro obrigatório da entrega
+
+Copiar este checklist para a entrega/PR, sem marcar resultados não executados:
+
+- [ ] versão upstream, tag de pré-upgrade e SHAs registrados;
+- [ ] relatório de overlaps e colisões revisado; nenhum arquivo sem decisão;
+- [ ] contratos Superadmin, inbox e módulos Raevo preservados;
+- [ ] testes de regressão e navegação real aprovados;
+- [ ] capturas/traces revisados e anexados;
+- [ ] CI do SHA final aprovado; tag e digest da imagem registrados;
+- [ ] migrations, backup e rollback documentados;
+- [ ] smoke do domínio publicado e canário aprovados;
+- [ ] aceite de produção, pendências e tempo registrados no ClickUp.
+
+### Aprendizado dos incidentes
+
+| Incidente                            | Causa                                                       | Proteção adicionada                                              |
+| ------------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| Pipeline/barra lateral desaparecem   | `RouterLink` resolvido sem `to`                             | Teste com router real e smoke por clique                         |
+| Contatos falha com WhatsApp          | Lista upstream e mapa Raevo divergentes em merge automático | Traduções reais de todos os perfis + inventário de overlaps      |
+| Imagem da caixa ausente em conversas | Nomes snake/camel e identificação escondida com uma caixa   | Componente compartilhado normalizado e testes em cada superfície |
+| Imagem publicada antes dos checks    | Build manual independente da validação                      | Gate do CI customizado no mesmo SHA                              |
 
 ## Ritmo recomendado
 

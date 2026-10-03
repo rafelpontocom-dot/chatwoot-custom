@@ -36,6 +36,11 @@ contact_inbox = ContactInbox.create!(contact: contact, inbox: inbox, source_id: 
 conversation = Conversation.create!(account: account, inbox: inbox, contact: contact, contact_inbox: contact_inbox)
 Message.create!(account: account, inbox: inbox, conversation: conversation, sender: contact,
                 message_type: :incoming, content: 'Mensagem de validacao da navegacao')
+assigned_contact = Contact.create!(account: account, name: 'Pedro Raevo Assigned Smoke')
+assigned_contact_inbox = ContactInbox.create!(contact: assigned_contact, inbox: inbox, source_id: 'navigation-assigned-smoke')
+Conversation.create!(account: account, inbox: inbox, contact: assigned_contact, contact_inbox: assigned_contact_inbox, assignee: user)
+Label.create!(account: account, title: 'alpha-smoke', color: '#00B8C6', position: 0, show_on_sidebar: true)
+Label.create!(account: account, title: 'zulu-smoke', color: '#C7A97A', position: 1, show_on_sidebar: true)
 Conversations::UnreadCounts::Builder.new(account).build_base!
 KanbanCard.create!(
   account: account,

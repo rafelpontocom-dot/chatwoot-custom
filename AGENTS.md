@@ -3,6 +3,18 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 (Note: `CLAUDE.md` is a symlink to `AGENTS.md` — edit this file to update both.)
 
+## Atualização do Chatwoot: porta obrigatória
+
+Antes de qualquer upgrade, merge de upstream ou publicação pós-upgrade, siga
+[`docs/raevo-chatwoot-upstream-maintenance.md`](docs/raevo-chatwoot-upstream-maintenance.md),
+especialmente **Passo a passo obrigatório**. Gere o relatório de sobreposição com
+`scripts/raevo-upstream-audit.mjs` e mantenha o inventário em
+`config/raevo/upstream-contracts.json`. Um merge sem conflito não comprova compatibilidade.
+Não copie versões antigas de arquivos nativos por cima das novas. Contratos compartilhados
+precisam de teste com os componentes reais; navegação precisa de router real e smoke por
+clique com assets compilados. Nunca publique uma imagem cujo SHA não passou no CI.
+Não declare produção validada apenas porque testes locais ou build passaram.
+
 # Raevo Design System — LEIA ANTES DE MEXER EM QUALQUER UI
 
 Este fork é o **Raevo**. A direção é **A · Consultório**, aprovada a 19/09/2026 e

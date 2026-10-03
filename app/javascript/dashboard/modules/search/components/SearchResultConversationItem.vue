@@ -4,10 +4,10 @@ import { frontendURL } from 'dashboard/helper/URLHelper.js';
 import { dynamicTime } from 'shared/helpers/timeHelper';
 import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
 import { useInbox } from 'dashboard/composables/useInbox';
-import { getInboxIconByType } from 'dashboard/helper/inbox';
 
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 
 const props = defineProps({
   id: {
@@ -87,12 +87,6 @@ const visibleInfoItems = computed(() =>
 );
 
 const inboxName = computed(() => props.inbox?.name);
-
-const inboxIcon = computed(() => {
-  if (!inbox.value) return null;
-  const { channelType, medium, voiceEnabled } = inbox.value;
-  return getInboxIconByType(channelType, medium, 'fill', voiceEnabled);
-});
 </script>
 
 <template>
@@ -117,11 +111,11 @@ const inboxIcon = computed(() => {
           <div v-if="inboxName" class="w-px h-3 bg-n-strong" />
           <div v-if="inboxName" class="flex items-center gap-1.5 flex-shrink-0">
             <div
-              v-if="inboxIcon"
+              v-if="inbox"
               class="flex items-center justify-center flex-shrink-0 rounded-full bg-n-alpha-2 size-4"
             >
-              <Icon
-                :icon="inboxIcon"
+              <ChannelIcon
+                :inbox="inbox"
                 class="flex-shrink-0 text-n-slate-11 size-2.5"
               />
             </div>

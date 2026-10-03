@@ -5,6 +5,47 @@ RSpec.describe 'Label API', type: :request do
   let!(:label) { create(:label, account: account) }
   let!(:conversation) { create(:conversation, account: account) }
 
+  describe 'POST /api/v1/accounts/{account.id}/labels/reorder' do
+    let(:admin) { create(:user, account: account, role: :administrator) }
+    let!(:second_label) { create(:label, account: account, position: 1) }
+
+    it 'persists the requested order for the account' do
+      post "/api/v1/accounts/#{account.id}/labels/reorder",
+           headers: admin.create_new_auth_token, params: { label_ids: [second_label.id, label.id] }, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(second_label.reload.position).to eq(0)
+      expect(label.reload.position).to eq(1)
+    end
+
+    it 'rejects an unauthenticated reorder without changing positions' do
+      expect do
+        post "/api/v1/accounts/#{account.id}/labels/reorder", params: { label_ids: [second_label.id, label.id] }, as: :json
+      end.not_to(change { second_label.reload.position })
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'rejects an agent without administration permission' do
+      agent = create(:user, account: account, role: :agent)
+      post "/api/v1/accounts/#{account.id}/labels/reorder",
+           headers: agent.create_new_auth_token, params: { label_ids: [second_label.id, label.id] }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(second_label.reload.position).to eq(1)
+    end
+
+    it 'rejects labels from another account atomically' do
+      foreign_label = create(:label, position: 5)
+      post "/api/v1/accounts/#{account.id}/labels/reorder",
+           headers: admin.create_new_auth_token, params: { label_ids: [second_label.id, foreign_label.id] }, as: :json
+
+      expect(response).to have_http_status(:not_found)
+      expect(second_label.reload.position).to eq(1)
+      expect(foreign_label.reload.position).to eq(5)
+    end
+  end
+
   describe 'GET /api/v1/accounts/{account.id}/labels' do
     context 'when it is an unauthenticated user' do
       it 'returns unauthorized' do
