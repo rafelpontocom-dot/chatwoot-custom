@@ -6,7 +6,8 @@ class Api::V1::Accounts::RaevoAi::CrmCatalogsController < Api::V1::Accounts::Bas
     render json: RaevoAi::CrmCatalogExtensionPublisher.new(integration: @integration).publish!(
       board_key: crm_catalog_params[:board_key],
       fields: crm_catalog_params[:fields],
-      stages: crm_catalog_params[:stages]
+      stages: crm_catalog_params[:stages],
+      contact_name: crm_catalog_params[:contact_name]
     )
   rescue RaevoAi::CrmCatalogExtensionPublisher::InvalidCatalog
     render json: { error: 'invalid_crm_catalog' }, status: :unprocessable_entity
@@ -27,7 +28,8 @@ class Api::V1::Accounts::RaevoAi::CrmCatalogsController < Api::V1::Accounts::Bas
     params.permit(
       :board_key,
       fields: {},
-      stages: {}
+      stages: {},
+      contact_name: [:overwrite]
     ).tap do |permitted|
       permitted.require(:board_key)
     end

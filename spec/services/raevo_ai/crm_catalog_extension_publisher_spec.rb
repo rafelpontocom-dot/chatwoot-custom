@@ -74,4 +74,28 @@ RSpec.describe RaevoAi::CrmCatalogExtensionPublisher do
       )
     end.to raise_error(described_class::InvalidCatalog, /already published/)
   end
+
+  it 'publishes a contact-name overwrite policy only for this integration' do
+    other = create(:account)
+    other_integration = RaevoAiIntegration.create!(account: other, clinic_id: 'another-clinic', enabled: true, settings: {})
+
+    described_class.new(integration: integration).publish!(
+      board_key: 'captacao', fields: {}, stages: {}, contact_name: { 'overwrite' => 'if_empty' }
+    )
+
+    expect(integration.reload.settings.dig('crm', 'contact_name')).to eq('overwrite' => 'if_empty')
+    expect(other_integration.reload.settings).to eq({})
+  end
+
+  it 'rejects an invalid or conflicting contact-name policy' do
+    publisher = described_class.new(integration: integration)
+    expect do
+      publisher.publish!(board_key: 'captacao', fields: {}, stages: {}, contact_name: { 'overwrite' => 'unrestricted' })
+    end.to raise_error(described_class::InvalidCatalog)
+
+    publisher.publish!(board_key: 'captacao', fields: {}, stages: {}, contact_name: { 'overwrite' => 'if_empty' })
+    expect do
+      publisher.publish!(board_key: 'captacao', fields: {}, stages: {}, contact_name: { 'overwrite' => 'always' })
+    end.to raise_error(described_class::InvalidCatalog)
+  end
 end

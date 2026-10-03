@@ -5,14 +5,15 @@ class RaevoAi::CrmCatalogExtensionPublisher
     @integration = integration
   end
 
-  def publish!(board_key:, fields:, stages:)
+  def publish!(board_key:, fields:, stages:, contact_name: nil)
     @integration.with_lock do
       normalized_board_key = normalize_board_key!(board_key)
       board_configuration = board_configuration!(normalized_board_key)
       board = find_board!(board_configuration)
       normalized_fields = normalize_fields!(board, fields)
       normalized_stages = normalize_stages!(board, board_configuration, stages)
-      persist_additions!(normalized_board_key, normalized_fields, normalized_stages)
+      normalized_contact_name = normalize_contact_name!(contact_name)
+      persist_additions!(normalized_board_key, normalized_fields, normalized_stages, normalized_contact_name)
 
       {
         'board_key' => normalized_board_key,
@@ -50,6 +51,16 @@ class RaevoAi::CrmCatalogExtensionPublisher
     source.to_h do |field_key, configuration|
       [field_key, normalize_field!(board, field_key, configuration)]
     end
+  end
+
+  def normalize_contact_name!(configuration)
+    return if configuration.nil?
+
+    source = configuration.respond_to?(:to_h) ? configuration.to_h.deep_stringify_keys : {}
+    overwrite = source['overwrite'].to_s
+    raise InvalidCatalog, 'contact name overwrite policy is invalid' unless %w[always if_empty].include?(overwrite)
+
+    { 'overwrite' => overwrite }
   end
 
   def normalize_field!(board, field_key, configuration)
@@ -124,9 +135,10 @@ class RaevoAi::CrmCatalogExtensionPublisher
     raise InvalidCatalog, 'allowed_from references an unpublished event'
   end
 
-  def persist_additions!(board_key, fields, stages)
+  def persist_additions!(board_key, fields, stages, contact_name)
     settings = @integration.settings.deep_dup
-    board = settings.fetch('crm').fetch('boards').fetch(board_key)
+    crm = settings.fetch('crm')
+    board = crm.fetch('boards').fetch(board_key)
     existing_fields = board['fields'] ||= {}
     existing_stages = board['stages'] ||= {}
 
@@ -134,6 +146,14 @@ class RaevoAi::CrmCatalogExtensionPublisher
     reject_conflicting_entries!(existing_stages, stages, 'stage event')
     board['fields'] = existing_fields.merge(fields)
     board['stages'] = existing_stages.merge(stages)
+    if contact_name
+      existing_policy = crm['contact_name']
+      if existing_policy.present? && existing_policy != contact_name
+        raise InvalidCatalog, 'contact name policy is already published with a different configuration'
+      end
+
+      crm['contact_name'] = contact_name
+    end
     @integration.update!(settings: settings)
   end
 
