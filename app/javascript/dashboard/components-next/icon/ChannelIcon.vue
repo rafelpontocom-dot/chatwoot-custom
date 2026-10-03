@@ -30,6 +30,15 @@ const icon = computed(() =>
 
 <template>
   <span class="inline-flex" v-bind="$attrs">
-    <Icon :icon="icon" class="size-full" />
+    <!-- Raevo: a imagem que a caixa recebeu em Configurações vale em todo o
+         lado. Uma caixa «Canal da API» ligada ao WhatsApp não tem como se
+         distinguir pelo tipo, e o glifo `{}` não diz a ninguém que canal é. -->
+    <img
+      v-if="inbox.avatar_url"
+      :src="inbox.avatar_url"
+      alt=""
+      class="size-full rounded-full object-cover"
+    />
+    <Icon v-else :icon="icon" class="size-full" />
   </span>
 </template>
