@@ -37,7 +37,7 @@ const onClick = event => {
 
 <template>
   <component
-    :is="to ? 'router-link' : 'button'"
+    :is="to ? 'a' : 'button'"
     :type="to ? undefined : 'button'"
     class="flex items-center gap-2 px-1.5 py-1 rounded-lg h-8 min-w-0"
     :aria-expanded="expandable ? isExpanded : undefined"
