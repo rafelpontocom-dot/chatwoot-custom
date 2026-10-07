@@ -610,6 +610,24 @@ function loadMoreConversations() {
   }
 }
 
+// O filtro que abre o painel. Guardado por agente, nas preferências dele: dois
+// agentes na mesma conta abrem em filtros diferentes, que é o ponto.
+const isDefaultFolder = computed(
+  () =>
+    Boolean(activeFolder.value) &&
+    Number(uiSettings.value.conversations_default_folder_id) ===
+      Number(activeFolder.value.id)
+);
+
+function toggleDefaultFolder() {
+  if (!activeFolder.value) return;
+  updateUISettings({
+    conversations_default_folder_id: isDefaultFolder.value
+      ? null
+      : activeFolder.value.id,
+  });
+}
+
 function updateAssigneeTab(selectedTab) {
   if (activeAssigneeTab.value !== selectedTab) {
     resetBulkActions();
@@ -901,11 +919,13 @@ watch(appliedFilters, () => resetBulkActions());
       :contact-filter="appliedContactFilter"
       :has-applied-filters="hasAppliedFilters"
       :has-active-folders="hasActiveFolders"
+      :is-default-folder="isDefaultFolder"
       :active-status="activeStatus"
       :is-on-expanded-layout="isOnExpandedLayout"
       :conversation-stats="conversationStats"
       :is-list-loading="chatListLoading && !conversationList.length"
       @add-folders="onClickOpenAddFoldersModal"
+      @toggle-default-folder="toggleDefaultFolder"
       @delete-folders="onClickOpenDeleteFoldersModal"
       @filters-modal="onToggleAdvanceFiltersModal"
       @reset-filters="resetAndFetchData"

@@ -1,5 +1,6 @@
 import {
   LAST_USED_TAB,
+  defaultFolderOnEntry,
   resolveAssigneeTab,
 } from '../conversationFilterPreferences';
 
@@ -36,5 +37,25 @@ describe('resolveAssigneeTab', () => {
       resolveAssigneeTab({ preferred: 'inventada', lastUsed: 'all' })
     ).toBe('all');
     expect(resolveAssigneeTab({ lastUsed: 'tambem-inventada' })).toBe('me');
+  });
+});
+
+describe('defaultFolderOnEntry', () => {
+  it('opens the panel on the filter the agent elected', () => {
+    expect(defaultFolderOnEntry({ folderId: 7 })).toBe(7);
+    expect(defaultFolderOnEntry({ folderId: '7' })).toBe(7);
+  });
+
+  // Clicar em «Todas as conversas» tem de levar a todas as conversas. O filtro
+  // padrão é por onde se começa, não para onde se é arrastado de volta.
+  it('does not hijack navigation once the agent is already inside', () => {
+    expect(defaultFolderOnEntry({ fromName: 'home', folderId: 7 })).toBeNull();
+  });
+
+  it('does nothing when no filter was elected', () => {
+    expect(defaultFolderOnEntry()).toBeNull();
+    expect(defaultFolderOnEntry({ folderId: null })).toBeNull();
+    expect(defaultFolderOnEntry({ folderId: 0 })).toBeNull();
+    expect(defaultFolderOnEntry({ folderId: 'lixo' })).toBeNull();
   });
 });

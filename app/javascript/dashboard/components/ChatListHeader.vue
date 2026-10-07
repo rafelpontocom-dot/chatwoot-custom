@@ -13,6 +13,7 @@ const props = defineProps({
   contactFilter: { type: Object, default: null },
   hasAppliedFilters: { type: Boolean, required: true },
   hasActiveFolders: { type: Boolean, required: true },
+  isDefaultFolder: { type: Boolean, default: false },
   activeStatus: { type: String, required: true },
   isOnExpandedLayout: { type: Boolean, required: true },
   conversationStats: { type: Object, required: true },
@@ -22,6 +23,7 @@ const props = defineProps({
 const emit = defineEmits([
   'addFolders',
   'deleteFolders',
+  'toggleDefaultFolder',
   'resetFilters',
   'basicFilterChange',
   'filtersModal',
@@ -152,6 +154,25 @@ const toggleConversationLayout = () => {
             :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
           />
         </div>
+        <!--
+          Eleger este filtro como o que abre o painel. Fica ao lado de editar e
+          apagar porque é a terceira coisa que se faz a um filtro guardado, e
+          porque é aqui que se sabe qual filtro está aberto.
+        -->
+        <NextButton
+          v-tooltip.top-end="
+            isDefaultFolder
+              ? $t('FILTER.CUSTOM_VIEWS.DEFAULT.UNSET')
+              : $t('FILTER.CUSTOM_VIEWS.DEFAULT.SET')
+          "
+          :icon="isDefaultFolder ? 'i-lucide-pin-off' : 'i-lucide-pin'"
+          :slate="!isDefaultFolder"
+          :amber="isDefaultFolder"
+          xs
+          faded
+          data-testid="toggle-default-folder"
+          @click="emit('toggleDefaultFolder')"
+        />
         <NextButton
           id="toggleConversationFilterButton"
           v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.DELETE.DELETE_BUTTON')"
