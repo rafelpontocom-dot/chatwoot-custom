@@ -74,6 +74,7 @@ const currentUserId = useMapGetter('getCurrentUserID');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
+const getAccountById = useMapGetter('accounts/getAccount');
 
 const hasAdvancedAssignment = computed(() => {
   return isFeatureEnabledonAccount.value(
@@ -105,6 +106,12 @@ const hasFilteredUnreadCounts = computed(() => {
     )
   );
 });
+
+// Marketing não é funcionalidade de toda clínica: quem não usa os campos via a
+// entrada no menu e caía numa tela sem conteúdo. A conta diz se está ligado.
+const hasMarketing = computed(
+  () => getAccountById.value(accountId.value)?.marketing_module_enabled === true
+);
 
 const hasDataImport = computed(() => {
   return isFeatureEnabledonAccount.value(
@@ -1060,7 +1067,9 @@ const menuItems = computed(() => {
         },
       ],
     },
-  ].filter(item => item.name !== 'Captain' || hasCaptain.value);
+  ]
+    .filter(item => item.name !== 'Captain' || hasCaptain.value)
+    .filter(item => item.name !== 'Marketing' || hasMarketing.value);
 });
 </script>
 
