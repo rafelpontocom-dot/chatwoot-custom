@@ -19,7 +19,22 @@ const { uiSettings } = useUISettings();
 
 const searchQuery = ref('');
 
-const contactAttributes = useMapGetter('attributes/getContactAttributes') || [];
+// A integração do WAHA cria atributos de contato que são endereçamento interno
+// do WhatsApp, não dado de quem atende: conferido em produção, as contas 1 e 3
+// têm `waha_whatsapp_chat_id`, `waha_whatsapp_jid` e `waha_whatsapp_lid`. Eles
+// enchiam a ficha do contato com identificadores que ninguém lê e empurravam o
+// que interessa para baixo. O prefixo cobre os três e o próximo que a
+// integração criar — a chave é dela, não nossa.
+const PREFIXO_TECNICO_WHATSAPP = 'waha_whatsapp_';
+
+const todosOsAtributos = useMapGetter('attributes/getContactAttributes') || [];
+
+const contactAttributes = computed(() =>
+  (todosOsAtributos.value || []).filter(
+    attribute =>
+      !String(attribute.attributeKey || '').startsWith(PREFIXO_TECNICO_WHATSAPP)
+  )
+);
 
 const hasContactAttributes = computed(
   () => contactAttributes.value?.length > 0
