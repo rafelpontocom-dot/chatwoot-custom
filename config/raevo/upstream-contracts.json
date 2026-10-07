@@ -2,6 +2,30 @@
   "version": 1,
   "contracts": [
     {
+      "id": "contact-addressing-visibility",
+      "paths": [
+        "app/javascript/dashboard/helper/contactAttributes.js",
+        "app/javascript/dashboard/components-next/Contacts/ContactsSidebar/ContactCustomAttributes.vue",
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanContactFieldManager.vue",
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanOpportunityDetailsModal.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/helper/specs/contactAttributes.spec.js",
+        "app/javascript/dashboard/components-next/Contacts/ContactsSidebar/specs/ContactCustomAttributes.spec.js",
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanContactFieldManager.spec.js",
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanOpportunityDetailsModal.spec.js"
+      ]
+    },
+    {
+      "id": "opportunity-contact-intake",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanOpportunityPicker.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanOpportunityPicker.spec.js"
+      ]
+    },
+    {
       "id": "navigation",
       "paths": [
         "app/javascript/dashboard/components-next/sidebar",

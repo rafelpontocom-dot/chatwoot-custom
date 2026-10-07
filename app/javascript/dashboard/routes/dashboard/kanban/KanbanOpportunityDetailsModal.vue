@@ -1,6 +1,9 @@
 <script setup>
 import { onClickOutside } from '@vueuse/core';
-import { withoutWhatsappAddressing } from 'dashboard/helper/contactAttributes';
+import {
+  isWhatsappAddressingAttribute,
+  withoutWhatsappAddressing,
+} from 'dashboard/helper/contactAttributes';
 import {
   computed,
   nextTick,
@@ -205,9 +208,11 @@ const labelsSaveError = ref('');
 const subjectError = ref('');
 const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
+const savedLabelTitles = ref([]);
 const showLabelsPopover = ref(false);
 const labelsPopoverRef = ref(null);
 const labelsTriggerRef = ref(null);
+const labelQuery = ref('');
 
 // Fechava só clicando de novo no botão que o abriu, e ficava por cima da ficha
 // enquanto se tentava ler o resto. Mesmo padrão do menu de etapas aqui ao lado:
@@ -217,11 +222,12 @@ const labelsTriggerRef = ref(null);
 // guardar próprio. É o que se espera de um popover, e é o mesmo que o Esc faz.
 const closeLabelsPopover = () => {
   showLabelsPopover.value = false;
+  selectedLabelTitles.value = [...savedLabelTitles.value];
+  labelQuery.value = '';
 };
 onClickOutside(labelsPopoverRef, closeLabelsPopover, {
   ignore: [labelsTriggerRef],
 });
-const labelQuery = ref('');
 const isCreatingLabel = ref(false);
 const pendingPipelineTransfer = ref(null);
 const activeTabKey = ref('details');
@@ -377,7 +383,9 @@ const contactAttributeEntries = computed(() => {
     ...Object.entries(custom)
       .filter(([key]) => !definedKeys.has(key))
       .map(toEntry('custom_attributes')),
-  ];
+  ].filter(
+    entry => !isWhatsappAddressingAttribute({ attribute_key: entry.key })
+  );
 });
 
 // As etiquetas chegam do serializador como títulos; a cor vem do vocabulário
@@ -1203,6 +1211,7 @@ const loadLabels = async () => {
     selectedLabelTitles.value = getLabelsPayload(assignedLabelsResponse).map(
       label => label.title || label
     );
+    savedLabelTitles.value = [...selectedLabelTitles.value];
   } catch (error) {
     labelsLoadError.value = getErrorMessage(
       error,
@@ -1729,6 +1738,7 @@ const saveLabels = async () => {
     selectedLabelTitles.value = getLabelsPayload(response).map(
       label => label.title || label
     );
+    savedLabelTitles.value = [...selectedLabelTitles.value];
   } catch (error) {
     labelsSaveError.value = getErrorMessage(
       error,
@@ -1988,7 +1998,11 @@ watch(invitationPendingRevocation, async invitation => {
               class="flex h-7 items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
               :aria-expanded="showLabelsPopover"
               aria-controls="kanban-opportunity-labels-popover"
-              @click="showLabelsPopover = !showLabelsPopover"
+              @click="
+                showLabelsPopover
+                  ? closeLabelsPopover()
+                  : (showLabelsPopover = true)
+              "
             >
               <i class="i-lucide-tags size-3.5" />
               {{ t('KANBAN.OPPORTUNITY_DETAILS.LABELS') }}
@@ -2001,7 +2015,10 @@ watch(invitationPendingRevocation, async invitation => {
               id="kanban-opportunity-labels-popover"
               ref="labelsPopoverRef"
               class="absolute left-0 z-30 mt-2 grid w-72 gap-3 rounded-lg border border-n-weak bg-n-solid-1 p-3 shadow-lg"
-              @keydown.esc="closeLabelsPopover"
+              @keydown.esc.stop.prevent="
+                closeLabelsPopover();
+                labelsTriggerRef?.focus();
+              "
             >
               <div class="flex items-center justify-between gap-3">
                 <span class="text-sm font-medium text-n-slate-12">

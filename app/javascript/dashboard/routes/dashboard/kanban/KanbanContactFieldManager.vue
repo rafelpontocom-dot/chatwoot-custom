@@ -45,9 +45,11 @@ const disponiveis = computed(() =>
 
 const mover = (index, passo) => {
   const destino = index + passo;
-  if (destino < 0 || destino >= props.modelValue.length) return;
+  if (destino < 0 || destino >= colocados.value.length) return;
+  const origem = props.modelValue.indexOf(colocados.value[index].attribute_key);
+  const alvo = props.modelValue.indexOf(colocados.value[destino].attribute_key);
   const proximo = [...props.modelValue];
-  [proximo[index], proximo[destino]] = [proximo[destino], proximo[index]];
+  [proximo[origem], proximo[alvo]] = [proximo[alvo], proximo[origem]];
   emit('update:modelValue', proximo);
 };
 const colocar = key => {

@@ -326,6 +326,7 @@ const mountModal = async ({
   financePayments = [],
   contactFieldKeys = [],
   attributeDefinitions = [],
+  attachTo,
 } = {}) => {
   storeMocks.attributeDefinitions = attributeDefinitions;
   storeMocks.labels = accountLabels;
@@ -355,6 +356,7 @@ const mountModal = async ({
   }
 
   const wrapper = mount(KanbanOpportunityDetailsModal, {
+    attachTo,
     props: {
       boardId: 10,
       boardName: 'Sales funnel',
@@ -1161,6 +1163,43 @@ describe('KanbanOpportunityDetailsModal', () => {
       expect(wrapper.text()).not.toContain('WhatsApp Chat ID');
       expect(wrapper.text()).not.toContain('WAHA JID');
     });
+
+    it.each([[[]], [['waha_whatsapp_jid', 'data_nascimento']]])(
+      'hides saved addressing values including orphaned definitions with placement %j',
+      async contactFieldKeys => {
+        const wrapper = await mountModal({
+          card: buildCard({
+            contact: {
+              id: 55,
+              name: 'Pedro',
+              custom_attributes: {
+                waha_whatsapp_jid: 'internal-jid',
+                waha_whatsapp_lid: 'internal-lid',
+                waha_whatsapp_chat_id: 'internal-chat',
+                data_nascimento: '1990-01-01',
+              },
+              additional_attributes: { waha_whatsapp_extra: 'internal-extra' },
+            },
+          }),
+          attributeDefinitions: atributos,
+          contactFieldKeys,
+        });
+        await irParaContato(wrapper);
+
+        ['jid', 'lid', 'chat_id', 'extra'].forEach(key => {
+          expect(
+            wrapper
+              .find(`[data-testid="kanban-row-attr-waha_whatsapp_${key}"]`)
+              .exists()
+          ).toBe(false);
+        });
+        expect(
+          wrapper
+            .find('[data-testid="kanban-row-attr-data_nascimento"]')
+            .exists()
+        ).toBe(true);
+      }
+    );
 
     it('draws a placed but empty field as a dash instead of hiding it', async () => {
       const wrapper = await mountModal({
@@ -2171,12 +2210,38 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(storeMocks.dispatch).toHaveBeenCalledWith('labels/get');
   });
 
-  // O clique fora é ligado pelo `onClickOutside` do vueuse, o mesmo helper que o
-  // menu de etapas aqui ao lado já usa. Não há teste dele: o helper ouve no
-  // `window` e só decide «dentro ou fora» com a árvore ligada ao documento, e
-  // ligar este modal ao documento contaminava 15 testes vizinhos, que passam a
-  // encontrar elementos deixados por outros. Fica para conferir na tela, em
-  // produção, com o Esc coberto aqui abaixo.
+  it('closes on an outside click without leaving unsaved labels selected', async () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const wrapper = await mountModal({ attachTo: host });
+    try {
+      await openLabels(wrapper);
+      await labelButtons(wrapper)[1].trigger('click');
+      expect(wrapper.find('#kanban-opportunity-labels-popover').exists()).toBe(
+        true
+      );
+      // VueUse releases its click-processing guard on the next event-loop turn.
+      await new Promise(resolve => {
+        setTimeout(resolve, 0);
+      });
+      document.body.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true })
+      );
+      document.body.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, detail: 1 })
+      );
+      await flushPromises();
+      expect(wrapper.find('#kanban-opportunity-labels-popover').exists()).toBe(
+        false
+      );
+      await openLabels(wrapper);
+      expect(labelButtons(wrapper)[1].attributes('aria-pressed')).toBe('false');
+      expect(KanbanBoardsAPI.updateCardLabels).not.toHaveBeenCalled();
+    } finally {
+      wrapper.unmount();
+      host.remove();
+    }
+  });
   it('closes it on Escape as well', async () => {
     const wrapper = await mountModal();
     await openLabels(wrapper);
@@ -2188,6 +2253,38 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.find('#kanban-opportunity-labels-popover').exists()).toBe(
       false
     );
+  });
+
+  it('Escape dismisses labels without opening the opportunity discard dialog', async () => {
+    const wrapper = await mountModal();
+    await subjectInput(wrapper).setValue('Modified subject');
+    await openLabels(wrapper);
+    await wrapper
+      .find('#kanban-opportunity-labels-popover')
+      .trigger('keydown', { key: 'Escape' });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-unsaved-changes"]')
+        .exists()
+    ).toBe(false);
+    expect(subjectInput(wrapper).element.value).toBe('Modified subject');
+    expect(wrapper.emitted('close')).toBeUndefined();
+  });
+
+  it('keeps saved labels when the popover is dismissed and reopened', async () => {
+    KanbanBoardsAPI.updateCardLabels.mockResolvedValue({
+      data: { payload: labels },
+    });
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+    await labelButtons(wrapper)[1].trigger('click');
+    await saveLabelsButton(wrapper).trigger('click');
+    await flushPromises();
+    await openLabels(wrapper);
+    await openLabels(wrapper);
+
+    expect(labelButtons(wrapper)[1].attributes('aria-pressed')).toBe('true');
   });
 
   it('renders label title and color', async () => {

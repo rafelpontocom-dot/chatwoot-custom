@@ -1602,6 +1602,8 @@
       "NO_INBOXES_HINT": "This contact has no inbox linked yet, so an opportunity cannot be opened for them. Link the contact to an inbox in Contacts, or pick another contact.",
       "NO_INBOXES_ACTION": "Pick another contact",
       "NEW_CONTACT": {
+        "COUNTRY": "Phone country",
+        "PHONE_INVALID": "Enter a valid phone number for the selected country, or include its international code.",
         "NAME": "Name",
         "PHONE": "Phone",
         "PHONE_HINT": "Needed so the contact can be reached on a channel.",

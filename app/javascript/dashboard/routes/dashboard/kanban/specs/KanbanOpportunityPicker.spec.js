@@ -130,6 +130,90 @@ describe('KanbanOpportunityPicker', () => {
       expect(
         wrapper.find('[data-testid="kanban-new-contact-phone"]').exists()
       ).toBe(true);
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-name"]').element.value
+      ).toBe('Rita Souza');
+    });
+
+    it('uses the selected country for a local Portuguese number', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockResolvedValue({
+        data: { payload: { contact: { id: 78, name: 'Rita' } } },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-country"]')
+        .setValue('PT');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('912 345 678');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).toHaveBeenCalledWith({
+        name: 'Rita',
+        phone_number: '+351912345678',
+      });
+    });
+
+    it('rejects a nonempty but invalid phone before creating', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('abc');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain(
+        'KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_INVALID'
+      );
+    });
+
+    it('does not replace a new search with a late contact creation response', async () => {
+      vi.useFakeTimers();
+      let completeCreation;
+      ContactAPI.create.mockReturnValue(
+        new Promise(resolve => {
+          completeCreation = resolve;
+        })
+      );
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81999990000');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('Outro contato');
+      completeCreation({
+        data: { payload: { contact: { id: 78, name: 'Rita' } } },
+      });
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="kanban-selected-contact"]').exists()
+      ).toBe(false);
+      expect(ContactAPI.getConversations).not.toHaveBeenCalled();
     });
 
     // Telefone obrigatório por decisão do Pedro, e a razão é prática: é ele que

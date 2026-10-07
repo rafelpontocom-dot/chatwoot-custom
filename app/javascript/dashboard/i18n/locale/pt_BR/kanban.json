@@ -1605,6 +1605,8 @@
       "NO_INBOXES_HINT": "Este contato ainda não tem caixa de entrada vinculada, então não é possível abrir uma oportunidade para ele. Vincule o contato a uma caixa em Contatos, ou escolha outro contato.",
       "NO_INBOXES_ACTION": "Escolher outro contato",
       "NEW_CONTACT": {
+        "COUNTRY": "País do telefone",
+        "PHONE_INVALID": "Informe um telefone válido para o país selecionado ou inclua o código internacional.",
         "NAME": "Nome",
         "PHONE": "Telefone",
         "PHONE_HINT": "Necessário para o contato poder ser alcançado em algum canal.",

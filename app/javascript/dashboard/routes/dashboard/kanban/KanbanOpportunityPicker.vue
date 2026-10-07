@@ -2,6 +2,9 @@
 import { computed, ref, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import camelcaseKeys from 'camelcase-keys';
+import parsePhoneNumber from 'libphonenumber-js';
+import countries from 'shared/constants/countries';
+import { getActiveCountryCode } from 'shared/components/PhoneInput/helper';
 import { debounce } from '@chatwoot/utils';
 import { useStore } from 'dashboard/composables/store';
 import ContactAPI from 'dashboard/api/contacts';
@@ -21,7 +24,7 @@ const props = defineProps({
 
 const emit = defineEmits(['created', 'close']);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useStore();
 
 const contactSearchQuery = ref('');
@@ -29,14 +32,24 @@ const contactSearchResults = ref([]);
 const selectedContact = ref(null);
 const isSearchingContacts = ref(false);
 const hasSearchedContacts = ref(false);
-// Criar o contato aqui dentro: antes era preciso sair, cadastrar em Contatos e
-// voltar. Telefone é obrigatório por decisão do Pedro, e a razão é prática — é
-// ele que faz o contato ser alcançável. Sem telefone o contato nasce sem caixa
-// possível e o compositor diz «não há caixas de entrada disponíveis».
 const novoContactoNome = ref('');
 const novoContactoTelefone = ref('');
+const novoContactoPais = ref(
+  getActiveCountryCode() || (locale?.value === 'pt' ? 'PT' : 'BR')
+);
 const novoContactoErro = ref('');
 const estaACriarContacto = ref(false);
+const pickerRevision = ref(0);
+const phoneCountries = computed(() => {
+  const displayNames = new Intl.DisplayNames(
+    [String(locale?.value || 'pt-BR').replace('_', '-')],
+    { type: 'region' }
+  );
+  return countries.map(country => ({
+    ...country,
+    label: `${displayNames.of(country.id)} (${country.dial_code})`,
+  }));
+});
 const contactSearchError = ref(false);
 const contactSearchController = ref(null);
 const contactSearchMinimumLength = 3;
@@ -88,6 +101,9 @@ const searchContacts = async query => {
     if (controller.signal.aborted) return;
 
     contactSearchResults.value = camelcaseKeys(payload || [], { deep: true });
+    if (!contactSearchResults.value.length) {
+      novoContactoNome.value = trimmedQuery;
+    }
   } catch (error) {
     if (!isAbortError(error)) {
       contactSearchError.value = true;
@@ -141,6 +157,10 @@ const contactDisplayName = contact =>
 const defaultSubjectFor = contact => contactDisplayName(contact);
 
 const onContactSearchInput = () => {
+  pickerRevision.value += 1;
+  novoContactoNome.value = '';
+  novoContactoTelefone.value = '';
+  novoContactoErro.value = '';
   abortContactSearch();
   resetInboxes();
   resetSubmission();
@@ -160,6 +180,10 @@ const onContactSearchInput = () => {
 };
 
 const resetPicker = () => {
+  pickerRevision.value += 1;
+  novoContactoNome.value = '';
+  novoContactoTelefone.value = '';
+  novoContactoErro.value = '';
   abortContactSearch();
   resetInboxes();
   resetSubmission();
@@ -283,6 +307,7 @@ const handleClose = () => {
 };
 
 const selectContact = contact => {
+  pickerRevision.value += 1;
   abortContactSearch();
   resetSubmission();
   selectedContact.value = contact;
@@ -290,13 +315,6 @@ const selectContact = contact => {
   isSearchingContacts.value = false;
   contactSearchError.value = false;
   loadContactInboxes(contact);
-};
-
-const abrirFormularioDeContacto = () => {
-  // O que foi escrito na busca é quase sempre o nome: entra já preenchido.
-  novoContactoNome.value = contactSearchQuery.value.trim();
-  novoContactoTelefone.value = '';
-  novoContactoErro.value = '';
 };
 
 const criarContactoEContinuar = async () => {
@@ -312,7 +330,16 @@ const criarContactoEContinuar = async () => {
     novoContactoErro.value = t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_REQUIRED');
     return;
   }
+  const phone = parsePhoneNumber(telefone, {
+    defaultCountry: novoContactoPais.value,
+    extract: false,
+  });
+  if (!phone?.isValid()) {
+    novoContactoErro.value = t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_INVALID');
+    return;
+  }
 
+  const revision = pickerRevision.value;
   estaACriarContacto.value = true;
   novoContactoErro.value = '';
   try {
@@ -322,18 +349,18 @@ const criarContactoEContinuar = async () => {
       },
     } = await ContactAPI.create({
       name: nome,
-      // O backend recusa telefone sem o código do país; o Brasil é o único
-      // país em uso, e quem digita escreve o número local.
-      phone_number: telefone.startsWith('+')
-        ? telefone
-        : `+55${telefone.replace(/\D/g, '')}`,
+      phone_number: phone.number,
     });
+    if (revision !== pickerRevision.value) return;
     novoContactoNome.value = '';
     novoContactoTelefone.value = '';
     selectContact(camelcaseKeys(contact, { deep: true }));
   } catch (error) {
+    if (revision !== pickerRevision.value) return;
     novoContactoErro.value =
-      error?.response?.data?.message || t('KANBAN.ADD_ITEM.NEW_CONTACT.ERROR');
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      t('KANBAN.ADD_ITEM.NEW_CONTACT.ERROR');
   } finally {
     estaACriarContacto.value = false;
   }
@@ -386,6 +413,7 @@ const createManualOpportunity = async () => {
 };
 
 onUnmounted(() => {
+  pickerRevision.value += 1;
   abortContactSearch();
   resetInboxes();
 });
@@ -693,8 +721,30 @@ onUnmounted(() => {
                 type="text"
                 :class="controlClass"
                 data-testid="kanban-new-contact-name"
-                @focus="novoContactoNome || abrirFormularioDeContacto()"
               />
+            </template>
+          </RaevoField>
+          <RaevoField
+            compact
+            :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.COUNTRY')"
+            variant="select"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <select
+                :id="fieldId"
+                v-model="novoContactoPais"
+                :class="controlClass"
+                data-testid="kanban-new-contact-country"
+                :disabled="estaACriarContacto"
+              >
+                <option
+                  v-for="country in phoneCountries"
+                  :key="country.id"
+                  :value="country.id"
+                >
+                  {{ country.label }}
+                </option>
+              </select>
             </template>
           </RaevoField>
           <RaevoField
