@@ -19,6 +19,7 @@ import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirecti
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
 
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { resolveAssigneeTab } from 'dashboard/helper/conversationFilterPreferences';
 import { useAlert } from 'dashboard/composables';
 import { useBulkActions } from 'dashboard/composables/chatlist/useBulkActions';
 import { useFilter } from 'shared/composables/useFilter';
@@ -60,7 +61,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['conversationLoad']);
-const { uiSettings } = useUISettings();
+const { uiSettings, updateUISettings } = useUISettings();
 const { t } = useI18n();
 const router = useRouter();
 const store = useStore();
@@ -374,13 +375,19 @@ const uniqueInboxes = computed(() => {
 // ---------------------- Methods -----------------------
 function setFiltersFromUISettings() {
   const { conversations_filter_by: filterBy = {} } = uiSettings.value;
-  const { status, order_by: orderBy } = filterBy;
+  const { status, order_by: orderBy, assignee_tab: lastTab } = filterBy;
+
   activeStatus.value = status || wootConstants.STATUS_TYPE.OPEN;
   activeSortBy.value = Object.values(wootConstants.SORT_BY_TYPE).includes(
     orderBy
   )
     ? orderBy
     : wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC;
+
+  activeAssigneeTab.value = resolveAssigneeTab({
+    preferred: uiSettings.value.conversations_default_assignee_tab,
+    lastUsed: lastTab,
+  });
 }
 
 function emitConversationLoaded() {
@@ -608,6 +615,12 @@ function updateAssigneeTab(selectedTab) {
     resetBulkActions();
     emitter.emit('clearSearchInput');
     activeAssigneeTab.value = selectedTab;
+    updateUISettings({
+      conversations_filter_by: {
+        ...(uiSettings.value.conversations_filter_by || {}),
+        assignee_tab: selectedTab,
+      },
+    });
     if (!currentPage.value) {
       fetchConversations();
     } else {
