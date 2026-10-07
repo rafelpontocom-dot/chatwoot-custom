@@ -36,7 +36,7 @@
     "API_HOURS_WINDOW": "Só pode responder a esta conversa dentro de {hours} horas",
     "NOT_ASSIGNED_TO_YOU": "Esta conversa não está atribuída a si. Gostaria de atribuir esta conversa a si mesmo?",
     "ASSIGN_TO_ME": "Atribuir a mim",
-    "BOT_HANDOFF_MESSAGE": "Você está respondendo a uma conversa que é atualmente tratada por um assistente ou um robô.",
+    "BOT_HANDOFF_MESSAGE": "Esta conversa está a ser atendida por {assigneeName}.",
     "BOT_HANDOFF_ACTION": "Marcar como aberta e atribuir a você",
     "BOT_HANDOFF_REOPEN_ACTION": "Marcar conversa como aberta",
     "BOT_HANDOFF_SUCCESS": "Uma conversa foi atribuída a você",

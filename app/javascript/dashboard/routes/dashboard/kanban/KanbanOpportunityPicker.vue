@@ -126,11 +126,11 @@ const contactDisplayName = contact =>
   contact?.name?.trim() ||
   t('KANBAN.ADD_ITEM.CONTACT_FALLBACK', { id: contact?.id });
 
-const inboxDisplayName = inbox =>
-  inbox?.name?.trim() || t('KANBAN.ADD_ITEM.INBOX_FALLBACK', { id: inbox?.id });
-
-const defaultSubjectFor = (contact, inbox) =>
-  `${contactDisplayName(contact)} - ${inboxDisplayName(inbox)}`;
+// A sugestão é só o nome do contato. Era «<contato> - <caixa>», e o nome da
+// caixa colado atrás lia-se como um código no título da oportunidade — «Maria
+// Silva - WAHA RAEVO». Quem cria renomeia a seguir se quiser; a caixa já está
+// escolhida logo acima, no próprio diálogo.
+const defaultSubjectFor = contact => contactDisplayName(contact);
 
 const onContactSearchInput = () => {
   abortContactSearch();
@@ -253,7 +253,7 @@ const loadContactInboxes = async contact => {
 };
 
 const selectInbox = inbox => {
-  const nextGeneratedSubject = defaultSubjectFor(selectedContact.value, inbox);
+  const nextGeneratedSubject = defaultSubjectFor(selectedContact.value);
   const shouldUseGeneratedSubject =
     !subject.value || subject.value === generatedSubject.value;
 

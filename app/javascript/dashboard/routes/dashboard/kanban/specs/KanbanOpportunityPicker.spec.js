@@ -495,9 +495,7 @@ describe('KanbanOpportunityPicker', () => {
 
       await searchAndSelectFirstInbox(wrapper);
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - Email Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('submits the generated subject unchanged', async () => {
@@ -518,7 +516,7 @@ describe('KanbanOpportunityPicker', () => {
           kanban_stage_id: 100,
           contact_id: 1,
           inbox_id: 10,
-          subject: 'Jane Cooper - Email Inbox',
+          subject: 'Jane Cooper',
         },
       });
     });
@@ -547,7 +545,10 @@ describe('KanbanOpportunityPicker', () => {
       });
     });
 
-    it('updates the generated subject when inbox changes while untouched', async () => {
+    // A sugestão é só o nome do contato: trocar de caixa já não reescreve o
+    // título. Era «Jane Cooper - WhatsApp Inbox», e o nome da caixa colado
+    // atrás lia-se como código no título da oportunidade.
+    it('keeps the suggested name when the inbox changes', async () => {
       vi.useFakeTimers();
       ContactAPI.getConversations.mockResolvedValue({
         data: {
@@ -565,9 +566,7 @@ describe('KanbanOpportunityPicker', () => {
       );
       await inboxButtons[1].trigger('click');
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - WhatsApp Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('preserves customized subject when inbox changes', async () => {
@@ -606,9 +605,7 @@ describe('KanbanOpportunityPicker', () => {
         .trigger('click');
       await searchAndSelectFirstInbox(wrapper);
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - Email Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('resets subject when selecting another contact', async () => {
@@ -635,7 +632,7 @@ describe('KanbanOpportunityPicker', () => {
         .findAll('[data-testid="kanban-inboxes"] button')[0]
         .trigger('click');
 
-      expect(subjectInput(wrapper).element.value).toBe('Bob - Email Inbox');
+      expect(subjectInput(wrapper).element.value).toBe('Bob');
     });
 
     it('resets subject when picker closes', async () => {
@@ -655,9 +652,7 @@ describe('KanbanOpportunityPicker', () => {
         .trigger('click');
       await searchAndSelectFirstInbox(wrapper);
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - Email Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('does not submit a blank subject', async () => {
