@@ -1,4 +1,5 @@
 <script setup>
+import { onClickOutside } from '@vueuse/core';
 import {
   computed,
   nextTick,
@@ -202,6 +203,21 @@ const subjectError = ref('');
 const lostReasonError = ref('');
 const selectedLabelTitles = ref([]);
 const showLabelsPopover = ref(false);
+const labelsPopoverRef = ref(null);
+const labelsTriggerRef = ref(null);
+
+// Fechava só clicando de novo no botão que o abriu, e ficava por cima da ficha
+// enquanto se tentava ler o resto. Mesmo padrão do menu de etapas aqui ao lado:
+// `ignore` no gatilho, senão o clique que fecha é o mesmo que reabre.
+//
+// Fechar assim descarta a seleção ainda não gravada — o popover tem botão de
+// guardar próprio. É o que se espera de um popover, e é o mesmo que o Esc faz.
+const closeLabelsPopover = () => {
+  showLabelsPopover.value = false;
+};
+onClickOutside(labelsPopoverRef, closeLabelsPopover, {
+  ignore: [labelsTriggerRef],
+});
 const labelQuery = ref('');
 const isCreatingLabel = ref(false);
 const pendingPipelineTransfer = ref(null);
@@ -1963,6 +1979,7 @@ watch(invitationPendingRevocation, async invitation => {
           />
           <div class="relative">
             <button
+              ref="labelsTriggerRef"
               type="button"
               data-testid="kanban-opportunity-toggle-labels"
               class="flex h-7 items-center gap-1 rounded-md border border-solid border-n-weak bg-n-surface-1 px-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
@@ -1979,7 +1996,9 @@ watch(invitationPendingRevocation, async invitation => {
             <div
               v-if="showLabelsPopover"
               id="kanban-opportunity-labels-popover"
+              ref="labelsPopoverRef"
               class="absolute left-0 z-30 mt-2 grid w-72 gap-3 rounded-lg border border-n-weak bg-n-solid-1 p-3 shadow-lg"
+              @keydown.esc="closeLabelsPopover"
             >
               <div class="flex items-center justify-between gap-3">
                 <span class="text-sm font-medium text-n-slate-12">

@@ -2148,6 +2148,25 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(storeMocks.dispatch).toHaveBeenCalledWith('labels/get');
   });
 
+  // O clique fora é ligado pelo `onClickOutside` do vueuse, o mesmo helper que o
+  // menu de etapas aqui ao lado já usa. Não há teste dele: o helper ouve no
+  // `window` e só decide «dentro ou fora» com a árvore ligada ao documento, e
+  // ligar este modal ao documento contaminava 15 testes vizinhos, que passam a
+  // encontrar elementos deixados por outros. Fica para conferir na tela, em
+  // produção, com o Esc coberto aqui abaixo.
+  it('closes it on Escape as well', async () => {
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+
+    await wrapper
+      .find('#kanban-opportunity-labels-popover')
+      .trigger('keydown.esc');
+
+    expect(wrapper.find('#kanban-opportunity-labels-popover').exists()).toBe(
+      false
+    );
+  });
+
   it('renders label title and color', async () => {
     const wrapper = await mountModal();
     await openLabels(wrapper);
