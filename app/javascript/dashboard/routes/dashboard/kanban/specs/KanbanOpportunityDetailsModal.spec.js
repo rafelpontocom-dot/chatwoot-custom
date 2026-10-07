@@ -486,10 +486,16 @@ const openLabels = wrapper =>
   wrapper
     .find('[data-testid="kanban-opportunity-toggle-labels"]')
     .trigger('click');
-const openContactTab = wrapper =>
-  wrapper
-    .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-    .trigger('click');
+// O Contato saiu da barra de abas e passou a secção da coluna da direita
+// (cartão 123jpnbcb57). Nasce aberta, por isso abrir deixou de ser um clique —
+// mas o ajudante fica, a garantir que está aberta antes de cada asserção.
+const openContactTab = async wrapper => {
+  const secao = wrapper.find(
+    '[data-testid="kanban-opportunity-section-contact-details"]'
+  );
+  if (secao.attributes('aria-expanded') === 'false')
+    await secao.trigger('click');
+};
 const selectHeaderStage = (wrapper, stageId) =>
   wrapper
     .findComponent({ name: 'KanbanOpportunityPipelineMenu' })
@@ -652,18 +658,16 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(
       wrapper
-        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
+        .find('[data-testid="kanban-opportunity-section-contact-details"]')
         .text()
-    ).toBe('Contact');
+    ).toContain('Contact');
     expect(
       wrapper
         .find('[data-testid="kanban-opportunity-tab-agent-details"]')
         .exists()
     ).toBe(false);
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-      .trigger('click');
+    await openContactTab(wrapper);
 
     expect(
       (await contactInput(wrapper, 'email', 'kanban-opportunity-contact-email'))
@@ -906,15 +910,13 @@ describe('KanbanOpportunityDetailsModal', () => {
   it('navigates opportunity tabs with the keyboard', async () => {
     const wrapper = await mountModal();
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-details"]')
-      .trigger('keydown', { key: 'ArrowRight' });
+    const abas = wrapper
+      .findAll('[data-testid^="kanban-opportunity-tab-"]')
+      .filter(aba => aba.attributes('role') === 'tab');
 
-    expect(
-      wrapper
-        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-        .attributes('aria-selected')
-    ).toBe('true');
+    await abas[0].trigger('keydown', { key: 'ArrowRight' });
+
+    expect(abas[1].attributes('aria-selected')).toBe('true');
   });
 
   it('loads detail through showCardById', async () => {
@@ -1106,9 +1108,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ];
 
     const irParaContato = async wrapper => {
-      await wrapper
-        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-        .trigger('click');
+      await openContactTab(wrapper);
     };
 
     it('no longer asks the user to add a field before filling it', async () => {
@@ -2012,9 +2012,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('renders linked contact details in the contact tab', async () => {
     const wrapper = await mountModal();
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-      .trigger('click');
+    await openContactTab(wrapper);
 
     expect(
       (await contactInput(wrapper, 'name', 'kanban-opportunity-contact-name'))

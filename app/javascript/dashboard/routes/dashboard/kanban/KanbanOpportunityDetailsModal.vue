@@ -231,6 +231,24 @@ onClickOutside(labelsPopoverRef, closeLabelsPopover, {
 const isCreatingLabel = ref(false);
 const pendingPipelineTransfer = ref(null);
 const activeTabKey = ref('details');
+
+// Secções da coluna da direita: abrem e fecham. O Contato nasce aberto porque é
+// o que mais se consulta enquanto se fala com o paciente.
+//
+// Não guardo o que fica aberto entre oportunidades. Cheguei a fazê-lo e recuei:
+// obrigava este componente a depender das preferências do utilizador e partia
+// 103 testes vizinhos por causa de um detalhe que ninguém pediu.
+const openSections = ref(['contact-details']);
+
+const secoesAbertas = computed(() => openSections.value);
+
+const isSectionOpen = key => secoesAbertas.value.includes(key);
+
+const toggleSection = key => {
+  openSections.value = isSectionOpen(key)
+    ? openSections.value.filter(item => item !== key)
+    : [...openSections.value, key];
+};
 const contactDraft = ref({
   name: '',
   phone_number: '',
@@ -701,10 +719,6 @@ const opportunityTabs = computed(() => {
     {
       key: 'details',
       label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL'),
-    },
-    {
-      key: 'contact-details',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.CONTACT'),
     },
     ...(props.calendarEnabled
       ? [
@@ -2359,7 +2373,7 @@ watch(invitationPendingRevocation, async invitation => {
           data-testid="kanban-opportunity-layout"
           role="tabpanel"
           :aria-labelledby="`kanban-opportunity-tab-${activeTabKey}`"
-          class="grid min-w-0 gap-4"
+          class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]"
         >
           <section class="grid min-w-0 content-start gap-4">
             <template v-if="activeTabKey === 'details'">
@@ -2619,190 +2633,6 @@ watch(invitationPendingRevocation, async invitation => {
                 </label>
               </section>
             </template>
-
-            <section
-              v-if="activeTabKey === 'contact-details'"
-              data-testid="kanban-opportunity-contact-details"
-              class="grid gap-4"
-            >
-              <section class="grid gap-3 border-b border-n-weak pb-4">
-                <div class="flex items-center justify-between gap-3">
-                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
-                  </h3>
-                  <button
-                    type="button"
-                    data-testid="kanban-opportunity-save-contact"
-                    class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
-                    :disabled="isSavingContact || !card.contact?.id"
-                    :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
-                    :title="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
-                    @click="saveContact"
-                  >
-                    <i class="i-lucide-save size-4" />
-                  </button>
-                </div>
-                <div class="grid gap-1">
-                  <!--
-                    O rótulo vivia só no placeholder: assim que o campo era
-                    preenchido, deixava de haver forma de saber o que ele era.
-                    Passa à mesma linha dos campos personalizados — rótulo à
-                    esquerda, controlo à direita — para o diálogo deixar de ter
-                    três tratamentos de campo.
-                  -->
-                  <RaevoFieldRow
-                    v-for="detail in contactDetails"
-                    :key="detail.key"
-                    :row-testid="`kanban-row-contact-${detail.key}`"
-                    :label="detail.label"
-                    :value="detail.value || ''"
-                  >
-                    <template #control="{ controlClass, fieldId }">
-                      <input
-                        v-if="detail.key === 'name'"
-                        :id="fieldId"
-                        v-model="contactDraft.name"
-                        data-testid="kanban-opportunity-contact-name"
-                        type="text"
-                        :class="controlClass"
-                        :aria-label="detail.label"
-                      />
-                      <input
-                        v-else-if="detail.key === 'phone'"
-                        :id="fieldId"
-                        v-model="contactDraft.phone_number"
-                        data-testid="kanban-opportunity-contact-phone"
-                        type="tel"
-                        :class="controlClass"
-                        :aria-label="detail.label"
-                      />
-                      <input
-                        v-else-if="detail.key === 'email'"
-                        :id="fieldId"
-                        v-model="contactDraft.email"
-                        data-testid="kanban-opportunity-contact-email"
-                        type="email"
-                        :class="controlClass"
-                        :aria-label="detail.label"
-                      />
-                      <input
-                        v-else
-                        :id="fieldId"
-                        v-model="contactDraft.identifier"
-                        data-testid="kanban-opportunity-contact-identifier"
-                        type="text"
-                        :class="controlClass"
-                        :aria-label="detail.label"
-                      />
-                    </template>
-                  </RaevoFieldRow>
-                </div>
-                <p
-                  v-if="contactSaveError"
-                  class="mb-0 text-xs text-n-ruby-11"
-                  role="alert"
-                >
-                  {{ contactSaveError }}
-                </p>
-                <!--
-                  Etiquetas do contato, não da oportunidade. Chegam do WhatsApp
-                  e valem para a pessoa em qualquer negócio; por isso são só de
-                  leitura aqui — quem as edita é o WhatsApp ou a ficha do
-                  contato. As da oportunidade vivem no botão do cabeçalho.
-                -->
-                <div v-if="contactLabels.length" class="grid gap-2">
-                  <h4
-                    class="mb-0 text-xs font-medium leading-4 text-n-slate-11"
-                  >
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_LABELS') }}
-                  </h4>
-                  <div
-                    class="flex flex-wrap gap-1.5"
-                    data-testid="kanban-opportunity-contact-labels"
-                  >
-                    <Label
-                      v-for="label in contactLabels"
-                      :key="label.title"
-                      :label="label"
-                      compact
-                    />
-                  </div>
-                </div>
-              </section>
-              <section
-                v-if="visibleContactAttributes.length"
-                class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
-              >
-                <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
-                </h3>
-                <div v-if="visibleContactAttributes.length" class="grid gap-1">
-                  <RaevoFieldRow
-                    v-for="entry in visibleContactAttributes"
-                    :key="`${entry.source}-${entry.key}`"
-                    :row-testid="`kanban-row-attr-${entry.key}`"
-                    :label="entry.label"
-                    :value="formatContactAttributeValue(entry.value)"
-                  >
-                    <template #control="{ controlClass, fieldId }">
-                      <select
-                        v-if="entry.displayType === 'list'"
-                        :id="fieldId"
-                        :value="entry.value ?? ''"
-                        :class="controlClass"
-                        :aria-label="entry.label"
-                        @change="
-                          setContactAttributeValue(entry, $event.target.value)
-                        "
-                      >
-                        <option value="">
-                          {{ t('KANBAN.OPPORTUNITY_DETAILS.ATTRIBUTE_EMPTY') }}
-                        </option>
-                        <option
-                          v-for="option in entry.options"
-                          :key="option"
-                          :value="option"
-                        >
-                          {{ option }}
-                        </option>
-                      </select>
-                      <!--
-                        O rótulo ao lado já nomeia o campo. Repeti-lo aqui
-                        desenhava o mesmo texto duas vezes na mesma linha.
-                      -->
-                      <span
-                        v-else-if="entry.displayType === 'checkbox'"
-                        class="flex h-10 items-center"
-                      >
-                        <input
-                          :id="fieldId"
-                          :checked="entry.value === true"
-                          type="checkbox"
-                          class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                          @change="
-                            setContactAttributeValue(
-                              entry,
-                              $event.target.checked
-                            )
-                          "
-                        />
-                      </span>
-                      <input
-                        v-else
-                        :id="fieldId"
-                        :value="entry.value ?? ''"
-                        :type="entry.displayType === 'date' ? 'date' : 'text'"
-                        :class="controlClass"
-                        :aria-label="entry.label"
-                        @input="
-                          setContactAttributeValue(entry, $event.target.value)
-                        "
-                      />
-                    </template>
-                  </RaevoFieldRow>
-                </div>
-              </section>
-            </section>
 
             <section
               v-if="activeTabKey === 'finance'"
@@ -3451,6 +3281,237 @@ watch(invitationPendingRevocation, async invitation => {
               :allowed-procedure-ids="calendarProcedureIds"
             />
           </section>
+          <!--
+            Coluna da direita, no desenho que o Chatwoot já usa na conversa:
+            secções que abrem e fecham, todas na mesma rolagem. À esquerda fica
+            o que se trabalha; aqui, o que se consulta. Aprovado em 07/10 —
+            ver docs/raevo-aprovacao.md.
+          -->
+          <aside
+            data-testid="kanban-opportunity-side-column"
+            class="grid content-start gap-0 rounded-xl border border-n-weak lg:sticky lg:top-0 lg:self-start"
+          >
+            <div class="border-b border-n-weak last:border-b-0">
+              <button
+                type="button"
+                data-testid="kanban-opportunity-section-contact-details"
+                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-n-slate-12"
+                :aria-expanded="isSectionOpen('contact-details')"
+                @click="toggleSection('contact-details')"
+              >
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
+                <i
+                  aria-hidden="true"
+                  class="size-4 text-n-slate-10"
+                  :class="
+                    isSectionOpen('contact-details')
+                      ? 'i-lucide-chevron-down'
+                      : 'i-lucide-chevron-right'
+                  "
+                />
+              </button>
+              <div class="px-3 pb-3">
+                <section
+                  v-if="isSectionOpen('contact-details')"
+                  data-testid="kanban-opportunity-contact-details"
+                  class="grid gap-4"
+                >
+                  <section class="grid gap-3 border-b border-n-weak pb-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                        {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
+                      </h3>
+                      <button
+                        type="button"
+                        data-testid="kanban-opportunity-save-contact"
+                        class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="isSavingContact || !card.contact?.id"
+                        :aria-label="
+                          t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')
+                        "
+                        :title="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
+                        @click="saveContact"
+                      >
+                        <i class="i-lucide-save size-4" />
+                      </button>
+                    </div>
+                    <div class="grid gap-1">
+                      <!--
+                      O rótulo vivia só no placeholder: assim que o campo era
+                      preenchido, deixava de haver forma de saber o que ele era.
+                      Passa à mesma linha dos campos personalizados — rótulo à
+                      esquerda, controlo à direita — para o diálogo deixar de ter
+                      três tratamentos de campo.
+                    -->
+                      <RaevoFieldRow
+                        v-for="detail in contactDetails"
+                        :key="detail.key"
+                        :row-testid="`kanban-row-contact-${detail.key}`"
+                        :label="detail.label"
+                        :value="detail.value || ''"
+                      >
+                        <template #control="{ controlClass, fieldId }">
+                          <input
+                            v-if="detail.key === 'name'"
+                            :id="fieldId"
+                            v-model="contactDraft.name"
+                            data-testid="kanban-opportunity-contact-name"
+                            type="text"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                          <input
+                            v-else-if="detail.key === 'phone'"
+                            :id="fieldId"
+                            v-model="contactDraft.phone_number"
+                            data-testid="kanban-opportunity-contact-phone"
+                            type="tel"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                          <input
+                            v-else-if="detail.key === 'email'"
+                            :id="fieldId"
+                            v-model="contactDraft.email"
+                            data-testid="kanban-opportunity-contact-email"
+                            type="email"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                          <input
+                            v-else
+                            :id="fieldId"
+                            v-model="contactDraft.identifier"
+                            data-testid="kanban-opportunity-contact-identifier"
+                            type="text"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                        </template>
+                      </RaevoFieldRow>
+                    </div>
+                    <p
+                      v-if="contactSaveError"
+                      class="mb-0 text-xs text-n-ruby-11"
+                      role="alert"
+                    >
+                      {{ contactSaveError }}
+                    </p>
+                    <!--
+                    Etiquetas do contato, não da oportunidade. Chegam do WhatsApp
+                    e valem para a pessoa em qualquer negócio; por isso são só de
+                    leitura aqui — quem as edita é o WhatsApp ou a ficha do
+                    contato. As da oportunidade vivem no botão do cabeçalho.
+                  -->
+                    <div v-if="contactLabels.length" class="grid gap-2">
+                      <h4
+                        class="mb-0 text-xs font-medium leading-4 text-n-slate-11"
+                      >
+                        {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_LABELS') }}
+                      </h4>
+                      <div
+                        class="flex flex-wrap gap-1.5"
+                        data-testid="kanban-opportunity-contact-labels"
+                      >
+                        <Label
+                          v-for="label in contactLabels"
+                          :key="label.title"
+                          :label="label"
+                          compact
+                        />
+                      </div>
+                    </div>
+                  </section>
+                  <section
+                    v-if="visibleContactAttributes.length"
+                    class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
+                  >
+                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
+                    </h3>
+                    <div
+                      v-if="visibleContactAttributes.length"
+                      class="grid gap-1"
+                    >
+                      <RaevoFieldRow
+                        v-for="entry in visibleContactAttributes"
+                        :key="`${entry.source}-${entry.key}`"
+                        :row-testid="`kanban-row-attr-${entry.key}`"
+                        :label="entry.label"
+                        :value="formatContactAttributeValue(entry.value)"
+                      >
+                        <template #control="{ controlClass, fieldId }">
+                          <select
+                            v-if="entry.displayType === 'list'"
+                            :id="fieldId"
+                            :value="entry.value ?? ''"
+                            :class="controlClass"
+                            :aria-label="entry.label"
+                            @change="
+                              setContactAttributeValue(
+                                entry,
+                                $event.target.value
+                              )
+                            "
+                          >
+                            <option value="">
+                              {{
+                                t('KANBAN.OPPORTUNITY_DETAILS.ATTRIBUTE_EMPTY')
+                              }}
+                            </option>
+                            <option
+                              v-for="option in entry.options"
+                              :key="option"
+                              :value="option"
+                            >
+                              {{ option }}
+                            </option>
+                          </select>
+                          <!--
+                          O rótulo ao lado já nomeia o campo. Repeti-lo aqui
+                          desenhava o mesmo texto duas vezes na mesma linha.
+                        -->
+                          <span
+                            v-else-if="entry.displayType === 'checkbox'"
+                            class="flex h-10 items-center"
+                          >
+                            <input
+                              :id="fieldId"
+                              :checked="entry.value === true"
+                              type="checkbox"
+                              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                              @change="
+                                setContactAttributeValue(
+                                  entry,
+                                  $event.target.checked
+                                )
+                              "
+                            />
+                          </span>
+                          <input
+                            v-else
+                            :id="fieldId"
+                            :value="entry.value ?? ''"
+                            :type="
+                              entry.displayType === 'date' ? 'date' : 'text'
+                            "
+                            :class="controlClass"
+                            :aria-label="entry.label"
+                            @input="
+                              setContactAttributeValue(
+                                entry,
+                                $event.target.value
+                              )
+                            "
+                          />
+                        </template>
+                      </RaevoFieldRow>
+                    </div>
+                  </section>
+                </section>
+              </div>
+            </div>
+          </aside>
         </div>
 
         <p
