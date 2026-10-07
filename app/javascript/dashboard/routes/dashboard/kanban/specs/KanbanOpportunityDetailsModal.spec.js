@@ -1139,6 +1139,29 @@ describe('KanbanOpportunityDetailsModal', () => {
       ).toBe(false);
     });
 
+    // O teste acima cobre o funil que ESCOLHE campos. Em produção o funil da
+    // conta 1 não escolhia nenhum, e aí a aba caía em «mostra tudo» — foi assim
+    // que o Chat ID voltou a aparecer depois de eu ter dado o cartão por
+    // fechado, com a ficha do contato já limpa.
+    it('hides the WhatsApp addressing even when the board places nothing', async () => {
+      const wrapper = await mountModal({
+        attributeDefinitions: [
+          ...atributos,
+          {
+            attribute_key: 'waha_whatsapp_chat_id',
+            attribute_display_name: 'WhatsApp Chat ID',
+            attribute_model: 'contact_attribute',
+            attribute_display_type: 'text',
+          },
+        ],
+        contactFieldKeys: [],
+      });
+      await irParaContato(wrapper);
+
+      expect(wrapper.text()).not.toContain('WhatsApp Chat ID');
+      expect(wrapper.text()).not.toContain('WAHA JID');
+    });
+
     it('draws a placed but empty field as a dash instead of hiding it', async () => {
       const wrapper = await mountModal({
         attributeDefinitions: atributos,

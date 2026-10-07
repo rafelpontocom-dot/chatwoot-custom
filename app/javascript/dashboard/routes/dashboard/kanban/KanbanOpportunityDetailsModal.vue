@@ -1,5 +1,6 @@
 <script setup>
 import { onClickOutside } from '@vueuse/core';
+import { withoutWhatsappAddressing } from 'dashboard/helper/contactAttributes';
 import {
   computed,
   nextTick,
@@ -133,8 +134,10 @@ const store = useStore();
 const accountLabels = useMapGetter('labels/getLabels');
 const currentAccount = useMapGetter('getCurrentAccount');
 const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
-const contactAttributeDefinitions = computed(
-  () => getAttributesByModel.value('contact_attribute') || []
+// Mesma regra da ficha do contato: endereçamento do WhatsApp não é dado de
+// quem atende. Estava só na ficha, e a aba Contato daqui continuou a mostrá-lo.
+const contactAttributeDefinitions = computed(() =>
+  withoutWhatsappAddressing(getAttributesByModel.value('contact_attribute'))
 );
 
 const financeStatusLabels = {

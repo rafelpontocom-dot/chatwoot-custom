@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
+import { withoutWhatsappAddressing } from 'dashboard/helper/contactAttributes';
 
 /**
  * Raevo — quais campos do contato aparecem na ficha.
@@ -27,8 +28,8 @@ const { t } = useI18n();
 const store = useStore();
 const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
 
-const definicoes = computed(
-  () => getAttributesByModel.value('contact_attribute') || []
+const definicoes = computed(() =>
+  withoutWhatsappAddressing(getAttributesByModel.value('contact_attribute'))
 );
 const rotuloDe = definicao =>
   definicao.attribute_display_name || definicao.attribute_key;
