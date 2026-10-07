@@ -6,6 +6,11 @@ InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_NAME').update!(valu
 account = Account.create!(name: 'Raevo navigation smoke', locale: 'pt_BR')
 account.enable_features!(*Featurable::FEATURE_LIST.select { |feature| feature['enabled'] }.pluck('name'))
 account.enable_features!('conversation_unread_counts')
+
+# A entrada Marketing no menu só existe para quem tem o módulo ligado (cartão
+# 123jpnbcb5f). O smoke clica nela, por isso a conta do teste liga-o — e assim o
+# teste passa também a provar que a flag acende a entrada, em vez de só navegar.
+MarketingModuleSetting.create!(account: account, enabled: true, enabled_at: Time.current)
 user = User.new(
   name: 'Navigation smoke',
   email: ENV.fetch('TEST_USER_EMAIL', 'navigation-smoke@raevo.test'),
