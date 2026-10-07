@@ -264,6 +264,41 @@ nada e que já funciona.
 
 ---
 
+### A oportunidade troca as abas pela coluna lateral · 07/10/2026
+
+**Aprovado pelo Pedro**, cartão `123jpnbcb57`. Proposta e maquetes:
+<https://claude.ai/artifact/LMdrZyTDZ54E2Tsn5bVc3v>
+
+**O problema.** A oportunidade abre com abas no topo — Geral, Contato, Agenda,
+Financeiro — e cada aba esconde as outras. Para ver o que foi combinado é preciso
+escolher uma aba e perder o resto de vista.
+
+**A decisão.** As abas saem e dão lugar à coluna da direita do Chatwoot: secções que
+abrem e fecham, rótulo à esquerda e valor à direita, todas na mesma rolagem. São **duas
+telas**, porque o card tem dois caminhos:
+
+| Caminho | Esquerda | Direita |
+| --- | --- | --- |
+| Clicar no card | ficha da oportunidade: próxima ação e histórico | a coluna |
+| Ícone de conversa no card | a conversa do paciente | a mesma coluna, com «Oportunidade» no topo |
+
+**A coluna é a mesma peça nas duas telas.** Só muda o que fica à esquerda, e a secção
+«Oportunidade» aparece no topo quando há oportunidade ligada.
+
+**Ajuste que o Pedro fez à proposta, e que vale registar porque eu tinha desenhado
+errado:** a tela da conversa **não leva lista de conversas à esquerda**. Chega-se ali a
+partir do card, já se sabe de quem é a conversa, e a lista só comia largura. A primeira
+versão da maquete tinha essa lista; foi tirada.
+
+**O que não muda:** para onde o card leva. Quem já usa chega ao mesmo sítio.
+
+**Junto com isto, no mesmo cartão:** criar a oportunidade dentro da conversa deixa de
+abrir a ficha inteira por cima do atendimento e passa a devolver o link para o card
+(«Oportunidade criada · Captação → Agendado →»).
+
+**Falta, antes de marcar como implementada:** as capturas de antes e depois a 1280px,
+que só existem quando a tela existir.
+
 ## O processo
 
 Por tela, sempre nesta ordem:
