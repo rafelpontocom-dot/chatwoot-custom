@@ -1681,6 +1681,31 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
+  // Quem conclui vai marcar a ação seguinte a seguir. Os campos ficavam com o
+  // que acabou de ser feito, e era preciso apagar três antes de escrever — ou
+  // gravava-se sem reparar e a «próxima ação» era a anterior outra vez. O
+  // servidor passou a devolvê-los vazios; a tela segue o servidor.
+  it('comes back with the next action fields empty after completing one', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-complete-next-action"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.nextActionType).toBe('');
+    expect(wrapper.vm.nextActionAt).toBe('');
+    expect(wrapper.vm.nextActionNote).toBe('');
+  });
+
   it('keeps the next action completion control in the section header', async () => {
     const wrapper = await mountModal();
     const section = wrapper.find(

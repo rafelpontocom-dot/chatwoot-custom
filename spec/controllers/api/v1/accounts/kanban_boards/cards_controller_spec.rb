@@ -484,6 +484,37 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    # O gesto «Concluir» da tela reenvia os três campos como estão, mais a
+    # conclusão. É por isso que o teste manda os mesmos valores: se o modelo
+    # olhasse só para o payload, não distinguiria concluir de registar.
+    it 'empties the next action when the screen completes the one already stored' do
+      card = create_manual_card(
+        next_action_type: 'send_proposal',
+        next_action_at: Time.zone.parse('2026-07-20T15:00:00-03:00'),
+        next_action_note: 'Enviar proposta pelo WhatsApp'
+      )
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                next_action_type: 'send_proposal',
+                next_action_at: '2026-07-20T15:00:00-03:00',
+                next_action_note: 'Enviar proposta pelo WhatsApp',
+                next_action_completed_at: '2026-07-20T16:00:00-03:00'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(
+        next_action_type: nil,
+        next_action_at: nil,
+        next_action_note: nil
+      )
+      expect(card.next_action_history.last).to include('type' => 'send_proposal')
+    end
+
     it 'updates the expected close date' do
       card = create_manual_card
 

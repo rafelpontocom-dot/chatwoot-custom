@@ -426,6 +426,38 @@ RSpec.describe KanbanCard do
       )
     end
 
+    # Concluída, a ação é histórico. Os campos ficavam preenchidos com o que
+    # acabou de ser feito, e quem ia marcar a seguinte tinha de apagar três
+    # campos antes de escrever — ou gravava sem reparar, e a «próxima ação»
+    # era a anterior outra vez.
+    it 'empties the next action fields once the action is completed' do
+      card = create(
+        :kanban_card,
+        next_action_type: 'Enviar proposta',
+        next_action_at: Time.zone.parse('2026-07-21 15:00:00 UTC'),
+        next_action_note: 'Enviar no WhatsApp'
+      )
+
+      card.update!(next_action_completed_at: Time.zone.parse('2026-07-21 16:00:00 UTC'))
+
+      expect(card.next_action_type).to be_nil
+      expect(card.next_action_at).to be_nil
+      expect(card.next_action_note).to be_nil
+      # e o que foi feito não se perde
+      expect(card.next_action_history.last).to include('type' => 'Enviar proposta')
+    end
+
+    it 'keeps the completed action out of the way of the one scheduled next' do
+      card = create(:kanban_card, next_action_type: 'Ligar', next_action_at: 1.day.ago)
+      card.update!(next_action_completed_at: Time.current)
+
+      card.update!(next_action_type: 'Enviar proposta', next_action_at: 3.days.from_now)
+
+      expect(card.next_action_completed_at).to be_nil
+      expect(card.next_action_history.length).to eq(1)
+      expect(card.next_action_status).to eq(KanbanCard::NEXT_ACTION_STATUS_FUTURE)
+    end
+
     it 'treats a completed next action as missing until another action is scheduled' do
       card = create(
         :kanban_card,
