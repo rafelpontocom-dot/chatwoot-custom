@@ -27,6 +27,7 @@ vi.mock('vue-i18n', () => ({
 vi.mock('dashboard/api/contacts', () => ({
   default: {
     search: vi.fn(),
+    create: vi.fn(),
     getConversations: vi.fn(),
     getContactableInboxes: vi.fn(),
   },
@@ -111,6 +112,133 @@ const subjectInput = wrapper =>
   wrapper.find('[data-testid="kanban-manual-card-subject"]');
 
 describe('KanbanOpportunityPicker', () => {
+  describe('contato novo no próprio fluxo', () => {
+    const procurarSemResultado = async wrapper => {
+      ContactAPI.search.mockResolvedValue({ data: { payload: [] } });
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('Rita Souza');
+      vi.advanceTimersByTime(600);
+      await flushPromises();
+    };
+
+    it('offers the form where the search came back empty', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-phone"]').exists()
+      ).toBe(true);
+    });
+
+    // Telefone obrigatório por decisão do Pedro, e a razão é prática: é ele que
+    // faz o contato ser alcançável. Sem telefone o contato nasce sem caixa
+    // possível e o compositor diz que não há caixas disponíveis.
+    it('refuses to create without a phone number', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita Souza');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain(
+        'KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_REQUIRED'
+      );
+    });
+
+    it('creates the contact with the country code and carries on with it', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockResolvedValue({
+        data: { payload: { contact: { id: 77, name: 'Rita Souza' } } },
+      });
+      ContactAPI.getConversations.mockResolvedValue({ data: { payload: [] } });
+      ContactAPI.getContactableInboxes.mockResolvedValue({
+        data: { payload: [] },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita Souza');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81999990000');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).toHaveBeenCalledWith({
+        name: 'Rita Souza',
+        phone_number: '+5581999990000',
+      });
+      // o contato criado passa a ser o escolhido, sem nova busca
+      expect(
+        wrapper.find('[data-testid="kanban-contact-search-empty"]').exists()
+      ).toBe(false);
+    });
+
+    it('keeps a phone already written with its country code', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockResolvedValue({
+        data: { payload: { contact: { id: 78, name: 'Rita' } } },
+      });
+      ContactAPI.getConversations.mockResolvedValue({ data: { payload: [] } });
+      ContactAPI.getContactableInboxes.mockResolvedValue({
+        data: { payload: [] },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('+351912345678');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).toHaveBeenCalledWith({
+        name: 'Rita',
+        phone_number: '+351912345678',
+      });
+    });
+
+    it('shows what the server refused instead of a generic failure', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockRejectedValue({
+        response: { data: { message: 'Telefone já usado por outro contato' } },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81999990000');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Telefone já usado por outro contato');
+    });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();

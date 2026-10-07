@@ -1607,7 +1607,17 @@
       "INBOX_FALLBACK": "Caixa de entrada #{id}",
       "INBOX_LABEL": "Caixa de entrada",
       "NO_INBOXES_HINT": "Este contacto ainda não tem caixa de entrada associada, por isso não é possível abrir uma oportunidade para ele. Associe o contacto a uma caixa em Contactos, ou escolha outro contacto.",
-      "NO_INBOXES_ACTION": "Escolher outro contacto"
+      "NO_INBOXES_ACTION": "Escolher outro contacto",
+      "NEW_CONTACT": {
+        "NAME": "Nome",
+        "PHONE": "Telefone",
+        "PHONE_HINT": "Necessário para o contacto poder ser alcançado num canal.",
+        "NAME_REQUIRED": "Indique o nome do contacto.",
+        "PHONE_REQUIRED": "O telefone é obrigatório.",
+        "CREATE": "Criar contacto",
+        "CREATING": "A criar...",
+        "ERROR": "Não foi possível criar o contacto. Tente novamente."
+      }
     },
     "CARD": {
       "SELECT": "Selecionar oportunidade",

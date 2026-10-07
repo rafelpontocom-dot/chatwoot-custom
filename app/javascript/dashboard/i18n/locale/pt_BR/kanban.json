@@ -1603,7 +1603,17 @@
       "INBOX_FALLBACK": "Caixa de entrada #{id}",
       "INBOX_LABEL": "Caixa de entrada",
       "NO_INBOXES_HINT": "Este contato ainda não tem caixa de entrada vinculada, então não é possível abrir uma oportunidade para ele. Vincule o contato a uma caixa em Contatos, ou escolha outro contato.",
-      "NO_INBOXES_ACTION": "Escolher outro contato"
+      "NO_INBOXES_ACTION": "Escolher outro contato",
+      "NEW_CONTACT": {
+        "NAME": "Nome",
+        "PHONE": "Telefone",
+        "PHONE_HINT": "Necessário para o contato poder ser alcançado em algum canal.",
+        "NAME_REQUIRED": "Informe o nome do contato.",
+        "PHONE_REQUIRED": "O telefone é obrigatório.",
+        "CREATE": "Criar contato",
+        "CREATING": "Criando...",
+        "ERROR": "Não foi possível criar o contato. Tente novamente."
+      }
     },
     "CARD": {
       "SELECT": "Selecionar oportunidade",

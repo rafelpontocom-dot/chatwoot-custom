@@ -1600,7 +1600,17 @@
       "INBOX_FALLBACK": "Inbox #{id}",
       "INBOX_LABEL": "Inbox",
       "NO_INBOXES_HINT": "This contact has no inbox linked yet, so an opportunity cannot be opened for them. Link the contact to an inbox in Contacts, or pick another contact.",
-      "NO_INBOXES_ACTION": "Pick another contact"
+      "NO_INBOXES_ACTION": "Pick another contact",
+      "NEW_CONTACT": {
+        "NAME": "Name",
+        "PHONE": "Phone",
+        "PHONE_HINT": "Needed so the contact can be reached on a channel.",
+        "NAME_REQUIRED": "Give the contact a name.",
+        "PHONE_REQUIRED": "A phone number is required.",
+        "CREATE": "Create contact",
+        "CREATING": "Creating...",
+        "ERROR": "The contact could not be created. Try again."
+      }
     },
     "CARD": {
       "SELECT": "Select opportunity",

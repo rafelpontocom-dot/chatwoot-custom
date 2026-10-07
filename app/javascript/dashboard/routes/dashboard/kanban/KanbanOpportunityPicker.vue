@@ -29,6 +29,14 @@ const contactSearchResults = ref([]);
 const selectedContact = ref(null);
 const isSearchingContacts = ref(false);
 const hasSearchedContacts = ref(false);
+// Criar o contato aqui dentro: antes era preciso sair, cadastrar em Contatos e
+// voltar. Telefone é obrigatório por decisão do Pedro, e a razão é prática — é
+// ele que faz o contato ser alcançável. Sem telefone o contato nasce sem caixa
+// possível e o compositor diz «não há caixas de entrada disponíveis».
+const novoContactoNome = ref('');
+const novoContactoTelefone = ref('');
+const novoContactoErro = ref('');
+const estaACriarContacto = ref(false);
 const contactSearchError = ref(false);
 const contactSearchController = ref(null);
 const contactSearchMinimumLength = 3;
@@ -282,6 +290,53 @@ const selectContact = contact => {
   isSearchingContacts.value = false;
   contactSearchError.value = false;
   loadContactInboxes(contact);
+};
+
+const abrirFormularioDeContacto = () => {
+  // O que foi escrito na busca é quase sempre o nome: entra já preenchido.
+  novoContactoNome.value = contactSearchQuery.value.trim();
+  novoContactoTelefone.value = '';
+  novoContactoErro.value = '';
+};
+
+const criarContactoEContinuar = async () => {
+  if (estaACriarContacto.value) return;
+
+  const nome = novoContactoNome.value.trim();
+  const telefone = novoContactoTelefone.value.trim();
+  if (!nome) {
+    novoContactoErro.value = t('KANBAN.ADD_ITEM.NEW_CONTACT.NAME_REQUIRED');
+    return;
+  }
+  if (!telefone) {
+    novoContactoErro.value = t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_REQUIRED');
+    return;
+  }
+
+  estaACriarContacto.value = true;
+  novoContactoErro.value = '';
+  try {
+    const {
+      data: {
+        payload: { contact },
+      },
+    } = await ContactAPI.create({
+      name: nome,
+      // O backend recusa telefone sem o código do país; o Brasil é o único
+      // país em uso, e quem digita escreve o número local.
+      phone_number: telefone.startsWith('+')
+        ? telefone
+        : `+55${telefone.replace(/\D/g, '')}`,
+    });
+    novoContactoNome.value = '';
+    novoContactoTelefone.value = '';
+    selectContact(camelcaseKeys(contact, { deep: true }));
+  } catch (error) {
+    novoContactoErro.value =
+      error?.response?.data?.message || t('KANBAN.ADD_ITEM.NEW_CONTACT.ERROR');
+  } finally {
+    estaACriarContacto.value = false;
+  }
 };
 
 const clearSelectedContact = () => {
@@ -621,13 +676,60 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <p
+      <div
         v-else-if="hasSearchedContacts"
         data-testid="kanban-contact-search-empty"
-        class="mb-0 text-sm text-n-slate-11"
+        class="grid gap-3"
       >
-        {{ t('KANBAN.ADD_ITEM.NO_CONTACTS') }}
-      </p>
+        <p class="mb-0 text-sm text-n-slate-11">
+          {{ t('KANBAN.ADD_ITEM.NO_CONTACTS') }}
+        </p>
+        <div class="grid gap-3 rounded-lg border border-n-weak p-3">
+          <RaevoField compact :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.NAME')">
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="novoContactoNome"
+                type="text"
+                :class="controlClass"
+                data-testid="kanban-new-contact-name"
+                @focus="novoContactoNome || abrirFormularioDeContacto()"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField
+            compact
+            required
+            :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE')"
+            :hint="t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_HINT')"
+            :error="novoContactoErro"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="novoContactoTelefone"
+                type="tel"
+                inputmode="tel"
+                :class="controlClass"
+                data-testid="kanban-new-contact-phone"
+              />
+            </template>
+          </RaevoField>
+          <button
+            type="button"
+            data-testid="kanban-new-contact-create"
+            class="flex min-h-9 items-center justify-center justify-self-start rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="estaACriarContacto"
+            @click="criarContactoEContinuar"
+          >
+            {{
+              estaACriarContacto
+                ? t('KANBAN.ADD_ITEM.NEW_CONTACT.CREATING')
+                : t('KANBAN.ADD_ITEM.NEW_CONTACT.CREATE')
+            }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
