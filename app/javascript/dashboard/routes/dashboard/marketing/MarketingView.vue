@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import MarketingAPI from 'dashboard/api/marketing';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import { intlLocale } from 'dashboard/composables/useAccountCurrency';
-import { useMapGetter } from 'dashboard/composables/store';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { frontendURL } from 'dashboard/helper/URLHelper';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
@@ -17,6 +17,8 @@ import MarketingIntakeDocs from './MarketingIntakeDocs.vue';
 // Financeiro. Ver docs/raevo-design-system.md §5.
 const { t, locale } = useI18n();
 const currentAccount = useMapGetter('getCurrentAccount');
+const store = useStore();
+const getAccountById = useMapGetter('accounts/getAccount');
 
 const activeView = ref('panel');
 const marketingModule = ref(null);
@@ -396,9 +398,21 @@ const deactivateSource = async id => {
   await loadIntake();
 };
 
-const loadModule = async () => {
-  const { data } = await MarketingAPI.getModule();
+const setModule = data => {
   marketingModule.value = data;
+  const account = getAccountById.value(accountId.value);
+  if (!account?.id) return;
+  store.commit('accounts/EDIT_ACCOUNT', {
+    ...account,
+    marketing_module_enabled: data.enabled === true,
+  });
+};
+
+const loadModule = async () => {
+  const requestedAccountId = accountId.value;
+  const { data } = await MarketingAPI.getModule();
+  if (accountId.value !== requestedAccountId) return;
+  setModule(data);
 };
 
 const loadPanel = async () => {
@@ -417,14 +431,22 @@ const loadPanel = async () => {
 };
 
 const toggleModule = async enabled => {
+  const requestedAccountId = accountId.value;
   isSavingModule.value = true;
   saveError.value = '';
   try {
     const { data } = await MarketingAPI.updateModule({
       marketing_module: { enabled, confirm_disable: !enabled },
     });
-    marketingModule.value = data;
-    if (enabled) await loadPanel();
+    if (accountId.value !== requestedAccountId) return;
+    setModule(data);
+    if (enabled) {
+      await loadPanel();
+      if (canConfigure.value) {
+        await loadIntake();
+        await loadConnections();
+      }
+    }
   } catch (error) {
     saveError.value =
       error?.response?.data?.message || t('MARKETING.SETTINGS.SAVE_ERROR');

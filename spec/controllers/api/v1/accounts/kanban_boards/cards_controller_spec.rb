@@ -515,6 +515,53 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(card.next_action_history.last).to include('type' => 'send_proposal')
     end
 
+    it 'completes edited action details explicitly even when the browser drops seconds' do
+      card = create_manual_card(
+        next_action_type: 'send_proposal',
+        next_action_at: Time.zone.parse('2026-07-20T18:00:47.123Z'),
+        next_action_note: 'Original note'
+      )
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                complete_next_action: true,
+                next_action_type: 'call',
+                next_action_at: '2026-07-20T18:00:00.000Z',
+                next_action_note: 'Edited note',
+                next_action_completed_at: '2026-07-20T19:00:00.000Z'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(next_action_type: nil, next_action_at: nil, next_action_note: nil)
+      expect(card.next_action_history.last).to include(
+        'type' => 'call', 'scheduled_at' => '2026-07-20T18:00:00.000Z', 'note' => 'Edited note'
+      )
+    end
+
+    it 'does not interpret a false completion flag as a request to clear a retrospective action' do
+      card = create_manual_card
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                complete_next_action: 'false',
+                next_action_type: 'call',
+                next_action_at: '2026-07-20T18:00:00.000Z',
+                next_action_note: 'Past action',
+                next_action_completed_at: '2026-07-20T19:00:00.000Z'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(next_action_type: 'call', next_action_note: 'Past action')
+    end
+
     it 'updates the expected close date' do
       card = create_manual_card
 

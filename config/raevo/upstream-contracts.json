@@ -120,6 +120,45 @@
       ]
     },
     {
+      "id": "opportunity-action-completion",
+      "paths": [
+        "app/models/kanban_card.rb",
+        "app/controllers/api/v1/accounts/kanban_boards/cards_controller.rb",
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanOpportunityDetailsModal.vue"
+      ],
+      "tests": [
+        "spec/models/kanban_card_spec.rb",
+        "spec/controllers/api/v1/accounts/kanban_boards/cards_controller_spec.rb",
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanOpportunityDetailsModal.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "marketing-module-navigation",
+      "paths": [
+        "app/views/api/v1/models/_account.json.jbuilder",
+        "app/javascript/dashboard/components-next/sidebar/Sidebar.vue",
+        "app/javascript/dashboard/routes/dashboard/marketing/MarketingView.vue",
+        "script/raevo/navigation_smoke_seed.rb"
+      ],
+      "tests": [
+        "spec/controllers/api/v1/accounts/marketing/module_controller_spec.rb",
+        "app/javascript/dashboard/routes/dashboard/marketing/specs/MarketingView.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "cloud-only-account-limits",
+      "paths": [
+        "app/javascript/dashboard/store/modules/accounts.js",
+        "enterprise/app/controllers/enterprise/api/v1/accounts_controller.rb"
+      ],
+      "tests": [
+        "app/javascript/dashboard/store/modules/specs/accounts/limits.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
       "id": "unread-title",
       "paths": [
         "app/javascript/dashboard/composables/useUnreadTabTitle.js",

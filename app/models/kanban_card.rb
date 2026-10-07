@@ -130,6 +130,8 @@ class KanbanCard < ApplicationRecord
 
   attr_accessor :next_action_completion_note
 
+  attribute :complete_next_action, :boolean, default: false
+
   has_many :kanban_card_events, dependent: :restrict_with_exception
   has_many :kanban_cadence_enrollments, dependent: :destroy
   has_many :finance_payments, dependent: :nullify
@@ -392,6 +394,7 @@ class KanbanCard < ApplicationRecord
     when 'card_lost' then lost_at.present?
     when 'card_archived' then archived_at.present?
     when 'card_restored' then active?
+    when 'next_action_scheduled' then next_action_completed_at.blank?
     else true
     end
   end
@@ -769,22 +772,12 @@ class KanbanCard < ApplicationRecord
     clear_completed_next_action
   end
 
-  # Concluída, a ação passa a ser histórico e deixa de ser a próxima. Os campos
-  # ficavam preenchidos com o que acabou de ser feito, e quem ia marcar a ação
-  # seguinte tinha de apagar três campos antes de escrever — ou gravava sem
-  # reparar e a «próxima ação» era a anterior outra vez. O estado já dizia o
-  # contrário dos campos: `next_action_status` devolve «em falta» assim que há
-  # conclusão.
-  #
-  # Só quando a conclusão é a única coisa que muda — que é o gesto «concluir» na
-  # tela: os campos já estavam gravados e o utilizador carregou no botão.
-  #
-  # Quando os campos mudam no mesmo gravar, está-se a **registar** uma ação que
-  # já aconteceu (importação, lançamento retroativo, cartão criado com histórico).
-  # Aí apagar perderia o dado em vez de arrumar a tela. Os dois pedidos chegam
-  # iguais à API; o que os distingue é isto, e não o payload.
+  # The UI sends explicit intent; unchanged-details completion stays compatible
+  # with older clients. Imports and retrospective entries keep their fields.
   def clear_completed_next_action
-    return if new_record? || next_action_details_changed?
+    explicit_completion = complete_next_action
+    self.complete_next_action = false
+    return if new_record? || (next_action_details_changed? && !explicit_completion)
 
     self.next_action_type = nil
     self.next_action_at = nil

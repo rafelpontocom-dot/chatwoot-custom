@@ -138,6 +138,9 @@ Contratos mínimos a preservar:
 - Para um bug conhecido, demonstrar que o novo teste falha com o comportamento quebrado e passa com a correção.
 - Executar CI customizado e testes upstream relevantes. Rodar a jornada Playwright com Rails, assets e API reais, navegando por clique. Não ignorar erros de API ou de console para tornar o smoke verde.
 - Revisar screenshots e traces; sucesso de build não comprova disposição visual correta.
+- No smoke, concluir uma ação com segundos na data e conferir campos vazios e histórico;
+  testar Marketing ligado, desligado e reativado pela configuração sem recarregar a aplicação.
+  O estado desativado deve ocultar a entrada operacional, não o acesso de configuração autorizado.
 - Publicar somente a imagem do SHA aprovado. Alteração posterior, inclusive resolução de conflito ou tradução, exige nova rodada. O gate de `build_and_push.yml` verifica a rodada mais recente de `custom_checks.yml` do mesmo SHA.
 
 ### 5. Aceitar no ambiente publicado

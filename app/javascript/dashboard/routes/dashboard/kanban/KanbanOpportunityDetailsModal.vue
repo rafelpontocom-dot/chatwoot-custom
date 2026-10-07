@@ -1586,7 +1586,9 @@ const buildCardPayload = extraPayload => ({
   expected_close_date: expectedCloseDate.value || null,
   custom_field_values: customFieldValues.value,
   next_action_type: nextActionType.value || null,
-  next_action_at: toIso8601(nextActionAt.value),
+  ...(nextActionAt.value !== formatDateTimeInput(card.value?.nextActionAt)
+    ? { next_action_at: toIso8601(nextActionAt.value) }
+    : {}),
   next_action_note: nextActionNote.value.trim() ? nextActionNote.value : null,
   lost_reason: selectedStageIsLost.value
     ? lostReason.value.trim() || null
@@ -1638,6 +1640,7 @@ const saveCard = () => saveCardWith();
 
 const completeNextAction = () =>
   saveCardWith({
+    complete_next_action: true,
     next_action_completed_at: new Date().toISOString(),
   });
 

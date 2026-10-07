@@ -56,7 +56,10 @@ KanbanCard.create!(
   conversation: conversation,
   origin: 'manual',
   position: 0,
-  subject: 'Oportunidade smoke'
+  subject: 'Oportunidade smoke',
+  next_action_type: 'Ligar',
+  next_action_at: Time.zone.parse('2026-10-07T13:30:47.123Z'),
+  next_action_note: 'Acao para validar conclusao'
 )
 FinanceModuleSetting.create!(account: account, enabled: true, market: 'BR')
 

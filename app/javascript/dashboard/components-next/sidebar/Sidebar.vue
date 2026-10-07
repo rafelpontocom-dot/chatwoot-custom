@@ -71,6 +71,7 @@ const isMobile = computed(() => windowWidth.value < 768);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
+const currentAccount = useMapGetter('getCurrentAccount');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
@@ -910,6 +911,19 @@ const menuItems = computed(() => {
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('general_settings_index'),
         },
+        ...(!hasMarketing.value &&
+        currentAccount.value?.permissions?.some(permission =>
+          ['administrator', 'marketing_configure'].includes(permission)
+        )
+          ? [
+              {
+                name: 'Settings Marketing',
+                label: t('SIDEBAR.MARKETING'),
+                icon: 'i-lucide-megaphone',
+                to: accountScopedRoute('marketing_index'),
+              },
+            ]
+          : []),
         // {
         //   name: 'Settings Captain',
         //   label: t('SIDEBAR.CAPTAIN_AI'),

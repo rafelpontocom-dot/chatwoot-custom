@@ -1677,8 +1677,25 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
       10,
       501,
-      expect.objectContaining({ next_action_completed_at: expect.any(String) })
+      expect.objectContaining({
+        next_action_completed_at: expect.any(String),
+        complete_next_action: true,
+      })
     );
+  });
+
+  it('preserves the stored seconds when saving an unchanged next action date', async () => {
+    const scheduledAt = '2026-07-22T11:30:47.123Z';
+    const wrapper = await mountModal({
+      card: buildCard({ nextActionAt: scheduledAt }),
+    });
+
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).not.toHaveProperty('next_action_at');
   });
 
   // Quem conclui vai marcar a ação seguinte a seguir. Os campos ficavam com o

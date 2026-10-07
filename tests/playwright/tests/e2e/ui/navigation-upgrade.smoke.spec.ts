@@ -135,6 +135,34 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     contentType: 'image/png',
   });
 
+  await page.getByText('Oportunidade smoke', { exact: true }).first().click();
+  const completedResponse = page.waitForResponse(
+    response =>
+      /\/cards\/by_id\/\d+$/.test(response.url()) &&
+      response.request().method() === 'PATCH'
+  );
+  await page.getByTestId('kanban-opportunity-complete-next-action').click();
+  const completion = await completedResponse;
+  expect(completion.status()).toBe(200);
+  expect(completion.request().postDataJSON().card).toMatchObject({
+    complete_next_action: true,
+  });
+  expect(completion.request().postDataJSON().card).not.toHaveProperty(
+    'next_action_at'
+  );
+  const completedCard = await completion.json();
+  expect(completedCard).toMatchObject({
+    next_action_type: null,
+    next_action_at: null,
+    next_action_note: null,
+  });
+  expect(completedCard.next_action_history.at(-1)).toMatchObject({
+    type: 'Ligar',
+    scheduled_at: '2026-10-07T13:30:47.123Z',
+    note: 'Acao para validar conclusao',
+  });
+  await page.getByTestId('kanban-opportunity-close').click();
+
   await sidebar
     .getByTitle(/^Contatos$/, { exact: true })
     .filter({ visible: true })
@@ -252,6 +280,46 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
   await page.reload();
   await expect(labelRows.first()).toContainText('zulu-smoke');
   await testInfo.attach('Etiquetas com ordem persistida', {
+    body: await page.screenshot({ animations: 'disabled' }),
+    contentType: 'image/png',
+  });
+
+  const operationalMarketing = sidebar.locator(
+    'nav > ul > li > a[title="Marketing"]'
+  );
+  await expect(operationalMarketing).toBeVisible();
+  await operationalMarketing.click();
+  await expect(
+    page.locator('[data-testid="marketing-capture-rate"]')
+  ).toBeVisible();
+  await page.getByTestId('marketing-toggle-settings').click();
+  await page.getByTestId('marketing-toggle-module').uncheck();
+  await expect(operationalMarketing).toHaveCount(0);
+  const settingsMarketing = sidebar.getByTitle('Marketing', { exact: true });
+  if (!(await settingsMarketing.isVisible())) {
+    await sidebar
+      .getByTitle(/^Configurações$/, { exact: true })
+      .filter({ visible: true })
+      .first()
+      .click();
+  }
+  await settingsMarketing.click();
+  await expect(page).toHaveURL(/\/marketing$/);
+  await page.reload();
+  await expect(page.getByTestId('marketing-capture-rate')).toHaveCount(0);
+  await expect(page.getByTestId('marketing-toggle-settings')).toBeVisible();
+  await page.getByTestId('marketing-toggle-settings').click();
+  await page.getByTestId('marketing-toggle-module').check();
+  await sidebar.getByTitle('Pipeline', { exact: true }).first().click();
+  await expect(operationalMarketing).toBeVisible();
+  await operationalMarketing.click();
+  const marketingSettings = page.getByTestId('marketing-toggle-settings');
+  if ((await marketingSettings.getAttribute('aria-pressed')) === 'true') {
+    await marketingSettings.click();
+  }
+  await expect(page.getByTestId('marketing-capture-rate')).toBeVisible();
+  await expect.poll(() => pendingApiRequests.size).toBe(0);
+  await testInfo.attach('Marketing ligado e reativado', {
     body: await page.screenshot({ animations: 'disabled' }),
     contentType: 'image/png',
   });

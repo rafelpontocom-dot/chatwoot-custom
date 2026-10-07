@@ -445,6 +445,8 @@ RSpec.describe KanbanCard do
       expect(card.next_action_note).to be_nil
       # e o que foi feito não se perde
       expect(card.next_action_history.last).to include('type' => 'Enviar proposta')
+      expect(card.kanban_card_events.where(event_type: %w[next_action_scheduled next_action_completed]).pluck(:event_type))
+        .to eq(['next_action_completed'])
     end
 
     it 'keeps the completed action out of the way of the one scheduled next' do
@@ -456,6 +458,17 @@ RSpec.describe KanbanCard do
       expect(card.next_action_completed_at).to be_nil
       expect(card.next_action_history.length).to eq(1)
       expect(card.next_action_status).to eq(KanbanCard::NEXT_ACTION_STATUS_FUTURE)
+    end
+
+    it 'consumes explicit completion intent without clearing a later retrospective entry' do
+      card = create(:kanban_card, next_action_type: 'Ligar', next_action_at: 1.day.ago)
+      card.update!(complete_next_action: true, next_action_note: 'Done', next_action_completed_at: Time.current)
+      expect(card.next_action_type).to be_nil
+      expect(card.complete_next_action).to be(false)
+
+      card.update!(next_action_type: 'Past action', next_action_at: 2.days.ago, next_action_completed_at: 1.day.ago)
+      expect(card.next_action_type).to eq('Past action')
+      expect(card.next_action_history.size).to eq(2)
     end
 
     it 'treats a completed next action as missing until another action is scheduled' do

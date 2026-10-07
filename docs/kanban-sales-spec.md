@@ -115,6 +115,19 @@ Campos comerciais implementados:
 - `custom_field_values`;
 - `next_action_history`: últimas ações concluídas, limitado a 100 registros;
 
+Conclusão explícita de próxima ação:
+
+- O botão `Concluir` envia `complete_next_action: true` com `next_action_completed_at`.
+  O servidor arquiva tipo, data e observação atuais e depois limpa esses três campos,
+  inclusive quando o utilizador os editou antes de concluir.
+- `complete_next_action` é booleano virtual, não coluna nem configuração persistida.
+  Sem essa intenção explícita, lançamentos retroativos e importações preservam os dados;
+  clientes antigos que alteram somente a conclusão continuam compatíveis.
+- Uma data não editada não é reenviada no PATCH: o controle `datetime-local` mostra
+  minutos, mas não deve truncar segundos ou milissegundos do valor armazenado.
+- A limpeza por conclusão não emite evento `next_action_scheduled`. Marcar a ação
+  seguinte remove a conclusão anterior e volta a registrar agendamento normalmente.
+
 Navegação conversa-card implementada:
 
 - a lista de oportunidades da conversa expõe um botão acessível `Abrir oportunidade no funil` para cada card vinculado;
