@@ -770,7 +770,9 @@ const visibleSections = computed(() =>
   })
 );
 
-const moveSection = (key, offset) => {
+const sideColumn = ref(null);
+
+const moveSection = async (key, offset) => {
   updateUISettings({
     kanban_opportunity_sections_order: moveOpportunitySection(
       sectionOrder.value,
@@ -779,6 +781,21 @@ const moveSection = (key, offset) => {
       visibleSections.value
     ),
   });
+
+  // Mover a secção muda o nó de lugar e o browser tira-lhe o foco: quem usa o
+  // teclado — a razão de isto serem botões e não arrastar — ia parar ao <body>
+  // a cada clique. O foco volta ao mesmo botão, ou ao do sentido contrário
+  // quando a secção chegou à ponta e o botão ficou desativado.
+  await nextTick();
+  const sentidos = offset < 0 ? ['up', 'down'] : ['down', 'up'];
+  sentidos
+    .map(sentido =>
+      sideColumn.value?.querySelector(
+        `[data-testid="kanban-opportunity-section-${sentido}-${key}"]`
+      )
+    )
+    .find(botao => botao && !botao.disabled)
+    ?.focus();
 };
 
 /**
@@ -2404,12 +2421,22 @@ watch(invitationPendingRevocation, async invitation => {
           </button>
         </nav>
 
+        <!--
+          Lado a lado só fora da gaveta. O `lg:` mede a JANELA, e a ficha vive
+          sempre num contentor estreito: 576px no Pipeline, 317px na conversa.
+          Com duas colunas ali, a coluna levava 320px e a ficha ficava com 200px
+          no Pipeline e 0px na conversa, com texto por cima de texto (medido a
+          08/10, 1024–1920px). Na gaveta a coluna desce para baixo da ficha, como
+          no telemóvel. Pô-la ao lado pede uma gaveta mais larga — decisão do
+          Pedro, registada em docs/raevo-aprovacao.md.
+        -->
         <div
           id="kanban-opportunity-tab-panel"
           data-testid="kanban-opportunity-layout"
           role="tabpanel"
           :aria-labelledby="`kanban-opportunity-tab-${activeTabKey}`"
-          class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]"
+          class="grid min-w-0 gap-4"
+          :class="{ 'lg:grid-cols-[minmax(0,1fr)_20rem]': !drawerMode }"
         >
           <section class="grid min-w-0 content-start gap-4">
             <template v-if="activeTabKey === 'details'">
@@ -2865,6 +2892,7 @@ watch(invitationPendingRevocation, async invitation => {
             ver docs/raevo-aprovacao.md.
           -->
           <aside
+            ref="sideColumn"
             data-testid="kanban-opportunity-side-column"
             class="grid content-start gap-0 rounded-xl border border-n-weak lg:self-start"
           >

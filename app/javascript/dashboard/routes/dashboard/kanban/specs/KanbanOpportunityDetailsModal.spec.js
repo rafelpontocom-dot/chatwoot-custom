@@ -1187,9 +1187,15 @@ describe('KanbanOpportunityDetailsModal', () => {
     const wrapper = await mountModal();
     await wrapper.setProps({ drawerMode: true });
 
+    // Verificava só o literal `_18rem`. A coluna lateral voltou a 07/10 como
+    // `_20rem`, este teste ficou verde, e a ficha passou a ter 200px no
+    // Pipeline e 0px na conversa. Qualquer segunda coluna na gaveta reprova.
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
-    ).not.toContain('lg:grid-cols-[minmax(0,1fr)_18rem]');
+      wrapper
+        .find('[data-testid="kanban-opportunity-layout"]')
+        .classes()
+        .filter(classe => classe.includes('grid-cols'))
+    ).toEqual([]);
   });
 
   describe('contact fields', () => {

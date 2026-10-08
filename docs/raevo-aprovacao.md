@@ -314,6 +314,36 @@ se abrir sem ninguém pedir.
 o browser a correr. Nenhum teste aqui prova que a coluna *parece* o que foi aprovado — só
 que as secções existem, abrem e trazem os dados certos.
 
+**Porta visual a 08/10/2026 — o browser desmentiu os testes.** Antes (`0e57d9cf`) e depois
+(`c4915508`), 1280px e 390px, aplicação real com dados fictícios. Medido com `boundingBox`:
+
+| Contentor | Antes | Depois de 07/10 | Com a correção de 08/10 |
+| --- | --- | --- | --- |
+| Gaveta do Pipeline (576px, igual de 1024 a 1920) | ficha 536px | ficha **200px**, coluna 320px, palavras partidas a meio | ficha 536px, coluna por baixo |
+| Conversa › Oportunidades (317px) | ficha 317px | ficha **0px**, texto por cima de texto | ficha 317px, coluna por baixo |
+| Tela 2, ícone de conversa no card (389px) | ficha 389px | ficha **53px**, sobreposição | ficha 389px, coluna por baixo |
+| 390px (telemóvel) | uma coluna | uma coluna | uma coluna |
+
+A causa: `lg:grid-cols-[…_20rem]` mede a **janela**, e a ficha vive sempre numa gaveta. Era
+uma **reincidência** — uma coluna de 18rem já tinha sido tirada pelo mesmo motivo, e o teste
+que a guardava verificava o literal `_18rem`, por isso ficou verde com `_20rem`. O teste
+passa a reprovar qualquer `grid-cols` na gaveta.
+
+**O que fica por decidir, Pedro — o construído diverge do aprovado em quatro pontos:**
+
+1. **A coluna não está ao lado.** Na gaveta de 576px não cabe: o aprovado pede ≈46rem
+   (736px). Para ficar ao lado, a gaveta tem de crescer — e tapa mais o funil. Até lá,
+   a coluna desce para baixo da ficha.
+2. **As abas não saíram.** Ficou «Geral» + as secções da clínica (aqui, «Marketing»). O
+   aprovado diz que as abas somem.
+3. **A conversa continua a abrir a ficha inteira.** «Resumo e atalho» só aparece no
+   instante a seguir a criar; na visita seguinte, `KanbanConversationOpportunity` desenha
+   a ficha completa. O teste `shows only the summary and the funnel link…` exercita
+   `KanbanConversationCards`, que o produto só mostra quando NÃO há oportunidade ligada.
+   E «Oportunidades» é a 4.ª secção, fechada — o aprovado põe-na no topo.
+4. **«Histórico» foi para a coluna.** O aprovado tem «Últimos eventos» à esquerda, ao lado
+   da próxima ação.
+
 ## O processo
 
 Por tela, sempre nesta ordem:
