@@ -1,6 +1,8 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { OnClickOutside } from '@vueuse/components';
+import { onClickOutside } from '@vueuse/core';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import camelcaseKeys from 'camelcase-keys';
@@ -67,6 +69,12 @@ const selectedStatusFilter = ref('');
 const searchInput = ref('');
 const selectedSearch = ref('');
 const selectedSort = ref('');
+// 123jpnbcb5k: dias sem resposta — o `waiting_since` da conversa. As mesmas
+// opções que o servidor aceita (VisibleStageCardsQuery::WAITING_DAYS_OPTIONS).
+const WAITING_DAYS_OPTIONS = [1, 3, 7, 15, 30];
+const selectedWaitingDays = ref('');
+const filterPanelRef = ref(null);
+const filterSearchRef = ref(null);
 const savedFilters = ref([]);
 const selectedSavedFilterId = ref('');
 const showSaveFilterForm = ref(false);
@@ -172,19 +180,55 @@ const sortOptions = computed(() => [
   { value: 'created_desc', label: t('KANBAN.FILTERS.NEWEST_FIRST') },
   { value: 'amount_desc', label: t('KANBAN.FILTERS.HIGHEST_VALUE') },
   { value: 'stage_time_desc', label: t('KANBAN.FILTERS.LONGEST_IN_STAGE') },
+  { value: 'waiting_desc', label: t('KANBAN.FILTERS.LONGEST_WAITING') },
 ]);
-const hasActiveFilters = computed(
+const waitingDaysOptions = computed(() => [
+  { value: '', label: t('KANBAN.FILTERS.WAITING_ANY') },
+  ...WAITING_DAYS_OPTIONS.map(days => ({
+    value: String(days),
+    label: t('KANBAN.FILTERS.WAITING_DAYS', { count: days }, days),
+  })),
+]);
+// 123jpnbcb5k: quantos filtros estão ligados, para se ver no topo com o painel
+// fechado — sem isso parecia que o filtro não tinha ficado ativo.
+const activeFilterCount = computed(
   () =>
-    selectedInboxIds.value.length > 0 ||
-    selectedAssigneeIds.value.length > 0 ||
-    selectedNextActionFilter.value ||
-    selectedStatusFilter.value ||
-    selectedSearch.value ||
-    selectedSort.value
+    [
+      selectedInboxIds.value.length > 0,
+      selectedAssigneeIds.value.length > 0,
+      selectedNextActionFilter.value,
+      selectedStatusFilter.value,
+      selectedWaitingDays.value,
+      selectedSearch.value,
+      selectedSort.value,
+    ].filter(Boolean).length
 );
+const hasActiveFilters = computed(() => activeFilterCount.value > 0);
 const openFilters = () => {
   showFiltersPanel.value = true;
 };
+// 123jpnbcb5k: o painel não fechava com Enter nem com um clique fora — só no X,
+// e parecia que o filtro não tinha ficado ativo. Os filtros já se aplicam ao
+// mudar; fechar é só sair. Os campos que dão nome a um filtro guardado usam o
+// Enter para gravar, e os botões para se carregar — esses ficam com ele.
+const OWN_ENTER_FIELDS = [
+  'kanban-save-filter-name',
+  'kanban-saved-filter-rename-input',
+];
+const closeFiltersOnEnter = event => {
+  if (event.target.tagName === 'BUTTON') return;
+  if (OWN_ENTER_FIELDS.includes(event.target.dataset?.testid)) return;
+
+  showFiltersPanel.value = false;
+};
+onClickOutside(
+  filterPanelRef,
+  () => {
+    if (showDeleteSavedFilterConfirmation.value) return;
+    showFiltersPanel.value = false;
+  },
+  { ignore: [filterSearchRef] }
+);
 const isCardDragDisabled = computed(
   () => isPersistingCardDrag.value || !!activeActionKey.value
 );
@@ -330,11 +374,14 @@ const currentSearchParams = () =>
   selectedSearch.value ? { search: selectedSearch.value } : {};
 const currentSortParams = () =>
   selectedSort.value ? { sort: selectedSort.value } : {};
+const currentWaitingParams = () =>
+  selectedWaitingDays.value ? { waiting_days: selectedWaitingDays.value } : {};
 const currentFilterParams = () => ({
   ...currentInboxFilterParams(),
   ...currentAssigneeFilterParams(),
   ...currentNextActionFilterParams(),
   ...currentStatusFilterParams(),
+  ...currentWaitingParams(),
   ...currentSearchParams(),
   ...currentSortParams(),
 });
@@ -697,6 +744,7 @@ const updateStatusFilter = async value => {
 };
 
 const applySearch = async () => {
+  showFiltersPanel.value = false;
   selectedSearch.value = searchInput.value.trim();
   selectedSavedFilterId.value = '';
   showSaveFilterForm.value = false;
@@ -721,11 +769,18 @@ const updateSort = async event => {
   await refreshSelectedBoard();
 };
 
+const updateWaitingDays = async event => {
+  selectedWaitingDays.value = event.target.value;
+  selectedSavedFilterId.value = '';
+  await refreshSelectedBoard();
+};
+
 const clearFilters = async () => {
   selectedInboxIds.value = [];
   selectedAssigneeIds.value = [];
   selectedNextActionFilter.value = '';
   selectedStatusFilter.value = '';
+  selectedWaitingDays.value = '';
   searchInput.value = '';
   selectedSearch.value = '';
   selectedSort.value = '';
@@ -764,6 +819,7 @@ const applySavedFilter = async event => {
   selectedAssigneeIds.value = filters.assignee_ids || [];
   selectedNextActionFilter.value = filters.next_action || '';
   selectedStatusFilter.value = filters.status || '';
+  selectedWaitingDays.value = filters.waiting_days || '';
   searchInput.value = filters.search || '';
   selectedSearch.value = filters.search || '';
   selectedSort.value = filters.sort || '';
@@ -1609,6 +1665,7 @@ watch(activeBoardId, (boardId, previousBoardId) => {
     selectedAssigneeIds.value = [];
     selectedNextActionFilter.value = '';
     selectedStatusFilter.value = '';
+    selectedWaitingDays.value = '';
     searchInput.value = '';
     selectedSearch.value = '';
     selectedSort.value = '';
@@ -1775,6 +1832,7 @@ onUnmounted(() => {
               class="col-span-full order-3 min-w-0 self-center md:order-2 lg:col-span-1"
             >
               <label
+                ref="filterSearchRef"
                 class="ms-auto block w-full min-w-0 lg:w-64"
                 @click="openFilters"
                 @focusin="openFilters"
@@ -1801,6 +1859,20 @@ onUnmounted(() => {
                     @keydown.escape.stop="showFiltersPanel = false"
                     @keyup.enter="applySearch"
                   />
+                  <span
+                    v-if="activeFilterCount && !showFiltersPanel"
+                    data-testid="kanban-active-filters-count"
+                    class="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-n-alpha-2 px-2 text-xs font-medium text-n-slate-12"
+                  >
+                    <i aria-hidden="true" class="i-lucide-filter size-3.5" />
+                    {{
+                      t(
+                        'KANBAN.FILTERS.ACTIVE_FILTERS_COUNT',
+                        { count: activeFilterCount },
+                        activeFilterCount
+                      )
+                    }}
+                  </span>
                   <button
                     type="button"
                     data-testid="kanban-apply-search"
@@ -1995,14 +2067,22 @@ onUnmounted(() => {
             data-testid="kanban-workspace-secondary-row"
             class="flex min-w-0 items-center justify-end"
           >
+            <!--
+              Abaixo de lg o painel é uma coluna só e não cabe no ecrã (928px
+              em 900 a 390): rola por dentro, senão «Situação» fica fora do
+              alcance do dedo. Em lg não rola — os menus de caixas e agentes
+              transbordam dele e seriam cortados.
+            -->
             <div
               v-show="showFiltersPanel"
               id="kanban-filter-panel"
+              ref="filterPanelRef"
               data-testid="kanban-filter-panel"
-              class="absolute left-1/2 top-[4.5rem] z-30 grid w-[min(64rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-4 rounded-lg border border-n-weak bg-n-solid-1 p-4 shadow-xl lg:grid-cols-[16rem_minmax(0,1fr)]"
+              class="absolute left-1/2 top-[4.5rem] z-30 grid max-h-[calc(100dvh-6.5rem)] w-[min(64rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-4 overflow-y-auto rounded-lg border border-n-weak bg-n-solid-1 p-4 shadow-xl lg:max-h-none lg:grid-cols-[16rem_minmax(0,1fr)] lg:overflow-visible"
               role="dialog"
               :aria-label="t('KANBAN.FILTERS.OPEN_FILTERS')"
               @keydown.escape.stop="showFiltersPanel = false"
+              @keydown.enter="closeFiltersOnEnter"
             >
               <div
                 class="col-span-full flex min-w-0 items-center justify-between gap-3 border-b border-n-weak pb-3"
@@ -2107,27 +2187,53 @@ onUnmounted(() => {
                 data-testid="kanban-filter-criteria"
                 class="grid min-w-0 content-start gap-4"
               >
-                <label
-                  class="grid gap-1 text-sm font-medium text-n-slate-12"
-                  for="kanban-sort-select"
-                >
-                  {{ t('KANBAN.FILTERS.SORT_LABEL') }}
-                  <select
-                    id="kanban-sort-select"
-                    :value="selectedSort"
-                    data-testid="kanban-sort-select"
-                    class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-                    @change="updateSort"
+                <!-- 123jpnbcb5k: os dois seletores em RaevoField, lado a lado -->
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <RaevoField
+                    :label="t('KANBAN.FILTERS.SORT_LABEL')"
+                    variant="select"
                   >
-                    <option
-                      v-for="option in sortOptions"
-                      :key="option.value || 'default'"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
+                    <template #default="{ controlClass, fieldId }">
+                      <select
+                        :id="fieldId"
+                        :value="selectedSort"
+                        data-testid="kanban-sort-select"
+                        :class="controlClass"
+                        @change="updateSort"
+                      >
+                        <option
+                          v-for="option in sortOptions"
+                          :key="option.value || 'default'"
+                          :value="option.value"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </template>
+                  </RaevoField>
+                  <RaevoField
+                    :label="t('KANBAN.FILTERS.WAITING_LABEL')"
+                    variant="select"
+                  >
+                    <template #default="{ controlClass, fieldId }">
+                      <select
+                        :id="fieldId"
+                        :value="selectedWaitingDays"
+                        data-testid="kanban-waiting-days-select"
+                        :class="controlClass"
+                        @change="updateWaitingDays"
+                      >
+                        <option
+                          v-for="option in waitingDaysOptions"
+                          :key="option.value || 'any'"
+                          :value="option.value"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </template>
+                  </RaevoField>
+                </div>
                 <div class="flex flex-wrap items-center gap-2">
                   <button
                     v-if="selectedSavedFilter && !showRenameSavedFilterForm"

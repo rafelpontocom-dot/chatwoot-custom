@@ -3027,6 +3027,75 @@ describe('KanbanView sales filters', () => {
     mockRoute.params.boardId = '10';
   });
 
+  // 123jpnbcb5k: dias sem resposta, e o painel que fecha como se espera.
+  describe('days without a reply and the filter panel', () => {
+    it('refetches the board with waiting_days when that filter is chosen', async () => {
+      const wrapper = await mountView();
+
+      KanbanBoardsAPI.show.mockClear();
+      await wrapper
+        .find('[data-testid="kanban-waiting-days-select"]')
+        .setValue('7');
+      await flushPromises();
+
+      expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
+        params: { waiting_days: '7' },
+      });
+    });
+
+    it('offers sorting by the longest wait for a reply', async () => {
+      const wrapper = await mountView();
+
+      const options = wrapper
+        .find('[data-testid="kanban-sort-select"]')
+        .findAll('option')
+        .map(option => option.attributes('value'));
+
+      expect(options).toContain('waiting_desc');
+    });
+
+    it('closes the panel on Enter, but not while naming a saved filter', async () => {
+      const wrapper = await mountView();
+      wrapper.vm.showFiltersPanel = true;
+      await nextTick();
+
+      await wrapper
+        .find('[data-testid="kanban-waiting-days-select"]')
+        .trigger('keydown', { key: 'Enter' });
+      expect(wrapper.vm.showFiltersPanel).toBe(false);
+    });
+
+    it('closes the panel on a click outside it', async () => {
+      const wrapper = await mountView();
+      wrapper.vm.showFiltersPanel = true;
+      await nextTick();
+
+      document.body.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true })
+      );
+      document.body.click();
+      await nextTick();
+
+      expect(wrapper.vm.showFiltersPanel).toBe(false);
+    });
+
+    it('shows how many filters are on, at the top, with the panel closed', async () => {
+      const wrapper = await mountView();
+      await wrapper
+        .find('[data-testid="kanban-waiting-days-select"]')
+        .setValue('3');
+      await findNextActionFilterButton(wrapper, 'overdue').trigger('click');
+      await flushPromises();
+      wrapper.vm.showFiltersPanel = false;
+      await nextTick();
+
+      expect(
+        wrapper.find('[data-testid="kanban-active-filters-count"]').text()
+      ).toContain('KANBAN.FILTERS.ACTIVE_FILTERS_COUNT');
+      expect(wrapper.vm.activeFilterCount).toBe(2);
+    });
+  });
+
   it('refetches the board with next_action when a next action filter is selected', async () => {
     const wrapper = await mountView();
 
