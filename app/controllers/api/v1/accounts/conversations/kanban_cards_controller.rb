@@ -7,7 +7,10 @@ class Api::V1::Accounts::Conversations::KanbanCardsController < Api::V1::Account
 
   def index
     @kanban_cards = linked_kanban_cards.select { |kanban_card| KanbanCardPolicy.new(user_context, kanban_card).show? }
-    @labels_by_title = Current.account.labels.where(title: linked_label_titles).index_by(&:title)
+    # Pelo `policy_scope`, e não por `Current.account.labels`: uma etiqueta pessoal
+    # de outro agente não pode viajar no payload do cartão. O `filter_map` do
+    # serializador já deixa cair o título que não encontra aqui.
+    @labels_by_title = policy_scope(Current.account.labels).where(title: linked_label_titles).index_by(&:title)
   end
 
   def create

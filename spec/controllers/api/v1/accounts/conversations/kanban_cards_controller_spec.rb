@@ -189,6 +189,25 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
     end
   end
 
+  # Uma etiqueta pessoal de outro agente não pode viajar no payload do cartão: a
+  # etiqueta continua aplicada, mas quem não a pode ver não recebe o título.
+  it 'leaves out of the card payload a personal label of somebody else' do
+    card = create_conversation_card
+    other_agent = create(:user, account: account, role: :agent)
+    create(:inbox_member, user: other_agent, inbox: inbox)
+    mine = create(:label, account: account, title: 'minha-etiqueta', visibility: :personal, created_by: agent)
+    shared = create(:label, account: account, title: 'de-todos')
+    card.update_labels([mine.title, shared.title])
+
+    def titulos_para(user, conversation)
+      get conversation_kanban_cards_url(conversation), headers: user.create_new_auth_token, as: :json
+      response.parsed_body['payload'].flat_map { |payload| payload['labels'].pluck('title') }
+    end
+
+    expect(titulos_para(agent, conversation)).to include('minha-etiqueta', 'de-todos')
+    expect(titulos_para(other_agent, conversation)).to contain_exactly('de-todos')
+  end
+
   describe 'POST /api/v1/accounts/{account.id}/conversations/{conversation.display_id}/kanban_cards' do
     it 'creates a conversation-origin card at position 1' do
       expect do
