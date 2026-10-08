@@ -214,6 +214,18 @@
       "tests": [
         "app/javascript/dashboard/routes/dashboard/conversation/customAttributes/specs/CustomAttributes.spec.js"
       ]
+    },
+    {
+      "id": "sidebar-unread-counts",
+      "paths": [
+        "app/javascript/dashboard/components-next/sidebar/Sidebar.vue",
+        "app/javascript/dashboard/components-next/sidebar/SidebarGroupHeader.vue",
+        "app/javascript/dashboard/components-next/sidebar/SidebarGroup.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/sidebar/specs/SidebarGroupHeader.spec.js",
+        "app/javascript/dashboard/composables/spec/useUnreadFavicon.spec.js"
+      ]
     }
   ]
 }

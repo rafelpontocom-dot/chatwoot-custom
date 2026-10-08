@@ -2,8 +2,9 @@ import { mount } from '@vue/test-utils';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import SidebarGroupHeader from '../SidebarGroupHeader.vue';
 
+const getterValues = {};
 vi.mock('dashboard/composables/store.js', () => ({
-  useMapGetter: () => ({ value: 0 }),
+  useMapGetter: key => ({ value: getterValues[key] ?? 0 }),
 }));
 
 // O router é o verdadeiro de propósito. No merge do 4.18 este componente ficou
@@ -50,5 +51,31 @@ describe('SidebarGroupHeader', () => {
 
     expect(wrapper.element.tagName).toBe('BUTTON');
     expect(wrapper.attributes('aria-expanded')).toBe('false');
+  });
+
+  // RAEVO (08/10, 123jpnbc242): o número ao lado de «Conversas».
+  describe('unread count of a group', () => {
+    beforeEach(() => {
+      getterValues['conversationUnreadCounts/getAllUnreadCount'] = 4;
+    });
+    afterEach(() => {
+      delete getterValues['conversationUnreadCounts/getAllUnreadCount'];
+    });
+
+    const conversations = isExpanded =>
+      mountHeader({
+        label: 'Conversas',
+        expandable: true,
+        isExpanded,
+        getterKeys: { count: 'conversationUnreadCounts/getAllUnreadCount' },
+      });
+
+    it('shows the count beside a closed group', () => {
+      expect(conversations(false).text()).toContain('4');
+    });
+
+    it('leaves the count to the child row when the group is open', () => {
+      expect(conversations(true).text()).not.toContain('4');
+    });
   });
 });

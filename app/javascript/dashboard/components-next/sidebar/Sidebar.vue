@@ -19,6 +19,7 @@ import SidebarChangelogCard from './SidebarChangelogCard.vue';
 import SidebarChangelogButton from './SidebarChangelogButton.vue';
 import ChannelLeaf from './ChannelLeaf.vue';
 import { useUnreadTabTitle } from 'dashboard/composables/useUnreadTabTitle';
+import { useUnreadFavicon } from 'dashboard/composables/useUnreadFavicon';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import EmojiIcon from 'next/emoji-icon-picker/EmojiIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
@@ -148,6 +149,8 @@ const toggleShortcutModalFn = show => {
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
 
 useUnreadTabTitle();
+// RAEVO (08/10, 123jpnbc242): o número também no ícone da guia.
+useUnreadFavicon();
 
 const { isSidebarFocused } = useSidebarFocus();
 const { setSidebarFocus } = useRequestSidebarFocus();
@@ -454,6 +457,9 @@ const menuItems = computed(() => {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',
+      // RAEVO (08/10, 123jpnbc242): o número ao lado de «Conversas» com o grupo
+      // fechado e na barra só de ícones — aberto, já está em «Todas as conversas».
+      getterKeys: { count: 'conversationUnreadCounts/getAllUnreadCount' },
       children: [
         {
           name: 'All',
