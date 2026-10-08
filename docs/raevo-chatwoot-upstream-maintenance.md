@@ -132,6 +132,22 @@ Contratos mínimos a preservar:
 | Notificações        | Som e contagem da guia respeitam preferências/flags, sem habilitar flags de produção implicitamente                                             |
 | CRM                 | Oportunidade, calendário, financeiro, formulários e automação mantêm dados, permissões e vínculos                                               |
 
+### Adaptações em telas nativas — o que reaplicar a cada upgrade
+
+O catálogo diz **que** um ficheiro nativo foi tocado; esta tabela diz **o quê**, para quem resolve o
+conflito saber o que tem de sobreviver. Cada linha tem um contrato no catálogo e um teste que falha
+se a adaptação se perder. Cada alteração no ficheiro nativo leva um comentário `RAEVO (data, cartão)`.
+
+| Ficheiro nativo | O que o Raevo mudou | Contrato · teste |
+| --- | --- | --- |
+| `conversation/ContactPanel.vue` | a secção «Oportunidades» usa `KanbanConversationCards` (só criar + linha que leva ao funil) | `conversation-sidebar-native` · `ContactPanel.spec.js` |
+| `conversation/labels/LabelBox.vue` | o atalho de etiquetas oferece **criar** a qualquer pessoa, não só ao administrador (a do agente nasce pessoal, no servidor) | `conversation-sidebar-native` · `LabelBox.spec.js` |
+| `conversation/Macros/List.vue` | com macros já criadas, um link «Adicionar uma nova macro» no fim da lista, para `settings/macros/new` (08/10, cartão 123jpnbcb55) | `conversation-sidebar-native` · `Macros/specs/List.spec.js` |
+| `settings/labels/*`, `store/modules/labels.js`, `labels_controller.rb` | ordem manual, visibilidade (de todos / time / só minha) e `code: 'title_taken'` para nome repetido | `labels-manual-order` · `labels_controller_spec.rb` |
+
+Ao resolver um destes ficheiros: aceitar a versão nova do upstream e **reaplicar só o bloco marcado
+`RAEVO`**. Nunca copiar o ficheiro antigo por cima — perde-se o que o upstream corrigiu.
+
 ### 4. Aprovar o código e a imagem
 
 - Testar componentes reais nos contratos compartilhados. Stubs de router, traduções e componentes filhos não podem ser a única evidência.

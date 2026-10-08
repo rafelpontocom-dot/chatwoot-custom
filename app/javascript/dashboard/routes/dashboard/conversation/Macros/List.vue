@@ -96,6 +96,23 @@ onMounted(() => {
         />
       </template>
     </Draggable>
+    <!--
+      RAEVO (08/10, cartão 123jpnbcb55): com macros já criadas, o painel não tinha
+      caminho para criar outra — o botão acima só aparece com a lista vazia. Leva
+      direto ao editor de macro nova. Adaptação em tela nativa: registada em
+      docs/raevo-chatwoot-upstream-maintenance.md e no contrato
+      «conversation-sidebar-native» de config/raevo/upstream-contracts.json.
+    -->
+    <div v-if="!uiFlags.isFetching && macros.length" class="px-2 pb-2">
+      <router-link
+        :to="accountScopedUrl('settings/macros/new')"
+        data-testid="conversation-macros-add"
+        class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+      >
+        <span aria-hidden="true" class="i-lucide-plus size-3.5" />
+        {{ $t('MACROS.HEADER_BTN_TXT') }}
+      </router-link>
+    </div>
     <ConversationResolveAttributesModal
       ref="resolveAttributesModalRef"
       @submit="submitPendingAttributes"

@@ -106,7 +106,7 @@ export default {
           class="border rounded-lg bg-n-alpha-3 top-6 backdrop-blur-[100px] absolute w-full shadow-lg border-n-strong dark:border-n-strong p-2 box-border z-[9999]"
         >
           <!--
-            O agente também cria. A etiqueta dele nasce pessoal, e quem o
+            RAEVO (07/10, cartão 123jpnbcb5p). O agente também cria. A etiqueta dele nasce pessoal, e quem o
             garante é o servidor (LabelsController#clamped_visibility). Sem este
             atalho o agente não tinha onde criar: Definições › Etiquetas é só
             do administrador.

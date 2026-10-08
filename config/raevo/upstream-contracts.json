@@ -169,6 +169,19 @@
         "app/javascript/dashboard/composables/spec/useUnreadTabTitle.spec.js",
         "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
       ]
+    },
+    {
+      "id": "conversation-sidebar-native",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/conversation/ContactPanel.vue",
+        "app/javascript/dashboard/routes/dashboard/conversation/labels/LabelBox.vue",
+        "app/javascript/dashboard/routes/dashboard/conversation/Macros/List.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/conversation/specs/ContactPanel.spec.js",
+        "app/javascript/dashboard/routes/dashboard/conversation/labels/specs/LabelBox.spec.js",
+        "app/javascript/dashboard/routes/dashboard/conversation/Macros/specs/List.spec.js"
+      ]
     }
   ]
 }

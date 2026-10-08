@@ -210,6 +210,11 @@ onMounted(() => {
               />
             </AccordionItem>
           </div>
+          <!--
+            RAEVO (07/10, decisão do Pedro): a oportunidade só se cria aqui; a que
+            já existe é uma linha que leva ao funil. Contrato
+            «conversation-sidebar-native» em config/raevo/upstream-contracts.json.
+          -->
           <div v-else-if="element.name === 'kanban_cards'">
             <AccordionItem
               :title="$t('CONVERSATION_SIDEBAR.ACCORDION.KANBAN')"
