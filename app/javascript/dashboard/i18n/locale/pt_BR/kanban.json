@@ -853,7 +853,9 @@
         "STANDARD_FIELD_NO_OPTIONS": "Sem opções a definir",
         "LOST_REASON_WHERE": "Aparece ao marcar a oportunidade como perdida.",
         "NATIVE_TABS_NOTE": "Contato, Agenda, Financeiro e Formulários também aparecem na oportunidade, mas mostram dados próprios e não têm campos a definir aqui.",
-        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade"
+        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade",
+        "PANEL_ORDER_TITLE": "Ordem no painel",
+        "PANEL_ORDER_HELP": "A ordem das seções na ficha da oportunidade, igual para toda a equipe. Na ficha não se reordena mais."
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
@@ -1546,6 +1548,8 @@
       },
       "OWNER_NONE": "Sem responsável",
       "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança.",
+      "SHOW_MORE_FIELDS": "Mostrar mais {count} campos",
+      "SHOW_FEWER_FIELDS": "Mostrar menos campos",
       "BOOLEAN_YES": "Sim",
       "BOOLEAN_NO": "Não",
       "AMOUNT_HEADLINE_ESTIMATE": "estimativa",

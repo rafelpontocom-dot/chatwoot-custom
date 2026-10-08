@@ -19,6 +19,11 @@ import RaevoField from './RaevoField.vue';
  * pinta fundo nem contorno, e o foco se anuncia por um anel. Nada se move. A
  * caixa do formulário dizia "isto é editável", que o hover da linha e o próprio
  * `button` já diziam — e cobrava por isso um salto de geometria a cada clique.
+ *
+ * `stacked` põe o rótulo EM CIMA, como os atributos do painel de contacto do
+ * Chatwoot: é o desenho da ficha da oportunidade desde a noite de 07/10, por
+ * decisão do Pedro («como o Chatwoot»). Custa altura — cerca de 58px por campo
+ * contra 36px — e por isso a ficha esconde os vazios atrás de «Mostrar mais».
  */
 const props = defineProps({
   label: { type: String, required: true },
@@ -34,6 +39,8 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   /** identifica esta linha; o control mantém o seu próprio data-testid */
   rowTestid: { type: String, default: 'raevo-field-row-read' },
+  /** rótulo em cima e valor em baixo, como no painel do Chatwoot */
+  stacked: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['open', 'close']);
@@ -118,6 +125,7 @@ defineExpose({ abrir, fechar });
         :hint="hint"
         :error="error"
         inline
+        :stacked="stacked"
       >
         <template #default="slotProps">
           <slot name="control" v-bind="slotProps" />
@@ -131,7 +139,12 @@ defineExpose({ abrir, fechar });
       type="button"
       :data-testid="rowTestid"
       :disabled="disabled"
-      class="grid min-h-8 w-full grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-3 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-n-alpha-1 focus-visible:ring-2 focus-visible:ring-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+      class="min-h-8 w-full rounded-lg px-2 py-1.5 text-start outline-none hover:bg-n-alpha-1 focus-visible:ring-2 focus-visible:ring-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+      :class="
+        stacked
+          ? 'flex flex-col items-start gap-0.5'
+          : 'grid grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-3'
+      "
       :aria-label="t('RAEVO.FIELD_ROW.EDIT', { field: label })"
       @click="abrir"
     >
@@ -140,12 +153,21 @@ defineExpose({ abrir, fechar });
         rótulo a 12px: o valor pesava mais do que a pergunta a que responde, e a
         linha lia-se ao contrário. A hierarquia fica na cor, não no tamanho.
       -->
-      <span class="text-sm leading-5 text-n-slate-11">
+      <span
+        class="text-sm leading-5"
+        :class="stacked ? 'font-medium text-n-slate-12' : 'text-n-slate-11'"
+      >
         {{ label }}
       </span>
       <span
         class="min-w-0 break-words text-sm leading-5"
-        :class="temValor ? 'text-n-slate-12' : 'text-n-slate-9'"
+        :class="
+          temValor
+            ? stacked
+              ? 'text-n-slate-11'
+              : 'text-n-slate-12'
+            : 'text-n-slate-9'
+        "
       >
         {{ temValor ? value : t('RAEVO.FIELD_ROW.EMPTY') }}
       </span>

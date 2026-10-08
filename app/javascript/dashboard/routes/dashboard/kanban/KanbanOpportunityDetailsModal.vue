@@ -4,14 +4,7 @@ import {
   isWhatsappAddressingAttribute,
   withoutWhatsappAddressing,
 } from 'dashboard/helper/contactAttributes';
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
@@ -25,9 +18,8 @@ import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
 import RaevoTimeline from 'dashboard/components-next/raevo/RaevoTimeline.vue';
 import { getRandomColor } from 'dashboard/helper/labelColor';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
-import { useUISettings } from 'dashboard/composables/useUISettings';
 import {
-  moveOpportunitySection,
+  opportunityPanelSections,
   resolveOpportunitySectionOrder,
 } from 'dashboard/helper/kanbanOpportunitySections';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -81,6 +73,11 @@ const props = defineProps({
     default: () => [],
   },
   customFieldSections: {
+    type: Array,
+    default: () => [],
+  },
+  /** A ordem das secções da ficha, das Configurações do funil. */
+  opportunitySectionOrder: {
     type: Array,
     default: () => [],
   },
@@ -139,7 +136,6 @@ const emit = defineEmits([
 
 const { t, locale } = useI18n();
 const store = useStore();
-const { uiSettings, updateUISettings } = useUISettings();
 const accountLabels = useMapGetter('labels/getLabels');
 const currentAccount = useMapGetter('getCurrentAccount');
 const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
@@ -236,15 +232,13 @@ onClickOutside(labelsPopoverRef, closeLabelsPopover, {
 });
 const isCreatingLabel = ref(false);
 const pendingPipelineTransfer = ref(null);
-const activeTabKey = ref('details');
 
-// Secções da coluna da direita: abrem e fecham. O Contato nasce aberto porque é
-// o que mais se consulta enquanto se fala com o paciente.
+// Secções da ficha: abrem e fecham. Nascem abertas a próxima ação e o Geral —
+// o que se trabalha; o resto consulta-se quando é preciso (a maquete aprovada).
 //
-// O que fica ABERTO não é guardado — é estado da sessão de trabalho. O que é
-// guardado é a ORDEM, porque o pedido é «conforme sua preferência»: a ordem
-// pertence à pessoa, o que está aberto pertence ao momento.
-const openSections = ref(['contact-details']);
+// O que fica ABERTO não é guardado — é estado do momento. A ORDEM é do funil,
+// e muda-se nas Configurações, não aqui.
+const openSections = ref(['next-action', 'details']);
 
 const secoesAbertas = computed(() => openSections.value);
 
@@ -269,7 +263,6 @@ const expandedGroupKeys = ref({
   organization: false,
   labels: false,
 });
-const tabList = ref(null);
 
 const modalTitle = computed(() =>
   props.boardName
@@ -585,29 +578,6 @@ const amountDisplay = computed(() => {
   }).format(n);
 });
 
-// O valor é a manchete da oportunidade, não um campo entre dezoito.
-//
-// No sistema aprovado ele abre a ficha em 30px, com uma linha de contexto ao
-// lado — «estimativa», ou quanto já entrou. Estava a 14px numa linha de campo
-// de 140px de rótulo, indistinguível do telemóvel e do convénio, e é o número
-// pelo qual se decide se vale a pena insistir nesta oportunidade.
-//
-// A linha editável fica onde está: promover a manchete não tira a edição.
-const amountContext = computed(() => {
-  if (!amountDisplay.value) {
-    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_EMPTY');
-  }
-  const { receivedCents, currency } = financeSummary.value;
-  if (!receivedCents) {
-    return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_ESTIMATE');
-  }
-  return t('KANBAN.OPPORTUNITY_DETAILS.AMOUNT_HEADLINE_RECEIVED', {
-    value: new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currency || accountCurrency.value,
-    }).format(receivedCents / 100),
-  });
-});
 const selectableLostReasonOptions = computed(() => {
   const options = [...props.lostReasonOptions];
 
@@ -715,33 +685,16 @@ const customFieldTabs = computed(() => {
   return [...sections.values()];
 });
 /**
- * A tira passa a ter só o que se PREENCHE: «Geral» e as secções de campos que a
- * clínica criar. Agenda, Financeiro, Formulários e Histórico mudaram para a
- * coluna da direita, onde se consultam sem trocar de ecrã — o desenho aprovado
- * em 07/10 (ver docs/raevo-aprovacao.md), o mesmo que a conversa do Chatwoot já
- * usa na barra de contacto.
- */
-const opportunityTabs = computed(() => {
-  const fieldTabs = customFieldTabs.value.filter(tab => tab.key !== 'details');
-
-  return [
-    {
-      key: 'details',
-      label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL'),
-    },
-    ...fieldTabs,
-  ];
-});
-
-/**
- * A ORDEM da coluna da direita, guardada por utilizador em `ui_settings`.
+ * As secções da ficha, pela ordem do funil.
  *
- * Cada pessoa trabalha de maneira diferente: quem marca consultas quer a Agenda
- * no topo, quem cobra quer o Financeiro. A regra de reconciliação está em
- * `helper/kanbanOpportunitySections.js`, com testes — uma preferência gravada
- * tem de aguentar secções que já não existem.
+ * A ordem vem das Configurações do funil (`opportunity_section_order`) e é a
+ * mesma para toda a equipa — decisão do Pedro na noite de 07/10: «reordenar
+ * somente nas configurações». A regra de reconciliação está em
+ * `helper/kanbanOpportunitySections.js`, com testes: uma ordem gravada tem de
+ * aguentar secções que se criaram ou apagaram depois.
  */
 const SECTION_LABEL_KEYS = {
+  'next-action': 'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.NEXT_ACTION',
   'contact-details': 'KANBAN.OPPORTUNITY_DETAILS.CONTACT',
   calendar: 'KANBAN.OPPORTUNITY_DETAILS.TABS.CALENDAR',
   finance: 'FINANCE.TITLE',
@@ -749,238 +702,42 @@ const SECTION_LABEL_KEYS = {
   timeline: 'KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE',
 };
 
-const sectionLabel = key => t(SECTION_LABEL_KEYS[key]);
+const fieldSectionKeys = computed(() =>
+  customFieldTabs.value.map(section => section.key)
+);
+const isFieldSection = key => fieldSectionKeys.value.includes(key);
+
+const sectionLabel = key =>
+  isFieldSection(key)
+    ? customFieldTabs.value.find(section => section.key === key)?.label
+    : t(SECTION_LABEL_KEYS[key]);
 
 const sectionOrder = computed(() =>
   resolveOpportunitySectionOrder(
-    uiSettings.value?.kanban_opportunity_sections_order
+    props.opportunitySectionOrder,
+    opportunityPanelSections(fieldSectionKeys.value)
   )
 );
 
-// Uma secção desligada não é escondida com CSS: sai da lista. Assim a ordem de
-// leitura, a ordem de tabulação e os limites dos botões de mover são a mesma
-// coisa — e mover para cima nunca troca com algo que ninguém vê.
+const hasFieldsInSection = key =>
+  normalizedCustomFieldDefinitions.value.some(
+    definition => customFieldSectionKey(definition) === key
+  );
+
+// Uma secção desligada não é escondida com CSS: sai da lista. Uma secção de
+// campos sem nenhum campo também sai — o Geral fica sempre, porque tem os
+// campos comerciais de raiz.
 const visibleSections = computed(() =>
   sectionOrder.value.filter(key => {
     if (key === 'calendar') return Boolean(props.calendarEnabled);
     if (key === 'finance') return financeEnabled.value;
     if (key === 'forms') return canCreateFormInvitation.value;
+    if (isFieldSection(key) && key !== 'details')
+      return hasFieldsInSection(key);
 
     return true;
   })
 );
-
-const sideColumn = ref(null);
-
-const moveSection = async (key, offset) => {
-  updateUISettings({
-    kanban_opportunity_sections_order: moveOpportunitySection(
-      sectionOrder.value,
-      key,
-      offset,
-      visibleSections.value
-    ),
-  });
-
-  // Mover a secção muda o nó de lugar e o browser tira-lhe o foco: quem usa o
-  // teclado — a razão de isto serem botões e não arrastar — ia parar ao <body>
-  // a cada clique. O foco volta ao mesmo botão, ou ao do sentido contrário
-  // quando a secção chegou à ponta e o botão ficou desativado.
-  await nextTick();
-  const sentidos = offset < 0 ? ['up', 'down'] : ['down', 'up'];
-  sentidos
-    .map(sentido =>
-      sideColumn.value?.querySelector(
-        `[data-testid="kanban-opportunity-section-${sentido}-${key}"]`
-      )
-    )
-    .find(botao => botao && !botao.disabled)
-    ?.focus();
-};
-
-/**
- * A tira de abas: UMA linha, e o que não cabe desce para um menu contado.
- *
- * Duas linhas de navegação acima do conteúdo é um anti-padrão com nome — Carbon
- * («as abas não devem quebrar para várias linhas»), Material («linha única»),
- * CMS Design System («se não cabem numa linha, considere outro padrão») e ICDS
- * («os rótulos mostram-se sempre numa linha»). O transbordo contado é a correção
- * que o PatternFly e o Horizon mandam fazer.
- *
- * O defeito que isto corrige não é haver abas escondidas: é a tira rolar sem
- * dizer que rola. Medido na gaveta do Pipeline antes desta mudança: 571px de
- * abas em 197px úteis — 374px invisíveis, sem seta nem sombra nem contagem, e
- * «Financeiro» cortado a meio da palavra.
- *
- * A ordem é FIXA. Promover a aba usada para a tira dava uma tira que muda de
- * lugar debaixo de quem está a trabalhar.
- */
-const tabRuler = ref(null);
-const tabStripWidth = ref(0);
-const tabNaturalWidths = ref(new Map());
-// Medida do botão «+N mais» com a contagem mais larga que o produto produz.
-const TAB_OVERFLOW_RESERVE = 86;
-
-const measureTabs = () => {
-  const ruler = tabRuler.value;
-  const strip = tabList.value;
-  if (!ruler || !strip) return;
-
-  tabNaturalWidths.value = new Map(
-    Array.from(ruler.querySelectorAll('[data-tab-ruler]'), node => [
-      node.dataset.tabRuler,
-      node.getBoundingClientRect().width,
-    ])
-  );
-  tabStripWidth.value = strip.getBoundingClientRect().width;
-};
-
-const visibleTabCount = computed(() => {
-  const widths = tabNaturalWidths.value;
-  const available = tabStripWidth.value;
-  const tabs = opportunityTabs.value;
-  // Antes da primeira medição mostram-se todas: o painel abre com a tira certa
-  // e encolhe no frame seguinte, em vez de abrir com uma aba só.
-  if (!available || !widths.size) return tabs.length;
-
-  const cumulative = [];
-  tabs.reduce((total, tab) => {
-    const next = total + (widths.get(tab.key) || 0);
-    cumulative.push(next);
-    return next;
-  }, 0);
-
-  // Enquanto sobrarem abas, é preciso guardar espaço para o «+N mais».
-  const firstThatDoesNotFit = cumulative.findIndex(
-    (total, index) =>
-      total + (index + 1 < tabs.length ? TAB_OVERFLOW_RESERVE : 0) > available
-  );
-  if (firstThatDoesNotFit < 0) return tabs.length;
-
-  // Uma aba visível é o mínimo: uma tira só com o menu não diz onde se está.
-  return Math.max(firstThatDoesNotFit, 1);
-});
-
-const visibleTabs = computed(() =>
-  opportunityTabs.value.slice(0, visibleTabCount.value)
-);
-const overflowTabs = computed(() =>
-  opportunityTabs.value.slice(visibleTabCount.value)
-);
-const activeTabIsOverflowed = computed(() =>
-  overflowTabs.value.some(tab => tab.key === activeTabKey.value)
-);
-/**
- * O rótulo é SEMPRE «+N mais», e isso é uma correção, não uma simplificação.
- *
- * A primeira versão punha ali o nome da secção activa. Medido na jornada: o
- * botão é `shrink-0`, logo um rótulo mais largo encolhe a tira, o
- * `ResizeObserver` dispara, e mais uma aba desce para o menu — escolher uma
- * secção escondida fazia desaparecer uma visível. É a mesma tira a mudar
- * debaixo de quem trabalha que a ordem fixa existe para evitar, por outra porta.
- *
- * Quem está onde continua a ler-se: o botão fica com a marca do separador
- * activo, o `title` diz o nome, e no menu a secção activa vem em `n-brand` com
- * `aria-current`.
- */
-const overflowButtonLabel = computed(() =>
-  t('KANBAN.OPPORTUNITY_DETAILS.TABS.MORE', {
-    count: overflowTabs.value.length,
-  })
-);
-const overflowButtonTitle = computed(() => {
-  const active = overflowTabs.value.find(tab => tab.key === activeTabKey.value);
-  return active ? active.label : t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL');
-});
-
-const showTabOverflow = ref(false);
-const tabOverflowButton = ref(null);
-const tabOverflowMenu = ref(null);
-
-const closeTabOverflow = ({ restoreFocus = false } = {}) => {
-  if (!showTabOverflow.value) return;
-
-  showTabOverflow.value = false;
-  if (restoreFocus) tabOverflowButton.value?.focus();
-};
-
-const pickOverflowTab = key => {
-  activeTabKey.value = key;
-  closeTabOverflow({ restoreFocus: true });
-};
-
-const handleTabKeydown = async event => {
-  const currentIndex = opportunityTabs.value.findIndex(
-    tab => tab.key === activeTabKey.value
-  );
-  if (currentIndex < 0) return;
-
-  let nextIndex = currentIndex;
-  if (event.key === 'ArrowRight') {
-    nextIndex = (currentIndex + 1) % opportunityTabs.value.length;
-  } else if (event.key === 'ArrowLeft') {
-    nextIndex =
-      (currentIndex - 1 + opportunityTabs.value.length) %
-      opportunityTabs.value.length;
-  } else if (event.key === 'Home') {
-    nextIndex = 0;
-  } else if (event.key === 'End') {
-    nextIndex = opportunityTabs.value.length - 1;
-  } else {
-    return;
-  }
-
-  event.preventDefault();
-  activeTabKey.value = opportunityTabs.value[nextIndex].key;
-  await nextTick();
-  // As setas percorrem as secções todas, inclusive as que desceram para o
-  // «+N mais». Quando a próxima está lá, o foco vai para o botão do menu — que
-  // já mostra o nome dela —, em vez de se perder num elemento que não existe.
-  const focusTarget =
-    tabList.value?.querySelector(
-      `#kanban-opportunity-tab-${activeTabKey.value}`
-    ) || tabOverflowButton.value;
-  focusTarget?.focus();
-};
-
-const handleOverflowKeydown = event => {
-  if (event.key === 'Escape') {
-    event.stopPropagation();
-    closeTabOverflow({ restoreFocus: true });
-    return;
-  }
-
-  // Sem isto as setas paravam na primeira secção escondida: `handleTabKeydown`
-  // só estava ligado aos botões visíveis, e o foco ficava preso no «+N mais»
-  // sem forma de chegar às restantes pelo teclado.
-  handleTabKeydown(event);
-};
-
-let tabResizeObserver = null;
-
-/**
- * Medir tem de esperar pela ficha, não pela montagem.
- *
- * O formulário — e com ele a tira e a régua — só existe depois de `card`
- * chegar. Em `onMounted` o `tabList` ainda é `null`, portanto o
- * `ResizeObserver` nunca se ligava e a medição nunca acontecia: `visibleTabCount`
- * caía no ramo «ainda não medi, mostra todas» e a tira ficava com as oito abas
- * dentro de um `overflow-hidden` — 651px de conteúdo em 353px, cortados, e
- * agora sem sequer rolar para lá chegar.
- *
- * Apanhado na segunda passagem da porta visual. Na primeira passou por sorte:
- * o módulo financeiro resolveu depois da ficha, `opportunityTabs` mudou, e o
- * `watch` mediu.
- */
-const syncTabStrip = async () => {
-  await nextTick();
-  measureTabs();
-  if (tabResizeObserver || typeof ResizeObserver === 'undefined') return;
-  if (!tabList.value) return;
-
-  tabResizeObserver = new ResizeObserver(measureTabs);
-  tabResizeObserver.observe(tabList.value);
-};
 
 const normalizeCard = payload =>
   Object.fromEntries(
@@ -1049,18 +806,14 @@ const visibleCustomFieldDefinitions = computed(() =>
     isCustomFieldVisible(definition)
   )
 );
-const activeTabCustomFieldDefinitions = computed(() =>
+const sectionDefinitions = key =>
   visibleCustomFieldDefinitions.value.filter(
-    definition => customFieldSectionKey(definition) === activeTabKey.value
-  )
-);
-const activeTabGroups = computed(() => {
-  const activeSection = customFieldTabs.value.find(
-    section => section.key === activeTabKey.value
+    definition => customFieldSectionKey(definition) === key
   );
-  const definitions = activeTabCustomFieldDefinitions.value;
+const buildSectionGroups = section => {
+  const definitions = sectionDefinitions(section.key);
   const seenGroupKeys = new Set();
-  const groups = (activeSection?.groups || []).flatMap(group => {
+  const groups = (section.groups || []).flatMap(group => {
     const key = canonicalFieldLayoutKey(group.key);
     if (!key || seenGroupKeys.has(key)) return [];
 
@@ -1114,7 +867,61 @@ const activeTabGroups = computed(() => {
     });
 
   return groups.filter(group => group.definitions.length);
-});
+};
+const groupsBySection = computed(
+  () =>
+    new Map(
+      customFieldTabs.value.map(section => [
+        section.key,
+        buildSectionGroups(section),
+      ])
+    )
+);
+const sectionGroups = key => groupsBySection.value.get(key) || [];
+
+/**
+ * «Mostrar mais», como no painel de contacto do Chatwoot.
+ *
+ * O Marketing tem perto de trinta campos e quase todos vazios: listados, a
+ * secção ocupava o ecrã para dizer «—» trinta vezes. Fica à vista o que tem
+ * valor, o que esta etapa exige e o que a clínica marcou como importante; o
+ * resto fica atrás de um botão que diz quantos são. Decide-se pelo valor
+ * GRAVADO, não pelo rascunho: apagar um campo enquanto se edita não o faz
+ * desaparecer debaixo do cursor.
+ */
+const showAllFieldsIn = ref([]);
+const hasSavedValue = definition => {
+  const valor = (card.value?.customFieldValues || {})[definition.key];
+  if (Array.isArray(valor)) return valor.length > 0;
+
+  return valor !== undefined && valor !== null && valor !== '';
+};
+const isRequiredInStage = definition =>
+  (definition.requiredStageIds || [])
+    .map(Number)
+    .includes(Number(stageId.value));
+// Um campo condicional só está na lista porque uma resposta o revelou: é a
+// pergunta seguinte, e escondê-lo atrás de «Mostrar mais» desfazia a condição.
+const isRevealedByCondition = definition =>
+  Boolean(definition.condition?.fieldKey || definition.condition?.field_key);
+const isShownByDefault = definition =>
+  hasSavedValue(definition) ||
+  Boolean(definition.important) ||
+  isRequiredInStage(definition) ||
+  isRevealedByCondition(definition);
+const isShowingAllFields = key => showAllFieldsIn.value.includes(key);
+const toggleAllFields = key => {
+  showAllFieldsIn.value = isShowingAllFields(key)
+    ? showAllFieldsIn.value.filter(item => item !== key)
+    : [...showAllFieldsIn.value, key];
+};
+const shownDefinitions = (key, group) =>
+  isShowingAllFields(key)
+    ? group.definitions
+    : group.definitions.filter(isShownByDefault);
+const hiddenFieldCount = key =>
+  sectionDefinitions(key).filter(definition => !isShownByDefault(definition))
+    .length;
 const customFieldGroupClass = color =>
   ({
     slate: 'border-l-n-slate-7',
@@ -1136,9 +943,6 @@ const toggleGroup = groupKey => {
     [groupKey]: !isGroupExpanded(groupKey),
   };
 };
-const hasCustomFields = computed(
-  () => activeTabCustomFieldDefinitions.value.length > 0
-);
 const getCustomFieldValue = definition =>
   customFieldValues.value[definition.key] ?? '';
 
@@ -1152,10 +956,12 @@ const getCustomFieldValue = definition =>
 const customFieldDisplayValue = definition => {
   const valor = getCustomFieldValue(definition);
 
+  // Booleano por responder era «Não»: a ausência de resposta lia-se como uma
+  // resposta. Só `true` e `false` dizem alguma coisa.
   if (definition.fieldType === 'boolean') {
-    return valor
-      ? t('KANBAN.OPPORTUNITY_DETAILS.BOOLEAN_YES')
-      : t('KANBAN.OPPORTUNITY_DETAILS.BOOLEAN_NO');
+    if (valor === true) return t('KANBAN.OPPORTUNITY_DETAILS.BOOLEAN_YES');
+    if (valor === false) return t('KANBAN.OPPORTUNITY_DETAILS.BOOLEAN_NO');
+    return '';
   }
   if (Array.isArray(valor)) return valor.join(', ');
 
@@ -1163,16 +969,6 @@ const customFieldDisplayValue = definition => {
     ? ''
     : String(valor);
 };
-
-/**
- * A largura escolhida na configuração.
- *
- * `layout.width` era guardada, aparecia no editor e nunca chegava aqui: quem
- * escolhia «metade» estava a configurar o nada. Meia largura ocupa uma coluna;
- * o resto atravessa as duas, como já acontecia com tudo.
- */
-const customFieldSpanClass = definition =>
-  definition.layout?.width === 'half' ? '' : 'sm:col-span-2';
 
 const customFieldRowVariant = definition => {
   if (['select', 'multiselect'].includes(definition.fieldType)) return 'select';
@@ -1947,14 +1743,6 @@ const editSubject = async () => {
 
 defineExpose({ requestClose });
 
-const handleDocumentPointerDown = event => {
-  if (!showTabOverflow.value) return;
-  if (tabOverflowMenu.value?.contains(event.target)) return;
-  if (tabOverflowButton.value?.contains(event.target)) return;
-
-  closeTabOverflow();
-};
-
 onMounted(() => {
   loadCard();
   loadLabels();
@@ -1963,21 +1751,7 @@ onMounted(() => {
   // sem as definicoes carregadas o bloco de contato volta a mostrar
   // apenas os atributos que ja tinham valor
   store.dispatch('attributes/get');
-
-  // Quantas abas cabem não é uma constante: muda com o idioma, com os nomes que
-  // a clínica deu às secções e com a largura da gaveta, que o utilizador mexe.
-  syncTabStrip();
-  document.addEventListener('pointerdown', handleDocumentPointerDown);
 });
-
-onBeforeUnmount(() => {
-  tabResizeObserver?.disconnect();
-  document.removeEventListener('pointerdown', handleDocumentPointerDown);
-});
-
-// `card` é o que faz a ficha — e a tira — existir; `opportunityTabs` muda quando
-// se liga o Financeiro ou se cria uma secção. Os dois mandam medir outra vez.
-watch([card, opportunityTabs], syncTabStrip);
 
 // Financeiro e Formulários pedem dados ao servidor. Antes disparavam ao clicar
 // na aba; agora disparam quando a secção da coluna da direita ABRE — e só na
@@ -2281,888 +2055,499 @@ watch(invitationPendingRevocation, async invitation => {
         @submit.prevent="saveCard"
       >
         <!--
-          A tira de abas rola na horizontal em vez de quebrar linha. Com
-          `flex-wrap` ela crescia em altura a cada aba nova — e como é `sticky`,
-          comia o painel que está a tentar mostrar. O número de abas não é fixo:
-          calendário, financeiro e formulários entram por módulo, e cada secção
-          de campos acrescenta uma.
-
-          Rolar sem rato está resolvido: `handleTabKeydown` navega com as setas e
-          o foco traz a aba para a vista.
-        -->
-        <!--
-          UMA linha de abas, e o que não cabe desce para «+N mais». Ver o bloco
-          de comentário em `visibleTabCount`: duas linhas de navegação é um
-          anti-padrão nomeado por quatro sistemas de design, e a tira que rolava
-          escondia 374px dos seus 571px sem dizer nada a ninguém.
-        -->
-        <nav
-          class="sticky top-0 z-10 flex min-w-0 items-stretch border-b border-n-weak bg-n-solid-1"
-          :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.TABS.LABEL')"
-        >
-          <!--
-            Régua: a mesma tira fora do ecrã, para medir a largura natural de
-            cada aba. Sem ela não há como saber quantas cabem — e o número
-            depende do idioma e dos nomes que a clínica der às secções.
-          -->
-          <div
-            ref="tabRuler"
-            aria-hidden="true"
-            class="pointer-events-none invisible absolute left-0 top-0 flex gap-x-1 whitespace-nowrap"
-          >
-            <span
-              v-for="tab in opportunityTabs"
-              :key="`ruler-${tab.key}`"
-              :data-tab-ruler="tab.key"
-              class="px-3 py-2.5 text-xs font-semibold"
-            >
-              {{ tab.label }}
-            </span>
-          </div>
-
-          <div
-            ref="tabList"
-            class="flex min-w-0 flex-1 gap-x-1 overflow-hidden"
-            role="tablist"
-          >
-            <button
-              v-for="tab in visibleTabs"
-              :id="`kanban-opportunity-tab-${tab.key}`"
-              :key="tab.key"
-              type="button"
-              :data-testid="`kanban-opportunity-tab-${tab.key}`"
-              class="border-solid whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
-              role="tab"
-              :aria-selected="activeTabKey === tab.key"
-              aria-controls="kanban-opportunity-tab-panel"
-              :class="
-                activeTabKey === tab.key
-                  ? 'border-n-brand text-n-brand'
-                  : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
-              "
-              @click="activeTabKey = tab.key"
-              @keydown="handleTabKeydown"
-            >
-              {{ tab.label }}
-            </button>
-          </div>
-
-          <div v-if="overflowTabs.length" class="relative shrink-0">
-            <button
-              ref="tabOverflowButton"
-              type="button"
-              data-testid="kanban-opportunity-tab-overflow"
-              class="border-solid h-full whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-n-brand focus:ring-inset"
-              :class="
-                activeTabIsOverflowed
-                  ? 'border-n-brand text-n-brand'
-                  : 'border-transparent text-n-slate-11 hover:text-n-slate-12'
-              "
-              aria-haspopup="menu"
-              :aria-expanded="showTabOverflow"
-              :title="overflowButtonTitle"
-              @click="showTabOverflow = !showTabOverflow"
-              @keydown="handleOverflowKeydown"
-            >
-              {{ overflowButtonLabel }}
-            </button>
-            <div
-              v-if="showTabOverflow"
-              ref="tabOverflowMenu"
-              data-testid="kanban-opportunity-tab-overflow-menu"
-              role="menu"
-              class="absolute end-0 top-full z-20 mt-1 grid min-w-[11rem] gap-0.5 rounded-lg border border-solid border-n-weak bg-n-solid-1 p-1 shadow-lg"
-              @keydown="handleOverflowKeydown"
-            >
-              <button
-                v-for="tab in overflowTabs"
-                :key="`overflow-${tab.key}`"
-                type="button"
-                role="menuitem"
-                :data-testid="`kanban-opportunity-tab-overflow-${tab.key}`"
-                class="rounded-md px-2 py-1.5 text-left text-xs font-medium outline-none hover:bg-n-slate-3 focus-visible:ring-2 focus-visible:ring-n-brand/40"
-                :class="
-                  activeTabKey === tab.key
-                    ? 'text-n-brand'
-                    : 'text-n-slate-11 hover:text-n-slate-12'
-                "
-                :aria-current="activeTabKey === tab.key ? 'true' : null"
-                @click="pickOverflowTab(tab.key)"
-              >
-                {{ tab.label }}
-              </button>
-              <template v-if="canManageFields">
-                <span class="my-0.5 h-px bg-n-weak" aria-hidden="true" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="kanban-opportunity-add-tab"
-                  class="rounded-md px-2 py-1.5 text-left text-xs font-medium text-n-slate-10 outline-none hover:bg-n-slate-3 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand/40"
-                  @click="
-                    closeTabOverflow();
-                    emit('manageFields', { action: 'newTab' });
-                  "
-                >
-                  {{ t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB') }}
-                </button>
-              </template>
-            </div>
-          </div>
-          <button
-            v-else-if="canManageFields"
-            type="button"
-            data-testid="kanban-opportunity-add-tab"
-            class="flex p-0 size-9 shrink-0 items-center justify-center border-s border-solid border-n-weak border-b-2 border-b-transparent text-n-slate-11 hover:text-n-brand focus:outline-none focus:ring-2 focus:ring-n-brand/40 focus:ring-inset"
-            :aria-label="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
-            :title="t('KANBAN.OPPORTUNITY_DETAILS.ADD_TAB')"
-            @click="emit('manageFields', { action: 'newTab' })"
-          >
-            <i class="i-lucide-plus size-4" />
-          </button>
-        </nav>
-
-        <!--
-          Lado a lado só fora da gaveta. O `lg:` mede a JANELA, e a ficha vive
-          sempre num contentor estreito: 576px no Pipeline, 317px na conversa.
-          Com duas colunas ali, a coluna levava 320px e a ficha ficava com 200px
-          no Pipeline e 0px na conversa, com texto por cima de texto (medido na
-          noite de 07/10, 1024–1920px). Na gaveta a coluna desce para baixo da
-          ficha, como no telemóvel. Pô-la ao lado pede uma gaveta mais larga —
-          decisão do Pedro, registada em docs/raevo-aprovacao.md.
+          A ficha é uma lista, como o painel de contacto do Chatwoot: cada secção
+          abre e fecha, todas na mesma rolagem, rótulo em cima e valor em baixo.
+          Sem abas e sem segunda coluna — decisão do Pedro na noite de 07/10,
+          sobre a maquete https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS.
+          A ordem é a do funil (Configurações › Campos › Ordem no painel): aqui
+          não se reordena.
         -->
         <div
-          id="kanban-opportunity-tab-panel"
           data-testid="kanban-opportunity-layout"
-          role="tabpanel"
-          :aria-labelledby="`kanban-opportunity-tab-${activeTabKey}`"
-          class="grid min-w-0 gap-4"
-          :class="{ 'lg:grid-cols-[minmax(0,1fr)_20rem]': !drawerMode }"
+          class="grid min-w-0 content-start gap-2"
         >
-          <section class="grid min-w-0 content-start gap-4">
-            <template v-if="activeTabKey === 'details'">
-              <div
-                data-testid="kanban-opportunity-amount-headline"
-                class="flex flex-wrap items-baseline gap-control-gap"
-              >
-                <span
-                  class="whitespace-nowrap text-3xl font-semibold tracking-tight tabular-nums text-n-slate-12"
+          <div
+            v-for="secao in visibleSections"
+            :key="secao"
+            :data-testid="`kanban-opportunity-panel-section-${secao}`"
+            class="overflow-hidden rounded-lg border border-solid border-n-weak bg-n-surface-1"
+          >
+            <button
+              type="button"
+              :data-testid="`kanban-opportunity-section-${secao}`"
+              class="flex min-h-10 w-full items-center justify-between gap-2 px-3 py-2 text-start text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
+              :aria-expanded="isSectionOpen(secao)"
+              @click="toggleSection(secao)"
+            >
+              <span class="min-w-0 break-words">{{ sectionLabel(secao) }}</span>
+              <i
+                aria-hidden="true"
+                class="size-4 shrink-0 text-n-slate-11"
+                :class="
+                  isSectionOpen(secao) ? 'i-lucide-minus' : 'i-lucide-plus'
+                "
+              />
+            </button>
+            <div
+              v-if="isSectionOpen(secao)"
+              class="border-t border-solid border-n-weak px-3 pb-3 pt-2"
+            >
+              <template v-if="secao === 'next-action'">
+                <section
+                  data-testid="kanban-opportunity-next-action-section"
+                  class="grid gap-2"
                 >
-                  {{ amountDisplay || '—' }}
-                </span>
-                <span class="text-xs text-n-slate-10">{{ amountContext }}</span>
-              </div>
-              <section
-                data-testid="kanban-opportunity-next-action-section"
-                class="grid gap-2 border-b border-n-weak pb-3"
-              >
-                <div class="flex items-center justify-between gap-3">
-                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.NEXT_ACTION') }}
-                  </h3>
-                  <NextButton
+                  <div
                     v-if="nextActionAt && !card.nextActionCompletedAt"
-                    type="button"
-                    xs
-                    outline
-                    emerald
-                    data-testid="kanban-opportunity-complete-next-action"
-                    icon="i-lucide-check-check"
-                    :label="
-                      t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')
-                    "
-                    :disabled="isSaving"
-                    @click="completeNextAction"
-                  />
-                </div>
-                <div class="grid">
+                    class="flex items-center justify-end gap-3"
+                  >
+                    <NextButton
+                      v-if="nextActionAt && !card.nextActionCompletedAt"
+                      type="button"
+                      xs
+                      outline
+                      emerald
+                      data-testid="kanban-opportunity-complete-next-action"
+                      icon="i-lucide-check-check"
+                      :label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')
+                      "
+                      :disabled="isSaving"
+                      @click="completeNextAction"
+                    />
+                  </div>
                   <div class="grid">
-                    <RaevoFieldRow
-                      row-testid="kanban-row-next-action-type"
-                      :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE')"
-                      :value="nextActionTypeDisplay"
-                      variant="select"
-                    >
-                      <template #control="{ controlClass, fieldId }">
-                        <select
-                          :id="fieldId"
-                          v-model="nextActionType"
-                          data-testid="kanban-opportunity-next-action-type"
-                          :class="controlClass"
-                        >
-                          <option
-                            v-for="option in nextActionTypeOptions"
-                            :key="option.value || 'none'"
-                            :value="option.value"
+                    <div class="grid">
+                      <RaevoFieldRow
+                        stacked
+                        row-testid="kanban-row-next-action-type"
+                        :label="
+                          t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_TYPE')
+                        "
+                        :value="nextActionTypeDisplay"
+                        variant="select"
+                      >
+                        <template #control="{ controlClass, fieldId }">
+                          <select
+                            :id="fieldId"
+                            v-model="nextActionType"
+                            data-testid="kanban-opportunity-next-action-type"
+                            :class="controlClass"
                           >
-                            {{ option.label }}
-                          </option>
-                        </select>
-                      </template>
-                    </RaevoFieldRow>
+                            <option
+                              v-for="option in nextActionTypeOptions"
+                              :key="option.value || 'none'"
+                              :value="option.value"
+                            >
+                              {{ option.label }}
+                            </option>
+                          </select>
+                        </template>
+                      </RaevoFieldRow>
+                      <RaevoFieldRow
+                        stacked
+                        row-testid="kanban-row-next-action-at"
+                        :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')"
+                        :value="nextActionAtDisplay"
+                      >
+                        <template #control="{ controlClass, fieldId }">
+                          <input
+                            :id="fieldId"
+                            v-model="nextActionAt"
+                            type="datetime-local"
+                            data-testid="kanban-opportunity-next-action-at"
+                            :class="controlClass"
+                          />
+                        </template>
+                      </RaevoFieldRow>
+                    </div>
                     <RaevoFieldRow
-                      row-testid="kanban-row-next-action-at"
-                      :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_AT')"
-                      :value="nextActionAtDisplay"
+                      stacked
+                      row-testid="kanban-row-next-action-note"
+                      :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE')"
+                      :value="nextActionNote"
+                      variant="textarea"
                     >
                       <template #control="{ controlClass, fieldId }">
-                        <input
+                        <textarea
                           :id="fieldId"
-                          v-model="nextActionAt"
-                          type="datetime-local"
-                          data-testid="kanban-opportunity-next-action-at"
+                          v-model="nextActionNote"
+                          rows="2"
+                          data-testid="kanban-opportunity-next-action-note"
                           :class="controlClass"
+                          :placeholder="
+                            t(
+                              'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER'
+                            )
+                          "
                         />
                       </template>
                     </RaevoFieldRow>
                   </div>
-                  <RaevoFieldRow
-                    row-testid="kanban-row-next-action-note"
-                    :label="t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE')"
-                    :value="nextActionNote"
-                    variant="textarea"
-                  >
-                    <template #control="{ controlClass, fieldId }">
-                      <textarea
-                        :id="fieldId"
-                        v-model="nextActionNote"
-                        rows="2"
-                        data-testid="kanban-opportunity-next-action-note"
-                        :class="controlClass"
-                        :placeholder="
-                          t(
-                            'KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_NOTE_PLACEHOLDER'
-                          )
-                        "
-                      />
-                    </template>
-                  </RaevoFieldRow>
-                </div>
-                <div
-                  v-if="card.nextActionHistory?.length"
-                  data-testid="kanban-opportunity-next-action-history"
-                  class="grid gap-2 border-t border-n-weak pt-3"
-                >
-                  <h4 class="mb-0 text-xs font-medium text-n-slate-11">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_HISTORY') }}
-                  </h4>
                   <div
-                    v-for="(historyItem, index) in card.nextActionHistory
-                      .slice()
-                      .reverse()"
-                    :key="`${historyItem.completedAt || historyItem.completed_at}-${index}`"
-                    class="grid gap-0.5 text-xs text-n-slate-11"
+                    v-if="card.nextActionHistory?.length"
+                    data-testid="kanban-opportunity-next-action-history"
+                    class="grid gap-2 border-t border-n-weak pt-3"
                   >
-                    <span class="font-medium text-n-slate-12">
-                      {{ historyItem.type }}
-                    </span>
-                    <span v-if="historyItem.note">{{ historyItem.note }}</span>
+                    <h4 class="mb-0 text-xs font-medium text-n-slate-11">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_HISTORY') }}
+                    </h4>
+                    <div
+                      v-for="(historyItem, index) in card.nextActionHistory
+                        .slice()
+                        .reverse()"
+                      :key="`${historyItem.completedAt || historyItem.completed_at}-${index}`"
+                      class="grid gap-0.5 text-xs text-n-slate-11"
+                    >
+                      <span class="font-medium text-n-slate-12">
+                        {{ historyItem.type }}
+                      </span>
+                      <span v-if="historyItem.note">{{
+                        historyItem.note
+                      }}</span>
+                    </div>
                   </div>
-                </div>
-              </section>
-              <section
-                data-testid="kanban-opportunity-commercial-group"
-                class="grid"
-              >
-                <!--
+                </section>
+              </template>
+              <RaevoAiOpportunityPanel
+                v-else-if="secao === 'ai'"
+                :fields="sectionDefinitions('ai')"
+                :values="customFieldValues"
+              />
+              <template v-else-if="isFieldSection(secao)">
+                <template v-if="secao === 'details'">
+                  <section
+                    v-if="selectedStageIsLost"
+                    class="grid gap-2 rounded-lg border border-n-ruby-4 bg-n-ruby-2 p-3"
+                  >
+                    <label class="grid gap-1.5">
+                      <span class="text-sm font-medium text-n-slate-12">
+                        {{ t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON') }}
+                      </span>
+                      <select
+                        v-model="lostReason"
+                        data-testid="kanban-opportunity-lost-reason"
+                        class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
+                        @change="lostReasonError = ''"
+                      >
+                        <option value="">
+                          {{
+                            t(
+                              'KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_PLACEHOLDER'
+                            )
+                          }}
+                        </option>
+                        <option
+                          v-for="option in selectableLostReasonOptions"
+                          :key="option"
+                          :value="option"
+                        >
+                          {{ option }}
+                        </option>
+                      </select>
+                      <span
+                        v-if="lostReasonError"
+                        class="text-xs text-n-ruby-11"
+                        role="alert"
+                      >
+                        {{ lostReasonError }}
+                      </span>
+                    </label>
+                  </section>
+                  <section
+                    data-testid="kanban-opportunity-commercial-group"
+                    class="grid"
+                  >
+                    <!--
                   Bloco achatado: cada campo era uma <section> com título de
                   pergunta e borda própria, o que gastava a altura do painel e
                   transformava o separador em textura. Agora é rótulo acima do
                   campo, na mesma borda esquerda, com um separador só por grupo.
                 -->
-                <div class="grid py-2 first:pt-0">
-                  <RaevoFieldRow
-                    row-testid="kanban-row-owner"
-                    :label="t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER')"
-                    :value="ownerDisplay"
-                    variant="select"
-                  >
-                    <template #control="{ controlClass, fieldId }">
-                      <select
-                        :id="fieldId"
-                        v-model="ownerId"
-                        data-testid="kanban-opportunity-owner"
-                        :class="controlClass"
+                    <div class="grid py-2 first:pt-0">
+                      <RaevoFieldRow
+                        stacked
+                        row-testid="kanban-row-owner"
+                        :label="t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER')"
+                        :value="ownerDisplay"
+                        variant="select"
                       >
-                        <option value="">
-                          {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER_NONE') }}
-                        </option>
-                        <option
-                          v-for="option in ownerOptions"
-                          :key="option.value"
-                          :value="String(option.value)"
-                        >
-                          {{ option.label }}
-                        </option>
-                      </select>
-                    </template>
-                  </RaevoFieldRow>
+                        <template #control="{ controlClass, fieldId }">
+                          <select
+                            :id="fieldId"
+                            v-model="ownerId"
+                            data-testid="kanban-opportunity-owner"
+                            :class="controlClass"
+                          >
+                            <option value="">
+                              {{ t('KANBAN.OPPORTUNITY_DETAILS.OWNER_NONE') }}
+                            </option>
+                            <option
+                              v-for="option in ownerOptions"
+                              :key="option.value"
+                              :value="String(option.value)"
+                            >
+                              {{ option.label }}
+                            </option>
+                          </select>
+                        </template>
+                      </RaevoFieldRow>
 
-                  <RaevoFieldRow
-                    row-testid="kanban-row-description"
-                    :label="t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT')"
-                    :value="description"
-                    variant="textarea"
-                  >
-                    <template #control="{ controlClass, fieldId }">
-                      <textarea
-                        :id="fieldId"
-                        v-model="description"
-                        rows="3"
-                        data-testid="kanban-opportunity-description"
-                        :class="controlClass"
-                        :placeholder="
-                          t(
-                            'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER'
-                          )
+                      <RaevoFieldRow
+                        stacked
+                        row-testid="kanban-row-description"
+                        :label="
+                          t('KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.AGREEMENT')
                         "
-                      />
-                    </template>
-                  </RaevoFieldRow>
+                        :value="description"
+                        variant="textarea"
+                      >
+                        <template #control="{ controlClass, fieldId }">
+                          <textarea
+                            :id="fieldId"
+                            v-model="description"
+                            rows="3"
+                            data-testid="kanban-opportunity-description"
+                            :class="controlClass"
+                            :placeholder="
+                              t(
+                                'KANBAN.OPPORTUNITY_DETAILS.DESCRIPTION_PLACEHOLDER'
+                              )
+                            "
+                          />
+                        </template>
+                      </RaevoFieldRow>
 
-                  <div class="grid">
-                    <RaevoFieldRow
-                      row-testid="kanban-row-amount"
-                      :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
-                      :value="amountDisplay"
-                      :hint="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT_HINT')"
-                    >
-                      <template #control="{ controlClass, fieldId }">
-                        <input
-                          :id="fieldId"
-                          v-model="amountValue"
-                          data-testid="kanban-opportunity-amount"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          :class="controlClass"
-                        />
-                      </template>
-                    </RaevoFieldRow>
-                    <RaevoFieldRow
-                      row-testid="kanban-row-expected-close-date"
-                      :label="
-                        t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
-                      "
-                      :value="expectedCloseDateDisplay"
-                    >
-                      <template #control="{ controlClass, fieldId }">
-                        <input
-                          :id="fieldId"
-                          v-model="expectedCloseDate"
-                          data-testid="kanban-opportunity-expected-close-date"
-                          type="date"
-                          :class="controlClass"
-                        />
-                      </template>
-                    </RaevoFieldRow>
-                  </div>
-                </div>
-              </section>
-
-              <section
-                v-if="selectedStageIsLost"
-                class="grid gap-2 rounded-lg border border-n-ruby-4 bg-n-ruby-2 p-3"
-              >
-                <label class="grid gap-1.5">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON') }}
-                  </span>
-                  <select
-                    v-model="lostReason"
-                    data-testid="kanban-opportunity-lost-reason"
-                    class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
-                    @change="lostReasonError = ''"
-                  >
-                    <option value="">
-                      {{
-                        t('KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_PLACEHOLDER')
-                      }}
-                    </option>
-                    <option
-                      v-for="option in selectableLostReasonOptions"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ option }}
-                    </option>
-                  </select>
-                  <span
-                    v-if="lostReasonError"
-                    class="text-xs text-n-ruby-11"
-                    role="alert"
-                  >
-                    {{ lostReasonError }}
-                  </span>
-                </label>
-              </section>
-            </template>
-
-            <RaevoAiOpportunityPanel
-              v-if="activeTabKey === 'ai'"
-              :fields="activeTabCustomFieldDefinitions"
-              :values="customFieldValues"
-            />
-
-            <section
-              v-if="activeTabKey !== 'ai' && hasCustomFields"
-              data-testid="kanban-opportunity-custom-fields"
-              class="grid"
-            >
-              <div class="grid">
+                      <div class="grid">
+                        <RaevoFieldRow
+                          stacked
+                          row-testid="kanban-row-amount"
+                          :label="t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT')"
+                          :value="amountDisplay"
+                          :hint="
+                            t('KANBAN.OPPORTUNITY_DETAILS.FIELD_AMOUNT_HINT')
+                          "
+                        >
+                          <template #control="{ controlClass, fieldId }">
+                            <input
+                              :id="fieldId"
+                              v-model="amountValue"
+                              data-testid="kanban-opportunity-amount"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              :class="controlClass"
+                            />
+                          </template>
+                        </RaevoFieldRow>
+                        <RaevoFieldRow
+                          stacked
+                          row-testid="kanban-row-expected-close-date"
+                          :label="
+                            t('KANBAN.OPPORTUNITY_DETAILS.EXPECTED_CLOSE_DATE')
+                          "
+                          :value="expectedCloseDateDisplay"
+                        >
+                          <template #control="{ controlClass, fieldId }">
+                            <input
+                              :id="fieldId"
+                              v-model="expectedCloseDate"
+                              data-testid="kanban-opportunity-expected-close-date"
+                              type="date"
+                              :class="controlClass"
+                            />
+                          </template>
+                        </RaevoFieldRow>
+                      </div>
+                    </div>
+                  </section>
+                </template>
                 <section
-                  v-for="group in activeTabGroups"
-                  :key="group.key"
-                  class="grid gap-2 border-b border-n-weak py-3 first:pt-0 last:border-b-0 last:pb-0"
-                  :class="
-                    group.label
-                      ? ['border-l-2 pl-3', customFieldGroupClass(group.color)]
-                      : ''
-                  "
+                  v-if="sectionGroups(secao).length"
+                  :data-testid="`kanban-opportunity-custom-fields-${secao}`"
+                  class="grid"
                 >
-                  <button
-                    v-if="group.label"
-                    type="button"
-                    class="flex items-center justify-between gap-3 text-left"
-                    :aria-expanded="
-                      isGroupExpanded(groupToggleKey(activeTabKey, group.key))
-                    "
-                    @click="
-                      toggleGroup(groupToggleKey(activeTabKey, group.key))
-                    "
-                  >
-                    <span class="text-sm font-semibold text-n-slate-12">
-                      {{ group.label }}
-                    </span>
-                    <i
-                      class="size-4 text-n-slate-10"
+                  <div class="grid">
+                    <section
+                      v-for="group in sectionGroups(secao)"
+                      v-show="shownDefinitions(secao, group).length"
+                      :key="group.key"
+                      class="grid gap-2 border-b border-n-weak py-3 first:pt-0 last:border-b-0 last:pb-0"
                       :class="
-                        isGroupExpanded(groupToggleKey(activeTabKey, group.key))
-                          ? 'i-lucide-chevron-up'
-                          : 'i-lucide-chevron-down'
+                        group.label
+                          ? [
+                              'border-l-2 pl-3',
+                              customFieldGroupClass(group.color),
+                            ]
+                          : ''
                       "
-                    />
-                  </button>
-                  <div
-                    v-show="
-                      !group.label ||
-                      isGroupExpanded(groupToggleKey(activeTabKey, group.key))
-                    "
-                    class="grid gap-x-4 sm:grid-cols-2"
-                  >
-                    <!--
+                    >
+                      <button
+                        v-if="group.label"
+                        type="button"
+                        class="flex items-center justify-between gap-3 text-left"
+                        :aria-expanded="
+                          isGroupExpanded(groupToggleKey(secao, group.key))
+                        "
+                        @click="toggleGroup(groupToggleKey(secao, group.key))"
+                      >
+                        <span class="text-sm font-semibold text-n-slate-12">
+                          {{ group.label }}
+                        </span>
+                        <i
+                          class="size-4 text-n-slate-10"
+                          :class="
+                            isGroupExpanded(groupToggleKey(secao, group.key))
+                              ? 'i-lucide-chevron-up'
+                              : 'i-lucide-chevron-down'
+                          "
+                        />
+                      </button>
+                      <div
+                        v-show="
+                          !group.label ||
+                          isGroupExpanded(groupToggleKey(secao, group.key))
+                        "
+                        class="grid"
+                      >
+                        <!--
                       Uma linha só, em todo o painel. Os campos personalizados
                       desenhavam a sua própria — rótulo de 9rem, outro
                       espaçamento, sempre em edição — enquanto os nativos usavam
                       o `RaevoFieldRow`. Passam ao mesmo componente, e com ele
                       ganham o mesmo repouso e a mesma entrada em edição.
                     -->
-                    <RaevoFieldRow
-                      v-for="definition in group.definitions"
-                      :key="definition.key"
-                      :class="customFieldSpanClass(definition)"
-                      :row-testid="`kanban-row-${definition.key}`"
-                      :label="definition.label"
-                      :value="customFieldDisplayValue(definition)"
-                      :variant="customFieldRowVariant(definition)"
-                    >
-                      <template #control="{ controlClass, fieldId }">
-                        <select
-                          v-if="definition.fieldType === 'select'"
-                          :id="fieldId"
-                          :value="getCustomFieldValue(definition)"
-                          :data-testid="`kanban-custom-field-${definition.key}`"
-                          :class="controlClass"
-                          :aria-label="definition.label"
-                          @change="
-                            setCustomFieldValue(definition, $event.target.value)
-                          "
-                        >
-                          <!--
-                              A opção vazia mostrava o rótulo do campo, e a linha
-                              lia-se «Consulta realizada? | Consulta realizada?» —
-                              impossível distinguir por preencher de preenchido.
-                            -->
-                          <option value="">
-                            {{ t('KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY') }}
-                          </option>
-                          <option
-                            v-for="option in definition.options || []"
-                            :key="option"
-                            :value="option"
-                          >
-                            {{ option }}
-                          </option>
-                        </select>
-
-                        <select
-                          v-else-if="definition.fieldType === 'multiselect'"
-                          :id="fieldId"
-                          multiple
-                          :value="getCustomFieldValue(definition)"
-                          :data-testid="`kanban-custom-field-${definition.key}`"
-                          :class="controlClass"
-                          :aria-label="definition.label"
-                          @change="
-                            setCustomFieldValue(
-                              definition,
-                              selectedMultiselectValues($event)
-                            )
-                          "
-                        >
-                          <option
-                            v-for="option in definition.options || []"
-                            :key="option"
-                            :value="option"
-                          >
-                            {{ option }}
-                          </option>
-                        </select>
-
-                        <textarea
-                          v-else-if="definition.fieldType === 'textarea'"
-                          :id="fieldId"
-                          :value="getCustomFieldValue(definition)"
-                          rows="3"
-                          :data-testid="`kanban-custom-field-${definition.key}`"
-                          :class="controlClass"
-                          :aria-label="definition.label"
-                          @input="
-                            setCustomFieldValue(definition, $event.target.value)
-                          "
-                        />
-
-                        <input
-                          v-else-if="definition.fieldType === 'boolean'"
-                          :id="fieldId"
-                          type="checkbox"
-                          :checked="Boolean(getCustomFieldValue(definition))"
-                          :data-testid="`kanban-custom-field-${definition.key}`"
-                          class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                          :aria-label="definition.label"
-                          @change="
-                            setCustomFieldValue(
-                              definition,
-                              $event.target.checked
-                            )
-                          "
-                        />
-
-                        <input
-                          v-else
-                          :id="fieldId"
-                          :value="getCustomFieldValue(definition)"
-                          :type="
-                            definition.fieldType === 'integer' ||
-                            definition.fieldType === 'decimal' ||
-                            definition.fieldType === 'currency' ||
-                            definition.fieldType === 'formula'
-                              ? 'number'
-                              : definition.fieldType === 'date'
-                                ? 'date'
-                                : definition.fieldType === 'datetime'
-                                  ? 'datetime-local'
-                                  : definition.fieldType === 'url'
-                                    ? 'url'
-                                    : 'text'
-                          "
-                          :step="
-                            definition.fieldType === 'decimal'
-                              ? '0.01'
-                              : undefined
-                          "
-                          :disabled="definition.fieldType === 'formula'"
-                          :data-testid="`kanban-custom-field-${definition.key}`"
-                          class="h-8 min-w-0 border-0 bg-transparent px-0 text-sm text-n-slate-12 outline-none disabled:opacity-70 focus:ring-2 focus:ring-n-brand/40"
-                          :aria-label="definition.label"
-                          @input="
-                            setCustomFieldValue(definition, $event.target.value)
-                          "
-                        />
-                      </template>
-                    </RaevoFieldRow>
-                  </div>
-                </section>
-              </div>
-            </section>
-          </section>
-          <!--
-            Coluna da direita, no desenho que o Chatwoot já usa na conversa:
-            secções que abrem e fecham, todas na mesma rolagem. À esquerda fica
-            o que se trabalha; aqui, o que se consulta. Aprovado em 07/10 —
-            ver docs/raevo-aprovacao.md.
-          -->
-          <aside
-            ref="sideColumn"
-            data-testid="kanban-opportunity-side-column"
-            class="grid content-start gap-0 rounded-xl border border-n-weak lg:self-start"
-          >
-            <div
-              v-for="(secao, indice) in visibleSections"
-              :key="secao"
-              class="border-b border-n-weak last:border-b-0"
-            >
-              <div class="flex min-w-0 items-center">
-                <button
-                  type="button"
-                  :data-testid="`kanban-opportunity-section-${secao}`"
-                  class="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-n-slate-12"
-                  :aria-expanded="isSectionOpen(secao)"
-                  @click="toggleSection(secao)"
-                >
-                  <span class="min-w-0 truncate">{{
-                    sectionLabel(secao)
-                  }}</span>
-                  <i
-                    aria-hidden="true"
-                    class="size-4 shrink-0 text-n-slate-10"
-                    :class="
-                      isSectionOpen(secao)
-                        ? 'i-lucide-chevron-down'
-                        : 'i-lucide-chevron-right'
-                    "
-                  />
-                </button>
-                <!--
-                  Reordenar com dois botões, e não arrastando. Arrastar é o que o
-                  Chatwoot faz na barra da conversa, mas não se faz com teclado,
-                  não se faz bem com o dedo, e não se testa em jsdom — ficaria
-                  por verificar, como já aconteceu neste ficheiro com o clique
-                  fora do popover das etiquetas.
-                -->
-                <div class="flex shrink-0 items-center gap-0.5 pe-1.5">
-                  <button
-                    type="button"
-                    :data-testid="`kanban-opportunity-section-up-${secao}`"
-                    class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
-                    :disabled="indice === 0"
-                    :aria-label="
-                      t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_UP', {
-                        section: sectionLabel(secao),
-                      })
-                    "
-                    :title="
-                      t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_UP', {
-                        section: sectionLabel(secao),
-                      })
-                    "
-                    @click="moveSection(secao, -1)"
-                  >
-                    <i aria-hidden="true" class="i-lucide-arrow-up size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    :data-testid="`kanban-opportunity-section-down-${secao}`"
-                    class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
-                    :disabled="indice === visibleSections.length - 1"
-                    :aria-label="
-                      t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_DOWN', {
-                        section: sectionLabel(secao),
-                      })
-                    "
-                    :title="
-                      t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_DOWN', {
-                        section: sectionLabel(secao),
-                      })
-                    "
-                    @click="moveSection(secao, 1)"
-                  >
-                    <i aria-hidden="true" class="i-lucide-arrow-down size-4" />
-                  </button>
-                </div>
-              </div>
-              <div class="px-3 pb-3">
-                <template v-if="secao === 'contact-details'">
-                  <section
-                    v-if="isSectionOpen('contact-details')"
-                    data-testid="kanban-opportunity-contact-details"
-                    class="grid gap-4"
-                  >
-                    <section class="grid gap-3 border-b border-n-weak pb-4">
-                      <div class="flex items-center justify-between gap-3">
-                        <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                          {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
-                        </h3>
-                        <button
-                          type="button"
-                          data-testid="kanban-opportunity-save-contact"
-                          class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
-                          :disabled="isSavingContact || !card.contact?.id"
-                          :aria-label="
-                            t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')
-                          "
-                          :title="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
-                          @click="saveContact"
-                        >
-                          <i class="i-lucide-save size-4" />
-                        </button>
-                      </div>
-                      <div class="grid gap-1">
-                        <!--
-                        O rótulo vivia só no placeholder: assim que o campo era
-                        preenchido, deixava de haver forma de saber o que ele era.
-                        Passa à mesma linha dos campos personalizados — rótulo à
-                        esquerda, controlo à direita — para o diálogo deixar de ter
-                        três tratamentos de campo.
-                      -->
                         <RaevoFieldRow
-                          v-for="detail in contactDetails"
-                          :key="detail.key"
-                          :row-testid="`kanban-row-contact-${detail.key}`"
-                          :label="detail.label"
-                          :value="detail.value || ''"
-                        >
-                          <template #control="{ controlClass, fieldId }">
-                            <input
-                              v-if="detail.key === 'name'"
-                              :id="fieldId"
-                              v-model="contactDraft.name"
-                              data-testid="kanban-opportunity-contact-name"
-                              type="text"
-                              :class="controlClass"
-                              :aria-label="detail.label"
-                            />
-                            <input
-                              v-else-if="detail.key === 'phone'"
-                              :id="fieldId"
-                              v-model="contactDraft.phone_number"
-                              data-testid="kanban-opportunity-contact-phone"
-                              type="tel"
-                              :class="controlClass"
-                              :aria-label="detail.label"
-                            />
-                            <input
-                              v-else-if="detail.key === 'email'"
-                              :id="fieldId"
-                              v-model="contactDraft.email"
-                              data-testid="kanban-opportunity-contact-email"
-                              type="email"
-                              :class="controlClass"
-                              :aria-label="detail.label"
-                            />
-                            <input
-                              v-else
-                              :id="fieldId"
-                              v-model="contactDraft.identifier"
-                              data-testid="kanban-opportunity-contact-identifier"
-                              type="text"
-                              :class="controlClass"
-                              :aria-label="detail.label"
-                            />
-                          </template>
-                        </RaevoFieldRow>
-                      </div>
-                      <p
-                        v-if="contactSaveError"
-                        class="mb-0 text-xs text-n-ruby-11"
-                        role="alert"
-                      >
-                        {{ contactSaveError }}
-                      </p>
-                      <!--
-                      Etiquetas do contato, não da oportunidade. Chegam do WhatsApp
-                      e valem para a pessoa em qualquer negócio; por isso são só de
-                      leitura aqui — quem as edita é o WhatsApp ou a ficha do
-                      contato. As da oportunidade vivem no botão do cabeçalho.
-                    -->
-                      <div v-if="contactLabels.length" class="grid gap-2">
-                        <h4
-                          class="mb-0 text-xs font-medium leading-4 text-n-slate-11"
-                        >
-                          {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_LABELS') }}
-                        </h4>
-                        <div
-                          class="flex flex-wrap gap-1.5"
-                          data-testid="kanban-opportunity-contact-labels"
-                        >
-                          <Label
-                            v-for="label in contactLabels"
-                            :key="label.title"
-                            :label="label"
-                            compact
-                          />
-                        </div>
-                      </div>
-                    </section>
-                    <section
-                      v-if="visibleContactAttributes.length"
-                      class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
-                    >
-                      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                        {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
-                      </h3>
-                      <div
-                        v-if="visibleContactAttributes.length"
-                        class="grid gap-1"
-                      >
-                        <RaevoFieldRow
-                          v-for="entry in visibleContactAttributes"
-                          :key="`${entry.source}-${entry.key}`"
-                          :row-testid="`kanban-row-attr-${entry.key}`"
-                          :label="entry.label"
-                          :value="formatContactAttributeValue(entry.value)"
+                          v-for="definition in shownDefinitions(secao, group)"
+                          :key="definition.key"
+                          stacked
+                          :row-testid="`kanban-row-${definition.key}`"
+                          :label="definition.label"
+                          :value="customFieldDisplayValue(definition)"
+                          :variant="customFieldRowVariant(definition)"
                         >
                           <template #control="{ controlClass, fieldId }">
                             <select
-                              v-if="entry.displayType === 'list'"
+                              v-if="definition.fieldType === 'select'"
                               :id="fieldId"
-                              :value="entry.value ?? ''"
+                              :value="getCustomFieldValue(definition)"
+                              :data-testid="`kanban-custom-field-${definition.key}`"
                               :class="controlClass"
-                              :aria-label="entry.label"
+                              :aria-label="definition.label"
                               @change="
-                                setContactAttributeValue(
-                                  entry,
+                                setCustomFieldValue(
+                                  definition,
                                   $event.target.value
                                 )
                               "
                             >
+                              <!--
+                              A opção vazia mostrava o rótulo do campo, e a linha
+                              lia-se «Consulta realizada? | Consulta realizada?» —
+                              impossível distinguir por preencher de preenchido.
+                            -->
                               <option value="">
                                 {{
-                                  t(
-                                    'KANBAN.OPPORTUNITY_DETAILS.ATTRIBUTE_EMPTY'
-                                  )
+                                  t('KANBAN.OPPORTUNITY_DETAILS.FIELD_EMPTY')
                                 }}
                               </option>
                               <option
-                                v-for="option in entry.options"
+                                v-for="option in definition.options || []"
                                 :key="option"
                                 :value="option"
                               >
                                 {{ option }}
                               </option>
                             </select>
-                            <!--
-                            O rótulo ao lado já nomeia o campo. Repeti-lo aqui
-                            desenhava o mesmo texto duas vezes na mesma linha.
-                          -->
-                            <span
-                              v-else-if="entry.displayType === 'checkbox'"
-                              class="flex h-10 items-center"
+
+                            <select
+                              v-else-if="definition.fieldType === 'multiselect'"
+                              :id="fieldId"
+                              multiple
+                              :value="getCustomFieldValue(definition)"
+                              :data-testid="`kanban-custom-field-${definition.key}`"
+                              :class="controlClass"
+                              :aria-label="definition.label"
+                              @change="
+                                setCustomFieldValue(
+                                  definition,
+                                  selectedMultiselectValues($event)
+                                )
+                              "
                             >
-                              <input
-                                :id="fieldId"
-                                :checked="entry.value === true"
-                                type="checkbox"
-                                class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
-                                @change="
-                                  setContactAttributeValue(
-                                    entry,
-                                    $event.target.checked
-                                  )
-                                "
-                              />
-                            </span>
+                              <option
+                                v-for="option in definition.options || []"
+                                :key="option"
+                                :value="option"
+                              >
+                                {{ option }}
+                              </option>
+                            </select>
+
+                            <textarea
+                              v-else-if="definition.fieldType === 'textarea'"
+                              :id="fieldId"
+                              :value="getCustomFieldValue(definition)"
+                              rows="3"
+                              :data-testid="`kanban-custom-field-${definition.key}`"
+                              :class="controlClass"
+                              :aria-label="definition.label"
+                              @input="
+                                setCustomFieldValue(
+                                  definition,
+                                  $event.target.value
+                                )
+                              "
+                            />
+
+                            <input
+                              v-else-if="definition.fieldType === 'boolean'"
+                              :id="fieldId"
+                              type="checkbox"
+                              :checked="
+                                Boolean(getCustomFieldValue(definition))
+                              "
+                              :data-testid="`kanban-custom-field-${definition.key}`"
+                              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                              :aria-label="definition.label"
+                              @change="
+                                setCustomFieldValue(
+                                  definition,
+                                  $event.target.checked
+                                )
+                              "
+                            />
+
                             <input
                               v-else
                               :id="fieldId"
-                              :value="entry.value ?? ''"
+                              :value="getCustomFieldValue(definition)"
                               :type="
-                                entry.displayType === 'date' ? 'date' : 'text'
+                                definition.fieldType === 'integer' ||
+                                definition.fieldType === 'decimal' ||
+                                definition.fieldType === 'currency' ||
+                                definition.fieldType === 'formula'
+                                  ? 'number'
+                                  : definition.fieldType === 'date'
+                                    ? 'date'
+                                    : definition.fieldType === 'datetime'
+                                      ? 'datetime-local'
+                                      : definition.fieldType === 'url'
+                                        ? 'url'
+                                        : 'text'
                               "
+                              :step="
+                                definition.fieldType === 'decimal'
+                                  ? '0.01'
+                                  : undefined
+                              "
+                              :disabled="definition.fieldType === 'formula'"
+                              :data-testid="`kanban-custom-field-${definition.key}`"
                               :class="controlClass"
-                              :aria-label="entry.label"
+                              :aria-label="definition.label"
                               @input="
-                                setContactAttributeValue(
-                                  entry,
+                                setCustomFieldValue(
+                                  definition,
                                   $event.target.value
                                 )
                               "
@@ -3171,486 +2556,699 @@ watch(invitationPendingRevocation, async invitation => {
                         </RaevoFieldRow>
                       </div>
                     </section>
-                  </section>
-                </template>
-                <template v-else-if="secao === 'calendar'">
-                  <KanbanCalendarAppointmentsSection
-                    v-if="isSectionOpen('calendar')"
-                    :card-id="card.id"
-                    :contact-id="card.contact?.id"
-                    :contact-name="contactName"
-                    :booking-stage="
-                      calendarBookingStageIds
-                        .map(Number)
-                        .includes(Number(stageId))
-                    "
-                    :allowed-procedure-ids="calendarProcedureIds"
-                  />
-                </template>
-                <template v-else-if="secao === 'finance'">
-                  <section
-                    v-if="isSectionOpen('finance')"
-                    data-testid="kanban-opportunity-finance"
-                    class="grid gap-3"
-                  >
-                    <div
-                      class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
-                    >
-                      <div>
-                        <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                          {{ t('FINANCE.PAYMENTS.TITLE') }}
-                        </h3>
-                        <p class="mb-0 mt-1 text-xs text-n-slate-11">
-                          {{ t('FINANCE.PAYMENTS.DESCRIPTION') }}
-                        </p>
-                      </div>
-                      <NextButton
-                        v-if="
-                          canCreateFinancePayment &&
-                          connectedFinanceConnections.length
-                        "
+                  </div>
+                </section>
+                <button
+                  v-if="hiddenFieldCount(secao)"
+                  type="button"
+                  :data-testid="`kanban-opportunity-show-more-${secao}`"
+                  class="mt-1 h-7 rounded-lg px-2 text-xs font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+                  :aria-expanded="isShowingAllFields(secao)"
+                  @click="toggleAllFields(secao)"
+                >
+                  {{
+                    isShowingAllFields(secao)
+                      ? t('KANBAN.OPPORTUNITY_DETAILS.SHOW_FEWER_FIELDS')
+                      : t('KANBAN.OPPORTUNITY_DETAILS.SHOW_MORE_FIELDS', {
+                          count: hiddenFieldCount(secao),
+                        })
+                  }}
+                </button>
+              </template>
+              <template v-else-if="secao === 'contact-details'">
+                <section
+                  v-if="isSectionOpen('contact-details')"
+                  data-testid="kanban-opportunity-contact-details"
+                  class="grid gap-4"
+                >
+                  <section class="grid gap-3 border-b border-n-weak pb-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                        {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT') }}
+                      </h3>
+                      <button
                         type="button"
-                        sm
-                        :label="t('FINANCE.PAYMENTS.CREATE')"
-                        data-testid="kanban-opportunity-new-payment"
-                        @click="openFinancePaymentDialog"
-                      />
+                        data-testid="kanban-opportunity-save-contact"
+                        class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="isSavingContact || !card.contact?.id"
+                        :aria-label="
+                          t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')
+                        "
+                        :title="t('KANBAN.OPPORTUNITY_DETAILS.SAVE_CONTACT')"
+                        @click="saveContact"
+                      >
+                        <i class="i-lucide-save size-4" />
+                      </button>
                     </div>
-
-                    <dl
-                      class="grid gap-3 rounded-md bg-n-alpha-2 p-3 sm:grid-cols-3"
-                      data-testid="kanban-opportunity-finance-summary"
-                    >
-                      <div class="min-w-0">
-                        <dt class="text-xs font-medium text-n-slate-10">
-                          {{ t('FINANCE.SUMMARY.STATUS') }}
-                        </dt>
-                        <dd
-                          class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
-                        >
-                          {{ financeStatusLabel(financeSummary.status) }}
-                        </dd>
-                      </div>
-                      <div class="min-w-0">
-                        <dt class="text-xs font-medium text-n-slate-10">
-                          {{ t('FINANCE.SUMMARY.RECEIVED_AMOUNT') }}
-                        </dt>
-                        <dd
-                          class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
-                        >
-                          {{
-                            formatFinanceAmount(
-                              financeSummary.receivedCents,
-                              financeSummary.currency
-                            )
-                          }}
-                        </dd>
-                      </div>
-                      <div class="min-w-0">
-                        <dt class="text-xs font-medium text-n-slate-10">
-                          {{ t('FINANCE.SUMMARY.LAST_RECEIVED_AT') }}
-                        </dt>
-                        <dd
-                          class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
-                        >
-                          {{
-                            formatFinanceDate(financeSummary.latestReceivedAt)
-                          }}
-                        </dd>
-                      </div>
-                    </dl>
-
+                    <div class="grid gap-1">
+                      <!--
+                        O rótulo vivia só no placeholder: assim que o campo era
+                        preenchido, deixava de haver forma de saber o que ele era.
+                        Passa à mesma linha dos campos personalizados — rótulo à
+                        esquerda, controlo à direita — para o diálogo deixar de ter
+                        três tratamentos de campo.
+                      -->
+                      <RaevoFieldRow
+                        v-for="detail in contactDetails"
+                        :key="detail.key"
+                        stacked
+                        :row-testid="`kanban-row-contact-${detail.key}`"
+                        :label="detail.label"
+                        :value="detail.value || ''"
+                      >
+                        <template #control="{ controlClass, fieldId }">
+                          <input
+                            v-if="detail.key === 'name'"
+                            :id="fieldId"
+                            v-model="contactDraft.name"
+                            data-testid="kanban-opportunity-contact-name"
+                            type="text"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                          <input
+                            v-else-if="detail.key === 'phone'"
+                            :id="fieldId"
+                            v-model="contactDraft.phone_number"
+                            data-testid="kanban-opportunity-contact-phone"
+                            type="tel"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                          <input
+                            v-else-if="detail.key === 'email'"
+                            :id="fieldId"
+                            v-model="contactDraft.email"
+                            data-testid="kanban-opportunity-contact-email"
+                            type="email"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                          <input
+                            v-else
+                            :id="fieldId"
+                            v-model="contactDraft.identifier"
+                            data-testid="kanban-opportunity-contact-identifier"
+                            type="text"
+                            :class="controlClass"
+                            :aria-label="detail.label"
+                          />
+                        </template>
+                      </RaevoFieldRow>
+                    </div>
                     <p
-                      v-if="isLoadingFinance"
-                      class="mb-0 text-sm text-n-slate-11"
-                    >
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
-                    </p>
-                    <p
-                      v-else-if="financeError"
-                      class="mb-0 text-sm text-n-ruby-11"
+                      v-if="contactSaveError"
+                      class="mb-0 text-xs text-n-ruby-11"
                       role="alert"
                     >
-                      {{ financeError }}
+                      {{ contactSaveError }}
                     </p>
-                    <p
-                      v-else-if="financePayments.length === 0"
-                      class="mb-0 text-sm text-n-slate-11"
+                    <!--
+                      Etiquetas do contato, não da oportunidade. Chegam do WhatsApp
+                      e valem para a pessoa em qualquer negócio; por isso são só de
+                      leitura aqui — quem as edita é o WhatsApp ou a ficha do
+                      contato. As da oportunidade vivem no botão do cabeçalho.
+                    -->
+                    <div v-if="contactLabels.length" class="grid gap-2">
+                      <h4
+                        class="mb-0 text-xs font-medium leading-4 text-n-slate-11"
+                      >
+                        {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_LABELS') }}
+                      </h4>
+                      <div
+                        class="flex flex-wrap gap-1.5"
+                        data-testid="kanban-opportunity-contact-labels"
+                      >
+                        <Label
+                          v-for="label in contactLabels"
+                          :key="label.title"
+                          :label="label"
+                          compact
+                        />
+                      </div>
+                    </div>
+                  </section>
+                  <section
+                    v-if="visibleContactAttributes.length"
+                    class="grid gap-3 border-b border-n-weak py-4 last:border-b-0"
+                  >
+                    <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                      {{ t('KANBAN.OPPORTUNITY_DETAILS.CONTACT_ATTRIBUTES') }}
+                    </h3>
+                    <div
+                      v-if="visibleContactAttributes.length"
+                      class="grid gap-1"
                     >
-                      {{ t('FINANCE.PAYMENTS.EMPTY') }}
-                    </p>
-                    <div v-else class="grid divide-y divide-n-weak">
+                      <RaevoFieldRow
+                        v-for="entry in visibleContactAttributes"
+                        :key="`${entry.source}-${entry.key}`"
+                        stacked
+                        :row-testid="`kanban-row-attr-${entry.key}`"
+                        :label="entry.label"
+                        :value="formatContactAttributeValue(entry.value)"
+                      >
+                        <template #control="{ controlClass, fieldId }">
+                          <select
+                            v-if="entry.displayType === 'list'"
+                            :id="fieldId"
+                            :value="entry.value ?? ''"
+                            :class="controlClass"
+                            :aria-label="entry.label"
+                            @change="
+                              setContactAttributeValue(
+                                entry,
+                                $event.target.value
+                              )
+                            "
+                          >
+                            <option value="">
+                              {{
+                                t('KANBAN.OPPORTUNITY_DETAILS.ATTRIBUTE_EMPTY')
+                              }}
+                            </option>
+                            <option
+                              v-for="option in entry.options"
+                              :key="option"
+                              :value="option"
+                            >
+                              {{ option }}
+                            </option>
+                          </select>
+                          <!--
+                            O rótulo ao lado já nomeia o campo. Repeti-lo aqui
+                            desenhava o mesmo texto duas vezes na mesma linha.
+                          -->
+                          <span
+                            v-else-if="entry.displayType === 'checkbox'"
+                            class="flex h-10 items-center"
+                          >
+                            <input
+                              :id="fieldId"
+                              :checked="entry.value === true"
+                              type="checkbox"
+                              class="size-4 rounded border-n-weak text-n-brand focus:ring-n-brand"
+                              @change="
+                                setContactAttributeValue(
+                                  entry,
+                                  $event.target.checked
+                                )
+                              "
+                            />
+                          </span>
+                          <input
+                            v-else
+                            :id="fieldId"
+                            :value="entry.value ?? ''"
+                            :type="
+                              entry.displayType === 'date' ? 'date' : 'text'
+                            "
+                            :class="controlClass"
+                            :aria-label="entry.label"
+                            @input="
+                              setContactAttributeValue(
+                                entry,
+                                $event.target.value
+                              )
+                            "
+                          />
+                        </template>
+                      </RaevoFieldRow>
+                    </div>
+                  </section>
+                </section>
+              </template>
+              <template v-else-if="secao === 'calendar'">
+                <KanbanCalendarAppointmentsSection
+                  v-if="isSectionOpen('calendar')"
+                  :card-id="card.id"
+                  :contact-id="card.contact?.id"
+                  :contact-name="contactName"
+                  :booking-stage="
+                    calendarBookingStageIds
+                      .map(Number)
+                      .includes(Number(stageId))
+                  "
+                  :allowed-procedure-ids="calendarProcedureIds"
+                />
+              </template>
+              <template v-else-if="secao === 'finance'">
+                <section
+                  v-if="isSectionOpen('finance')"
+                  data-testid="kanban-opportunity-finance"
+                  class="grid gap-3"
+                >
+                  <div
+                    class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
+                  >
+                    <div>
+                      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                        {{ t('FINANCE.PAYMENTS.TITLE') }}
+                      </h3>
+                      <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                        {{ t('FINANCE.PAYMENTS.DESCRIPTION') }}
+                      </p>
+                    </div>
+                    <NextButton
+                      v-if="
+                        canCreateFinancePayment &&
+                        connectedFinanceConnections.length
+                      "
+                      type="button"
+                      sm
+                      :label="t('FINANCE.PAYMENTS.CREATE')"
+                      data-testid="kanban-opportunity-new-payment"
+                      @click="openFinancePaymentDialog"
+                    />
+                  </div>
+
+                  <dl
+                    class="grid gap-3 rounded-md bg-n-alpha-2 p-3 sm:grid-cols-3"
+                    data-testid="kanban-opportunity-finance-summary"
+                  >
+                    <div class="min-w-0">
+                      <dt class="text-xs font-medium text-n-slate-10">
+                        {{ t('FINANCE.SUMMARY.STATUS') }}
+                      </dt>
+                      <dd
+                        class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                      >
+                        {{ financeStatusLabel(financeSummary.status) }}
+                      </dd>
+                    </div>
+                    <div class="min-w-0">
+                      <dt class="text-xs font-medium text-n-slate-10">
+                        {{ t('FINANCE.SUMMARY.RECEIVED_AMOUNT') }}
+                      </dt>
+                      <dd
+                        class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                      >
+                        {{
+                          formatFinanceAmount(
+                            financeSummary.receivedCents,
+                            financeSummary.currency
+                          )
+                        }}
+                      </dd>
+                    </div>
+                    <div class="min-w-0">
+                      <dt class="text-xs font-medium text-n-slate-10">
+                        {{ t('FINANCE.SUMMARY.LAST_RECEIVED_AT') }}
+                      </dt>
+                      <dd
+                        class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                      >
+                        {{ formatFinanceDate(financeSummary.latestReceivedAt) }}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <p
+                    v-if="isLoadingFinance"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+                  </p>
+                  <p
+                    v-else-if="financeError"
+                    class="mb-0 text-sm text-n-ruby-11"
+                    role="alert"
+                  >
+                    {{ financeError }}
+                  </p>
+                  <p
+                    v-else-if="financePayments.length === 0"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('FINANCE.PAYMENTS.EMPTY') }}
+                  </p>
+                  <div v-else class="grid divide-y divide-n-weak">
+                    <article
+                      v-for="payment in financePayments"
+                      :key="payment.id"
+                      class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4"
+                    >
+                      <div class="min-w-0">
+                        <p
+                          class="mb-0 break-words text-sm font-medium text-n-slate-12"
+                        >
+                          {{
+                            payment.description || t('FINANCE.PAYMENTS.TITLE')
+                          }}
+                        </p>
+                        <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                          {{
+                            payment.due_on || t('FINANCE.PAYMENTS.NO_DUE_DATE')
+                          }}
+                        </p>
+                      </div>
+                      <span class="text-sm font-semibold text-n-slate-12">
+                        {{ (payment.amount_cents / 100).toFixed(2) }}
+                        {{ payment.currency }}
+                      </span>
+                      <div class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          data-testid="kanban-opportunity-payment-details"
+                          class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                          :aria-label="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
+                          :title="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
+                          @click="openFinancePaymentDetails(payment)"
+                        >
+                          <i class="i-lucide-history size-4" />
+                        </button>
+                        <a
+                          v-if="payment.invoice_url"
+                          :href="payment.invoice_url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-sm font-medium text-n-brand outline-none hover:underline focus:ring-2 focus:ring-n-brand/40"
+                        >
+                          {{ t('FINANCE.PAYMENTS.OPEN_LINK') }}
+                        </a>
+                        <button
+                          v-if="payment.invoice_url"
+                          type="button"
+                          data-testid="kanban-opportunity-copy-payment-link"
+                          class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                          :aria-label="
+                            copiedFinancePaymentId === payment.id
+                              ? t('FINANCE.PAYMENTS.COPIED')
+                              : t('FINANCE.PAYMENTS.COPY_LINK')
+                          "
+                          :title="
+                            copiedFinancePaymentId === payment.id
+                              ? t('FINANCE.PAYMENTS.COPIED')
+                              : t('FINANCE.PAYMENTS.COPY_LINK')
+                          "
+                          @click="copyFinancePaymentLink(payment)"
+                        >
+                          <i
+                            class="size-4"
+                            :class="
+                              copiedFinancePaymentId === payment.id
+                                ? 'i-lucide-check'
+                                : 'i-lucide-copy'
+                            "
+                          />
+                        </button>
+                        <button
+                          v-if="hasConversation && payment.invoice_url"
+                          type="button"
+                          data-testid="kanban-opportunity-send-payment-link"
+                          class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                          :aria-label="
+                            t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')
+                          "
+                          :title="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
+                          @click="sendFinancePaymentLink(payment)"
+                        >
+                          <i class="i-lucide-send size-4" />
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+              </template>
+              <template v-else-if="secao === 'forms'">
+                <section
+                  v-if="isSectionOpen('forms')"
+                  data-testid="kanban-opportunity-forms"
+                  class="grid gap-3"
+                >
+                  <div
+                    class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
+                  >
+                    <div>
+                      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                        {{ t('FORMS.TITLE') }}
+                      </h3>
+                      <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                        {{ t('FORMS.INVITATION.DESCRIPTION') }}
+                      </p>
+                    </div>
+                    <NextButton
+                      type="button"
+                      sm
+                      :label="t('FORMS.INVITATION.OPEN')"
+                      data-testid="kanban-opportunity-send-form"
+                      @click="openFormsInvitationDialog"
+                    />
+                  </div>
+                  <p
+                    v-if="formsContextError"
+                    role="alert"
+                    class="mb-0 rounded border border-n-ruby-6 bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
+                  >
+                    {{ formsContextError }}
+                  </p>
+                  <p
+                    v-else-if="isLoadingFormsContext"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+                  </p>
+                  <template v-else>
+                    <section
+                      v-if="formsContext.invitations.length"
+                      class="grid gap-2"
+                    >
+                      <h4
+                        class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
+                      >
+                        {{ t('FORMS.INVITATION.HISTORY') }}
+                      </h4>
                       <article
-                        v-for="payment in financePayments"
-                        :key="payment.id"
-                        class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4"
+                        v-for="invitation in formsContext.invitations"
+                        :key="invitation.id"
+                        class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
                       >
                         <div class="min-w-0">
                           <p
                             class="mb-0 break-words text-sm font-medium text-n-slate-12"
                           >
+                            {{ invitation.form_name }}
+                          </p>
+                          <p class="mb-0 mt-0.5 text-xs text-n-slate-10">
                             {{
-                              payment.description || t('FINANCE.PAYMENTS.TITLE')
+                              t('FORMS.INVITATION.USES', {
+                                used: invitation.uses_count,
+                                total: invitation.max_uses,
+                              })
                             }}
                           </p>
-                          <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                          <p
+                            v-if="invitation.created_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
                             {{
-                              payment.due_on ||
-                              t('FINANCE.PAYMENTS.NO_DUE_DATE')
+                              t('FORMS.INVITATION.CREATED_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.created_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.expires_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.EXPIRES_ON', {
+                                date: formatFormInvitationDate(
+                                  invitation.expires_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.sent_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.SENT_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.sent_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.opened_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.OPENED_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.opened_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.completed_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.COMPLETED_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.completed_at
+                                ),
+                              })
                             }}
                           </p>
                         </div>
-                        <span class="text-sm font-semibold text-n-slate-12">
-                          {{ (payment.amount_cents / 100).toFixed(2) }}
-                          {{ payment.currency }}
-                        </span>
-                        <div class="flex items-center gap-2">
+                        <div class="flex shrink-0 items-center gap-1">
+                          <span
+                            :data-testid="`kanban-opportunity-form-invitation-status-${invitation.id}`"
+                            class="text-xs text-n-slate-11"
+                          >
+                            {{ formInvitationStatusLabel(invitation.status) }}
+                          </span>
                           <button
-                            type="button"
-                            data-testid="kanban-opportunity-payment-details"
-                            class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                            :aria-label="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
-                            :title="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
-                            @click="openFinancePaymentDetails(payment)"
-                          >
-                            <i class="i-lucide-history size-4" />
-                          </button>
-                          <a
-                            v-if="payment.invoice_url"
-                            :href="payment.invoice_url"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-sm font-medium text-n-brand outline-none hover:underline focus:ring-2 focus:ring-n-brand/40"
-                          >
-                            {{ t('FINANCE.PAYMENTS.OPEN_LINK') }}
-                          </a>
-                          <button
-                            v-if="payment.invoice_url"
-                            type="button"
-                            data-testid="kanban-opportunity-copy-payment-link"
-                            class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                            :aria-label="
-                              copiedFinancePaymentId === payment.id
-                                ? t('FINANCE.PAYMENTS.COPIED')
-                                : t('FINANCE.PAYMENTS.COPY_LINK')
+                            v-if="
+                              canCreateFormInvitation &&
+                              invitation.status === 'active'
                             "
-                            :title="
-                              copiedFinancePaymentId === payment.id
-                                ? t('FINANCE.PAYMENTS.COPIED')
-                                : t('FINANCE.PAYMENTS.COPY_LINK')
-                            "
-                            @click="copyFinancePaymentLink(payment)"
-                          >
-                            <i
-                              class="size-4"
-                              :class="
-                                copiedFinancePaymentId === payment.id
-                                  ? 'i-lucide-check'
-                                  : 'i-lucide-copy'
-                              "
-                            />
-                          </button>
-                          <button
-                            v-if="hasConversation && payment.invoice_url"
                             type="button"
-                            data-testid="kanban-opportunity-send-payment-link"
-                            class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                            :aria-label="
-                              t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')
-                            "
-                            :title="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
-                            @click="sendFinancePaymentLink(payment)"
+                            :data-testid="`kanban-opportunity-revoke-form-invitation-${invitation.id}`"
+                            class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-ruby-8"
+                            :aria-label="t('FORMS.INVITATION.REVOKE')"
+                            :title="t('FORMS.INVITATION.REVOKE')"
+                            @click="requestFormInvitationRevocation(invitation)"
                           >
-                            <i class="i-lucide-send size-4" />
+                            <i class="i-lucide-ban size-3.5" />
                           </button>
                         </div>
                       </article>
-                    </div>
-                  </section>
-                </template>
-                <template v-else-if="secao === 'forms'">
-                  <section
-                    v-if="isSectionOpen('forms')"
-                    data-testid="kanban-opportunity-forms"
-                    class="grid gap-3"
-                  >
-                    <div
-                      class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
+                    </section>
+                    <section
+                      v-if="formsContext.submissions.length"
+                      class="grid gap-2"
                     >
-                      <div>
-                        <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                          {{ t('FORMS.TITLE') }}
-                        </h3>
-                        <p class="mb-0 mt-1 text-xs text-n-slate-11">
-                          {{ t('FORMS.INVITATION.DESCRIPTION') }}
-                        </p>
-                      </div>
-                      <NextButton
-                        type="button"
-                        sm
-                        :label="t('FORMS.INVITATION.OPEN')"
-                        data-testid="kanban-opportunity-send-form"
-                        @click="openFormsInvitationDialog"
+                      <h4
+                        class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
+                      >
+                        {{ t('FORMS.SUBMISSIONS.HISTORY') }}
+                      </h4>
+                      <KanbanFormSubmissionRow
+                        v-for="submission in formsContext.submissions"
+                        :key="submission.id"
+                        :submission="submission"
+                        :resolving-action="resolvingAction"
+                        :pending-action-error="pendingActionError"
+                        @open="openFormsSubmission"
+                        @resolve="onResolvePendingAction"
                       />
-                    </div>
-                    <p
-                      v-if="formsContextError"
-                      role="alert"
-                      class="mb-0 rounded border border-n-ruby-6 bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
-                    >
-                      {{ formsContextError }}
-                    </p>
-                    <p
-                      v-else-if="isLoadingFormsContext"
-                      class="mb-0 text-sm text-n-slate-11"
-                    >
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
-                    </p>
-                    <template v-else>
-                      <section
-                        v-if="formsContext.invitations.length"
-                        class="grid gap-2"
-                      >
-                        <h4
-                          class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
-                        >
-                          {{ t('FORMS.INVITATION.HISTORY') }}
-                        </h4>
-                        <article
-                          v-for="invitation in formsContext.invitations"
-                          :key="invitation.id"
-                          class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
-                        >
-                          <div class="min-w-0">
-                            <p
-                              class="mb-0 break-words text-sm font-medium text-n-slate-12"
-                            >
-                              {{ invitation.form_name }}
-                            </p>
-                            <p class="mb-0 mt-0.5 text-xs text-n-slate-10">
-                              {{
-                                t('FORMS.INVITATION.USES', {
-                                  used: invitation.uses_count,
-                                  total: invitation.max_uses,
-                                })
-                              }}
-                            </p>
-                            <p
-                              v-if="invitation.created_at"
-                              class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                            >
-                              {{
-                                t('FORMS.INVITATION.CREATED_AT', {
-                                  date: formatFormInvitationDate(
-                                    invitation.created_at
-                                  ),
-                                })
-                              }}
-                            </p>
-                            <p
-                              v-if="invitation.expires_at"
-                              class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                            >
-                              {{
-                                t('FORMS.INVITATION.EXPIRES_ON', {
-                                  date: formatFormInvitationDate(
-                                    invitation.expires_at
-                                  ),
-                                })
-                              }}
-                            </p>
-                            <p
-                              v-if="invitation.sent_at"
-                              class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                            >
-                              {{
-                                t('FORMS.INVITATION.SENT_AT', {
-                                  date: formatFormInvitationDate(
-                                    invitation.sent_at
-                                  ),
-                                })
-                              }}
-                            </p>
-                            <p
-                              v-if="invitation.opened_at"
-                              class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                            >
-                              {{
-                                t('FORMS.INVITATION.OPENED_AT', {
-                                  date: formatFormInvitationDate(
-                                    invitation.opened_at
-                                  ),
-                                })
-                              }}
-                            </p>
-                            <p
-                              v-if="invitation.completed_at"
-                              class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                            >
-                              {{
-                                t('FORMS.INVITATION.COMPLETED_AT', {
-                                  date: formatFormInvitationDate(
-                                    invitation.completed_at
-                                  ),
-                                })
-                              }}
-                            </p>
-                          </div>
-                          <div class="flex shrink-0 items-center gap-1">
-                            <span
-                              :data-testid="`kanban-opportunity-form-invitation-status-${invitation.id}`"
-                              class="text-xs text-n-slate-11"
-                            >
-                              {{ formInvitationStatusLabel(invitation.status) }}
-                            </span>
-                            <button
-                              v-if="
-                                canCreateFormInvitation &&
-                                invitation.status === 'active'
-                              "
-                              type="button"
-                              :data-testid="`kanban-opportunity-revoke-form-invitation-${invitation.id}`"
-                              class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-ruby-8"
-                              :aria-label="t('FORMS.INVITATION.REVOKE')"
-                              :title="t('FORMS.INVITATION.REVOKE')"
-                              @click="
-                                requestFormInvitationRevocation(invitation)
-                              "
-                            >
-                              <i class="i-lucide-ban size-3.5" />
-                            </button>
-                          </div>
-                        </article>
-                      </section>
-                      <section
-                        v-if="formsContext.submissions.length"
-                        class="grid gap-2"
-                      >
-                        <h4
-                          class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
-                        >
-                          {{ t('FORMS.SUBMISSIONS.HISTORY') }}
-                        </h4>
-                        <KanbanFormSubmissionRow
-                          v-for="submission in formsContext.submissions"
-                          :key="submission.id"
-                          :submission="submission"
-                          :resolving-action="resolvingAction"
-                          :pending-action-error="pendingActionError"
-                          @open="openFormsSubmission"
-                          @resolve="onResolvePendingAction"
-                        />
-                      </section>
-                      <!--
+                    </section>
+                    <!--
                         O que a pessoa respondeu noutras oportunidades e continua a
                         valer para ela. Separado de propósito: são formulários do
                         doente, não deste negócio.
                       -->
-                      <section
-                        v-if="formsContext.contact_submissions?.length"
-                        data-testid="kanban-opportunity-contact-forms"
-                        class="grid gap-2"
+                    <section
+                      v-if="formsContext.contact_submissions?.length"
+                      data-testid="kanban-opportunity-contact-forms"
+                      class="grid gap-2"
+                    >
+                      <h4
+                        class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
                       >
-                        <h4
-                          class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
-                        >
-                          {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY') }}
-                        </h4>
-                        <p class="mb-0 text-xs text-n-slate-10">
-                          {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY_HINT') }}
-                        </p>
-                        <KanbanFormSubmissionRow
-                          v-for="submission in formsContext.contact_submissions"
-                          :key="submission.id"
-                          :submission="submission"
-                          :resolving-action="resolvingAction"
-                          :pending-action-error="pendingActionError"
-                          @open="openFormsSubmission"
-                          @resolve="onResolvePendingAction"
-                        />
-                      </section>
-                      <p
-                        v-if="
-                          !formsContext.invitations.length &&
-                          !formsContext.submissions.length &&
-                          !formsContext.contact_submissions?.length
-                        "
-                        class="mb-0 text-sm text-n-slate-10"
-                      >
-                        {{ t('FORMS.INVITATION.HISTORY_EMPTY') }}
+                        {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY') }}
+                      </h4>
+                      <p class="mb-0 text-xs text-n-slate-10">
+                        {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY_HINT') }}
                       </p>
-                    </template>
-                  </section>
-                </template>
-                <template v-else-if="secao === 'timeline'">
-                  <section
-                    v-if="isSectionOpen('timeline')"
-                    data-testid="kanban-opportunity-timeline"
-                    class="grid gap-3"
+                      <KanbanFormSubmissionRow
+                        v-for="submission in formsContext.contact_submissions"
+                        :key="submission.id"
+                        :submission="submission"
+                        :resolving-action="resolvingAction"
+                        :pending-action-error="pendingActionError"
+                        @open="openFormsSubmission"
+                        @resolve="onResolvePendingAction"
+                      />
+                    </section>
+                    <p
+                      v-if="
+                        !formsContext.invitations.length &&
+                        !formsContext.submissions.length &&
+                        !formsContext.contact_submissions?.length
+                      "
+                      class="mb-0 text-sm text-n-slate-10"
+                    >
+                      {{ t('FORMS.INVITATION.HISTORY_EMPTY') }}
+                    </p>
+                  </template>
+                </section>
+              </template>
+              <template v-else-if="secao === 'timeline'">
+                <section
+                  v-if="isSectionOpen('timeline')"
+                  data-testid="kanban-opportunity-timeline"
+                  class="grid gap-3"
+                >
+                  <p
+                    v-if="isLoadingTimeline"
+                    class="mb-0 text-sm text-n-slate-11"
                   >
-                    <p
-                      v-if="isLoadingTimeline"
-                      class="mb-0 text-sm text-n-slate-11"
-                    >
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
-                    </p>
-                    <p
-                      v-else-if="timelineError"
-                      class="mb-0 text-sm text-n-ruby-11"
-                      role="alert"
-                    >
-                      {{ timelineError }}
-                    </p>
-                    <p
-                      v-else-if="timeline.length === 0"
-                      class="mb-0 text-sm text-n-slate-11"
-                    >
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY') }}
-                    </p>
-                    <template v-else>
-                      <RaevoTimeline :items="timelineItems">
-                        <template #extra="{ item }">
-                          <span
-                            v-for="change in item.changes"
-                            :key="change.key"
-                            data-testid="kanban-opportunity-timeline-change"
-                            class="text-xs text-n-slate-10"
-                          >
-                            {{ change.transition }}
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+                  </p>
+                  <p
+                    v-else-if="timelineError"
+                    class="mb-0 text-sm text-n-ruby-11"
+                    role="alert"
+                  >
+                    {{ timelineError }}
+                  </p>
+                  <p
+                    v-else-if="timeline.length === 0"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY') }}
+                  </p>
+                  <template v-else>
+                    <RaevoTimeline :items="timelineItems">
+                      <template #extra="{ item }">
+                        <span
+                          v-for="change in item.changes"
+                          :key="change.key"
+                          data-testid="kanban-opportunity-timeline-change"
+                          class="text-xs text-n-slate-10"
+                        >
+                          {{ change.transition }}
+                        </span>
+                        <span
+                          v-for="automation in item.automations"
+                          :key="automation.id"
+                          class="mt-1 grid gap-1 rounded-md bg-n-surface-2 px-2 py-1.5 text-xs text-n-slate-10"
+                        >
+                          <span class="font-medium text-n-slate-12">
+                            {{ automation.rule_name }}
+                          </span>
+                          <span>
+                            {{ automation.status }}
+                            <template v-if="automation.scheduled_at">
+                              {{
+                                ` - ${new Date(
+                                  automation.scheduled_at
+                                ).toLocaleString()}`
+                              }}
+                            </template>
                           </span>
                           <span
-                            v-for="automation in item.automations"
-                            :key="automation.id"
-                            class="mt-1 grid gap-1 rounded-md bg-n-surface-2 px-2 py-1.5 text-xs text-n-slate-10"
+                            v-if="automation.error_message"
+                            class="text-n-ruby-11"
                           >
-                            <span class="font-medium text-n-slate-12">
-                              {{ automation.rule_name }}
-                            </span>
-                            <span>
-                              {{ automation.status }}
-                              <template v-if="automation.scheduled_at">
-                                {{
-                                  ` - ${new Date(
-                                    automation.scheduled_at
-                                  ).toLocaleString()}`
-                                }}
-                              </template>
-                            </span>
-                            <span
-                              v-if="automation.error_message"
-                              class="text-n-ruby-11"
-                            >
-                              {{ automation.error_message }}
-                            </span>
+                            {{ automation.error_message }}
                           </span>
-                        </template>
-                      </RaevoTimeline>
-                    </template>
-                  </section>
-                </template>
-              </div>
+                        </span>
+                      </template>
+                    </RaevoTimeline>
+                  </template>
+                </section>
+              </template>
             </div>
-          </aside>
+          </div>
         </div>
 
         <p

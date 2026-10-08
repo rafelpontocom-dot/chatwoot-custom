@@ -335,6 +335,7 @@ const mountModal = async ({
   contactFieldKeys = [],
   attributeDefinitions = [],
   attachTo,
+  opportunitySectionOrder = [],
 } = {}) => {
   storeMocks.attributeDefinitions = attributeDefinitions;
   storeMocks.labels = accountLabels;
@@ -387,6 +388,7 @@ const mountModal = async ({
       ],
       canManageFields: true,
       calendarEnabled,
+      opportunitySectionOrder,
     },
     global: {
       stubs: {
@@ -526,17 +528,16 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toBe(false);
   });
 
-  // A ordem é preferência de cada pessoa: quem marca consultas quer a Agenda no
-  // topo, quem cobra quer o Financeiro. Guarda-se em `ui_settings`.
-  describe('side-column order', () => {
+  // A ordem é do FUNIL, das Configurações — decisão do Pedro na noite de
+  // 07/10: «reordenar somente nas configurações». A ficha não reordena.
+  describe('section order', () => {
     const secoesNaOrdem = wrapper =>
       wrapper
         .findAll('[data-testid^="kanban-opportunity-section-"]')
         .map(node => node.attributes('data-testid'))
-        .filter(testid => !/-(up|down)-/.test(testid))
         .map(testid => testid.replace('kanban-opportunity-section-', ''));
 
-    it('starts in the default order', async () => {
+    it('starts in the default order: next action, the field sections, then the rest', async () => {
       FinanceAPI.getProviderConnections.mockResolvedValue({ data: [] });
       const wrapper = await mountModal({
         calendarEnabled: true,
@@ -544,6 +545,8 @@ describe('KanbanOpportunityDetailsModal', () => {
       });
 
       expect(secoesNaOrdem(wrapper)).toEqual([
+        'next-action',
+        'details',
         'contact-details',
         'calendar',
         'finance',
@@ -552,63 +555,52 @@ describe('KanbanOpportunityDetailsModal', () => {
       ]);
     });
 
-    it('follows the order the agent saved', async () => {
-      storeMocks.uiSettings = {
-        kanban_opportunity_sections_order: ['timeline', 'contact-details'],
-      };
-      const wrapper = await mountModal({ calendarEnabled: true });
+    it('follows the order the funnel saved', async () => {
+      const wrapper = await mountModal({
+        calendarEnabled: true,
+        opportunitySectionOrder: ['timeline', 'contact-details'],
+      });
 
       expect(secoesNaOrdem(wrapper)).toEqual([
         'timeline',
         'contact-details',
+        'next-action',
+        'details',
         'calendar',
         'forms',
       ]);
     });
 
-    it('saves the new order when a section is moved down', async () => {
+    it('does not offer to reorder here', async () => {
       const wrapper = await mountModal({ calendarEnabled: true });
 
-      await wrapper
-        .find('[data-testid="kanban-opportunity-section-down-contact-details"]')
-        .trigger('click');
-
-      expect(storeMocks.dispatch).toHaveBeenCalledWith('updateUISettings', {
-        uiSettings: {
-          kanban_opportunity_sections_order: [
-            'calendar',
-            'contact-details',
-            'finance',
-            'forms',
-            'timeline',
-          ],
-        },
-      });
+      expect(wrapper.find('[data-testid*="-section-up-"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid*="-section-down-"]').exists()).toBe(
+        false
+      );
     });
 
-    // Os limites são os da lista VISÍVEL, não os da ordem completa: sem Agenda
-    // nem Financeiro nem Formulários, «Contato» é o primeiro e «Histórico» o
-    // último, e os botões têm de o dizer.
-    it('disables the moves that would fall off the visible list', async () => {
+    it('opens next action and General, and closes a section on click', async () => {
       const wrapper = await mountModal();
+      const cabecalho = key =>
+        wrapper.find(`[data-testid="kanban-opportunity-section-${key}"]`);
 
+      expect(cabecalho('next-action').attributes('aria-expanded')).toBe('true');
+      expect(cabecalho('details').attributes('aria-expanded')).toBe('true');
+      expect(cabecalho('contact-details').attributes('aria-expanded')).toBe(
+        'false'
+      );
+
+      await cabecalho('details').trigger('click');
+
+      expect(cabecalho('details').attributes('aria-expanded')).toBe('false');
       expect(
         wrapper
-          .find('[data-testid="kanban-opportunity-section-up-contact-details"]')
-          .attributes('disabled')
-      ).toBeDefined();
-      expect(
-        wrapper
-          .find('[data-testid="kanban-opportunity-section-down-timeline"]')
-          .attributes('disabled')
-      ).toBeDefined();
-      expect(
-        wrapper
-          .find(
-            '[data-testid="kanban-opportunity-section-down-contact-details"]'
-          )
-          .attributes('disabled')
-      ).toBeUndefined();
+          .find('[data-testid="kanban-opportunity-commercial-group"]')
+          .exists()
+      ).toBe(false);
     });
   });
 
@@ -897,24 +889,110 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.emitted('manageFields')).toHaveLength(1);
   });
 
-  it('renders custom tabs and offers a plus shortcut to create another tab', async () => {
+  // Como no painel de contacto do Chatwoot: o Marketing tem perto de trinta
+  // campos, quase todos vazios. Fica à vista o que tem valor, o que a etapa
+  // exige e o que é importante; o resto fica atrás de «Mostrar mais».
+  describe('empty fields', () => {
+    const definicoes = [
+      {
+        key: 'origem',
+        label: 'Origem',
+        fieldType: 'text',
+        layout: { section: 'marketing' },
+      },
+      {
+        key: 'utm_term',
+        label: 'utm_term',
+        fieldType: 'text',
+        layout: { section: 'marketing' },
+      },
+      {
+        key: 'gclid',
+        label: 'gclid',
+        fieldType: 'text',
+        layout: { section: 'marketing' },
+      },
+      {
+        key: 'procedimento',
+        label: 'Procedimento',
+        fieldType: 'text',
+        requiredStageIds: [1],
+        layout: { section: 'marketing' },
+      },
+    ];
+    const abrirMarketing = async wrapper => {
+      await wrapper
+        .find('[data-testid="kanban-opportunity-section-marketing"]')
+        .trigger('click');
+    };
+    const linha = (wrapper, key) =>
+      wrapper.find(`[data-testid="kanban-row-${key}"]`);
+
+    it('hides them behind a button that says how many there are', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({
+          kanbanStageId: 1,
+          customFieldValues: { origem: 'Meta Ads' },
+        }),
+        customFieldDefinitions: definicoes,
+      });
+      await abrirMarketing(wrapper);
+
+      expect(linha(wrapper, 'origem').exists()).toBe(true);
+      expect(linha(wrapper, 'utm_term').exists()).toBe(false);
+      const botao = wrapper.find(
+        '[data-testid="kanban-opportunity-show-more-marketing"]'
+      );
+      expect(botao.attributes('aria-expanded')).toBe('false');
+
+      await botao.trigger('click');
+
+      expect(linha(wrapper, 'utm_term').exists()).toBe(true);
+      expect(linha(wrapper, 'gclid').exists()).toBe(true);
+    });
+
+    it('keeps an empty field the current stage requires in sight', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+        customFieldDefinitions: definicoes,
+      });
+      await abrirMarketing(wrapper);
+
+      expect(linha(wrapper, 'procedimento').exists()).toBe(true);
+      expect(linha(wrapper, 'gclid').exists()).toBe(false);
+    });
+  });
+
+  it('lists the sections the clinic created, in the same list', async () => {
     const wrapper = await mountModal({
+      customFieldDefinitions: [
+        {
+          key: 'dente',
+          label: 'Dente',
+          fieldType: 'text',
+          layout: { section: 'consulta' },
+        },
+        {
+          key: 'origem',
+          label: 'Origem',
+          fieldType: 'text',
+          layout: { section: 'marketing' },
+        },
+      ],
       customFieldSections: [{ key: 'consulta', label: 'Consulta' }],
     });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-consulta"]').text()
+      wrapper.find('[data-testid="kanban-opportunity-section-consulta"]').text()
     ).toBe('Consulta');
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-marketing"]').text()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-marketing"]')
+        .text()
     ).toBe('Marketing');
-    await wrapper
-      .find('[data-testid="kanban-opportunity-add-tab"]')
-      .trigger('click');
-
-    expect(wrapper.emitted('manageFields').at(-1)).toEqual([
-      { action: 'newTab' },
-    ]);
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-add-tab"]').exists()
+    ).toBe(false);
   });
 
   it('shows the read-only IA tab when the board has IA fields and the runtime is inactive', async () => {
@@ -945,7 +1023,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       customFieldSections: [{ key: 'ai', label: 'IA' }],
     });
     await inactive
-      .find('[data-testid="kanban-opportunity-tab-ai"]')
+      .find('[data-testid="kanban-opportunity-section-ai"]')
       .trigger('click');
 
     expect(
@@ -982,40 +1060,12 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     expect(
-      wrapper.findAll('[data-testid="kanban-opportunity-tab-details"]')
+      wrapper.findAll('[data-testid="kanban-opportunity-section-details"]')
     ).toHaveLength(1);
     expect(
-      wrapper.findAll('[data-testid="kanban-opportunity-tab-marketing"]')
+      wrapper.findAll('[data-testid="kanban-opportunity-section-marketing"]')
     ).toHaveLength(1);
     expect(wrapper.text()).not.toContain('Detail');
-  });
-
-  it('links the active opportunity tab to its content panel', async () => {
-    const wrapper = await mountModal();
-    const detailsTab = wrapper.find(
-      '[data-testid="kanban-opportunity-tab-details"]'
-    );
-    const layout = wrapper.find('[data-testid="kanban-opportunity-layout"]');
-
-    expect(detailsTab.attributes('aria-controls')).toBe(
-      'kanban-opportunity-tab-panel'
-    );
-    expect(layout.attributes('role')).toBe('tabpanel');
-    expect(layout.attributes('aria-labelledby')).toBe(
-      'kanban-opportunity-tab-details'
-    );
-  });
-
-  it('navigates opportunity tabs with the keyboard', async () => {
-    const wrapper = await mountModal();
-
-    const abas = wrapper
-      .findAll('[data-testid^="kanban-opportunity-tab-"]')
-      .filter(aba => aba.attributes('role') === 'tab');
-
-    await abas[0].trigger('keydown', { key: 'ArrowRight' });
-
-    expect(abas[1].attributes('aria-selected')).toBe('true');
   });
 
   it('loads detail through showCardById', async () => {
@@ -1146,13 +1196,6 @@ describe('KanbanOpportunityDetailsModal', () => {
   // Pipeline, 571px de abas em 197px úteis — 374px invisíveis, sem seta nem
   // contagem. Agora o que não cabe desce para «+N mais». O que esta asserção
   // trava é o que continua proibido nos dois casos: crescer em altura.
-  it('never lets the tab strip grow in height', async () => {
-    const wrapper = await mountModal();
-    const tiras = wrapper.find('[role="tablist"]');
-
-    expect(tiras.classes()).not.toContain('flex-wrap');
-    expect(tiras.classes()).toContain('overflow-hidden');
-  });
 
   // O bloco «Últimos eventos» gastava 104px do painel para mostrar UM evento e um
   // link «Ver histórico completo» — para o separador Histórico, que está na
@@ -1175,13 +1218,6 @@ describe('KanbanOpportunityDetailsModal', () => {
   // O `+` de criar secção morava no MEIO da tira, entre as abas e o Histórico
   // preso à direita — lia-se como se pertencesse ao Histórico. Sem transbordo
   // fica no fim da tira; com transbordo desce para o fim do menu.
-  it('puts the add-section control at the end of the strip', async () => {
-    const wrapper = await mountModal();
-    const botoes = wrapper.findAll('nav button');
-    const ultimo = botoes[botoes.length - 1];
-
-    expect(ultimo.attributes('data-testid')).toBe('kanban-opportunity-add-tab');
-  });
 
   it('keeps drawer content in one column so the commercial context cannot overlap fields', async () => {
     const wrapper = await mountModal();
@@ -1515,23 +1551,23 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-details"]').text()
+      wrapper.find('[data-testid="kanban-opportunity-section-details"]').text()
     ).toContain('General');
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-marketing"]').text()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-marketing"]')
+        .text()
     ).toContain('Marketing');
     expect((await customFieldInput(wrapper, 'qualificacao')).exists()).toBe(
       true
     );
+    // O Marketing nasce fechado: o campo só existe depois de se abrir a secção.
     expect((await customFieldInput(wrapper, 'gclid')).exists()).toBe(false);
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-marketing"]')
+      .find('[data-testid="kanban-opportunity-section-marketing"]')
       .trigger('click');
 
-    expect((await customFieldInput(wrapper, 'qualificacao')).exists()).toBe(
-      false
-    );
     expect((await customFieldInput(wrapper, 'gclid')).element.value).toBe(
       'google-click-123'
     );
@@ -1558,11 +1594,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-consulta"]')
+      .find('[data-testid="kanban-opportunity-section-consulta"]')
       .trigger('click');
 
     const group = wrapper.find(
-      '[data-testid="kanban-opportunity-custom-fields"] section'
+      '[data-testid="kanban-opportunity-custom-fields-consulta"] section'
     );
     expect(group.text()).toContain('Agenda');
     expect(group.classes()).toContain('border-l-2');
@@ -1609,11 +1645,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-financeiro"]')
+      .find('[data-testid="kanban-opportunity-section-financeiro"]')
       .trigger('click');
 
     const customFields = wrapper.find(
-      '[data-testid="kanban-opportunity-custom-fields"]'
+      '[data-testid="kanban-opportunity-custom-fields-financeiro"]'
     );
     expect(customFields.text()).toContain('Como será pago?');
     expect(customFields.text()).toContain('O pagamento aconteceu?');
@@ -2563,9 +2599,6 @@ describe('KanbanOpportunityDetailsModal', () => {
     await openLabels(wrapper);
     await saveLabelsButton(wrapper).trigger('click');
     await flushPromises();
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-details"]')
-      .trigger('click');
 
     expect(subjectInput(wrapper).element.value).toBe('Modified subject');
     expect(descriptionInput(wrapper).element.value).toBe(
@@ -2588,6 +2621,10 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
     const footer = () =>
       wrapper.find('[data-testid="kanban-opportunity-save-bar"]');
+    // Vazio, o campo está atrás de «Mostrar mais».
+    await wrapper
+      .find('[data-testid="kanban-opportunity-show-more-details"]')
+      .trigger('click');
     const campo = await customFieldInput(wrapper, 'observacao_venda');
 
     await campo.setValue('Pagou sinal');

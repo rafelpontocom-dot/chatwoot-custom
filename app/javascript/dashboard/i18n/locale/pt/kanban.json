@@ -853,7 +853,9 @@
         "PREVIEW_HIDDEN": "{count} campos condicionais só aparecem quando a condição se cumpre.",
         "PREVIEW_CALCULATED": "calculado",
         "PREVIEW_HALF_MARK": "½",
-        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade"
+        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade",
+        "PANEL_ORDER_TITLE": "Ordem no painel",
+        "PANEL_ORDER_HELP": "A ordem das secções na ficha da oportunidade, igual para toda a equipa. Na ficha já não se reordena."
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
@@ -1550,6 +1552,8 @@
       },
       "OWNER_NONE": "Sem responsável",
       "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança.",
+      "SHOW_MORE_FIELDS": "Mostrar mais {count} campos",
+      "SHOW_FEWER_FIELDS": "Mostrar menos campos",
       "BOOLEAN_YES": "Sim",
       "BOOLEAN_NO": "Não",
       "AMOUNT_HEADLINE_ESTIMATE": "estimativa",

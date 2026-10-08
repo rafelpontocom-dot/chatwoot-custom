@@ -154,6 +154,9 @@ const onUpdated = () => loadCards({ silent: true });
             boardSettings.custom_field_definitions || []
           "
           :custom-field-sections="boardSettings.custom_field_sections || []"
+          :opportunity-section-order="
+            boardSettings.opportunity_section_order || []
+          "
           :contact-field-keys="boardSettings.contact_field_keys || []"
           :calendar-enabled="boardSettings.calendar_enabled"
           :calendar-booking-stage-ids="

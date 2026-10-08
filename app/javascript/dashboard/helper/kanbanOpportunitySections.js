@@ -1,12 +1,11 @@
 /**
- * A ORDEM das secções da coluna da direita da oportunidade.
+ * A ORDEM das secções da ficha da oportunidade.
  *
- * Mora aqui, e não dentro do diálogo, por duas razões. A primeira é que isto é
- * uma preferência GRAVADA: tem de sobreviver a uma secção que deixe de existir
- * numa versão futura, a uma chave repetida e a lixo gravado à mão — e uma lista
- * com uma chave que o produto não conhece desenharia uma secção vazia. A
- * segunda é que o diálogo tem mais de três mil linhas, onde uma regra destas
- * desaparece sem teste.
+ * É uma configuração do funil (`opportunity_section_order`), mudada nas
+ * Configurações — a ficha não reordena. Mora aqui, e não dentro do diálogo,
+ * porque é uma ordem GRAVADA: tem de sobreviver a uma secção que se crie ou
+ * apague depois, a uma chave repetida e a lixo gravado à mão — e uma lista com
+ * uma chave que o produto não conhece desenharia uma secção vazia.
  */
 export const DEFAULT_OPPORTUNITY_SECTION_ORDER = Object.freeze([
   'contact-details',
@@ -15,6 +14,20 @@ export const DEFAULT_OPPORTUNITY_SECTION_ORDER = Object.freeze([
   'forms',
   'timeline',
 ]);
+
+/**
+ * Todas as secções da ficha, na ordem de origem: a próxima ação, as secções de
+ * campos do funil (Geral, Marketing e as que a clínica criar, pela ordem das
+ * Configurações) e as secções fixas.
+ *
+ * @param {Array<string>} fieldSectionKeys chaves das secções de campos
+ * @returns {Array<string>}
+ */
+export const opportunityPanelSections = (fieldSectionKeys = []) => [
+  'next-action',
+  ...fieldSectionKeys,
+  ...DEFAULT_OPPORTUNITY_SECTION_ORDER,
+];
 
 const chaveDe = item => (typeof item === 'string' ? item : item?.name);
 

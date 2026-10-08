@@ -3010,6 +3010,9 @@ onUnmounted(() => {
           :lost-reason-options="selectedBoard.lostReasonOptions || []"
           :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           :custom-field-sections="selectedBoard.customFieldSections || []"
+          :opportunity-section-order="
+            selectedBoard.opportunitySectionOrder || []
+          "
           :contact-field-keys="selectedBoard.contactFieldKeys || []"
           :calendar-enabled="selectedBoard.calendarEnabled"
           :calendar-booking-stage-ids="

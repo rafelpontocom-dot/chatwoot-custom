@@ -850,7 +850,9 @@
         "STANDARD_FIELD_NO_OPTIONS": "No options to set",
         "LOST_REASON_WHERE": "Appears when an opportunity is marked as lost.",
         "NATIVE_TABS_NOTE": "Contact, Calendar, Finance and Forms also appear on the opportunity, but they show their own data and have no fields to define here.",
-        "FIELD_SCOPE_OPPORTUNITY": "Opportunity fields"
+        "FIELD_SCOPE_OPPORTUNITY": "Opportunity fields",
+        "PANEL_ORDER_TITLE": "Order in the panel",
+        "PANEL_ORDER_HELP": "The order of the sections in the opportunity, for the whole team. The opportunity itself no longer reorders."
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",
@@ -1538,6 +1540,8 @@
       },
       "OWNER_NONE": "No owner",
       "FIELD_AMOUNT_HINT": "Sale forecast, not the charge.",
+      "SHOW_MORE_FIELDS": "Show {count} more fields",
+      "SHOW_FEWER_FIELDS": "Show fewer fields",
       "BOOLEAN_YES": "Yes",
       "BOOLEAN_NO": "No",
       "ADD_ATTRIBUTE": "Add a field",
