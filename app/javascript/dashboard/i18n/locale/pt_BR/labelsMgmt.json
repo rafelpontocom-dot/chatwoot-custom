@@ -15,10 +15,12 @@
       "DESC": "Etiquetas permitem agrupar as conversas.",
       "TABLE_HEADER": {
         "NAME": "Nome",
+        "VISIBILITY": "Quem vê",
         "DESCRIPTION": "Descrição",
         "COLOR": "Cor",
         "ACTION": "Ações"
-      }
+      },
+      "VISIBILITY_TEAM": "Time: {team}"
     },
     "FORM": {
       "NAME": {

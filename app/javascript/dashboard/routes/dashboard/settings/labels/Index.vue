@@ -3,6 +3,7 @@ import { useAlert } from 'dashboard/composables';
 import { computed, onBeforeMount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreGetters, useStore } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { picoSearch } from '@chatwoot/pico-search';
 
 import AddLabel from './AddLabel.vue';
@@ -28,6 +29,41 @@ const selectedLabel = ref({});
 const searchQuery = ref('');
 
 const records = computed(() => getters['labels/getLabels'].value);
+
+// RAEVO (08/10, cartão 123jpnbcb5p). O agente entra aqui para gerir as SUAS:
+// a lista já vem filtrada pelo servidor (as de todos, as dos times dele e as
+// pessoais dele), e só nas pessoais dele há editar e apagar — o mesmo que o
+// `LabelPolicy` deixa. Reordenar mexe na lista de toda a conta: só o admin.
+const { isAdmin } = useAdmin();
+const currentUserId = computed(() => getters.getCurrentUserID.value);
+const canManage = label =>
+  isAdmin.value ||
+  (label.visibility === 'personal' &&
+    Number(label.created_by_id) === Number(currentUserId.value));
+
+// Quem vê cada etiqueta, por extenso e com ícone: a cor sozinha não diz nada.
+const teams = computed(() => getters['teams/getTeams'].value || []);
+const visibilityOf = label => {
+  if (label.visibility === 'personal') {
+    return {
+      icon: 'i-lucide-lock',
+      text: t('LABEL_MGMT.FORM.VISIBILITY.PERSONAL'),
+    };
+  }
+  if (label.visibility === 'team') {
+    const team = teams.value.find(item => item.id === label.team_id);
+    return {
+      icon: 'i-lucide-users',
+      text: t('LABEL_MGMT.LIST.VISIBILITY_TEAM', {
+        team: team?.name || label.team_id,
+      }),
+    };
+  }
+  return {
+    icon: 'i-lucide-globe',
+    text: t('LABEL_MGMT.FORM.VISIBILITY.GLOBAL'),
+  };
+};
 
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim();
@@ -104,6 +140,7 @@ const moveLabel = async (index, offset) => {
 const tableHeaders = computed(() => {
   return [
     t('LABEL_MGMT.LIST.TABLE_HEADER.NAME'),
+    t('LABEL_MGMT.LIST.TABLE_HEADER.VISIBILITY'),
     t('LABEL_MGMT.LIST.TABLE_HEADER.DESCRIPTION'),
     t('LABEL_MGMT.LIST.TABLE_HEADER.COLOR'),
     t('LABEL_MGMT.LIST.TABLE_HEADER.ACTION'),
@@ -112,6 +149,7 @@ const tableHeaders = computed(() => {
 
 onBeforeMount(() => {
   store.dispatch('labels/get');
+  store.dispatch('teams/get');
 });
 </script>
 
@@ -167,6 +205,20 @@ onBeforeMount(() => {
               </BaseTableCell>
 
               <BaseTableCell>
+                <span
+                  :data-testid="`label-visibility-${label.title}`"
+                  class="inline-flex items-center gap-1.5 text-body-main text-n-slate-11"
+                >
+                  <span
+                    aria-hidden="true"
+                    class="size-3.5 shrink-0"
+                    :class="visibilityOf(label).icon"
+                  />
+                  {{ visibilityOf(label).text }}
+                </span>
+              </BaseTableCell>
+
+              <BaseTableCell>
                 <span class="text-body-main text-n-slate-11">
                   {{ label.description }}
                 </span>
@@ -187,6 +239,7 @@ onBeforeMount(() => {
               <BaseTableCell align="end">
                 <div class="flex gap-3 justify-end flex-shrink-0">
                   <Button
+                    v-if="isAdmin"
                     v-tooltip.top="
                       canReorder
                         ? $t('LABEL_MGMT.REORDER.MOVE_UP')
@@ -200,6 +253,7 @@ onBeforeMount(() => {
                     @click="moveLabel(index, -1)"
                   />
                   <Button
+                    v-if="isAdmin"
                     v-tooltip.top="
                       canReorder
                         ? $t('LABEL_MGMT.REORDER.MOVE_DOWN')
@@ -213,7 +267,9 @@ onBeforeMount(() => {
                     @click="moveLabel(index, 1)"
                   />
                   <Button
+                    v-if="canManage(label)"
                     v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
+                    :data-testid="`label-edit-${label.title}`"
                     icon="i-woot-edit-pen"
                     slate
                     sm
@@ -221,7 +277,9 @@ onBeforeMount(() => {
                     @click="openEditPopup(label)"
                   />
                   <Button
+                    v-if="canManage(label)"
                     v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
+                    :data-testid="`label-delete-${label.title}`"
                     icon="i-woot-bin"
                     slate
                     sm

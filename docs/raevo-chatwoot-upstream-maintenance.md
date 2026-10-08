@@ -143,7 +143,7 @@ se a adaptação se perder. Cada alteração no ficheiro nativo leva um comentá
 | `conversation/ContactPanel.vue` | a secção «Oportunidades» usa `KanbanConversationCards` (só criar + linha que leva ao funil) | `conversation-sidebar-native` · `ContactPanel.spec.js` |
 | `conversation/labels/LabelBox.vue` | o atalho de etiquetas oferece **criar** a qualquer pessoa, não só ao administrador (a do agente nasce pessoal, no servidor) | `conversation-sidebar-native` · `LabelBox.spec.js` |
 | `conversation/Macros/List.vue` | com macros já criadas, um link «Adicionar uma nova macro» no fim da lista, para `settings/macros/new` (08/10, cartão 123jpnbcb55) | `conversation-sidebar-native` · `Macros/specs/List.spec.js` |
-| `settings/labels/*`, `store/modules/labels.js`, `labels_controller.rb` | ordem manual, visibilidade (de todos / time / só minha) e `code: 'title_taken'` para nome repetido | `labels-manual-order` · `labels_controller_spec.rb` |
+| `settings/labels/*`, `store/modules/labels.js`, `labels_controller.rb` | ordem manual, visibilidade (de todos / time / só minha), `code: 'title_taken'` para nome repetido; a tela abre ao **agente** (rota com `ROLES` + `CONVERSATION_PERMISSIONS`), que só edita/apaga as pessoais dele, e a lista ganhou a coluna «Quem vê» | `labels-manual-order` · `labels_controller_spec.rb`, `settings/labels/specs/Index.spec.js` |
 
 Ao resolver um destes ficheiros: aceitar a versão nova do upstream e **reaplicar só o bloco marcado
 `RAEVO`**. Nunca copiar o ficheiro antigo por cima — perde-se o que o upstream corrigiu.
