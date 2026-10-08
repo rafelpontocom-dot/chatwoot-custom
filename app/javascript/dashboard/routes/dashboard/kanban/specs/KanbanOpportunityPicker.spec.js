@@ -1122,6 +1122,44 @@ describe('KanbanOpportunityPicker', () => {
         expect(wrapper.emitted('created')).toBeTruthy();
       });
 
+      // O servidor manda `options: []` para booleanos. Desenhado como as outras
+      // listas, o campo só tinha «Selecione um valor» e a criação voltava a
+      // ser impossível — visto no browser a 08/10.
+      it('offers yes and no for a required boolean, and accepts no', async () => {
+        KanbanBoardsAPI.createManualCard.mockRejectedValueOnce({
+          response: {
+            data: {
+              missing_fields: ['consentimento'],
+              field_definitions: [
+                {
+                  key: 'consentimento',
+                  label: 'Consentimento',
+                  field_type: 'boolean',
+                  options: [],
+                },
+              ],
+            },
+          },
+        });
+        KanbanBoardsAPI.createManualCard.mockResolvedValue({ data: {} });
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+        const campo = wrapper.find(
+          '[data-testid="kanban-manual-card-field-consentimento"]'
+        );
+        expect(campo.findAll('option:not([disabled])')).toHaveLength(2);
+
+        await campo.setValue('false');
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).toHaveBeenLastCalledWith(10, {
+          card: expect.objectContaining({
+            custom_field_values: { consentimento: false },
+          }),
+        });
+      });
+
       it('does not ask the server again while a required field is empty', async () => {
         recusaComCampos();
         const wrapper = await prepararFormulario();

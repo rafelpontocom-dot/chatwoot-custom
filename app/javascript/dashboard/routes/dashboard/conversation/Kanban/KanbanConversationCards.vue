@@ -1,11 +1,19 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import { getKanbanStageColorClass } from 'dashboard/helper/kanbanStageColors';
+import { requiredFieldOptions } from 'dashboard/helper/kanbanRequiredFields';
 import LabelDropdown from 'shared/components/ui/label/LabelDropdown.vue';
 import { messageStamp } from 'shared/helpers/timeHelper';
 import { emitter } from 'shared/helpers/mitt';
@@ -678,6 +686,13 @@ const submitForm = async () => {
       createError.value = t(
         'CONVERSATION_SIDEBAR.KANBAN.REQUIRED_FIELDS_PENDING'
       );
+      // Os campos aparecem DEPOIS do clique; sem isto o foco ficava no <body>.
+      await nextTick();
+      document
+        .querySelector(
+          `[data-testid="kanban-create-field-${responseData.missing_fields[0]}"]`
+        )
+        ?.focus();
     } else {
       createError.value = getErrorMessage(
         error,
@@ -1000,11 +1015,11 @@ onBeforeUnmount(() => {
               {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_VALUE') }}
             </option>
             <option
-              v-for="option in definition.options || []"
-              :key="String(option)"
-              :value="option"
+              v-for="option in requiredFieldOptions(definition, t)"
+              :key="String(option.value)"
+              :value="option.value"
             >
-              {{ option }}
+              {{ option.label }}
             </option>
           </select>
           <input
@@ -1017,7 +1032,7 @@ onBeforeUnmount(() => {
         </label>
       </div>
 
-      <p v-if="createError" class="m-0 text-xs text-n-ruby-11">
+      <p v-if="createError" class="m-0 text-xs text-n-ruby-11" role="alert">
         {{ createError }}
       </p>
 

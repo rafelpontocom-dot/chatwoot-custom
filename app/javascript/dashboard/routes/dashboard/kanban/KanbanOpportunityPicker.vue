@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onUnmounted } from 'vue';
+import { computed, nextTick, ref, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import camelcaseKeys from 'camelcase-keys';
 import parsePhoneNumber from 'libphonenumber-js';
@@ -10,6 +10,7 @@ import { useStore } from 'dashboard/composables/store';
 import ContactAPI from 'dashboard/api/contacts';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
+import { requiredFieldOptions } from 'dashboard/helper/kanbanRequiredFields';
 
 const props = defineProps({
   kanbanBoardId: {
@@ -458,6 +459,14 @@ const createManualOpportunity = async () => {
         responseData.missing_fields.map(key => [key, ''])
       );
       creationError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
+      // Os campos aparecem DEPOIS do clique, e o foco ficava no <body>: quem usa
+      // o teclado não sabia que havia o que preencher nem onde.
+      await nextTick();
+      document
+        .querySelector(
+          `[data-testid="kanban-manual-card-field-${responseData.missing_fields[0]}"]`
+        )
+        ?.focus();
     } else {
       creationError.value = getErrorMessage(error);
     }
@@ -669,6 +678,7 @@ onUnmounted(() => {
               v-for="definition in requiredFieldDefinitions"
               :key="definition.key"
               :label="definition.label || definition.key"
+              :variant="isRequiredFieldSelect(definition) ? 'select' : 'input'"
             >
               <template #default="{ controlClass, fieldId }">
                 <select
@@ -682,11 +692,11 @@ onUnmounted(() => {
                     {{ t('KANBAN.ASSISTED_MOVE.SELECT_VALUE') }}
                   </option>
                   <option
-                    v-for="option in definition.options || []"
-                    :key="String(option)"
-                    :value="option"
+                    v-for="option in requiredFieldOptions(definition, t)"
+                    :key="String(option.value)"
+                    :value="option.value"
                   >
-                    {{ option }}
+                    {{ option.label }}
                   </option>
                 </select>
                 <input

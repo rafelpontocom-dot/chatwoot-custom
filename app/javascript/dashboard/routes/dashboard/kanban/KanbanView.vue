@@ -17,6 +17,7 @@ import {
   isNeutralStageColor,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
+import { requiredFieldOptions } from 'dashboard/helper/kanbanRequiredFields';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
@@ -2942,11 +2943,14 @@ onUnmounted(() => {
               {{ t('KANBAN.ASSISTED_MOVE.SELECT_VALUE') }}
             </option>
             <option
-              v-for="option in assistedFieldDefinition(fieldKey)?.options || []"
-              :key="String(option)"
-              :value="option"
+              v-for="option in requiredFieldOptions(
+                assistedFieldDefinition(fieldKey),
+                t
+              )"
+              :key="String(option.value)"
+              :value="option.value"
             >
-              {{ option }}
+              {{ option.label }}
             </option>
           </select>
           <input
