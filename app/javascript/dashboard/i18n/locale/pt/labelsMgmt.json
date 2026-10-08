@@ -15,7 +15,6 @@
       "DESC": "As etiquetas permitem agrupar conversas.",
       "TABLE_HEADER": {
         "NAME": "Nome:",
-        "VISIBILITY": "Quem vê",
         "DESCRIPTION": "Descrição",
         "COLOR": "Cor",
         "ACTION": "Ações"

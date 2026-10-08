@@ -140,7 +140,6 @@ const moveLabel = async (index, offset) => {
 const tableHeaders = computed(() => {
   return [
     t('LABEL_MGMT.LIST.TABLE_HEADER.NAME'),
-    t('LABEL_MGMT.LIST.TABLE_HEADER.VISIBILITY'),
     t('LABEL_MGMT.LIST.TABLE_HEADER.DESCRIPTION'),
     t('LABEL_MGMT.LIST.TABLE_HEADER.COLOR'),
     t('LABEL_MGMT.LIST.TABLE_HEADER.ACTION'),
@@ -198,20 +197,21 @@ onBeforeMount(() => {
             :item="label"
           >
             <template #default>
+              <!--
+                RAEVO: quem vê vai por baixo do nome, não em coluna. Em coluna,
+                a 390px empurrava o editar/apagar do agente para fora do ecrã.
+              -->
               <BaseTableCell>
                 <span class="text-body-main text-n-slate-12">
                   {{ label.title }}
                 </span>
-              </BaseTableCell>
-
-              <BaseTableCell>
                 <span
                   :data-testid="`label-visibility-${label.title}`"
-                  class="inline-flex items-center gap-1.5 text-body-main text-n-slate-11"
+                  class="flex items-center gap-1 mt-0.5 text-xs text-n-slate-11"
                 >
                   <span
                     aria-hidden="true"
-                    class="size-3.5 shrink-0"
+                    class="size-3 shrink-0"
                     :class="visibilityOf(label).icon"
                   />
                   {{ visibilityOf(label).text }}

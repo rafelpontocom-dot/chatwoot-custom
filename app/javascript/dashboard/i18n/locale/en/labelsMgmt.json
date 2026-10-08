@@ -15,7 +15,6 @@
       "DESC": "Labels let you group the conversations together.",
       "TABLE_HEADER": {
         "NAME": "Name",
-        "VISIBILITY": "Visibility",
         "DESCRIPTION": "Description",
         "COLOR": "Color",
         "ACTION": "Actions"
