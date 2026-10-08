@@ -559,9 +559,14 @@ const dataLocal = valor => {
   if (!valor) return '';
   const d = new Date(valor);
   if (Number.isNaN(d.getTime())) return valor;
+  // 123jpnbcb5d: uma data sem hora («2026-10-23») é lida como meia-noite UTC;
+  // no fuso do browser, em São Paulo, virava 22/10. Sem hora, mostra-se em UTC,
+  // que é o dia gravado.
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'short',
-    ...(String(valor).includes('T') ? { timeStyle: 'short' } : {}),
+    ...(String(valor).includes('T')
+      ? { timeStyle: 'short' }
+      : { timeZone: 'UTC' }),
   }).format(d);
 };
 const nextActionAtDisplay = computed(() => dataLocal(nextActionAt.value));

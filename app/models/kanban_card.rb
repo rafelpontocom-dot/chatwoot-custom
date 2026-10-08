@@ -147,6 +147,7 @@ class KanbanCard < ApplicationRecord
   before_validation :reset_next_action_completion, if: :next_action_details_changed?
   before_validation :append_next_action_history, if: :next_action_completion_changed?
   before_validation :set_stage_entered_at, if: :stage_entry_timestamp_required?
+  before_create :predict_expected_close_date, if: :expected_close_date_predictable?
   after_create :record_creation_event
   after_update :record_commercial_events
 
@@ -580,6 +581,21 @@ class KanbanCard < ApplicationRecord
 
   def set_stage_entered_at
     self.stage_entered_at = Time.current
+  end
+
+  def expected_close_date_predictable?
+    expected_close_date.nil? && won_at.nil? && lost_at.nil?
+  end
+
+  # 123jpnbcb5d: a previsão de fechamento nasce do tempo médio até ganhar neste
+  # funil, nos últimos 12 meses, e fica editável. Sem ganhos não há base: fica
+  # vazia em vez de inventar uma data. Cobre todos os caminhos que criam cartões.
+  def predict_expected_close_date
+    average_seconds = KanbanCard.where(kanban_board_id: kanban_board_id, won_at: 12.months.ago..)
+                                .pick(Arel.sql('AVG(EXTRACT(EPOCH FROM (won_at - created_at)))'))
+    return if average_seconds.nil?
+
+    self.expected_close_date = Time.zone.today + (average_seconds.to_f / 1.day).round
   end
 
   def validate_manual_uniqueness?

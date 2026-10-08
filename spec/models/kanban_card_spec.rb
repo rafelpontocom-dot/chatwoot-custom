@@ -79,6 +79,48 @@ RSpec.describe KanbanCard do
     end
   end
 
+  # RAEVO (08/10, 123jpnbcb5d): a previsão nasce do tempo médio até ganhar no mesmo funil.
+  describe 'expected close date prediction' do
+    let(:board) { create(:kanban_board) }
+    let(:stage) { create(:kanban_stage, account: board.account, kanban_board: board) }
+
+    it 'fills a new open card with today plus the average days to win on the same board' do
+      travel_to Time.zone.parse('2026-10-08 12:00') do
+        create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                             created_at: 40.days.ago, won_at: 30.days.ago)
+        create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                             created_at: 50.days.ago, won_at: 30.days.ago)
+
+        card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage)
+
+        expect(card.expected_close_date).to eq(Date.new(2026, 10, 23))
+      end
+    end
+
+    it 'keeps a date the person chose' do
+      create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                           created_at: 20.days.ago, won_at: 10.days.ago)
+
+      card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                                  expected_close_date: Date.new(2026, 12, 1))
+
+      expect(card.expected_close_date).to eq(Date.new(2026, 12, 1))
+    end
+
+    it 'leaves the date empty without wins on this board in the last twelve months' do
+      other_board = create(:kanban_board, account: board.account)
+      create(:kanban_card, account: board.account, kanban_board: other_board,
+                           kanban_stage: create(:kanban_stage, account: board.account, kanban_board: other_board),
+                           created_at: 20.days.ago, won_at: 10.days.ago)
+      create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                           created_at: 2.years.ago, won_at: 2.years.ago + 5.days)
+
+      card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage)
+
+      expect(card.expected_close_date).to be_nil
+    end
+  end
+
   describe 'commercial custom fields' do
     it 'normalizes currency and multiselect values' do
       board = create(
