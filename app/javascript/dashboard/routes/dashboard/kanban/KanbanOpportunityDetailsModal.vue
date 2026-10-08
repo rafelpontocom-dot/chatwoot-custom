@@ -1078,6 +1078,20 @@ const isFormDirty = computed(
   () => !!formSnapshot.value && formSnapshot.value !== serializeFormState()
 );
 
+// Ir para a conversa fecha a ficha (KanbanView). Com alterações por gravar
+// pergunta antes, como o X e o Esc — senão o que se escreveu perdia-se sem aviso.
+// Embutida na conversa, a ficha não fecha, e não há o que perguntar.
+const pendingLeave = ref(null);
+const leaveFor = action => {
+  if (props.embedded || !isFormDirty.value) {
+    action();
+    return;
+  }
+
+  pendingLeave.value = action;
+  showUnsavedChanges.value = true;
+};
+
 const setFormState = payload => {
   card.value = normalizeCard(payload);
   showRequiredErrors.value = false;
@@ -1330,7 +1344,7 @@ const formatFormInvitationDate = value => {
 const sendFormsInvitationLink = url => {
   if (!hasConversation.value || !url) return;
 
-  emit('sendFormLink', { card: card.value, url });
+  leaveFor(() => emit('sendFormLink', { card: card.value, url }));
 };
 
 const openFinancePaymentDetails = payment => {
@@ -1383,7 +1397,7 @@ const financeStatusLabel = status => {
 const sendFinancePaymentLink = payment => {
   if (!hasConversation.value || !payment.invoice_url) return;
 
-  emit('sendPaymentLink', { card: card.value, payment });
+  leaveFor(() => emit('sendPaymentLink', { card: card.value, payment }));
 };
 
 const timelineFieldDefinition = key =>
@@ -1749,7 +1763,7 @@ const saveContact = async () => {
 const openConversation = () => {
   if (!hasConversation.value) return;
 
-  emit('openConversation', card.value);
+  leaveFor(() => emit('openConversation', card.value));
 };
 
 const requestClose = event => {
@@ -1761,12 +1775,20 @@ const requestClose = event => {
   event?.preventDefault?.();
   showUnsavedChanges.value = true;
 };
-const keepEditing = () => {
+// Quem abriu a pergunta (X, Esc, conversa, link) recebe o foco de volta ao
+// continuar — sem isto o foco caía no <body> e o teclado recomeçava do topo.
+let unsavedChangesTrigger = null;
+const keepEditing = async () => {
+  pendingLeave.value = null;
   showUnsavedChanges.value = false;
+  await nextTick();
+  unsavedChangesTrigger?.focus?.();
 };
 const discardChanges = () => {
+  const leave = pendingLeave.value || (() => emit('close'));
+  pendingLeave.value = null;
   showUnsavedChanges.value = false;
-  emit('close');
+  leave();
 };
 const trapModalFocus = event => {
   if (event.key !== 'Tab') return;
@@ -1830,6 +1852,7 @@ watch(secoesAbertas, (agora, antes = []) => {
 watch(showUnsavedChanges, async visible => {
   if (!visible) return;
 
+  unsavedChangesTrigger = document.activeElement;
   await nextTick();
   keepEditingButton.value?.focus();
 });

@@ -2185,25 +2185,56 @@ describe('KanbanView drag and drop', () => {
     ).toBe(123);
   });
 
-  it('keeps opportunity details open behind the conversation workspace', async () => {
-    const wrapper = await mountView();
-    const cardComponent = wrapper.findComponent({
-      name: 'KanbanConversationCard',
-    });
+  // Pedro, 08/10 (123jpnbcfr0): por cima da conversa, a ficha tapava a coluna que
+  // se acabou de abrir. Fecha — e o mesmo vale para os links que a ficha manda.
+  it.each([
+    ['openConversation', { conversationId: 123 }],
+    [
+      'sendPaymentLink',
+      {
+        card: { id: 501, conversationId: 123 },
+        payment: { invoice_url: 'https://pay.example/31' },
+      },
+    ],
+    [
+      'sendFormLink',
+      {
+        card: { id: 501, conversationId: 123 },
+        url: 'https://crm.raevo.io/formularios/convites/form-31',
+      },
+    ],
+  ])(
+    'closes opportunity details when %s opens the conversation',
+    async (event, payload) => {
+      const wrapper = await mountView();
+      const cardComponent = wrapper.findComponent({
+        name: 'KanbanConversationCard',
+      });
 
-    cardComponent.vm.$emit('openDetails', { id: 501, conversationId: 123 }, {});
-    await nextTick();
+      cardComponent.vm.$emit(
+        'openDetails',
+        { id: 501, conversationId: 123 },
+        {}
+      );
+      await nextTick();
 
-    const modal = wrapper.findComponent({
-      name: 'KanbanOpportunityDetailsModal',
-    });
-    modal.vm.$emit('openConversation', { conversationId: 123 });
-    await flushPromises();
+      wrapper
+        .findComponent({ name: 'KanbanOpportunityDetailsModal' })
+        .vm.$emit(event, payload);
+      await flushPromises();
 
-    expect(
-      wrapper.findComponent({ name: 'KanbanOpportunityDetailsModal' }).exists()
-    ).toBe(true);
-  });
+      expect(
+        wrapper
+          .findComponent({ name: 'KanbanConversationDrawer' })
+          .props('conversationId')
+      ).toBe(123);
+      expect(
+        wrapper
+          .findComponent({ name: 'KanbanOpportunityDetailsModal' })
+          .exists()
+      ).toBe(false);
+    }
+  );
 });
 
 describe('KanbanView header navigation', () => {

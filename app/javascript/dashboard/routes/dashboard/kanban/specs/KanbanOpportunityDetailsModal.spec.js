@@ -2752,6 +2752,47 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(wrapper.emitted('close')).toHaveLength(1);
   });
+
+  // Abrir a conversa fecha a ficha (123jpnbcfr0). Sem perguntar, o que se
+  // escreveu e não se gravou perdia-se sem aviso — antes sobrevivia por baixo.
+  it('asks before leaving for the conversation with unsaved changes', async () => {
+    const wrapper = await mountModal({ attachTo: document.body });
+
+    await subjectInput(wrapper).setValue('Modified subject');
+    const conversationButton = wrapper.find(
+      '[data-testid="kanban-opportunity-header-open-conversation"]'
+    );
+    conversationButton.element.focus();
+    await conversationButton.trigger('click');
+
+    expect(wrapper.emitted('openConversation')).toBeUndefined();
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-unsaved-changes"]')
+        .exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-keep-editing"]')
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.emitted('openConversation')).toBeUndefined();
+    expect(document.activeElement).toBe(
+      wrapper.find(
+        '[data-testid="kanban-opportunity-header-open-conversation"]'
+      ).element
+    );
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-header-open-conversation"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-discard-changes"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('openConversation')).toHaveLength(1);
+    expect(wrapper.emitted('close')).toBeUndefined();
+  });
 });
 it('does not load or display the legacy follow-up cadence in opportunity details', async () => {
   const wrapper = await mountModal();

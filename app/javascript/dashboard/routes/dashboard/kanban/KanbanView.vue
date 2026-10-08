@@ -1514,8 +1514,16 @@ const onOpportunityTransferred = async ({ boardId, card }) => {
   });
 };
 
-const onOpportunityOpenConversation = card => {
+// Pedro, 08/10 (123jpnbcfr0): a ficha fecha ao dar lugar à conversa — por cima
+// dela tapava a coluna que se acabou de abrir. Alterações por gravar, a ficha
+// pergunta antes de emitir.
+const openConversationFromOpportunity = card => {
+  closeOpportunityDetails();
   openConversation(card, {});
+};
+
+const onOpportunityOpenConversation = card => {
+  openConversationFromOpportunity(card);
 };
 
 const onOpportunitySendPaymentLink = ({ card, payment }) => {
@@ -1528,7 +1536,7 @@ const onOpportunitySendPaymentLink = ({ card, payment }) => {
     .join('\n');
 
   store.dispatch('draftMessages/set', { key, message });
-  openConversation(card, {});
+  openConversationFromOpportunity(card);
 };
 
 const onOpportunitySendFormLink = ({ card, url }) => {
@@ -1539,7 +1547,7 @@ const onOpportunitySendFormLink = ({ card, url }) => {
   const message = [currentDraft, url].filter(Boolean).join('\n');
 
   store.dispatch('draftMessages/set', { key, message });
-  openConversation(card, {});
+  openConversationFromOpportunity(card);
 };
 
 const handleRealtimeCardUpdated = async data => {
