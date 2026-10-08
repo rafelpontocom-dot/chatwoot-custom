@@ -371,6 +371,32 @@ voltar, o sítio é o cabeçalho da ficha.
 Limite conhecido: abaixo de 1024px a Tela 2 não mostra a oportunidade de todo — o painel
 da gaveta é `hidden lg:block` desde antes disto. Empilhar não o resolve.
 
+---
+
+### Quatro propostas à espera de aprovação · 08/10/2026
+
+**Na fila, sem código.** Pedidas pelo Pedro a 08/10, cartões `123jpnbcb5h`, `123jpnbcb5j`,
+`123jpnbcb5n` e `123jpnbcb5m`. Maquetes em Consultório, desktop, telemóvel (390) e estados vazio,
+a carregar e erro: <https://claude.ai/artifact/Wm15SJRwcTt9PoxxLmqFTu>
+
+| Cartão | Tela | Proposta | Para decidir |
+| --- | --- | --- | --- |
+| 5h | ficha › Próxima ação | concluir pede «Como foi?» (resultado) e abre logo a próxima, com «Sem próxima ação» à vista | resultado obrigatório? atalhos «Atendeu · Não atendeu · Pediu retorno» ou só texto? |
+| 5j | ficha › Histórico | linha de números (ações, dias, prazo) e cada ação com prevista/feita, resultado e quem fez; ao ganhar, «Fechou com N ações em D dias» | contar só ações concluídas, ou também conversas e chamadas? |
+| 5n | Contatos › painel › Oportunidades | «Nova oportunidade» no topo da aba e no vazio; o formulário da conversa com o contato já escolhido | qual caixa de entrada fica na oportunidade? |
+| 5m | Agenda | interruptor «Tarefas» (desligado por omissão); tarefa com contorno tracejado e ícone, sem fundo; atrasadas numa linha no topo | por omissão, as tarefas de todos ou só as minhas? |
+
+**O que o código já tem, e encurta o 5h:** o servidor guarda o histórico das ações concluídas
+(`next_action_history`) e aceita uma nota de resultado (`next_action_completion_note`), que a tela
+nunca envia; ao concluir, já limpa a ação antiga. Falta a tela e deixar o campo passar no controlador.
+
+**O 5n mexe numa tela do Chatwoot só por dentro do painel nosso** (`ContactKanbanCards`), que é a
+exceção prevista para painéis nossos; o markup nativo da página do contato não muda.
+
+**Visto ao capturar a Agenda e fora destes cartões:** «Novo agendamento» é um botão-pílula que
+quebra em duas linhas — a regra 4 dá a pílula só ao selo e à pesquisa. Não mexido; a maquete do 5m
+desenha-o a 10px.
+
 ## O processo
 
 Por tela, sempre nesta ordem:
