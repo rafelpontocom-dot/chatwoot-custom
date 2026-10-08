@@ -351,11 +351,25 @@ gaveta aberta. A ficha inteira e o formulário em linha que a tinha substituído
 (`KanbanConversationCards` passou de 1453 para ≈800 linhas). O botão diz «Criar
 oportunidade», não «Adicionar ao Kanban».
 
-**Pedido do Pedro sobre a Tela 2 (ícone de conversa no card), por aprovar:** tudo empilhado
-em lista, como o painel de contacto do Chatwoot — Geral e Marketing incluídos, sem abas.
-Maquete para aprovação antes de implementar, como manda o processo abaixo:
-<https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS> — proposta a 1280px, o painel inteiro
-rolado, e a tela de hoje ao lado.
+**A ficha empilhada — aprovada pelo Pedro na mesma noite, sobre a maquete
+<https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS>, e implementada.** As quatro respostas:
+
+| Pergunta | Decisão |
+| --- | --- |
+| A Tela 1 (clicar no card) também fica em lista? | **Sim** — a mesma peça nas duas telas |
+| Rótulo em cima ou ao lado? | **Como o Chatwoot**: em cima |
+| Campos vazios atrás de «Mostrar mais»? | **Sim** |
+| Onde se reordena? | **Só nas Configurações** — Campos › Ordem no painel, por funil |
+
+O que isto substituiu do aprovado a 07/10, e convém saber: as abas saíram de vez (resolve a
+divergência 2); a coluna deixou de ser «lateral» — é a lista inteira (resolve a 1); o
+Histórico fica numa secção, como os outros (a 4 deixa de se pôr); a ordem passou de
+preferência de cada pessoa a configuração do funil. **E a manchete de valor a 30px saiu**: a
+maquete aprovada não a tem, e ela estava aprovada desde 26/09 na tabela de cima. Se for para
+voltar, o sítio é o cabeçalho da ficha.
+
+Limite conhecido: abaixo de 1024px a Tela 2 não mostra a oportunidade de todo — o painel
+da gaveta é `hidden lg:block` desde antes disto. Empilhar não o resolve.
 
 ## O processo
 
