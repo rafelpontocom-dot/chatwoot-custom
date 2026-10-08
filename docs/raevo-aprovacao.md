@@ -373,9 +373,24 @@ da gaveta é `hidden lg:block` desde antes disto. Empilhar não o resolve.
 
 ---
 
-### Quatro propostas à espera de aprovação · 08/10/2026
+### Quatro propostas aprovadas · 08/10/2026
 
-**Na fila, sem código.** Pedidas pelo Pedro a 08/10, cartões `123jpnbcb5h`, `123jpnbcb5j`,
+**Aprovadas pelo Pedro na mesma noite**, sobre as maquetes abaixo. As perguntas em aberto não
+foram respondidas uma a uma; fica o que a maquete desenha, e cada escolha muda-se sem refazer a tela:
+
+| Cartão | Escolha que fica (a da maquete) |
+| --- | --- |
+| 5h | resultado **opcional**; os atalhos «Atendeu · Não atendeu · Pediu retorno» ficam e preenchem o texto |
+| 5j | conta **só as ações concluídas** (conversas e chamadas não) |
+| 5n | a caixa de entrada é a da **última conversa** do contato |
+| 5m | as tarefas mostradas por omissão são **só as minhas** |
+
+**Pedido junto com a aprovação:** criar a oportunidade quando o contato ainda não existe, na
+mesma tela, com nome e telefone no formato que o Chatwoot reconhece (`+55 81 91234-5678` →
+`+5581912345678`). O formulário já existia no Pipeline desde o cartão 52, mas só aparecia depois
+de uma pesquisa sem resultados.
+
+**Antes da aprovação, na fila sem código.** Pedidas pelo Pedro a 08/10, cartões `123jpnbcb5h`, `123jpnbcb5j`,
 `123jpnbcb5n` e `123jpnbcb5m`. Maquetes em Consultório, desktop, telemóvel (390) e estados vazio,
 a carregar e erro: <https://claude.ai/artifact/Wm15SJRwcTt9PoxxLmqFTu>
 
