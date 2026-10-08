@@ -382,6 +382,7 @@ Rails.application.routes.draw do
               resource :direct_uploads, only: [:create]
               resource :draft_messages, only: [:show, :update, :destroy]
               resources :kanban_cards, only: [:index, :create]
+              resources :whatsapp_group_participants, only: [:index] # RAEVO (08/10, 123jpnbcb4w)
             end
             member do
               post :mute

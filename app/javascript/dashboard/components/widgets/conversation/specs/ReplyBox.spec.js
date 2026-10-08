@@ -2,8 +2,14 @@ import { shallowMount } from '@vue/test-utils';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import { nextTick } from 'vue';
 import { createStore } from 'vuex';
+import { flushPromises } from '@vue/test-utils';
+import WhatsappGroupParticipantsAPI from 'dashboard/api/whatsappGroupParticipants';
 import ReplyBox from '../ReplyBox.vue';
 import WhatsappTemplates from '../WhatsappTemplates/Modal.vue';
+
+vi.mock('dashboard/api/whatsappGroupParticipants', () => ({
+  default: { get: vi.fn() },
+}));
 
 const CHANNELS = [
   { name: 'WhatsApp Cloud', inbox: { channel_type: 'Channel::Whatsapp' } },
@@ -124,6 +130,36 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  // RAEVO (08/10, 123jpnbcb4w): contrato «conversation-reply-group-mentions».
+  describe('WhatsApp group mentions', () => {
+    it('hands the editor the group and whoever wrote in it', async () => {
+      WhatsappGroupParticipantsAPI.get.mockResolvedValue({
+        data: { payload: [{ id: '1@lid', name: 'Ana', mention: '@1@lid' }] },
+      });
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Api' },
+        chat: { meta: { sender: { id: 2, identifier: '1203630@g.us' } } },
+      });
+      await flushPromises();
+
+      expect(editor(wrapper).whatsappGroup).toBe(true);
+      expect(editor(wrapper).whatsappGroupParticipants).toEqual([
+        { id: '1@lid', name: 'Ana', mention: '@1@lid' },
+      ]);
+    });
+
+    it('leaves a conversation with a person as it was', async () => {
+      WhatsappGroupParticipantsAPI.get.mockClear();
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Api' },
+      });
+      await flushPromises();
+
+      expect(editor(wrapper).whatsappGroup).toBe(false);
+      expect(WhatsappGroupParticipantsAPI.get).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Instagram incident restriction', () => {
     it('opens in note mode and restores only the private-note draft', async () => {
       const { wrapper, store } = mountWith({

@@ -134,6 +134,12 @@
         "NEXT_WEEK": "Próxima semana"
       }
     },
+    "WHATSAPP_GROUP_MENTION": {
+      "ALL": "Todos do grupo",
+      "SEARCH_PLACEHOLDER": "Buscar por nome ou número",
+      "EMPTY": "Ninguém escreveu ainda neste grupo",
+      "FROM_HISTORY": "Na lista porque já escreveu neste grupo"
+    },
     "MENTION": {
       "AGENTS": "Agentes",
       "TEAMS": "Times"

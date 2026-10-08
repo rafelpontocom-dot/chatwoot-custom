@@ -192,6 +192,19 @@
       "tests": [
         "spec/models/contact_spec.rb"
       ]
+    },
+    {
+      "id": "conversation-reply-group-mentions",
+      "paths": [
+        "app/javascript/dashboard/components/widgets/WootWriter/Editor.vue",
+        "app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue",
+        "config/routes.rb"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/widgets/WootWriter/specs/EditorWhatsappGroupMentions.spec.js",
+        "app/javascript/dashboard/components/widgets/conversation/specs/ReplyBox.spec.js",
+        "spec/controllers/api/v1/accounts/conversations/whatsapp_group_participants_controller_spec.rb"
+      ]
     }
   ]
 }

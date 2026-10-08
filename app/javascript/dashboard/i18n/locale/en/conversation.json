@@ -175,6 +175,12 @@
         "NEXT_WEEK": "Next week"
       }
     },
+    "WHATSAPP_GROUP_MENTION": {
+      "ALL": "Everyone in the group",
+      "SEARCH_PLACEHOLDER": "Search by name or number",
+      "EMPTY": "Nobody has written in this group yet",
+      "FROM_HISTORY": "Listed because they wrote in this group"
+    },
     "MENTION": {
       "AGENTS": "Agents",
       "TEAMS": "Teams"
