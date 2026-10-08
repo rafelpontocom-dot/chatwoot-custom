@@ -73,7 +73,10 @@ export const actions = {
       commit(types.ADD_LABEL, response.data);
     } catch (error) {
       const errorMessage = error?.response?.data?.message;
-      throw new Error(errorMessage);
+      // O código deixa o ecrã dizer na língua de quem usa porque falhou.
+      throw Object.assign(new Error(errorMessage), {
+        code: error?.response?.data?.code,
+      });
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isCreating: false });
     }
@@ -86,7 +89,9 @@ export const actions = {
       AnalyticsHelper.track(LABEL_EVENTS.UPDATE);
       commit(types.EDIT_LABEL, response.data);
     } catch (error) {
-      throw new Error(error);
+      throw Object.assign(new Error(error), {
+        code: error?.response?.data?.code,
+      });
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isUpdating: false });
     }

@@ -157,6 +157,18 @@ RSpec.describe 'Label API', type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    # O título é único na conta. A resposta era «Title has already been taken»,
+    # em inglês e sem código: o ecrã não tinha como dizer em português o que fazer.
+    it 'answers a taken title with a code the screen can translate' do
+      create(:label, account: account, title: 'so-da-outra', visibility: :personal, created_by: other_agent)
+
+      post "/api/v1/accounts/#{account.id}/labels",
+           headers: owner.create_new_auth_token, params: { title: 'so-da-outra' }, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['code']).to eq('title_taken')
+    end
+
     it 'refuses an agent touching a label that is not their own personal one' do
       patch "/api/v1/accounts/#{account.id}/labels/#{label.id}",
             headers: other_agent.create_new_auth_token, params: { title: 'sequestrada' }, as: :json

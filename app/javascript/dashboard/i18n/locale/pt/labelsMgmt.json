@@ -26,7 +26,8 @@
         "PLACEHOLDER": "Nome da etiqueta",
         "REQUIRED_ERROR": "Nome da etiqueta obrigatório",
         "MINIMUM_LENGTH_ERROR": "A etiqueta deve ter, no mínimo, 2 caracteres",
-        "VALID_ERROR": "Apenas são permitidas letras, números, hífen e underscores"
+        "VALID_ERROR": "Apenas são permitidas letras, números, hífen e underscores",
+        "TAKEN_ERROR": "Este nome já está em uso nesta conta. Escolha outro."
       },
       "DESCRIPTION": {
         "LABEL": "Descrição",

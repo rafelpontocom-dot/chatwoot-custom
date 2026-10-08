@@ -50,6 +50,14 @@ describe('#actions', () => {
         [types.default.SET_LABEL_UI_FLAG, { isCreating: false }],
       ]);
     });
+    it('passes on the code of a taken title, so the screen can translate it', async () => {
+      axios.post.mockRejectedValue({
+        response: { data: { code: 'title_taken', message: 'Title taken' } },
+      });
+      await expect(actions.create({ commit })).rejects.toMatchObject({
+        code: 'title_taken',
+      });
+    });
     it('sends correct actions if API is error', async () => {
       axios.post.mockRejectedValue({ message: 'Incorrect header' });
       await expect(actions.create({ commit })).rejects.toThrow(Error);

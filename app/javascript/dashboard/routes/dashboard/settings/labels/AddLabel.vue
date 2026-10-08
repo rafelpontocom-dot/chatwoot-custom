@@ -64,6 +64,10 @@ export default {
         useAlert(this.$t('LABEL_MGMT.ADD.API.SUCCESS_MESSAGE'));
         this.onClose();
       } catch (error) {
+        if (error.code === 'title_taken') {
+          useAlert(this.$t('LABEL_MGMT.FORM.NAME.TAKEN_ERROR'));
+          return;
+        }
         const errorMessage =
           error.message || this.$t('LABEL_MGMT.ADD.API.ERROR_MESSAGE');
         useAlert(errorMessage);

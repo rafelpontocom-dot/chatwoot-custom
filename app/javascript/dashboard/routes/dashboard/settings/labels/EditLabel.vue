@@ -77,8 +77,12 @@ export default {
           useAlert(this.$t('LABEL_MGMT.EDIT.API.SUCCESS_MESSAGE'));
           setTimeout(() => this.onClose(), 10);
         })
-        .catch(() => {
-          useAlert(this.$t('LABEL_MGMT.EDIT.API.ERROR_MESSAGE'));
+        .catch(error => {
+          useAlert(
+            error.code === 'title_taken'
+              ? this.$t('LABEL_MGMT.FORM.NAME.TAKEN_ERROR')
+              : this.$t('LABEL_MGMT.EDIT.API.ERROR_MESSAGE')
+          );
         });
     },
   },

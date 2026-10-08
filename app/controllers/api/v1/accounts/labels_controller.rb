@@ -2,6 +2,12 @@ class Api::V1::Accounts::LabelsController < Api::V1::Accounts::BaseController
   before_action :fetch_label, except: [:index, :create, :reorder]
   before_action :check_authorization
 
+  # O título é único na CONTA, não no que cada pessoa vê. Criar uma etiqueta com
+  # o nome de uma pessoal de outra pessoa respondia «Title has already been
+  # taken», em inglês e cru. Responde-se com um código, e o cliente diz em
+  # português que o nome já está em uso e que se escolha outro.
+  rescue_from ActiveRecord::RecordInvalid, with: :render_label_invalid
+
   def index
     @labels = policy_scope(Current.account.labels)
   end
@@ -42,6 +48,13 @@ class Api::V1::Accounts::LabelsController < Api::V1::Accounts::BaseController
   end
 
   private
+
+  def render_label_invalid(exception)
+    return render_record_invalid(exception) unless exception.record.errors.of_kind?(:title, :taken)
+
+    render json: { code: 'title_taken', message: exception.record.errors.full_messages.join(', '), attributes: [:title] },
+           status: :unprocessable_entity
+  end
 
   # `check_authorization` do base autoriza a CLASSE. Com visibilidade, a decisão
   # depende da etiqueta concreta — sem isto o agente nunca conseguia renomear a
