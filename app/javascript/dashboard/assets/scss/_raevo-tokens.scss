@@ -321,7 +321,12 @@
 
   --label-background: 38 38 38;
   --label-border: 250, 250, 250, 0.10;
-  --button-color: 232 234 238;
+  // Era 232 234 238 — um tom CLARO no tema escuro. Todo botão `slate solid`
+  // (emoji, anexo e assinatura ao escrever, a pesquisa da barra lateral) ficava
+  // um quadrado branco com o ícone branco, 1,1:1, e só ganhava cor no hover.
+  // Um degrau acima da superfície (#171717), e o hover (`solid-2`, #262626)
+  // continua a ser um degrau acima dele.
+  --button-color: 31 31 31;
   --button-hover-color: 255, 255, 255, 0.10;
 
   --background-input-box: 255, 255, 255, 0.04;
