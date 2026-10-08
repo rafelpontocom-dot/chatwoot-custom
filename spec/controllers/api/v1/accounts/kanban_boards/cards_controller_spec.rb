@@ -33,6 +33,19 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    # O funil serializava `card.contact.label_list` sem filtro: o título de uma
+    # etiqueta pessoal de outra pessoa viajava no cartão do contacto.
+    it "does not send the title of another person's personal contact label" do
+      outra = create(:user, account: account, role: :agent)
+      create(:label, account: account, title: 'vip')
+      create(:label, account: account, title: 'so-da-outra', visibility: :personal, created_by: outra)
+      manual_contact.update!(label_list: %w[vip so-da-outra])
+
+      post_manual_card
+
+      expect(response.parsed_body.dig('contact', 'labels')).to contain_exactly('vip')
+    end
+
     # A etapa que exige campos tornava a criação IMPOSSÍVEL por aqui: a resposta
     # dizia «procedimento is required» e o diálogo não tinha onde o preencher.
     it 'returns the required custom fields instead of only refusing the creation' do
