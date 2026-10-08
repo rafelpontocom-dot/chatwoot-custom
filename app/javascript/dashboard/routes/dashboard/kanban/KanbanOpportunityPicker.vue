@@ -66,6 +66,41 @@ const creationError = ref('');
 const possibleDuplicate = ref(null);
 const isSaving = ref(false);
 
+/**
+ * Campos que a etapa de destino exige.
+ *
+ * Antes isto era um beco: a etapa exigia «Procedimento», o servidor recusava com
+ * «procedimento is required», e este diálogo não tinha onde o preencher — a
+ * oportunidade não se conseguia criar por aqui, de maneira nenhuma. Agora o
+ * servidor diz QUAIS faltam e COMO se desenham, e eles aparecem aqui mesmo,
+ * dentro do formulário, em vez de um popup por cima de um popup.
+ */
+const requiredFieldDefinitions = ref([]);
+const requiredFieldValues = ref({});
+
+const requiredFieldType = definition =>
+  definition?.fieldType || definition?.field_type;
+
+const isRequiredFieldSelect = definition =>
+  ['select', 'boolean'].includes(requiredFieldType(definition));
+
+const requiredFieldInputType = definition => {
+  const tipo = requiredFieldType(definition);
+  if (['integer', 'decimal', 'currency'].includes(tipo)) return 'number';
+  if (tipo === 'date') return 'date';
+  if (tipo === 'datetime') return 'datetime-local';
+
+  return 'text';
+};
+
+const hasUnfilledRequiredField = computed(() =>
+  requiredFieldDefinitions.value.some(definition => {
+    const valor = requiredFieldValues.value[definition.key];
+
+    return valor === undefined || valor === null || valor === '';
+  })
+);
+
 const trimmedSubject = computed(() => subject.value.trim());
 
 const isAbortError = error =>
@@ -143,6 +178,8 @@ const resetSubmission = () => {
   subjectError.value = '';
   creationError.value = '';
   possibleDuplicate.value = null;
+  requiredFieldDefinitions.value = [];
+  requiredFieldValues.value = {};
   isSaving.value = false;
 };
 
@@ -383,17 +420,25 @@ const createManualOpportunity = async () => {
     return;
   }
 
+  if (hasUnfilledRequiredField.value) {
+    creationError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
+    return;
+  }
+
   isSaving.value = true;
 
+  const card = {
+    kanban_stage_id: props.kanbanStageId,
+    contact_id: selectedContact.value.id,
+    inbox_id: selectedInbox.value.id,
+    subject: trimmedSubject.value,
+  };
+  if (requiredFieldDefinitions.value.length) {
+    card.custom_field_values = { ...requiredFieldValues.value };
+  }
+
   try {
-    await KanbanBoardsAPI.createManualCard(props.kanbanBoardId, {
-      card: {
-        kanban_stage_id: props.kanbanStageId,
-        contact_id: selectedContact.value.id,
-        inbox_id: selectedInbox.value.id,
-        subject: trimmedSubject.value,
-      },
-    });
+    await KanbanBoardsAPI.createManualCard(props.kanbanBoardId, { card });
     emit('created');
     resetPicker();
     emit('close');
@@ -404,6 +449,15 @@ const createManualOpportunity = async () => {
         responseData.duplicate_card || {},
         { deep: true }
       );
+    } else if (responseData?.missing_fields?.length) {
+      requiredFieldDefinitions.value = camelcaseKeys(
+        responseData.field_definitions || [],
+        { deep: true }
+      );
+      requiredFieldValues.value = Object.fromEntries(
+        responseData.missing_fields.map(key => [key, ''])
+      );
+      creationError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
     } else {
       creationError.value = getErrorMessage(error);
     }
@@ -598,6 +652,54 @@ onUnmounted(() => {
               />
             </template>
           </RaevoField>
+          <!--
+            Os campos que a etapa exige, preenchíveis aqui mesmo. `v-model` com
+            `select` precisa de saber o tipo: um `select` desenhado como texto
+            livre deixa quem preenche a adivinhar as opções.
+          -->
+          <div
+            v-if="requiredFieldDefinitions.length"
+            data-testid="kanban-manual-card-required-fields"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3"
+          >
+            <p class="mb-0 text-xs text-n-slate-11">
+              {{ t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_HELP') }}
+            </p>
+            <RaevoField
+              v-for="definition in requiredFieldDefinitions"
+              :key="definition.key"
+              :label="definition.label || definition.key"
+            >
+              <template #default="{ controlClass, fieldId }">
+                <select
+                  v-if="isRequiredFieldSelect(definition)"
+                  :id="fieldId"
+                  v-model="requiredFieldValues[definition.key]"
+                  :data-testid="`kanban-manual-card-field-${definition.key}`"
+                  :class="controlClass"
+                >
+                  <option value="" disabled>
+                    {{ t('KANBAN.ASSISTED_MOVE.SELECT_VALUE') }}
+                  </option>
+                  <option
+                    v-for="option in definition.options || []"
+                    :key="String(option)"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+                <input
+                  v-else
+                  :id="fieldId"
+                  v-model="requiredFieldValues[definition.key]"
+                  :data-testid="`kanban-manual-card-field-${definition.key}`"
+                  :type="requiredFieldInputType(definition)"
+                  :class="controlClass"
+                />
+              </template>
+            </RaevoField>
+          </div>
           <p
             v-if="creationError"
             data-testid="kanban-manual-card-error"

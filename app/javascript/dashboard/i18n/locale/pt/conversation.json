@@ -491,6 +491,8 @@
       "EMPTY_BOARDS": "Nenhum funil ativo disponível",
       "EMPTY_STAGES": "Nenhuma etapa ativa disponível",
       "CREATE_ERROR": "Não foi possível criar a oportunidade",
+      "SELECT_VALUE": "Selecione um valor",
+      "REQUIRED_FIELDS_PENDING": "Preencha os campos que esta etapa exige.",
       "CREATED": "Oportunidade criada",
       "CANCEL": "Cancelar",
       "CREATE": "Criar",

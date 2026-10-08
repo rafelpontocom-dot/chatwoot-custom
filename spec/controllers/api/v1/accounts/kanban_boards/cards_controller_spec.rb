@@ -33,6 +33,72 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    # A etapa que exige campos tornava a criação IMPOSSÍVEL por aqui: a resposta
+    # dizia «procedimento is required» e o diálogo não tinha onde o preencher.
+    it 'returns the required custom fields instead of only refusing the creation' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: %w[Avaliação Retorno],
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect { post_manual_card }.not_to change(KanbanCard.manual, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['missing_fields']).to eq(['procedimento'])
+      expect(response.parsed_body['field_definitions'].first).to include(
+        'key' => 'procedimento',
+        'field_type' => 'select',
+        'options' => %w[Avaliação Retorno]
+      )
+    end
+
+    it 'creates the card when the required fields come with the payload' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: %w[Avaliação Retorno],
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect do
+        post_manual_card(params: manual_card_payload.merge(custom_field_values: { procedimento: 'Retorno' }))
+      end.to change(KanbanCard.manual, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      expect(KanbanCard.last.custom_field_values).to eq('procedimento' => 'Retorno')
+    end
+
+    # Campo exigido NOUTRA etapa não pode travar a criação nesta.
+    it 'ignores fields required by a stage other than the destination' do
+      other_stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'text',
+            required_stage_ids: [other_stage.id]
+          }
+        ]
+      )
+
+      expect { post_manual_card }.to change(KanbanCard.manual, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+    end
+
     it 'emits kanban.card.created with a compact payload' do
       allow(Rails.configuration.dispatcher).to receive(:dispatch)
 

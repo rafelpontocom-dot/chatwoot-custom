@@ -52,6 +52,15 @@ const isCreating = ref(false);
 const boardsError = ref('');
 const stagesError = ref('');
 const createError = ref('');
+/**
+ * Campos que a etapa de destino exige.
+ *
+ * Criar nesta etapa era impossível a partir da conversa: o servidor recusava com
+ * «procedimento is required» e este painel não tinha onde preencher. O servidor
+ * passa a dizer QUAIS faltam e COMO se desenham, e eles aparecem no formulário.
+ */
+const requiredFieldDefinitions = ref([]);
+const requiredFieldValues = ref({});
 const editingCardId = ref(null);
 const editStages = ref([]);
 const editSubject = ref('');
@@ -105,8 +114,35 @@ const selectedLabels = computed(() =>
     selectedLabelTitles.value.includes(label.title)
   )
 );
+const requiredFieldType = definition =>
+  definition?.field_type || definition?.fieldType;
+
+const isRequiredFieldSelect = definition =>
+  ['select', 'boolean'].includes(requiredFieldType(definition));
+
+const requiredFieldInputType = definition => {
+  const tipo = requiredFieldType(definition);
+  if (['integer', 'decimal', 'currency'].includes(tipo)) return 'number';
+  if (tipo === 'date') return 'date';
+  if (tipo === 'datetime') return 'datetime-local';
+
+  return 'text';
+};
+
+const hasUnfilledRequiredField = computed(() =>
+  requiredFieldDefinitions.value.some(definition => {
+    const valor = requiredFieldValues.value[definition.key];
+
+    return valor === undefined || valor === null || valor === '';
+  })
+);
+
 const canSubmit = computed(
-  () => selectedBoardId.value && selectedStageId.value && !isCreating.value
+  () =>
+    selectedBoardId.value &&
+    selectedStageId.value &&
+    !isCreating.value &&
+    !hasUnfilledRequiredField.value
 );
 const canSaveEdit = computed(
   () => editSubject.value.trim() && editStageId.value && !isSavingEdit.value
@@ -285,6 +321,8 @@ const resetFormState = () => {
   boardsError.value = '';
   stagesError.value = '';
   createError.value = '';
+  requiredFieldDefinitions.value = [];
+  requiredFieldValues.value = {};
 };
 
 const resetEditState = () => {
@@ -603,19 +641,22 @@ const submitForm = async () => {
   isCreating.value = true;
   createError.value = '';
 
+  const card = {
+    kanban_board_id: selectedBoardId.value,
+    kanban_stage_id: selectedStageId.value,
+    subject: subject.value.trim(),
+    next_action_type: nextActionType.value || null,
+    next_action_at: nextActionAtPayload(),
+    labels: selectedLabelTitles.value,
+  };
+  if (requiredFieldDefinitions.value.length) {
+    card.custom_field_values = { ...requiredFieldValues.value };
+  }
+
   try {
     await KanbanBoardsAPI.createConversationCard(
       props.conversationId,
-      {
-        card: {
-          kanban_board_id: selectedBoardId.value,
-          kanban_stage_id: selectedStageId.value,
-          subject: subject.value.trim(),
-          next_action_type: nextActionType.value || null,
-          next_action_at: nextActionAtPayload(),
-          labels: selectedLabelTitles.value,
-        },
-      },
+      { card },
       { signal: controller.signal }
     );
 
@@ -628,10 +669,21 @@ const submitForm = async () => {
   } catch (error) {
     if (isAbortError(error)) return;
 
-    createError.value = getErrorMessage(
-      error,
-      t('CONVERSATION_SIDEBAR.KANBAN.CREATE_ERROR')
-    );
+    const responseData = error?.response?.data;
+    if (responseData?.missing_fields?.length) {
+      requiredFieldDefinitions.value = responseData.field_definitions || [];
+      requiredFieldValues.value = Object.fromEntries(
+        responseData.missing_fields.map(key => [key, ''])
+      );
+      createError.value = t(
+        'CONVERSATION_SIDEBAR.KANBAN.REQUIRED_FIELDS_PENDING'
+      );
+    } else {
+      createError.value = getErrorMessage(
+        error,
+        t('CONVERSATION_SIDEBAR.KANBAN.CREATE_ERROR')
+      );
+    }
   } finally {
     if (createAbortController.value === controller) {
       isCreating.value = false;
@@ -919,6 +971,51 @@ onBeforeUnmount(() => {
           />
         </div>
       </label>
+
+      <!--
+        Os campos que a etapa exige, preenchíveis aqui. O tipo vem do servidor:
+        um `select` desenhado como texto livre deixa quem preenche a adivinhar as
+        opções.
+      -->
+      <div
+        v-if="requiredFieldDefinitions.length"
+        data-testid="kanban-create-required-fields"
+        class="flex flex-col gap-2 rounded-lg border border-n-weak bg-n-alpha-1 p-2"
+      >
+        <label
+          v-for="definition in requiredFieldDefinitions"
+          :key="definition.key"
+          class="flex flex-col gap-1"
+        >
+          <span class="text-xs font-medium text-n-slate-11">
+            {{ definition.label || definition.key }}
+          </span>
+          <select
+            v-if="isRequiredFieldSelect(definition)"
+            v-model="requiredFieldValues[definition.key]"
+            :data-testid="`kanban-create-field-${definition.key}`"
+            class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
+          >
+            <option value="" disabled>
+              {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_VALUE') }}
+            </option>
+            <option
+              v-for="option in definition.options || []"
+              :key="String(option)"
+              :value="option"
+            >
+              {{ option }}
+            </option>
+          </select>
+          <input
+            v-else
+            v-model="requiredFieldValues[definition.key]"
+            :data-testid="`kanban-create-field-${definition.key}`"
+            :type="requiredFieldInputType(definition)"
+            class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
+          />
+        </label>
+      </div>
 
       <p v-if="createError" class="m-0 text-xs text-n-ruby-11">
         {{ createError }}

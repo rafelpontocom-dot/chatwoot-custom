@@ -1042,6 +1042,101 @@ describe('KanbanOpportunityPicker', () => {
       expect(warning.text()).toContain('Proposta');
     });
 
+    // Antes isto era um beco sem saída: a etapa exigia um campo, o servidor
+    // recusava, e o diálogo não tinha onde o preencher. A oportunidade não se
+    // conseguia criar por aqui de maneira nenhuma.
+    describe('fields the stage requires', () => {
+      const recusaComCampos = () => {
+        KanbanBoardsAPI.createManualCard.mockRejectedValueOnce({
+          response: {
+            data: {
+              message:
+                'Complete the required fields before creating this opportunity.',
+              missing_fields: ['procedimento'],
+              field_definitions: [
+                {
+                  key: 'procedimento',
+                  label: 'Procedimento',
+                  field_type: 'select',
+                  options: ['Avaliação', 'Retorno'],
+                },
+              ],
+            },
+          },
+        });
+      };
+
+      const submeter = async wrapper => {
+        await wrapper
+          .find('[data-testid="kanban-manual-card-form"]')
+          .trigger('submit');
+        await flushPromises();
+      };
+
+      const prepararFormulario = async () => {
+        vi.useFakeTimers();
+        ContactAPI.getConversations.mockResolvedValue({
+          data: { payload: [buildConversation()] },
+        });
+        const wrapper = mountPicker();
+        await searchAndSelectFirstInbox(wrapper);
+        await wrapper
+          .find('[data-testid="kanban-manual-card-subject"]')
+          .setValue('Notebook quote');
+
+        return wrapper;
+      };
+
+      it('offers the required fields instead of only showing the refusal', async () => {
+        recusaComCampos();
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+
+        const campo = wrapper.find(
+          '[data-testid="kanban-manual-card-field-procedimento"]'
+        );
+        expect(campo.exists()).toBe(true);
+        // Um `select` desenhado como texto livre deixa quem preenche a adivinhar.
+        expect(campo.element.tagName).toBe('SELECT');
+        expect(campo.text()).toContain('Avaliação');
+        expect(campo.text()).toContain('Retorno');
+      });
+
+      it('sends the filled values on the second attempt', async () => {
+        recusaComCampos();
+        KanbanBoardsAPI.createManualCard.mockResolvedValue({ data: {} });
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+        await wrapper
+          .find('[data-testid="kanban-manual-card-field-procedimento"]')
+          .setValue('Retorno');
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).toHaveBeenLastCalledWith(10, {
+          card: expect.objectContaining({
+            custom_field_values: { procedimento: 'Retorno' },
+          }),
+        });
+        expect(wrapper.emitted('created')).toBeTruthy();
+      });
+
+      it('does not ask the server again while a required field is empty', async () => {
+        recusaComCampos();
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+        KanbanBoardsAPI.createManualCard.mockClear();
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).not.toHaveBeenCalled();
+        expect(
+          wrapper.find('[data-testid="kanban-manual-card-error"]').exists()
+        ).toBe(true);
+      });
+    });
+
     it('emits created and close on success', async () => {
       vi.useFakeTimers();
       ContactAPI.getContactableInboxes.mockResolvedValue({

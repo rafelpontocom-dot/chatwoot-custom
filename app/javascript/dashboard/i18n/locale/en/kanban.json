@@ -1595,6 +1595,8 @@
       "SAVING": "Saving...",
       "SUBJECT_REQUIRED": "Give the opportunity a name to create it.",
       "CREATION_ERROR": "Could not create the opportunity. Try again.",
+      "REQUIRED_FIELDS_HELP": "This stage requires a few more fields.",
+      "REQUIRED_FIELDS_PENDING": "Fill in the required fields to create this opportunity.",
       "LEGACY_UNAVAILABLE": "Manual opportunities are unavailable for legacy-read boards.",
       "CLEAR_CONTACT": "Clear selected contact",
       "CLOSE": "Close add item picker",

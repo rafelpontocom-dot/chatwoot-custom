@@ -20,10 +20,13 @@ class Api::V1::Accounts::Conversations::KanbanCardsController < Api::V1::Account
       subject: card_params[:subject],
       next_action_type: card_params[:next_action_type],
       next_action_at: card_params[:next_action_at],
-      labels: card_params[:labels]
+      labels: card_params[:labels],
+      custom_field_values: card_params[:custom_field_values]
     ).perform!
 
     render :create, status: :created
+  rescue ActiveRecord::RecordInvalid => e
+    render_required_fields(e)
   end
 
   private
@@ -60,7 +63,24 @@ class Api::V1::Accounts::Conversations::KanbanCardsController < Api::V1::Account
   end
 
   def card_params
-    params.require(:card).permit(:kanban_board_id, :kanban_stage_id, :subject, :next_action_type, :next_action_at, labels: [])
+    params.require(:card).permit(
+      :kanban_board_id, :kanban_stage_id, :subject, :next_action_type, :next_action_at,
+      labels: [], custom_field_values: {}
+    )
+  end
+
+  # Mesma resposta que o funil dá ao mover: quais campos faltam e como se
+  # desenham. Sem isto, criar a oportunidade na conversa numa etapa que exige
+  # campos devolvia «procedimento is required» e não havia onde o preencher.
+  def render_required_fields(error)
+    missing_fields = error.record.missing_required_custom_field_keys
+    raise error if missing_fields.blank?
+
+    render json: {
+      message: 'Complete the required fields before creating this opportunity.',
+      missing_fields: missing_fields,
+      field_definitions: @kanban_board.custom_field_definitions.select { |definition| missing_fields.include?(definition['key']) }
+    }, status: :unprocessable_entity
   end
 
   def linked_label_titles

@@ -20,7 +20,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       kanban_stage: @kanban_stage,
       contact: @contact,
       inbox: @inbox,
-      subject: manual_card_params[:subject]
+      subject: manual_card_params[:subject],
+      custom_field_values: manual_card_params[:custom_field_values]
     ).perform!
 
     render :create_manual, status: :created
@@ -175,7 +176,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   # rubocop:enable Metrics/MethodLength
 
   def manual_card_params
-    params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject)
+    params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject, custom_field_values: {})
   end
 
   def bulk_params
@@ -222,8 +223,19 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
 
   def render_manual_creation_error(error)
     duplicate = possible_duplicate_card(error)
-    raise error unless duplicate
+    return render_possible_duplicate(error, duplicate) if duplicate
 
+    # Uma etapa que exige campos tornava a criação IMPOSSÍVEL por aqui: a mensagem
+    # dizia «procedimento is required» e o diálogo não tinha onde o preencher.
+    # Devolvemos quais faltam e como se desenham, como já se faz ao mover.
+    assisted = assisted_fields_payload(error.record)
+    raise error if assisted.blank?
+
+    render json: assisted.merge(message: 'Complete the required fields before creating this opportunity.'),
+           status: :unprocessable_entity
+  end
+
+  def render_possible_duplicate(error, duplicate)
     render json: {
       message: error.record.errors.full_messages.to_sentence,
       code: 'possible_duplicate',
@@ -493,14 +505,24 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def render_assisted_move_fields(card, board: @kanban_board)
-    missing_fields = card.missing_required_custom_field_keys
-    raise ActiveRecord::RecordInvalid, card if missing_fields.blank?
+    assisted = assisted_fields_payload(card, board: board)
+    raise ActiveRecord::RecordInvalid, card if assisted.blank?
 
-    render json: {
-      message: 'Complete the required fields before moving this opportunity.',
+    render json: assisted.merge(message: 'Complete the required fields before moving this opportunity.'),
+           status: :unprocessable_entity
+  end
+
+  # Quais campos obrigatórios faltam, e o suficiente para os desenhar. Partilhado
+  # entre mover e criar: uma lista só de chaves obrigava o cliente a adivinhar o
+  # tipo de controlo, e um `select` desenhado como texto livre não é preenchível.
+  def assisted_fields_payload(card, board: @kanban_board)
+    missing_fields = card.missing_required_custom_field_keys
+    return if missing_fields.blank?
+
+    {
       missing_fields: missing_fields,
       field_definitions: board.custom_field_definitions.select { |definition| missing_fields.include?(definition['key']) }
-    }, status: :unprocessable_entity
+    }
   end
 
   def timeline_event_payload(event)

@@ -3,7 +3,7 @@ class KanbanCards::CreateFromConversationService
 
   # rubocop:disable Metrics/ParameterLists
   def initialize(account:, user:, conversation:, kanban_board:, kanban_stage:, subject:,
-                 next_action_type: nil, next_action_at: nil, labels: [])
+                 next_action_type: nil, next_action_at: nil, labels: [], custom_field_values: nil)
     @account = account
     @user = user
     @conversation = conversation
@@ -13,6 +13,7 @@ class KanbanCards::CreateFromConversationService
     @next_action_type = next_action_type
     @next_action_at = next_action_at
     @labels = labels
+    @custom_field_values = custom_field_values
   end
   # rubocop:enable Metrics/ParameterLists
 
@@ -34,7 +35,7 @@ class KanbanCards::CreateFromConversationService
   private
 
   attr_reader :account, :user, :conversation, :kanban_board, :kanban_stage, :subject,
-              :next_action_type, :next_action_at, :labels
+              :next_action_type, :next_action_at, :labels, :custom_field_values
 
   def validate_scope!
     validate_conversation!
@@ -110,8 +111,16 @@ class KanbanCards::CreateFromConversationService
       # acendia nada em lado nenhum.
       next_action_type: next_action_type.presence,
       next_action_at: next_action_at.presence,
-      active: true
+      active: true,
+      # A etapa de destino pode exigir campos. Sem isto, criar a oportunidade na
+      # conversa numa dessas etapas era impossível: nascia inválida e o painel
+      # não tinha onde preencher.
+      custom_field_values: normalized_custom_field_values
     }
+  end
+
+  def normalized_custom_field_values
+    custom_field_values.respond_to?(:to_unsafe_h) ? custom_field_values.to_unsafe_h : custom_field_values.to_h
   end
 
   def unsaved_card

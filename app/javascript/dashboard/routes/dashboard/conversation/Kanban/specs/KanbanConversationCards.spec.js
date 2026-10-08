@@ -787,6 +787,53 @@ describe('KanbanConversationCards', () => {
     );
   });
 
+  // Criar numa etapa que exige campos era impossível a partir da conversa: o
+  // servidor recusava e o painel não tinha onde preencher.
+  it('offers the fields the stage requires and resends them', async () => {
+    KanbanBoardsAPI.createConversationCard.mockRejectedValueOnce({
+      response: {
+        data: {
+          missing_fields: ['procedimento'],
+          field_definitions: [
+            {
+              key: 'procedimento',
+              label: 'Procedimento',
+              field_type: 'select',
+              options: ['Avaliação', 'Retorno'],
+            },
+          ],
+        },
+      },
+    });
+    const wrapper = mountComponent();
+    await flushPromises();
+    await openForm(wrapper);
+
+    await wrapper.find('form').trigger('submit.prevent');
+    await flushPromises();
+
+    const campo = wrapper.find(
+      '[data-testid="kanban-create-field-procedimento"]'
+    );
+    expect(campo.exists()).toBe(true);
+    expect(campo.element.tagName).toBe('SELECT');
+
+    KanbanBoardsAPI.createConversationCard.mockResolvedValue({ data: {} });
+    await campo.setValue('Retorno');
+    await wrapper.find('form').trigger('submit.prevent');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createConversationCard).toHaveBeenLastCalledWith(
+      456,
+      {
+        card: expect.objectContaining({
+          custom_field_values: { procedimento: 'Retorno' },
+        }),
+      },
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
   it('blocks duplicate submit while pending', async () => {
     KanbanBoardsAPI.createConversationCard.mockImplementation(
       () => new Promise(() => {})

@@ -503,6 +503,8 @@
       "EMPTY_BOARDS": "No active boards available",
       "EMPTY_STAGES": "No active stages available",
       "CREATE_ERROR": "Could not create opportunity",
+      "SELECT_VALUE": "Select a value",
+      "REQUIRED_FIELDS_PENDING": "Fill in the fields this stage requires.",
       "CREATED": "Opportunity created",
       "CANCEL": "Cancel",
       "CREATE": "Create",

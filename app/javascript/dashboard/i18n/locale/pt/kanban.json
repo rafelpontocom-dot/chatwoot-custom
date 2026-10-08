@@ -1602,6 +1602,8 @@
       "SAVING": "Salvando...",
       "SUBJECT_REQUIRED": "Dê um nome à oportunidade para a criar.",
       "CREATION_ERROR": "Não foi possível criar a oportunidade. Tente novamente.",
+      "REQUIRED_FIELDS_HELP": "Esta etapa exige mais alguns campos.",
+      "REQUIRED_FIELDS_PENDING": "Preencha os campos obrigatórios para criar esta oportunidade.",
       "LEGACY_UNAVAILABLE": "Oportunidades manuais não estão disponíveis para quadros em modo legado.",
       "CLEAR_CONTACT": "Limpar contacto selecionado",
       "CLOSE": "Fechar seletor de item",

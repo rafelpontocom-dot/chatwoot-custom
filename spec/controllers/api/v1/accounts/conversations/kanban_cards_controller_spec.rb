@@ -199,6 +199,49 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
       expect(KanbanCard.last).to have_attributes(origin: 'conversation', position: 1)
     end
 
+    # A etapa que exige campos tornava a criação IMPOSSÍVEL a partir da conversa:
+    # a resposta dizia «procedimento is required» e o painel não tinha onde o
+    # preencher.
+    it 'returns the required custom fields instead of only refusing the creation' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: %w[Avaliação Retorno],
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect { post_conversation_kanban_card }.not_to change(KanbanCard.conversation, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['missing_fields']).to eq(['procedimento'])
+      expect(response.parsed_body['field_definitions'].first).to include('key' => 'procedimento', 'field_type' => 'select')
+    end
+
+    it 'creates the card when the required fields come with the payload' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'text',
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect do
+        post_conversation_kanban_card(params: valid_card_payload.merge(custom_field_values: { procedimento: 'Retorno' }))
+      end.to change(KanbanCard.conversation, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      expect(KanbanCard.last.custom_field_values).to eq('procedimento' => 'Retorno')
+    end
+
     it 'shifts existing active cards by one' do
       existing_card = create_manual_card(position: 1)
 
