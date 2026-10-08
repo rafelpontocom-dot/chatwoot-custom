@@ -5,11 +5,11 @@ acompanhado a conversa. Data: 07/10/2026.
 
 ## Onde ligar
 
-| | |
-| --- | --- |
-| Repositório | `rafelpontocom-dot/chatwoot-custom` (fork do Chatwoot) |
-| **Branch** | **`fix/pos-merge-4.18-e-backlog-thiago`** |
-| Remoto local | chama-se `fork` |
+|                   |                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| Repositório       | `rafelpontocom-dot/chatwoot-custom` (fork do Chatwoot)                                                 |
+| **Branch**        | **`fix/pos-merge-4.18-e-backlog-thiago`**                                                              |
+| Remoto local      | chama-se `fork`                                                                                        |
 | Branch a NÃO usar | `deploy/custom-whatsapp-kanban` — parado no merge do 4.18 (`8f01cb72d`). Gerar imagem dele é regressão |
 
 Último commit em 07/10: `7cbb6b64e`. «Custom checks (WhatsApp + Kanban)» verde.
@@ -30,14 +30,14 @@ regressão do nosso código.
 
 ## O que entrou em 07/10 (seis commits)
 
-| Commit | O que |
-| --- | --- |
-| `422545519` | A oportunidade ganha coluna lateral; Contacto é a primeira secção |
+| Commit      | O que                                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `422545519` | A oportunidade ganha coluna lateral; Contacto é a primeira secção                                                                |
 | `b0142a96e` | Agenda, Financeiro, Formulários e Histórico saem das abas para a coluna; na conversa, link para o cartão em vez da ficha inteira |
-| `3f0fbb8a4` | A pessoa reordena as secções da coluna; a ordem fica em `ui_settings` |
-| `c1efc0b77` | Criar oportunidade numa etapa que exige campos deixa de ser impossível (funil e conversa) |
-| `4aedabf7d` | Etiqueta com visibilidade: de todos / de um time / só minha |
-| `7cbb6b64e` | A etiqueta pessoal de outro agente deixa de viajar no payload do cartão |
+| `3f0fbb8a4` | A pessoa reordena as secções da coluna; a ordem fica em `ui_settings`                                                            |
+| `c1efc0b77` | Criar oportunidade numa etapa que exige campos deixa de ser impossível (funil e conversa)                                        |
+| `4aedabf7d` | Etiqueta com visibilidade: de todos / de um time / só minha                                                                      |
+| `7cbb6b64e` | A etiqueta pessoal de outro agente deixa de viajar no payload do cartão                                                          |
 
 Cartões em **validação** no ClickUp (lista `901513885218`, workspace `31122432`):
 `123jpnbcb57`, `123jpnbcb53`, `123jpnbcb5p`.
