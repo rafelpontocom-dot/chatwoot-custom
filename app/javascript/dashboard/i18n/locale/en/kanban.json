@@ -1551,7 +1551,9 @@
       "CONTACT_LABELS": "Contact labels",
       "AMOUNT_HEADLINE_ESTIMATE": "estimate",
       "AMOUNT_HEADLINE_RECEIVED": "{value} received",
-      "AMOUNT_HEADLINE_EMPTY": "no amount yet"
+      "AMOUNT_HEADLINE_EMPTY": "no amount yet",
+      "REQUIRED_IN_STAGE": "Required in this stage",
+      "REQUIRED_FIELDS_MISSING": "Fill in before saving: {fields}."
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",
@@ -1735,6 +1737,9 @@
       "LOADING": "Reading the funnel",
       "ERROR": "The funnel could not be read",
       "RETRY": "Try again"
+    },
+    "REQUIRED_FIELDS": {
+      "MULTISELECT_HINT": "Hold Ctrl or ⌘ to choose more than one."
     }
   }
 }

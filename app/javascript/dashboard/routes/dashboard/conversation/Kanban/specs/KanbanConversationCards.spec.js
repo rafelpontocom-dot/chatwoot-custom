@@ -699,6 +699,39 @@ describe('KanbanConversationCards', () => {
     );
   });
 
+  // Os campos só apareciam depois da recusa do servidor; a etapa já diz no
+  // cliente o que exige, nas definições do funil que vêm com as etapas.
+  it('shows the fields the chosen stage requires before the first attempt', async () => {
+    KanbanBoardsAPI.showBoard.mockResolvedValue({
+      data: {
+        stages: [buildStage(), buildStage({ id: 22, name: 'Avaliação' })],
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: ['Avaliação', 'Retorno'],
+            required_stage_ids: [22],
+          },
+        ],
+      },
+    });
+    const wrapper = mountComponent();
+    await flushPromises();
+    await openForm(wrapper);
+
+    const campo = () =>
+      wrapper.find('[data-testid="kanban-create-field-procedimento"]');
+    expect(campo().exists()).toBe(false);
+
+    // o segundo select do formulário é o da etapa
+    await wrapper.findAll('form select')[1].setValue(22);
+    await flushPromises();
+
+    expect(campo().exists()).toBe(true);
+    expect(KanbanBoardsAPI.createConversationCard).not.toHaveBeenCalled();
+  });
+
   it('blocks duplicate submit while pending', async () => {
     KanbanBoardsAPI.createConversationCard.mockImplementation(
       () => new Promise(() => {})

@@ -15,6 +15,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
+import { isRequiredFieldEmpty } from 'dashboard/helper/kanbanRequiredFields';
 import RaevoTimeline from 'dashboard/components-next/raevo/RaevoTimeline.vue';
 import { getRandomColor } from 'dashboard/helper/labelColor';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
@@ -922,6 +923,7 @@ const shownDefinitions = (key, group) =>
 const hiddenFieldCount = key =>
   sectionDefinitions(key).filter(definition => !isShownByDefault(definition))
     .length;
+
 const customFieldGroupClass = color =>
   ({
     slate: 'border-l-n-slate-7',
@@ -943,6 +945,57 @@ const toggleGroup = groupKey => {
     [groupKey]: !isGroupExpanded(groupKey),
   };
 };
+/**
+ * Os campos que a etapa escolhida exige e estão vazios — vistos ANTES de ir ao
+ * servidor. Mudar de etapa na ficha devolvia o erro cru do modelo
+ * («procedimento is required»): em inglês, com a chave em vez do rótulo, e sem
+ * dizer onde estava o campo. Agora a linha diz «Obrigatório nesta etapa» logo
+ * que a etapa muda, e gravar sem ela abre a secção e leva o foco ao campo.
+ */
+const showRequiredErrors = ref(false);
+const missingRequiredDefinitions = computed(() =>
+  visibleCustomFieldDefinitions.value.filter(
+    definition =>
+      isRequiredInStage(definition) &&
+      isRequiredFieldEmpty(customFieldValues.value[definition.key])
+  )
+);
+const estaEmFalta = definition =>
+  missingRequiredDefinitions.value.some(item => item.key === definition.key);
+const requiredFieldHint = definition =>
+  estaEmFalta(definition)
+    ? t('KANBAN.OPPORTUNITY_DETAILS.REQUIRED_IN_STAGE')
+    : '';
+const requiredFieldError = definition =>
+  showRequiredErrors.value && estaEmFalta(definition)
+    ? t('KANBAN.OPPORTUNITY_DETAILS.REQUIRED_IN_STAGE')
+    : '';
+const revelarCamposEmFalta = async () => {
+  const emFalta = missingRequiredDefinitions.value;
+  const secoes = emFalta.map(customFieldSectionKey);
+  openSections.value = [...new Set([...openSections.value, ...secoes])];
+  expandedGroupKeys.value = {
+    ...expandedGroupKeys.value,
+    ...Object.fromEntries(
+      emFalta.map(definition => [
+        groupToggleKey(
+          customFieldSectionKey(definition),
+          customFieldGroupKey(definition)
+        ),
+        true,
+      ])
+    ),
+  };
+  await nextTick();
+  // Centrado: o `focus()` sozinho rola o mínimo, e a 390px o campo ficava
+  // debaixo da barra fixa de Guardar — com o foco lá, invisível.
+  const linha = document.querySelector(
+    `[data-testid="kanban-row-${emFalta[0].key}"]`
+  );
+  linha?.focus({ preventScroll: true });
+  linha?.scrollIntoView({ block: 'center' });
+};
+
 const getCustomFieldValue = definition =>
   customFieldValues.value[definition.key] ?? '';
 
@@ -1027,6 +1080,7 @@ const isFormDirty = computed(
 
 const setFormState = payload => {
   card.value = normalizeCard(payload);
+  showRequiredErrors.value = false;
   contactDraft.value = {
     name: card.value.contact?.name || '',
     phone_number: card.value.contact?.phone_number || '',
@@ -1471,6 +1525,17 @@ const saveCardWith = async (extraPayload = {}) => {
     lostReasonError.value = t(
       'KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_REQUIRED'
     );
+    return;
+  }
+
+  if (missingRequiredDefinitions.value.length) {
+    showRequiredErrors.value = true;
+    saveError.value = t('KANBAN.OPPORTUNITY_DETAILS.REQUIRED_FIELDS_MISSING', {
+      fields: missingRequiredDefinitions.value
+        .map(definition => definition.label || definition.key)
+        .join(', '),
+    });
+    await revelarCamposEmFalta();
     return;
   }
 
@@ -2424,6 +2489,9 @@ watch(invitationPendingRevocation, async invitation => {
                           :row-testid="`kanban-row-${definition.key}`"
                           :label="definition.label"
                           :value="customFieldDisplayValue(definition)"
+                          :hint="requiredFieldHint(definition)"
+                          hint-at-rest
+                          :error="requiredFieldError(definition)"
                           :variant="customFieldRowVariant(definition)"
                         >
                           <template #control="{ controlClass, fieldId }">

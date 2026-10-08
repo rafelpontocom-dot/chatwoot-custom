@@ -107,6 +107,10 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.SAVE_ERROR':
           'Could not save opportunity details.',
         'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_TITLE': 'Title is required.',
+        'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_IN_STAGE':
+          'Required in this stage',
+        'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_FIELDS_MISSING':
+          'Fill in before saving: {fields}.',
         'KANBAN.OPPORTUNITY_DETAILS.CLOSE': 'Close opportunity details',
         'KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL': 'Commercial',
         'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER': 'Owner',
@@ -2045,6 +2049,50 @@ describe('KanbanOpportunityDetailsModal', () => {
         lost_reason: 'Preço',
       })
     );
+  });
+
+  // Mudar de etapa na ficha devolvia o erro cru do modelo, «procedimento is
+  // required»: em inglês, com a chave, e sem dizer onde estava o campo.
+  describe('fields the chosen stage requires', () => {
+    const definicoes = [
+      {
+        key: 'procedimento',
+        label: 'Procedimento',
+        fieldType: 'text',
+        requiredStageIds: [2],
+      },
+    ];
+
+    it('says which field the stage requires as soon as the stage changes', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+        customFieldDefinitions: definicoes,
+      });
+      expect(wrapper.text()).not.toContain('Required in this stage');
+
+      await selectHeaderStage(wrapper, 2);
+
+      expect(
+        wrapper.find('[data-testid="kanban-row-procedimento"]').exists()
+      ).toBe(true);
+      expect(wrapper.text()).toContain('Required in this stage');
+    });
+
+    it('does not send the move while the field is empty, and names it', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+        customFieldDefinitions: definicoes,
+      });
+
+      await selectHeaderStage(wrapper, 2);
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+
+      expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
+      expect(
+        wrapper.find('[data-testid="kanban-opportunity-save-error"]').text()
+      ).toBe('Fill in before saving: Procedimento.');
+    });
   });
 
   it('requires a reason before saving an opportunity in a lost stage', async () => {

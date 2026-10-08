@@ -10,7 +10,13 @@ import { useStore } from 'dashboard/composables/store';
 import ContactAPI from 'dashboard/api/contacts';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
-import { requiredFieldOptions } from 'dashboard/helper/kanbanRequiredFields';
+import {
+  emptyRequiredFieldValue,
+  isRequiredFieldEmpty,
+  mergeRequiredFields,
+  requiredFieldsForStage,
+} from 'dashboard/helper/kanbanRequiredFields';
+import KanbanRequiredFields from './KanbanRequiredFields.vue';
 
 const props = defineProps({
   kanbanBoardId: {
@@ -20,6 +26,11 @@ const props = defineProps({
   kanbanStageId: {
     type: Number,
     required: true,
+  },
+  /** definições do funil, para mostrar já o que a etapa exige */
+  customFieldDefinitions: {
+    type: Array,
+    default: () => [],
   },
 });
 
@@ -76,30 +87,24 @@ const isSaving = ref(false);
  * servidor diz QUAIS faltam e COMO se desenham, e eles aparecem aqui mesmo,
  * dentro do formulário, em vez de um popup por cima de um popup.
  */
-const requiredFieldDefinitions = ref([]);
-const requiredFieldValues = ref({});
-
-const requiredFieldType = definition =>
-  definition?.fieldType || definition?.field_type;
-
-const isRequiredFieldSelect = definition =>
-  ['select', 'boolean'].includes(requiredFieldType(definition));
-
-const requiredFieldInputType = definition => {
-  const tipo = requiredFieldType(definition);
-  if (['integer', 'decimal', 'currency'].includes(tipo)) return 'number';
-  if (tipo === 'date') return 'date';
-  if (tipo === 'datetime') return 'datetime-local';
-
-  return 'text';
-};
+// Os que a etapa exige aparecem logo, como ajuda; a recusa do servidor só
+// acrescenta os condicionais. Antes apareciam todos depois do clique, a vermelho.
+const camposDaEtapa = () =>
+  requiredFieldsForStage(props.customFieldDefinitions, props.kanbanStageId);
+const valoresVazios = definitions =>
+  Object.fromEntries(
+    definitions.map(definition => [
+      definition.key,
+      emptyRequiredFieldValue(definition),
+    ])
+  );
+const requiredFieldDefinitions = ref(camposDaEtapa());
+const requiredFieldValues = ref(valoresVazios(requiredFieldDefinitions.value));
 
 const hasUnfilledRequiredField = computed(() =>
-  requiredFieldDefinitions.value.some(definition => {
-    const valor = requiredFieldValues.value[definition.key];
-
-    return valor === undefined || valor === null || valor === '';
-  })
+  requiredFieldDefinitions.value.some(definition =>
+    isRequiredFieldEmpty(requiredFieldValues.value[definition.key])
+  )
 );
 
 const trimmedSubject = computed(() => subject.value.trim());
@@ -179,8 +184,8 @@ const resetSubmission = () => {
   subjectError.value = '';
   creationError.value = '';
   possibleDuplicate.value = null;
-  requiredFieldDefinitions.value = [];
-  requiredFieldValues.value = {};
+  requiredFieldDefinitions.value = camposDaEtapa();
+  requiredFieldValues.value = valoresVazios(requiredFieldDefinitions.value);
   isSaving.value = false;
 };
 
@@ -451,13 +456,14 @@ const createManualOpportunity = async () => {
         { deep: true }
       );
     } else if (responseData?.missing_fields?.length) {
-      requiredFieldDefinitions.value = camelcaseKeys(
-        responseData.field_definitions || [],
-        { deep: true }
+      const juntos = mergeRequiredFields(
+        requiredFieldDefinitions.value,
+        requiredFieldValues.value,
+        camelcaseKeys(responseData.field_definitions || [], { deep: true }),
+        responseData.missing_fields
       );
-      requiredFieldValues.value = Object.fromEntries(
-        responseData.missing_fields.map(key => [key, ''])
-      );
+      requiredFieldDefinitions.value = juntos.definitions;
+      requiredFieldValues.value = juntos.values;
       creationError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
       // Os campos aparecem DEPOIS do clique, e o foco ficava no <body>: quem usa
       // o teclado não sabia que havia o que preencher nem onde.
@@ -662,9 +668,10 @@ onUnmounted(() => {
             </template>
           </RaevoField>
           <!--
-            Os campos que a etapa exige, preenchíveis aqui mesmo. `v-model` com
-            `select` precisa de saber o tipo: um `select` desenhado como texto
-            livre deixa quem preenche a adivinhar as opções.
+            Os campos que a etapa exige, preenchíveis aqui mesmo e à vista desde
+            o início — não depois de uma recusa. O controlo depende do tipo: um
+            `select` desenhado como texto livre deixa quem preenche a adivinhar
+            as opções.
           -->
           <div
             v-if="requiredFieldDefinitions.length"
@@ -674,41 +681,11 @@ onUnmounted(() => {
             <p class="mb-0 text-xs text-n-slate-11">
               {{ t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_HELP') }}
             </p>
-            <RaevoField
-              v-for="definition in requiredFieldDefinitions"
-              :key="definition.key"
-              :label="definition.label || definition.key"
-              :variant="isRequiredFieldSelect(definition) ? 'select' : 'input'"
-            >
-              <template #default="{ controlClass, fieldId }">
-                <select
-                  v-if="isRequiredFieldSelect(definition)"
-                  :id="fieldId"
-                  v-model="requiredFieldValues[definition.key]"
-                  :data-testid="`kanban-manual-card-field-${definition.key}`"
-                  :class="controlClass"
-                >
-                  <option value="" disabled>
-                    {{ t('KANBAN.ASSISTED_MOVE.SELECT_VALUE') }}
-                  </option>
-                  <option
-                    v-for="option in requiredFieldOptions(definition, t)"
-                    :key="String(option.value)"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-                <input
-                  v-else
-                  :id="fieldId"
-                  v-model="requiredFieldValues[definition.key]"
-                  :data-testid="`kanban-manual-card-field-${definition.key}`"
-                  :type="requiredFieldInputType(definition)"
-                  :class="controlClass"
-                />
-              </template>
-            </RaevoField>
+            <KanbanRequiredFields
+              v-model="requiredFieldValues"
+              :definitions="requiredFieldDefinitions"
+              testid-prefix="kanban-manual-card-field-"
+            />
           </div>
           <p
             v-if="creationError"

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import RaevoField from './RaevoField.vue';
 
@@ -41,6 +41,12 @@ const props = defineProps({
   rowTestid: { type: String, default: 'raevo-field-row-read' },
   /** rótulo em cima e valor em baixo, como no painel do Chatwoot */
   stacked: { type: Boolean, default: false },
+  /**
+   * A dica também em repouso. Por omissão só se vê ao editar — a do Valor
+   * («Previsão da venda, não a cobrança») a toda a hora era ruído numa ficha
+   * aprovada sem ela.
+   */
+  hintAtRest: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['open', 'close']);
@@ -54,6 +60,15 @@ const raiz = ref(null);
 const abrindo = ref(false);
 
 const temValor = computed(() => String(props.value ?? '').trim().length > 0);
+
+// O erro também em repouso. Só se via ao editar, e a ficha recusava gravar um
+// campo exigido sem que a linha dissesse qual era. Não é `role="alert"`: quem
+// recusa anuncia o resumo uma vez, e cada linha ligada por `aria-describedby`
+// não o repete — eram quatro avisos lidos de seguida.
+const avisoId = useId();
+const avisoEmRepouso = computed(
+  () => props.error || (props.hintAtRest && props.hint)
+);
 
 const abrir = async () => {
   if (props.disabled || editando.value) return;
@@ -146,6 +161,7 @@ defineExpose({ abrir, fechar });
           : 'grid grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-3'
       "
       :aria-label="t('RAEVO.FIELD_ROW.EDIT', { field: label })"
+      :aria-describedby="avisoEmRepouso ? avisoId : undefined"
       @click="abrir"
     >
       <!--
@@ -172,5 +188,15 @@ defineExpose({ abrir, fechar });
         {{ temValor ? value : t('RAEVO.FIELD_ROW.EMPTY') }}
       </span>
     </button>
+    <!-- Colado ao valor e longe do rótulo seguinte: sem o `-mt-1` lia-se como
+         pertencendo ao campo de baixo. -->
+    <p
+      v-if="!editando && avisoEmRepouso"
+      :id="avisoId"
+      class="-mt-1 mb-0 px-2 pb-1 text-xs"
+      :class="error ? 'text-n-ruby-11' : 'text-n-slate-11'"
+    >
+      {{ avisoEmRepouso }}
+    </p>
   </div>
 </template>

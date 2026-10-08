@@ -346,6 +346,13 @@ const mountView = async (
         OnClickOutside: {
           template: '<div><slot /></div>',
         },
+        // O mover assistido desenha os campos pelo componente real; o
+        // RaevoField stubado engolia o slot e o campo sumia do teste.
+        KanbanRequiredFields: false,
+        RaevoField: {
+          template:
+            '<div><slot control-class="" field-id="campo" described-by="" /></div>',
+        },
         // Ver AGENTS.md, «Armadilha conhecida em testes»: stubado por omissão, o
         // cartão engole rótulo, valor, variação e rodapé.
         RaevoKpiCard: {

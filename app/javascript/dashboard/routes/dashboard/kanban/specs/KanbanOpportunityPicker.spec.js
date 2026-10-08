@@ -47,11 +47,12 @@ vi.mock('dashboard/composables/store', () => ({
   }),
 }));
 
-const mountPicker = () =>
+const mountPicker = (props = {}) =>
   mount(KanbanOpportunityPicker, {
     props: {
       kanbanBoardId: 10,
       kanbanStageId: 100,
+      ...props,
     },
   });
 
@@ -1073,12 +1074,12 @@ describe('KanbanOpportunityPicker', () => {
         await flushPromises();
       };
 
-      const prepararFormulario = async () => {
+      const prepararFormulario = async (props = {}) => {
         vi.useFakeTimers();
         ContactAPI.getConversations.mockResolvedValue({
           data: { payload: [buildConversation()] },
         });
-        const wrapper = mountPicker();
+        const wrapper = mountPicker(props);
         await searchAndSelectFirstInbox(wrapper);
         await wrapper
           .find('[data-testid="kanban-manual-card-subject"]')
@@ -1158,6 +1159,101 @@ describe('KanbanOpportunityPicker', () => {
             custom_field_values: { consentimento: false },
           }),
         });
+      });
+
+      // «Erro primeiro»: os campos só apareciam depois de uma recusa, a
+      // vermelho, quando a etapa já diz no cliente o que exige.
+      it('shows the fields the stage requires before the first attempt', async () => {
+        const wrapper = await prepararFormulario({
+          customFieldDefinitions: [
+            {
+              key: 'procedimento',
+              label: 'Procedimento',
+              fieldType: 'select',
+              options: ['Avaliação', 'Retorno'],
+              requiredStageIds: [100],
+            },
+            {
+              key: 'noutra_etapa',
+              label: 'Noutra etapa',
+              fieldType: 'text',
+              requiredStageIds: [200],
+            },
+          ],
+        });
+
+        expect(
+          wrapper
+            .find('[data-testid="kanban-manual-card-field-procedimento"]')
+            .exists()
+        ).toBe(true);
+        expect(
+          wrapper
+            .find('[data-testid="kanban-manual-card-field-noutra_etapa"]')
+            .exists()
+        ).toBe(false);
+        expect(
+          wrapper.find('[data-testid="kanban-manual-card-error"]').exists()
+        ).toBe(false);
+        expect(KanbanBoardsAPI.createManualCard).not.toHaveBeenCalled();
+      });
+
+      it('sends a required multiselect as a list of its options', async () => {
+        KanbanBoardsAPI.createManualCard.mockResolvedValue({ data: {} });
+        const wrapper = await prepararFormulario({
+          customFieldDefinitions: [
+            {
+              key: 'tratamentos',
+              label: 'Tratamentos',
+              fieldType: 'multiselect',
+              options: ['Implante', 'Faceta'],
+              requiredStageIds: [100],
+            },
+          ],
+        });
+        const campo = wrapper.find(
+          '[data-testid="kanban-manual-card-field-tratamentos"]'
+        );
+        campo.findAll('option').forEach(opcao => {
+          opcao.element.selected = true;
+        });
+        await campo.trigger('change');
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).toHaveBeenLastCalledWith(10, {
+          card: expect.objectContaining({
+            custom_field_values: { tratamentos: ['Implante', 'Faceta'] },
+          }),
+        });
+      });
+
+      it('keeps what was typed when the server adds a field', async () => {
+        recusaComCampos();
+        const wrapper = await prepararFormulario({
+          customFieldDefinitions: [
+            {
+              key: 'convenio',
+              label: 'Convénio',
+              fieldType: 'text',
+              requiredStageIds: [100],
+            },
+          ],
+        });
+        await wrapper
+          .find('[data-testid="kanban-manual-card-field-convenio"]')
+          .setValue('Particular');
+
+        await submeter(wrapper);
+
+        expect(
+          wrapper.find('[data-testid="kanban-manual-card-field-convenio"]')
+            .element.value
+        ).toBe('Particular');
+        expect(
+          wrapper
+            .find('[data-testid="kanban-manual-card-field-procedimento"]')
+            .exists()
+        ).toBe(true);
       });
 
       it('does not ask the server again while a required field is empty', async () => {

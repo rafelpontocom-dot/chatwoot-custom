@@ -13,7 +13,13 @@ import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import { getKanbanStageColorClass } from 'dashboard/helper/kanbanStageColors';
-import { requiredFieldOptions } from 'dashboard/helper/kanbanRequiredFields';
+import {
+  emptyRequiredFieldValue,
+  isRequiredFieldEmpty,
+  mergeRequiredFields,
+  requiredFieldsForStage,
+} from 'dashboard/helper/kanbanRequiredFields';
+import KanbanRequiredFields from 'dashboard/routes/dashboard/kanban/KanbanRequiredFields.vue';
 import LabelDropdown from 'shared/components/ui/label/LabelDropdown.vue';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -62,9 +68,11 @@ const createError = ref('');
  * Campos que a etapa de destino exige.
  *
  * Criar nesta etapa era impossível a partir da conversa: o servidor recusava com
- * «procedimento is required» e este painel não tinha onde preencher. O servidor
- * passa a dizer QUAIS faltam e COMO se desenham, e eles aparecem no formulário.
+ * «procedimento is required» e este painel não tinha onde preencher. Agora os
+ * que a etapa exige aparecem logo que ela é escolhida — saem das definições do
+ * funil —, e a recusa do servidor só acrescenta os condicionais.
  */
+const boardFieldDefinitions = ref([]);
 const requiredFieldDefinitions = ref([]);
 const requiredFieldValues = ref({});
 const hasPendingRealtimeRefresh = ref(false);
@@ -101,28 +109,27 @@ const selectedLabels = computed(() =>
     selectedLabelTitles.value.includes(label.title)
   )
 );
-const requiredFieldType = definition =>
-  definition?.field_type || definition?.fieldType;
-
-const isRequiredFieldSelect = definition =>
-  ['select', 'boolean'].includes(requiredFieldType(definition));
-
-const requiredFieldInputType = definition => {
-  const tipo = requiredFieldType(definition);
-  if (['integer', 'decimal', 'currency'].includes(tipo)) return 'number';
-  if (tipo === 'date') return 'date';
-  if (tipo === 'datetime') return 'datetime-local';
-
-  return 'text';
-};
-
 const hasUnfilledRequiredField = computed(() =>
-  requiredFieldDefinitions.value.some(definition => {
-    const valor = requiredFieldValues.value[definition.key];
-
-    return valor === undefined || valor === null || valor === '';
-  })
+  requiredFieldDefinitions.value.some(definition =>
+    isRequiredFieldEmpty(requiredFieldValues.value[definition.key])
+  )
 );
+
+// Mudar de etapa troca os campos, mas guarda o que já foi escrito nos que ficam.
+watch([selectedStageId, boardFieldDefinitions], () => {
+  const definicoes = requiredFieldsForStage(
+    boardFieldDefinitions.value,
+    selectedStageId.value
+  );
+  requiredFieldDefinitions.value = definicoes;
+  requiredFieldValues.value = Object.fromEntries(
+    definicoes.map(definition => [
+      definition.key,
+      requiredFieldValues.value[definition.key] ??
+        emptyRequiredFieldValue(definition),
+    ])
+  );
+});
 
 const canSubmit = computed(
   () =>
@@ -207,6 +214,7 @@ const resetFormState = () => {
   boardsError.value = '';
   stagesError.value = '';
   createError.value = '';
+  boardFieldDefinitions.value = [];
   requiredFieldDefinitions.value = [];
   requiredFieldValues.value = {};
 };
@@ -313,6 +321,7 @@ const loadStages = async boardId => {
     }
 
     stages.value = response.data?.stages || [];
+    boardFieldDefinitions.value = response.data?.custom_field_definitions || [];
     selectedStageId.value = activeStages.value[0]?.id || '';
   } catch (error) {
     if (isAbortError(error) || stagesRequestId.value !== currentRequestId) {
@@ -459,10 +468,14 @@ const submitForm = async () => {
 
     const responseData = error?.response?.data;
     if (responseData?.missing_fields?.length) {
-      requiredFieldDefinitions.value = responseData.field_definitions || [];
-      requiredFieldValues.value = Object.fromEntries(
-        responseData.missing_fields.map(key => [key, ''])
+      const juntos = mergeRequiredFields(
+        requiredFieldDefinitions.value,
+        requiredFieldValues.value,
+        responseData.field_definitions,
+        responseData.missing_fields
       );
+      requiredFieldDefinitions.value = juntos.definitions;
+      requiredFieldValues.value = juntos.values;
       createError.value = t(
         'CONVERSATION_SIDEBAR.KANBAN.REQUIRED_FIELDS_PENDING'
       );
@@ -692,39 +705,14 @@ onBeforeUnmount(() => {
         data-testid="kanban-create-required-fields"
         class="flex flex-col gap-2 rounded-lg border border-n-weak bg-n-alpha-1 p-2"
       >
-        <label
-          v-for="definition in requiredFieldDefinitions"
-          :key="definition.key"
-          class="flex flex-col gap-1"
-        >
-          <span class="text-xs font-medium text-n-slate-11">
-            {{ definition.label || definition.key }}
-          </span>
-          <select
-            v-if="isRequiredFieldSelect(definition)"
-            v-model="requiredFieldValues[definition.key]"
-            :data-testid="`kanban-create-field-${definition.key}`"
-            class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-          >
-            <option value="" disabled>
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_VALUE') }}
-            </option>
-            <option
-              v-for="option in requiredFieldOptions(definition, t)"
-              :key="String(option.value)"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-          <input
-            v-else
-            v-model="requiredFieldValues[definition.key]"
-            :data-testid="`kanban-create-field-${definition.key}`"
-            :type="requiredFieldInputType(definition)"
-            class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-          />
-        </label>
+        <p class="mb-0 text-xs text-n-slate-11">
+          {{ t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_HELP') }}
+        </p>
+        <KanbanRequiredFields
+          v-model="requiredFieldValues"
+          :definitions="requiredFieldDefinitions"
+          testid-prefix="kanban-create-field-"
+        />
       </div>
 
       <p v-if="createError" class="m-0 text-xs text-n-ruby-11" role="alert">

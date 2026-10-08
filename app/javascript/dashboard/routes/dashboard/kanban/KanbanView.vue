@@ -17,7 +17,10 @@ import {
   isNeutralStageColor,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
-import { requiredFieldOptions } from 'dashboard/helper/kanbanRequiredFields';
+import {
+  emptyRequiredFieldValue,
+  isRequiredFieldEmpty,
+} from 'dashboard/helper/kanbanRequiredFields';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
@@ -26,6 +29,7 @@ import KanbanActivityCenter from './KanbanActivityCenter.vue';
 import KanbanOpportunityDetailsModal from './KanbanOpportunityDetailsModal.vue';
 import KanbanImportDialog from './KanbanImportDialog.vue';
 import KanbanOpportunityPicker from './KanbanOpportunityPicker.vue';
+import KanbanRequiredFields from './KanbanRequiredFields.vue';
 import KanbanListView from './KanbanListView.vue';
 import KanbanConversationDrawer from './KanbanConversationDrawer.vue';
 import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
@@ -1168,7 +1172,6 @@ const onCardDragChange = async (stage, event) => {
         missingFields: responseData.missing_fields,
         fieldDefinitions: responseData.field_definitions || [],
       };
-      assistedMoveValues.value = {};
     } else {
       showActionError(error, t('KANBAN.ACTIONS.REORDER_CARD_ERROR'));
     }
@@ -1199,13 +1202,31 @@ const assistedFieldDefinition = fieldKey => {
   );
 };
 
-const assistedInputType = definition => {
-  const fieldType = definition?.fieldType || definition?.field_type;
-  if (['integer', 'decimal', 'currency'].includes(fieldType)) return 'number';
-  if (fieldType === 'date') return 'date';
-  if (fieldType === 'datetime') return 'datetime-local';
-  return 'text';
-};
+const assistedMoveDefinitions = computed(() =>
+  (pendingAssistedMove.value?.missingFields || []).map(
+    fieldKey =>
+      assistedFieldDefinition(fieldKey) || { key: fieldKey, label: fieldKey }
+  )
+);
+
+const hasUnfilledAssistedField = computed(() =>
+  assistedMoveDefinitions.value.some(definition =>
+    isRequiredFieldEmpty(assistedMoveValues.value[definition.key])
+  )
+);
+
+// Vazio tem a forma do campo: lista para o multiselect, texto para o resto.
+// Com `{}` o select abria sem o «Selecione um valor». Só quando abre um
+// movimento novo — um refresco do quadro com o diálogo aberto não apaga o que
+// já foi escrito.
+watch(pendingAssistedMove, () => {
+  assistedMoveValues.value = Object.fromEntries(
+    assistedMoveDefinitions.value.map(definition => [
+      definition.key,
+      emptyRequiredFieldValue(definition),
+    ])
+  );
+});
 
 const confirmAssistedMove = async () => {
   const move = pendingAssistedMove.value;
@@ -2677,6 +2698,9 @@ onUnmounted(() => {
                 v-if="activeAddItemStageId === stage.id"
                 :kanban-board-id="selectedBoard.id"
                 :kanban-stage-id="stage.id"
+                :custom-field-definitions="
+                  selectedBoard.customFieldDefinitions || []
+                "
                 @created="refreshStageFirstPage(stage.id)"
                 @close="closeAddItemPicker"
               />
@@ -2922,45 +2946,11 @@ onUnmounted(() => {
             {{ t('KANBAN.ASSISTED_MOVE.DESCRIPTION') }}
           </p>
         </div>
-        <label
-          v-for="fieldKey in pendingAssistedMove.missingFields"
-          :key="fieldKey"
-          class="grid gap-1 text-sm font-medium text-n-slate-12"
-        >
-          {{ assistedFieldDefinition(fieldKey)?.label || fieldKey }}
-          <select
-            v-if="
-              ['select', 'boolean'].includes(
-                assistedFieldDefinition(fieldKey)?.fieldType ||
-                  assistedFieldDefinition(fieldKey)?.field_type
-              )
-            "
-            v-model="assistedMoveValues[fieldKey]"
-            :data-testid="`kanban-assisted-field-${fieldKey}`"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-          >
-            <option value="" disabled>
-              {{ t('KANBAN.ASSISTED_MOVE.SELECT_VALUE') }}
-            </option>
-            <option
-              v-for="option in requiredFieldOptions(
-                assistedFieldDefinition(fieldKey),
-                t
-              )"
-              :key="String(option.value)"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-          <input
-            v-else
-            v-model="assistedMoveValues[fieldKey]"
-            :data-testid="`kanban-assisted-field-${fieldKey}`"
-            :type="assistedInputType(assistedFieldDefinition(fieldKey))"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-          />
-        </label>
+        <KanbanRequiredFields
+          v-model="assistedMoveValues"
+          :definitions="assistedMoveDefinitions"
+          testid-prefix="kanban-assisted-field-"
+        />
         <div class="flex justify-end gap-2">
           <button
             type="button"
@@ -2973,7 +2963,7 @@ onUnmounted(() => {
             type="button"
             data-testid="kanban-assisted-move-confirm"
             class="rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand-hover focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
-            :disabled="isPersistingCardDrag"
+            :disabled="isPersistingCardDrag || hasUnfilledAssistedField"
             @click="confirmAssistedMove"
           >
             {{ t('KANBAN.ASSISTED_MOVE.CONFIRM') }}
@@ -3092,6 +3082,7 @@ onUnmounted(() => {
         <KanbanOpportunityPicker
           :kanban-board-id="selectedBoard.id"
           :kanban-stage-id="firstStageId"
+          :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           @created="refreshStageFirstPage(firstStageId)"
           @close="showQuickCreate = false"
         />

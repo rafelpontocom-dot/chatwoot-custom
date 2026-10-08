@@ -1558,7 +1558,9 @@
       "BOOLEAN_NO": "Não",
       "AMOUNT_HEADLINE_ESTIMATE": "estimativa",
       "AMOUNT_HEADLINE_RECEIVED": "{value} recebidos",
-      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda"
+      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda",
+      "REQUIRED_IN_STAGE": "Obrigatório nesta etapa",
+      "REQUIRED_FIELDS_MISSING": "Preencha antes de guardar: {fields}."
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",
@@ -1742,6 +1744,9 @@
       "LOADING": "A ler o funil",
       "ERROR": "Não foi possível ler o funil",
       "RETRY": "Tentar outra vez"
+    },
+    "REQUIRED_FIELDS": {
+      "MULTISELECT_HINT": "Mantenha Ctrl ou ⌘ para escolher mais do que uma."
     }
   }
 }
