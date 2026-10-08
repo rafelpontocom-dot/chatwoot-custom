@@ -12,9 +12,20 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     if (isApiUrl(request.url())) pendingApiRequests.add(request);
   });
   page.on('requestfinished', request => pendingApiRequests.delete(request));
+  // `cache_keys` é servido com `stale_while_revalidate` (upstream). Quando a
+  // cópia guardada tem entre 10s e 5 min, o Chrome devolve-a e revalida em
+  // segundo plano, por iniciativa SUA — sem pilha JavaScript — e cancela as
+  // revalidações repetidas que três stores pedem ao mesmo tempo. Esse aborto
+  // não é falha da aplicação: a resposta já foi entregue, da cache. Fazia este
+  // smoke falhar ao acaso desde 07/10, em commits que só mexiam em docs.
+  // Tudo o resto conta: 4xx/5xx de `cache_keys` incluídos (ver `response`).
+  const isBrowserRevalidationAbort = (request: Request) =>
+    request.method() === 'GET' &&
+    /\/cache_keys$/.test(new URL(request.url()).pathname) &&
+    request.failure()?.errorText === 'net::ERR_ABORTED';
   page.on('requestfailed', request => {
     pendingApiRequests.delete(request);
-    if (isApiUrl(request.url())) {
+    if (isApiUrl(request.url()) && !isBrowserRevalidationAbort(request)) {
       failedApiResponses.push(
         `Network failure ${new URL(request.url()).pathname}`
       );
