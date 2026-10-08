@@ -1124,7 +1124,7 @@ describe('KanbanOpportunityPicker', () => {
 
       // O servidor manda `options: []` para booleanos. Desenhado como as outras
       // listas, o campo só tinha «Selecione um valor» e a criação voltava a
-      // ser impossível — visto no browser a 08/10.
+      // ser impossível — visto no browser na noite de 07/10.
       it('offers yes and no for a required boolean, and accepts no', async () => {
         KanbanBoardsAPI.createManualCard.mockRejectedValueOnce({
           response: {

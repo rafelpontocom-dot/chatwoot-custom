@@ -4,8 +4,8 @@
  *
  * O booleano saía como `select` sem opção nenhuma — o servidor manda
  * `options: []` para booleanos —, e um campo obrigatório que não se consegue
- * preencher volta a fazer da criação um beco sem saída. Visto no browser a
- * 08/10: só «Selecione um valor», e o botão de criar sempre recusado.
+ * preencher volta a fazer da criação um beco sem saída. Visto no browser na
+ * noite de 07/10: só «Selecione um valor», e o botão de criar sempre recusado.
  *
  * @param {Object} definition definição do campo, camelizada ou não
  * @param {Function} t tradução do vue-i18n

@@ -314,10 +314,10 @@ se abrir sem ninguém pedir.
 o browser a correr. Nenhum teste aqui prova que a coluna *parece* o que foi aprovado — só
 que as secções existem, abrem e trazem os dados certos.
 
-**Porta visual a 08/10/2026 — o browser desmentiu os testes.** Antes (`0e57d9cf`) e depois
+**Porta visual na noite de 07/10/2026 — o browser desmentiu os testes.** Antes (`0e57d9cf`) e depois
 (`c4915508`), 1280px e 390px, aplicação real com dados fictícios. Medido com `boundingBox`:
 
-| Contentor | Antes | Depois de 07/10 | Com a correção de 08/10 |
+| Contentor | Antes | Depois de 07/10 | Com a correção da mesma noite |
 | --- | --- | --- | --- |
 | Gaveta do Pipeline (576px, igual de 1024 a 1920) | ficha 536px | ficha **200px**, coluna 320px, palavras partidas a meio | ficha 536px, coluna por baixo |
 | Conversa › Oportunidades (317px) | ficha 317px | ficha **0px**, texto por cima de texto | ficha 317px, coluna por baixo |

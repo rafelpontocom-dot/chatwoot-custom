@@ -2425,10 +2425,10 @@ watch(invitationPendingRevocation, async invitation => {
           Lado a lado só fora da gaveta. O `lg:` mede a JANELA, e a ficha vive
           sempre num contentor estreito: 576px no Pipeline, 317px na conversa.
           Com duas colunas ali, a coluna levava 320px e a ficha ficava com 200px
-          no Pipeline e 0px na conversa, com texto por cima de texto (medido a
-          08/10, 1024–1920px). Na gaveta a coluna desce para baixo da ficha, como
-          no telemóvel. Pô-la ao lado pede uma gaveta mais larga — decisão do
-          Pedro, registada em docs/raevo-aprovacao.md.
+          no Pipeline e 0px na conversa, com texto por cima de texto (medido na
+          noite de 07/10, 1024–1920px). Na gaveta a coluna desce para baixo da
+          ficha, como no telemóvel. Pô-la ao lado pede uma gaveta mais larga —
+          decisão do Pedro, registada em docs/raevo-aprovacao.md.
         -->
         <div
           id="kanban-opportunity-tab-panel"
