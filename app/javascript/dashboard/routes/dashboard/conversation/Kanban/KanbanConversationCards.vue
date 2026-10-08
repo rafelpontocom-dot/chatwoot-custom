@@ -15,7 +15,6 @@ import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import { getKanbanStageColorClass } from 'dashboard/helper/kanbanStageColors';
 import { requiredFieldOptions } from 'dashboard/helper/kanbanRequiredFields';
 import LabelDropdown from 'shared/components/ui/label/LabelDropdown.vue';
-import { messageStamp } from 'shared/helpers/timeHelper';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 
@@ -43,7 +42,6 @@ const stagesAbortController = ref(null);
 const createAbortController = ref(null);
 const boardsRequestId = ref(0);
 const stagesRequestId = ref(0);
-const editStagesRequestId = ref(0);
 
 const isFormOpen = ref(false);
 const boards = ref([]);
@@ -69,22 +67,6 @@ const createError = ref('');
  */
 const requiredFieldDefinitions = ref([]);
 const requiredFieldValues = ref({});
-const editingCardId = ref(null);
-const editStages = ref([]);
-const editSubject = ref('');
-const editStageId = ref('');
-const editNextActionType = ref('');
-const editNextActionAt = ref('');
-const editLabelTitles = ref([]);
-const editCustomFieldDefinitions = ref([]);
-const editCustomFieldSections = ref([]);
-const editCustomFieldValues = ref({});
-const expandedEditFieldGroups = ref({});
-const editError = ref('');
-const isLoadingEditStages = ref(false);
-const isSavingEdit = ref(false);
-const hasPendingEditSave = ref(false);
-const editStagesAbortController = ref(null);
 const hasPendingRealtimeRefresh = ref(false);
 
 const kanbanCardRealtimeEvents = new Set([
@@ -100,9 +82,6 @@ const activeBoards = computed(() =>
 );
 const activeStages = computed(() =>
   stages.value.filter(stage => stage.active !== false)
-);
-const activeEditStages = computed(() =>
-  editStages.value.filter(stage => stage.active !== false)
 );
 const selectedBoard = computed(() =>
   activeBoards.value.find(
@@ -152,76 +131,6 @@ const canSubmit = computed(
     !isCreating.value &&
     !hasUnfilledRequiredField.value
 );
-const canSaveEdit = computed(
-  () => editSubject.value.trim() && editStageId.value && !isSavingEdit.value
-);
-const hasOpenLocalForm = computed(
-  () => isFormOpen.value || editingCardId.value !== null
-);
-
-const customFieldLayout = definition => definition.layout || {};
-const customFieldSectionKey = definition =>
-  customFieldLayout(definition).section || 'details';
-const customFieldGroupKey = definition =>
-  customFieldLayout(definition).group || 'ungrouped';
-const customFieldType = definition =>
-  definition.fieldType || definition.field_type || 'text';
-const isEditCustomFieldVisible = definition => {
-  const condition = definition.condition || {};
-  const fieldKey = condition.fieldKey || condition.field_key;
-  if (!fieldKey) return true;
-
-  return (
-    String(editCustomFieldValues.value[fieldKey] ?? '') ===
-    String(condition.equals ?? '')
-  );
-};
-const customFieldSectionLabel = sectionKey => {
-  if (sectionKey === 'details') {
-    return t('CONVERSATION_SIDEBAR.KANBAN.GENERAL_FIELDS');
-  }
-  if (sectionKey === 'marketing') {
-    return t('CONVERSATION_SIDEBAR.KANBAN.MARKETING_FIELDS');
-  }
-
-  return sectionKey.replace(/[_-]+/g, ' ');
-};
-const editCustomFieldGroups = computed(() => {
-  const sectionsByKey = new Map(
-    editCustomFieldSections.value.map(section => [section.key, section])
-  );
-  const groups = new Map();
-
-  [...editCustomFieldDefinitions.value]
-    .filter(isEditCustomFieldVisible)
-    .sort(
-      (firstDefinition, secondDefinition) =>
-        Number(customFieldLayout(firstDefinition).position || 0) -
-        Number(customFieldLayout(secondDefinition).position || 0)
-    )
-    .forEach(definition => {
-      const sectionKey = customFieldSectionKey(definition);
-      const groupKey = customFieldGroupKey(definition);
-      const id = `${sectionKey}:${groupKey}`;
-      const section = sectionsByKey.get(sectionKey);
-      const configuredGroup = section?.groups?.find(
-        group => group.key === groupKey
-      );
-      const group = groups.get(id) || {
-        id,
-        label:
-          configuredGroup?.label ||
-          section?.label ||
-          customFieldSectionLabel(sectionKey),
-        definitions: [],
-      };
-
-      group.definitions.push(definition);
-      groups.set(id, group);
-    });
-
-  return [...groups.values()];
-});
 
 const contactId = computed(() => currentChat.value?.meta?.sender?.id);
 const inboxId = computed(
@@ -253,31 +162,6 @@ const openCardInBoard = card => {
   });
 };
 
-const formatNextActionAt = value =>
-  messageStamp(new Date(value).getTime() / 1000, 'LLL d, yyyy h:mm a');
-
-// Tipo e data eram duas linhas independentes, e cada uma dizia «não definido»
-// por si: com a ação por preencher, o painel repetia-o duas vezes seguidas.
-const nextActionLines = card => {
-  const linhas = [
-    card.next_action_type || '',
-    card.next_action_at ? formatNextActionAt(card.next_action_at) : '',
-  ].filter(Boolean);
-
-  return linhas.length ? linhas : [t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET')];
-};
-
-const formatDateTimeInput = value => {
-  if (!value) return '';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
-
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - offset * 60000);
-  return localDate.toISOString().slice(0, 16);
-};
-
 const normalizeCollection = response =>
   response.data?.payload || response.data || [];
 
@@ -306,12 +190,6 @@ const abortFormRequests = () => {
   stagesRequestId.value += 1;
 };
 
-const abortEditRequests = () => {
-  editStagesAbortController.value?.abort();
-  editStagesAbortController.value = null;
-  editStagesRequestId.value += 1;
-};
-
 const resetFormState = () => {
   abortFormRequests();
   isFormOpen.value = false;
@@ -331,25 +209,6 @@ const resetFormState = () => {
   createError.value = '';
   requiredFieldDefinitions.value = [];
   requiredFieldValues.value = {};
-};
-
-const resetEditState = () => {
-  abortEditRequests();
-  editingCardId.value = null;
-  editStages.value = [];
-  editSubject.value = '';
-  editStageId.value = '';
-  editNextActionType.value = '';
-  editNextActionAt.value = '';
-  editLabelTitles.value = [];
-  editCustomFieldDefinitions.value = [];
-  editCustomFieldSections.value = [];
-  editCustomFieldValues.value = {};
-  expandedEditFieldGroups.value = {};
-  editError.value = '';
-  isLoadingEditStages.value = false;
-  isSavingEdit.value = false;
-  hasPendingEditSave.value = false;
 };
 
 const conversationIdFromRealtimeData = data =>
@@ -403,7 +262,7 @@ const loadCards = async () => {
       isLoading.value = false;
       abortController.value = null;
 
-      if (hasPendingRealtimeRefresh.value && !hasOpenLocalForm.value) {
+      if (hasPendingRealtimeRefresh.value && !isFormOpen.value) {
         hasPendingRealtimeRefresh.value = false;
         loadCards();
       }
@@ -412,7 +271,7 @@ const loadCards = async () => {
 };
 
 const refreshCardsFromRealtime = () => {
-  if (hasOpenLocalForm.value || isLoading.value) {
+  if (isFormOpen.value || isLoading.value) {
     hasPendingRealtimeRefresh.value = true;
     return;
   }
@@ -421,15 +280,11 @@ const refreshCardsFromRealtime = () => {
 };
 
 const flushPendingRealtimeRefresh = () => {
-  if (!hasPendingRealtimeRefresh.value || hasOpenLocalForm.value) return;
+  if (!hasPendingRealtimeRefresh.value || isFormOpen.value) return;
 
   hasPendingRealtimeRefresh.value = false;
   loadCards();
 };
-
-const cardBoardId = card => card.kanban_board_id || card.kanban_board?.id;
-
-const cardStageId = card => card.kanban_stage_id || card.kanban_stage?.id;
 
 const loadStages = async boardId => {
   if (!boardId) return;
@@ -472,56 +327,6 @@ const loadStages = async boardId => {
     if (stagesRequestId.value === currentRequestId) {
       isLoadingStages.value = false;
       stagesAbortController.value = null;
-    }
-  }
-};
-
-const loadEditStages = async boardId => {
-  if (!boardId) return;
-
-  const currentRequestId = editStagesRequestId.value + 1;
-  editStagesRequestId.value = currentRequestId;
-  editStagesAbortController.value?.abort();
-
-  const controller = new AbortController();
-  editStagesAbortController.value = controller;
-  isLoadingEditStages.value = true;
-  editStages.value = [];
-
-  try {
-    const response = await KanbanBoardsAPI.showBoard(boardId, {
-      signal: controller.signal,
-    });
-
-    if (
-      editStagesRequestId.value !== currentRequestId ||
-      controller.signal.aborted
-    ) {
-      return;
-    }
-
-    editStages.value = response.data?.stages || [];
-    editCustomFieldDefinitions.value =
-      response.data?.customFieldDefinitions ||
-      response.data?.custom_field_definitions ||
-      [];
-    editCustomFieldSections.value =
-      response.data?.customFieldSections ||
-      response.data?.custom_field_sections ||
-      [];
-  } catch (error) {
-    if (isAbortError(error) || editStagesRequestId.value !== currentRequestId) {
-      return;
-    }
-
-    editError.value = getErrorMessage(
-      error,
-      t('CONVERSATION_SIDEBAR.KANBAN.ERROR')
-    );
-  } finally {
-    if (editStagesRequestId.value === currentRequestId) {
-      isLoadingEditStages.value = false;
-      editStagesAbortController.value = null;
     }
   }
 };
@@ -576,7 +381,6 @@ const loadBoards = async () => {
 };
 
 const openForm = () => {
-  resetEditState();
   isFormOpen.value = true;
   subject.value = defaultSubject.value;
   nextActionType.value = '';
@@ -614,30 +418,6 @@ const nextActionAtPayload = () => {
   if (!nextActionAt.value) return null;
 
   return new Date(nextActionAt.value).toISOString();
-};
-
-const editNextActionAtPayload = () => {
-  if (!editNextActionAt.value) return null;
-
-  return new Date(editNextActionAt.value).toISOString();
-};
-
-const startEdit = async card => {
-  resetFormState();
-  resetEditState();
-  editingCardId.value = card.id;
-  editSubject.value = card.subject || '';
-  editStageId.value = cardStageId(card) || '';
-  editNextActionType.value = card.next_action_type || '';
-  editNextActionAt.value = formatDateTimeInput(card.next_action_at);
-  editLabelTitles.value = (card.labels || []).map(label => label.title);
-  editCustomFieldValues.value = {
-    ...(card.customFieldValues || card.custom_field_values || {}),
-  };
-  expandedEditFieldGroups.value = {};
-  editError.value = '';
-  store.dispatch('labels/get');
-  await loadEditStages(cardBoardId(card));
 };
 
 const submitForm = async () => {
@@ -707,89 +487,6 @@ const submitForm = async () => {
   }
 };
 
-const submitEdit = async card => {
-  if (isSavingEdit.value) {
-    hasPendingEditSave.value = true;
-    return;
-  }
-
-  if (!canSaveEdit.value) return;
-
-  isSavingEdit.value = true;
-  editError.value = '';
-
-  try {
-    const response = await KanbanBoardsAPI.updateCardDetailsById(
-      cardBoardId(card),
-      card.id,
-      {
-        kanban_stage_id: editStageId.value,
-        subject: editSubject.value.trim(),
-        next_action_type: editNextActionType.value || null,
-        next_action_at: editNextActionAtPayload(),
-        labels: editLabelTitles.value,
-        custom_field_values: editCustomFieldValues.value,
-      }
-    );
-
-    const updatedCard = response.data?.payload || response.data;
-    if (updatedCard?.id) {
-      cards.value = cards.value.map(existingCard =>
-        existingCard.id === updatedCard.id ? updatedCard : existingCard
-      );
-    }
-
-    hasPendingRealtimeRefresh.value = false;
-  } catch (error) {
-    editError.value = getErrorMessage(
-      error,
-      t('CONVERSATION_SIDEBAR.KANBAN.UPDATE_ERROR')
-    );
-  } finally {
-    isSavingEdit.value = false;
-
-    if (hasPendingEditSave.value) {
-      hasPendingEditSave.value = false;
-      submitEdit(card);
-    }
-  }
-};
-
-const isEditFieldGroupExpanded = groupId =>
-  expandedEditFieldGroups.value[groupId] === true;
-const toggleEditFieldGroup = groupId => {
-  expandedEditFieldGroups.value = {
-    ...expandedEditFieldGroups.value,
-    [groupId]: !isEditFieldGroupExpanded(groupId),
-  };
-};
-const editCustomFieldValue = definition =>
-  editCustomFieldValues.value[definition.key] ?? '';
-const updateEditCustomField = (card, definition, value) => {
-  editCustomFieldValues.value = {
-    ...editCustomFieldValues.value,
-    [definition.key]: value,
-  };
-  submitEdit(card);
-};
-const selectedMultiselectValues = event =>
-  Array.from(event.target.selectedOptions).map(option => option.value);
-
-const onAddEditLabel = (card, label) => {
-  const title = label?.title || label;
-  if (!title || editLabelTitles.value.includes(title)) return;
-
-  editLabelTitles.value = [...editLabelTitles.value, title];
-  submitEdit(card);
-};
-
-const onRemoveEditLabel = (card, title) => {
-  editLabelTitles.value = editLabelTitles.value.filter(
-    labelTitle => labelTitle !== title
-  );
-  submitEdit(card);
-};
-
 const handleRealtimeKanbanEvent = eventPayload => {
   if (!shouldRefreshForRealtimeEvent(eventPayload)) return;
 
@@ -806,7 +503,6 @@ watch(
   () => {
     hasPendingRealtimeRefresh.value = false;
     resetFormState();
-    resetEditState();
     loadCards();
   }
 );
@@ -814,7 +510,6 @@ watch(
 onBeforeUnmount(() => {
   resetAbortController();
   abortFormRequests();
-  abortEditRequests();
   emitter.off(BUS_EVENTS.KANBAN_REALTIME_EVENT, handleRealtimeKanbanEvent);
 });
 </script>
@@ -824,7 +519,7 @@ onBeforeUnmount(() => {
     <button
       v-if="!isFormOpen"
       type="button"
-      class="mb-3 inline-flex h-8 items-center rounded-md border border-n-strong px-3 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2"
+      class="mb-3 inline-flex h-8 items-center rounded-lg border border-solid border-n-strong px-3 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2"
       @click="openForm"
     >
       {{ t('CONVERSATION_SIDEBAR.KANBAN.ADD') }}
@@ -1064,404 +759,50 @@ onBeforeUnmount(() => {
       {{ t('CONVERSATION_SIDEBAR.KANBAN.EMPTY') }}
     </p>
     <ul v-else class="m-0 flex list-none flex-col gap-2 p-0">
-      <li
-        v-for="card in cards"
-        :key="card.id"
-        class="flex flex-col gap-3 rounded-lg border border-n-weak bg-n-surface-1 p-3"
-      >
-        <form
-          v-if="editingCardId === card.id"
-          class="flex flex-col gap-3"
-          @click.stop
-          @submit.prevent="submitEdit(card)"
-        >
-          <div class="flex min-w-0 items-start justify-between gap-2">
-            <div class="min-w-0">
-              <p class="mb-1 text-xs font-medium text-n-slate-11">
-                {{ t('CONVERSATION_SIDEBAR.KANBAN.BOARD') }}
-              </p>
-              <p class="m-0 truncate text-sm text-n-slate-12">
-                {{ card.kanban_board?.name }}
-              </p>
-            </div>
-            <button
-              type="button"
-              data-testid="kanban-open-linked-card"
-              class="no-drag inline-flex size-8 shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
-              :aria-label="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
-              :title="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
-              @click.stop="openCardInBoard(card)"
-              @keydown.stop
-            >
-              <span aria-hidden="true" class="i-lucide-arrow-up-right size-4" />
-            </button>
-          </div>
-
-          <label class="flex flex-col gap-1">
-            <span class="text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.SUBJECT') }}
-            </span>
-            <input
-              v-model="editSubject"
-              type="text"
-              class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-              @change="submitEdit(card)"
-            />
-          </label>
-
-          <label class="flex flex-col gap-1">
-            <span class="text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.STAGE') }}
-            </span>
-            <select
-              v-model="editStageId"
-              class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-              :disabled="isLoadingEditStages || activeEditStages.length === 0"
-              @change="submitEdit(card)"
-            >
-              <option value="">
-                {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_STAGE') }}
-              </option>
-              <option
-                v-for="stage in activeEditStages"
-                :key="stage.id"
-                :value="stage.id"
-              >
-                {{ stage.name }}
-              </option>
-            </select>
-          </label>
-
-          <p v-if="isLoadingEditStages" class="m-0 text-xs text-n-slate-11">
-            {{ t('CONVERSATION_SIDEBAR.KANBAN.LOADING') }}
-          </p>
-          <p
-            v-else-if="!isLoadingEditStages && activeEditStages.length === 0"
-            class="m-0 text-xs text-n-slate-11"
-          >
-            {{ t('CONVERSATION_SIDEBAR.KANBAN.EMPTY_STAGES') }}
-          </p>
-
-          <label class="flex flex-col gap-1">
-            <span class="text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_TYPE') }}
-            </span>
-            <select
-              v-model="editNextActionType"
-              class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-              @change="submitEdit(card)"
-            >
-              <option value="">
-                {{ t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET') }}
-              </option>
-              <option
-                v-for="type in nextActionTypeOptions"
-                :key="type"
-                :value="type"
-              >
-                {{ type }}
-              </option>
-            </select>
-          </label>
-
-          <label class="flex flex-col gap-1">
-            <span class="text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_AT') }}
-            </span>
-            <input
-              v-model="editNextActionAt"
-              type="datetime-local"
-              class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-              @change="submitEdit(card)"
-            />
-          </label>
-
-          <section
-            v-for="group in editCustomFieldGroups"
-            :key="group.id"
-            :data-testid="`kanban-opportunity-field-group-${group.id.replace(':', '-')}`"
-            class="overflow-hidden rounded-md border border-n-weak bg-n-surface-2"
-          >
-            <button
-              type="button"
-              class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left outline-none hover:bg-n-alpha-1 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
-              :aria-expanded="isEditFieldGroupExpanded(group.id)"
-              @click="toggleEditFieldGroup(group.id)"
-            >
-              <span
-                class="min-w-0 truncate text-xs font-medium text-n-slate-12"
-              >
-                {{ group.label }}
-              </span>
-              <span
-                class="flex shrink-0 items-center gap-2 text-xs text-n-slate-10"
-              >
-                {{ group.definitions.length }}
-                <i
-                  class="size-4"
-                  :class="
-                    isEditFieldGroupExpanded(group.id)
-                      ? 'i-lucide-chevron-up'
-                      : 'i-lucide-chevron-down'
-                  "
-                />
-              </span>
-            </button>
-            <div
-              v-if="isEditFieldGroupExpanded(group.id)"
-              class="grid gap-3 border-t border-n-weak bg-n-surface-1 p-3"
-            >
-              <label
-                v-for="definition in group.definitions"
-                :key="definition.key"
-                class="grid gap-1"
-              >
-                <span class="text-xs font-medium text-n-slate-11">
-                  {{ definition.label }}
-                </span>
-                <select
-                  v-if="customFieldType(definition) === 'select'"
-                  :value="editCustomFieldValue(definition)"
-                  :data-testid="`kanban-opportunity-field-${definition.key}`"
-                  class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-                  @change="
-                    updateEditCustomField(card, definition, $event.target.value)
-                  "
-                >
-                  <option value="" />
-                  <option
-                    v-for="option in definition.options || []"
-                    :key="option"
-                    :value="option"
-                  >
-                    {{ option }}
-                  </option>
-                </select>
-                <select
-                  v-else-if="customFieldType(definition) === 'multiselect'"
-                  multiple
-                  :value="editCustomFieldValue(definition)"
-                  :data-testid="`kanban-opportunity-field-${definition.key}`"
-                  class="min-h-20 rounded-md border border-n-strong bg-n-alpha-1 px-2 py-1 text-sm text-n-slate-12"
-                  @change="
-                    updateEditCustomField(
-                      card,
-                      definition,
-                      selectedMultiselectValues($event)
-                    )
-                  "
-                >
-                  <option
-                    v-for="option in definition.options || []"
-                    :key="option"
-                    :value="option"
-                  >
-                    {{ option }}
-                  </option>
-                </select>
-                <textarea
-                  v-else-if="customFieldType(definition) === 'textarea'"
-                  :value="editCustomFieldValue(definition)"
-                  rows="2"
-                  :data-testid="`kanban-opportunity-field-${definition.key}`"
-                  class="min-h-16 rounded-md border border-n-strong bg-n-alpha-1 px-2 py-1.5 text-sm text-n-slate-12"
-                  @change="
-                    updateEditCustomField(card, definition, $event.target.value)
-                  "
-                />
-                <input
-                  v-else-if="customFieldType(definition) === 'boolean'"
-                  type="checkbox"
-                  :checked="Boolean(editCustomFieldValue(definition))"
-                  :data-testid="`kanban-opportunity-field-${definition.key}`"
-                  class="size-4 rounded border-n-strong text-n-brand"
-                  @change="
-                    updateEditCustomField(
-                      card,
-                      definition,
-                      $event.target.checked
-                    )
-                  "
-                />
-                <input
-                  v-else
-                  :value="editCustomFieldValue(definition)"
-                  :type="
-                    ['integer', 'decimal', 'currency', 'formula'].includes(
-                      customFieldType(definition)
-                    )
-                      ? 'number'
-                      : customFieldType(definition) === 'date'
-                        ? 'date'
-                        : customFieldType(definition) === 'datetime'
-                          ? 'datetime-local'
-                          : customFieldType(definition) === 'url'
-                            ? 'url'
-                            : 'text'
-                  "
-                  :disabled="customFieldType(definition) === 'formula'"
-                  :data-testid="`kanban-opportunity-field-${definition.key}`"
-                  class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12 disabled:opacity-70"
-                  @change="
-                    updateEditCustomField(card, definition, $event.target.value)
-                  "
-                />
-              </label>
-            </div>
-          </section>
-
-          <label class="flex flex-col gap-2">
-            <span class="text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.LABELS') }}
-            </span>
-            <div v-if="editLabelTitles.length" class="flex flex-wrap gap-1">
-              <span
-                v-for="title in editLabelTitles"
-                :key="title"
-                class="inline-flex items-center gap-1 rounded-md bg-n-slate-3 px-2 py-1 text-xs text-n-slate-12"
-              >
-                {{ title }}
-                <button
-                  type="button"
-                  class="text-n-slate-11 hover:text-n-slate-12"
-                  :aria-label="title"
-                  @click="onRemoveEditLabel(card, title)"
-                >
-                  <span aria-hidden="true" class="i-lucide-x size-3" />
-                </button>
-              </span>
-            </div>
-            <div class="rounded-lg border border-n-weak bg-n-alpha-1 p-2">
-              <LabelDropdown
-                :account-labels="accountLabels"
-                :selected-labels="editLabelTitles"
-                :allow-creation="false"
-                @add="label => onAddEditLabel(card, label)"
-                @remove="title => onRemoveEditLabel(card, title)"
-              />
-            </div>
-          </label>
-
-          <p v-if="editError" class="m-0 text-xs text-n-ruby-11">
-            {{ editError }}
-          </p>
-
-          <p v-if="isSavingEdit" class="m-0 text-right text-xs text-n-slate-11">
-            {{ t('CONVERSATION_SIDEBAR.KANBAN.SAVING') }}
-          </p>
-        </form>
-
-        <div
-          v-else
-          role="button"
-          tabindex="0"
+      <li v-for="card in cards" :key="card.id">
+        <!--
+          Na conversa a oportunidade não se edita: cria-se aqui e trabalha-se no
+          funil. Decisão do Pedro, 07/10 — a ficha inteira (e depois o
+          formulário em linha) tirava a conversa do lugar. Cada oportunidade é
+          uma linha que leva ao cartão.
+        -->
+        <button
+          type="button"
           data-testid="kanban-linked-card"
-          class="flex cursor-pointer flex-col gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-          @click="startEdit(card)"
-          @keydown.enter.prevent="startEdit(card)"
-          @keydown.space.prevent="startEdit(card)"
+          class="flex w-full min-w-0 items-start justify-between gap-2 rounded-lg border border-solid border-n-weak bg-n-surface-1 p-3 text-start outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+          :aria-label="
+            t('CONVERSATION_SIDEBAR.KANBAN.OPEN_CARD_IN_BOARD', {
+              subject: card.subject,
+            })
+          "
+          @click="openCardInBoard(card)"
         >
-          <!--
-            Criar a oportunidade na conversa abria aqui a ficha inteira, com
-            todos os campos — a conversa deixava de ser a conversa. O que fica é
-            o resumo e a ligação directa ao cartão no funil; quem quiser editar
-            aqui continua a abrir o formulário ao clicar na linha.
-          -->
-          <div class="flex min-w-0 items-start justify-between gap-2">
-            <div class="min-w-0">
-              <p class="mb-1 text-xs font-medium text-n-slate-11">
-                {{ t('CONVERSATION_SIDEBAR.KANBAN.BOARD') }}
-              </p>
-              <p class="m-0 truncate text-sm text-n-slate-12">
-                {{ card.kanban_board?.name }}
-              </p>
-            </div>
-            <button
-              type="button"
-              data-testid="kanban-open-linked-card"
-              class="no-drag inline-flex size-8 shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
-              :aria-label="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
-              :title="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
-              @click.stop="openCardInBoard(card)"
-              @keydown.stop
-            >
-              <span aria-hidden="true" class="i-lucide-arrow-up-right size-4" />
-            </button>
-          </div>
-
-          <div class="min-w-0">
-            <p class="mb-1 text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.SUBJECT') }}
-            </p>
-            <p class="m-0 truncate text-sm text-n-slate-12">
+          <span class="grid min-w-0 gap-1">
+            <span class="break-words text-sm font-medium text-n-slate-12">
               {{ card.subject }}
-            </p>
-          </div>
-
-          <div class="min-w-0">
-            <p class="mb-1 text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.STAGE') }}
-            </p>
-            <div
-              class="flex min-w-0 items-center gap-2 text-sm text-n-slate-12"
+            </span>
+            <span
+              class="flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-n-slate-11"
             >
+              {{ card.kanban_board?.name }}
+              <span
+                aria-hidden="true"
+                class="i-lucide-arrow-right size-3 shrink-0"
+              />
               <span
                 v-if="card.kanban_stage?.color"
                 class="size-2 flex-shrink-0 rounded-full"
                 :class="stageColorClass(card.kanban_stage.color)"
                 aria-hidden="true"
               />
-              <span class="min-w-0 truncate">
-                {{ card.kanban_stage?.name }}
-              </span>
-            </div>
-          </div>
-
-          <div class="min-w-0">
-            <p class="mb-1 text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION') }}
-            </p>
-            <!--
-              `truncate` escondia o fim de «Enviar link de pagamento» nesta
-              barra estreita, sem o dizer a ninguém. A linha quebra.
-            -->
-            <p
-              v-for="(linha, indice) in nextActionLines(card)"
-              :key="linha"
-              class="m-0 break-words"
-              :class="
-                indice === 0
-                  ? 'text-sm text-n-slate-12'
-                  : 'text-xs text-n-slate-11'
-              "
-            >
-              {{ linha }}
-            </p>
-          </div>
-
-          <div class="min-w-0">
-            <p class="mb-1 text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.LABELS') }}
-            </p>
-            <div v-if="card.labels?.length" class="flex flex-wrap gap-1">
-              <span
-                v-for="label in card.labels"
-                :key="label.id || label.title"
-                class="inline-flex min-w-0 items-center gap-1 rounded-full bg-n-slate-3 px-2 py-1 text-xs text-n-slate-12"
-              >
-                <span
-                  class="size-2 flex-shrink-0 rounded-full"
-                  :style="{ backgroundColor: label.color }"
-                  aria-hidden="true"
-                />
-                <span class="truncate">{{ label.title }}</span>
-              </span>
-            </div>
-            <p v-else class="m-0 text-sm text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.NO_LABELS') }}
-            </p>
-          </div>
-        </div>
+              {{ card.kanban_stage?.name }}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            class="i-lucide-arrow-up-right mt-0.5 size-4 shrink-0 text-n-slate-11"
+          />
+        </button>
       </li>
     </ul>
   </div>

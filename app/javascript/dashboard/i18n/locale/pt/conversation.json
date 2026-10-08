@@ -477,7 +477,7 @@
       "LOADING": "Carregando oportunidades",
       "EMPTY": "Nenhuma oportunidade vinculada a esta conversa",
       "ERROR": "Não foi possível carregar as oportunidades",
-      "ADD": "Adicionar ao Kanban",
+      "ADD": "Criar oportunidade",
       "CREATE_TITLE": "Criar oportunidade",
       "BOARD": "Funil",
       "SUBJECT": "Assunto",
@@ -501,6 +501,7 @@
       "UPDATE_ERROR": "Não foi possível atualizar a oportunidade",
       "UPDATED": "Oportunidade atualizada",
       "OPEN_IN_BOARD": "Abrir oportunidade no funil",
+      "OPEN_CARD_IN_BOARD": "Abrir {subject} no funil",
       "GENERAL_FIELDS": "Outros campos",
       "MARKETING_FIELDS": "Marketing",
       "WHICH_OPPORTUNITY": "Qual oportunidade"

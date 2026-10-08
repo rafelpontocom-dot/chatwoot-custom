@@ -344,6 +344,17 @@ passa a reprovar qualquer `grid-cols` na gaveta.
 4. **«Histórico» foi para a coluna.** O aprovado tem «Últimos eventos» à esquerda, ao lado
    da próxima ação.
 
+**Decisão do Pedro, mesma noite, sobre o ponto 3 — e implementada.** Na barra lateral da
+Conversas a oportunidade **não se abre nem se edita**: ali só se cria. Cada oportunidade
+já criada é uma linha — assunto, funil → etapa — que leva ao cartão no funil, com a
+gaveta aberta. A ficha inteira e o formulário em linha que a tinha substituído saíram
+(`KanbanConversationCards` passou de 1453 para ≈800 linhas). O botão diz «Criar
+oportunidade», não «Adicionar ao Kanban».
+
+**Pedido do Pedro sobre a Tela 2 (ícone de conversa no card), por aprovar:** tudo empilhado
+em lista, como o painel de contacto do Chatwoot — Geral e Marketing incluídos, sem abas.
+Maquete para aprovação antes de implementar, como manda o processo abaixo.
+
 ## O processo
 
 Por tela, sempre nesta ordem:
