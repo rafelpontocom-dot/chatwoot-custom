@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, requiredIf } from '@vuelidate/validators';
 import { INBOX_TYPES, isVoiceCallEnabled } from 'dashboard/helper/inbox';
@@ -20,6 +20,7 @@ import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 
 import ContactSelector from './ContactSelector.vue';
 import InboxSelector from './InboxSelector.vue';
+import ExtraInboxesSelector from './ExtraInboxesSelector.vue';
 import EmailOptions from './EmailOptions.vue';
 import MessageEditor from './MessageEditor.vue';
 import ActionButtons from './ActionButtons.vue';
@@ -146,6 +147,31 @@ const newMessagePayload = () => {
 const contactableInboxesList = computed(() => {
   return buildContactableInboxesList(props.selectedContact?.contactInboxes);
 });
+
+// RAEVO (08/10, 123jpnbcb50): «Enviar também por» — outras caixas do MESMO tipo
+// da escolhida (o formulário é o mesmo para todas). Fica de fora o WhatsApp com
+// template, porque o template é de cada caixa.
+const extraInboxIds = ref([]);
+const extraInboxOptions = computed(() => {
+  const target = props.targetInbox;
+  if (!target) return [];
+  if (inboxTypes.value.isWhatsapp || inboxTypes.value.isTwilioWhatsapp)
+    return [];
+
+  return contactableInboxesList.value.filter(
+    inbox => inbox.id !== target.id && inbox.channelType === target.channelType
+  );
+});
+watch(
+  () => props.targetInbox?.id,
+  () => {
+    extraInboxIds.value = [];
+  }
+);
+const selectedExtraInboxes = () =>
+  extraInboxOptions.value.filter(inbox =>
+    extraInboxIds.value.includes(inbox.id)
+  );
 
 const showNoInboxAlert = computed(() => {
   return (
@@ -297,6 +323,7 @@ const handleSendMessage = async () => {
     const success = await emit('createConversation', {
       payload: newMessagePayload(),
       isFromWhatsApp: false,
+      alsoVia: selectedExtraInboxes(), // RAEVO (123jpnbcb50)
     });
     if (success) {
       clearForm();
@@ -393,6 +420,11 @@ useKeyboardEvents({
         @update-inbox="removeTargetInbox"
         @toggle-dropdown="showInboxesDropdown = $event"
         @handle-inbox-action="handleInboxAction"
+      />
+      <ExtraInboxesSelector
+        v-if="extraInboxOptions.length"
+        v-model="extraInboxIds"
+        :inboxes="extraInboxOptions"
       />
 
       <EmailOptions

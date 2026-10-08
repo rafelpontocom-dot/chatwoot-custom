@@ -226,6 +226,17 @@
         "app/javascript/dashboard/components-next/sidebar/specs/SidebarGroupHeader.spec.js",
         "app/javascript/dashboard/composables/spec/useUnreadFavicon.spec.js"
       ]
+    },
+    {
+      "id": "compose-also-send-via",
+      "paths": [
+        "app/javascript/dashboard/components-next/NewConversation/components/ComposeNewConversationForm.vue",
+        "app/javascript/dashboard/components-next/NewConversation/ComposeConversation.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/NewConversation/components/specs/ComposeNewConversationForm.spec.js",
+        "app/javascript/dashboard/components-next/NewConversation/specs/ComposeConversation.spec.js"
+      ]
     }
   ]
 }

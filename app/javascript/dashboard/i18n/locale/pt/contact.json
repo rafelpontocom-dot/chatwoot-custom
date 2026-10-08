@@ -641,6 +641,11 @@
       "ERROR_MESSAGE": "Não foi possível completar a pesquisa. Por favor, tente novamente."
     },
     "FORM": {
+      "ALSO_SEND_VIA": {
+        "LABEL": "Enviar também por",
+        "SUCCESS": "Enviada por {count} caixas — uma conversa em cada.",
+        "PARTIAL": "Enviada, mas não por: {failed}. Volte a enviar por essa caixa."
+      },
       "GO_TO_CONVERSATION": "Ver",
       "SUCCESS_MESSAGE": "Mensagem enviada com sucesso!",
       "ERROR_MESSAGE": "Ocorreu um erro ao criar a conversa. Tente novamente mais tarde.",
