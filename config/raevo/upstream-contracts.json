@@ -205,6 +205,15 @@
         "app/javascript/dashboard/components/widgets/conversation/specs/ReplyBox.spec.js",
         "spec/controllers/api/v1/accounts/conversations/whatsapp_group_participants_controller_spec.rb"
       ]
+    },
+    {
+      "id": "conversation-contact-attributes",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/conversation/customAttributes/CustomAttributes.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/conversation/customAttributes/specs/CustomAttributes.spec.js"
+      ]
     }
   ]
 }
