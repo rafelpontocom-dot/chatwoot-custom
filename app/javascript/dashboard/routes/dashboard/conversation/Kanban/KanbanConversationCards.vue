@@ -20,6 +20,7 @@ import {
   requiredFieldsForStage,
 } from 'dashboard/helper/kanbanRequiredFields';
 import KanbanRequiredFields from 'dashboard/routes/dashboard/kanban/KanbanRequiredFields.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import LabelDropdown from 'shared/components/ui/label/LabelDropdown.vue';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -547,28 +548,37 @@ onBeforeUnmount(() => {
         {{ t('CONVERSATION_SIDEBAR.KANBAN.CREATE_TITLE') }}
       </h4>
 
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-n-slate-11">
-          {{ t('CONVERSATION_SIDEBAR.KANBAN.BOARD') }}
-        </span>
-        <select
-          v-model="selectedBoardId"
-          class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-          :disabled="isLoadingBoards || activeBoards.length === 0"
-          @change="onBoardChange"
-        >
-          <option value="">
-            {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_BOARD') }}
-          </option>
-          <option
-            v-for="board in activeBoards"
-            :key="board.id"
-            :value="board.id"
+      <!--
+        Um só tratamento de campo, o do `RaevoField` (regra 7 do AGENTS.md). Os
+        campos deste formulário eram `<label>` + controlo com classe à mão, e o
+        bloco dos campos exigidos, já no primitivo, ficava ao lado deles com
+        outra casca — dois estilos no mesmo formulário. Decisão do Pedro, 08/10.
+      -->
+      <RaevoField
+        :label="t('CONVERSATION_SIDEBAR.KANBAN.BOARD')"
+        variant="select"
+      >
+        <template #default="{ controlClass, fieldId }">
+          <select
+            :id="fieldId"
+            v-model="selectedBoardId"
+            :class="controlClass"
+            :disabled="isLoadingBoards || activeBoards.length === 0"
+            @change="onBoardChange"
           >
-            {{ board.name }}
-          </option>
-        </select>
-      </label>
+            <option value="">
+              {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_BOARD') }}
+            </option>
+            <option
+              v-for="board in activeBoards"
+              :key="board.id"
+              :value="board.id"
+            >
+              {{ board.name }}
+            </option>
+          </select>
+        </template>
+      </RaevoField>
       <p v-if="isLoadingBoards" class="m-0 text-xs text-n-slate-11">
         {{ t('CONVERSATION_SIDEBAR.KANBAN.LOADING') }}
       </p>
@@ -582,38 +592,41 @@ onBeforeUnmount(() => {
         {{ t('CONVERSATION_SIDEBAR.KANBAN.EMPTY_BOARDS') }}
       </p>
 
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-n-slate-11">
-          {{ t('CONVERSATION_SIDEBAR.KANBAN.SUBJECT') }}
-        </span>
-        <input
-          v-model="subject"
-          type="text"
-          class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-        />
-      </label>
+      <RaevoField :label="t('CONVERSATION_SIDEBAR.KANBAN.SUBJECT')">
+        <template #default="{ controlClass, fieldId }">
+          <input
+            :id="fieldId"
+            v-model="subject"
+            type="text"
+            :class="controlClass"
+          />
+        </template>
+      </RaevoField>
 
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-n-slate-11">
-          {{ t('CONVERSATION_SIDEBAR.KANBAN.STAGE') }}
-        </span>
-        <select
-          v-model="selectedStageId"
-          class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-          :disabled="isLoadingStages || activeStages.length === 0"
-        >
-          <option value="">
-            {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_STAGE') }}
-          </option>
-          <option
-            v-for="stage in activeStages"
-            :key="stage.id"
-            :value="stage.id"
+      <RaevoField
+        :label="t('CONVERSATION_SIDEBAR.KANBAN.STAGE')"
+        variant="select"
+      >
+        <template #default="{ controlClass, fieldId }">
+          <select
+            :id="fieldId"
+            v-model="selectedStageId"
+            :class="controlClass"
+            :disabled="isLoadingStages || activeStages.length === 0"
           >
-            {{ stage.name }}
-          </option>
-        </select>
-      </label>
+            <option value="">
+              {{ t('CONVERSATION_SIDEBAR.KANBAN.SELECT_STAGE') }}
+            </option>
+            <option
+              v-for="stage in activeStages"
+              :key="stage.id"
+              :value="stage.id"
+            >
+              {{ stage.name }}
+            </option>
+          </select>
+        </template>
+      </RaevoField>
       <p v-if="isLoadingStages" class="m-0 text-xs text-n-slate-11">
         {{ t('CONVERSATION_SIDEBAR.KANBAN.LOADING') }}
       </p>
@@ -629,39 +642,42 @@ onBeforeUnmount(() => {
         {{ t('CONVERSATION_SIDEBAR.KANBAN.EMPTY_STAGES') }}
       </p>
 
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-n-slate-11">
-          {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_TYPE') }}
-        </span>
-        <select
-          v-model="nextActionType"
-          data-testid="kanban-conversation-next-action-type"
-          class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-        >
-          <option value="">
-            {{ t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET') }}
-          </option>
-          <option
-            v-for="type in nextActionTypeOptions"
-            :key="type"
-            :value="type"
+      <RaevoField
+        :label="t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_TYPE')"
+        variant="select"
+      >
+        <template #default="{ controlClass, fieldId }">
+          <select
+            :id="fieldId"
+            v-model="nextActionType"
+            data-testid="kanban-conversation-next-action-type"
+            :class="controlClass"
           >
-            {{ type }}
-          </option>
-        </select>
-      </label>
+            <option value="">
+              {{ t('CONVERSATION_SIDEBAR.KANBAN.NOT_SET') }}
+            </option>
+            <option
+              v-for="type in nextActionTypeOptions"
+              :key="type"
+              :value="type"
+            >
+              {{ type }}
+            </option>
+          </select>
+        </template>
+      </RaevoField>
 
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-n-slate-11">
-          {{ t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_AT') }}
-        </span>
-        <input
-          v-model="nextActionAt"
-          type="datetime-local"
-          data-testid="kanban-conversation-next-action-at"
-          class="h-9 rounded-md border border-n-strong bg-n-alpha-1 px-2 text-sm text-n-slate-12"
-        />
-      </label>
+      <RaevoField :label="t('CONVERSATION_SIDEBAR.KANBAN.NEXT_ACTION_AT')">
+        <template #default="{ controlClass, fieldId }">
+          <input
+            :id="fieldId"
+            v-model="nextActionAt"
+            type="datetime-local"
+            data-testid="kanban-conversation-next-action-at"
+            :class="controlClass"
+          />
+        </template>
+      </RaevoField>
 
       <label class="flex flex-col gap-2">
         <span class="text-xs font-medium text-n-slate-11">
@@ -703,7 +719,7 @@ onBeforeUnmount(() => {
       <div
         v-if="requiredFieldDefinitions.length"
         data-testid="kanban-create-required-fields"
-        class="flex flex-col gap-2 rounded-lg border border-n-weak bg-n-alpha-1 p-2"
+        class="flex flex-col gap-3"
       >
         <p class="mb-0 text-xs text-n-slate-11">
           {{ t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_HELP') }}
@@ -722,14 +738,14 @@ onBeforeUnmount(() => {
       <div class="flex justify-end gap-2">
         <button
           type="button"
-          class="h-8 rounded-md px-3 text-sm text-n-slate-11 hover:bg-n-alpha-2"
+          class="h-control rounded-lg px-control text-sm text-n-slate-11 hover:bg-n-alpha-2"
           @click="cancelForm"
         >
           {{ t('CONVERSATION_SIDEBAR.KANBAN.CANCEL') }}
         </button>
         <button
           type="submit"
-          class="h-8 rounded-md bg-n-brand px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+          class="h-control rounded-lg bg-n-brand px-control text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="!canSubmit"
         >
           {{ t('CONVERSATION_SIDEBAR.KANBAN.CREATE') }}

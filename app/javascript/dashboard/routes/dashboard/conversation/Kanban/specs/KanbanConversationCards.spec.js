@@ -184,10 +184,14 @@ const emitKanbanRealtimeEvent = payload => {
   emitter.emit(BUS_EVENTS.KANBAN_REALTIME_EVENT, payload);
 };
 
+// Os campos passaram ao `RaevoField`, cujo rótulo é o próprio `<label>`; o
+// bloco das etiquetas continua a pôr o texto num `<span>` dentro dele.
 const formLabels = wrapper =>
   wrapper
-    .findAll('label span')
-    .map(node => node.text())
+    .findAll('form label')
+    .map(node =>
+      (node.find('span').exists() ? node.find('span') : node).text().trim()
+    )
     .filter(Boolean);
 
 describe('KanbanConversationCards', () => {
