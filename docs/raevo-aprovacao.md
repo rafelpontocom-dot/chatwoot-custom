@@ -353,7 +353,9 @@ oportunidade», não «Adicionar ao Kanban».
 
 **Pedido do Pedro sobre a Tela 2 (ícone de conversa no card), por aprovar:** tudo empilhado
 em lista, como o painel de contacto do Chatwoot — Geral e Marketing incluídos, sem abas.
-Maquete para aprovação antes de implementar, como manda o processo abaixo.
+Maquete para aprovação antes de implementar, como manda o processo abaixo:
+<https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS> — proposta a 1280px, o painel inteiro
+rolado, e a tela de hoje ao lado.
 
 ## O processo
 
