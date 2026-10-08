@@ -1519,6 +1519,8 @@
       },
       "MANAGE_FIELDS": "Manage opportunity fields",
       "ADD_TAB": "Create opportunity tab",
+      "MOVE_SECTION_UP": "Move {section} up",
+      "MOVE_SECTION_DOWN": "Move {section} down",
       "GROUPS": {
         "COMMERCIAL": "Commercial"
       },

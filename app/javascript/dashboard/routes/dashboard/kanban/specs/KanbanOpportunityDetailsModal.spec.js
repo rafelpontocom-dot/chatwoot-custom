@@ -10,6 +10,7 @@ const storeMocks = vi.hoisted(() => ({
   labels: [],
   attributeDefinitions: [],
   currentAccount: { permissions: ['administrator'] },
+  uiSettings: {},
   dispatch: vi.fn(),
 }));
 const formsInvitationMocks = vi.hoisted(() => ({
@@ -196,6 +197,13 @@ vi.mock('dashboard/composables/store', async () => {
 
   return {
     useStore: () => ({ dispatch: storeMocks.dispatch }),
+    // A coluna da direita guarda a ORDEM em `ui_settings`, e isso passa pelo
+    // `useUISettings`, que lê por `useStoreGetters`. Não ter isto aqui foi o que
+    // me fez recuar da persistência na primeira tentativa — era falha do duplo,
+    // não razão para não guardar a preferência.
+    useStoreGetters: () => ({
+      getUISettings: computed(() => storeMocks.uiSettings),
+    }),
     useMapGetter: key => {
       if (key === 'getCurrentAccount') {
         return computed(() => storeMocks.currentAccount);
@@ -506,6 +514,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     vi.clearAllMocks();
     storeMocks.labels = [];
     storeMocks.currentAccount = { permissions: ['administrator'] };
+    storeMocks.uiSettings = {};
   });
 
   it('uses a single-column layout so opportunity details stay readable', async () => {
@@ -515,6 +524,92 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(
       layout.classes().some(className => className.startsWith('xl:grid-cols-'))
     ).toBe(false);
+  });
+
+  // A ordem é preferência de cada pessoa: quem marca consultas quer a Agenda no
+  // topo, quem cobra quer o Financeiro. Guarda-se em `ui_settings`.
+  describe('side-column order', () => {
+    const secoesNaOrdem = wrapper =>
+      wrapper
+        .findAll('[data-testid^="kanban-opportunity-section-"]')
+        .map(node => node.attributes('data-testid'))
+        .filter(testid => !/-(up|down)-/.test(testid))
+        .map(testid => testid.replace('kanban-opportunity-section-', ''));
+
+    it('starts in the default order', async () => {
+      FinanceAPI.getProviderConnections.mockResolvedValue({ data: [] });
+      const wrapper = await mountModal({
+        calendarEnabled: true,
+        financeModule: { enabled: true },
+      });
+
+      expect(secoesNaOrdem(wrapper)).toEqual([
+        'contact-details',
+        'calendar',
+        'finance',
+        'forms',
+        'timeline',
+      ]);
+    });
+
+    it('follows the order the agent saved', async () => {
+      storeMocks.uiSettings = {
+        kanban_opportunity_sections_order: ['timeline', 'contact-details'],
+      };
+      const wrapper = await mountModal({ calendarEnabled: true });
+
+      expect(secoesNaOrdem(wrapper)).toEqual([
+        'timeline',
+        'contact-details',
+        'calendar',
+        'forms',
+      ]);
+    });
+
+    it('saves the new order when a section is moved down', async () => {
+      const wrapper = await mountModal({ calendarEnabled: true });
+
+      await wrapper
+        .find('[data-testid="kanban-opportunity-section-down-contact-details"]')
+        .trigger('click');
+
+      expect(storeMocks.dispatch).toHaveBeenCalledWith('updateUISettings', {
+        uiSettings: {
+          kanban_opportunity_sections_order: [
+            'calendar',
+            'contact-details',
+            'finance',
+            'forms',
+            'timeline',
+          ],
+        },
+      });
+    });
+
+    // Os limites são os da lista VISÍVEL, não os da ordem completa: sem Agenda
+    // nem Financeiro nem Formulários, «Contato» é o primeiro e «Histórico» o
+    // último, e os botões têm de o dizer.
+    it('disables the moves that would fall off the visible list', async () => {
+      const wrapper = await mountModal();
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-opportunity-section-up-contact-details"]')
+          .attributes('disabled')
+      ).toBeDefined();
+      expect(
+        wrapper
+          .find('[data-testid="kanban-opportunity-section-down-timeline"]')
+          .attributes('disabled')
+      ).toBeDefined();
+      expect(
+        wrapper
+          .find(
+            '[data-testid="kanban-opportunity-section-down-contact-details"]'
+          )
+          .attributes('disabled')
+      ).toBeUndefined();
+    });
   });
 
   it('shows finance as a side-column section when the module is active', async () => {

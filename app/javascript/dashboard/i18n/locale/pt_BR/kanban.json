@@ -1527,6 +1527,8 @@
       },
       "MANAGE_FIELDS": "Configurar campos da oportunidade",
       "ADD_TAB": "Criar aba da oportunidade",
+      "MOVE_SECTION_UP": "Mover {section} para cima",
+      "MOVE_SECTION_DOWN": "Mover {section} para baixo",
       "GROUPS": {
         "COMMERCIAL": "Comercial"
       },
