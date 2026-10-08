@@ -102,6 +102,44 @@ RSpec.describe KanbanCard do
       expect(card.custom_field_values).to eq('orcamento' => 1250.5, 'produtos' => %w[Plano Curso])
     end
 
+    # Quem muda as opções de uma lista nas configurações não pode deixar presos os
+    # cartões que guardam a opção antiga: todo gravar respondia 422, até concluir
+    # a próxima ação. O valor guardado fica como está até alguém o trocar.
+    context 'when a select option stored on the card is removed from the board' do
+      let(:board) do
+        create(:kanban_board, custom_field_definitions: [
+                 { key: 'origem', label: 'Origem', field_type: 'select', options: ['Meta Ads', 'Google'] },
+                 { key: 'canais', label: 'Canais', field_type: 'multiselect', options: %w[Instagram Facebook] }
+               ])
+      end
+      let(:stage) { create(:kanban_stage, account: board.account, kanban_board: board) }
+      let!(:card) do
+        create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                             custom_field_values: { origem: 'Meta Ads', canais: ['Instagram'] })
+      end
+
+      before do
+        board.update!(custom_field_definitions: [
+                        { key: 'origem', label: 'Origem', field_type: 'select', options: ['Mídia Paga', 'Google'] },
+                        { key: 'canais', label: 'Canais', field_type: 'multiselect', options: %w[Facebook] }
+                      ])
+        card.reload
+      end
+
+      it 'still saves other changes and keeps the stored values' do
+        card.update!(next_action_note: 'Ligar de volta', custom_field_values: card.custom_field_values)
+
+        expect(card.reload.custom_field_values).to eq('origem' => 'Meta Ads', 'canais' => ['Instagram'])
+      end
+
+      it 'refuses writing a value that is not an option' do
+        card.custom_field_values = { origem: 'Outra coisa', canais: ['Instagram'] }
+
+        expect(card).not_to be_valid
+        expect(card.errors[:custom_field_values]).to eq(['origem is invalid'])
+      end
+    end
+
     it 'preserves false as a filled boolean value' do
       board = create(
         :kanban_board,

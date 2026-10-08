@@ -539,6 +539,9 @@ class KanbanCard < ApplicationRecord
     self.custom_field_values = normalized_custom_field_values
   end
 
+  # Valida-se o que se escreve, não o que já estava gravado. Mudar as opções de
+  # uma lista nas configurações deixava presos todos os cartões com a opção
+  # antiga: qualquer gravar respondia 422, até concluir a próxima ação.
   def normalized_custom_field_values
     values = custom_field_values.to_h.with_indifferent_access
     normalized_values = {}
@@ -547,7 +550,7 @@ class KanbanCard < ApplicationRecord
       key = definition['key']
       next if definition['field_type'] == 'formula'
 
-      normalized_value = normalize_custom_field_value(definition, values[key])
+      normalized_value = custom_field_value_to_store(definition, values[key])
       normalized_values[key] = normalized_value unless normalized_value.nil?
     end
 
@@ -557,6 +560,14 @@ class KanbanCard < ApplicationRecord
     end
 
     normalized_values
+  end
+
+  def custom_field_value_to_store(definition, value)
+    key = definition['key']
+    stored_values = attribute_in_database(:custom_field_values).to_h.with_indifferent_access
+    return stored_values[key] if stored_values.key?(key) && stored_values[key] == value
+
+    normalize_custom_field_value(definition, value)
   end
 
   def custom_field_definitions
