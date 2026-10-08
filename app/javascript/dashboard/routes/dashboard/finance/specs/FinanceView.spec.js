@@ -305,6 +305,61 @@ describe('FinanceView', () => {
     );
   });
 
+  // 123jpnbcb5q: na conta 1 a chave ficou gravada e «pendente» desde 06/10 — o
+  // segundo clique, em Validar, nunca aconteceu — e as cobranças saíram manuais,
+  // sem link. Gravar a chave tem de a validar logo.
+  it('validates the Asaas credentials right after saving them', async () => {
+    FinanceAPI.getModule.mockResolvedValue({
+      data: { enabled: true, market: 'BR', lock_version: 0 },
+    });
+    FinanceAPI.createProviderConnection.mockResolvedValue({
+      data: { id: 7, provider: 'asaas', status: 'pending' },
+    });
+    FinanceAPI.verifyProviderConnection.mockResolvedValue({
+      data: { id: 7, provider: 'asaas', status: 'connected' },
+    });
+    const wrapper = mountFinance();
+    await flushPromises();
+    await openSettings(wrapper);
+
+    await wrapper
+      .get('[data-testid="finance-asaas-api-key"]')
+      .setValue('$aact_test_key');
+    await wrapper.vm.saveAsaasConnection();
+    await flushPromises();
+
+    expect(FinanceAPI.verifyProviderConnection).toHaveBeenCalledWith(7);
+    expect(wrapper.vm.connections).toEqual([
+      { id: 7, provider: 'asaas', status: 'connected' },
+    ]);
+  });
+
+  it('shows the connection error, not «pending», when that validation fails', async () => {
+    FinanceAPI.getModule.mockResolvedValue({
+      data: { enabled: true, market: 'BR', lock_version: 0 },
+    });
+    FinanceAPI.createProviderConnection.mockResolvedValue({
+      data: { id: 7, provider: 'asaas', status: 'pending' },
+    });
+    FinanceAPI.verifyProviderConnection.mockRejectedValue({
+      response: { status: 422, data: { message: 'Invalid API key' } },
+    });
+    const wrapper = mountFinance();
+    await flushPromises();
+    await openSettings(wrapper);
+
+    await wrapper
+      .get('[data-testid="finance-asaas-api-key"]')
+      .setValue('$aact_wrong_key');
+    await wrapper.vm.saveAsaasConnection();
+    await flushPromises();
+
+    expect(wrapper.vm.connections[0]).toMatchObject({
+      status: 'error',
+      last_error: 'Invalid API key',
+    });
+  });
+
   it('explains the next action when the Asaas webhook needs attention', async () => {
     FinanceAPI.getModule.mockResolvedValue({
       data: { enabled: true, market: 'BR', lock_version: 0 },
