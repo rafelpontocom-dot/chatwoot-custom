@@ -432,13 +432,13 @@ ainda por tomar vem no fim.
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09, fechada 21/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | quadro, lista, filtros e gaveta implementados; o atalho de teclado do cartão também |
-| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09, implementada 26/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | manchete do valor, assunto a 20px e histórico em trilho. A coluna fixa do demonstrador não entrou: dois testes travam a gaveta em uma coluna, «so the commercial context cannot overlap fields» |
+| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09, implementada 26/09; refeita em lista a 08/10** — [26/09](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) · [lista, 07/10](https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS) | desde 08/10 é a **ficha empilhada**: secções que abrem e fecham, rótulo em cima, vazios atrás de «Mostrar mais». Saíram as abas e a manchete do valor a 30px — ver «A ficha empilhada» acima |
 | 3 | Início | Home | 1 | **apresentada 20/09, indicadores em 26/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. A fila de quatro indicadores entrou; sem setas, porque o controlador não guarda histórico |
 | 4 | Financeiro | Finance | 3 | **sem artefacto, corrigida 21/09, indicadores em 25/09** | a permissão limitada foi adiada por decisão do produto. O estado com cor+ícone faltava no detalhe; a fila de quatro substituiu a faixa de três células |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
 | 6 | Formulários | Forms | 10 | **sem artefacto, migrados 21–25/09** | os 81 controlos passam pelo primitivo; teal deixou de ser cor de ação |
 | 7 | Automação (Vue Flow) | Kanban | — | **aprovada 21/09** em três partes: [cartão de nó](https://claude.ai/artifact/U17sPjtbUM9v3fDZjwEZCH) · [painel do nó](https://claude.ai/artifact/32yjwdj7RykSaQjrLX6RZr) · lista sem artefacto | implementada; falta só o deslocamento da tela — ver abaixo |
-| 8 | Painel de conversa (nosso) | Conversation | componente novo | por apresentar | entra dentro de tela do Chatwoot |
+| 8 | Painel de conversa (nosso) | Conversation | `KanbanConversationCards.vue` | **decidido 07/10, implementado 07/10** — sem artefacto, decisão por escrito acima | ali a oportunidade só se cria; a que já existe é uma linha que leva ao cartão no funil, com a ficha aberta |
 | 9 | Entrada (login) | — | upstream | por decidir | mexer aqui é mexer no upstream: avaliar o custo primeiro |
 
 Quando uma linha for aprovada, escreva a data e quem aprovou. Quando for implementada,

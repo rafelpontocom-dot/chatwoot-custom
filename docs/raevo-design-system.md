@@ -127,15 +127,16 @@ O raio sai de uma fórmula sobre `--radius: 10px`, não de gosto: `sm` = base−
 recusa `rounded-[Npx]`. O que ele não vê — pílula em `<button>` — está declarado no
 topo do script.
 
-### Campo: dois contextos, duas regras
+### Campo: três contextos, três regras
 
-Campo tem **duas** aparências, e só duas. Qualquer terceira é regressão.
+Campo tem **três** aparências, cada uma presa a um contexto. Uma quarta é regressão — e a
+terceira só entrou a 08/10 por decisão registada em `docs/raevo-aprovacao.md`, não por gosto.
 
 | Contexto | Onde | Rótulo | Controle |
 | --- | --- | --- | --- |
 | **Formulário** | criar, configurar, diálogo de ação | `text-xs`, acima do campo | `rounded-lg` (10px), fundo `bg-n-surface-1`, contorno `border-n-strong` |
 | **Ficha densa** | ler e preencher registro — aba de contato, tabelas de registo | `text-sm`, à esquerda, na mesma linha | sem casca: `bg-transparent`, `border-0`, mesma tipografia do valor; foco por anel |
-| **Ficha empilhada** | a ficha da oportunidade (Pipeline e conversa), desde 07/10 | `text-sm font-medium`, **em cima**, como o painel de contacto do Chatwoot | a mesma da ficha densa: sem casca, foco por anel |
+| **Ficha empilhada** | a ficha da oportunidade (Pipeline e conversa), desde 08/10 | `text-sm font-medium`, **em cima**, como o painel de contacto do Chatwoot | a mesma da ficha densa: sem casca, foco por anel |
 
 A ficha densa é a exceção deliberada à casca do controlo e ao rótulo de 12px acima. Motivo: ali
 ler e preencher são o mesmo gesto, repetido dezenas de vezes por dia. A casca do formulário não
@@ -266,6 +267,10 @@ No Pipeline nenhum indicador leva nota, e é escolha: o que o rodapé lá levava
 o denominador da taxa) está na faixa **Resumo**, a um clique no cabeçalho.
 
 ### A tira de abas numa coluna estreita — uma linha, e «+N mais»
+
+> **Desde 08/10 nenhuma tela usa esta tira.** A ficha da oportunidade, que era o único
+> consumidor, passou a lista (ver «Ficha empilhada» acima). As regras ficam porque os defeitos
+> que as escreveram voltam com a próxima tira de abas numa coluna estreita.
 
 **Duas linhas de navegação acima do conteúdo é um anti-padrão com nome.** Carbon («em
 ecrãs estreitos as abas não devem quebrar para várias linhas nem empilhar-se; devem rolar»),

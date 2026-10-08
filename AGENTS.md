@@ -206,8 +206,12 @@ comparação. (Com `inline` a questão não se põe: não há rodapé.)
 
 **Duas linhas de navegação acima do conteúdo é um anti-padrão nomeado** por Carbon, Material,
 CMS Design System e ICDS. Quando as abas não cabem, o que se faz é passá-las para um menu
-contado no fim da tira — é o que PatternFly e Horizon mandam, e é o que a gaveta do Pipeline
-faz desde 01/10.
+contado no fim da tira — é o que PatternFly e Horizon mandam, e foi o que a gaveta do Pipeline
+fez de 01/10 a 08/10.
+
+**Hoje nenhuma tela usa a tira**: a 08/10 a ficha da oportunidade passou a lista empilhada,
+como o painel de contacto do Chatwoot (`RaevoFieldRow stacked`). As regras ficam para a próxima
+tira de abas numa coluna estreita — os defeitos que as escreveram voltam com ela.
 
 O defeito que isto corrige **nunca foi haver abas escondidas**: foi a tira rolar sem dizer que
 rolava. Medido antes: 571px de abas em 197px úteis, 374px invisíveis, sem seta nem contagem.
