@@ -182,7 +182,10 @@ const openForm = async wrapper => {
   await flushPromises();
 };
 
-const openEditForm = async () => {
+// A ficha já não abre sozinha: clica-se na linha da oportunidade para editar
+// aqui, ou no atalho para ir ao cartão no funil.
+const openEditForm = async wrapper => {
+  await wrapper.find('[data-testid="kanban-linked-card"]').trigger('click');
   await flushPromises();
 };
 
@@ -294,7 +297,7 @@ describe('KanbanConversationCards', () => {
     resolvers[0]({ data: { payload: [buildCard({ subject: 'Stale card' })] } });
     await flushPromises();
 
-    expect(wrapper.find('input[type="text"]').element.value).toBe('Fresh card');
+    expect(wrapper.text()).toContain('Fresh card');
     expect(wrapper.text()).not.toContain('Stale card');
   });
 
@@ -465,9 +468,15 @@ describe('KanbanConversationCards', () => {
     resolvers[0]({ data: { payload: [buildCard({ subject: 'Fresh card' })] } });
     await flushPromises();
 
-    expect(KanbanBoardsAPI.getConversationCards).toHaveBeenCalledTimes(2);
+    // O segundo evento ficou adiado enquanto o primeiro pedido corria; acabado
+    // esse, corre UMA vez — não uma por evento.
+    expect(KanbanBoardsAPI.getConversationCards).toHaveBeenCalledTimes(3);
 
-    expect(wrapper.find('input[type="text"]').element.value).toBe('Fresh card');
+    resolvers[1]({ data: { payload: [buildCard({ subject: 'Fresh card' })] } });
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.getConversationCards).toHaveBeenCalledTimes(3);
+    expect(wrapper.text()).toContain('Fresh card');
   });
 
   it('renders editable card fields in the requested order', async () => {
@@ -477,6 +486,7 @@ describe('KanbanConversationCards', () => {
 
     const wrapper = mountComponent();
     await flushPromises();
+    await openEditForm(wrapper);
 
     const editLabels = wrapper
       .findAll('li form > div p.text-xs, li form > label > span.text-xs')
@@ -499,6 +509,7 @@ describe('KanbanConversationCards', () => {
 
     const wrapper = mountComponent();
     await flushPromises();
+    await openEditForm(wrapper);
 
     expect(wrapper.text()).toContain('Sales');
     expect(wrapper.find('input[type="text"]').element.value).toBe(
@@ -513,7 +524,7 @@ describe('KanbanConversationCards', () => {
     expect(wrapper.text()).toContain('vendas');
   });
 
-  it('opens linked cards in edit mode for unexpected stage colors', async () => {
+  it('opens the edit form for unexpected stage colors', async () => {
     KanbanBoardsAPI.getConversationCards.mockResolvedValue({
       data: {
         payload: [
@@ -524,6 +535,7 @@ describe('KanbanConversationCards', () => {
 
     const wrapper = mountComponent();
     await flushPromises();
+    await openEditForm(wrapper);
 
     expect(wrapper.find('input[type="text"]').element.value).toBe(
       'Maria Silva - Sales Inbox'
@@ -574,6 +586,7 @@ describe('KanbanConversationCards', () => {
 
     const wrapper = mountComponent();
     await flushPromises();
+    await openEditForm(wrapper);
 
     expect(wrapper.find('input[type="datetime-local"]').element.value).toBe('');
     expect(wrapper.findAll('.rounded-md.bg-n-slate-3')).toHaveLength(0);
@@ -835,12 +848,35 @@ describe('KanbanConversationCards', () => {
     expect(wrapper.text()).not.toContain('Create opportunity');
   });
 
-  it('opens an inline edit form automatically for an existing card', async () => {
+  // A ficha inteira aberta na conversa foi o que o Pedro recusou em 07/10: a
+  // conversa passava a ser um formulário. O painel mostra o resumo e a ligação
+  // ao cartão no funil, e nada mais, até alguém pedir para editar aqui.
+  it('shows only the summary and the funnel link for a linked opportunity', async () => {
     KanbanBoardsAPI.getConversationCards.mockResolvedValue({
       data: { payload: [buildCard()] },
     });
     const wrapper = mountComponent();
     await flushPromises();
+
+    expect(wrapper.find('[data-testid="kanban-linked-card"]').exists()).toBe(
+      true
+    );
+    expect(
+      wrapper.find('[data-testid="kanban-open-linked-card"]').exists()
+    ).toBe(true);
+    expect(wrapper.find('input[type="text"]').exists()).toBe(false);
+    expect(wrapper.findComponent({ name: 'LabelDropdown' }).exists()).toBe(
+      false
+    );
+  });
+
+  it('opens the inline edit form when the linked opportunity row is clicked', async () => {
+    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
+      data: { payload: [buildCard()] },
+    });
+    const wrapper = mountComponent();
+    await flushPromises();
+    await openEditForm(wrapper);
 
     expect(store.dispatch).toHaveBeenCalledWith('labels/get');
     expect(KanbanBoardsAPI.showBoard).toHaveBeenCalledWith(10, {
@@ -936,6 +972,7 @@ describe('KanbanConversationCards', () => {
     });
     const wrapper = mountComponent();
     await flushPromises();
+    await openEditForm(wrapper);
 
     const group = wrapper.find(
       '[data-testid="kanban-opportunity-field-group-details-consulta"]'

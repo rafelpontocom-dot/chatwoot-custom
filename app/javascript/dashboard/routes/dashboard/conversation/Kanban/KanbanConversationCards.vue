@@ -744,18 +744,6 @@ watch(
   }
 );
 
-watch(
-  cards,
-  nextCards => {
-    if (!nextCards.length || editingCardId.value !== null || isFormOpen.value) {
-      return;
-    }
-
-    startEdit(nextCards[0]);
-  },
-  { flush: 'sync' }
-);
-
 onBeforeUnmount(() => {
   resetAbortController();
   abortFormRequests();
@@ -1261,13 +1249,32 @@ onBeforeUnmount(() => {
           @keydown.enter.prevent="startEdit(card)"
           @keydown.space.prevent="startEdit(card)"
         >
-          <div class="min-w-0">
-            <p class="mb-1 text-xs font-medium text-n-slate-11">
-              {{ t('CONVERSATION_SIDEBAR.KANBAN.BOARD') }}
-            </p>
-            <p class="m-0 truncate text-sm text-n-slate-12">
-              {{ card.kanban_board?.name }}
-            </p>
+          <!--
+            Criar a oportunidade na conversa abria aqui a ficha inteira, com
+            todos os campos — a conversa deixava de ser a conversa. O que fica é
+            o resumo e a ligação directa ao cartão no funil; quem quiser editar
+            aqui continua a abrir o formulário ao clicar na linha.
+          -->
+          <div class="flex min-w-0 items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="mb-1 text-xs font-medium text-n-slate-11">
+                {{ t('CONVERSATION_SIDEBAR.KANBAN.BOARD') }}
+              </p>
+              <p class="m-0 truncate text-sm text-n-slate-12">
+                {{ card.kanban_board?.name }}
+              </p>
+            </div>
+            <button
+              type="button"
+              data-testid="kanban-open-linked-card"
+              class="no-drag inline-flex size-8 shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+              :aria-label="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
+              :title="t('CONVERSATION_SIDEBAR.KANBAN.OPEN_IN_BOARD')"
+              @click.stop="openCardInBoard(card)"
+              @keydown.stop
+            >
+              <span aria-hidden="true" class="i-lucide-arrow-up-right size-4" />
+            </button>
           </div>
 
           <div class="min-w-0">

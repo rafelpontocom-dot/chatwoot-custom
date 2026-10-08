@@ -708,10 +708,13 @@ const customFieldTabs = computed(() => {
 
   return [...sections.values()];
 });
-const timelineTab = computed(() => ({
-  key: 'timeline',
-  label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE'),
-}));
+/**
+ * A tira passa a ter só o que se PREENCHE: «Geral» e as secções de campos que a
+ * clínica criar. Agenda, Financeiro, Formulários e Histórico mudaram para a
+ * coluna da direita, onde se consultam sem trocar de ecrã — o desenho aprovado
+ * em 07/10 (ver docs/raevo-aprovacao.md), o mesmo que a conversa do Chatwoot já
+ * usa na barra de contacto.
+ */
 const opportunityTabs = computed(() => {
   const fieldTabs = customFieldTabs.value.filter(tab => tab.key !== 'details');
 
@@ -720,32 +723,7 @@ const opportunityTabs = computed(() => {
       key: 'details',
       label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.GENERAL'),
     },
-    ...(props.calendarEnabled
-      ? [
-          {
-            key: 'calendar',
-            label: t('KANBAN.OPPORTUNITY_DETAILS.TABS.CALENDAR'),
-          },
-        ]
-      : []),
-    ...(financeEnabled.value
-      ? [
-          {
-            key: 'finance',
-            label: t('FINANCE.TITLE'),
-          },
-        ]
-      : []),
-    ...(canCreateFormInvitation.value
-      ? [
-          {
-            key: 'forms',
-            label: t('FORMS.TITLE'),
-          },
-        ]
-      : []),
     ...fieldTabs,
-    timelineTab.value,
   ];
 });
 
@@ -1930,9 +1908,13 @@ onBeforeUnmount(() => {
 // se liga o Financeiro ou se cria uma secção. Os dois mandam medir outra vez.
 watch([card, opportunityTabs], syncTabStrip);
 
-watch(activeTabKey, tab => {
-  if (tab === 'finance') loadFinancePayments();
-  if (tab === 'forms') loadFormsContext();
+// Financeiro e Formulários pedem dados ao servidor. Antes disparavam ao clicar
+// na aba; agora disparam quando a secção da coluna da direita ABRE — e só na
+// transição, para abrir/fechar duas vezes não valer duas chamadas.
+watch(secoesAbertas, (agora, antes = []) => {
+  const abriu = key => agora.includes(key) && !antes.includes(key);
+  if (abriu('finance')) loadFinancePayments();
+  if (abriu('forms')) loadFormsContext();
 });
 
 watch(showUnsavedChanges, async visible => {
@@ -2634,445 +2616,6 @@ watch(invitationPendingRevocation, async invitation => {
               </section>
             </template>
 
-            <section
-              v-if="activeTabKey === 'finance'"
-              data-testid="kanban-opportunity-finance"
-              class="grid gap-3"
-            >
-              <div
-                class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
-              >
-                <div>
-                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                    {{ t('FINANCE.PAYMENTS.TITLE') }}
-                  </h3>
-                  <p class="mb-0 mt-1 text-xs text-n-slate-11">
-                    {{ t('FINANCE.PAYMENTS.DESCRIPTION') }}
-                  </p>
-                </div>
-                <NextButton
-                  v-if="
-                    canCreateFinancePayment &&
-                    connectedFinanceConnections.length
-                  "
-                  type="button"
-                  sm
-                  :label="t('FINANCE.PAYMENTS.CREATE')"
-                  data-testid="kanban-opportunity-new-payment"
-                  @click="openFinancePaymentDialog"
-                />
-              </div>
-
-              <dl
-                class="grid gap-3 rounded-md bg-n-alpha-2 p-3 sm:grid-cols-3"
-                data-testid="kanban-opportunity-finance-summary"
-              >
-                <div class="min-w-0">
-                  <dt class="text-xs font-medium text-n-slate-10">
-                    {{ t('FINANCE.SUMMARY.STATUS') }}
-                  </dt>
-                  <dd
-                    class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
-                  >
-                    {{ financeStatusLabel(financeSummary.status) }}
-                  </dd>
-                </div>
-                <div class="min-w-0">
-                  <dt class="text-xs font-medium text-n-slate-10">
-                    {{ t('FINANCE.SUMMARY.RECEIVED_AMOUNT') }}
-                  </dt>
-                  <dd
-                    class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
-                  >
-                    {{
-                      formatFinanceAmount(
-                        financeSummary.receivedCents,
-                        financeSummary.currency
-                      )
-                    }}
-                  </dd>
-                </div>
-                <div class="min-w-0">
-                  <dt class="text-xs font-medium text-n-slate-10">
-                    {{ t('FINANCE.SUMMARY.LAST_RECEIVED_AT') }}
-                  </dt>
-                  <dd
-                    class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
-                  >
-                    {{ formatFinanceDate(financeSummary.latestReceivedAt) }}
-                  </dd>
-                </div>
-              </dl>
-
-              <p v-if="isLoadingFinance" class="mb-0 text-sm text-n-slate-11">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
-              </p>
-              <p
-                v-else-if="financeError"
-                class="mb-0 text-sm text-n-ruby-11"
-                role="alert"
-              >
-                {{ financeError }}
-              </p>
-              <p
-                v-else-if="financePayments.length === 0"
-                class="mb-0 text-sm text-n-slate-11"
-              >
-                {{ t('FINANCE.PAYMENTS.EMPTY') }}
-              </p>
-              <div v-else class="grid divide-y divide-n-weak">
-                <article
-                  v-for="payment in financePayments"
-                  :key="payment.id"
-                  class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4"
-                >
-                  <div class="min-w-0">
-                    <p
-                      class="mb-0 break-words text-sm font-medium text-n-slate-12"
-                    >
-                      {{ payment.description || t('FINANCE.PAYMENTS.TITLE') }}
-                    </p>
-                    <p class="mb-0 mt-1 text-xs text-n-slate-11">
-                      {{ payment.due_on || t('FINANCE.PAYMENTS.NO_DUE_DATE') }}
-                    </p>
-                  </div>
-                  <span class="text-sm font-semibold text-n-slate-12">
-                    {{ (payment.amount_cents / 100).toFixed(2) }}
-                    {{ payment.currency }}
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      data-testid="kanban-opportunity-payment-details"
-                      class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
-                      :title="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
-                      @click="openFinancePaymentDetails(payment)"
-                    >
-                      <i class="i-lucide-history size-4" />
-                    </button>
-                    <a
-                      v-if="payment.invoice_url"
-                      :href="payment.invoice_url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-sm font-medium text-n-brand outline-none hover:underline focus:ring-2 focus:ring-n-brand/40"
-                    >
-                      {{ t('FINANCE.PAYMENTS.OPEN_LINK') }}
-                    </a>
-                    <button
-                      v-if="payment.invoice_url"
-                      type="button"
-                      data-testid="kanban-opportunity-copy-payment-link"
-                      class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="
-                        copiedFinancePaymentId === payment.id
-                          ? t('FINANCE.PAYMENTS.COPIED')
-                          : t('FINANCE.PAYMENTS.COPY_LINK')
-                      "
-                      :title="
-                        copiedFinancePaymentId === payment.id
-                          ? t('FINANCE.PAYMENTS.COPIED')
-                          : t('FINANCE.PAYMENTS.COPY_LINK')
-                      "
-                      @click="copyFinancePaymentLink(payment)"
-                    >
-                      <i
-                        class="size-4"
-                        :class="
-                          copiedFinancePaymentId === payment.id
-                            ? 'i-lucide-check'
-                            : 'i-lucide-copy'
-                        "
-                      />
-                    </button>
-                    <button
-                      v-if="hasConversation && payment.invoice_url"
-                      type="button"
-                      data-testid="kanban-opportunity-send-payment-link"
-                      class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-                      :aria-label="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
-                      :title="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
-                      @click="sendFinancePaymentLink(payment)"
-                    >
-                      <i class="i-lucide-send size-4" />
-                    </button>
-                  </div>
-                </article>
-              </div>
-            </section>
-
-            <section
-              v-if="activeTabKey === 'forms'"
-              data-testid="kanban-opportunity-forms"
-              class="grid gap-3"
-            >
-              <div
-                class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
-              >
-                <div>
-                  <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
-                    {{ t('FORMS.TITLE') }}
-                  </h3>
-                  <p class="mb-0 mt-1 text-xs text-n-slate-11">
-                    {{ t('FORMS.INVITATION.DESCRIPTION') }}
-                  </p>
-                </div>
-                <NextButton
-                  type="button"
-                  sm
-                  :label="t('FORMS.INVITATION.OPEN')"
-                  data-testid="kanban-opportunity-send-form"
-                  @click="openFormsInvitationDialog"
-                />
-              </div>
-              <p
-                v-if="formsContextError"
-                role="alert"
-                class="mb-0 rounded border border-n-ruby-6 bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
-              >
-                {{ formsContextError }}
-              </p>
-              <p
-                v-else-if="isLoadingFormsContext"
-                class="mb-0 text-sm text-n-slate-11"
-              >
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
-              </p>
-              <template v-else>
-                <section
-                  v-if="formsContext.invitations.length"
-                  class="grid gap-2"
-                >
-                  <h4
-                    class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
-                  >
-                    {{ t('FORMS.INVITATION.HISTORY') }}
-                  </h4>
-                  <article
-                    v-for="invitation in formsContext.invitations"
-                    :key="invitation.id"
-                    class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
-                  >
-                    <div class="min-w-0">
-                      <p
-                        class="mb-0 break-words text-sm font-medium text-n-slate-12"
-                      >
-                        {{ invitation.form_name }}
-                      </p>
-                      <p class="mb-0 mt-0.5 text-xs text-n-slate-10">
-                        {{
-                          t('FORMS.INVITATION.USES', {
-                            used: invitation.uses_count,
-                            total: invitation.max_uses,
-                          })
-                        }}
-                      </p>
-                      <p
-                        v-if="invitation.created_at"
-                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                      >
-                        {{
-                          t('FORMS.INVITATION.CREATED_AT', {
-                            date: formatFormInvitationDate(
-                              invitation.created_at
-                            ),
-                          })
-                        }}
-                      </p>
-                      <p
-                        v-if="invitation.expires_at"
-                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                      >
-                        {{
-                          t('FORMS.INVITATION.EXPIRES_ON', {
-                            date: formatFormInvitationDate(
-                              invitation.expires_at
-                            ),
-                          })
-                        }}
-                      </p>
-                      <p
-                        v-if="invitation.sent_at"
-                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                      >
-                        {{
-                          t('FORMS.INVITATION.SENT_AT', {
-                            date: formatFormInvitationDate(invitation.sent_at),
-                          })
-                        }}
-                      </p>
-                      <p
-                        v-if="invitation.opened_at"
-                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                      >
-                        {{
-                          t('FORMS.INVITATION.OPENED_AT', {
-                            date: formatFormInvitationDate(
-                              invitation.opened_at
-                            ),
-                          })
-                        }}
-                      </p>
-                      <p
-                        v-if="invitation.completed_at"
-                        class="mb-0 mt-0.5 text-xs text-n-slate-10"
-                      >
-                        {{
-                          t('FORMS.INVITATION.COMPLETED_AT', {
-                            date: formatFormInvitationDate(
-                              invitation.completed_at
-                            ),
-                          })
-                        }}
-                      </p>
-                    </div>
-                    <div class="flex shrink-0 items-center gap-1">
-                      <span
-                        :data-testid="`kanban-opportunity-form-invitation-status-${invitation.id}`"
-                        class="text-xs text-n-slate-11"
-                      >
-                        {{ formInvitationStatusLabel(invitation.status) }}
-                      </span>
-                      <button
-                        v-if="
-                          canCreateFormInvitation &&
-                          invitation.status === 'active'
-                        "
-                        type="button"
-                        :data-testid="`kanban-opportunity-revoke-form-invitation-${invitation.id}`"
-                        class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-ruby-8"
-                        :aria-label="t('FORMS.INVITATION.REVOKE')"
-                        :title="t('FORMS.INVITATION.REVOKE')"
-                        @click="requestFormInvitationRevocation(invitation)"
-                      >
-                        <i class="i-lucide-ban size-3.5" />
-                      </button>
-                    </div>
-                  </article>
-                </section>
-                <section
-                  v-if="formsContext.submissions.length"
-                  class="grid gap-2"
-                >
-                  <h4
-                    class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
-                  >
-                    {{ t('FORMS.SUBMISSIONS.HISTORY') }}
-                  </h4>
-                  <KanbanFormSubmissionRow
-                    v-for="submission in formsContext.submissions"
-                    :key="submission.id"
-                    :submission="submission"
-                    :resolving-action="resolvingAction"
-                    :pending-action-error="pendingActionError"
-                    @open="openFormsSubmission"
-                    @resolve="onResolvePendingAction"
-                  />
-                </section>
-                <!--
-                  O que a pessoa respondeu noutras oportunidades e continua a
-                  valer para ela. Separado de propósito: são formulários do
-                  doente, não deste negócio.
-                -->
-                <section
-                  v-if="formsContext.contact_submissions?.length"
-                  data-testid="kanban-opportunity-contact-forms"
-                  class="grid gap-2"
-                >
-                  <h4
-                    class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
-                  >
-                    {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY') }}
-                  </h4>
-                  <p class="mb-0 text-xs text-n-slate-10">
-                    {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY_HINT') }}
-                  </p>
-                  <KanbanFormSubmissionRow
-                    v-for="submission in formsContext.contact_submissions"
-                    :key="submission.id"
-                    :submission="submission"
-                    :resolving-action="resolvingAction"
-                    :pending-action-error="pendingActionError"
-                    @open="openFormsSubmission"
-                    @resolve="onResolvePendingAction"
-                  />
-                </section>
-                <p
-                  v-if="
-                    !formsContext.invitations.length &&
-                    !formsContext.submissions.length &&
-                    !formsContext.contact_submissions?.length
-                  "
-                  class="mb-0 text-sm text-n-slate-10"
-                >
-                  {{ t('FORMS.INVITATION.HISTORY_EMPTY') }}
-                </p>
-              </template>
-            </section>
-
-            <section
-              v-if="activeTabKey === 'timeline'"
-              data-testid="kanban-opportunity-timeline"
-              class="grid gap-3"
-            >
-              <p v-if="isLoadingTimeline" class="mb-0 text-sm text-n-slate-11">
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
-              </p>
-              <p
-                v-else-if="timelineError"
-                class="mb-0 text-sm text-n-ruby-11"
-                role="alert"
-              >
-                {{ timelineError }}
-              </p>
-              <p
-                v-else-if="timeline.length === 0"
-                class="mb-0 text-sm text-n-slate-11"
-              >
-                {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY') }}
-              </p>
-              <template v-else>
-                <RaevoTimeline :items="timelineItems">
-                  <template #extra="{ item }">
-                    <span
-                      v-for="change in item.changes"
-                      :key="change.key"
-                      data-testid="kanban-opportunity-timeline-change"
-                      class="text-xs text-n-slate-10"
-                    >
-                      {{ change.transition }}
-                    </span>
-                    <span
-                      v-for="automation in item.automations"
-                      :key="automation.id"
-                      class="mt-1 grid gap-1 rounded-md bg-n-surface-2 px-2 py-1.5 text-xs text-n-slate-10"
-                    >
-                      <span class="font-medium text-n-slate-12">
-                        {{ automation.rule_name }}
-                      </span>
-                      <span>
-                        {{ automation.status }}
-                        <template v-if="automation.scheduled_at">
-                          {{
-                            ` - ${new Date(
-                              automation.scheduled_at
-                            ).toLocaleString()}`
-                          }}
-                        </template>
-                      </span>
-                      <span
-                        v-if="automation.error_message"
-                        class="text-n-ruby-11"
-                      >
-                        {{ automation.error_message }}
-                      </span>
-                    </span>
-                  </template>
-                </RaevoTimeline>
-              </template>
-            </section>
-
             <RaevoAiOpportunityPanel
               v-if="activeTabKey === 'ai'"
               :fields="activeTabCustomFieldDefinitions"
@@ -3261,26 +2804,6 @@ watch(invitationPendingRevocation, async invitation => {
               </div>
             </section>
           </section>
-
-          <section
-            v-if="
-              activeTabKey === 'details' ||
-              activeTabKey === 'contact-details' ||
-              activeTabKey === 'calendar'
-            "
-            class="grid min-w-0 content-start gap-3"
-          >
-            <KanbanCalendarAppointmentsSection
-              v-if="activeTabKey === 'calendar' && calendarEnabled"
-              :card-id="card.id"
-              :contact-id="card.contact?.id"
-              :contact-name="contactName"
-              :booking-stage="
-                calendarBookingStageIds.map(Number).includes(Number(stageId))
-              "
-              :allowed-procedure-ids="calendarProcedureIds"
-            />
-          </section>
           <!--
             Coluna da direita, no desenho que o Chatwoot já usa na conversa:
             secções que abrem e fecham, todas na mesma rolagem. À esquerda fica
@@ -3289,7 +2812,7 @@ watch(invitationPendingRevocation, async invitation => {
           -->
           <aside
             data-testid="kanban-opportunity-side-column"
-            class="grid content-start gap-0 rounded-xl border border-n-weak lg:sticky lg:top-0 lg:self-start"
+            class="grid content-start gap-0 rounded-xl border border-n-weak lg:self-start"
           >
             <div class="border-b border-n-weak last:border-b-0">
               <button
@@ -3511,6 +3034,565 @@ watch(invitationPendingRevocation, async invitation => {
                 </section>
               </div>
             </div>
+            <div
+              v-if="calendarEnabled"
+              class="border-b border-n-weak last:border-b-0"
+            >
+              <button
+                type="button"
+                data-testid="kanban-opportunity-section-calendar"
+                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-n-slate-12"
+                :aria-expanded="isSectionOpen('calendar')"
+                @click="toggleSection('calendar')"
+              >
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.TABS.CALENDAR') }}
+                <i
+                  aria-hidden="true"
+                  class="size-4 text-n-slate-10"
+                  :class="
+                    isSectionOpen('calendar')
+                      ? 'i-lucide-chevron-down'
+                      : 'i-lucide-chevron-right'
+                  "
+                />
+              </button>
+              <div class="px-3 pb-3">
+                <KanbanCalendarAppointmentsSection
+                  v-if="isSectionOpen('calendar')"
+                  :card-id="card.id"
+                  :contact-id="card.contact?.id"
+                  :contact-name="contactName"
+                  :booking-stage="
+                    calendarBookingStageIds
+                      .map(Number)
+                      .includes(Number(stageId))
+                  "
+                  :allowed-procedure-ids="calendarProcedureIds"
+                />
+              </div>
+            </div>
+            <div
+              v-if="financeEnabled"
+              class="border-b border-n-weak last:border-b-0"
+            >
+              <button
+                type="button"
+                data-testid="kanban-opportunity-section-finance"
+                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-n-slate-12"
+                :aria-expanded="isSectionOpen('finance')"
+                @click="toggleSection('finance')"
+              >
+                {{ t('FINANCE.TITLE') }}
+                <i
+                  aria-hidden="true"
+                  class="size-4 text-n-slate-10"
+                  :class="
+                    isSectionOpen('finance')
+                      ? 'i-lucide-chevron-down'
+                      : 'i-lucide-chevron-right'
+                  "
+                />
+              </button>
+              <div class="px-3 pb-3">
+                <section
+                  v-if="isSectionOpen('finance')"
+                  data-testid="kanban-opportunity-finance"
+                  class="grid gap-3"
+                >
+                  <div
+                    class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
+                  >
+                    <div>
+                      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                        {{ t('FINANCE.PAYMENTS.TITLE') }}
+                      </h3>
+                      <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                        {{ t('FINANCE.PAYMENTS.DESCRIPTION') }}
+                      </p>
+                    </div>
+                    <NextButton
+                      v-if="
+                        canCreateFinancePayment &&
+                        connectedFinanceConnections.length
+                      "
+                      type="button"
+                      sm
+                      :label="t('FINANCE.PAYMENTS.CREATE')"
+                      data-testid="kanban-opportunity-new-payment"
+                      @click="openFinancePaymentDialog"
+                    />
+                  </div>
+
+                  <dl
+                    class="grid gap-3 rounded-md bg-n-alpha-2 p-3 sm:grid-cols-3"
+                    data-testid="kanban-opportunity-finance-summary"
+                  >
+                    <div class="min-w-0">
+                      <dt class="text-xs font-medium text-n-slate-10">
+                        {{ t('FINANCE.SUMMARY.STATUS') }}
+                      </dt>
+                      <dd
+                        class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                      >
+                        {{ financeStatusLabel(financeSummary.status) }}
+                      </dd>
+                    </div>
+                    <div class="min-w-0">
+                      <dt class="text-xs font-medium text-n-slate-10">
+                        {{ t('FINANCE.SUMMARY.RECEIVED_AMOUNT') }}
+                      </dt>
+                      <dd
+                        class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                      >
+                        {{
+                          formatFinanceAmount(
+                            financeSummary.receivedCents,
+                            financeSummary.currency
+                          )
+                        }}
+                      </dd>
+                    </div>
+                    <div class="min-w-0">
+                      <dt class="text-xs font-medium text-n-slate-10">
+                        {{ t('FINANCE.SUMMARY.LAST_RECEIVED_AT') }}
+                      </dt>
+                      <dd
+                        class="mb-0 mt-1 truncate text-sm font-semibold text-n-slate-12"
+                      >
+                        {{ formatFinanceDate(financeSummary.latestReceivedAt) }}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <p
+                    v-if="isLoadingFinance"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+                  </p>
+                  <p
+                    v-else-if="financeError"
+                    class="mb-0 text-sm text-n-ruby-11"
+                    role="alert"
+                  >
+                    {{ financeError }}
+                  </p>
+                  <p
+                    v-else-if="financePayments.length === 0"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('FINANCE.PAYMENTS.EMPTY') }}
+                  </p>
+                  <div v-else class="grid divide-y divide-n-weak">
+                    <article
+                      v-for="payment in financePayments"
+                      :key="payment.id"
+                      class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4"
+                    >
+                      <div class="min-w-0">
+                        <p
+                          class="mb-0 break-words text-sm font-medium text-n-slate-12"
+                        >
+                          {{
+                            payment.description || t('FINANCE.PAYMENTS.TITLE')
+                          }}
+                        </p>
+                        <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                          {{
+                            payment.due_on || t('FINANCE.PAYMENTS.NO_DUE_DATE')
+                          }}
+                        </p>
+                      </div>
+                      <span class="text-sm font-semibold text-n-slate-12">
+                        {{ (payment.amount_cents / 100).toFixed(2) }}
+                        {{ payment.currency }}
+                      </span>
+                      <div class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          data-testid="kanban-opportunity-payment-details"
+                          class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                          :aria-label="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
+                          :title="t('FINANCE.PAYMENTS.DETAIL.OPEN')"
+                          @click="openFinancePaymentDetails(payment)"
+                        >
+                          <i class="i-lucide-history size-4" />
+                        </button>
+                        <a
+                          v-if="payment.invoice_url"
+                          :href="payment.invoice_url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-sm font-medium text-n-brand outline-none hover:underline focus:ring-2 focus:ring-n-brand/40"
+                        >
+                          {{ t('FINANCE.PAYMENTS.OPEN_LINK') }}
+                        </a>
+                        <button
+                          v-if="payment.invoice_url"
+                          type="button"
+                          data-testid="kanban-opportunity-copy-payment-link"
+                          class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                          :aria-label="
+                            copiedFinancePaymentId === payment.id
+                              ? t('FINANCE.PAYMENTS.COPIED')
+                              : t('FINANCE.PAYMENTS.COPY_LINK')
+                          "
+                          :title="
+                            copiedFinancePaymentId === payment.id
+                              ? t('FINANCE.PAYMENTS.COPIED')
+                              : t('FINANCE.PAYMENTS.COPY_LINK')
+                          "
+                          @click="copyFinancePaymentLink(payment)"
+                        >
+                          <i
+                            class="size-4"
+                            :class="
+                              copiedFinancePaymentId === payment.id
+                                ? 'i-lucide-check'
+                                : 'i-lucide-copy'
+                            "
+                          />
+                        </button>
+                        <button
+                          v-if="hasConversation && payment.invoice_url"
+                          type="button"
+                          data-testid="kanban-opportunity-send-payment-link"
+                          class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+                          :aria-label="
+                            t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')
+                          "
+                          :title="t('FINANCE.PAYMENTS.SEND_TO_CONVERSATION')"
+                          @click="sendFinancePaymentLink(payment)"
+                        >
+                          <i class="i-lucide-send size-4" />
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+              </div>
+            </div>
+            <div
+              v-if="canCreateFormInvitation"
+              class="border-b border-n-weak last:border-b-0"
+            >
+              <button
+                type="button"
+                data-testid="kanban-opportunity-section-forms"
+                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-n-slate-12"
+                :aria-expanded="isSectionOpen('forms')"
+                @click="toggleSection('forms')"
+              >
+                {{ t('FORMS.TITLE') }}
+                <i
+                  aria-hidden="true"
+                  class="size-4 text-n-slate-10"
+                  :class="
+                    isSectionOpen('forms')
+                      ? 'i-lucide-chevron-down'
+                      : 'i-lucide-chevron-right'
+                  "
+                />
+              </button>
+              <div class="px-3 pb-3">
+                <section
+                  v-if="isSectionOpen('forms')"
+                  data-testid="kanban-opportunity-forms"
+                  class="grid gap-3"
+                >
+                  <div
+                    class="flex items-start justify-between gap-3 border-b border-n-weak pb-3"
+                  >
+                    <div>
+                      <h3 class="mb-0 text-sm font-semibold text-n-slate-12">
+                        {{ t('FORMS.TITLE') }}
+                      </h3>
+                      <p class="mb-0 mt-1 text-xs text-n-slate-11">
+                        {{ t('FORMS.INVITATION.DESCRIPTION') }}
+                      </p>
+                    </div>
+                    <NextButton
+                      type="button"
+                      sm
+                      :label="t('FORMS.INVITATION.OPEN')"
+                      data-testid="kanban-opportunity-send-form"
+                      @click="openFormsInvitationDialog"
+                    />
+                  </div>
+                  <p
+                    v-if="formsContextError"
+                    role="alert"
+                    class="mb-0 rounded border border-n-ruby-6 bg-n-ruby-2 px-3 py-2 text-sm text-n-ruby-11"
+                  >
+                    {{ formsContextError }}
+                  </p>
+                  <p
+                    v-else-if="isLoadingFormsContext"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+                  </p>
+                  <template v-else>
+                    <section
+                      v-if="formsContext.invitations.length"
+                      class="grid gap-2"
+                    >
+                      <h4
+                        class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
+                      >
+                        {{ t('FORMS.INVITATION.HISTORY') }}
+                      </h4>
+                      <article
+                        v-for="invitation in formsContext.invitations"
+                        :key="invitation.id"
+                        class="flex items-center justify-between gap-3 rounded border border-n-weak px-3 py-2"
+                      >
+                        <div class="min-w-0">
+                          <p
+                            class="mb-0 break-words text-sm font-medium text-n-slate-12"
+                          >
+                            {{ invitation.form_name }}
+                          </p>
+                          <p class="mb-0 mt-0.5 text-xs text-n-slate-10">
+                            {{
+                              t('FORMS.INVITATION.USES', {
+                                used: invitation.uses_count,
+                                total: invitation.max_uses,
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.created_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.CREATED_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.created_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.expires_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.EXPIRES_ON', {
+                                date: formatFormInvitationDate(
+                                  invitation.expires_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.sent_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.SENT_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.sent_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.opened_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.OPENED_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.opened_at
+                                ),
+                              })
+                            }}
+                          </p>
+                          <p
+                            v-if="invitation.completed_at"
+                            class="mb-0 mt-0.5 text-xs text-n-slate-10"
+                          >
+                            {{
+                              t('FORMS.INVITATION.COMPLETED_AT', {
+                                date: formatFormInvitationDate(
+                                  invitation.completed_at
+                                ),
+                              })
+                            }}
+                          </p>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-1">
+                          <span
+                            :data-testid="`kanban-opportunity-form-invitation-status-${invitation.id}`"
+                            class="text-xs text-n-slate-11"
+                          >
+                            {{ formInvitationStatusLabel(invitation.status) }}
+                          </span>
+                          <button
+                            v-if="
+                              canCreateFormInvitation &&
+                              invitation.status === 'active'
+                            "
+                            type="button"
+                            :data-testid="`kanban-opportunity-revoke-form-invitation-${invitation.id}`"
+                            class="flex p-0 size-7 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-ruby-3 hover:text-n-ruby-11 focus:ring-2 focus:ring-n-ruby-8"
+                            :aria-label="t('FORMS.INVITATION.REVOKE')"
+                            :title="t('FORMS.INVITATION.REVOKE')"
+                            @click="requestFormInvitationRevocation(invitation)"
+                          >
+                            <i class="i-lucide-ban size-3.5" />
+                          </button>
+                        </div>
+                      </article>
+                    </section>
+                    <section
+                      v-if="formsContext.submissions.length"
+                      class="grid gap-2"
+                    >
+                      <h4
+                        class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
+                      >
+                        {{ t('FORMS.SUBMISSIONS.HISTORY') }}
+                      </h4>
+                      <KanbanFormSubmissionRow
+                        v-for="submission in formsContext.submissions"
+                        :key="submission.id"
+                        :submission="submission"
+                        :resolving-action="resolvingAction"
+                        :pending-action-error="pendingActionError"
+                        @open="openFormsSubmission"
+                        @resolve="onResolvePendingAction"
+                      />
+                    </section>
+                    <!--
+                      O que a pessoa respondeu noutras oportunidades e continua a
+                      valer para ela. Separado de propósito: são formulários do
+                      doente, não deste negócio.
+                    -->
+                    <section
+                      v-if="formsContext.contact_submissions?.length"
+                      data-testid="kanban-opportunity-contact-forms"
+                      class="grid gap-2"
+                    >
+                      <h4
+                        class="mb-0 text-xs font-semibold uppercase tracking-wide text-n-slate-10"
+                      >
+                        {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY') }}
+                      </h4>
+                      <p class="mb-0 text-xs text-n-slate-10">
+                        {{ t('FORMS.SUBMISSIONS.CONTACT_HISTORY_HINT') }}
+                      </p>
+                      <KanbanFormSubmissionRow
+                        v-for="submission in formsContext.contact_submissions"
+                        :key="submission.id"
+                        :submission="submission"
+                        :resolving-action="resolvingAction"
+                        :pending-action-error="pendingActionError"
+                        @open="openFormsSubmission"
+                        @resolve="onResolvePendingAction"
+                      />
+                    </section>
+                    <p
+                      v-if="
+                        !formsContext.invitations.length &&
+                        !formsContext.submissions.length &&
+                        !formsContext.contact_submissions?.length
+                      "
+                      class="mb-0 text-sm text-n-slate-10"
+                    >
+                      {{ t('FORMS.INVITATION.HISTORY_EMPTY') }}
+                    </p>
+                  </template>
+                </section>
+              </div>
+            </div>
+            <div class="border-b border-n-weak last:border-b-0">
+              <button
+                type="button"
+                data-testid="kanban-opportunity-section-timeline"
+                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-n-slate-12"
+                :aria-expanded="isSectionOpen('timeline')"
+                @click="toggleSection('timeline')"
+              >
+                {{ t('KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE') }}
+                <i
+                  aria-hidden="true"
+                  class="size-4 text-n-slate-10"
+                  :class="
+                    isSectionOpen('timeline')
+                      ? 'i-lucide-chevron-down'
+                      : 'i-lucide-chevron-right'
+                  "
+                />
+              </button>
+              <div class="px-3 pb-3">
+                <section
+                  v-if="isSectionOpen('timeline')"
+                  data-testid="kanban-opportunity-timeline"
+                  class="grid gap-3"
+                >
+                  <p
+                    v-if="isLoadingTimeline"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.LOADING') }}
+                  </p>
+                  <p
+                    v-else-if="timelineError"
+                    class="mb-0 text-sm text-n-ruby-11"
+                    role="alert"
+                  >
+                    {{ timelineError }}
+                  </p>
+                  <p
+                    v-else-if="timeline.length === 0"
+                    class="mb-0 text-sm text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY') }}
+                  </p>
+                  <template v-else>
+                    <RaevoTimeline :items="timelineItems">
+                      <template #extra="{ item }">
+                        <span
+                          v-for="change in item.changes"
+                          :key="change.key"
+                          data-testid="kanban-opportunity-timeline-change"
+                          class="text-xs text-n-slate-10"
+                        >
+                          {{ change.transition }}
+                        </span>
+                        <span
+                          v-for="automation in item.automations"
+                          :key="automation.id"
+                          class="mt-1 grid gap-1 rounded-md bg-n-surface-2 px-2 py-1.5 text-xs text-n-slate-10"
+                        >
+                          <span class="font-medium text-n-slate-12">
+                            {{ automation.rule_name }}
+                          </span>
+                          <span>
+                            {{ automation.status }}
+                            <template v-if="automation.scheduled_at">
+                              {{
+                                ` - ${new Date(
+                                  automation.scheduled_at
+                                ).toLocaleString()}`
+                              }}
+                            </template>
+                          </span>
+                          <span
+                            v-if="automation.error_message"
+                            class="text-n-ruby-11"
+                          >
+                            {{ automation.error_message }}
+                          </span>
+                        </span>
+                      </template>
+                    </RaevoTimeline>
+                  </template>
+                </section>
+              </div>
+            </div>
           </aside>
         </div>
 
@@ -3579,9 +3661,7 @@ watch(invitationPendingRevocation, async invitation => {
       @refund-requested="updateFinancePayment"
     />
     <FormsInvitationDialog
-      v-if="
-        activeTabKey === 'forms' && canCreateFormInvitation && card?.contact
-      "
+      v-if="isSectionOpen('forms') && canCreateFormInvitation && card?.contact"
       ref="formsInvitationDialog"
       :contact="card.contact"
       :kanban-card-id="card.id"
@@ -3590,7 +3670,7 @@ watch(invitationPendingRevocation, async invitation => {
       @send="sendFormsInvitationLink"
     />
     <FormsSubmissionDetailsDialog
-      v-if="activeTabKey === 'forms'"
+      v-if="isSectionOpen('forms')"
       ref="formsSubmissionDialog"
     />
     <div

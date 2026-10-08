@@ -517,12 +517,14 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toBe(false);
   });
 
-  it('shows finance as a dedicated opportunity tab when the module is active', async () => {
+  it('shows finance as a side-column section when the module is active', async () => {
     FinanceAPI.getProviderConnections.mockResolvedValue({ data: [] });
     const wrapper = await mountModal({ financeModule: { enabled: true } });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-finance"]').exists()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-finance"]')
+        .exists()
     ).toBe(true);
   });
 
@@ -534,7 +536,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .find('[data-testid="kanban-opportunity-section-finance"]')
       .trigger('click');
 
     expect(
@@ -560,7 +562,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .find('[data-testid="kanban-opportunity-section-finance"]')
       .trigger('click');
     await flushPromises();
 
@@ -606,7 +608,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .find('[data-testid="kanban-opportunity-section-finance"]')
       .trigger('click');
     await flushPromises();
 
@@ -711,7 +713,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-calendar"]')
+      .find('[data-testid="kanban-opportunity-section-calendar"]')
       .trigger('click');
     expect(
       wrapper
@@ -720,11 +722,13 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toBe('Acme Updated');
   });
 
-  it('shows Calendar as its own tab instead of rendering it in General', async () => {
+  it('shows Calendar as a side-column section, closed until it is opened', async () => {
     const wrapper = await mountModal({ calendarEnabled: true });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-calendar"]').exists()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-calendar"]')
+        .exists()
     ).toBe(true);
     expect(
       wrapper
@@ -733,7 +737,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toBe(false);
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-calendar"]')
+      .find('[data-testid="kanban-opportunity-section-calendar"]')
       .trigger('click');
 
     expect(
@@ -945,11 +949,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
-  it('shows the immutable commercial timeline in its own tab', async () => {
+  it('shows the immutable commercial timeline in its own side-column section', async () => {
     const wrapper = await mountModal();
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
       .trigger('click');
 
     expect(
@@ -971,7 +975,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
       .trigger('click');
 
     expect(
@@ -1003,7 +1007,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
       .trigger('click');
 
     const timeline = wrapper.get('[data-testid="kanban-opportunity-timeline"]');
@@ -1067,7 +1071,9 @@ describe('KanbanOpportunityDetailsModal', () => {
         .exists()
     ).toBe(false);
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-timeline"]').exists()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-timeline"]')
+        .exists()
     ).toBe(true);
   });
 
@@ -2024,7 +2030,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     const wrapper = await mountModal();
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-opportunity-send-form"]')
@@ -2060,7 +2066,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
 
@@ -2093,7 +2099,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
     await wrapper
@@ -2124,7 +2130,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
     await wrapper
@@ -2154,7 +2160,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
 
@@ -2199,7 +2205,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
     await wrapper

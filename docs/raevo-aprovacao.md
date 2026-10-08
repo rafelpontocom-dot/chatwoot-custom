@@ -296,8 +296,23 @@ versão da maquete tinha essa lista; foi tirada.
 abrir a ficha inteira por cima do atendimento e passa a devolver o link para o card
 («Oportunidade criada · Captação → Agendado →»).
 
-**Falta, antes de marcar como implementada:** as capturas de antes e depois a 1280px,
-que só existem quando a tela existir.
+**Estado em 07/10/2026 — construído, com testes:**
+
+| Parte | Onde | Prova |
+| --- | --- | --- |
+| Coluna da direita com Contacto | `KanbanOpportunityDetailsModal.vue` | 103 testes do diálogo, 772 do kanban |
+| Agenda, Financeiro, Formulários e Histórico saem da tira e entram na coluna | o mesmo ficheiro | os mesmos testes, agora a clicar em `kanban-opportunity-section-*` |
+| A tira fica só com «Geral» e as secções que a clínica criar | `opportunityTabs` | `shows finance as a side-column section…`, `shows Calendar as a side-column section…` |
+| Na conversa, a oportunidade ligada mostra resumo e atalho para o cartão, não a ficha inteira | `KanbanConversationCards.vue` | `shows only the summary and the funnel link for a linked opportunity` |
+
+**O que isto quebrou de propósito:** a ficha inline abria-se **sozinha** na conversa
+(teste `opens an inline edit form automatically for an existing card`, decisão anterior).
+Era exactamente o que o Pedro recusou. Continua a abrir-se ao clicar na linha; deixa de
+se abrir sem ninguém pedir.
+
+**Falta, antes de marcar como implementada:** as capturas de antes e depois a 1280px, com
+o browser a correr. Nenhum teste aqui prova que a coluna *parece* o que foi aprovado — só
+que as secções existem, abrem e trazem os dados certos.
 
 ## O processo
 
