@@ -125,10 +125,10 @@ const canReorder = computed(
   () => !searchQuery.value.trim() && !uiFlags.value.isUpdating
 );
 
-const moveLabel = async (index, offset) => {
+const moveLabel = async (from, to) => {
   const labelIds = records.value.map(label => label.id);
-  const [labelId] = labelIds.splice(index, 1);
-  labelIds.splice(index + offset, 0, labelId);
+  const [labelId] = labelIds.splice(from, 1);
+  labelIds.splice(to, 0, labelId);
 
   try {
     await store.dispatch('labels/reorder', labelIds);
@@ -136,6 +136,43 @@ const moveLabel = async (index, offset) => {
     useAlert(t('LABEL_MGMT.REORDER.ERROR_MESSAGE'));
   }
 };
+
+// RAEVO (08/10, 123jpnbc243): além das setas, arrasta-se a linha. As setas
+// ficam: são a alternativa de teclado, e o arrastar nativo não serve ao toque.
+// `dropIndex` é o lugar ENTRE linhas onde a etiqueta cai (0 = antes da primeira).
+const canDrag = computed(() => isAdmin.value && canReorder.value);
+const draggedIndex = ref(null);
+const dropIndex = ref(null);
+const resetDrag = () => {
+  draggedIndex.value = null;
+  dropIndex.value = null;
+};
+const onDragStart = (event, index) => {
+  draggedIndex.value = index;
+  event.dataTransfer.effectAllowed = 'move';
+  // O Firefox só começa a arrastar com dados no dataTransfer.
+  event.dataTransfer.setData('text/plain', String(index));
+};
+const onDragOver = (event, index) => {
+  if (draggedIndex.value === null) return;
+  event.preventDefault();
+  const { top, height } = event.currentTarget.getBoundingClientRect();
+  dropIndex.value = event.clientY < top + height / 2 ? index : index + 1;
+};
+const onDrop = () => {
+  const from = draggedIndex.value;
+  const gap = dropIndex.value;
+  resetDrag();
+  if (from === null || gap === null) return;
+
+  const to = gap > from ? gap - 1 : gap;
+  if (to !== from) moveLabel(from, to);
+};
+// Cair por cima de si própria, ou logo a seguir, não muda nada: sem linha.
+const showsDropLineAt = gap =>
+  dropIndex.value === gap &&
+  gap !== draggedIndex.value &&
+  gap !== draggedIndex.value + 1;
 
 const tableHeaders = computed(() => {
   return [
@@ -195,6 +232,19 @@ onBeforeMount(() => {
             v-for="(label, index) in items"
             :key="label.title"
             :item="label"
+            :data-testid="`label-row-${label.title}`"
+            :draggable="canDrag ? 'true' : 'false'"
+            :class="{
+              'cursor-grab': canDrag,
+              'opacity-50': draggedIndex === index,
+              '!border-t-2 !border-t-n-brand': showsDropLineAt(index),
+              '!border-b-2 !border-b-n-brand':
+                index === items.length - 1 && showsDropLineAt(items.length),
+            }"
+            @dragstart="onDragStart($event, index)"
+            @dragover="onDragOver($event, index)"
+            @drop.prevent="onDrop"
+            @dragend="resetDrag"
           >
             <template #default>
               <!--
@@ -202,6 +252,12 @@ onBeforeMount(() => {
                 a 390px empurrava o editar/apagar do agente para fora do ecrã.
               -->
               <BaseTableCell>
+                <span
+                  v-if="canDrag"
+                  v-tooltip.top="$t('LABEL_MGMT.REORDER.DRAG_HINT')"
+                  aria-hidden="true"
+                  class="i-lucide-grip-vertical size-3.5 me-1 align-middle text-n-slate-10"
+                />
                 <span class="text-body-main text-n-slate-12">
                   {{ label.title }}
                 </span>
@@ -250,7 +306,7 @@ onBeforeMount(() => {
                     slate
                     sm
                     :disabled="!canReorder || index === 0"
-                    @click="moveLabel(index, -1)"
+                    @click="moveLabel(index, index - 1)"
                   />
                   <Button
                     v-if="isAdmin"
@@ -264,7 +320,7 @@ onBeforeMount(() => {
                     slate
                     sm
                     :disabled="!canReorder || index === items.length - 1"
-                    @click="moveLabel(index, 1)"
+                    @click="moveLabel(index, index + 1)"
                   />
                   <Button
                     v-if="canManage(label)"

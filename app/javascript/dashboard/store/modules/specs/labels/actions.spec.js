@@ -111,4 +111,29 @@ describe('#actions', () => {
       ]);
     });
   });
+
+  // RAEVO (08/10, 123jpnbc243): arrastar uma etiqueta tem de a deixar logo no
+  // sítio novo, e devolvê-la ao antigo se o servidor não gravar.
+  describe('#reorder', () => {
+    it('shows the new order at once and puts the old one back if saving fails', async () => {
+      const [primeira, segunda, terceira] = labelsList;
+      const state = { records: [primeira, segunda, terceira] };
+      axios.post.mockRejectedValue({ message: 'Server error' });
+
+      await expect(
+        actions.reorder({ commit, state }, [
+          terceira.id,
+          primeira.id,
+          segunda.id,
+        ])
+      ).rejects.toBeTruthy();
+
+      expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABELS, [terceira, primeira, segunda]],
+        [types.default.SET_LABEL_UI_FLAG, { isUpdating: true }],
+        [types.default.SET_LABELS, [primeira, segunda, terceira]],
+        [types.default.SET_LABEL_UI_FLAG, { isUpdating: false }],
+      ]);
+    });
+  });
 });

@@ -95,4 +95,26 @@ describe('Definições › Etiquetas — adaptação Raevo', () => {
     expect(texto('do-time')).toBe('Time: Recepção');
     expect(texto('minha')).toBe('LABEL_MGMT.FORM.VISIBILITY.PERSONAL');
   });
+  // RAEVO (08/10, 123jpnbc243): além das setas, a ordem muda arrastando a linha.
+  it('reorders by dragging a row and dropping it below another', async () => {
+    estado.role = 'administrator';
+    const wrapper = montar();
+    const linha = titulo => wrapper.find(`[data-testid="label-row-${titulo}"]`);
+    const dataTransfer = { setData: () => {}, effectAllowed: '' };
+
+    expect(linha('vip').attributes('draggable')).toBe('true');
+    await linha('vip').trigger('dragstart', { dataTransfer });
+    await linha('minha').trigger('dragover', { clientY: 10 });
+    await linha('minha').trigger('drop');
+
+    expect(dispatch).toHaveBeenCalledWith('labels/reorder', [2, 3, 1]);
+  });
+
+  it('does not let an agent drag', () => {
+    estado.role = 'agent';
+
+    expect(
+      montar().find('[data-testid="label-row-vip"]').attributes('draggable')
+    ).toBe('false');
+  });
 });

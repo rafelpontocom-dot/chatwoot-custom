@@ -81,7 +81,8 @@
         "spec/controllers/api/v1/accounts/labels_controller_spec.rb",
         "app/javascript/dashboard/helper/specs/sidebarSort.spec.js",
         "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts",
-        "app/javascript/dashboard/routes/dashboard/settings/labels/specs/Index.spec.js"
+        "app/javascript/dashboard/routes/dashboard/settings/labels/specs/Index.spec.js",
+        "app/javascript/dashboard/store/modules/specs/labels/actions.spec.js"
       ]
     },
     {

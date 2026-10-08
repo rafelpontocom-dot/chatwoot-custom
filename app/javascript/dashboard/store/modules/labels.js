@@ -97,10 +97,23 @@ export const actions = {
     }
   },
 
-  reorder: async function reorderLabels({ commit }, labelIds) {
+  reorder: async function reorderLabels(
+    { commit, state: { records: previous } },
+    labelIds
+  ) {
+    // RAEVO (08/10, 123jpnbc243): a etiqueta arrastada fica logo no sítio novo;
+    // se o servidor não gravar, volta ao antigo e quem chamou mostra o erro.
+    const byId = new Map(previous.map(label => [label.id, label]));
+    commit(
+      types.SET_LABELS,
+      labelIds.map(id => byId.get(id))
+    );
     commit(types.SET_LABEL_UI_FLAG, { isUpdating: true });
     try {
-      await LabelsAPI.reorder(labelIds);
+      await LabelsAPI.reorder(labelIds).catch(error => {
+        commit(types.SET_LABELS, previous);
+        throw error;
+      });
       // A cópia local das etiquetas só se renova pelo aviso em tempo real, e
       // `cache_keys` é servido de cache até 5 minutos: sem isto, recarregar a
       // página devolvia a ordem antiga a quem acabou de a mudar.
