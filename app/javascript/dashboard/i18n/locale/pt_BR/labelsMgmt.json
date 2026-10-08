@@ -38,6 +38,15 @@
       "SHOW_ON_SIDEBAR": {
         "LABEL": "Exibir etiqueta na barra lateral"
       },
+      "VISIBILITY": {
+        "LABEL": "Quem vê esta etiqueta",
+        "GLOBAL": "Todos na conta",
+        "TEAM": "Um time",
+        "PERSONAL": "Somente eu",
+        "TEAM_PLACEHOLDER": "Escolha um time",
+        "AGENT_NOTE": "Esta etiqueta fica somente para você. Quem cria as etiquetas que todos veem é o administrador.",
+        "TEAM_REQUIRED": "Escolha o time que verá esta etiqueta"
+      },
       "EDIT": "Alterar",
       "CREATE": "Criar",
       "DELETE": "Excluir",

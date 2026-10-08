@@ -38,6 +38,15 @@
       "SHOW_ON_SIDEBAR": {
         "LABEL": "Show label on sidebar"
       },
+      "VISIBILITY": {
+        "LABEL": "Who can see this label",
+        "GLOBAL": "Everyone in the account",
+        "TEAM": "One team",
+        "PERSONAL": "Only me",
+        "TEAM_PLACEHOLDER": "Choose a team",
+        "AGENT_NOTE": "This label will be yours only. An administrator creates the labels everyone can see.",
+        "TEAM_REQUIRED": "Choose the team that will see this label"
+      },
       "EDIT": "Edit",
       "CREATE": "Create",
       "DELETE": "Delete",

@@ -5,10 +5,12 @@ import validations, { getLabelTitleErrorMessage } from './validations';
 import { useVuelidate } from '@vuelidate/core';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import LabelVisibilityField from './LabelVisibilityField.vue';
 
 export default {
   components: {
     NextButton,
+    LabelVisibilityField,
   },
   props: {
     selectedResponse: {
@@ -26,6 +28,8 @@ export default {
       description: '',
       showOnSidebar: true,
       color: '',
+      visibility: 'global',
+      teamId: null,
     };
   },
   validations,
@@ -55,6 +59,8 @@ export default {
       this.description = this.selectedResponse.description;
       this.showOnSidebar = this.selectedResponse.show_on_sidebar;
       this.color = this.selectedResponse.color;
+      this.visibility = this.selectedResponse.visibility || 'global';
+      this.teamId = this.selectedResponse.team_id || null;
     },
     editLabel() {
       this.$store
@@ -64,6 +70,8 @@ export default {
           description: this.description,
           title: this.title.toLowerCase(),
           show_on_sidebar: this.showOnSidebar,
+          visibility: this.visibility,
+          team_id: this.visibility === 'team' ? this.teamId : null,
         })
         .then(() => {
           useAlert(this.$t('LABEL_MGMT.EDIT.API.SUCCESS_MESSAGE'));
@@ -107,6 +115,10 @@ export default {
           <woot-color-picker v-model="color" />
         </label>
       </div>
+      <LabelVisibilityField
+        v-model:visibility="visibility"
+        v-model:team-id="teamId"
+      />
       <div class="flex items-center w-full gap-2">
         <input v-model="showOnSidebar" type="checkbox" :value="true" />
         <label for="conversation_creation">
@@ -124,7 +136,11 @@ export default {
         <NextButton
           type="submit"
           :label="$t('LABEL_MGMT.FORM.EDIT')"
-          :disabled="v$.title.$invalid || uiFlags.isUpdating"
+          :disabled="
+            v$.title.$invalid ||
+            uiFlags.isUpdating ||
+            (visibility === 'team' && !teamId)
+          "
           :is-loading="uiFlags.isUpdating"
         />
       </div>
