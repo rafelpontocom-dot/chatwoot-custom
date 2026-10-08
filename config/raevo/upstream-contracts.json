@@ -183,6 +183,15 @@
         "app/javascript/dashboard/routes/dashboard/conversation/labels/specs/LabelBox.spec.js",
         "app/javascript/dashboard/routes/dashboard/conversation/Macros/specs/List.spec.js"
       ]
+    },
+    {
+      "id": "contact-whatsapp-broadcast-blocked",
+      "paths": [
+        "app/models/contact.rb"
+      ],
+      "tests": [
+        "spec/models/contact_spec.rb"
+      ]
     }
   ]
 }
