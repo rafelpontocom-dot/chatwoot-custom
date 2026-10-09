@@ -50,4 +50,16 @@ RSpec.describe 'Raevo AI CRM catalog API', type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body).to include('board_key' => 'captacao', 'fields' => ['valor_da_consulta'], 'events' => ['price_informed'])
   end
+
+  it 'lets an administrator publish an account-scoped contact-name policy' do
+    integration
+
+    patch path,
+          params: { board_key: 'captacao', contact_name: { overwrite: 'if_empty' } },
+          headers: administrator.create_new_auth_token,
+          as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(integration.reload.settings.dig('crm', 'contact_name')).to eq('overwrite' => 'if_empty')
+  end
 end
