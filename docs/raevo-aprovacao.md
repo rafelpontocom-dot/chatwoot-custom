@@ -408,6 +408,16 @@ nunca envia; ao concluir, já limpa a ação antiga. Falta a tela e deixar o cam
 **O 5n mexe numa tela do Chatwoot só por dentro do painel nosso** (`ContactKanbanCards`), que é a
 exceção prevista para painéis nossos; o markup nativo da página do contato não muda.
 
+**Implementadas a 08–09/10**, com a jornada verificada no browser a 1280 e a 390. Onde a implementação se
+afastou da maquete, ficou escrito:
+
+| Cartão | Commit | O que mudou em relação à maquete |
+| --- | --- | --- |
+| 5h | `8aa05d79` (+ `1387b1cf`, o smoke) | nada; o estado vazio «Sem ação marcada» também entrou |
+| 5j | `03f88012` | os números são «Ações · Em aberto/Até ganhar · No prazo» em todas as larguras (a maquete do telemóvel tinha «Última»); ações concluídas antes de 09/10 não têm nome de quem fez |
+| 5n | `0dbd3788` | o diálogo é um `<dialog>` nativo dentro do painel, e não o `Dialog` do Chatwoot: no telemóvel a gaveta do contato fechava ao primeiro toque. Criada, a ficha abre no Pipeline (sai do contato), como na legenda da maquete — a confirmar |
+| 5m | `7af56a4b` | sem a caixa «Agendamentos» (a aprovação fala só do interruptor das tarefas); no telemóvel as atrasadas ficam na mesma faixa da tela larga, não numa linha «3 atrasadas ›» |
+
 **Visto ao capturar a Agenda e fora destes cartões:** «Novo agendamento» é um botão-pílula que
 quebra em duas linhas — a regra 4 dá a pílula só ao selo e à pesquisa. Não mexido; a maquete do 5m
 desenha-o a 10px.
