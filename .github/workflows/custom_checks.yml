@@ -253,3 +253,17 @@ jobs:
             tests/playwright/playwright-report
             tests/playwright/test-results/navigation
           if-no-files-found: ignore
+      # A imagem de produção é a EE, mas os passos acima correm sem o enterprise —
+      # e os exemplos das funções personalizadas saltam (`if: defined?(CustomRole)`).
+      # Sem este passo, «a secretária só vê o Pipeline» nunca era testado no CI.
+      # Fica no fim para não mudar o ambiente do smoke de navegação.
+      - name: Raevo specs that need the enterprise code (the image is EE)
+        env:
+          RAILS_ENV: test
+        run: |
+          git checkout -- enterprise spec/enterprise
+          bundle exec rspec --format progress \
+            spec/enterprise/models/custom_role_spec.rb \
+            spec/policies/kanban_board_policy_spec.rb \
+            spec/policies/kanban_card_policy_spec.rb \
+            spec/policies/finance_module_setting_policy_spec.rb

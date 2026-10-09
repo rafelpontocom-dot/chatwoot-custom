@@ -262,6 +262,57 @@
       "tests": [
         "app/javascript/dashboard/routes/dashboard/conversation/specs/ConversationView.spec.js"
       ]
+    },
+    {
+      "id": "conversation-list-preferences",
+      "paths": [
+        "app/javascript/dashboard/components/ChatList.vue",
+        "app/javascript/dashboard/components/ChatListHeader.vue",
+        "app/javascript/dashboard/components/specs/ChatListHeader.spec.js"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/specs/ChatList.spec.js",
+        "app/javascript/dashboard/components/specs/ChatListHeader.spec.js",
+        "app/javascript/dashboard/helper/specs/conversationFilterPreferences.spec.js"
+      ]
+    },
+    {
+      "id": "labels-visibility-and-opportunities",
+      "paths": [
+        "app/policies/label_policy.rb",
+        "app/services/labels/update_service.rb",
+        "app/services/labels/destroy_service.rb",
+        "app/views/api/v1/accounts/labels",
+        "app/javascript/dashboard/api/labels.js",
+        "app/javascript/dashboard/composables/useConversationLabels.js",
+        "spec/controllers/api/v1/accounts/labels_controller_spec.rb",
+        "spec/services/labels/update_service_spec.rb",
+        "spec/services/labels/destroy_service_spec.rb",
+        "spec/models/label_spec.rb",
+        "app/javascript/dashboard/composables/spec/useConversationLabels.spec.js"
+      ],
+      "tests": [
+        "spec/controllers/api/v1/accounts/labels_controller_spec.rb",
+        "spec/services/labels/update_service_spec.rb",
+        "spec/services/labels/destroy_service_spec.rb",
+        "spec/models/label_spec.rb",
+        "app/javascript/dashboard/api/specs/labels.spec.js",
+        "app/javascript/dashboard/composables/spec/useConversationLabels.spec.js"
+      ]
+    },
+    {
+      "id": "raevo-custom-role-permissions",
+      "paths": [
+        "app/javascript/dashboard/constants/permissions.js",
+        "enterprise/app/models/custom_role.rb"
+      ],
+      "tests": [
+        "app/javascript/dashboard/constants/specs/permissions.spec.js",
+        "spec/enterprise/models/custom_role_spec.rb",
+        "spec/policies/kanban_board_policy_spec.rb",
+        "spec/policies/kanban_card_policy_spec.rb",
+        "spec/policies/finance_module_setting_policy_spec.rb"
+      ]
     }
   ]
 }

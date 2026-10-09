@@ -287,4 +287,28 @@ RSpec.describe 'Label API', type: :request do
       end
     end
   end
+
+  # Contrato de upgrade `labels-raevo-fields`: as quatro respostas trazem ordem e
+  # visibilidade — a tela de etiquetas e a barra lateral dependem delas.
+  describe 'Raevo fields in every label response' do
+    let(:admin) { create(:user, account: account, role: :administrator) }
+    let(:raevo_fields) { %w[position visibility team_id created_by_id] }
+
+    it 'returns them when listing' do
+      get "/api/v1/accounts/#{account.id}/labels", headers: admin.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['payload'].first.keys).to include(*raevo_fields)
+    end
+
+    it 'returns them when showing, creating and updating' do
+      get "/api/v1/accounts/#{account.id}/labels/#{label.id}", headers: admin.create_new_auth_token, as: :json
+      expect(response.parsed_body.keys).to include(*raevo_fields)
+
+      post "/api/v1/accounts/#{account.id}/labels", headers: admin.create_new_auth_token, params: { title: 'nova-etiqueta' }, as: :json
+      expect(response.parsed_body.keys).to include(*raevo_fields)
+
+      patch "/api/v1/accounts/#{account.id}/labels/#{label.id}", headers: admin.create_new_auth_token, params: { title: 'renomeada' }, as: :json
+      expect(response.parsed_body.keys).to include(*raevo_fields)
+    end
+  end
 end
