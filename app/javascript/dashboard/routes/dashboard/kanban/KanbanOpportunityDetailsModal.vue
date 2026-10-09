@@ -35,6 +35,7 @@ import {
 } from './raevoAiOpportunityDisplay';
 import KanbanOpportunityPipelineMenu from './KanbanOpportunityPipelineMenu.vue';
 import KanbanNextActionCompletion from './KanbanNextActionCompletion.vue';
+import KanbanActionHistory from './KanbanActionHistory.vue';
 import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
 import FormsInvitationDialog from '../forms/FormsInvitationDialog.vue';
@@ -1510,12 +1511,19 @@ const timelineEventMeta = event => {
 const timelineItems = computed(() =>
   timeline.value.map(event => ({
     id: event.id,
+    type: event.event_type,
     title: timelineEventLabel(event),
     meta: timelineEventMeta(event),
     tone: timelineEventTone(event),
     changes: timelineEventChanges(event),
     automations: event.automations || [],
   }))
+);
+
+// No Histórico, cada ação concluída já tem a sua linha, com quem a fez e o
+// resultado (5j); o evento de conclusão repetia-a por baixo.
+const alteracoesItems = computed(() =>
+  timelineItems.value.filter(item => item.type !== 'next_action_completed')
 );
 
 const buildCardPayload = extraPayload => ({
@@ -2386,36 +2394,6 @@ watch(invitationPendingRevocation, async invitation => {
                         />
                       </template>
                     </RaevoFieldRow>
-                  </div>
-                  <div
-                    v-if="card.nextActionHistory?.length"
-                    data-testid="kanban-opportunity-next-action-history"
-                    class="grid gap-2 border-t border-n-weak pt-3"
-                  >
-                    <h4 class="mb-0 text-xs font-medium text-n-slate-11">
-                      {{ t('KANBAN.OPPORTUNITY_DETAILS.NEXT_ACTION_HISTORY') }}
-                    </h4>
-                    <div
-                      v-for="(historyItem, index) in card.nextActionHistory
-                        .slice()
-                        .reverse()"
-                      :key="`${historyItem.completedAt || historyItem.completed_at}-${index}`"
-                      class="grid gap-0.5 text-xs text-n-slate-11"
-                    >
-                      <span class="font-medium text-n-slate-12">
-                        {{ historyItem.type }}
-                      </span>
-                      <span v-if="historyItem.note">{{
-                        historyItem.note
-                      }}</span>
-                      <span
-                        v-if="historyItem.completion_note"
-                        data-testid="kanban-opportunity-next-action-result"
-                        class="break-words text-n-slate-12"
-                      >
-                        {{ historyItem.completion_note }}
-                      </span>
-                    </div>
                   </div>
                 </section>
               </template>
@@ -3400,6 +3378,17 @@ watch(invitationPendingRevocation, async invitation => {
                   data-testid="kanban-opportunity-timeline"
                   class="grid gap-3"
                 >
+                  <KanbanActionHistory
+                    :history="card.nextActionHistory || []"
+                    :created-at="card.created_at"
+                    :won-at="card.won_at"
+                    :lost-at="card.lost_at"
+                  />
+                  <h4
+                    class="mb-0 border-t border-solid border-n-weak pt-3 text-xs font-medium text-n-slate-11"
+                  >
+                    {{ t('KANBAN.OPPORTUNITY_DETAILS.ACTION_HISTORY.CHANGES') }}
+                  </h4>
                   <p
                     v-if="isLoadingTimeline"
                     class="mb-0 text-sm text-n-slate-11"
@@ -3414,13 +3403,13 @@ watch(invitationPendingRevocation, async invitation => {
                     {{ timelineError }}
                   </p>
                   <p
-                    v-else-if="timeline.length === 0"
+                    v-else-if="alteracoesItems.length === 0"
                     class="mb-0 text-sm text-n-slate-11"
                   >
                     {{ t('KANBAN.OPPORTUNITY_DETAILS.TIMELINE.EMPTY') }}
                   </p>
                   <template v-else>
-                    <RaevoTimeline :items="timelineItems">
+                    <RaevoTimeline :items="alteracoesItems">
                       <template #extra="{ item }">
                         <span
                           v-for="change in item.changes"

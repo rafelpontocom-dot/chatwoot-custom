@@ -646,6 +646,19 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    # 5j: a ficha mostra quem fez cada ação; vem de quem fez o pedido.
+    it 'records the agent who completed the action' do
+      card = create_manual_card(next_action_type: 'call', next_action_at: Time.zone.parse('2026-07-20T18:00:00Z'))
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { complete_next_action: true, next_action_completed_at: '2026-07-20T18:10:00.000Z' } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload.next_action_history.last['completed_by']).to eq('id' => agent.id, 'name' => agent.available_name)
+    end
+
     it 'does not interpret a false completion flag as a request to clear a retrospective action' do
       card = create_manual_card
 

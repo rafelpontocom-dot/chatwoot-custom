@@ -506,6 +506,21 @@ RSpec.describe KanbanCard do
       )
     end
 
+    # 5j: o histórico diz quem fez cada ação, pelo nome que a equipa vê no
+    # Chatwoot. O evento já guardava o autor; o histórico das ações, que é o que
+    # a ficha lista, não.
+    it 'records who completed the next action' do
+      user = create(:user, name: 'Alysson Lima', display_name: 'Alysson')
+      card = create(:kanban_card, next_action_type: 'Ligar', next_action_at: 1.day.ago)
+      Current.user = user
+
+      card.update!(complete_next_action: true, next_action_completed_at: Time.current)
+
+      expect(card.next_action_history.last['completed_by']).to eq('id' => user.id, 'name' => 'Alysson')
+    ensure
+      Current.reset
+    end
+
     # Concluída, a ação é histórico. Os campos ficavam preenchidos com o que
     # acabou de ser feito, e quem ia marcar a seguinte tinha de apagar três
     # campos antes de escrever — ou gravava sem reparar, e a «próxima ação»

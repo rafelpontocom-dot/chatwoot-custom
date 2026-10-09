@@ -2072,25 +2072,65 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
-  it('shows the result of each completed action in the history', async () => {
+  // 5j: a lista das ações concluídas mora no Histórico, com o resultado e quem
+  // fez; a linha do tempo por baixo deixa de repetir a conclusão como evento.
+  it('lists completed actions in the history section, once', async () => {
     const wrapper = await mountModal({
       card: buildCard({
         nextActionHistory: [
           {
             type: 'Ligar',
             note: 'Confirmar avaliação',
+            scheduled_at: '2026-10-08T13:00:00.000Z',
             completed_at: '2026-10-08T13:12:00.000Z',
             completion_note: 'Atendeu. Quer avaliar na sexta.',
+            completed_by: { id: 7, name: 'Alysson' },
           },
         ],
       }),
+      timeline: [
+        {
+          id: 20,
+          event_type: 'next_action_completed',
+          occurred_at: '2026-10-08T13:12:00Z',
+          actor: { name: 'Alysson' },
+        },
+        {
+          id: 21,
+          event_type: 'stage_changed',
+          occurred_at: '2026-10-08T12:00:00Z',
+          actor: { name: 'Jane Agent' },
+          metadata: { to_stage: { name: 'Proposta enviada' } },
+        },
+      ],
     });
 
     expect(
       wrapper
-        .find('[data-testid="kanban-opportunity-next-action-result"]')
+        .find('[data-testid="kanban-opportunity-next-action-section"]')
         .text()
+    ).not.toContain('Atendeu. Quer avaliar na sexta.');
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
+      .trigger('click');
+
+    const historico = wrapper.get('[data-testid="kanban-action-history"]');
+    expect(
+      historico.findAll('[data-testid="kanban-action-history-item"]')
+    ).toHaveLength(1);
+    expect(
+      historico.get('[data-testid="kanban-action-history-result"]').text()
     ).toBe('Atendeu. Quer avaliar na sexta.');
+    expect(
+      historico.get('[data-testid="kanban-action-history-who"]').text()
+    ).toBe('Alysson');
+
+    const linhaDoTempo = wrapper.get(
+      '[data-testid="kanban-opportunity-timeline"]'
+    );
+    expect(linhaDoTempo.text()).toContain('Entered Proposta enviada');
+    expect(linhaDoTempo.text()).not.toContain('Next action completed');
   });
 
   it('preserves the stored seconds when saving an unchanged next action date', async () => {
@@ -2204,9 +2244,12 @@ describe('KanbanOpportunityDetailsModal', () => {
       }),
     });
 
-    const history = wrapper.find(
-      '[data-testid="kanban-opportunity-next-action-history"]'
-    );
+    await wrapper
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
+      .trigger('click');
+
+    // Sem resultado escrito, a ação mostra o que estava previsto fazer.
+    const history = wrapper.find('[data-testid="kanban-action-history"]');
     expect(history.text()).toContain('Enviar proposta');
     expect(history.text()).toContain('Enviar no WhatsApp');
   });

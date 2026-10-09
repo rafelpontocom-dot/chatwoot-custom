@@ -795,6 +795,8 @@ class KanbanCard < ApplicationRecord
       'completed_at' => next_action_completed_at.iso8601(3)
     }
     entry['completion_note'] = next_action_completion_note if next_action_completion_note.present?
+    actor = @event_actor || Current.user
+    entry['completed_by'] = { 'id' => actor.id, 'name' => actor.available_name } if actor
     self.next_action_history = [*Array(next_action_history), entry].last(100)
     clear_completed_next_action
   end
