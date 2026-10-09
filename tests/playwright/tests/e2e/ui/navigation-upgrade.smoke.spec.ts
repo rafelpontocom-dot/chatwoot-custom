@@ -152,11 +152,16 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
       /\/cards\/by_id\/\d+$/.test(response.url()) &&
       response.request().method() === 'PATCH'
   );
+  // Desde o 5h, concluir pergunta «Como foi?» antes de gravar: o primeiro
+  // clique abre o passo do resultado, e é o «Concluir» que faz o PATCH.
   await page.getByTestId('kanban-opportunity-complete-next-action').click();
+  await page.getByTestId('kanban-completion-quick-answered').click();
+  await page.getByTestId('kanban-completion-confirm').click();
   const completion = await completedResponse;
   expect(completion.status()).toBe(200);
   expect(completion.request().postDataJSON().card).toMatchObject({
     complete_next_action: true,
+    next_action_completion_note: expect.any(String),
   });
   expect(completion.request().postDataJSON().card).not.toHaveProperty(
     'next_action_at'
@@ -171,7 +176,13 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     type: 'Ligar',
     scheduled_at: '2026-10-07T13:30:47.123Z',
     note: 'Acao para validar conclusao',
+    completion_note: completion.request().postDataJSON().card
+      .next_action_completion_note,
   });
+  await page.getByTestId('kanban-completion-skip').click();
+  await expect(
+    page.getByTestId('kanban-opportunity-next-action-empty')
+  ).toBeVisible();
   await page.getByTestId('kanban-opportunity-close').click();
 
   await sidebar
