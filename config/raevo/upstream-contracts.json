@@ -247,6 +247,15 @@
       "tests": [
         "spec/controllers/api/v1/accounts/kanban_next_actions_controller_spec.rb"
       ]
+    },
+    {
+      "id": "conversation-list-stays",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/conversation/ConversationView.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/conversation/specs/ConversationView.spec.js"
+      ]
     }
   ]
 }

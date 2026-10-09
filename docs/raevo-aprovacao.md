@@ -1082,6 +1082,43 @@ outras oito. A queixa que deu origem a este trabalho foi falta de espaço.
 **Quando reabrir:** no dia em que um funil real passe das doze secções. Aí a tira fica com
 «+9 mais» e o acordeão passa a ser a resposta certa.
 
+### Conversas: a lista fica, a navegação recolhe · 09/10/2026
+
+**Isto corrige uma tela nativa que mudou sem passar por aqui.** O commit `ee82e935` (16/09,
+entrou com o PR #10 a 26/09) fazia duas coisas abaixo de 1440px, com uma conversa aberta:
+**escondia a lista** (ficava o «‹ Anterior» do layout expandido) e recolhia a navegação a
+ícones. O motivo era real — a 1280px, com navegação, lista e coluna da oportunidade, a
+conversa ficava com 380px —, mas a troca não foi decidida por ninguém, e o dono do produto
+deu por ela em produção: para abrir a conversa seguinte era preciso voltar atrás. Trocar de
+conversa é o trabalho desta tela.
+
+Decidido pelo dono do produto: **a lista fica sempre; o espaço vem da navegação**, que recolhe
+a ícones (56px) enquanto há conversa aberta, **abaixo de 1600px**. Largura da conversa,
+medida no browser com a coluna da oportunidade aberta:
+
+| Ecrã | Chatwoot original | 16/09 (sem lista) | Agora |
+| --- | --- | --- | --- |
+| 1280 | 380 | 864 | **524** |
+| 1366 | 466 | 950 | **610** |
+| 1536 | 504 | 504 | **648** |
+
+(380 e 466 são calculados — o ecrã menos 200 + 340 + 360 —; o resto foi medido.)
+
+O limite subiu de 1440 para 1600 por causa da última linha: 1536px é o que um portátil
+Windows de 1920 com o zoom de 125% entrega, e com a regra antiga era o ecrã onde a conversa
+ficava mais estreita — mais do que a 1280.
+
+**O que se perdeu, para ficar escrito:** no primeiro clique depois de entrar em Conversas, a
+lista anda 144px para a esquerda debaixo do rato (a navegação passa de 200 a 56px). Trocar de
+conversa depois disso não mexe em nada. A alternativa era só o botão nativo «Recolher» — sem
+salto e sem código numa tela nativa —, mas quem não o conhecesse ficava com 380px a 1280.
+Recolher continua a ser estado de momento: não grava por cima da largura que a pessoa
+escolheu, e volta quando a conversa fecha. O telemóvel não muda (lista ou conversa, como o
+Chatwoot faz).
+
+O ficheiro nativo `ConversationView.vue` passou a constar do inventário de upstream
+(`conversation-list-stays`), coisa que a mudança de 16/09 também não tinha feito.
+
 ## Achados abertos
 
 ### O selo de variação aponta para «bom», não para onde o número foi · 26/09/2026

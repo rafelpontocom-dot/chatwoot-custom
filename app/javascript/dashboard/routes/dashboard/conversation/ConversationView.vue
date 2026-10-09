@@ -82,15 +82,15 @@ export default {
       currentChat: 'getSelectedChat',
     }),
     /**
-     * Abaixo desta largura não cabem as quatro colunas: navegação, lista,
-     * conversa e oportunidade. A 1280px sobravam 380px para a conversa.
+     * Abaixo desta largura as quatro colunas não cabem com a navegação aberta:
+     * a 1280px sobravam 380px para a conversa, a 1536px 504px. Com a conversa
+     * aberta a navegação recolhe a ícones e a lista fica — trocar de conversa
+     * é o trabalho da tela, e esconder a lista obrigava a voltar atrás.
      */
-    isCompactWorkspace() {
-      return Boolean(this.conversationId) && this.windowWidth < 1440;
+    shouldCollapseNavigation() {
+      return Boolean(this.conversationId) && this.windowWidth < 1600;
     },
     showConversationList() {
-      if (this.isCompactWorkspace) return false;
-
       return this.isOnExpandedLayout ? !this.conversationId : true;
     },
     showMessageView() {
@@ -111,10 +111,10 @@ export default {
     },
     // Recolher a navegação a ícones é estado de momento: não grava por cima da
     // largura que a pessoa escolheu, e volta sozinho quando há espaço.
-    isCompactWorkspace: {
+    shouldCollapseNavigation: {
       immediate: true,
-      handler(compact) {
-        this.setSidebarFocus(compact);
+      handler(collapse) {
+        this.setSidebarFocus(collapse);
       },
     },
   },
@@ -219,13 +219,13 @@ export default {
       :team-id="teamId"
       :conversation-type="conversationType"
       :folders-id="foldersId"
-      :is-on-expanded-layout="isOnExpandedLayout || isCompactWorkspace"
+      :is-on-expanded-layout="isOnExpandedLayout"
       @conversation-load="onConversationLoad"
     />
     <ConversationBox
       v-if="showMessageView"
       :inbox-id="inboxId"
-      :is-on-expanded-layout="isOnExpandedLayout || isCompactWorkspace"
+      :is-on-expanded-layout="isOnExpandedLayout"
     >
       <SidepanelSwitch v-if="currentChat.id" />
     </ConversationBox>
