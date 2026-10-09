@@ -14,6 +14,56 @@ Essa divisão preserva o valor das atualizações de segurança e canais do Chat
 - Não acoplar interface Raevo a seletores internos frágeis do dashboard quando uma API ou composable existe.
 - Cobrir todo contrato público novo com request spec e toda regra comercial com service spec.
 
+## Onde mexer: os três anéis
+
+Uma atualização do Chatwoot não apaga dados nem o que vive em ficheiros nossos. O que ela pode levar
+sem conflito é uma mudança **dentro de um ficheiro do Chatwoot**. Por isso, antes de alterar
+comportamento nativo, escolha o anel mais de fora que resolve:
+
+| Anel | O que é | Custo num upgrade |
+| --- | --- | --- |
+| **1. Nosso** | ficheiro que o Chatwoot não tem: módulos Kanban/Agenda/Financeiro, `components-next/raevo/`, serviços, listeners, os JSON de tradução próprios (`kanban.json`, `finance.json`…) | nenhum |
+| **2. Costura** | o ficheiro nativo ganha **um ponto de entrada** de 1–3 linhas — um `<RaevoAlgo />`, um `import`, um `Classe.prepend(Raevo::…)` — e toda a lógica fica no anel 1 | reaplicar 1–3 linhas, que o contrato aponta |
+| **3. Edição** | lógica nossa no meio do ficheiro nativo | resolver à mão, e o upstream pode reescrever sem conflito |
+
+Por camada:
+
+- **Servidor.** Onde a classe chama `prepend_mod_with`, o Chatwoot já procura extensões — inclusive
+  um namespace `Custom::` (`ChatwootApp.extensions`), mas a pasta `custom/` não é carregada por
+  `config/application.rb` e várias classes (`Label`, `LabelPolicy`, `Labels::*Service`) nem chamam
+  o gancho. O caminho de anel 2 é um initializer nosso com `Rails.application.config.to_prepare` que
+  faz `Classe.prepend(Raevo::ClasseExtension)` — zero linhas no ficheiro nativo. Rotas novas vão num
+  ficheiro nosso com `draw(:raevo)`: uma linha em `config/routes.rb`.
+- **Tela.** O componente nativo recebe só o ponto de entrada (`<RaevoConversationExtras />`, um slot,
+  um composable) e a lógica vive em `components-next/raevo/` ou no módulo. Substituir o ficheiro
+  inteiro por alias do Vite é o último recurso: congela a tela e perde as correções do upstream.
+- **Tradução.** Chave nova vai num JSON nosso. Editar `conversation.json` ou `settings.json` do
+  upstream é conflito garantido: o Crowdin reescreve-os em cada versão.
+- **Estilo.** Só tokens (`_raevo-tokens.scss`); markup nativo intocado.
+
+Anel 3 continua permitido quando não há costura possível — mas nasce com contrato e teste de
+comportamento, e é candidato a descer para o anel 2.
+
+## A porta do inventário
+
+`node scripts/raevo-upstream-audit.mjs --check-native-coverage` corre no CI (`custom_checks.yml`,
+job `lint-frontend`). Compara a árvore com a tag oficial em `upstreamBase`
+(`config/raevo/upstream-contracts.json`) e exige que **cada ficheiro nativo alterado ou apagado**
+esteja numa de três listas:
+
+1. **um contrato** em `upstream-contracts.json`, com teste que falha se a mudança se perder;
+2. **`regenerated`** — `Gemfile.lock`, `pnpm-lock.yaml`, `db/schema.rb`, que se regeneram com a
+   ferramenta e não se resolvem à mão;
+3. **a dívida** em `config/raevo/upstream-debt.json` — os ficheiros que já estavam alterados sem
+   contrato quando a porta nasceu (188 a 09/10/2026; 171 depois da primeira ronda da camada 2).
+
+A dívida **só encolhe**. Num PR, a porta compara-a com a do ramo base e recusa entradas novas;
+recusa também entradas que já têm contrato ou que deixaram de diferir do upstream. Ficheiro nativo
+novo, portanto, só entra com contrato.
+
+**No upgrade:** muda-se `upstreamBase` para a tag nova no mesmo PR do merge. A porta passa a medir
+contra ela; o que o upstream tiver absorvido sai da dívida.
+
 ## Ciclo de atualização
 
 1. Adicionar ou atualizar o remoto `upstream` para `chatwoot/chatwoot`.
@@ -151,6 +201,9 @@ se a adaptação se perder. Cada alteração no ficheiro nativo leva um comentá
 | `settings/labels/*`, `store/modules/labels.js`, `labels_controller.rb` | ordem manual, visibilidade (de todos / time / só minha), `code: 'title_taken'` para nome repetido; a tela abre ao **agente** (rota com `ROLES` + `CONVERSATION_PERMISSIONS`), que só edita/apaga as pessoais dele, e a lista diz «quem vê» cada uma, por baixo do nome (em coluna empurrava as ações para fora a 390px) | `labels-manual-order` · `labels_controller_spec.rb`, `settings/labels/specs/Index.spec.js` |
 | `config/routes.rb` | uma linha: `resources :kanban_next_actions, only: [:index]` ao lado de `raevo_home` — as tarefas dos leads na Agenda (09/10, cartão 123jpnbcb5m). Controlador, tela e serviço são nossos | `agenda-lead-tasks` · `kanban_next_actions_controller_spec.rb` |
 | `routes/dashboard/conversation/ConversationView.vue` | com uma conversa aberta abaixo de 1600px, a navegação recolhe a ícones pelo modo de foco (`useRequestSidebarFocus`); a lista **fica** (16/09 escondia-a — revisto a 09/10, ver `raevo-aprovacao.md`). Lê `useWindowSize`; o resto é o ficheiro do upstream | `conversation-list-stays` · `conversation/specs/ConversationView.spec.js` |
+| `components/ChatList.vue`, `ChatListHeader.vue` | a lista abre na aba que o agente escolheu (ou na última usada) e lembra a troca em `conversations_filter_by.assignee_tab`; o filtro guardado aberto pode ser fixado como o que abre o painel (`conversations_default_folder_id`), com o botão de alfinete ao lado de editar e apagar; atalho de pesquisa nativo no cabeçalho. A regra vive em `helper/conversationFilterPreferences.js`; no nativo ficam as costuras | `conversation-list-preferences` · `components/specs/ChatList.spec.js`, `ChatListHeader.spec.js` |
+| `label_policy.rb`, `labels/update_service.rb`, `labels/destroy_service.rb`, `views/.../labels/*.jbuilder`, `api/labels.js`, `useConversationLabels.js` | visibilidade das etiquetas (o agente cria e gere só as pessoais; o escopo esconde o que a pessoa não vê); renomear e apagar chegam às **oportunidades**; as quatro respostas da API trazem `position`, `visibility`, `team_id`, `created_by_id`; acrescentar ou tirar uma etiqueta numa conversa preserva as que a pessoa não vê | `labels-visibility-and-opportunities` · `labels_controller_spec.rb`, `labels/*_service_spec.rb`, `useConversationLabels.spec.js` |
+| `constants/permissions.js`, `enterprise/app/models/custom_role.rb` | as 21 permissões do Pipeline, Financeiro e Marketing nas funções personalizadas — no ecrã (`AVAILABLE_CUSTOM_ROLE_PERMISSIONS`) e na validação do servidor (`CustomRole::PERMISSIONS`) | `raevo-custom-role-permissions` · `constants/specs/permissions.spec.js`, `custom_role_spec.rb`, políticas do Kanban e do Financeiro. O resto do CI corre **sem** o enterprise e estes exemplos saltavam (`if: defined?(CustomRole)`); o último passo do `backend-tests` repõe-no e corre-os, porque a imagem de produção é a EE |
 
 Ao resolver um destes ficheiros: aceitar a versão nova do upstream e **reaplicar só o bloco marcado
 `RAEVO`**. Nunca copiar o ficheiro antigo por cima — perde-se o que o upstream corrigiu.

@@ -1850,6 +1850,77 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
+  // Registar a ação não é editar a oportunidade: um campo que a etapa exige e
+  // ainda está vazio não pode impedir ninguém de registar a chamada que fez.
+  // Em produção era assim que «Concluir» não gravava nada (09/10).
+  const exigeProcedimento = [
+    {
+      key: 'procedimento',
+      label: 'Procedimento',
+      fieldType: 'text',
+      requiredStageIds: [1],
+    },
+  ];
+
+  it('completes the action even when the stage still requires an empty field, sending only the action', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        kanbanStageId: 1,
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+      }),
+    });
+    const wrapper = await mountModal({
+      card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+      customFieldDefinitions: exigeProcedimento,
+    });
+
+    await concluirAcao(wrapper);
+
+    const enviado =
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)?.[2];
+    expect(Object.keys(enviado || {}).sort()).toEqual([
+      'complete_next_action',
+      'next_action_completed_at',
+    ]);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-next-action-completion"]')
+        .attributes('data-step')
+    ).toBe('next');
+  });
+
+  it('schedules the next action without the fields the stage requires', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({ kanbanStageId: 1, nextActionType: 'Ligar' }),
+    });
+    const wrapper = await mountModal({
+      card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+      customFieldDefinitions: exigeProcedimento,
+    });
+    await concluirAcao(wrapper);
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    const tipo = fluxo.find('[data-testid="kanban-completion-next-type"]');
+    await tipo.setValue(
+      tipo
+        .findAll('option')
+        .map(option => option.element.value)
+        .find(Boolean)
+    );
+    await fluxo
+      .find('[data-testid="kanban-completion-next-at"]')
+      .setValue('2026-10-10T09:00');
+    await fluxo
+      .find('[data-testid="kanban-completion-save-next"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      Object.keys(
+        KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+      ).sort()
+    ).toEqual(['next_action_at', 'next_action_note', 'next_action_type']);
+  });
+
   it('asks how the action went before completing it', async () => {
     const wrapper = await mountModal();
 

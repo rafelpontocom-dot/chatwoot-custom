@@ -6,6 +6,8 @@ import { dirname, join } from 'node:path';
 import { afterEach, test } from 'node:test';
 import {
   buildAuditReport,
+  changedNativeFiles,
+  checkNativeCoverage,
   validateContracts,
 } from '../raevo-upstream-audit.mjs';
 
@@ -173,4 +175,96 @@ test('rejects duplicate contract IDs and contracts with no paths or tests', () =
   assert.match(errors, /duplicate/i);
   assert.match(errors, /paths/i);
   assert.match(errors, /tests/i);
+});
+
+// A porta do inventário: o que um upgrade pode reescrever é o ficheiro do
+// upstream que o Raevo alterou ou apagou — nunca o que o Raevo acrescentou.
+test('lists the native files Raevo changed or deleted, not the ones it added', () => {
+  const { cwd, base, git } = fixture();
+  git('checkout', 'raevo');
+  git('rm', '-q', 'spec/native.spec.js');
+  git('commit', '-m', 'raevo drops a native spec');
+  assert.deepEqual(changedNativeFiles(cwd, base, 'raevo'), [
+    'native.vue',
+    'spec/native.spec.js',
+  ]);
+});
+
+test('counts native edits that are not committed yet', () => {
+  const { cwd, base, git, write } = fixture();
+  git('checkout', '-q', 'base');
+  assert.deepEqual(changedNativeFiles(cwd, base), []);
+  write('native.vue', 'edited before the commit\n');
+  assert.deepEqual(changedNativeFiles(cwd, base), ['native.vue']);
+});
+
+const semDivida = { version: 1, files: {} };
+
+test('fails a native file changed outside the inventory', () => {
+  const { errors } = checkNativeCoverage({
+    changed: ['native.vue', 'app/models/team.rb'],
+    registry: contracts,
+    debt: semDivida,
+  });
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /^app\/models\/team\.rb: .*contract/);
+});
+
+test('accepts contracted, regenerated and declared-debt native files', () => {
+  const report = checkNativeCoverage({
+    changed: [
+      'native.vue',
+      'components/sidebar/Sidebar.vue',
+      'pnpm-lock.yaml',
+      'app/old.vue',
+    ],
+    registry: {
+      ...contracts,
+      regenerated: ['pnpm-lock.yaml'],
+      contracts: [
+        ...contracts.contracts,
+        { id: 'sidebar', paths: ['components/sidebar/'], tests: ['x'] },
+      ],
+    },
+    debt: { version: 1, files: { telas: ['app/old.vue'] } },
+  });
+  assert.deepEqual(report.errors, []);
+  assert.deepEqual(report.counts, {
+    changed: 4,
+    contracted: 2,
+    regenerated: 1,
+    debt: 1,
+  });
+});
+
+test('makes a paid or vanished debt entry leave the list', () => {
+  const { errors } = checkNativeCoverage({
+    changed: ['native.vue'],
+    registry: contracts,
+    debt: { version: 1, files: { telas: ['native.vue', 'app/gone.vue'] } },
+  });
+  assert.equal(errors.length, 2);
+  assert.match(errors.join('\n'), /native\.vue: .*covered by a contract/);
+  assert.match(errors.join('\n'), /app\/gone\.vue: .*no longer differs/);
+});
+
+test('lets the debt list shrink but never grow against the base branch', () => {
+  const changed = ['app/old.vue', 'app/new.vue'];
+  const baseDebt = { version: 1, files: { telas: ['app/old.vue'] } };
+  const grown = checkNativeCoverage({
+    changed,
+    registry: contracts,
+    debt: { version: 1, files: { telas: ['app/old.vue', 'app/new.vue'] } },
+    baseDebt,
+  });
+  assert.equal(grown.errors.length, 1);
+  assert.match(grown.errors[0], /^app\/new\.vue: .*only shrinks/);
+
+  const shrunk = checkNativeCoverage({
+    changed: ['app/old.vue'],
+    registry: contracts,
+    debt: { version: 1, files: { telas: ['app/old.vue'] } },
+    baseDebt: { version: 1, files: { telas: ['app/old.vue', 'app/x.vue'] } },
+  });
+  assert.deepEqual(shrunk.errors, []);
 });

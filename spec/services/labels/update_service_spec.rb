@@ -28,5 +28,17 @@ describe Labels::UpdateService do
       expect(conversation.reload.label_list).to eq(['updated-label-title'])
       expect(contact.reload.label_list).to eq(['updated-label-title'])
     end
+
+    # Contrato de upgrade `labels-on-opportunities`: a oportunidade do Raevo também
+    # leva etiquetas, e renomear tem de chegar a ela.
+    it 'renames the label on the account opportunities too' do
+      card = create(:kanban_card, account: account)
+      card.label_list.add(label.title)
+      card.save!
+
+      described_class.new(new_label_title: 'updated-label-title', old_label_title: label.title, account_id: account.id).perform
+
+      expect(card.reload.label_list).to eq(['updated-label-title'])
+    end
   end
 end

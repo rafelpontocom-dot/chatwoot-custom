@@ -131,6 +131,22 @@ RSpec.describe 'Label API', type: :request do
       expect(Label.find_by(title: 'de-todos')).to have_attributes(visibility: 'global', created_by_id: admin.id)
     end
 
+    # 09/10: as etiquetas que existiam antes da visibilidade não têm autor, e uma
+    # pessoal precisa de um. Mudar uma delas para «Somente eu» dava «Ocorreu um
+    # erro». «Somente eu» é quem faz a mudança: passa a ser dela.
+    it 'lets an administrator make an old global label personal, and it becomes theirs' do
+      admin = create(:user, account: account, role: :administrator)
+      antiga = create(:label, account: account, visibility: :global, created_by: nil)
+
+      patch "/api/v1/accounts/#{account.id}/labels/#{antiga.id}",
+            headers: admin.create_new_auth_token, params: { visibility: 'personal' }, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(antiga.reload).to have_attributes(visibility: 'personal', created_by_id: admin.id)
+      expect(labels_for(admin)).to include(antiga.title)
+      expect(labels_for(owner)).not_to include(antiga.title)
+    end
+
     it 'lets an administrator create a label for one team' do
       admin = create(:user, account: account, role: :administrator)
 
@@ -285,6 +301,30 @@ RSpec.describe 'Label API', type: :request do
         expect(response).to have_http_status(:ok)
         expect(Label.exists?(label.id)).to be(false)
       end
+    end
+  end
+
+  # Contrato de upgrade `labels-raevo-fields`: as quatro respostas trazem ordem e
+  # visibilidade — a tela de etiquetas e a barra lateral dependem delas.
+  describe 'Raevo fields in every label response' do
+    let(:admin) { create(:user, account: account, role: :administrator) }
+    let(:raevo_fields) { %w[position visibility team_id created_by_id] }
+
+    it 'returns them when listing' do
+      get "/api/v1/accounts/#{account.id}/labels", headers: admin.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['payload'].first.keys).to include(*raevo_fields)
+    end
+
+    it 'returns them when showing, creating and updating' do
+      get "/api/v1/accounts/#{account.id}/labels/#{label.id}", headers: admin.create_new_auth_token, as: :json
+      expect(response.parsed_body.keys).to include(*raevo_fields)
+
+      post "/api/v1/accounts/#{account.id}/labels", headers: admin.create_new_auth_token, params: { title: 'nova-etiqueta' }, as: :json
+      expect(response.parsed_body.keys).to include(*raevo_fields)
+
+      patch "/api/v1/accounts/#{account.id}/labels/#{label.id}", headers: admin.create_new_auth_token, params: { title: 'renomeada' }, as: :json
+      expect(response.parsed_body.keys).to include(*raevo_fields)
     end
   end
 end
