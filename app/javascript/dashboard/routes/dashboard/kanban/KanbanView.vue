@@ -1,6 +1,8 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { OnClickOutside } from '@vueuse/components';
+import { onClickOutside } from '@vueuse/core';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import camelcaseKeys from 'camelcase-keys';
@@ -17,6 +19,10 @@ import {
   isNeutralStageColor,
   getKanbanStageColorOption,
 } from 'dashboard/helper/kanbanStageColors';
+import {
+  emptyRequiredFieldValue,
+  isRequiredFieldEmpty,
+} from 'dashboard/helper/kanbanRequiredFields';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
@@ -25,6 +31,7 @@ import KanbanActivityCenter from './KanbanActivityCenter.vue';
 import KanbanOpportunityDetailsModal from './KanbanOpportunityDetailsModal.vue';
 import KanbanImportDialog from './KanbanImportDialog.vue';
 import KanbanOpportunityPicker from './KanbanOpportunityPicker.vue';
+import KanbanRequiredFields from './KanbanRequiredFields.vue';
 import KanbanListView from './KanbanListView.vue';
 import KanbanConversationDrawer from './KanbanConversationDrawer.vue';
 import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
@@ -62,6 +69,12 @@ const selectedStatusFilter = ref('');
 const searchInput = ref('');
 const selectedSearch = ref('');
 const selectedSort = ref('');
+// 123jpnbcb5k: dias sem resposta — o `waiting_since` da conversa. As mesmas
+// opções que o servidor aceita (VisibleStageCardsQuery::WAITING_DAYS_OPTIONS).
+const WAITING_DAYS_OPTIONS = [1, 3, 7, 15, 30];
+const selectedWaitingDays = ref('');
+const filterPanelRef = ref(null);
+const filterSearchRef = ref(null);
 const savedFilters = ref([]);
 const selectedSavedFilterId = ref('');
 const showSaveFilterForm = ref(false);
@@ -167,19 +180,55 @@ const sortOptions = computed(() => [
   { value: 'created_desc', label: t('KANBAN.FILTERS.NEWEST_FIRST') },
   { value: 'amount_desc', label: t('KANBAN.FILTERS.HIGHEST_VALUE') },
   { value: 'stage_time_desc', label: t('KANBAN.FILTERS.LONGEST_IN_STAGE') },
+  { value: 'waiting_desc', label: t('KANBAN.FILTERS.LONGEST_WAITING') },
 ]);
-const hasActiveFilters = computed(
+const waitingDaysOptions = computed(() => [
+  { value: '', label: t('KANBAN.FILTERS.WAITING_ANY') },
+  ...WAITING_DAYS_OPTIONS.map(days => ({
+    value: String(days),
+    label: t('KANBAN.FILTERS.WAITING_DAYS', { count: days }, days),
+  })),
+]);
+// 123jpnbcb5k: quantos filtros estão ligados, para se ver no topo com o painel
+// fechado — sem isso parecia que o filtro não tinha ficado ativo.
+const activeFilterCount = computed(
   () =>
-    selectedInboxIds.value.length > 0 ||
-    selectedAssigneeIds.value.length > 0 ||
-    selectedNextActionFilter.value ||
-    selectedStatusFilter.value ||
-    selectedSearch.value ||
-    selectedSort.value
+    [
+      selectedInboxIds.value.length > 0,
+      selectedAssigneeIds.value.length > 0,
+      selectedNextActionFilter.value,
+      selectedStatusFilter.value,
+      selectedWaitingDays.value,
+      selectedSearch.value,
+      selectedSort.value,
+    ].filter(Boolean).length
 );
+const hasActiveFilters = computed(() => activeFilterCount.value > 0);
 const openFilters = () => {
   showFiltersPanel.value = true;
 };
+// 123jpnbcb5k: o painel não fechava com Enter nem com um clique fora — só no X,
+// e parecia que o filtro não tinha ficado ativo. Os filtros já se aplicam ao
+// mudar; fechar é só sair. Os campos que dão nome a um filtro guardado usam o
+// Enter para gravar, e os botões para se carregar — esses ficam com ele.
+const OWN_ENTER_FIELDS = [
+  'kanban-save-filter-name',
+  'kanban-saved-filter-rename-input',
+];
+const closeFiltersOnEnter = event => {
+  if (event.target.tagName === 'BUTTON') return;
+  if (OWN_ENTER_FIELDS.includes(event.target.dataset?.testid)) return;
+
+  showFiltersPanel.value = false;
+};
+onClickOutside(
+  filterPanelRef,
+  () => {
+    if (showDeleteSavedFilterConfirmation.value) return;
+    showFiltersPanel.value = false;
+  },
+  { ignore: [filterSearchRef] }
+);
 const isCardDragDisabled = computed(
   () => isPersistingCardDrag.value || !!activeActionKey.value
 );
@@ -325,11 +374,14 @@ const currentSearchParams = () =>
   selectedSearch.value ? { search: selectedSearch.value } : {};
 const currentSortParams = () =>
   selectedSort.value ? { sort: selectedSort.value } : {};
+const currentWaitingParams = () =>
+  selectedWaitingDays.value ? { waiting_days: selectedWaitingDays.value } : {};
 const currentFilterParams = () => ({
   ...currentInboxFilterParams(),
   ...currentAssigneeFilterParams(),
   ...currentNextActionFilterParams(),
   ...currentStatusFilterParams(),
+  ...currentWaitingParams(),
   ...currentSearchParams(),
   ...currentSortParams(),
 });
@@ -692,6 +744,7 @@ const updateStatusFilter = async value => {
 };
 
 const applySearch = async () => {
+  showFiltersPanel.value = false;
   selectedSearch.value = searchInput.value.trim();
   selectedSavedFilterId.value = '';
   showSaveFilterForm.value = false;
@@ -716,11 +769,18 @@ const updateSort = async event => {
   await refreshSelectedBoard();
 };
 
+const updateWaitingDays = async event => {
+  selectedWaitingDays.value = event.target.value;
+  selectedSavedFilterId.value = '';
+  await refreshSelectedBoard();
+};
+
 const clearFilters = async () => {
   selectedInboxIds.value = [];
   selectedAssigneeIds.value = [];
   selectedNextActionFilter.value = '';
   selectedStatusFilter.value = '';
+  selectedWaitingDays.value = '';
   searchInput.value = '';
   selectedSearch.value = '';
   selectedSort.value = '';
@@ -759,6 +819,7 @@ const applySavedFilter = async event => {
   selectedAssigneeIds.value = filters.assignee_ids || [];
   selectedNextActionFilter.value = filters.next_action || '';
   selectedStatusFilter.value = filters.status || '';
+  selectedWaitingDays.value = filters.waiting_days || '';
   searchInput.value = filters.search || '';
   selectedSearch.value = filters.search || '';
   selectedSort.value = filters.sort || '';
@@ -1167,7 +1228,6 @@ const onCardDragChange = async (stage, event) => {
         missingFields: responseData.missing_fields,
         fieldDefinitions: responseData.field_definitions || [],
       };
-      assistedMoveValues.value = {};
     } else {
       showActionError(error, t('KANBAN.ACTIONS.REORDER_CARD_ERROR'));
     }
@@ -1198,13 +1258,31 @@ const assistedFieldDefinition = fieldKey => {
   );
 };
 
-const assistedInputType = definition => {
-  const fieldType = definition?.fieldType || definition?.field_type;
-  if (['integer', 'decimal', 'currency'].includes(fieldType)) return 'number';
-  if (fieldType === 'date') return 'date';
-  if (fieldType === 'datetime') return 'datetime-local';
-  return 'text';
-};
+const assistedMoveDefinitions = computed(() =>
+  (pendingAssistedMove.value?.missingFields || []).map(
+    fieldKey =>
+      assistedFieldDefinition(fieldKey) || { key: fieldKey, label: fieldKey }
+  )
+);
+
+const hasUnfilledAssistedField = computed(() =>
+  assistedMoveDefinitions.value.some(definition =>
+    isRequiredFieldEmpty(assistedMoveValues.value[definition.key])
+  )
+);
+
+// Vazio tem a forma do campo: lista para o multiselect, texto para o resto.
+// Com `{}` o select abria sem o «Selecione um valor». Só quando abre um
+// movimento novo — um refresco do quadro com o diálogo aberto não apaga o que
+// já foi escrito.
+watch(pendingAssistedMove, () => {
+  assistedMoveValues.value = Object.fromEntries(
+    assistedMoveDefinitions.value.map(definition => [
+      definition.key,
+      emptyRequiredFieldValue(definition),
+    ])
+  );
+});
 
 const confirmAssistedMove = async () => {
   const move = pendingAssistedMove.value;
@@ -1492,8 +1570,16 @@ const onOpportunityTransferred = async ({ boardId, card }) => {
   });
 };
 
-const onOpportunityOpenConversation = card => {
+// Pedro, 08/10 (123jpnbcfr0): a ficha fecha ao dar lugar à conversa — por cima
+// dela tapava a coluna que se acabou de abrir. Alterações por gravar, a ficha
+// pergunta antes de emitir.
+const openConversationFromOpportunity = card => {
+  closeOpportunityDetails();
   openConversation(card, {});
+};
+
+const onOpportunityOpenConversation = card => {
+  openConversationFromOpportunity(card);
 };
 
 const onOpportunitySendPaymentLink = ({ card, payment }) => {
@@ -1506,7 +1592,7 @@ const onOpportunitySendPaymentLink = ({ card, payment }) => {
     .join('\n');
 
   store.dispatch('draftMessages/set', { key, message });
-  openConversation(card, {});
+  openConversationFromOpportunity(card);
 };
 
 const onOpportunitySendFormLink = ({ card, url }) => {
@@ -1517,7 +1603,7 @@ const onOpportunitySendFormLink = ({ card, url }) => {
   const message = [currentDraft, url].filter(Boolean).join('\n');
 
   store.dispatch('draftMessages/set', { key, message });
-  openConversation(card, {});
+  openConversationFromOpportunity(card);
 };
 
 const handleRealtimeCardUpdated = async data => {
@@ -1579,6 +1665,7 @@ watch(activeBoardId, (boardId, previousBoardId) => {
     selectedAssigneeIds.value = [];
     selectedNextActionFilter.value = '';
     selectedStatusFilter.value = '';
+    selectedWaitingDays.value = '';
     searchInput.value = '';
     selectedSearch.value = '';
     selectedSort.value = '';
@@ -1745,6 +1832,7 @@ onUnmounted(() => {
               class="col-span-full order-3 min-w-0 self-center md:order-2 lg:col-span-1"
             >
               <label
+                ref="filterSearchRef"
                 class="ms-auto block w-full min-w-0 lg:w-64"
                 @click="openFilters"
                 @focusin="openFilters"
@@ -1771,6 +1859,20 @@ onUnmounted(() => {
                     @keydown.escape.stop="showFiltersPanel = false"
                     @keyup.enter="applySearch"
                   />
+                  <span
+                    v-if="activeFilterCount && !showFiltersPanel"
+                    data-testid="kanban-active-filters-count"
+                    class="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-n-alpha-2 px-2 text-xs font-medium text-n-slate-12"
+                  >
+                    <i aria-hidden="true" class="i-lucide-filter size-3.5" />
+                    {{
+                      t(
+                        'KANBAN.FILTERS.ACTIVE_FILTERS_COUNT',
+                        { count: activeFilterCount },
+                        activeFilterCount
+                      )
+                    }}
+                  </span>
                   <button
                     type="button"
                     data-testid="kanban-apply-search"
@@ -1965,14 +2067,22 @@ onUnmounted(() => {
             data-testid="kanban-workspace-secondary-row"
             class="flex min-w-0 items-center justify-end"
           >
+            <!--
+              Abaixo de lg o painel é uma coluna só e não cabe no ecrã (928px
+              em 900 a 390): rola por dentro, senão «Situação» fica fora do
+              alcance do dedo. Em lg não rola — os menus de caixas e agentes
+              transbordam dele e seriam cortados.
+            -->
             <div
               v-show="showFiltersPanel"
               id="kanban-filter-panel"
+              ref="filterPanelRef"
               data-testid="kanban-filter-panel"
-              class="absolute left-1/2 top-[4.5rem] z-30 grid w-[min(64rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-4 rounded-lg border border-n-weak bg-n-solid-1 p-4 shadow-xl lg:grid-cols-[16rem_minmax(0,1fr)]"
+              class="absolute left-1/2 top-[4.5rem] z-30 grid max-h-[calc(100dvh-6.5rem)] w-[min(64rem,calc(100vw-2rem))] min-w-0 -translate-x-1/2 gap-4 overflow-y-auto rounded-lg border border-n-weak bg-n-solid-1 p-4 shadow-xl lg:max-h-none lg:grid-cols-[16rem_minmax(0,1fr)] lg:overflow-visible"
               role="dialog"
               :aria-label="t('KANBAN.FILTERS.OPEN_FILTERS')"
               @keydown.escape.stop="showFiltersPanel = false"
+              @keydown.enter="closeFiltersOnEnter"
             >
               <div
                 class="col-span-full flex min-w-0 items-center justify-between gap-3 border-b border-n-weak pb-3"
@@ -2077,27 +2187,53 @@ onUnmounted(() => {
                 data-testid="kanban-filter-criteria"
                 class="grid min-w-0 content-start gap-4"
               >
-                <label
-                  class="grid gap-1 text-sm font-medium text-n-slate-12"
-                  for="kanban-sort-select"
-                >
-                  {{ t('KANBAN.FILTERS.SORT_LABEL') }}
-                  <select
-                    id="kanban-sort-select"
-                    :value="selectedSort"
-                    data-testid="kanban-sort-select"
-                    class="h-9 w-full rounded-md border border-n-weak bg-n-surface-1 px-2 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand focus:ring-2 focus:ring-n-brand/20"
-                    @change="updateSort"
+                <!-- 123jpnbcb5k: os dois seletores em RaevoField, lado a lado -->
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <RaevoField
+                    :label="t('KANBAN.FILTERS.SORT_LABEL')"
+                    variant="select"
                   >
-                    <option
-                      v-for="option in sortOptions"
-                      :key="option.value || 'default'"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
+                    <template #default="{ controlClass, fieldId }">
+                      <select
+                        :id="fieldId"
+                        :value="selectedSort"
+                        data-testid="kanban-sort-select"
+                        :class="controlClass"
+                        @change="updateSort"
+                      >
+                        <option
+                          v-for="option in sortOptions"
+                          :key="option.value || 'default'"
+                          :value="option.value"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </template>
+                  </RaevoField>
+                  <RaevoField
+                    :label="t('KANBAN.FILTERS.WAITING_LABEL')"
+                    variant="select"
+                  >
+                    <template #default="{ controlClass, fieldId }">
+                      <select
+                        :id="fieldId"
+                        :value="selectedWaitingDays"
+                        data-testid="kanban-waiting-days-select"
+                        :class="controlClass"
+                        @change="updateWaitingDays"
+                      >
+                        <option
+                          v-for="option in waitingDaysOptions"
+                          :key="option.value || 'any'"
+                          :value="option.value"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </template>
+                  </RaevoField>
+                </div>
                 <div class="flex flex-wrap items-center gap-2">
                   <button
                     v-if="selectedSavedFilter && !showRenameSavedFilterForm"
@@ -2676,6 +2812,9 @@ onUnmounted(() => {
                 v-if="activeAddItemStageId === stage.id"
                 :kanban-board-id="selectedBoard.id"
                 :kanban-stage-id="stage.id"
+                :custom-field-definitions="
+                  selectedBoard.customFieldDefinitions || []
+                "
                 @created="refreshStageFirstPage(stage.id)"
                 @close="closeAddItemPicker"
               />
@@ -2921,42 +3060,11 @@ onUnmounted(() => {
             {{ t('KANBAN.ASSISTED_MOVE.DESCRIPTION') }}
           </p>
         </div>
-        <label
-          v-for="fieldKey in pendingAssistedMove.missingFields"
-          :key="fieldKey"
-          class="grid gap-1 text-sm font-medium text-n-slate-12"
-        >
-          {{ assistedFieldDefinition(fieldKey)?.label || fieldKey }}
-          <select
-            v-if="
-              ['select', 'boolean'].includes(
-                assistedFieldDefinition(fieldKey)?.fieldType ||
-                  assistedFieldDefinition(fieldKey)?.field_type
-              )
-            "
-            v-model="assistedMoveValues[fieldKey]"
-            :data-testid="`kanban-assisted-field-${fieldKey}`"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-          >
-            <option value="" disabled>
-              {{ t('KANBAN.ASSISTED_MOVE.SELECT_VALUE') }}
-            </option>
-            <option
-              v-for="option in assistedFieldDefinition(fieldKey)?.options || []"
-              :key="String(option)"
-              :value="option"
-            >
-              {{ option }}
-            </option>
-          </select>
-          <input
-            v-else
-            v-model="assistedMoveValues[fieldKey]"
-            :data-testid="`kanban-assisted-field-${fieldKey}`"
-            :type="assistedInputType(assistedFieldDefinition(fieldKey))"
-            class="h-10 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm font-normal text-n-slate-12 outline-none focus:border-n-brand"
-          />
-        </label>
+        <KanbanRequiredFields
+          v-model="assistedMoveValues"
+          :definitions="assistedMoveDefinitions"
+          testid-prefix="kanban-assisted-field-"
+        />
         <div class="flex justify-end gap-2">
           <button
             type="button"
@@ -2969,7 +3077,7 @@ onUnmounted(() => {
             type="button"
             data-testid="kanban-assisted-move-confirm"
             class="rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand-hover focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
-            :disabled="isPersistingCardDrag"
+            :disabled="isPersistingCardDrag || hasUnfilledAssistedField"
             @click="confirmAssistedMove"
           >
             {{ t('KANBAN.ASSISTED_MOVE.CONFIRM') }}
@@ -3006,6 +3114,9 @@ onUnmounted(() => {
           :lost-reason-options="selectedBoard.lostReasonOptions || []"
           :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           :custom-field-sections="selectedBoard.customFieldSections || []"
+          :opportunity-section-order="
+            selectedBoard.opportunitySectionOrder || []
+          "
           :contact-field-keys="selectedBoard.contactFieldKeys || []"
           :calendar-enabled="selectedBoard.calendarEnabled"
           :calendar-booking-stage-ids="
@@ -3085,6 +3196,7 @@ onUnmounted(() => {
         <KanbanOpportunityPicker
           :kanban-board-id="selectedBoard.id"
           :kanban-stage-id="firstStageId"
+          :custom-field-definitions="selectedBoard.customFieldDefinitions || []"
           @created="refreshStageFirstPage(firstStageId)"
           @close="showQuickCreate = false"
         />

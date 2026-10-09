@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "contracts": [
+    {
+      "id": "contact-addressing-visibility",
+      "paths": [
+        "app/javascript/dashboard/helper/contactAttributes.js",
+        "app/javascript/dashboard/components-next/Contacts/ContactsSidebar/ContactCustomAttributes.vue",
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanContactFieldManager.vue",
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanOpportunityDetailsModal.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/helper/specs/contactAttributes.spec.js",
+        "app/javascript/dashboard/components-next/Contacts/ContactsSidebar/specs/ContactCustomAttributes.spec.js",
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanContactFieldManager.spec.js",
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanOpportunityDetailsModal.spec.js"
+      ]
+    },
+    {
+      "id": "opportunity-contact-intake",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanOpportunityPicker.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanOpportunityPicker.spec.js"
+      ]
+    },
+    {
+      "id": "navigation",
+      "paths": [
+        "app/javascript/dashboard/components-next/sidebar",
+        "app/javascript/dashboard/routes",
+        "config/routes.rb"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/sidebar/specs/SidebarGroupHeader.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "contact-social-profiles",
+      "paths": [
+        "app/javascript/dashboard/components-next/Contacts",
+        "app/models/contact.rb",
+        "app/controllers/api/v1/accounts/contacts_controller.rb"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/Contacts/ContactsForm/specs/ContactsForm.spec.js",
+        "spec/controllers/api/v1/accounts/contacts_controller_spec.rb",
+        "spec/models/contact_spec.rb"
+      ]
+    },
+    {
+      "id": "inbox-identity",
+      "paths": [
+        "app/javascript/dashboard/components-next/icon",
+        "app/javascript/dashboard/components-next/avatar",
+        "app/javascript/dashboard/components-next/Conversation",
+        "app/javascript/dashboard/components-next/Inbox",
+        "app/javascript/dashboard/components/widgets/conversation",
+        "app/javascript/dashboard/components/widgets/InboxName.vue",
+        "app/javascript/dashboard/modules/search/components",
+        "app/javascript/dashboard/composables/useInbox.js"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/icon/specs/ChannelIcon.spec.js",
+        "app/javascript/dashboard/components/widgets/conversation/specs/ConversationChannelIdentity.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "labels-manual-order",
+      "paths": [
+        "app/models/label.rb",
+        "app/controllers/api/v1/accounts/labels_controller.rb",
+        "app/javascript/dashboard/store/modules/labels.js",
+        "app/javascript/dashboard/helper/sidebarSort.js",
+        "app/javascript/dashboard/routes/dashboard/settings/labels"
+      ],
+      "tests": [
+        "spec/controllers/api/v1/accounts/labels_controller_spec.rb",
+        "app/javascript/dashboard/helper/specs/sidebarSort.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts",
+        "app/javascript/dashboard/routes/dashboard/settings/labels/specs/Index.spec.js",
+        "app/javascript/dashboard/store/modules/specs/labels/actions.spec.js"
+      ]
+    },
+    {
+      "id": "home-scroll",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/home",
+        "app/javascript/dashboard/routes/dashboard/Dashboard.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/home/specs/RaevoHomeView.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "superadmin-customizations",
+      "paths": [
+        "app/controllers/super_admin",
+        "app/views/super_admin",
+        "app/dashboards/account_dashboard.rb",
+        "app/models/account.rb"
+      ],
+      "tests": [
+        "spec/controllers/super_admin/accounts_controller_spec.rb",
+        "spec/controllers/super_admin/app_config_controller_spec.rb"
+      ]
+    },
+    {
+      "id": "whatsapp-agent-signature-and-greeting",
+      "paths": [
+        "app/models/channel/whatsapp.rb",
+        "app/services/whatsapp/providers",
+        "app/javascript/dashboard/routes/dashboard/settings/inbox/settingsPage/ConfigurationPage.vue"
+      ],
+      "tests": [
+        "spec/services/whatsapp/providers/whatsapp_cloud_service_raevo_spec.rb",
+        "app/javascript/dashboard/routes/dashboard/settings/inbox/settingsPage/specs/ConfigurationPage.spec.js"
+      ]
+    },
+    {
+      "id": "opportunity-action-completion",
+      "paths": [
+        "app/models/kanban_card.rb",
+        "app/controllers/api/v1/accounts/kanban_boards/cards_controller.rb",
+        "app/javascript/dashboard/routes/dashboard/kanban/KanbanOpportunityDetailsModal.vue"
+      ],
+      "tests": [
+        "spec/models/kanban_card_spec.rb",
+        "spec/controllers/api/v1/accounts/kanban_boards/cards_controller_spec.rb",
+        "app/javascript/dashboard/routes/dashboard/kanban/specs/KanbanOpportunityDetailsModal.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "marketing-module-navigation",
+      "paths": [
+        "app/views/api/v1/models/_account.json.jbuilder",
+        "app/javascript/dashboard/components-next/sidebar/Sidebar.vue",
+        "app/javascript/dashboard/routes/dashboard/marketing/MarketingView.vue",
+        "script/raevo/navigation_smoke_seed.rb"
+      ],
+      "tests": [
+        "spec/controllers/api/v1/accounts/marketing/module_controller_spec.rb",
+        "app/javascript/dashboard/routes/dashboard/marketing/specs/MarketingView.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "cloud-only-account-limits",
+      "paths": [
+        "app/javascript/dashboard/store/modules/accounts.js",
+        "enterprise/app/controllers/enterprise/api/v1/accounts_controller.rb"
+      ],
+      "tests": [
+        "app/javascript/dashboard/store/modules/specs/accounts/limits.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "unread-title",
+      "paths": [
+        "app/javascript/dashboard/composables/useUnreadTabTitle.js",
+        "app/javascript/dashboard/routes/dashboard/Dashboard.vue",
+        "app/services/conversations/unread_counts"
+      ],
+      "tests": [
+        "app/javascript/dashboard/composables/spec/useUnreadTabTitle.spec.js",
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
+    },
+    {
+      "id": "conversation-sidebar-native",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/conversation/ContactPanel.vue",
+        "app/javascript/dashboard/routes/dashboard/conversation/labels/LabelBox.vue",
+        "app/javascript/dashboard/routes/dashboard/conversation/Macros/List.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/conversation/specs/ContactPanel.spec.js",
+        "app/javascript/dashboard/routes/dashboard/conversation/labels/specs/LabelBox.spec.js",
+        "app/javascript/dashboard/routes/dashboard/conversation/Macros/specs/List.spec.js"
+      ]
+    },
+    {
+      "id": "contact-whatsapp-broadcast-blocked",
+      "paths": [
+        "app/models/contact.rb"
+      ],
+      "tests": [
+        "spec/models/contact_spec.rb"
+      ]
+    },
+    {
+      "id": "conversation-reply-group-mentions",
+      "paths": [
+        "app/javascript/dashboard/components/widgets/WootWriter/Editor.vue",
+        "app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue",
+        "config/routes.rb"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/widgets/WootWriter/specs/EditorWhatsappGroupMentions.spec.js",
+        "app/javascript/dashboard/components/widgets/conversation/specs/ReplyBox.spec.js",
+        "spec/controllers/api/v1/accounts/conversations/whatsapp_group_participants_controller_spec.rb"
+      ]
+    },
+    {
+      "id": "conversation-contact-attributes",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/conversation/customAttributes/CustomAttributes.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/conversation/customAttributes/specs/CustomAttributes.spec.js"
+      ]
+    },
+    {
+      "id": "sidebar-unread-counts",
+      "paths": [
+        "app/javascript/dashboard/components-next/sidebar/Sidebar.vue",
+        "app/javascript/dashboard/components-next/sidebar/SidebarGroupHeader.vue",
+        "app/javascript/dashboard/components-next/sidebar/SidebarGroup.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/sidebar/specs/SidebarGroupHeader.spec.js",
+        "app/javascript/dashboard/composables/spec/useUnreadFavicon.spec.js"
+      ]
+    },
+    {
+      "id": "compose-also-send-via",
+      "paths": [
+        "app/javascript/dashboard/components-next/NewConversation/components/ComposeNewConversationForm.vue",
+        "app/javascript/dashboard/components-next/NewConversation/ComposeConversation.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/NewConversation/components/specs/ComposeNewConversationForm.spec.js",
+        "app/javascript/dashboard/components-next/NewConversation/specs/ComposeConversation.spec.js"
+      ]
+    },
+    {
+      "id": "agenda-lead-tasks",
+      "paths": [
+        "config/routes.rb"
+      ],
+      "tests": [
+        "spec/controllers/api/v1/accounts/kanban_next_actions_controller_spec.rb"
+      ]
+    },
+    {
+      "id": "conversation-list-stays",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/conversation/ConversationView.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/conversation/specs/ConversationView.spec.js"
+      ]
+    }
+  ]
+}

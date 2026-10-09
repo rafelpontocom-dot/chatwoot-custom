@@ -18,7 +18,8 @@
         "DESCRIPTION": "Description",
         "COLOR": "Color",
         "ACTION": "Actions"
-      }
+      },
+      "VISIBILITY_TEAM": "Team: {team}"
     },
     "FORM": {
       "NAME": {
@@ -26,7 +27,8 @@
         "PLACEHOLDER": "Label name",
         "REQUIRED_ERROR": "Label name is required",
         "MINIMUM_LENGTH_ERROR": "Minimum length 2 is required",
-        "VALID_ERROR": "Only Alphabets, Numbers, Hyphen and Underscore are allowed"
+        "VALID_ERROR": "Only Alphabets, Numbers, Hyphen and Underscore are allowed",
+        "TAKEN_ERROR": "This name is already in use in this account. Choose another one."
       },
       "DESCRIPTION": {
         "LABEL": "Description",
@@ -37,6 +39,15 @@
       },
       "SHOW_ON_SIDEBAR": {
         "LABEL": "Show label on sidebar"
+      },
+      "VISIBILITY": {
+        "LABEL": "Who can see this label",
+        "GLOBAL": "Everyone in the account",
+        "TEAM": "One team",
+        "PERSONAL": "Only me",
+        "TEAM_PLACEHOLDER": "Choose a team",
+        "AGENT_NOTE": "This label will be yours only. An administrator creates the labels everyone can see.",
+        "TEAM_REQUIRED": "Choose the team that will see this label"
       },
       "EDIT": "Edit",
       "CREATE": "Create",
@@ -71,6 +82,13 @@
         "SUCCESS_MESSAGE": "Label updated successfully",
         "ERROR_MESSAGE": "There was an error, please try again"
       }
+    },
+    "REORDER": {
+      "MOVE_UP": "Move up",
+      "MOVE_DOWN": "Move down",
+      "SEARCH_HINT": "Clear the search to reorder labels",
+      "ERROR_MESSAGE": "Could not save the new order. Please try again.",
+      "DRAG_HINT": "Drag to reorder"
     },
     "DELETE": {
       "BUTTON_TEXT": "Delete",

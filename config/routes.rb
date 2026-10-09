@@ -148,6 +148,8 @@ Rails.application.routes.draw do
           resource :audit_logs, only: [:show]
           resource :birthday_automation, only: [:show, :update], controller: 'birthday_automation'
           resource :raevo_home, only: [:show], controller: 'raevo_home'
+          # RAEVO (09/10, 123jpnbcb5m): as tarefas dos leads na Agenda.
+          resources :kanban_next_actions, only: [:index]
           namespace :raevo_ai do
             resource :integration, only: [:create], controller: 'integrations'
             resource :overview, only: [:show], controller: 'overview'
@@ -382,6 +384,7 @@ Rails.application.routes.draw do
               resource :direct_uploads, only: [:create]
               resource :draft_messages, only: [:show, :update, :destroy]
               resources :kanban_cards, only: [:index, :create]
+              resources :whatsapp_group_participants, only: [:index] # RAEVO (08/10, 123jpnbcb4w)
             end
             member do
               post :mute
@@ -531,7 +534,9 @@ Rails.application.routes.draw do
               patch :update
             end
           end
-          resources :labels, only: [:index, :show, :create, :update, :destroy]
+          resources :labels, only: [:index, :show, :create, :update, :destroy] do
+            post :reorder, on: :collection
+          end
 
           resources :notifications, only: [:index, :update, :destroy] do
             collection do

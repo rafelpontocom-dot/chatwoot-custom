@@ -3,6 +3,7 @@ import { useAlert } from 'dashboard/composables';
 import { computed, onBeforeMount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreGetters, useStore } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { picoSearch } from '@chatwoot/pico-search';
 
 import AddLabel from './AddLabel.vue';
@@ -28,6 +29,41 @@ const selectedLabel = ref({});
 const searchQuery = ref('');
 
 const records = computed(() => getters['labels/getLabels'].value);
+
+// RAEVO (08/10, cartão 123jpnbcb5p). O agente entra aqui para gerir as SUAS:
+// a lista já vem filtrada pelo servidor (as de todos, as dos times dele e as
+// pessoais dele), e só nas pessoais dele há editar e apagar — o mesmo que o
+// `LabelPolicy` deixa. Reordenar mexe na lista de toda a conta: só o admin.
+const { isAdmin } = useAdmin();
+const currentUserId = computed(() => getters.getCurrentUserID.value);
+const canManage = label =>
+  isAdmin.value ||
+  (label.visibility === 'personal' &&
+    Number(label.created_by_id) === Number(currentUserId.value));
+
+// Quem vê cada etiqueta, por extenso e com ícone: a cor sozinha não diz nada.
+const teams = computed(() => getters['teams/getTeams'].value || []);
+const visibilityOf = label => {
+  if (label.visibility === 'personal') {
+    return {
+      icon: 'i-lucide-lock',
+      text: t('LABEL_MGMT.FORM.VISIBILITY.PERSONAL'),
+    };
+  }
+  if (label.visibility === 'team') {
+    const team = teams.value.find(item => item.id === label.team_id);
+    return {
+      icon: 'i-lucide-users',
+      text: t('LABEL_MGMT.LIST.VISIBILITY_TEAM', {
+        team: team?.name || label.team_id,
+      }),
+    };
+  }
+  return {
+    icon: 'i-lucide-globe',
+    text: t('LABEL_MGMT.FORM.VISIBILITY.GLOBAL'),
+  };
+};
 
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim();
@@ -83,6 +119,61 @@ const confirmDeletion = () => {
   deleteLabel(selectedLabel.value.id);
 };
 
+// Reordenar sobre uma lista filtrada trocaria a etiqueta com uma vizinha que
+// não se vê, por isso os botões só valem com a pesquisa vazia.
+const canReorder = computed(
+  () => !searchQuery.value.trim() && !uiFlags.value.isUpdating
+);
+
+const moveLabel = async (from, to) => {
+  const labelIds = records.value.map(label => label.id);
+  const [labelId] = labelIds.splice(from, 1);
+  labelIds.splice(to, 0, labelId);
+
+  try {
+    await store.dispatch('labels/reorder', labelIds);
+  } catch (error) {
+    useAlert(t('LABEL_MGMT.REORDER.ERROR_MESSAGE'));
+  }
+};
+
+// RAEVO (08/10, 123jpnbc243): além das setas, arrasta-se a linha. As setas
+// ficam: são a alternativa de teclado, e o arrastar nativo não serve ao toque.
+// `dropIndex` é o lugar ENTRE linhas onde a etiqueta cai (0 = antes da primeira).
+const canDrag = computed(() => isAdmin.value && canReorder.value);
+const draggedIndex = ref(null);
+const dropIndex = ref(null);
+const resetDrag = () => {
+  draggedIndex.value = null;
+  dropIndex.value = null;
+};
+const onDragStart = (event, index) => {
+  draggedIndex.value = index;
+  event.dataTransfer.effectAllowed = 'move';
+  // O Firefox só começa a arrastar com dados no dataTransfer.
+  event.dataTransfer.setData('text/plain', String(index));
+};
+const onDragOver = (event, index) => {
+  if (draggedIndex.value === null) return;
+  event.preventDefault();
+  const { top, height } = event.currentTarget.getBoundingClientRect();
+  dropIndex.value = event.clientY < top + height / 2 ? index : index + 1;
+};
+const onDrop = () => {
+  const from = draggedIndex.value;
+  const gap = dropIndex.value;
+  resetDrag();
+  if (from === null || gap === null) return;
+
+  const to = gap > from ? gap - 1 : gap;
+  if (to !== from) moveLabel(from, to);
+};
+// Cair por cima de si própria, ou logo a seguir, não muda nada: sem linha.
+const showsDropLineAt = gap =>
+  dropIndex.value === gap &&
+  gap !== draggedIndex.value &&
+  gap !== draggedIndex.value + 1;
+
 const tableHeaders = computed(() => {
   return [
     t('LABEL_MGMT.LIST.TABLE_HEADER.NAME'),
@@ -94,6 +185,7 @@ const tableHeaders = computed(() => {
 
 onBeforeMount(() => {
   store.dispatch('labels/get');
+  store.dispatch('teams/get');
 });
 </script>
 
@@ -136,11 +228,49 @@ onBeforeMount(() => {
         "
       >
         <template #row="{ items }">
-          <BaseTableRow v-for="label in items" :key="label.title" :item="label">
+          <BaseTableRow
+            v-for="(label, index) in items"
+            :key="label.title"
+            :item="label"
+            :data-testid="`label-row-${label.title}`"
+            :draggable="canDrag ? 'true' : 'false'"
+            :class="{
+              'cursor-grab': canDrag,
+              'opacity-50': draggedIndex === index,
+              '!border-t-2 !border-t-n-brand': showsDropLineAt(index),
+              '!border-b-2 !border-b-n-brand':
+                index === items.length - 1 && showsDropLineAt(items.length),
+            }"
+            @dragstart="onDragStart($event, index)"
+            @dragover="onDragOver($event, index)"
+            @drop.prevent="onDrop"
+            @dragend="resetDrag"
+          >
             <template #default>
+              <!--
+                RAEVO: quem vê vai por baixo do nome, não em coluna. Em coluna,
+                a 390px empurrava o editar/apagar do agente para fora do ecrã.
+              -->
               <BaseTableCell>
+                <span
+                  v-if="canDrag"
+                  v-tooltip.top="$t('LABEL_MGMT.REORDER.DRAG_HINT')"
+                  aria-hidden="true"
+                  class="i-lucide-grip-vertical size-3.5 me-1 align-middle text-n-slate-10"
+                />
                 <span class="text-body-main text-n-slate-12">
                   {{ label.title }}
+                </span>
+                <span
+                  :data-testid="`label-visibility-${label.title}`"
+                  class="flex items-center gap-1 mt-0.5 text-xs text-n-slate-11"
+                >
+                  <span
+                    aria-hidden="true"
+                    class="size-3 shrink-0"
+                    :class="visibilityOf(label).icon"
+                  />
+                  {{ visibilityOf(label).text }}
                 </span>
               </BaseTableCell>
 
@@ -165,7 +295,37 @@ onBeforeMount(() => {
               <BaseTableCell align="end">
                 <div class="flex gap-3 justify-end flex-shrink-0">
                   <Button
+                    v-if="isAdmin"
+                    v-tooltip.top="
+                      canReorder
+                        ? $t('LABEL_MGMT.REORDER.MOVE_UP')
+                        : $t('LABEL_MGMT.REORDER.SEARCH_HINT')
+                    "
+                    :aria-label="$t('LABEL_MGMT.REORDER.MOVE_UP')"
+                    icon="i-lucide-arrow-up"
+                    slate
+                    sm
+                    :disabled="!canReorder || index === 0"
+                    @click="moveLabel(index, index - 1)"
+                  />
+                  <Button
+                    v-if="isAdmin"
+                    v-tooltip.top="
+                      canReorder
+                        ? $t('LABEL_MGMT.REORDER.MOVE_DOWN')
+                        : $t('LABEL_MGMT.REORDER.SEARCH_HINT')
+                    "
+                    :aria-label="$t('LABEL_MGMT.REORDER.MOVE_DOWN')"
+                    icon="i-lucide-arrow-down"
+                    slate
+                    sm
+                    :disabled="!canReorder || index === items.length - 1"
+                    @click="moveLabel(index, index + 1)"
+                  />
+                  <Button
+                    v-if="canManage(label)"
                     v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
+                    :data-testid="`label-edit-${label.title}`"
                     icon="i-woot-edit-pen"
                     slate
                     sm
@@ -173,7 +333,9 @@ onBeforeMount(() => {
                     @click="openEditPopup(label)"
                   />
                   <Button
+                    v-if="canManage(label)"
                     v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
+                    :data-testid="`label-delete-${label.title}`"
                     icon="i-woot-bin"
                     slate
                     sm

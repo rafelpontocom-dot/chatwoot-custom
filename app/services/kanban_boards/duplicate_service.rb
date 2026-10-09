@@ -8,6 +8,7 @@ class KanbanBoards::DuplicateService
     inbox_scope_mode
     lost_reason_options
     next_action_types
+    opportunity_section_order
     stale_stage_thresholds
     use_opportunity_card_reads
     visibility_mode

@@ -1,5 +1,6 @@
 <script setup>
-import { computed, toRef } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import { useChannelIcon, useChannelBrandIcon } from './provider';
 import Icon from 'next/icon/Icon.vue';
 
@@ -18,10 +19,18 @@ const props = defineProps({
 
 defineOptions({ inheritAttrs: false });
 
-const inboxRef = toRef(props, 'inbox');
+const inboxRef = computed(() => useSnakeCase(props.inbox));
 
 const channelIcon = useChannelIcon(inboxRef);
 const brandIcon = useChannelBrandIcon(inboxRef);
+const hasAvatarError = ref(false);
+
+watch(
+  () => inboxRef.value.avatar_url,
+  () => {
+    hasAvatarError.value = false;
+  }
+);
 
 const icon = computed(() =>
   props.useBrandIcon && brandIcon.value ? brandIcon.value : channelIcon.value
@@ -30,6 +39,16 @@ const icon = computed(() =>
 
 <template>
   <span class="inline-flex" v-bind="$attrs">
-    <Icon :icon="icon" class="size-full" />
+    <!-- Raevo: a imagem que a caixa recebeu em Configurações vale em todo o
+         lado. Uma caixa «Canal da API» ligada ao WhatsApp não tem como se
+         distinguir pelo tipo, e o glifo `{}` não diz a ninguém que canal é. -->
+    <img
+      v-if="inboxRef.avatar_url && !hasAvatarError"
+      :src="inboxRef.avatar_url"
+      alt=""
+      class="size-full rounded-full object-cover"
+      @error="hasAvatarError = true"
+    />
+    <Icon v-else :icon="icon" class="size-full" />
   </span>
 </template>

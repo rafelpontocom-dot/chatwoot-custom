@@ -13,6 +13,7 @@ vi.mock('vue-i18n', () => ({
       const translations = {
         'KANBAN.ADD_ITEM.CONTACT_FALLBACK': 'Contact #{id}',
         'KANBAN.ADD_ITEM.INBOX_FALLBACK': 'Inbox #{id}',
+        'KANBAN.ADD_ITEM.NEW_CONTACT.SAVED_AS': 'Saved as {number}',
       };
 
       return Object.entries(params).reduce(
@@ -27,6 +28,7 @@ vi.mock('vue-i18n', () => ({
 vi.mock('dashboard/api/contacts', () => ({
   default: {
     search: vi.fn(),
+    create: vi.fn(),
     getConversations: vi.fn(),
     getContactableInboxes: vi.fn(),
   },
@@ -46,11 +48,12 @@ vi.mock('dashboard/composables/store', () => ({
   }),
 }));
 
-const mountPicker = () =>
+const mountPicker = (props = {}) =>
   mount(KanbanOpportunityPicker, {
     props: {
       kanbanBoardId: 10,
       kanbanStageId: 100,
+      ...props,
     },
   });
 
@@ -111,6 +114,288 @@ const subjectInput = wrapper =>
   wrapper.find('[data-testid="kanban-manual-card-subject"]');
 
 describe('KanbanOpportunityPicker', () => {
+  describe('contato novo no próprio fluxo', () => {
+    const procurarSemResultado = async wrapper => {
+      ContactAPI.search.mockResolvedValue({ data: { payload: [] } });
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('Rita Souza');
+      vi.advanceTimersByTime(600);
+      await flushPromises();
+    };
+
+    // 123jpnbcg1e: o formulário só aparecia depois de uma pesquisa vazia.
+    it('offers a new contact before any search, with the typed name', async () => {
+      const wrapper = mountPicker();
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-phone"]').exists()
+      ).toBe(false);
+
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('Ri');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-name"]').element.value
+      ).toBe('Ri');
+    });
+
+    it('puts a number typed in the search in the phone field', async () => {
+      // Relógio falso: a pesquisa com atraso não pode cair no teste seguinte.
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('81 91234-5678');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-phone"]').element.value
+      ).toBe('81 91234-5678');
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-name"]').element.value
+      ).toBe('');
+    });
+
+    it('shows how the phone will be saved, in the format Chatwoot reads', async () => {
+      const wrapper = mountPicker();
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-country"]')
+        .setValue('BR');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81 91234-5678');
+
+      expect(wrapper.text()).toContain('Saved as +5581912345678');
+    });
+
+    it('formats the phone on leaving it and follows the country of a + number', async () => {
+      const wrapper = mountPicker();
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-country"]')
+        .setValue('BR');
+      const phone = wrapper.find('[data-testid="kanban-new-contact-phone"]');
+      await phone.setValue('+351912345678');
+      await phone.trigger('blur');
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-country"]').element.value
+      ).toBe('PT');
+      expect(phone.element.value).toBe('+351 912 345 678');
+    });
+
+    it('offers the form where the search came back empty', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-phone"]').exists()
+      ).toBe(true);
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-name"]').element.value
+      ).toBe('Rita Souza');
+    });
+
+    it('uses the selected country for a local Portuguese number', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockResolvedValue({
+        data: { payload: { contact: { id: 78, name: 'Rita' } } },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-country"]')
+        .setValue('PT');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('912 345 678');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).toHaveBeenCalledWith({
+        name: 'Rita',
+        phone_number: '+351912345678',
+      });
+    });
+
+    it('rejects a nonempty but invalid phone before creating', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('abc');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain(
+        'KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_INVALID'
+      );
+    });
+
+    it('does not replace a new search with a late contact creation response', async () => {
+      vi.useFakeTimers();
+      let completeCreation;
+      ContactAPI.create.mockReturnValue(
+        new Promise(resolve => {
+          completeCreation = resolve;
+        })
+      );
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81999990000');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('Outro contato');
+      completeCreation({
+        data: { payload: { contact: { id: 78, name: 'Rita' } } },
+      });
+      await flushPromises();
+
+      expect(
+        wrapper.find('[data-testid="kanban-selected-contact"]').exists()
+      ).toBe(false);
+      expect(ContactAPI.getConversations).not.toHaveBeenCalled();
+    });
+
+    // Telefone obrigatório por decisão do Pedro, e a razão é prática: é ele que
+    // faz o contato ser alcançável. Sem telefone o contato nasce sem caixa
+    // possível e o compositor diz que não há caixas disponíveis.
+    it('refuses to create without a phone number', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita Souza');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain(
+        'KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_REQUIRED'
+      );
+    });
+
+    it('creates the contact with the country code and carries on with it', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockResolvedValue({
+        data: { payload: { contact: { id: 77, name: 'Rita Souza' } } },
+      });
+      ContactAPI.getConversations.mockResolvedValue({ data: { payload: [] } });
+      ContactAPI.getContactableInboxes.mockResolvedValue({
+        data: { payload: [] },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita Souza');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81999990000');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).toHaveBeenCalledWith({
+        name: 'Rita Souza',
+        phone_number: '+5581999990000',
+      });
+      // o contato criado passa a ser o escolhido, sem nova busca
+      expect(
+        wrapper.find('[data-testid="kanban-contact-search-empty"]').exists()
+      ).toBe(false);
+    });
+
+    it('keeps a phone already written with its country code', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockResolvedValue({
+        data: { payload: { contact: { id: 78, name: 'Rita' } } },
+      });
+      ContactAPI.getConversations.mockResolvedValue({ data: { payload: [] } });
+      ContactAPI.getContactableInboxes.mockResolvedValue({
+        data: { payload: [] },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('+351912345678');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(ContactAPI.create).toHaveBeenCalledWith({
+        name: 'Rita',
+        phone_number: '+351912345678',
+      });
+    });
+
+    it('shows what the server refused instead of a generic failure', async () => {
+      vi.useFakeTimers();
+      ContactAPI.create.mockRejectedValue({
+        response: { data: { message: 'Telefone já usado por outro contato' } },
+      });
+      const wrapper = mountPicker();
+      await procurarSemResultado(wrapper);
+      await wrapper
+        .find('[data-testid="kanban-new-contact-name"]')
+        .setValue('Rita');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81999990000');
+
+      await wrapper
+        .find('[data-testid="kanban-new-contact-create"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Telefone já usado por outro contato');
+    });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
@@ -495,9 +780,7 @@ describe('KanbanOpportunityPicker', () => {
 
       await searchAndSelectFirstInbox(wrapper);
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - Email Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('submits the generated subject unchanged', async () => {
@@ -518,7 +801,7 @@ describe('KanbanOpportunityPicker', () => {
           kanban_stage_id: 100,
           contact_id: 1,
           inbox_id: 10,
-          subject: 'Jane Cooper - Email Inbox',
+          subject: 'Jane Cooper',
         },
       });
     });
@@ -547,7 +830,10 @@ describe('KanbanOpportunityPicker', () => {
       });
     });
 
-    it('updates the generated subject when inbox changes while untouched', async () => {
+    // A sugestão é só o nome do contato: trocar de caixa já não reescreve o
+    // título. Era «Jane Cooper - WhatsApp Inbox», e o nome da caixa colado
+    // atrás lia-se como código no título da oportunidade.
+    it('keeps the suggested name when the inbox changes', async () => {
       vi.useFakeTimers();
       ContactAPI.getConversations.mockResolvedValue({
         data: {
@@ -565,9 +851,7 @@ describe('KanbanOpportunityPicker', () => {
       );
       await inboxButtons[1].trigger('click');
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - WhatsApp Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('preserves customized subject when inbox changes', async () => {
@@ -606,9 +890,7 @@ describe('KanbanOpportunityPicker', () => {
         .trigger('click');
       await searchAndSelectFirstInbox(wrapper);
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - Email Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('resets subject when selecting another contact', async () => {
@@ -635,7 +917,7 @@ describe('KanbanOpportunityPicker', () => {
         .findAll('[data-testid="kanban-inboxes"] button')[0]
         .trigger('click');
 
-      expect(subjectInput(wrapper).element.value).toBe('Bob - Email Inbox');
+      expect(subjectInput(wrapper).element.value).toBe('Bob');
     });
 
     it('resets subject when picker closes', async () => {
@@ -655,9 +937,7 @@ describe('KanbanOpportunityPicker', () => {
         .trigger('click');
       await searchAndSelectFirstInbox(wrapper);
 
-      expect(subjectInput(wrapper).element.value).toBe(
-        'Jane Cooper - Email Inbox'
-      );
+      expect(subjectInput(wrapper).element.value).toBe('Jane Cooper');
     });
 
     it('does not submit a blank subject', async () => {
@@ -833,6 +1113,234 @@ describe('KanbanOpportunityPicker', () => {
       );
       expect(warning.text()).toContain('Notebook quote');
       expect(warning.text()).toContain('Proposta');
+    });
+
+    // Antes isto era um beco sem saída: a etapa exigia um campo, o servidor
+    // recusava, e o diálogo não tinha onde o preencher. A oportunidade não se
+    // conseguia criar por aqui de maneira nenhuma.
+    describe('fields the stage requires', () => {
+      const recusaComCampos = () => {
+        KanbanBoardsAPI.createManualCard.mockRejectedValueOnce({
+          response: {
+            data: {
+              message:
+                'Complete the required fields before creating this opportunity.',
+              missing_fields: ['procedimento'],
+              field_definitions: [
+                {
+                  key: 'procedimento',
+                  label: 'Procedimento',
+                  field_type: 'select',
+                  options: ['Avaliação', 'Retorno'],
+                },
+              ],
+            },
+          },
+        });
+      };
+
+      const submeter = async wrapper => {
+        await wrapper
+          .find('[data-testid="kanban-manual-card-form"]')
+          .trigger('submit');
+        await flushPromises();
+      };
+
+      const prepararFormulario = async (props = {}) => {
+        vi.useFakeTimers();
+        ContactAPI.getConversations.mockResolvedValue({
+          data: { payload: [buildConversation()] },
+        });
+        const wrapper = mountPicker(props);
+        await searchAndSelectFirstInbox(wrapper);
+        await wrapper
+          .find('[data-testid="kanban-manual-card-subject"]')
+          .setValue('Notebook quote');
+
+        return wrapper;
+      };
+
+      it('offers the required fields instead of only showing the refusal', async () => {
+        recusaComCampos();
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+
+        const campo = wrapper.find(
+          '[data-testid="kanban-manual-card-field-procedimento"]'
+        );
+        expect(campo.exists()).toBe(true);
+        // Um `select` desenhado como texto livre deixa quem preenche a adivinhar.
+        expect(campo.element.tagName).toBe('SELECT');
+        expect(campo.text()).toContain('Avaliação');
+        expect(campo.text()).toContain('Retorno');
+      });
+
+      it('sends the filled values on the second attempt', async () => {
+        recusaComCampos();
+        KanbanBoardsAPI.createManualCard.mockResolvedValue({ data: {} });
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+        await wrapper
+          .find('[data-testid="kanban-manual-card-field-procedimento"]')
+          .setValue('Retorno');
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).toHaveBeenLastCalledWith(10, {
+          card: expect.objectContaining({
+            custom_field_values: { procedimento: 'Retorno' },
+          }),
+        });
+        expect(wrapper.emitted('created')).toBeTruthy();
+      });
+
+      // O servidor manda `options: []` para booleanos. Desenhado como as outras
+      // listas, o campo só tinha «Selecione um valor» e a criação voltava a
+      // ser impossível — visto no browser na noite de 07/10.
+      it('offers yes and no for a required boolean, and accepts no', async () => {
+        KanbanBoardsAPI.createManualCard.mockRejectedValueOnce({
+          response: {
+            data: {
+              missing_fields: ['consentimento'],
+              field_definitions: [
+                {
+                  key: 'consentimento',
+                  label: 'Consentimento',
+                  field_type: 'boolean',
+                  options: [],
+                },
+              ],
+            },
+          },
+        });
+        KanbanBoardsAPI.createManualCard.mockResolvedValue({ data: {} });
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+        const campo = wrapper.find(
+          '[data-testid="kanban-manual-card-field-consentimento"]'
+        );
+        expect(campo.findAll('option:not([disabled])')).toHaveLength(2);
+
+        await campo.setValue('false');
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).toHaveBeenLastCalledWith(10, {
+          card: expect.objectContaining({
+            custom_field_values: { consentimento: false },
+          }),
+        });
+      });
+
+      // «Erro primeiro»: os campos só apareciam depois de uma recusa, a
+      // vermelho, quando a etapa já diz no cliente o que exige.
+      it('shows the fields the stage requires before the first attempt', async () => {
+        const wrapper = await prepararFormulario({
+          customFieldDefinitions: [
+            {
+              key: 'procedimento',
+              label: 'Procedimento',
+              fieldType: 'select',
+              options: ['Avaliação', 'Retorno'],
+              requiredStageIds: [100],
+            },
+            {
+              key: 'noutra_etapa',
+              label: 'Noutra etapa',
+              fieldType: 'text',
+              requiredStageIds: [200],
+            },
+          ],
+        });
+
+        expect(
+          wrapper
+            .find('[data-testid="kanban-manual-card-field-procedimento"]')
+            .exists()
+        ).toBe(true);
+        expect(
+          wrapper
+            .find('[data-testid="kanban-manual-card-field-noutra_etapa"]')
+            .exists()
+        ).toBe(false);
+        expect(
+          wrapper.find('[data-testid="kanban-manual-card-error"]').exists()
+        ).toBe(false);
+        expect(KanbanBoardsAPI.createManualCard).not.toHaveBeenCalled();
+      });
+
+      it('sends a required multiselect as a list of its options', async () => {
+        KanbanBoardsAPI.createManualCard.mockResolvedValue({ data: {} });
+        const wrapper = await prepararFormulario({
+          customFieldDefinitions: [
+            {
+              key: 'tratamentos',
+              label: 'Tratamentos',
+              fieldType: 'multiselect',
+              options: ['Implante', 'Faceta'],
+              requiredStageIds: [100],
+            },
+          ],
+        });
+        const campo = wrapper.find(
+          '[data-testid="kanban-manual-card-field-tratamentos"]'
+        );
+        campo.findAll('option').forEach(opcao => {
+          opcao.element.selected = true;
+        });
+        await campo.trigger('change');
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).toHaveBeenLastCalledWith(10, {
+          card: expect.objectContaining({
+            custom_field_values: { tratamentos: ['Implante', 'Faceta'] },
+          }),
+        });
+      });
+
+      it('keeps what was typed when the server adds a field', async () => {
+        recusaComCampos();
+        const wrapper = await prepararFormulario({
+          customFieldDefinitions: [
+            {
+              key: 'convenio',
+              label: 'Convénio',
+              fieldType: 'text',
+              requiredStageIds: [100],
+            },
+          ],
+        });
+        await wrapper
+          .find('[data-testid="kanban-manual-card-field-convenio"]')
+          .setValue('Particular');
+
+        await submeter(wrapper);
+
+        expect(
+          wrapper.find('[data-testid="kanban-manual-card-field-convenio"]')
+            .element.value
+        ).toBe('Particular');
+        expect(
+          wrapper
+            .find('[data-testid="kanban-manual-card-field-procedimento"]')
+            .exists()
+        ).toBe(true);
+      });
+
+      it('does not ask the server again while a required field is empty', async () => {
+        recusaComCampos();
+        const wrapper = await prepararFormulario();
+
+        await submeter(wrapper);
+        KanbanBoardsAPI.createManualCard.mockClear();
+        await submeter(wrapper);
+
+        expect(KanbanBoardsAPI.createManualCard).not.toHaveBeenCalled();
+        expect(
+          wrapper.find('[data-testid="kanban-manual-card-error"]').exists()
+        ).toBe(true);
+      });
     });
 
     it('emits created and close on success', async () => {

@@ -2600,6 +2600,7 @@ describe('KanbanBoardSettings', () => {
         ],
         compact_card_field_keys: [],
         contact_field_keys: [],
+        opportunity_section_order: [],
         stale_stage_thresholds: { 100: 3 },
         appointment_reminder_hours: null,
         calendar_enabled: false,
@@ -2608,6 +2609,68 @@ describe('KanbanBoardSettings', () => {
         calendar_legacy_next_appointment_field_key: null,
       },
     });
+  });
+
+  // «Reordenar somente nas configurações» — decisão do Pedro, noite de 07/10.
+  // A ordem das secções da ficha é do funil e grava-se com o resto.
+  it('saves the order of the opportunity sections for the whole funnel', async () => {
+    const { wrapper } = await mountSettings();
+
+    await wrapper
+      .find('[data-testid="kanban-settings-panel-section-down-next-action"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    expect(KanbanBoardsAPI.updateSettings).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_board: expect.objectContaining({
+          opportunity_section_order: [
+            'details',
+            'next-action',
+            'marketing',
+            'contact-details',
+            'calendar',
+            'finance',
+            'forms',
+            'timeline',
+          ],
+        }),
+      })
+    );
+  });
+
+  // Na ponta o botão fica `aria-disabled` e continua focável: um Enter a mais
+  // não faz nada. Com o foco a saltar para «descer», o Enter seguinte desfazia
+  // o movimento — visto no browser na noite de 07/10.
+  it('does nothing when the first section is asked to go up', async () => {
+    const { wrapper } = await mountSettings();
+    const subir = wrapper.find(
+      '[data-testid="kanban-settings-panel-section-up-next-action"]'
+    );
+
+    expect(subir.attributes('aria-disabled')).toBe('true');
+    expect(subir.attributes('disabled')).toBeUndefined();
+
+    await subir.trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-settings-form"]')
+      .trigger('submit');
+
+    expect(KanbanBoardsAPI.updateSettings).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        kanban_board: expect.objectContaining({
+          opportunity_section_order: expect.arrayContaining(['next-action']),
+        }),
+      })
+    );
+    const enviado =
+      KanbanBoardsAPI.updateSettings.mock.calls.at(-1)[1].kanban_board
+        .opportunity_section_order;
+    expect(enviado[0]).toBe('next-action');
   });
 
   it('configures the appointment reminder lead time', async () => {

@@ -1,5 +1,33 @@
 {
   "CALENDAR": {
+    "DAY_LIST": {
+      "LABEL": "Dia",
+      "PREVIOUS": "Dia anterior",
+      "NEXT": "Dia seguinte",
+      "EMPTY": "Nada marcado para este dia.",
+      "CONTACT_UNTIL": "{contact} · até {time}",
+      "TASK_WHERE": "Tarefa · {board} › {stage}"
+    },
+    "TASKS": {
+      "TITLE": "Tarefas dos leads",
+      "SHOW": "Mostrar as tarefas dos leads",
+      "SCOPE": "Tarefas de",
+      "SCOPE_MINE": "Só as minhas",
+      "SCOPE_TEAM": "Toda a equipa",
+      "LEGEND": "Tarefa de um lead",
+      "BAR_LABEL": "Tarefas dos leads",
+      "LOADING": "A carregar as tarefas… os agendamentos já estão na grelha.",
+      "ERROR": "Não foi possível carregar as tarefas. Os agendamentos estão certos.",
+      "RETRY": "Tentar de novo",
+      "OVERDUE": "{count} tarefa atrasada | {count} tarefas atrasadas",
+      "OVERDUE_CAPPED": "Mais de {count} tarefas atrasadas",
+      "MORE": "+{count}",
+      "ON_DATE": "({date})",
+      "NONE_OVERDUE": "Nenhuma tarefa atrasada",
+      "EMPTY": "Sem tarefas de leads neste período. As que marcar na ficha da oportunidade aparecem aqui, no dia e na hora.",
+      "OPEN": "Tarefa {type} · {contact}, {time}, {where}. Abre a oportunidade.",
+      "UNTYPED": "sem tipo"
+    },
     "EYEBROW": "Clínica",
     "TITLE": "Agenda",
     "PREVIOUS": "Período anterior",

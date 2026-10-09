@@ -115,6 +115,31 @@ RSpec.describe Contact do
     end
   end
 
+  # RAEVO (123jpnbcb58): o feed de status do WhatsApp e as listas de transmissão
+  # entram pelo WAHA como contato, e não são pessoas.
+  context 'when a WhatsApp broadcast arrives as a contact' do
+    let(:account) { create(:account) }
+
+    it 'is born blocked, so its conversations stay resolved' do
+      status_feed = create(:contact, account: account, identifier: 'status@broadcast')
+      broadcast_list = create(:contact, account: account, identifier: '1759581240@broadcast')
+
+      expect([status_feed, broadcast_list].map(&:blocked?)).to eq([true, true])
+    end
+
+    it 'leaves a person alone' do
+      expect(create(:contact, account: account, identifier: '5581999990000@c.us')).not_to be_blocked
+    end
+
+    it 'does not block again a broadcast someone chose to unblock' do
+      status_feed = create(:contact, account: account, identifier: 'status@broadcast')
+      status_feed.update!(blocked: false)
+      status_feed.update!(name: 'Status')
+
+      expect(status_feed.reload).not_to be_blocked
+    end
+  end
+
   describe '.resolved_contacts' do
     let(:account) { create(:account) }
 

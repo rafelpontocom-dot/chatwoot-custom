@@ -264,6 +264,164 @@ nada e que já funciona.
 
 ---
 
+### A oportunidade troca as abas pela coluna lateral · 07/10/2026
+
+**Aprovado pelo Pedro**, cartão `123jpnbcb57`. Proposta e maquetes:
+<https://claude.ai/artifact/LMdrZyTDZ54E2Tsn5bVc3v>
+
+**O problema.** A oportunidade abre com abas no topo — Geral, Contato, Agenda,
+Financeiro — e cada aba esconde as outras. Para ver o que foi combinado é preciso
+escolher uma aba e perder o resto de vista.
+
+**A decisão.** As abas saem e dão lugar à coluna da direita do Chatwoot: secções que
+abrem e fecham, rótulo à esquerda e valor à direita, todas na mesma rolagem. São **duas
+telas**, porque o card tem dois caminhos:
+
+| Caminho | Esquerda | Direita |
+| --- | --- | --- |
+| Clicar no card | ficha da oportunidade: próxima ação e histórico | a coluna |
+| Ícone de conversa no card | a conversa do paciente | a mesma coluna, com «Oportunidade» no topo |
+
+**A coluna é a mesma peça nas duas telas.** Só muda o que fica à esquerda, e a secção
+«Oportunidade» aparece no topo quando há oportunidade ligada.
+
+**Ajuste que o Pedro fez à proposta, e que vale registar porque eu tinha desenhado
+errado:** a tela da conversa **não leva lista de conversas à esquerda**. Chega-se ali a
+partir do card, já se sabe de quem é a conversa, e a lista só comia largura. A primeira
+versão da maquete tinha essa lista; foi tirada.
+
+**O que não muda:** para onde o card leva. Quem já usa chega ao mesmo sítio.
+
+**Junto com isto, no mesmo cartão:** criar a oportunidade dentro da conversa deixa de
+abrir a ficha inteira por cima do atendimento e passa a devolver o link para o card
+(«Oportunidade criada · Captação → Agendado →»).
+
+**Estado em 07/10/2026 — construído, com testes:**
+
+| Parte | Onde | Prova |
+| --- | --- | --- |
+| Coluna da direita com Contacto | `KanbanOpportunityDetailsModal.vue` | 103 testes do diálogo, 772 do kanban |
+| Agenda, Financeiro, Formulários e Histórico saem da tira e entram na coluna | o mesmo ficheiro | os mesmos testes, agora a clicar em `kanban-opportunity-section-*` |
+| A tira fica só com «Geral» e as secções que a clínica criar | `opportunityTabs` | `shows finance as a side-column section…`, `shows Calendar as a side-column section…` |
+| Na conversa, a oportunidade ligada mostra resumo e atalho para o cartão, não a ficha inteira | `KanbanConversationCards.vue` | `shows only the summary and the funnel link for a linked opportunity` |
+
+**O que isto quebrou de propósito:** a ficha inline abria-se **sozinha** na conversa
+(teste `opens an inline edit form automatically for an existing card`, decisão anterior).
+Era exactamente o que o Pedro recusou. Continua a abrir-se ao clicar na linha; deixa de
+se abrir sem ninguém pedir.
+
+**Falta, antes de marcar como implementada:** as capturas de antes e depois a 1280px, com
+o browser a correr. Nenhum teste aqui prova que a coluna *parece* o que foi aprovado — só
+que as secções existem, abrem e trazem os dados certos.
+
+**Porta visual na noite de 07/10/2026 — o browser desmentiu os testes.** Antes (`0e57d9cf`) e depois
+(`c4915508`), 1280px e 390px, aplicação real com dados fictícios. Medido com `boundingBox`:
+
+| Contentor | Antes | Depois de 07/10 | Com a correção da mesma noite |
+| --- | --- | --- | --- |
+| Gaveta do Pipeline (576px, igual de 1024 a 1920) | ficha 536px | ficha **200px**, coluna 320px, palavras partidas a meio | ficha 536px, coluna por baixo |
+| Conversa › Oportunidades (317px) | ficha 317px | ficha **0px**, texto por cima de texto | ficha 317px, coluna por baixo |
+| Tela 2, ícone de conversa no card (389px) | ficha 389px | ficha **53px**, sobreposição | ficha 389px, coluna por baixo |
+| 390px (telemóvel) | uma coluna | uma coluna | uma coluna |
+
+A causa: `lg:grid-cols-[…_20rem]` mede a **janela**, e a ficha vive sempre numa gaveta. Era
+uma **reincidência** — uma coluna de 18rem já tinha sido tirada pelo mesmo motivo, e o teste
+que a guardava verificava o literal `_18rem`, por isso ficou verde com `_20rem`. O teste
+passa a reprovar qualquer `grid-cols` na gaveta.
+
+**O que fica por decidir, Pedro — o construído diverge do aprovado em quatro pontos:**
+
+1. **A coluna não está ao lado.** Na gaveta de 576px não cabe: o aprovado pede ≈46rem
+   (736px). Para ficar ao lado, a gaveta tem de crescer — e tapa mais o funil. Até lá,
+   a coluna desce para baixo da ficha.
+2. **As abas não saíram.** Ficou «Geral» + as secções da clínica (aqui, «Marketing»). O
+   aprovado diz que as abas somem.
+3. **A conversa continua a abrir a ficha inteira.** «Resumo e atalho» só aparece no
+   instante a seguir a criar; na visita seguinte, `KanbanConversationOpportunity` desenha
+   a ficha completa. O teste `shows only the summary and the funnel link…` exercita
+   `KanbanConversationCards`, que o produto só mostra quando NÃO há oportunidade ligada.
+   E «Oportunidades» é a 4.ª secção, fechada — o aprovado põe-na no topo.
+4. **«Histórico» foi para a coluna.** O aprovado tem «Últimos eventos» à esquerda, ao lado
+   da próxima ação.
+
+**Decisão do Pedro, mesma noite, sobre o ponto 3 — e implementada.** Na barra lateral da
+Conversas a oportunidade **não se abre nem se edita**: ali só se cria. Cada oportunidade
+já criada é uma linha — assunto, funil → etapa — que leva ao cartão no funil, com a
+gaveta aberta. A ficha inteira e o formulário em linha que a tinha substituído saíram
+(`KanbanConversationCards` passou de 1453 para ≈800 linhas). O botão diz «Criar
+oportunidade», não «Adicionar ao Kanban».
+
+**A ficha empilhada — aprovada pelo Pedro na mesma noite, sobre a maquete
+<https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS>, e implementada.** As quatro respostas:
+
+| Pergunta | Decisão |
+| --- | --- |
+| A Tela 1 (clicar no card) também fica em lista? | **Sim** — a mesma peça nas duas telas |
+| Rótulo em cima ou ao lado? | **Como o Chatwoot**: em cima |
+| Campos vazios atrás de «Mostrar mais»? | **Sim** |
+| Onde se reordena? | **Só nas Configurações** — Campos › Ordem no painel, por funil |
+
+O que isto substituiu do aprovado a 07/10, e convém saber: as abas saíram de vez (resolve a
+divergência 2); a coluna deixou de ser «lateral» — é a lista inteira (resolve a 1); o
+Histórico fica numa secção, como os outros (a 4 deixa de se pôr); a ordem passou de
+preferência de cada pessoa a configuração do funil. **E a manchete de valor a 30px saiu**: a
+maquete aprovada não a tem, e ela estava aprovada desde 26/09 na tabela de cima. Se for para
+voltar, o sítio é o cabeçalho da ficha.
+
+Limite conhecido: abaixo de 1024px a Tela 2 não mostra a oportunidade de todo — o painel
+da gaveta é `hidden lg:block` desde antes disto. Empilhar não o resolve.
+
+---
+
+### Quatro propostas aprovadas · 08/10/2026
+
+**Aprovadas pelo Pedro na mesma noite**, sobre as maquetes abaixo. As perguntas em aberto não
+foram respondidas uma a uma; fica o que a maquete desenha, e cada escolha muda-se sem refazer a tela:
+
+| Cartão | Escolha que fica (a da maquete) |
+| --- | --- |
+| 5h | resultado **opcional**; os atalhos «Atendeu · Não atendeu · Pediu retorno» ficam e preenchem o texto |
+| 5j | conta **só as ações concluídas** (conversas e chamadas não) |
+| 5n | a caixa de entrada é a da **última conversa** do contato |
+| 5m | as tarefas mostradas por omissão são **só as minhas** |
+
+**Pedido junto com a aprovação:** criar a oportunidade quando o contato ainda não existe, na
+mesma tela, com nome e telefone no formato que o Chatwoot reconhece (`+55 81 91234-5678` →
+`+5581912345678`). O formulário já existia no Pipeline desde o cartão 52, mas só aparecia depois
+de uma pesquisa sem resultados.
+
+**Antes da aprovação, na fila sem código.** Pedidas pelo Pedro a 08/10, cartões `123jpnbcb5h`, `123jpnbcb5j`,
+`123jpnbcb5n` e `123jpnbcb5m`. Maquetes em Consultório, desktop, telemóvel (390) e estados vazio,
+a carregar e erro: <https://claude.ai/artifact/Wm15SJRwcTt9PoxxLmqFTu>
+
+| Cartão | Tela | Proposta | Para decidir |
+| --- | --- | --- | --- |
+| 5h | ficha › Próxima ação | concluir pede «Como foi?» (resultado) e abre logo a próxima, com «Sem próxima ação» à vista | resultado obrigatório? atalhos «Atendeu · Não atendeu · Pediu retorno» ou só texto? |
+| 5j | ficha › Histórico | linha de números (ações, dias, prazo) e cada ação com prevista/feita, resultado e quem fez; ao ganhar, «Fechou com N ações em D dias» | contar só ações concluídas, ou também conversas e chamadas? |
+| 5n | Contatos › painel › Oportunidades | «Nova oportunidade» no topo da aba e no vazio; o formulário da conversa com o contato já escolhido | qual caixa de entrada fica na oportunidade? |
+| 5m | Agenda | interruptor «Tarefas» (desligado por omissão); tarefa com contorno tracejado e ícone, sem fundo; atrasadas numa linha no topo | por omissão, as tarefas de todos ou só as minhas? |
+
+**O que o código já tem, e encurta o 5h:** o servidor guarda o histórico das ações concluídas
+(`next_action_history`) e aceita uma nota de resultado (`next_action_completion_note`), que a tela
+nunca envia; ao concluir, já limpa a ação antiga. Falta a tela e deixar o campo passar no controlador.
+
+**O 5n mexe numa tela do Chatwoot só por dentro do painel nosso** (`ContactKanbanCards`), que é a
+exceção prevista para painéis nossos; o markup nativo da página do contato não muda.
+
+**Implementadas a 08–09/10**, com a jornada verificada no browser a 1280 e a 390. Onde a implementação se
+afastou da maquete, ficou escrito:
+
+| Cartão | Commit | O que mudou em relação à maquete |
+| --- | --- | --- |
+| 5h | `8aa05d79` (+ `1387b1cf`, o smoke) | nada; o estado vazio «Sem ação marcada» também entrou |
+| 5j | `03f88012` | os números são «Ações · Em aberto/Até ganhar · No prazo» em todas as larguras (a maquete do telemóvel tinha «Última»); ações concluídas antes de 09/10 não têm nome de quem fez |
+| 5n | `0dbd3788` | o diálogo é um `<dialog>` nativo dentro do painel, e não o `Dialog` do Chatwoot: no telemóvel a gaveta do contato fechava ao primeiro toque. Criada, a ficha abre no Pipeline (sai do contato), como na legenda da maquete — a confirmar |
+| 5m | `7af56a4b` | sem a caixa «Agendamentos» (a aprovação fala só do interruptor das tarefas); no telemóvel as atrasadas ficam na mesma faixa da tela larga, não numa linha «3 atrasadas ›» |
+
+**Visto ao capturar a Agenda e fora destes cartões:** «Novo agendamento» é um botão-pílula que
+quebra em duas linhas — a regra 4 dá a pílula só ao selo e à pesquisa. Não mexido; a maquete do 5m
+desenha-o a 10px.
+
 ## O processo
 
 Por tela, sempre nesta ordem:
@@ -325,13 +483,13 @@ ainda por tomar vem no fim.
 | # | Tela | Módulo | Ficheiros | Estado | Nota |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09, fechada 21/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | quadro, lista, filtros e gaveta implementados; o atalho de teclado do cartão também |
-| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09, implementada 26/09** — [ver](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) | manchete do valor, assunto a 20px e histórico em trilho. A coluna fixa do demonstrador não entrou: dois testes travam a gaveta em uma coluna, «so the commercial context cannot overlap fields» |
+| 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09, implementada 26/09; refeita em lista a 08/10** — [26/09](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) · [lista, 07/10](https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS) | desde 08/10 é a **ficha empilhada**: secções que abrem e fecham, rótulo em cima, vazios atrás de «Mostrar mais». Saíram as abas e a manchete do valor a 30px — ver «A ficha empilhada» acima |
 | 3 | Início | Home | 1 | **apresentada 20/09, indicadores em 26/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. A fila de quatro indicadores entrou; sem setas, porque o controlador não guarda histórico |
 | 4 | Financeiro | Finance | 3 | **sem artefacto, corrigida 21/09, indicadores em 25/09** | a permissão limitada foi adiada por decisão do produto. O estado com cor+ícone faltava no detalhe; a fila de quatro substituiu a faixa de três células |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
 | 6 | Formulários | Forms | 10 | **sem artefacto, migrados 21–25/09** | os 81 controlos passam pelo primitivo; teal deixou de ser cor de ação |
 | 7 | Automação (Vue Flow) | Kanban | — | **aprovada 21/09** em três partes: [cartão de nó](https://claude.ai/artifact/U17sPjtbUM9v3fDZjwEZCH) · [painel do nó](https://claude.ai/artifact/32yjwdj7RykSaQjrLX6RZr) · lista sem artefacto | implementada; falta só o deslocamento da tela — ver abaixo |
-| 8 | Painel de conversa (nosso) | Conversation | componente novo | por apresentar | entra dentro de tela do Chatwoot |
+| 8 | Painel de conversa (nosso) | Conversation | `KanbanConversationCards.vue` | **decidido 07/10, implementado 07/10** — sem artefacto, decisão por escrito acima | ali a oportunidade só se cria; a que já existe é uma linha que leva ao cartão no funil, com a ficha aberta |
 | 9 | Entrada (login) | — | upstream | por decidir | mexer aqui é mexer no upstream: avaliar o custo primeiro |
 
 Quando uma linha for aprovada, escreva a data e quem aprovou. Quando for implementada,
@@ -923,6 +1081,43 @@ outras oito. A queixa que deu origem a este trabalho foi falta de espaço.
 
 **Quando reabrir:** no dia em que um funil real passe das doze secções. Aí a tira fica com
 «+9 mais» e o acordeão passa a ser a resposta certa.
+
+### Conversas: a lista fica, a navegação recolhe · 09/10/2026
+
+**Isto corrige uma tela nativa que mudou sem passar por aqui.** O commit `ee82e935` (16/09,
+entrou com o PR #10 a 26/09) fazia duas coisas abaixo de 1440px, com uma conversa aberta:
+**escondia a lista** (ficava o «‹ Anterior» do layout expandido) e recolhia a navegação a
+ícones. O motivo era real — a 1280px, com navegação, lista e coluna da oportunidade, a
+conversa ficava com 380px —, mas a troca não foi decidida por ninguém, e o dono do produto
+deu por ela em produção: para abrir a conversa seguinte era preciso voltar atrás. Trocar de
+conversa é o trabalho desta tela.
+
+Decidido pelo dono do produto: **a lista fica sempre; o espaço vem da navegação**, que recolhe
+a ícones (56px) enquanto há conversa aberta, **abaixo de 1600px**. Largura da conversa,
+medida no browser com a coluna da oportunidade aberta:
+
+| Ecrã | Chatwoot original | 16/09 (sem lista) | Agora |
+| --- | --- | --- | --- |
+| 1280 | 380 | 864 | **524** |
+| 1366 | 466 | 950 | **610** |
+| 1536 | 504 | 504 | **648** |
+
+(380 e 466 são calculados — o ecrã menos 200 + 340 + 360 —; o resto foi medido.)
+
+O limite subiu de 1440 para 1600 por causa da última linha: 1536px é o que um portátil
+Windows de 1920 com o zoom de 125% entrega, e com a regra antiga era o ecrã onde a conversa
+ficava mais estreita — mais do que a 1280.
+
+**O que se perdeu, para ficar escrito:** no primeiro clique depois de entrar em Conversas, a
+lista anda 144px para a esquerda debaixo do rato (a navegação passa de 200 a 56px). Trocar de
+conversa depois disso não mexe em nada. A alternativa era só o botão nativo «Recolher» — sem
+salto e sem código numa tela nativa —, mas quem não o conhecesse ficava com 380px a 1280.
+Recolher continua a ser estado de momento: não grava por cima da largura que a pessoa
+escolheu, e volta quando a conversa fecha. O telemóvel não muda (lista ou conversa, como o
+Chatwoot faz).
+
+O ficheiro nativo `ConversationView.vue` passou a constar do inventário de upstream
+(`conversation-list-stays`), coisa que a mudança de 16/09 também não tinha feito.
 
 ## Achados abertos
 

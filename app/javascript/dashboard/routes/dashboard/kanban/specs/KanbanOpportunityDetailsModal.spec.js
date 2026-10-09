@@ -10,6 +10,7 @@ const storeMocks = vi.hoisted(() => ({
   labels: [],
   attributeDefinitions: [],
   currentAccount: { permissions: ['administrator'] },
+  uiSettings: {},
   dispatch: vi.fn(),
 }));
 const formsInvitationMocks = vi.hoisted(() => ({
@@ -106,6 +107,10 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.SAVE_ERROR':
           'Could not save opportunity details.',
         'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_TITLE': 'Title is required.',
+        'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_IN_STAGE':
+          'Required in this stage',
+        'KANBAN.OPPORTUNITY_DETAILS.REQUIRED_FIELDS_MISSING':
+          'Fill in before saving: {fields}.',
         'KANBAN.OPPORTUNITY_DETAILS.CLOSE': 'Close opportunity details',
         'KANBAN.OPPORTUNITY_DETAILS.GROUPS.COMMERCIAL': 'Commercial',
         'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.OWNER': 'Owner',
@@ -138,6 +143,11 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.KEEP_EDITING':
           'Keep editing',
         'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.DISCARD': 'Discard',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.QUICK_ANSWERED': 'Answered',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.DONE': '{type} completed',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.ERROR':
+          'Could not complete. What you wrote is still here.',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.RETRY': 'Try again',
       };
 
       return Object.entries(params).reduce(
@@ -196,6 +206,13 @@ vi.mock('dashboard/composables/store', async () => {
 
   return {
     useStore: () => ({ dispatch: storeMocks.dispatch }),
+    // A coluna da direita guarda a ORDEM em `ui_settings`, e isso passa pelo
+    // `useUISettings`, que lê por `useStoreGetters`. Não ter isto aqui foi o que
+    // me fez recuar da persistência na primeira tentativa — era falha do duplo,
+    // não razão para não guardar a preferência.
+    useStoreGetters: () => ({
+      getUISettings: computed(() => storeMocks.uiSettings),
+    }),
     useMapGetter: key => {
       if (key === 'getCurrentAccount') {
         return computed(() => storeMocks.currentAccount);
@@ -326,6 +343,8 @@ const mountModal = async ({
   financePayments = [],
   contactFieldKeys = [],
   attributeDefinitions = [],
+  attachTo,
+  opportunitySectionOrder = [],
 } = {}) => {
   storeMocks.attributeDefinitions = attributeDefinitions;
   storeMocks.labels = accountLabels;
@@ -355,6 +374,7 @@ const mountModal = async ({
   }
 
   const wrapper = mount(KanbanOpportunityDetailsModal, {
+    attachTo,
     props: {
       boardId: 10,
       boardName: 'Sales funnel',
@@ -377,6 +397,7 @@ const mountModal = async ({
       ],
       canManageFields: true,
       calendarEnabled,
+      opportunitySectionOrder,
     },
     global: {
       stubs: {
@@ -484,10 +505,16 @@ const openLabels = wrapper =>
   wrapper
     .find('[data-testid="kanban-opportunity-toggle-labels"]')
     .trigger('click');
-const openContactTab = wrapper =>
-  wrapper
-    .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-    .trigger('click');
+// O Contato saiu da barra de abas e passou a secção da coluna da direita
+// (cartão 123jpnbcb57). Nasce aberta, por isso abrir deixou de ser um clique —
+// mas o ajudante fica, a garantir que está aberta antes de cada asserção.
+const openContactTab = async wrapper => {
+  const secao = wrapper.find(
+    '[data-testid="kanban-opportunity-section-contact-details"]'
+  );
+  if (secao.attributes('aria-expanded') === 'false')
+    await secao.trigger('click');
+};
 const selectHeaderStage = (wrapper, stageId) =>
   wrapper
     .findComponent({ name: 'KanbanOpportunityPipelineMenu' })
@@ -498,6 +525,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     vi.clearAllMocks();
     storeMocks.labels = [];
     storeMocks.currentAccount = { permissions: ['administrator'] };
+    storeMocks.uiSettings = {};
   });
 
   it('uses a single-column layout so opportunity details stay readable', async () => {
@@ -509,12 +537,90 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toBe(false);
   });
 
-  it('shows finance as a dedicated opportunity tab when the module is active', async () => {
+  // A ordem é do FUNIL, das Configurações — decisão do Pedro na noite de
+  // 07/10: «reordenar somente nas configurações». A ficha não reordena.
+  describe('section order', () => {
+    const secoesNaOrdem = wrapper =>
+      wrapper
+        .findAll('[data-testid^="kanban-opportunity-section-"]')
+        .map(node => node.attributes('data-testid'))
+        .map(testid => testid.replace('kanban-opportunity-section-', ''));
+
+    it('starts in the default order: next action, the field sections, then the rest', async () => {
+      FinanceAPI.getProviderConnections.mockResolvedValue({ data: [] });
+      const wrapper = await mountModal({
+        calendarEnabled: true,
+        financeModule: { enabled: true },
+      });
+
+      expect(secoesNaOrdem(wrapper)).toEqual([
+        'next-action',
+        'details',
+        'contact-details',
+        'calendar',
+        'finance',
+        'forms',
+        'timeline',
+      ]);
+    });
+
+    it('follows the order the funnel saved', async () => {
+      const wrapper = await mountModal({
+        calendarEnabled: true,
+        opportunitySectionOrder: ['timeline', 'contact-details'],
+      });
+
+      expect(secoesNaOrdem(wrapper)).toEqual([
+        'timeline',
+        'contact-details',
+        'next-action',
+        'details',
+        'calendar',
+        'forms',
+      ]);
+    });
+
+    it('does not offer to reorder here', async () => {
+      const wrapper = await mountModal({ calendarEnabled: true });
+
+      expect(wrapper.find('[data-testid*="-section-up-"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid*="-section-down-"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('opens next action and General, and closes a section on click', async () => {
+      const wrapper = await mountModal();
+      const cabecalho = key =>
+        wrapper.find(`[data-testid="kanban-opportunity-section-${key}"]`);
+
+      expect(cabecalho('next-action').attributes('aria-expanded')).toBe('true');
+      expect(cabecalho('details').attributes('aria-expanded')).toBe('true');
+      expect(cabecalho('contact-details').attributes('aria-expanded')).toBe(
+        'false'
+      );
+
+      await cabecalho('details').trigger('click');
+
+      expect(cabecalho('details').attributes('aria-expanded')).toBe('false');
+      expect(
+        wrapper
+          .find('[data-testid="kanban-opportunity-commercial-group"]')
+          .exists()
+      ).toBe(false);
+    });
+  });
+
+  it('shows finance as a side-column section when the module is active', async () => {
     FinanceAPI.getProviderConnections.mockResolvedValue({ data: [] });
     const wrapper = await mountModal({ financeModule: { enabled: true } });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-finance"]').exists()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-finance"]')
+        .exists()
     ).toBe(true);
   });
 
@@ -526,7 +632,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .find('[data-testid="kanban-opportunity-section-finance"]')
       .trigger('click');
 
     expect(
@@ -552,7 +658,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .find('[data-testid="kanban-opportunity-section-finance"]')
       .trigger('click');
     await flushPromises();
 
@@ -598,7 +704,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-finance"]')
+      .find('[data-testid="kanban-opportunity-section-finance"]')
       .trigger('click');
     await flushPromises();
 
@@ -650,18 +756,16 @@ describe('KanbanOpportunityDetailsModal', () => {
 
     expect(
       wrapper
-        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
+        .find('[data-testid="kanban-opportunity-section-contact-details"]')
         .text()
-    ).toBe('Contact');
+    ).toContain('Contact');
     expect(
       wrapper
         .find('[data-testid="kanban-opportunity-tab-agent-details"]')
         .exists()
     ).toBe(false);
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-      .trigger('click');
+    await openContactTab(wrapper);
 
     expect(
       (await contactInput(wrapper, 'email', 'kanban-opportunity-contact-email'))
@@ -705,7 +809,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-calendar"]')
+      .find('[data-testid="kanban-opportunity-section-calendar"]')
       .trigger('click');
     expect(
       wrapper
@@ -714,11 +818,13 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toBe('Acme Updated');
   });
 
-  it('shows Calendar as its own tab instead of rendering it in General', async () => {
+  it('shows Calendar as a side-column section, closed until it is opened', async () => {
     const wrapper = await mountModal({ calendarEnabled: true });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-calendar"]').exists()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-calendar"]')
+        .exists()
     ).toBe(true);
     expect(
       wrapper
@@ -727,7 +833,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ).toBe(false);
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-calendar"]')
+      .find('[data-testid="kanban-opportunity-section-calendar"]')
       .trigger('click');
 
     expect(
@@ -792,24 +898,110 @@ describe('KanbanOpportunityDetailsModal', () => {
     expect(wrapper.emitted('manageFields')).toHaveLength(1);
   });
 
-  it('renders custom tabs and offers a plus shortcut to create another tab', async () => {
+  // Como no painel de contacto do Chatwoot: o Marketing tem perto de trinta
+  // campos, quase todos vazios. Fica à vista o que tem valor, o que a etapa
+  // exige e o que é importante; o resto fica atrás de «Mostrar mais».
+  describe('empty fields', () => {
+    const definicoes = [
+      {
+        key: 'origem',
+        label: 'Origem',
+        fieldType: 'text',
+        layout: { section: 'marketing' },
+      },
+      {
+        key: 'utm_term',
+        label: 'utm_term',
+        fieldType: 'text',
+        layout: { section: 'marketing' },
+      },
+      {
+        key: 'gclid',
+        label: 'gclid',
+        fieldType: 'text',
+        layout: { section: 'marketing' },
+      },
+      {
+        key: 'procedimento',
+        label: 'Procedimento',
+        fieldType: 'text',
+        requiredStageIds: [1],
+        layout: { section: 'marketing' },
+      },
+    ];
+    const abrirMarketing = async wrapper => {
+      await wrapper
+        .find('[data-testid="kanban-opportunity-section-marketing"]')
+        .trigger('click');
+    };
+    const linha = (wrapper, key) =>
+      wrapper.find(`[data-testid="kanban-row-${key}"]`);
+
+    it('hides them behind a button that says how many there are', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({
+          kanbanStageId: 1,
+          customFieldValues: { origem: 'Meta Ads' },
+        }),
+        customFieldDefinitions: definicoes,
+      });
+      await abrirMarketing(wrapper);
+
+      expect(linha(wrapper, 'origem').exists()).toBe(true);
+      expect(linha(wrapper, 'utm_term').exists()).toBe(false);
+      const botao = wrapper.find(
+        '[data-testid="kanban-opportunity-show-more-marketing"]'
+      );
+      expect(botao.attributes('aria-expanded')).toBe('false');
+
+      await botao.trigger('click');
+
+      expect(linha(wrapper, 'utm_term').exists()).toBe(true);
+      expect(linha(wrapper, 'gclid').exists()).toBe(true);
+    });
+
+    it('keeps an empty field the current stage requires in sight', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+        customFieldDefinitions: definicoes,
+      });
+      await abrirMarketing(wrapper);
+
+      expect(linha(wrapper, 'procedimento').exists()).toBe(true);
+      expect(linha(wrapper, 'gclid').exists()).toBe(false);
+    });
+  });
+
+  it('lists the sections the clinic created, in the same list', async () => {
     const wrapper = await mountModal({
+      customFieldDefinitions: [
+        {
+          key: 'dente',
+          label: 'Dente',
+          fieldType: 'text',
+          layout: { section: 'consulta' },
+        },
+        {
+          key: 'origem',
+          label: 'Origem',
+          fieldType: 'text',
+          layout: { section: 'marketing' },
+        },
+      ],
       customFieldSections: [{ key: 'consulta', label: 'Consulta' }],
     });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-consulta"]').text()
+      wrapper.find('[data-testid="kanban-opportunity-section-consulta"]').text()
     ).toBe('Consulta');
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-marketing"]').text()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-marketing"]')
+        .text()
     ).toBe('Marketing');
-    await wrapper
-      .find('[data-testid="kanban-opportunity-add-tab"]')
-      .trigger('click');
-
-    expect(wrapper.emitted('manageFields').at(-1)).toEqual([
-      { action: 'newTab' },
-    ]);
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-add-tab"]').exists()
+    ).toBe(false);
   });
 
   it('shows the read-only IA tab when the board has IA fields and the runtime is inactive', async () => {
@@ -840,7 +1032,7 @@ describe('KanbanOpportunityDetailsModal', () => {
       customFieldSections: [{ key: 'ai', label: 'IA' }],
     });
     await inactive
-      .find('[data-testid="kanban-opportunity-tab-ai"]')
+      .find('[data-testid="kanban-opportunity-section-ai"]')
       .trigger('click');
 
     expect(
@@ -877,42 +1069,12 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     expect(
-      wrapper.findAll('[data-testid="kanban-opportunity-tab-details"]')
+      wrapper.findAll('[data-testid="kanban-opportunity-section-details"]')
     ).toHaveLength(1);
     expect(
-      wrapper.findAll('[data-testid="kanban-opportunity-tab-marketing"]')
+      wrapper.findAll('[data-testid="kanban-opportunity-section-marketing"]')
     ).toHaveLength(1);
     expect(wrapper.text()).not.toContain('Detail');
-  });
-
-  it('links the active opportunity tab to its content panel', async () => {
-    const wrapper = await mountModal();
-    const detailsTab = wrapper.find(
-      '[data-testid="kanban-opportunity-tab-details"]'
-    );
-    const layout = wrapper.find('[data-testid="kanban-opportunity-layout"]');
-
-    expect(detailsTab.attributes('aria-controls')).toBe(
-      'kanban-opportunity-tab-panel'
-    );
-    expect(layout.attributes('role')).toBe('tabpanel');
-    expect(layout.attributes('aria-labelledby')).toBe(
-      'kanban-opportunity-tab-details'
-    );
-  });
-
-  it('navigates opportunity tabs with the keyboard', async () => {
-    const wrapper = await mountModal();
-
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-details"]')
-      .trigger('keydown', { key: 'ArrowRight' });
-
-    expect(
-      wrapper
-        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-        .attributes('aria-selected')
-    ).toBe('true');
   });
 
   it('loads detail through showCardById', async () => {
@@ -941,11 +1103,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
-  it('shows the immutable commercial timeline in its own tab', async () => {
+  it('shows the immutable commercial timeline in its own side-column section', async () => {
     const wrapper = await mountModal();
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
       .trigger('click');
 
     expect(
@@ -967,7 +1129,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
       .trigger('click');
 
     expect(
@@ -999,7 +1161,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-timeline"]')
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
       .trigger('click');
 
     const timeline = wrapper.get('[data-testid="kanban-opportunity-timeline"]');
@@ -1043,13 +1205,6 @@ describe('KanbanOpportunityDetailsModal', () => {
   // Pipeline, 571px de abas em 197px úteis — 374px invisíveis, sem seta nem
   // contagem. Agora o que não cabe desce para «+N mais». O que esta asserção
   // trava é o que continua proibido nos dois casos: crescer em altura.
-  it('never lets the tab strip grow in height', async () => {
-    const wrapper = await mountModal();
-    const tiras = wrapper.find('[role="tablist"]');
-
-    expect(tiras.classes()).not.toContain('flex-wrap');
-    expect(tiras.classes()).toContain('overflow-hidden');
-  });
 
   // O bloco «Últimos eventos» gastava 104px do painel para mostrar UM evento e um
   // link «Ver histórico completo» — para o separador Histórico, que está na
@@ -1063,28 +1218,29 @@ describe('KanbanOpportunityDetailsModal', () => {
         .exists()
     ).toBe(false);
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-timeline"]').exists()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-timeline"]')
+        .exists()
     ).toBe(true);
   });
 
   // O `+` de criar secção morava no MEIO da tira, entre as abas e o Histórico
   // preso à direita — lia-se como se pertencesse ao Histórico. Sem transbordo
   // fica no fim da tira; com transbordo desce para o fim do menu.
-  it('puts the add-section control at the end of the strip', async () => {
-    const wrapper = await mountModal();
-    const botoes = wrapper.findAll('nav button');
-    const ultimo = botoes[botoes.length - 1];
-
-    expect(ultimo.attributes('data-testid')).toBe('kanban-opportunity-add-tab');
-  });
 
   it('keeps drawer content in one column so the commercial context cannot overlap fields', async () => {
     const wrapper = await mountModal();
     await wrapper.setProps({ drawerMode: true });
 
+    // Verificava só o literal `_18rem`. A coluna lateral voltou a 07/10 como
+    // `_20rem`, este teste ficou verde, e a ficha passou a ter 200px no
+    // Pipeline e 0px na conversa. Qualquer segunda coluna na gaveta reprova.
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-layout"]').classes()
-    ).not.toContain('lg:grid-cols-[minmax(0,1fr)_18rem]');
+      wrapper
+        .find('[data-testid="kanban-opportunity-layout"]')
+        .classes()
+        .filter(classe => classe.includes('grid-cols'))
+    ).toEqual([]);
   });
 
   describe('contact fields', () => {
@@ -1104,9 +1260,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     ];
 
     const irParaContato = async wrapper => {
-      await wrapper
-        .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-        .trigger('click');
+      await openContactTab(wrapper);
     };
 
     it('no longer asks the user to add a field before filling it', async () => {
@@ -1138,6 +1292,66 @@ describe('KanbanOpportunityDetailsModal', () => {
           .exists()
       ).toBe(false);
     });
+
+    // O teste acima cobre o funil que ESCOLHE campos. Em produção o funil da
+    // conta 1 não escolhia nenhum, e aí a aba caía em «mostra tudo» — foi assim
+    // que o Chat ID voltou a aparecer depois de eu ter dado o cartão por
+    // fechado, com a ficha do contato já limpa.
+    it('hides the WhatsApp addressing even when the board places nothing', async () => {
+      const wrapper = await mountModal({
+        attributeDefinitions: [
+          ...atributos,
+          {
+            attribute_key: 'waha_whatsapp_chat_id',
+            attribute_display_name: 'WhatsApp Chat ID',
+            attribute_model: 'contact_attribute',
+            attribute_display_type: 'text',
+          },
+        ],
+        contactFieldKeys: [],
+      });
+      await irParaContato(wrapper);
+
+      expect(wrapper.text()).not.toContain('WhatsApp Chat ID');
+      expect(wrapper.text()).not.toContain('WAHA JID');
+    });
+
+    it.each([[[]], [['waha_whatsapp_jid', 'data_nascimento']]])(
+      'hides saved addressing values including orphaned definitions with placement %j',
+      async contactFieldKeys => {
+        const wrapper = await mountModal({
+          card: buildCard({
+            contact: {
+              id: 55,
+              name: 'Pedro',
+              custom_attributes: {
+                waha_whatsapp_jid: 'internal-jid',
+                waha_whatsapp_lid: 'internal-lid',
+                waha_whatsapp_chat_id: 'internal-chat',
+                data_nascimento: '1990-01-01',
+              },
+              additional_attributes: { waha_whatsapp_extra: 'internal-extra' },
+            },
+          }),
+          attributeDefinitions: atributos,
+          contactFieldKeys,
+        });
+        await irParaContato(wrapper);
+
+        ['jid', 'lid', 'chat_id', 'extra'].forEach(key => {
+          expect(
+            wrapper
+              .find(`[data-testid="kanban-row-attr-waha_whatsapp_${key}"]`)
+              .exists()
+          ).toBe(false);
+        });
+        expect(
+          wrapper
+            .find('[data-testid="kanban-row-attr-data_nascimento"]')
+            .exists()
+        ).toBe(true);
+      }
+    );
 
     it('draws a placed but empty field as a dash instead of hiding it', async () => {
       const wrapper = await mountModal({
@@ -1346,23 +1560,23 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-details"]').text()
+      wrapper.find('[data-testid="kanban-opportunity-section-details"]').text()
     ).toContain('General');
     expect(
-      wrapper.find('[data-testid="kanban-opportunity-tab-marketing"]').text()
+      wrapper
+        .find('[data-testid="kanban-opportunity-section-marketing"]')
+        .text()
     ).toContain('Marketing');
     expect((await customFieldInput(wrapper, 'qualificacao')).exists()).toBe(
       true
     );
+    // O Marketing nasce fechado: o campo só existe depois de se abrir a secção.
     expect((await customFieldInput(wrapper, 'gclid')).exists()).toBe(false);
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-marketing"]')
+      .find('[data-testid="kanban-opportunity-section-marketing"]')
       .trigger('click');
 
-    expect((await customFieldInput(wrapper, 'qualificacao')).exists()).toBe(
-      false
-    );
     expect((await customFieldInput(wrapper, 'gclid')).element.value).toBe(
       'google-click-123'
     );
@@ -1389,11 +1603,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-consulta"]')
+      .find('[data-testid="kanban-opportunity-section-consulta"]')
       .trigger('click');
 
     const group = wrapper.find(
-      '[data-testid="kanban-opportunity-custom-fields"] section'
+      '[data-testid="kanban-opportunity-custom-fields-consulta"] section'
     );
     expect(group.text()).toContain('Agenda');
     expect(group.classes()).toContain('border-l-2');
@@ -1440,11 +1654,11 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-financeiro"]')
+      .find('[data-testid="kanban-opportunity-section-financeiro"]')
       .trigger('click');
 
     const customFields = wrapper.find(
-      '[data-testid="kanban-opportunity-custom-fields"]'
+      '[data-testid="kanban-opportunity-custom-fields-financeiro"]'
     );
     expect(customFields.text()).toContain('Como será pago?');
     expect(customFields.text()).toContain('O pagamento aconteceu?');
@@ -1601,7 +1815,61 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
+  // RAEVO 5h: concluir pergunta «Como foi?» antes de gravar, e abre logo a
+  // próxima ação. O clique no botão já não grava sozinho.
+  const concluirAcao = async (wrapper, resultado = '') => {
+    await wrapper
+      .find('[data-testid="kanban-opportunity-complete-next-action"]')
+      .trigger('click');
+    if (resultado) {
+      await wrapper
+        .find('[data-testid="kanban-completion-result"]')
+        .setValue(resultado);
+    }
+    await wrapper
+      .find('[data-testid="kanban-completion-confirm"]')
+      .trigger('click');
+    await flushPromises();
+  };
+
   it('marks the current next action as completed', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({ nextActionCompletedAt: '2026-07-21T16:00:00.000Z' }),
+    });
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper);
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
+      10,
+      501,
+      expect.objectContaining({
+        next_action_completed_at: expect.any(String),
+        complete_next_action: true,
+      })
+    );
+  });
+
+  it('asks how the action went before completing it', async () => {
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-complete-next-action"]')
+      .trigger('click');
+    await flushPromises();
+
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('result');
+    expect(
+      fluxo.find('[data-testid="kanban-completion-action"]').text()
+    ).toContain('Enviar proposta');
+    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-at"]').exists()
+    ).toBe(false);
+  });
+
+  it('sends the result written with the quick answer to the history', async () => {
     KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
       data: buildCard({ nextActionCompletedAt: '2026-07-21T16:00:00.000Z' }),
     });
@@ -1610,13 +1878,295 @@ describe('KanbanOpportunityDetailsModal', () => {
     await wrapper
       .find('[data-testid="kanban-opportunity-complete-next-action"]')
       .trigger('click');
+    const atendeu = wrapper.find(
+      '[data-testid="kanban-completion-quick-answered"]'
+    );
+    await atendeu.trigger('click');
+    expect(atendeu.attributes('aria-pressed')).toBe('true');
+    const resultado = wrapper.find('[data-testid="kanban-completion-result"]');
+    await resultado.setValue(
+      `${resultado.element.value}Quer avaliar na sexta.`
+    );
+    await wrapper
+      .find('[data-testid="kanban-completion-confirm"]')
+      .trigger('click');
     await flushPromises();
 
-    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
-      10,
-      501,
-      expect.objectContaining({ next_action_completed_at: expect.any(String) })
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).toMatchObject({
+      complete_next_action: true,
+      next_action_completion_note: 'Answered. Quer avaliar na sexta.',
+    });
+  });
+
+  it('opens the next action right after completing and saves it', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValueOnce({
+      data: buildCard({
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValueOnce({
+      data: buildCard({
+        nextActionType: 'Ligar',
+        nextActionAt: '2026-10-10T12:00:00.000Z',
+        nextActionNote: 'Confirmar presença na véspera.',
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper);
+
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('next');
+    expect(fluxo.find('[data-testid="kanban-completion-done"]').text()).toBe(
+      'Enviar proposta completed'
     );
+
+    const tipo = fluxo.find('[data-testid="kanban-completion-next-type"]');
+    const primeiroTipo = tipo
+      .findAll('option')
+      .map(option => option.element.value)
+      .find(Boolean);
+    await tipo.setValue(primeiroTipo);
+    await fluxo
+      .find('[data-testid="kanban-completion-next-at"]')
+      .setValue('2026-10-10T09:00');
+    await fluxo
+      .find('[data-testid="kanban-completion-next-note"]')
+      .setValue('Confirmar presença na véspera.');
+    await fluxo
+      .find('[data-testid="kanban-completion-save-next"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledTimes(2);
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).toMatchObject({
+      next_action_type: primeiroTipo,
+      next_action_at: expect.any(String),
+      next_action_note: 'Confirmar presença na véspera.',
+    });
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).not.toHaveProperty('complete_next_action');
+    expect(
+      wrapper.find('[data-testid="kanban-next-action-completion"]').exists()
+    ).toBe(false);
+  });
+
+  it('closes without saving again when there is no next action', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper);
+    await wrapper
+      .find('[data-testid="kanban-completion-skip"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledTimes(1);
+    expect(
+      wrapper.find('[data-testid="kanban-next-action-completion"]').exists()
+    ).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-next-action-empty"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('says there is no action set and opens the form to set one', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        nextActionType: 'Ligar',
+        nextActionAt: '2026-10-10T12:00:00.000Z',
+      }),
+    });
+    const wrapper = await mountModal({
+      card: buildCard({
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-next-action-empty"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-at"]').exists()
+    ).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-schedule-next-action"]')
+      .trigger('click');
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('schedule');
+    expect(fluxo.find('[data-testid="kanban-completion-done"]').exists()).toBe(
+      false
+    );
+    expect(fluxo.find('[data-testid="kanban-completion-skip"]').exists()).toBe(
+      false
+    );
+
+    await fluxo
+      .find('[data-testid="kanban-completion-next-at"]')
+      .setValue('2026-10-10T09:00');
+    await fluxo
+      .find('[data-testid="kanban-completion-save-next"]')
+      .trigger('click');
+    await flushPromises();
+
+    const payload = KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2];
+    expect(payload).toMatchObject({ next_action_at: expect.any(String) });
+    expect(payload).not.toHaveProperty('complete_next_action');
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-at"]').exists()
+    ).toBe(true);
+  });
+
+  it('does not read the empty type option as the action type', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({ nextActionType: null }),
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-type"]').text()
+    ).not.toContain('Select action');
+  });
+
+  it('keeps the written result and explains when completing fails', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockRejectedValue(
+      new Error('Network Error')
+    );
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper, 'Não atendeu. Caixa de mensagens.');
+
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('result');
+    expect(
+      fluxo.find('[data-testid="kanban-completion-result"]').element.value
+    ).toBe('Não atendeu. Caixa de mensagens.');
+    expect(fluxo.find('[role="alert"]').text()).toBe(
+      'Could not complete. What you wrote is still here.'
+    );
+    // O motivo concreto continua no rodapé da ficha.
+    expect(wrapper.text()).toContain('Network Error');
+    expect(fluxo.find('[data-testid="kanban-completion-confirm"]').text()).toBe(
+      'Try again'
+    );
+  });
+
+  // 5j: a lista das ações concluídas mora no Histórico, com o resultado e quem
+  // fez; a linha do tempo por baixo deixa de repetir a conclusão como evento.
+  it('lists completed actions in the history section, once', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        nextActionHistory: [
+          {
+            type: 'Ligar',
+            note: 'Confirmar avaliação',
+            scheduled_at: '2026-10-08T13:00:00.000Z',
+            completed_at: '2026-10-08T13:12:00.000Z',
+            completion_note: 'Atendeu. Quer avaliar na sexta.',
+            completed_by: { id: 7, name: 'Alysson' },
+          },
+        ],
+      }),
+      timeline: [
+        {
+          id: 20,
+          event_type: 'next_action_completed',
+          occurred_at: '2026-10-08T13:12:00Z',
+          actor: { name: 'Alysson' },
+        },
+        {
+          id: 21,
+          event_type: 'stage_changed',
+          occurred_at: '2026-10-08T12:00:00Z',
+          actor: { name: 'Jane Agent' },
+          metadata: { to_stage: { name: 'Proposta enviada' } },
+        },
+      ],
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-next-action-section"]')
+        .text()
+    ).not.toContain('Atendeu. Quer avaliar na sexta.');
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
+      .trigger('click');
+
+    const historico = wrapper.get('[data-testid="kanban-action-history"]');
+    expect(
+      historico.findAll('[data-testid="kanban-action-history-item"]')
+    ).toHaveLength(1);
+    expect(
+      historico.get('[data-testid="kanban-action-history-result"]').text()
+    ).toBe('Atendeu. Quer avaliar na sexta.');
+    expect(
+      historico.get('[data-testid="kanban-action-history-who"]').text()
+    ).toBe('Alysson');
+
+    const linhaDoTempo = wrapper.get(
+      '[data-testid="kanban-opportunity-timeline"]'
+    );
+    expect(linhaDoTempo.text()).toContain('Entered Proposta enviada');
+    expect(linhaDoTempo.text()).not.toContain('Next action completed');
+  });
+
+  it('preserves the stored seconds when saving an unchanged next action date', async () => {
+    const scheduledAt = '2026-07-22T11:30:47.123Z';
+    const wrapper = await mountModal({
+      card: buildCard({ nextActionAt: scheduledAt }),
+    });
+
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).not.toHaveProperty('next_action_at');
+  });
+
+  // Quem conclui vai marcar a ação seguinte a seguir. Os campos ficavam com o
+  // que acabou de ser feito, e era preciso apagar três antes de escrever — ou
+  // gravava-se sem reparar e a «próxima ação» era a anterior outra vez. O
+  // servidor passou a devolvê-los vazios; a tela segue o servidor.
+  it('comes back with the next action fields empty after completing one', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper);
+
+    expect(wrapper.vm.nextActionType).toBe('');
+    expect(wrapper.vm.nextActionAt).toBe('');
+    expect(wrapper.vm.nextActionNote).toBe('');
   });
 
   it('keeps the next action completion control in the section header', async () => {
@@ -1694,9 +2244,12 @@ describe('KanbanOpportunityDetailsModal', () => {
       }),
     });
 
-    const history = wrapper.find(
-      '[data-testid="kanban-opportunity-next-action-history"]'
-    );
+    await wrapper
+      .find('[data-testid="kanban-opportunity-section-timeline"]')
+      .trigger('click');
+
+    // Sem resultado escrito, a ação mostra o que estava previsto fazer.
+    const history = wrapper.find('[data-testid="kanban-action-history"]');
     expect(history.text()).toContain('Enviar proposta');
     expect(history.text()).toContain('Enviar no WhatsApp');
   });
@@ -1798,6 +2351,50 @@ describe('KanbanOpportunityDetailsModal', () => {
         lost_reason: 'Preço',
       })
     );
+  });
+
+  // Mudar de etapa na ficha devolvia o erro cru do modelo, «procedimento is
+  // required»: em inglês, com a chave, e sem dizer onde estava o campo.
+  describe('fields the chosen stage requires', () => {
+    const definicoes = [
+      {
+        key: 'procedimento',
+        label: 'Procedimento',
+        fieldType: 'text',
+        requiredStageIds: [2],
+      },
+    ];
+
+    it('says which field the stage requires as soon as the stage changes', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+        customFieldDefinitions: definicoes,
+      });
+      expect(wrapper.text()).not.toContain('Required in this stage');
+
+      await selectHeaderStage(wrapper, 2);
+
+      expect(
+        wrapper.find('[data-testid="kanban-row-procedimento"]').exists()
+      ).toBe(true);
+      expect(wrapper.text()).toContain('Required in this stage');
+    });
+
+    it('does not send the move while the field is empty, and names it', async () => {
+      const wrapper = await mountModal({
+        card: buildCard({ kanbanStageId: 1, customFieldValues: {} }),
+        customFieldDefinitions: definicoes,
+      });
+
+      await selectHeaderStage(wrapper, 2);
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+
+      expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
+      expect(
+        wrapper.find('[data-testid="kanban-opportunity-save-error"]').text()
+      ).toBe('Fill in before saving: Procedimento.');
+    });
   });
 
   it('requires a reason before saving an opportunity in a lost stage', async () => {
@@ -1908,9 +2505,7 @@ describe('KanbanOpportunityDetailsModal', () => {
 
   it('renders linked contact details in the contact tab', async () => {
     const wrapper = await mountModal();
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-contact-details"]')
-      .trigger('click');
+    await openContactTab(wrapper);
 
     expect(
       (await contactInput(wrapper, 'name', 'kanban-opportunity-contact-name'))
@@ -1922,7 +2517,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     const wrapper = await mountModal();
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await wrapper
       .find('[data-testid="kanban-opportunity-send-form"]')
@@ -1958,7 +2553,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
 
@@ -1991,7 +2586,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
     await wrapper
@@ -2022,7 +2617,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
     await wrapper
@@ -2052,7 +2647,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
 
@@ -2097,7 +2692,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
 
     await wrapper
-      .find('[data-testid="kanban-opportunity-tab-forms"]')
+      .find('[data-testid="kanban-opportunity-section-forms"]')
       .trigger('click');
     await flushPromises();
     await wrapper
@@ -2146,6 +2741,83 @@ describe('KanbanOpportunityDetailsModal', () => {
     await mountModal();
 
     expect(storeMocks.dispatch).toHaveBeenCalledWith('labels/get');
+  });
+
+  it('closes on an outside click without leaving unsaved labels selected', async () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const wrapper = await mountModal({ attachTo: host });
+    try {
+      await openLabels(wrapper);
+      await labelButtons(wrapper)[1].trigger('click');
+      expect(wrapper.find('#kanban-opportunity-labels-popover').exists()).toBe(
+        true
+      );
+      // VueUse releases its click-processing guard on the next event-loop turn.
+      await new Promise(resolve => {
+        setTimeout(resolve, 0);
+      });
+      document.body.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true })
+      );
+      document.body.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, detail: 1 })
+      );
+      await flushPromises();
+      expect(wrapper.find('#kanban-opportunity-labels-popover').exists()).toBe(
+        false
+      );
+      await openLabels(wrapper);
+      expect(labelButtons(wrapper)[1].attributes('aria-pressed')).toBe('false');
+      expect(KanbanBoardsAPI.updateCardLabels).not.toHaveBeenCalled();
+    } finally {
+      wrapper.unmount();
+      host.remove();
+    }
+  });
+  it('closes it on Escape as well', async () => {
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+
+    await wrapper
+      .find('#kanban-opportunity-labels-popover')
+      .trigger('keydown.esc');
+
+    expect(wrapper.find('#kanban-opportunity-labels-popover').exists()).toBe(
+      false
+    );
+  });
+
+  it('Escape dismisses labels without opening the opportunity discard dialog', async () => {
+    const wrapper = await mountModal();
+    await subjectInput(wrapper).setValue('Modified subject');
+    await openLabels(wrapper);
+    await wrapper
+      .find('#kanban-opportunity-labels-popover')
+      .trigger('keydown', { key: 'Escape' });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-unsaved-changes"]')
+        .exists()
+    ).toBe(false);
+    expect(subjectInput(wrapper).element.value).toBe('Modified subject');
+    expect(wrapper.emitted('close')).toBeUndefined();
+  });
+
+  it('keeps saved labels when the popover is dismissed and reopened', async () => {
+    KanbanBoardsAPI.updateCardLabels.mockResolvedValue({
+      data: { payload: labels },
+    });
+    const wrapper = await mountModal();
+    await openLabels(wrapper);
+    await labelButtons(wrapper)[1].trigger('click');
+    await saveLabelsButton(wrapper).trigger('click');
+    await flushPromises();
+    await openLabels(wrapper);
+    await openLabels(wrapper);
+
+    expect(labelButtons(wrapper)[1].attributes('aria-pressed')).toBe('true');
   });
 
   it('renders label title and color', async () => {
@@ -2277,9 +2949,6 @@ describe('KanbanOpportunityDetailsModal', () => {
     await openLabels(wrapper);
     await saveLabelsButton(wrapper).trigger('click');
     await flushPromises();
-    await wrapper
-      .find('[data-testid="kanban-opportunity-tab-details"]')
-      .trigger('click');
 
     expect(subjectInput(wrapper).element.value).toBe('Modified subject');
     expect(descriptionInput(wrapper).element.value).toBe(
@@ -2302,6 +2971,10 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
     const footer = () =>
       wrapper.find('[data-testid="kanban-opportunity-save-bar"]');
+    // Vazio, o campo está atrás de «Mostrar mais».
+    await wrapper
+      .find('[data-testid="kanban-opportunity-show-more-details"]')
+      .trigger('click');
     const campo = await customFieldInput(wrapper, 'observacao_venda');
 
     await campo.setValue('Pagou sinal');
@@ -2380,6 +3053,47 @@ describe('KanbanOpportunityDetailsModal', () => {
       .trigger('click');
 
     expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+
+  // Abrir a conversa fecha a ficha (123jpnbcfr0). Sem perguntar, o que se
+  // escreveu e não se gravou perdia-se sem aviso — antes sobrevivia por baixo.
+  it('asks before leaving for the conversation with unsaved changes', async () => {
+    const wrapper = await mountModal({ attachTo: document.body });
+
+    await subjectInput(wrapper).setValue('Modified subject');
+    const conversationButton = wrapper.find(
+      '[data-testid="kanban-opportunity-header-open-conversation"]'
+    );
+    conversationButton.element.focus();
+    await conversationButton.trigger('click');
+
+    expect(wrapper.emitted('openConversation')).toBeUndefined();
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-unsaved-changes"]')
+        .exists()
+    ).toBe(true);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-keep-editing"]')
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.emitted('openConversation')).toBeUndefined();
+    expect(document.activeElement).toBe(
+      wrapper.find(
+        '[data-testid="kanban-opportunity-header-open-conversation"]'
+      ).element
+    );
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-header-open-conversation"]')
+      .trigger('click');
+    await wrapper
+      .find('[data-testid="kanban-opportunity-discard-changes"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('openConversation')).toHaveLength(1);
+    expect(wrapper.emitted('close')).toBeUndefined();
   });
 });
 it('does not load or display the legacy follow-up cadence in opportunity details', async () => {

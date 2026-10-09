@@ -50,6 +50,14 @@ describe('#actions', () => {
         [types.default.SET_LABEL_UI_FLAG, { isCreating: false }],
       ]);
     });
+    it('passes on the code of a taken title, so the screen can translate it', async () => {
+      axios.post.mockRejectedValue({
+        response: { data: { code: 'title_taken', message: 'Title taken' } },
+      });
+      await expect(actions.create({ commit })).rejects.toMatchObject({
+        code: 'title_taken',
+      });
+    });
     it('sends correct actions if API is error', async () => {
       axios.post.mockRejectedValue({ message: 'Incorrect header' });
       await expect(actions.create({ commit })).rejects.toThrow(Error);
@@ -100,6 +108,31 @@ describe('#actions', () => {
       expect(commit.mock.calls).toEqual([
         [types.default.SET_LABEL_UI_FLAG, { isDeleting: true }],
         [types.default.SET_LABEL_UI_FLAG, { isDeleting: false }],
+      ]);
+    });
+  });
+
+  // RAEVO (08/10, 123jpnbc243): arrastar uma etiqueta tem de a deixar logo no
+  // sítio novo, e devolvê-la ao antigo se o servidor não gravar.
+  describe('#reorder', () => {
+    it('shows the new order at once and puts the old one back if saving fails', async () => {
+      const [primeira, segunda, terceira] = labelsList;
+      const state = { records: [primeira, segunda, terceira] };
+      axios.post.mockRejectedValue({ message: 'Server error' });
+
+      await expect(
+        actions.reorder({ commit, state }, [
+          terceira.id,
+          primeira.id,
+          segunda.id,
+        ])
+      ).rejects.toBeTruthy();
+
+      expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABELS, [terceira, primeira, segunda]],
+        [types.default.SET_LABEL_UI_FLAG, { isUpdating: true }],
+        [types.default.SET_LABELS, [primeira, segunda, terceira]],
+        [types.default.SET_LABEL_UI_FLAG, { isUpdating: false }],
       ]);
     });
   });

@@ -356,7 +356,7 @@
     "MACROS": "Macros",
     "TEAMS": "Equipas",
     "BILLING": "Cobrança",
-    "CUSTOM_VIEWS_FOLDER": "Pastas",
+    "CUSTOM_VIEWS_FOLDER": "Filtros",
     "CUSTOM_VIEWS_SEGMENTS": "Segmentos",
     "ALL_CONTACTS": "Todos os contatos",
     "TAGGED_WITH": "Etiquetada com",
@@ -401,11 +401,13 @@
     "SORT_TOOLTIP": "Ordenar",
     "SORT_BY": "Ordenar por",
     "SORT_GROUPS": {
+      "MANUAL": "Ordenar manualmente",
       "CREATED": "Ordenar por data de criação",
       "ALPHABETICAL": "Ordenar em ordem alfabética",
       "UNREAD_COUNT": "Ordenar por não lidas"
     },
     "SORT_OPTIONS": {
+      "MANUAL": "Ordem definida em Definições",
       "CREATED_DESC": "Mais recentes primeiro",
       "CREATED_ASC": "Mais antigas primeiro",
       "ALPHABETICAL_ASC": "Crescente (A - Z)",

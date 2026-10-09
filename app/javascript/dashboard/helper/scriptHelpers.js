@@ -6,6 +6,7 @@ import {
 import AnalyticsHelper from './AnalyticsHelper';
 import DashboardAudioNotificationHelper from './AudioAlerts/DashboardAudioNotificationHelper';
 import { emitter } from 'shared/helpers/mitt';
+import { DEFAULT_AUDIO_ALERT_EVENTS } from 'dashboard/routes/dashboard/settings/profile/constants';
 
 export const initializeAnalyticsEvents = () => {
   AnalyticsHelper.init();
@@ -27,7 +28,7 @@ export const initializeAudioAlerts = user => {
 
   DashboardAudioNotificationHelper.set({
     currentUser: user,
-    audioAlertType: audioAlertType || 'none',
+    audioAlertType: audioAlertType || DEFAULT_AUDIO_ALERT_EVENTS,
     audioAlertTone: audioAlertTone || 'ding',
     alwaysPlayAudioAlert: alwaysPlayAudioAlert || false,
     alertIfUnreadConversationExist: alertIfUnreadConversationExist || false,

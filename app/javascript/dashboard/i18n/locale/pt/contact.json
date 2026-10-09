@@ -524,11 +524,13 @@
         "EMPTY_STATE": "Não há conversas anteriores associadas a este contacto"
       },
       "KANBAN": {
-        "EMPTY_STATE": "Nenhuma oportunidade vinculada a este contacto",
+        "EMPTY_STATE": "Este contacto ainda não tem oportunidades.",
+        "NEW": "Nova oportunidade",
+        "COUNT": "{count} oportunidade | {count} oportunidades",
         "ERROR": "Não foi possível carregar as oportunidades",
-        "DUE_DATE": "Data de vencimento",
-        "NOT_SET": "Não definido",
-        "OPEN_CONVERSATION": "Abrir conversa"
+        "OPEN_CONVERSATION": "Abrir conversa",
+        "WHERE": "{board} › {stage}",
+        "EXPECTED_CLOSE": "Previsão de fechamento {date}"
       },
       "FORMS": {
         "EMPTY_STATE": "Este contacto ainda não respondeu a nenhum formulário",
@@ -641,6 +643,11 @@
       "ERROR_MESSAGE": "Não foi possível completar a pesquisa. Por favor, tente novamente."
     },
     "FORM": {
+      "ALSO_SEND_VIA": {
+        "LABEL": "Enviar também por",
+        "SUCCESS": "Enviada por {count} caixas — uma conversa em cada.",
+        "PARTIAL": "Enviada, mas não por: {failed}. Volte a enviar por essa caixa."
+      },
       "GO_TO_CONVERSATION": "Ver",
       "SUCCESS_MESSAGE": "Mensagem enviada com sucesso!",
       "ERROR_MESSAGE": "Ocorreu um erro ao criar a conversa. Tente novamente mais tarde.",

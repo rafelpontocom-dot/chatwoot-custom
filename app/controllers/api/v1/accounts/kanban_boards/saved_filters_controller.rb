@@ -43,7 +43,7 @@ class Api::V1::Accounts::KanbanBoards::SavedFiltersController < Api::V1::Account
   def saved_filter_params
     params.require(:saved_filter).permit(
       :name,
-      filters: [:search, :next_action, :status, :sort, { inbox_ids: [], assignee_ids: [] }]
+      filters: [:search, :next_action, :status, :sort, :waiting_days, { inbox_ids: [], assignee_ids: [] }]
     )
   end
 

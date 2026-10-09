@@ -175,6 +175,12 @@
         "NEXT_WEEK": "Next week"
       }
     },
+    "WHATSAPP_GROUP_MENTION": {
+      "ALL": "Everyone in the group",
+      "SEARCH_PLACEHOLDER": "Search by name or number",
+      "EMPTY": "Nobody has written in this group yet",
+      "FROM_HISTORY": "Listed because they wrote in this group"
+    },
     "MENTION": {
       "AGENTS": "Agents",
       "TEAMS": "Teams"
@@ -490,7 +496,7 @@
       "LOADING": "Loading opportunities",
       "EMPTY": "No opportunities linked to this conversation",
       "ERROR": "Could not load opportunities",
-      "ADD": "Add to Kanban",
+      "ADD": "Create opportunity",
       "CREATE_TITLE": "Create opportunity",
       "BOARD": "Board",
       "SUBJECT": "Subject",
@@ -503,6 +509,8 @@
       "EMPTY_BOARDS": "No active boards available",
       "EMPTY_STAGES": "No active stages available",
       "CREATE_ERROR": "Could not create opportunity",
+      "SELECT_VALUE": "Select a value",
+      "REQUIRED_FIELDS_PENDING": "Fill in the fields this stage requires.",
       "CREATED": "Opportunity created",
       "CANCEL": "Cancel",
       "CREATE": "Create",
@@ -511,6 +519,7 @@
       "UPDATE_ERROR": "Could not update opportunity",
       "UPDATED": "Opportunity updated",
       "OPEN_IN_BOARD": "Open opportunity in board",
+      "OPEN_CARD_IN_BOARD": "Open {subject} in the board",
       "GENERAL_FIELDS": "Other fields",
       "MARKETING_FIELDS": "Marketing",
       "NEXT_ACTION": "Next action",

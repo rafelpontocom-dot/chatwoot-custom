@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   packages: write
 
 jobs:
@@ -19,6 +20,35 @@ jobs:
       IMAGE: ghcr.io/${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Require successful custom checks for this commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required = ['lint-backend', 'lint-frontend', 'frontend-tests', 'backend-tests'];
+            const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+              ...context.repo,
+              workflow_id: 'custom_checks.yml',
+              head_sha: context.sha,
+              per_page: 100,
+            });
+            const run = runs.filter(item => item.head_sha === context.sha).sort((a, b) => b.id - a.id)[0];
+            if (!run || run.status !== 'completed' || run.conclusion !== 'success') {
+              core.setFailed(`Image publication blocked: Custom checks must pass for ${context.sha} before building.`);
+              return;
+            }
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              ...context.repo,
+              run_id: run.id,
+              filter: 'latest',
+              per_page: 100,
+            });
+            const failures = required.filter(name => !jobs.some(job =>
+              job.name === name && job.status === 'completed' && job.conclusion === 'success'
+            ));
+            if (failures.length) {
+              core.setFailed(`Image publication blocked: missing or unsuccessful checks for ${context.sha}: ${failures.join(', ')}`);
+            }
 
       - name: Compute immutable tag
         run: echo "TAG=ee-$(date +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"

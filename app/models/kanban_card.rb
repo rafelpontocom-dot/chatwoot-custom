@@ -130,6 +130,8 @@ class KanbanCard < ApplicationRecord
 
   attr_accessor :next_action_completion_note
 
+  attribute :complete_next_action, :boolean, default: false
+
   has_many :kanban_card_events, dependent: :restrict_with_exception
   has_many :kanban_cadence_enrollments, dependent: :destroy
   has_many :finance_payments, dependent: :nullify
@@ -145,6 +147,7 @@ class KanbanCard < ApplicationRecord
   before_validation :reset_next_action_completion, if: :next_action_details_changed?
   before_validation :append_next_action_history, if: :next_action_completion_changed?
   before_validation :set_stage_entered_at, if: :stage_entry_timestamp_required?
+  before_create :predict_expected_close_date, if: :expected_close_date_predictable?
   after_create :record_creation_event
   after_update :record_commercial_events
 
@@ -392,6 +395,7 @@ class KanbanCard < ApplicationRecord
     when 'card_lost' then lost_at.present?
     when 'card_archived' then archived_at.present?
     when 'card_restored' then active?
+    when 'next_action_scheduled' then next_action_completed_at.blank?
     else true
     end
   end
@@ -536,6 +540,9 @@ class KanbanCard < ApplicationRecord
     self.custom_field_values = normalized_custom_field_values
   end
 
+  # Valida-se o que se escreve, não o que já estava gravado. Mudar as opções de
+  # uma lista nas configurações deixava presos todos os cartões com a opção
+  # antiga: qualquer gravar respondia 422, até concluir a próxima ação.
   def normalized_custom_field_values
     values = custom_field_values.to_h.with_indifferent_access
     normalized_values = {}
@@ -544,7 +551,7 @@ class KanbanCard < ApplicationRecord
       key = definition['key']
       next if definition['field_type'] == 'formula'
 
-      normalized_value = normalize_custom_field_value(definition, values[key])
+      normalized_value = custom_field_value_to_store(definition, values[key])
       normalized_values[key] = normalized_value unless normalized_value.nil?
     end
 
@@ -554,6 +561,14 @@ class KanbanCard < ApplicationRecord
     end
 
     normalized_values
+  end
+
+  def custom_field_value_to_store(definition, value)
+    key = definition['key']
+    stored_values = attribute_in_database(:custom_field_values).to_h.with_indifferent_access
+    return stored_values[key] if stored_values.key?(key) && stored_values[key] == value
+
+    normalize_custom_field_value(definition, value)
   end
 
   def custom_field_definitions
@@ -566,6 +581,21 @@ class KanbanCard < ApplicationRecord
 
   def set_stage_entered_at
     self.stage_entered_at = Time.current
+  end
+
+  def expected_close_date_predictable?
+    expected_close_date.nil? && won_at.nil? && lost_at.nil?
+  end
+
+  # 123jpnbcb5d: a previsão de fechamento nasce do tempo médio até ganhar neste
+  # funil, nos últimos 12 meses, e fica editável. Sem ganhos não há base: fica
+  # vazia em vez de inventar uma data. Cobre todos os caminhos que criam cartões.
+  def predict_expected_close_date
+    average_seconds = KanbanCard.where(kanban_board_id: kanban_board_id, won_at: 12.months.ago..)
+                                .pick(Arel.sql('AVG(EXTRACT(EPOCH FROM (won_at - created_at)))'))
+    return if average_seconds.nil?
+
+    self.expected_close_date = Time.zone.today + (average_seconds.to_f / 1.day).round
   end
 
   def validate_manual_uniqueness?
@@ -765,7 +795,22 @@ class KanbanCard < ApplicationRecord
       'completed_at' => next_action_completed_at.iso8601(3)
     }
     entry['completion_note'] = next_action_completion_note if next_action_completion_note.present?
+    actor = @event_actor || Current.user
+    entry['completed_by'] = { 'id' => actor.id, 'name' => actor.available_name } if actor
     self.next_action_history = [*Array(next_action_history), entry].last(100)
+    clear_completed_next_action
+  end
+
+  # The UI sends explicit intent; unchanged-details completion stays compatible
+  # with older clients. Imports and retrospective entries keep their fields.
+  def clear_completed_next_action
+    explicit_completion = complete_next_action
+    self.complete_next_action = false
+    return if new_record? || (next_action_details_changed? && !explicit_completion)
+
+    self.next_action_type = nil
+    self.next_action_at = nil
+    self.next_action_note = nil
   end
 
   def calculate_formula_value(definition, values)

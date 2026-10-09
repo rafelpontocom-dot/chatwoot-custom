@@ -18,7 +18,8 @@
         "DESCRIPTION": "Descrição",
         "COLOR": "Cor",
         "ACTION": "Ações"
-      }
+      },
+      "VISIBILITY_TEAM": "Time: {team}"
     },
     "FORM": {
       "NAME": {
@@ -26,7 +27,8 @@
         "PLACEHOLDER": "Nome da etiqueta",
         "REQUIRED_ERROR": "Nome da etiqueta obrigatório",
         "MINIMUM_LENGTH_ERROR": "A etiqueta deve ter, no mínimo, 2 caracteres",
-        "VALID_ERROR": "Apenas são permitidas letras, números, hífen e underscores"
+        "VALID_ERROR": "Apenas são permitidas letras, números, hífen e underscores",
+        "TAKEN_ERROR": "Este nome já está em uso nesta conta. Escolha outro."
       },
       "DESCRIPTION": {
         "LABEL": "Descrição",
@@ -37,6 +39,15 @@
       },
       "SHOW_ON_SIDEBAR": {
         "LABEL": "Mostrar etiqueta na barra lateral"
+      },
+      "VISIBILITY": {
+        "LABEL": "Quem vê esta etiqueta",
+        "GLOBAL": "Todos na conta",
+        "TEAM": "Uma equipa",
+        "PERSONAL": "Apenas eu",
+        "TEAM_PLACEHOLDER": "Escolha uma equipa",
+        "AGENT_NOTE": "Esta etiqueta fica apenas para si. Quem cria as etiquetas que todos veem é o administrador.",
+        "TEAM_REQUIRED": "Escolha a equipa que verá esta etiqueta"
       },
       "EDIT": "Editar",
       "CREATE": "Criar",
@@ -71,6 +82,13 @@
         "SUCCESS_MESSAGE": "Etiqueta atualizada com sucesso",
         "ERROR_MESSAGE": "Ocorreu um erro, por favor, tente novamente"
       }
+    },
+    "REORDER": {
+      "MOVE_UP": "Mover para cima",
+      "MOVE_DOWN": "Mover para baixo",
+      "SEARCH_HINT": "Limpe a pesquisa para reordenar as etiquetas",
+      "ERROR_MESSAGE": "Não foi possível guardar a nova ordem. Tente novamente.",
+      "DRAG_HINT": "Arraste para reordenar"
     },
     "DELETE": {
       "BUTTON_TEXT": "Excluir",

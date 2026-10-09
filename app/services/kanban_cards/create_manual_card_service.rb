@@ -2,7 +2,7 @@ class KanbanCards::CreateManualCardService
   DUPLICATE_SUBJECT_ERROR = 'Manual opportunity with this subject already exists for this contact and inbox'.freeze
 
   # rubocop:disable Metrics/ParameterLists
-  def initialize(account:, user:, kanban_board:, kanban_stage:, contact:, inbox:, subject:)
+  def initialize(account:, user:, kanban_board:, kanban_stage:, contact:, inbox:, subject:, amount_cents: nil, custom_field_values: nil)
     @account = account
     @user = user
     @kanban_board = kanban_board
@@ -10,6 +10,8 @@ class KanbanCards::CreateManualCardService
     @contact = contact
     @inbox = inbox
     @subject = subject
+    @amount_cents = amount_cents
+    @custom_field_values = custom_field_values
   end
   # rubocop:enable Metrics/ParameterLists
 
@@ -30,7 +32,7 @@ class KanbanCards::CreateManualCardService
 
   private
 
-  attr_reader :account, :user, :kanban_board, :kanban_stage, :contact, :inbox, :subject
+  attr_reader :account, :user, :kanban_board, :kanban_stage, :contact, :inbox, :subject, :amount_cents, :custom_field_values
 
   def validate_scope!
     validate_board!
@@ -71,9 +73,11 @@ class KanbanCards::CreateManualCardService
       inbox: inbox,
       conversation: permitted_conversation,
       subject: normalized_subject,
+      amount_cents: amount_cents,
       origin: 'manual',
       position: 1,
-      active: true
+      active: true,
+      custom_field_values: normalized_custom_field_values
     )
   end
 
@@ -106,6 +110,12 @@ class KanbanCards::CreateManualCardService
       inbox: inbox,
       normalized_subject: normalized_subject.downcase
     )
+  end
+
+  # A etapa de destino pode exigir campos. Sem isto, criar numa dessas etapas era
+  # impossível por aqui — o cartão nascia inválido e não havia como o salvar.
+  def normalized_custom_field_values
+    custom_field_values.respond_to?(:to_unsafe_h) ? custom_field_values.to_unsafe_h : custom_field_values.to_h
   end
 
   def normalized_subject

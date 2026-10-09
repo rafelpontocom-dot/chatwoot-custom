@@ -346,6 +346,13 @@ const mountView = async (
         OnClickOutside: {
           template: '<div><slot /></div>',
         },
+        // O mover assistido desenha os campos pelo componente real; o
+        // RaevoField stubado engolia o slot e o campo sumia do teste.
+        KanbanRequiredFields: false,
+        RaevoField: {
+          template:
+            '<div><slot control-class="" field-id="campo" described-by="" /></div>',
+        },
         // Ver AGENTS.md, «Armadilha conhecida em testes»: stubado por omissão, o
         // cartão engole rótulo, valor, variação e rodapé.
         RaevoKpiCard: {
@@ -2178,25 +2185,56 @@ describe('KanbanView drag and drop', () => {
     ).toBe(123);
   });
 
-  it('keeps opportunity details open behind the conversation workspace', async () => {
-    const wrapper = await mountView();
-    const cardComponent = wrapper.findComponent({
-      name: 'KanbanConversationCard',
-    });
+  // Pedro, 08/10 (123jpnbcfr0): por cima da conversa, a ficha tapava a coluna que
+  // se acabou de abrir. Fecha — e o mesmo vale para os links que a ficha manda.
+  it.each([
+    ['openConversation', { conversationId: 123 }],
+    [
+      'sendPaymentLink',
+      {
+        card: { id: 501, conversationId: 123 },
+        payment: { invoice_url: 'https://pay.example/31' },
+      },
+    ],
+    [
+      'sendFormLink',
+      {
+        card: { id: 501, conversationId: 123 },
+        url: 'https://crm.raevo.io/formularios/convites/form-31',
+      },
+    ],
+  ])(
+    'closes opportunity details when %s opens the conversation',
+    async (event, payload) => {
+      const wrapper = await mountView();
+      const cardComponent = wrapper.findComponent({
+        name: 'KanbanConversationCard',
+      });
 
-    cardComponent.vm.$emit('openDetails', { id: 501, conversationId: 123 }, {});
-    await nextTick();
+      cardComponent.vm.$emit(
+        'openDetails',
+        { id: 501, conversationId: 123 },
+        {}
+      );
+      await nextTick();
 
-    const modal = wrapper.findComponent({
-      name: 'KanbanOpportunityDetailsModal',
-    });
-    modal.vm.$emit('openConversation', { conversationId: 123 });
-    await flushPromises();
+      wrapper
+        .findComponent({ name: 'KanbanOpportunityDetailsModal' })
+        .vm.$emit(event, payload);
+      await flushPromises();
 
-    expect(
-      wrapper.findComponent({ name: 'KanbanOpportunityDetailsModal' }).exists()
-    ).toBe(true);
-  });
+      expect(
+        wrapper
+          .findComponent({ name: 'KanbanConversationDrawer' })
+          .props('conversationId')
+      ).toBe(123);
+      expect(
+        wrapper
+          .findComponent({ name: 'KanbanOpportunityDetailsModal' })
+          .exists()
+      ).toBe(false);
+    }
+  );
 });
 
 describe('KanbanView header navigation', () => {
@@ -2987,6 +3025,75 @@ describe('KanbanView sales filters', () => {
     mockT.mockImplementation(key => key);
     vi.useRealTimers();
     mockRoute.params.boardId = '10';
+  });
+
+  // 123jpnbcb5k: dias sem resposta, e o painel que fecha como se espera.
+  describe('days without a reply and the filter panel', () => {
+    it('refetches the board with waiting_days when that filter is chosen', async () => {
+      const wrapper = await mountView();
+
+      KanbanBoardsAPI.show.mockClear();
+      await wrapper
+        .find('[data-testid="kanban-waiting-days-select"]')
+        .setValue('7');
+      await flushPromises();
+
+      expect(KanbanBoardsAPI.show).toHaveBeenCalledWith(10, {
+        params: { waiting_days: '7' },
+      });
+    });
+
+    it('offers sorting by the longest wait for a reply', async () => {
+      const wrapper = await mountView();
+
+      const options = wrapper
+        .find('[data-testid="kanban-sort-select"]')
+        .findAll('option')
+        .map(option => option.attributes('value'));
+
+      expect(options).toContain('waiting_desc');
+    });
+
+    it('closes the panel on Enter, but not while naming a saved filter', async () => {
+      const wrapper = await mountView();
+      wrapper.vm.showFiltersPanel = true;
+      await nextTick();
+
+      await wrapper
+        .find('[data-testid="kanban-waiting-days-select"]')
+        .trigger('keydown', { key: 'Enter' });
+      expect(wrapper.vm.showFiltersPanel).toBe(false);
+    });
+
+    it('closes the panel on a click outside it', async () => {
+      const wrapper = await mountView();
+      wrapper.vm.showFiltersPanel = true;
+      await nextTick();
+
+      document.body.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true })
+      );
+      document.body.click();
+      await nextTick();
+
+      expect(wrapper.vm.showFiltersPanel).toBe(false);
+    });
+
+    it('shows how many filters are on, at the top, with the panel closed', async () => {
+      const wrapper = await mountView();
+      await wrapper
+        .find('[data-testid="kanban-waiting-days-select"]')
+        .setValue('3');
+      await findNextActionFilterButton(wrapper, 'overdue').trigger('click');
+      await flushPromises();
+      wrapper.vm.showFiltersPanel = false;
+      await nextTick();
+
+      expect(
+        wrapper.find('[data-testid="kanban-active-filters-count"]').text()
+      ).toContain('KANBAN.FILTERS.ACTIVE_FILTERS_COUNT');
+      expect(wrapper.vm.activeFilterCount).toBe(2);
+    });
   });
 
   it('refetches the board with next_action when a next action filter is selected', async () => {

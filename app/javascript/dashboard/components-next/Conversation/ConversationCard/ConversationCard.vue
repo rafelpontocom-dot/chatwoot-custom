@@ -1,12 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { useRouter, useRoute } from 'vue-router';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper.js';
 import { dynamicTime, shortTimestamp } from 'shared/helpers/timeHelper';
 import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
 
-import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import CardMessagePreview from './CardMessagePreview.vue';
 import CardMessagePreviewWithMeta from './CardMessagePreviewWithMeta.vue';
@@ -49,11 +48,6 @@ const currentContactStatus = computed(
 const inbox = computed(() => props.stateInbox);
 
 const inboxName = computed(() => inbox.value?.name);
-
-const inboxIcon = computed(() => {
-  const { channelType, medium, voiceEnabled } = inbox.value;
-  return getInboxIconByType(channelType, medium, 'fill', voiceEnabled);
-});
 
 const lastActivityAt = computed(() => {
   const timestamp = props.conversation?.timestamp;
@@ -116,8 +110,8 @@ const onCardClick = e => {
             v-tooltip.left="inboxName"
             class="flex items-center justify-center flex-shrink-0 rounded-full bg-n-alpha-2 size-5"
           >
-            <Icon
-              :icon="inboxIcon"
+            <ChannelIcon
+              :inbox="inbox"
               class="flex-shrink-0 text-n-slate-11 size-3"
             />
           </div>

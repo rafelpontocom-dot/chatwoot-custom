@@ -97,10 +97,7 @@ watch(() => [props.show, props.conversationId], activateConversation, {
           data-testid="kanban-drawer-opportunity"
           class="hidden min-h-0 w-[27rem] shrink-0 overflow-y-auto border-l border-n-weak bg-n-surface-2 p-2 lg:block"
         >
-          <KanbanConversationOpportunity
-            :conversation-id="conversationId"
-            from-board
-          />
+          <KanbanConversationOpportunity :conversation-id="conversationId" />
         </aside>
       </div>
     </aside>

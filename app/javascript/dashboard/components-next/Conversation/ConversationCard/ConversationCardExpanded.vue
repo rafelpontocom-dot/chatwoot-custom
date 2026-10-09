@@ -12,6 +12,7 @@ import SLACardLabel from 'dashboard/components-next/Conversation/Sla/SLACardLabe
 import CardStatusIcon from './CardStatusIcon.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -150,6 +151,13 @@ const selectedModel = computed({
         :selected="false"
         :enable-selection="false"
         :hide-thumbnail="false"
+      />
+
+      <ChannelIcon
+        v-if="isInboxView || !showInboxName"
+        :inbox="inbox"
+        :title="inbox.name"
+        class="size-4 flex-shrink-0 text-n-slate-11"
       />
 
       <h4

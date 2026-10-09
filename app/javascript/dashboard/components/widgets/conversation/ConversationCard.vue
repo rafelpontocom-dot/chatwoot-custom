@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { getLastMessage } from 'dashboard/helper/conversationHelper';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import MessagePreview from './MessagePreview.vue';
 import InboxName from '../InboxName.vue';
 import TimeAgo from 'dashboard/components/ui/TimeAgo.vue';
@@ -179,10 +180,16 @@ watch(
         </div>
       </div>
       <h4
-        class="conversation--user text-sm my-0 mx-2 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap flex-1 min-w-0 ltr:pr-16 rtl:pl-16 text-n-slate-12"
+        class="conversation--user flex items-center gap-1 text-sm my-0 mx-2 capitalize pt-0.5 overflow-hidden whitespace-nowrap flex-1 min-w-0 ltr:pr-16 rtl:pl-16 text-n-slate-12"
         :class="hasUnread ? 'font-semibold' : 'font-medium'"
       >
-        {{ currentContact.name }}
+        <ChannelIcon
+          v-if="!showInboxName"
+          :inbox="inbox"
+          :title="inbox.name"
+          class="size-4 flex-shrink-0 text-n-slate-11"
+        />
+        <span class="min-w-0 truncate">{{ currentContact.name }}</span>
       </h4>
       <VoiceCallStatus
         v-if="voiceCallData.status"

@@ -33,6 +33,94 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    # 5n: a nova oportunidade aberta a partir do contato leva o valor logo na
+    # criação; a moeda continua a ser a da conta.
+    it 'keeps the value given at creation' do
+      post_manual_card(params: manual_card_payload.merge(amount_cents: 120_000))
+
+      expect(response).to have_http_status(:created)
+      expect(KanbanCard.last).to have_attributes(amount_cents: 120_000, amount_currency: 'BRL')
+    end
+
+    # O funil serializava `card.contact.label_list` sem filtro: o título de uma
+    # etiqueta pessoal de outra pessoa viajava no cartão do contacto.
+    it "does not send the title of another person's personal contact label" do
+      outra = create(:user, account: account, role: :agent)
+      create(:label, account: account, title: 'vip')
+      create(:label, account: account, title: 'so-da-outra', visibility: :personal, created_by: outra)
+      manual_contact.update!(label_list: %w[vip so-da-outra])
+
+      post_manual_card
+
+      expect(response.parsed_body.dig('contact', 'labels')).to contain_exactly('vip')
+    end
+
+    # A etapa que exige campos tornava a criação IMPOSSÍVEL por aqui: a resposta
+    # dizia «procedimento is required» e o diálogo não tinha onde o preencher.
+    it 'returns the required custom fields instead of only refusing the creation' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: %w[Avaliação Retorno],
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect { post_manual_card }.not_to change(KanbanCard.manual, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['missing_fields']).to eq(['procedimento'])
+      expect(response.parsed_body['field_definitions'].first).to include(
+        'key' => 'procedimento',
+        'field_type' => 'select',
+        'options' => %w[Avaliação Retorno]
+      )
+    end
+
+    it 'creates the card when the required fields come with the payload' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: %w[Avaliação Retorno],
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect do
+        post_manual_card(params: manual_card_payload.merge(custom_field_values: { procedimento: 'Retorno' }))
+      end.to change(KanbanCard.manual, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      expect(KanbanCard.last.custom_field_values).to eq('procedimento' => 'Retorno')
+    end
+
+    # Campo exigido NOUTRA etapa não pode travar a criação nesta.
+    it 'ignores fields required by a stage other than the destination' do
+      other_stage = create(:kanban_stage, account: account, kanban_board: kanban_board)
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'text',
+            required_stage_ids: [other_stage.id]
+          }
+        ]
+      )
+
+      expect { post_manual_card }.to change(KanbanCard.manual, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+    end
+
     it 'emits kanban.card.created with a compact payload' do
       allow(Rails.configuration.dispatcher).to receive(:dispatch)
 
@@ -482,6 +570,122 @@ RSpec.describe 'Kanban Cards API', type: :request do
         'next_action_note' => 'Enviar link de pagamento',
         'next_action_completed_at' => card.next_action_completed_at.iso8601
       )
+    end
+
+    # O gesto «Concluir» da tela reenvia os três campos como estão, mais a
+    # conclusão. É por isso que o teste manda os mesmos valores: se o modelo
+    # olhasse só para o payload, não distinguiria concluir de registar.
+    it 'empties the next action when the screen completes the one already stored' do
+      card = create_manual_card(
+        next_action_type: 'send_proposal',
+        next_action_at: Time.zone.parse('2026-07-20T15:00:00-03:00'),
+        next_action_note: 'Enviar proposta pelo WhatsApp'
+      )
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                next_action_type: 'send_proposal',
+                next_action_at: '2026-07-20T15:00:00-03:00',
+                next_action_note: 'Enviar proposta pelo WhatsApp',
+                next_action_completed_at: '2026-07-20T16:00:00-03:00'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(
+        next_action_type: nil,
+        next_action_at: nil,
+        next_action_note: nil
+      )
+      expect(card.next_action_history.last).to include('type' => 'send_proposal')
+    end
+
+    it 'completes edited action details explicitly even when the browser drops seconds' do
+      card = create_manual_card(
+        next_action_type: 'send_proposal',
+        next_action_at: Time.zone.parse('2026-07-20T18:00:47.123Z'),
+        next_action_note: 'Original note'
+      )
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                complete_next_action: true,
+                next_action_type: 'call',
+                next_action_at: '2026-07-20T18:00:00.000Z',
+                next_action_note: 'Edited note',
+                next_action_completed_at: '2026-07-20T19:00:00.000Z'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(next_action_type: nil, next_action_at: nil, next_action_note: nil)
+      expect(card.next_action_history.last).to include(
+        'type' => 'call', 'scheduled_at' => '2026-07-20T18:00:00.000Z', 'note' => 'Edited note'
+      )
+    end
+
+    # RAEVO (08/10, 123jpnbcb5h): concluir pede «Como foi?»; o resultado fica no histórico.
+    it 'keeps the result written when the action is completed' do
+      card = create_manual_card(
+        next_action_type: 'call',
+        next_action_at: Time.zone.parse('2026-07-20T18:00:00Z'),
+        next_action_note: 'Ligar para confirmar'
+      )
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                complete_next_action: true,
+                next_action_completed_at: '2026-07-20T18:10:00.000Z',
+                next_action_completion_note: 'Atendeu. Quer avaliar na sexta.'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload.next_action_history.last).to include(
+        'type' => 'call', 'completion_note' => 'Atendeu. Quer avaliar na sexta.'
+      )
+    end
+
+    # 5j: a ficha mostra quem fez cada ação; vem de quem fez o pedido.
+    it 'records the agent who completed the action' do
+      card = create_manual_card(next_action_type: 'call', next_action_at: Time.zone.parse('2026-07-20T18:00:00Z'))
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: { card: { complete_next_action: true, next_action_completed_at: '2026-07-20T18:10:00.000Z' } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload.next_action_history.last['completed_by']).to eq('id' => agent.id, 'name' => agent.available_name)
+    end
+
+    it 'does not interpret a false completion flag as a request to clear a retrospective action' do
+      card = create_manual_card
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                complete_next_action: 'false',
+                next_action_type: 'call',
+                next_action_at: '2026-07-20T18:00:00.000Z',
+                next_action_note: 'Past action',
+                next_action_completed_at: '2026-07-20T19:00:00.000Z'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload).to have_attributes(next_action_type: 'call', next_action_note: 'Past action')
     end
 
     it 'updates the expected close date' do

@@ -1,12 +1,23 @@
 <script setup>
-import { computed, ref, onUnmounted } from 'vue';
+import { computed, nextTick, ref, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import camelcaseKeys from 'camelcase-keys';
+import parsePhoneNumber, { getExampleNumber } from 'libphonenumber-js';
+import phoneExamples from 'libphonenumber-js/examples.mobile.json';
+import countries from 'shared/constants/countries';
+import { getActiveCountryCode } from 'shared/components/PhoneInput/helper';
 import { debounce } from '@chatwoot/utils';
 import { useStore } from 'dashboard/composables/store';
 import ContactAPI from 'dashboard/api/contacts';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
+import {
+  emptyRequiredFieldValue,
+  isRequiredFieldEmpty,
+  mergeRequiredFields,
+  requiredFieldsForStage,
+} from 'dashboard/helper/kanbanRequiredFields';
+import KanbanRequiredFields from './KanbanRequiredFields.vue';
 
 const props = defineProps({
   kanbanBoardId: {
@@ -17,11 +28,16 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  /** definições do funil, para mostrar já o que a etapa exige */
+  customFieldDefinitions: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['created', 'close']);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useStore();
 
 const contactSearchQuery = ref('');
@@ -29,9 +45,78 @@ const contactSearchResults = ref([]);
 const selectedContact = ref(null);
 const isSearchingContacts = ref(false);
 const hasSearchedContacts = ref(false);
+const novoContactoNome = ref('');
+const novoContactoTelefone = ref('');
+const novoContactoPais = ref(
+  getActiveCountryCode() || (locale?.value === 'pt' ? 'PT' : 'BR')
+);
+const novoContactoErro = ref('');
+const estaACriarContacto = ref(false);
+// 123jpnbcg1e: o formulário só aparecia depois de uma pesquisa sem resultados.
+// Agora abre-se a qualquer momento; o que se escreveu na pesquisa vem junto.
+const novoContactoAberto = ref(false);
+const PARECE_TELEFONE = /^\+?[\d\s().-]{6,}$/;
+const telefoneNovo = computed(() => {
+  const telefone = novoContactoTelefone.value.trim();
+  if (!telefone) return null;
+  const phone = parsePhoneNumber(telefone, {
+    defaultCountry: novoContactoPais.value,
+    extract: false,
+  });
+  return phone?.isValid() ? phone : null;
+});
+// O exemplo do país escolhido, e, quando o número vale, como fica gravado:
+// `+5581912345678` é o formato em que o Chatwoot reconhece o contato.
+const dicaTelefone = computed(() => {
+  if (telefoneNovo.value) {
+    return t('KANBAN.ADD_ITEM.NEW_CONTACT.SAVED_AS', {
+      number: telefoneNovo.value.number,
+    });
+  }
+  const exemplo = getExampleNumber(novoContactoPais.value, phoneExamples);
+  return exemplo
+    ? t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_EXAMPLE', {
+        example: exemplo.formatInternational(),
+      })
+    : t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_HINT');
+});
+const formatarTelefoneNovo = () => {
+  const phone = telefoneNovo.value;
+  if (!phone) return;
+  if (phone.country) novoContactoPais.value = phone.country;
+  novoContactoTelefone.value = phone.formatInternational();
+};
+const pickerRevision = ref(0);
+const phoneCountries = computed(() => {
+  const displayNames = new Intl.DisplayNames(
+    [String(locale?.value || 'pt-BR').replace('_', '-')],
+    { type: 'region' }
+  );
+  return countries.map(country => ({
+    ...country,
+    label: `${displayNames.of(country.id)} (${country.dial_code})`,
+  }));
+});
 const contactSearchError = ref(false);
 const contactSearchController = ref(null);
 const contactSearchMinimumLength = 3;
+const mostraContactoNovo = computed(
+  () =>
+    novoContactoAberto.value ||
+    (hasSearchedContacts.value &&
+      !isSearchingContacts.value &&
+      !contactSearchError.value &&
+      !contactSearchResults.value.length)
+);
+const abrirContactoNovo = () => {
+  const pesquisa = contactSearchQuery.value.trim();
+  if (PARECE_TELEFONE.test(pesquisa)) {
+    novoContactoTelefone.value ||= pesquisa;
+  } else if (pesquisa) {
+    novoContactoNome.value ||= pesquisa;
+  }
+  novoContactoAberto.value = true;
+};
 
 const contactableInboxes = ref([]);
 const isLoadingInboxes = ref(false);
@@ -44,6 +129,35 @@ const subjectError = ref('');
 const creationError = ref('');
 const possibleDuplicate = ref(null);
 const isSaving = ref(false);
+
+/**
+ * Campos que a etapa de destino exige.
+ *
+ * Antes isto era um beco: a etapa exigia «Procedimento», o servidor recusava com
+ * «procedimento is required», e este diálogo não tinha onde o preencher — a
+ * oportunidade não se conseguia criar por aqui, de maneira nenhuma. Agora o
+ * servidor diz QUAIS faltam e COMO se desenham, e eles aparecem aqui mesmo,
+ * dentro do formulário, em vez de um popup por cima de um popup.
+ */
+// Os que a etapa exige aparecem logo, como ajuda; a recusa do servidor só
+// acrescenta os condicionais. Antes apareciam todos depois do clique, a vermelho.
+const camposDaEtapa = () =>
+  requiredFieldsForStage(props.customFieldDefinitions, props.kanbanStageId);
+const valoresVazios = definitions =>
+  Object.fromEntries(
+    definitions.map(definition => [
+      definition.key,
+      emptyRequiredFieldValue(definition),
+    ])
+  );
+const requiredFieldDefinitions = ref(camposDaEtapa());
+const requiredFieldValues = ref(valoresVazios(requiredFieldDefinitions.value));
+
+const hasUnfilledRequiredField = computed(() =>
+  requiredFieldDefinitions.value.some(definition =>
+    isRequiredFieldEmpty(requiredFieldValues.value[definition.key])
+  )
+);
 
 const trimmedSubject = computed(() => subject.value.trim());
 
@@ -80,6 +194,13 @@ const searchContacts = async query => {
     if (controller.signal.aborted) return;
 
     contactSearchResults.value = camelcaseKeys(payload || [], { deep: true });
+    if (!contactSearchResults.value.length) {
+      if (PARECE_TELEFONE.test(trimmedQuery)) {
+        novoContactoTelefone.value = trimmedQuery;
+      } else {
+        novoContactoNome.value = trimmedQuery;
+      }
+    }
   } catch (error) {
     if (!isAbortError(error)) {
       contactSearchError.value = true;
@@ -119,6 +240,8 @@ const resetSubmission = () => {
   subjectError.value = '';
   creationError.value = '';
   possibleDuplicate.value = null;
+  requiredFieldDefinitions.value = camposDaEtapa();
+  requiredFieldValues.value = valoresVazios(requiredFieldDefinitions.value);
   isSaving.value = false;
 };
 
@@ -126,13 +249,18 @@ const contactDisplayName = contact =>
   contact?.name?.trim() ||
   t('KANBAN.ADD_ITEM.CONTACT_FALLBACK', { id: contact?.id });
 
-const inboxDisplayName = inbox =>
-  inbox?.name?.trim() || t('KANBAN.ADD_ITEM.INBOX_FALLBACK', { id: inbox?.id });
-
-const defaultSubjectFor = (contact, inbox) =>
-  `${contactDisplayName(contact)} - ${inboxDisplayName(inbox)}`;
+// A sugestão é só o nome do contato. Era «<contato> - <caixa>», e o nome da
+// caixa colado atrás lia-se como um código no título da oportunidade — «Maria
+// Silva - WAHA RAEVO». Quem cria renomeia a seguir se quiser; a caixa já está
+// escolhida logo acima, no próprio diálogo.
+const defaultSubjectFor = contact => contactDisplayName(contact);
 
 const onContactSearchInput = () => {
+  pickerRevision.value += 1;
+  novoContactoAberto.value = false;
+  novoContactoNome.value = '';
+  novoContactoTelefone.value = '';
+  novoContactoErro.value = '';
   abortContactSearch();
   resetInboxes();
   resetSubmission();
@@ -152,6 +280,11 @@ const onContactSearchInput = () => {
 };
 
 const resetPicker = () => {
+  pickerRevision.value += 1;
+  novoContactoAberto.value = false;
+  novoContactoNome.value = '';
+  novoContactoTelefone.value = '';
+  novoContactoErro.value = '';
   abortContactSearch();
   resetInboxes();
   resetSubmission();
@@ -253,7 +386,7 @@ const loadContactInboxes = async contact => {
 };
 
 const selectInbox = inbox => {
-  const nextGeneratedSubject = defaultSubjectFor(selectedContact.value, inbox);
+  const nextGeneratedSubject = defaultSubjectFor(selectedContact.value);
   const shouldUseGeneratedSubject =
     !subject.value || subject.value === generatedSubject.value;
 
@@ -275,6 +408,7 @@ const handleClose = () => {
 };
 
 const selectContact = contact => {
+  pickerRevision.value += 1;
   abortContactSearch();
   resetSubmission();
   selectedContact.value = contact;
@@ -282,6 +416,56 @@ const selectContact = contact => {
   isSearchingContacts.value = false;
   contactSearchError.value = false;
   loadContactInboxes(contact);
+};
+
+const criarContactoEContinuar = async () => {
+  if (estaACriarContacto.value) return;
+
+  const nome = novoContactoNome.value.trim();
+  const telefone = novoContactoTelefone.value.trim();
+  if (!nome) {
+    novoContactoErro.value = t('KANBAN.ADD_ITEM.NEW_CONTACT.NAME_REQUIRED');
+    return;
+  }
+  if (!telefone) {
+    novoContactoErro.value = t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_REQUIRED');
+    return;
+  }
+  const phone = parsePhoneNumber(telefone, {
+    defaultCountry: novoContactoPais.value,
+    extract: false,
+  });
+  if (!phone?.isValid()) {
+    novoContactoErro.value = t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_INVALID');
+    return;
+  }
+
+  const revision = pickerRevision.value;
+  estaACriarContacto.value = true;
+  novoContactoErro.value = '';
+  try {
+    const {
+      data: {
+        payload: { contact },
+      },
+    } = await ContactAPI.create({
+      name: nome,
+      phone_number: phone.number,
+    });
+    if (revision !== pickerRevision.value) return;
+    novoContactoAberto.value = false;
+    novoContactoNome.value = '';
+    novoContactoTelefone.value = '';
+    selectContact(camelcaseKeys(contact, { deep: true }));
+  } catch (error) {
+    if (revision !== pickerRevision.value) return;
+    novoContactoErro.value =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      t('KANBAN.ADD_ITEM.NEW_CONTACT.ERROR');
+  } finally {
+    estaACriarContacto.value = false;
+  }
 };
 
 const clearSelectedContact = () => {
@@ -301,17 +485,25 @@ const createManualOpportunity = async () => {
     return;
   }
 
+  if (hasUnfilledRequiredField.value) {
+    creationError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
+    return;
+  }
+
   isSaving.value = true;
 
+  const card = {
+    kanban_stage_id: props.kanbanStageId,
+    contact_id: selectedContact.value.id,
+    inbox_id: selectedInbox.value.id,
+    subject: trimmedSubject.value,
+  };
+  if (requiredFieldDefinitions.value.length) {
+    card.custom_field_values = { ...requiredFieldValues.value };
+  }
+
   try {
-    await KanbanBoardsAPI.createManualCard(props.kanbanBoardId, {
-      card: {
-        kanban_stage_id: props.kanbanStageId,
-        contact_id: selectedContact.value.id,
-        inbox_id: selectedInbox.value.id,
-        subject: trimmedSubject.value,
-      },
-    });
+    await KanbanBoardsAPI.createManualCard(props.kanbanBoardId, { card });
     emit('created');
     resetPicker();
     emit('close');
@@ -322,6 +514,24 @@ const createManualOpportunity = async () => {
         responseData.duplicate_card || {},
         { deep: true }
       );
+    } else if (responseData?.missing_fields?.length) {
+      const juntos = mergeRequiredFields(
+        requiredFieldDefinitions.value,
+        requiredFieldValues.value,
+        camelcaseKeys(responseData.field_definitions || [], { deep: true }),
+        responseData.missing_fields
+      );
+      requiredFieldDefinitions.value = juntos.definitions;
+      requiredFieldValues.value = juntos.values;
+      creationError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
+      // Os campos aparecem DEPOIS do clique, e o foco ficava no <body>: quem usa
+      // o teclado não sabia que havia o que preencher nem onde.
+      await nextTick();
+      document
+        .querySelector(
+          `[data-testid="kanban-manual-card-field-${responseData.missing_fields[0]}"]`
+        )
+        ?.focus();
     } else {
       creationError.value = getErrorMessage(error);
     }
@@ -331,6 +541,7 @@ const createManualOpportunity = async () => {
 };
 
 onUnmounted(() => {
+  pickerRevision.value += 1;
   abortContactSearch();
   resetInboxes();
 });
@@ -515,6 +726,26 @@ onUnmounted(() => {
               />
             </template>
           </RaevoField>
+          <!--
+            Os campos que a etapa exige, preenchíveis aqui mesmo e à vista desde
+            o início — não depois de uma recusa. O controlo depende do tipo: um
+            `select` desenhado como texto livre deixa quem preenche a adivinhar
+            as opções.
+          -->
+          <div
+            v-if="requiredFieldDefinitions.length"
+            data-testid="kanban-manual-card-required-fields"
+            class="grid gap-3 rounded-md border border-n-weak bg-n-surface-1 p-3"
+          >
+            <p class="mb-0 text-xs text-n-slate-11">
+              {{ t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_HELP') }}
+            </p>
+            <KanbanRequiredFields
+              v-model="requiredFieldValues"
+              :definitions="requiredFieldDefinitions"
+              testid-prefix="kanban-manual-card-field-"
+            />
+          </div>
           <p
             v-if="creationError"
             data-testid="kanban-manual-card-error"
@@ -628,6 +859,96 @@ onUnmounted(() => {
       >
         {{ t('KANBAN.ADD_ITEM.NO_CONTACTS') }}
       </p>
+
+      <!--
+        123jpnbcg1e: o contato novo deixou de esperar por uma pesquisa vazia —
+        a pessoa pode não estar entre os resultados, ou nem ter sido procurada.
+      -->
+      <template v-if="!selectedContact">
+        <div
+          v-if="mostraContactoNovo"
+          data-testid="kanban-new-contact-form"
+          class="mt-3 grid gap-3 rounded-lg border border-n-weak p-3"
+        >
+          <RaevoField compact :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.NAME')">
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="novoContactoNome"
+                type="text"
+                :class="controlClass"
+                data-testid="kanban-new-contact-name"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField
+            compact
+            :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.COUNTRY')"
+            variant="select"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <select
+                :id="fieldId"
+                v-model="novoContactoPais"
+                :class="controlClass"
+                data-testid="kanban-new-contact-country"
+                :disabled="estaACriarContacto"
+              >
+                <option
+                  v-for="country in phoneCountries"
+                  :key="country.id"
+                  :value="country.id"
+                >
+                  {{ country.label }}
+                </option>
+              </select>
+            </template>
+          </RaevoField>
+          <RaevoField
+            compact
+            required
+            :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE')"
+            :hint="dicaTelefone"
+            :error="novoContactoErro"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="novoContactoTelefone"
+                type="tel"
+                inputmode="tel"
+                autocomplete="tel"
+                :class="controlClass"
+                data-testid="kanban-new-contact-phone"
+                @blur="formatarTelefoneNovo"
+              />
+            </template>
+          </RaevoField>
+          <button
+            type="button"
+            data-testid="kanban-new-contact-create"
+            class="flex min-h-9 items-center justify-center justify-self-start rounded-lg bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="estaACriarContacto"
+            @click="criarContactoEContinuar"
+          >
+            {{
+              estaACriarContacto
+                ? t('KANBAN.ADD_ITEM.NEW_CONTACT.CREATING')
+                : t('KANBAN.ADD_ITEM.NEW_CONTACT.CREATE')
+            }}
+          </button>
+        </div>
+        <button
+          v-else
+          type="button"
+          data-testid="kanban-new-contact-open"
+          class="mt-2 flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+          @click="abrirContactoNovo"
+        >
+          <i aria-hidden="true" class="i-lucide-user-plus size-4" />
+          {{ t('KANBAN.ADD_ITEM.NEW_CONTACT.OPEN') }}
+        </button>
+      </template>
     </div>
   </div>
 </template>

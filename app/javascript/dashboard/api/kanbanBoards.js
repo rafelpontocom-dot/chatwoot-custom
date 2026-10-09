@@ -307,6 +307,14 @@ class KanbanBoardsAPI extends ApiClient {
     );
   }
 
+  // RAEVO (09/10, 123jpnbcb5m): as tarefas dos leads na Agenda.
+  getNextActions(params, config = {}) {
+    return axios.get(`${this.baseUrl()}/kanban_next_actions`, {
+      params,
+      ...config,
+    });
+  }
+
   getContactCards(contactId, config = {}) {
     return axios.get(
       `${this.baseUrl()}/contacts/${contactId}/kanban_cards`,

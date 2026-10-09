@@ -45,6 +45,18 @@ RSpec.describe 'Contact Kanban Cards API', type: :request do
       )
     end
 
+    # 5n: o painel do contato mostra o valor e a previsão de fechamento.
+    it 'sends the value and the expected close date' do
+      create(:kanban_card, account: account, kanban_board: kanban_board, kanban_stage: stage, contact: contact, inbox: inbox,
+                           amount_cents: 120_050, amount_currency: 'BRL', expected_close_date: Date.new(2026, 10, 23))
+
+      get contact_kanban_cards_url, headers: agent.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['payload'].first).to include(
+        'amount_cents' => 120_050, 'amount_currency' => 'BRL', 'expected_close_date' => '2026-10-23'
+      )
+    end
+
     it 'excludes cards for other contacts' do
       create(:kanban_card, account: account, kanban_board: kanban_board, kanban_stage: stage,
                            contact: create(:contact, account: account), inbox: inbox)

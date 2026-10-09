@@ -368,6 +368,11 @@
       "NEWEST_FIRST": "Mais recentes",
       "HIGHEST_VALUE": "Maior valor",
       "LONGEST_IN_STAGE": "Mais tempo na etapa",
+      "LONGEST_WAITING": "Mais tempo sem resposta",
+      "WAITING_LABEL": "Sem resposta há",
+      "WAITING_ANY": "Qualquer tempo",
+      "WAITING_DAYS": "1 dia ou mais | {count} dias ou mais",
+      "ACTIVE_FILTERS_COUNT": "1 filtro | {count} filtros",
       "SAVED_FILTERS": "Filtros salvos",
       "SAVE_FILTER": "Salvar filtros atuais",
       "SAVED_NAME_PROMPT": "Nome do filtro",
@@ -853,7 +858,9 @@
         "STANDARD_FIELD_NO_OPTIONS": "Sem opções a definir",
         "LOST_REASON_WHERE": "Aparece ao marcar a oportunidade como perdida.",
         "NATIVE_TABS_NOTE": "Contato, Agenda, Financeiro e Formulários também aparecem na oportunidade, mas mostram dados próprios e não têm campos a definir aqui.",
-        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade"
+        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade",
+        "PANEL_ORDER_TITLE": "Ordem no painel",
+        "PANEL_ORDER_HELP": "A ordem das seções na ficha da oportunidade, igual para toda a equipe. Na ficha não se reordena mais."
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
@@ -1396,6 +1403,27 @@
       "CONFIRM": "Remover",
       "CANCEL": "Cancelar"
     },
+    "CONTACT_OPPORTUNITY": {
+      "TITLE": "Nova oportunidade",
+      "THIS_CONTACT": "· contato desta página",
+      "BOARD": "Funil",
+      "STAGE": "Etapa",
+      "SUBJECT": "Título",
+      "AMOUNT": "Valor",
+      "AMOUNT_PLACEHOLDER": "0,00",
+      "AMOUNT_INVALID": "Escreva o valor em número, por exemplo 1200,50.",
+      "INBOX": "Caixa de entrada",
+      "INBOX_HINT": "A da última conversa do contato.",
+      "INBOX_FALLBACK": "Caixa #{id}",
+      "NO_INBOX": "Este contato não está em nenhuma caixa a que você tenha acesso.",
+      "CANCEL": "Cancelar",
+      "CREATE": "Criar oportunidade",
+      "CREATING": "Criando…",
+      "LOAD_ERROR": "Não foi possível carregar os funis. Feche e tente de novo.",
+      "CREATE_ERROR": "Não foi possível criar a oportunidade. Os dados continuam no formulário.",
+      "DUPLICATE": "Já existe «{subject}» em {stage} para este contato e caixa. Mude o título.",
+      "REQUIRED_PENDING": "Esta etapa exige os campos acima."
+    },
     "OPPORTUNITY_DETAILS": {
       "EXPECTED_CLOSE_DATE": "Previsão de fechamento",
       "TIMELINE": {
@@ -1476,7 +1504,45 @@
       "NEXT_ACTION_NOTE": "Observação da ação",
       "NEXT_ACTION_NOTE_PLACEHOLDER": "Ex.: ligar depois das 14h para confirmar o orçamento",
       "COMPLETE_NEXT_ACTION": "Concluir próxima ação",
-      "NEXT_ACTION_HISTORY": "Ações concluídas",
+      "ACTION_HISTORY": {
+        "ACTIONS": "Ações",
+        "OPEN_FOR": "Em aberto",
+        "TO_WIN": "Até ganhar",
+        "TO_LOSE": "Até perder",
+        "ON_TIME": "No prazo",
+        "ON_TIME_VALUE": "{done} de {total}",
+        "DAYS": "{count} dia | {count} dias",
+        "ACTIONS_COUNT": "{count} ação | {count} ações",
+        "WON_SUMMARY": "Fechou com {actions} em {days}.",
+        "SCHEDULED": "Prevista {date}",
+        "DONE": "feita",
+        "DONE_ONLY": "Feita {date}",
+        "LATE": "{date} — {days} depois",
+        "SHOW_OLDER": "Ver a anterior | Ver as {count} anteriores",
+        "EMPTY": "Ainda nenhuma ação concluída. Cada ação que você concluir na seção «Próxima ação» fica aqui, com o resultado.",
+        "CHANGES": "Alterações"
+      },
+      "COMPLETE_FLOW": {
+        "STEP": "Passo {n} de 2",
+        "HOW_WAS_IT": "Como foi?",
+        "QUICK_ANSWERED": "Atendeu",
+        "QUICK_NOT_ANSWERED": "Não atendeu",
+        "QUICK_CALL_BACK": "Pediu retorno",
+        "RESULT": "Resultado",
+        "RESULT_HINT": "Fica no histórico da oportunidade.",
+        "CANCEL": "Cancelar",
+        "CONFIRM": "Concluir e marcar a próxima",
+        "CONCLUDING": "Concluindo…",
+        "RETRY": "Tentar de novo",
+        "DONE": "{type} concluída",
+        "DONE_UNTYPED": "Ação concluída",
+        "NO_NEXT": "Sem próxima ação",
+        "SAVE_NEXT": "Salvar próxima ação",
+        "ERROR": "Não foi possível concluir. O que você escreveu continua aqui — tente de novo.",
+        "EMPTY": "Sem ação marcada",
+        "EMPTY_HINT": "Esta oportunidade não tem próxima ação. Aparece no filtro «Sem ação» do Pipeline.",
+        "SCHEDULE": "Marcar próxima ação"
+      },
       "ACTION_TYPES": {
         "NONE": "Selecionar ação",
         "CALL_BACK": "Chamar novamente",
@@ -1527,6 +1593,8 @@
       },
       "MANAGE_FIELDS": "Configurar campos da oportunidade",
       "ADD_TAB": "Criar aba da oportunidade",
+      "MOVE_SECTION_UP": "Mover {section} para cima",
+      "MOVE_SECTION_DOWN": "Mover {section} para baixo",
       "GROUPS": {
         "COMMERCIAL": "Comercial"
       },
@@ -1544,11 +1612,15 @@
       },
       "OWNER_NONE": "Sem responsável",
       "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança.",
+      "SHOW_MORE_FIELDS": "Mostrar mais {count} campos",
+      "SHOW_FEWER_FIELDS": "Mostrar menos campos",
       "BOOLEAN_YES": "Sim",
       "BOOLEAN_NO": "Não",
       "AMOUNT_HEADLINE_ESTIMATE": "estimativa",
       "AMOUNT_HEADLINE_RECEIVED": "{value} recebidos",
-      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda"
+      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda",
+      "REQUIRED_IN_STAGE": "Obrigatório nesta etapa",
+      "REQUIRED_FIELDS_MISSING": "Preencha antes de salvar: {fields}."
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",
@@ -1590,12 +1662,14 @@
       "LOADING_INBOXES": "Carregando caixas de entrada do contato...",
       "INBOXES_ERROR": "Não foi possível carregar as caixas de entrada. Tente novamente.",
       "NO_INBOXES": "Nenhuma caixa de entrada disponível para este contato.",
-      "SUBJECT": "Assunto",
+      "SUBJECT": "Nome da oportunidade",
       "QUICK_CREATE_DESCRIPTION": "Comece pelo contato e pela caixa de entrada. Você poderá completar os detalhes depois da criação.",
       "CREATE_OPPORTUNITY": "Criar oportunidade",
       "SAVING": "Salvando...",
-      "SUBJECT_REQUIRED": "Informe um assunto para criar a oportunidade.",
+      "SUBJECT_REQUIRED": "Dê um nome à oportunidade para criá-la.",
       "CREATION_ERROR": "Não foi possível criar a oportunidade. Tente novamente.",
+      "REQUIRED_FIELDS_HELP": "Esta etapa exige mais alguns campos.",
+      "REQUIRED_FIELDS_PENDING": "Preencha os campos obrigatórios para criar esta oportunidade.",
       "LEGACY_UNAVAILABLE": "Oportunidades manuais não estão disponíveis para quadros em modo legado.",
       "CLEAR_CONTACT": "Limpar contato selecionado",
       "CLOSE": "Fechar seletor de item",
@@ -1603,7 +1677,22 @@
       "INBOX_FALLBACK": "Caixa de entrada #{id}",
       "INBOX_LABEL": "Caixa de entrada",
       "NO_INBOXES_HINT": "Este contato ainda não tem caixa de entrada vinculada, então não é possível abrir uma oportunidade para ele. Vincule o contato a uma caixa em Contatos, ou escolha outro contato.",
-      "NO_INBOXES_ACTION": "Escolher outro contato"
+      "NO_INBOXES_ACTION": "Escolher outro contato",
+      "NEW_CONTACT": {
+        "COUNTRY": "País do telefone",
+        "PHONE_INVALID": "Informe um telefone válido para o país selecionado ou inclua o código internacional.",
+        "NAME": "Nome",
+        "PHONE": "Telefone",
+        "PHONE_HINT": "Necessário para o contato poder ser alcançado em algum canal.",
+        "NAME_REQUIRED": "Informe o nome do contato.",
+        "PHONE_REQUIRED": "O telefone é obrigatório.",
+        "CREATE": "Criar contato",
+        "CREATING": "Criando...",
+        "ERROR": "Não foi possível criar o contato. Tente novamente.",
+        "OPEN": "Contato novo",
+        "SAVED_AS": "Fica gravado como {number}",
+        "PHONE_EXAMPLE": "Exemplo: {example}"
+      }
     },
     "CARD": {
       "SELECT": "Selecionar oportunidade",
@@ -1718,6 +1807,9 @@
       "LOADING": "A ler o funil",
       "ERROR": "Não foi possível ler o funil",
       "RETRY": "Tentar outra vez"
+    },
+    "REQUIRED_FIELDS": {
+      "MULTISELECT_HINT": "Segure Ctrl ou ⌘ para escolher mais de uma."
     }
   }
 }

@@ -27,6 +27,10 @@ const emit = defineEmits(['sort', 'toggle']);
 
 const SORT_OPTION_GROUPS = [
   {
+    key: 'manual',
+    options: [SIDEBAR_SORT_KEYS.MANUAL],
+  },
+  {
     key: 'created',
     options: [SIDEBAR_SORT_KEYS.CREATED_DESC, SIDEBAR_SORT_KEYS.CREATED_ASC],
   },
@@ -60,6 +64,10 @@ const { fixedPosition, updatePosition } = useDropdownPosition(
 );
 
 const getSortOptionLabel = option => {
+  if (option === SIDEBAR_SORT_KEYS.MANUAL) {
+    return t('SIDEBAR.SORT_OPTIONS.MANUAL');
+  }
+
   if (option === SIDEBAR_SORT_KEYS.CREATED_DESC) {
     return t('SIDEBAR.SORT_OPTIONS.CREATED_DESC');
   }
@@ -88,6 +96,10 @@ const getSortOptionLabel = option => {
 };
 
 const getSortGroupLabel = groupKey => {
+  if (groupKey === 'manual') {
+    return t('SIDEBAR.SORT_GROUPS.MANUAL');
+  }
+
   if (groupKey === 'created') {
     return t('SIDEBAR.SORT_GROUPS.CREATED');
   }

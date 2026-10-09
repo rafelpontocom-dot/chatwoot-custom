@@ -36,7 +36,7 @@
     "API_HOURS_WINDOW": "Só pode responder a esta conversa dentro de {hours} horas",
     "NOT_ASSIGNED_TO_YOU": "Esta conversa não está atribuída a si. Gostaria de atribuir esta conversa a si mesmo?",
     "ASSIGN_TO_ME": "Atribuir a mim",
-    "BOT_HANDOFF_MESSAGE": "Você está respondendo a uma conversa que é atualmente tratada por um assistente ou um robô.",
+    "BOT_HANDOFF_MESSAGE": "Esta conversa está a ser atendida por {assigneeName}.",
     "BOT_HANDOFF_ACTION": "Marcar como aberta e atribuir a você",
     "BOT_HANDOFF_REOPEN_ACTION": "Marcar conversa como aberta",
     "BOT_HANDOFF_SUCCESS": "Uma conversa foi atribuída a você",
@@ -133,6 +133,12 @@
         "TOMORROW": "Amanhã",
         "NEXT_WEEK": "Próxima semana"
       }
+    },
+    "WHATSAPP_GROUP_MENTION": {
+      "ALL": "Todos do grupo",
+      "SEARCH_PLACEHOLDER": "Procurar por nome ou número",
+      "EMPTY": "Ninguém escreveu ainda neste grupo",
+      "FROM_HISTORY": "Na lista porque já escreveu neste grupo"
     },
     "MENTION": {
       "AGENTS": "Agentes",
@@ -477,7 +483,7 @@
       "LOADING": "Carregando oportunidades",
       "EMPTY": "Nenhuma oportunidade vinculada a esta conversa",
       "ERROR": "Não foi possível carregar as oportunidades",
-      "ADD": "Adicionar ao Kanban",
+      "ADD": "Criar oportunidade",
       "CREATE_TITLE": "Criar oportunidade",
       "BOARD": "Funil",
       "SUBJECT": "Assunto",
@@ -491,6 +497,8 @@
       "EMPTY_BOARDS": "Nenhum funil ativo disponível",
       "EMPTY_STAGES": "Nenhuma etapa ativa disponível",
       "CREATE_ERROR": "Não foi possível criar a oportunidade",
+      "SELECT_VALUE": "Selecione um valor",
+      "REQUIRED_FIELDS_PENDING": "Preencha os campos que esta etapa exige.",
       "CREATED": "Oportunidade criada",
       "CANCEL": "Cancelar",
       "CREATE": "Criar",
@@ -499,6 +507,7 @@
       "UPDATE_ERROR": "Não foi possível atualizar a oportunidade",
       "UPDATED": "Oportunidade atualizada",
       "OPEN_IN_BOARD": "Abrir oportunidade no funil",
+      "OPEN_CARD_IN_BOARD": "Abrir {subject} no funil",
       "GENERAL_FIELDS": "Outros campos",
       "MARKETING_FIELDS": "Marketing",
       "WHICH_OPPORTUNITY": "Qual oportunidade"

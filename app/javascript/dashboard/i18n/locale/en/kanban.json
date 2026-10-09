@@ -365,6 +365,11 @@
       "NEWEST_FIRST": "Newest first",
       "HIGHEST_VALUE": "Highest value",
       "LONGEST_IN_STAGE": "Longest in stage",
+      "LONGEST_WAITING": "Longest without a reply",
+      "WAITING_LABEL": "Without a reply for",
+      "WAITING_ANY": "Any time",
+      "WAITING_DAYS": "1 day or more | {count} days or more",
+      "ACTIVE_FILTERS_COUNT": "1 filter | {count} filters",
       "SAVED_FILTERS": "Saved filters",
       "SAVE_FILTER": "Save current filters",
       "SAVED_NAME_PROMPT": "Name this filter",
@@ -850,7 +855,9 @@
         "STANDARD_FIELD_NO_OPTIONS": "No options to set",
         "LOST_REASON_WHERE": "Appears when an opportunity is marked as lost.",
         "NATIVE_TABS_NOTE": "Contact, Calendar, Finance and Forms also appear on the opportunity, but they show their own data and have no fields to define here.",
-        "FIELD_SCOPE_OPPORTUNITY": "Opportunity fields"
+        "FIELD_SCOPE_OPPORTUNITY": "Opportunity fields",
+        "PANEL_ORDER_TITLE": "Order in the panel",
+        "PANEL_ORDER_HELP": "The order of the sections in the opportunity, for the whole team. The opportunity itself no longer reorders."
       },
       "AUTOMATIONS": {
         "TITLE": "Automations",
@@ -1393,6 +1400,27 @@
       "CONFIRM": "Remove",
       "CANCEL": "Cancel"
     },
+    "CONTACT_OPPORTUNITY": {
+      "TITLE": "New opportunity",
+      "THIS_CONTACT": "· this page's contact",
+      "BOARD": "Pipeline",
+      "STAGE": "Stage",
+      "SUBJECT": "Title",
+      "AMOUNT": "Value",
+      "AMOUNT_PLACEHOLDER": "0.00",
+      "AMOUNT_INVALID": "Write the value as a number, e.g. 1200.50.",
+      "INBOX": "Inbox",
+      "INBOX_HINT": "The one from the contact's last conversation.",
+      "INBOX_FALLBACK": "Inbox #{id}",
+      "NO_INBOX": "This contact is not in any inbox you can use.",
+      "CANCEL": "Cancel",
+      "CREATE": "Create opportunity",
+      "CREATING": "Creating…",
+      "LOAD_ERROR": "Could not load the pipelines. Close and try again.",
+      "CREATE_ERROR": "Could not create the opportunity. Your data is still in the form.",
+      "DUPLICATE": "«{subject}» already exists in {stage} for this contact and inbox. Change the title.",
+      "REQUIRED_PENDING": "This stage requires the fields above."
+    },
     "OPPORTUNITY_DETAILS": {
       "EXPECTED_CLOSE_DATE": "Expected close date",
       "TIMELINE": {
@@ -1468,7 +1496,45 @@
       "NEXT_ACTION_NOTE": "Action note",
       "NEXT_ACTION_NOTE_PLACEHOLDER": "e.g. call after 2pm to confirm the quote",
       "COMPLETE_NEXT_ACTION": "Complete next action",
-      "NEXT_ACTION_HISTORY": "Completed actions",
+      "ACTION_HISTORY": {
+        "ACTIONS": "Actions",
+        "OPEN_FOR": "Open for",
+        "TO_WIN": "To win",
+        "TO_LOSE": "To lose",
+        "ON_TIME": "On time",
+        "ON_TIME_VALUE": "{done} of {total}",
+        "DAYS": "{count} day | {count} days",
+        "ACTIONS_COUNT": "{count} action | {count} actions",
+        "WON_SUMMARY": "Closed with {actions} in {days}.",
+        "SCHEDULED": "Due {date}",
+        "DONE": "done",
+        "DONE_ONLY": "Done {date}",
+        "LATE": "{date} — {days} late",
+        "SHOW_OLDER": "Show the previous one | Show the {count} previous",
+        "EMPTY": "No action completed yet. Each action you complete in «Next action» shows up here, with its result.",
+        "CHANGES": "Changes"
+      },
+      "COMPLETE_FLOW": {
+        "STEP": "Step {n} of 2",
+        "HOW_WAS_IT": "How did it go?",
+        "QUICK_ANSWERED": "Answered",
+        "QUICK_NOT_ANSWERED": "No answer",
+        "QUICK_CALL_BACK": "Asked to call back",
+        "RESULT": "Result",
+        "RESULT_HINT": "Stays in the opportunity history.",
+        "CANCEL": "Cancel",
+        "CONFIRM": "Complete and set the next one",
+        "CONCLUDING": "Completing…",
+        "RETRY": "Try again",
+        "DONE": "{type} completed",
+        "DONE_UNTYPED": "Action completed",
+        "NO_NEXT": "No next action",
+        "SAVE_NEXT": "Save next action",
+        "ERROR": "Could not complete. What you wrote is still here — try again.",
+        "EMPTY": "No action set",
+        "EMPTY_HINT": "This opportunity has no next action. It shows up in the Pipeline «No action» filter.",
+        "SCHEDULE": "Set next action"
+      },
       "ACTION_TYPES": {
         "NONE": "Select action",
         "CALL_BACK": "Call back",
@@ -1519,6 +1585,8 @@
       },
       "MANAGE_FIELDS": "Manage opportunity fields",
       "ADD_TAB": "Create opportunity tab",
+      "MOVE_SECTION_UP": "Move {section} up",
+      "MOVE_SECTION_DOWN": "Move {section} down",
       "GROUPS": {
         "COMMERCIAL": "Commercial"
       },
@@ -1536,6 +1604,8 @@
       },
       "OWNER_NONE": "No owner",
       "FIELD_AMOUNT_HINT": "Sale forecast, not the charge.",
+      "SHOW_MORE_FIELDS": "Show {count} more fields",
+      "SHOW_FEWER_FIELDS": "Show fewer fields",
       "BOOLEAN_YES": "Yes",
       "BOOLEAN_NO": "No",
       "ADD_ATTRIBUTE": "Add a field",
@@ -1545,7 +1615,9 @@
       "CONTACT_LABELS": "Contact labels",
       "AMOUNT_HEADLINE_ESTIMATE": "estimate",
       "AMOUNT_HEADLINE_RECEIVED": "{value} received",
-      "AMOUNT_HEADLINE_EMPTY": "no amount yet"
+      "AMOUNT_HEADLINE_EMPTY": "no amount yet",
+      "REQUIRED_IN_STAGE": "Required in this stage",
+      "REQUIRED_FIELDS_MISSING": "Fill in before saving: {fields}."
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",
@@ -1587,12 +1659,14 @@
       "LOADING_INBOXES": "Loading contact inboxes...",
       "INBOXES_ERROR": "Could not load inboxes. Try again.",
       "NO_INBOXES": "No available inboxes for this contact.",
-      "SUBJECT": "Subject",
+      "SUBJECT": "Opportunity name",
       "QUICK_CREATE_DESCRIPTION": "Start with the contact and inbox. You can complete the opportunity details after creation.",
       "CREATE_OPPORTUNITY": "Create opportunity",
       "SAVING": "Saving...",
-      "SUBJECT_REQUIRED": "Enter a subject to create the opportunity.",
+      "SUBJECT_REQUIRED": "Give the opportunity a name to create it.",
       "CREATION_ERROR": "Could not create the opportunity. Try again.",
+      "REQUIRED_FIELDS_HELP": "This stage requires a few more fields.",
+      "REQUIRED_FIELDS_PENDING": "Fill in the required fields to create this opportunity.",
       "LEGACY_UNAVAILABLE": "Manual opportunities are unavailable for legacy-read boards.",
       "CLEAR_CONTACT": "Clear selected contact",
       "CLOSE": "Close add item picker",
@@ -1600,7 +1674,22 @@
       "INBOX_FALLBACK": "Inbox #{id}",
       "INBOX_LABEL": "Inbox",
       "NO_INBOXES_HINT": "This contact has no inbox linked yet, so an opportunity cannot be opened for them. Link the contact to an inbox in Contacts, or pick another contact.",
-      "NO_INBOXES_ACTION": "Pick another contact"
+      "NO_INBOXES_ACTION": "Pick another contact",
+      "NEW_CONTACT": {
+        "COUNTRY": "Phone country",
+        "PHONE_INVALID": "Enter a valid phone number for the selected country, or include its international code.",
+        "NAME": "Name",
+        "PHONE": "Phone",
+        "PHONE_HINT": "Needed so the contact can be reached on a channel.",
+        "NAME_REQUIRED": "Give the contact a name.",
+        "PHONE_REQUIRED": "A phone number is required.",
+        "CREATE": "Create contact",
+        "CREATING": "Creating...",
+        "ERROR": "The contact could not be created. Try again.",
+        "OPEN": "New contact",
+        "SAVED_AS": "Saved as {number}",
+        "PHONE_EXAMPLE": "Example: {example}"
+      }
     },
     "CARD": {
       "SELECT": "Select opportunity",
@@ -1715,6 +1804,9 @@
       "LOADING": "Reading the funnel",
       "ERROR": "The funnel could not be read",
       "RETRY": "Try again"
+    },
+    "REQUIRED_FIELDS": {
+      "MULTISELECT_HINT": "Hold Ctrl or ⌘ to choose more than one."
     }
   }
 }

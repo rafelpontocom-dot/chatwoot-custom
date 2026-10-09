@@ -130,12 +130,7 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
         kanban_board: @kanban_board,
         kanban_stage: kanban_stage,
         limit: @stage_card_limit,
-        filtered_inbox_ids: sanitized_inbox_filter_ids,
-        filtered_assignee_ids: sanitized_assignee_filter_ids,
-        filtered_next_action_status: params[:next_action].presence,
-        filtered_opportunity_status: params[:status].presence,
-        search: params[:search],
-        sort: params[:sort],
+        **stage_card_filters,
         visible_inbox_ids: board_list_inbox_ids,
         visible_team_ids: board_list_team_ids,
         account_user: Current.account_user
@@ -143,10 +138,22 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
     end
   end
 
+  def stage_card_filters
+    {
+      filtered_inbox_ids: sanitized_inbox_filter_ids,
+      filtered_assignee_ids: sanitized_assignee_filter_ids,
+      filtered_next_action_status: params[:next_action].presence,
+      filtered_opportunity_status: params[:status].presence,
+      filtered_waiting_days: params[:waiting_days],
+      search: params[:search],
+      sort: params[:sort]
+    }
+  end
+
   def sanitized_inbox_filter_ids
     return @sanitized_inbox_filter_ids if defined?(@sanitized_inbox_filter_ids)
 
-    inbox_ids = normalized_inbox_filter_ids
+    inbox_ids = Array(params[:inbox_ids]).filter_map(&:presence).map(&:to_i).uniq
     @sanitized_inbox_filter_ids =
       if inbox_ids.blank?
         nil
@@ -156,14 +163,10 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
       end
   end
 
-  def normalized_inbox_filter_ids
-    Array(params[:inbox_ids]).filter_map(&:presence).map(&:to_i).uniq
-  end
-
   def sanitized_assignee_filter_ids
     return @sanitized_assignee_filter_ids if defined?(@sanitized_assignee_filter_ids)
 
-    assignee_ids = normalized_assignee_filter_ids
+    assignee_ids = Array(params[:assignee_ids]).filter_map(&:presence).map(&:to_i).uniq
     @sanitized_assignee_filter_ids =
       if assignee_ids.blank?
         nil
@@ -171,10 +174,6 @@ class Api::V1::Accounts::KanbanBoardsController < Api::V1::Accounts::BaseControl
         validate_account_user_ids!(assignee_ids)
         assignee_ids
       end
-  end
-
-  def normalized_assignee_filter_ids
-    Array(params[:assignee_ids]).filter_map(&:presence).map(&:to_i).uniq
   end
 
   def validate_account_inbox_ids!(inbox_ids)

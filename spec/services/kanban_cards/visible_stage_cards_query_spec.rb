@@ -202,6 +202,31 @@ RSpec.describe KanbanCards::VisibleStageCardsQuery do
       expect(second_page.cards).to eq([middle])
     end
 
+    # 123jpnbcb5k: «dias sem resposta» é o `waiting_since` da conversa — desde
+    # quando o paciente espera por nós. Respondido, volta a nil e sai do filtro.
+    context 'when sorting and filtering by time without a reply' do
+      let!(:waiting_long) { create_conversation_card(position: 1).tap { |c| c.conversation.update!(waiting_since: 9.days.ago) } }
+      let!(:waiting_short) { create_conversation_card(position: 2).tap { |c| c.conversation.update!(waiting_since: 1.day.ago) } }
+      let!(:answered) { create_conversation_card(position: 3).tap { |c| c.conversation.update!(waiting_since: nil) } }
+      let!(:manual) { create_visible_card(position: 4) }
+
+      it 'puts the longest wait first and the answered or manual cards last' do
+        cards = query(sort: 'waiting_desc').call.cards
+
+        expect(cards.first(2)).to eq([waiting_long, waiting_short])
+        expect(cards.last(2)).to contain_exactly(answered, manual)
+      end
+
+      it 'keeps only cards waiting at least the chosen number of days' do
+        expect(query(filtered_waiting_days: '7').call.cards).to eq([waiting_long])
+        expect(query(filtered_waiting_days: '1').call.cards).to contain_exactly(waiting_long, waiting_short)
+      end
+
+      it 'ignores a waiting filter that is not one of the offered options' do
+        expect(query(filtered_waiting_days: '2').call.total_count).to eq(4)
+      end
+    end
+
     it 'excludes manual cards when assignee filter is active' do
       manual_card = create_visible_card(position: 1)
       create_conversation_card(position: 2, assignee: agent)
@@ -396,7 +421,8 @@ RSpec.describe KanbanCards::VisibleStageCardsQuery do
       filtered_inbox_ids: options[:filtered_inbox_ids],
       filtered_assignee_ids: options[:filtered_assignee_ids],
       search: options[:search],
-      sort: options[:sort]
+      sort: options[:sort],
+      filtered_waiting_days: options[:filtered_waiting_days]
     )
   end
 

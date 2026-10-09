@@ -784,8 +784,8 @@
           "value": "250, 250, 250, 0.10"
         },
         "button-color": {
-          "value": "232 234 238",
-          "hex": "#E8EAEE"
+          "value": "31 31 31",
+          "hex": "#1F1F1F"
         },
         "button-hover-color": {
           "value": "255, 255, 255, 0.10"

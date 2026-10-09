@@ -17,7 +17,7 @@ import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
-import KanbanConversationOpportunity from './Kanban/KanbanConversationOpportunity.vue';
+import KanbanConversationCards from './Kanban/KanbanConversationCards.vue';
 import SharedFiles from './SharedFiles.vue';
 import Draggable from 'vuedraggable';
 import MacrosList from './Macros/List.vue';
@@ -210,6 +210,11 @@ onMounted(() => {
               />
             </AccordionItem>
           </div>
+          <!--
+            RAEVO (07/10, decisão do Pedro): a oportunidade só se cria aqui; a que
+            já existe é uma linha que leva ao funil. Contrato
+            «conversation-sidebar-native» em config/raevo/upstream-contracts.json.
+          -->
           <div v-else-if="element.name === 'kanban_cards'">
             <AccordionItem
               :title="$t('CONVERSATION_SIDEBAR.ACCORDION.KANBAN')"
@@ -219,9 +224,7 @@ onMounted(() => {
                 value => toggleSidebarUIState('is_kanban_cards_open', value)
               "
             >
-              <KanbanConversationOpportunity
-                :conversation-id="conversationId"
-              />
+              <KanbanConversationCards :conversation-id="conversationId" />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_attributes'">
