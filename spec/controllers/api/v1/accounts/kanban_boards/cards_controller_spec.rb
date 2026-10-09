@@ -1934,4 +1934,46 @@ RSpec.describe 'Kanban Cards API', type: :request do
       subject: 'Cotação de notebooks'
     }
   end
+  # Registar a ação não é editar a oportunidade (09/10): em produção, «Concluir»
+  # não gravava nada quando a etapa exigia um campo ainda vazio.
+  describe 'recording the next action on a card whose stage requires an empty field' do
+    let(:admin) { create(:user, account: account, role: :administrator) }
+    let(:card) do
+      create(:kanban_card, account: account, kanban_board: kanban_board, kanban_stage: stage,
+                           next_action_type: 'Ligar', next_action_at: 1.hour.from_now)
+    end
+    let(:url) { "/api/v1/accounts/#{account.id}/kanban_boards/#{kanban_board.id}/cards/by_id/#{card.id}" }
+
+    before do
+      card
+      kanban_board.update!(custom_field_definitions: [{ key: 'procedimento', label: 'Procedimento', field_type: 'text',
+                                                        required_stage_ids: [stage.id] }])
+    end
+
+    it 'completes the action and keeps it in the history' do
+      patch url, headers: admin.create_new_auth_token, as: :json,
+                 params: { card: { complete_next_action: true, next_action_completed_at: Time.current.iso8601,
+                                   next_action_completion_note: 'Atendeu.' } }
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload.next_action_type).to be_nil
+      expect(card.next_action_history.last).to include('type' => 'Ligar', 'completion_note' => 'Atendeu.')
+    end
+
+    it 'schedules the next action' do
+      patch url, headers: admin.create_new_auth_token, as: :json,
+                 params: { card: { next_action_type: 'WhatsApp', next_action_at: 2.days.from_now.iso8601, next_action_note: nil } }
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload.next_action_type).to eq('WhatsApp')
+    end
+
+    it 'still requires the field when the card data itself changes' do
+      patch url, headers: admin.create_new_auth_token, as: :json,
+                 params: { card: { subject: 'Outro assunto', next_action_type: 'WhatsApp' } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(card.reload.subject).not_to eq('Outro assunto')
+    end
+  end
 end

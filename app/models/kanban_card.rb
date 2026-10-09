@@ -129,6 +129,11 @@ class KanbanCard < ApplicationRecord
   belongs_to :archived_by, class_name: 'User', optional: true
 
   attr_accessor :next_action_completion_note
+  # Registar a ação (concluir a de agora, marcar a seguinte) não é editar a
+  # oportunidade: um campo que a etapa exige e ainda está vazio não impede
+  # ninguém de registar a chamada que fez. Quem o decide é o controlador, pelo
+  # que o pedido envia; criar, mover e editar dados continuam a exigir o campo.
+  attr_accessor :recording_next_action_only
 
   attribute :complete_next_action, :boolean, default: false
 
@@ -174,7 +179,7 @@ class KanbanCard < ApplicationRecord
   validate :won_and_lost_are_mutually_exclusive
   # Campos obrigatórios bloqueiam avanço e reativação, não o arquivamento. Um
   # cartão legado precisa poder sair do quadro mesmo se a configuração mudou.
-  validate :required_custom_fields_present, if: :active?
+  validate :required_custom_fields_present, if: :required_custom_fields_enforced?
   validate :validate_account_consistency
 
   scope :active, -> { where(active: true) }
@@ -622,6 +627,10 @@ class KanbanCard < ApplicationRecord
     return if won_at.blank? || lost_at.blank?
 
     errors.add(:base, 'cannot be marked as won and lost at the same time')
+  end
+
+  def required_custom_fields_enforced?
+    active? && !recording_next_action_only
   end
 
   def required_custom_fields_present

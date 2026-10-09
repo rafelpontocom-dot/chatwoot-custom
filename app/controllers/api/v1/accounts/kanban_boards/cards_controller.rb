@@ -283,11 +283,22 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       raise ActiveRecord::Rollback if invalid_label_titles.present?
 
       reorder_card_if_needed
+      @kanban_card.recording_next_action_only = next_action_only_update?
       @kanban_card.update!(stable_card_update_params)
       @kanban_card.update_labels(label_titles) if labels_param_present?
     end
 
     invalid_label_titles
+  end
+
+  # A ficha conclui a ação e marca a seguinte só com estes campos (ver
+  # KanbanCard#recording_next_action_only).
+  NEXT_ACTION_PARAMS = %w[next_action_type next_action_at next_action_note next_action_completed_at
+                          next_action_completion_note complete_next_action lock_version].freeze
+
+  def next_action_only_update?
+    keys = card_params.keys.map(&:to_s)
+    keys.any? && (keys - NEXT_ACTION_PARAMS).empty?
   end
 
   def reorder_card_if_needed

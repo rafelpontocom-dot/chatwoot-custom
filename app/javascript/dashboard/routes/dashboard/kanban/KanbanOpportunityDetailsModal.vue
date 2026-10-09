@@ -1601,6 +1601,52 @@ const saveCardWith = async (extraPayload = {}) => {
 
 const saveCard = () => saveCardWith();
 
+// Concluir a ação e marcar a seguinte são registo de atividade, não edição da
+// oportunidade: vão só os campos da ação. Um campo que a etapa exige e ainda
+// está vazio não impede ninguém de registar a chamada que fez (em produção, a
+// 09/10, «Concluir» não gravava nada por isso) — e o que estiver por gravar
+// noutros campos da ficha continua por gravar, sem ser enviado nem apagado.
+const gravarAcao = async payload => {
+  if (isSaving.value) return false;
+  saveError.value = '';
+  isSaving.value = true;
+  try {
+    const response = await KanbanBoardsAPI.updateCardDetailsById(
+      props.boardId,
+      props.cardId,
+      payload
+    );
+    const gravado = normalizeCard(response.data || {});
+    const acao = {
+      nextActionType: gravado.nextActionType,
+      nextActionAt: gravado.nextActionAt,
+      nextActionNote: gravado.nextActionNote,
+      nextActionCompletedAt: gravado.nextActionCompletedAt,
+      nextActionHistory: gravado.nextActionHistory,
+    };
+    card.value = { ...card.value, ...acao };
+    nextActionType.value = acao.nextActionType || '';
+    nextActionAt.value = formatDateTimeInput(acao.nextActionAt);
+    nextActionNote.value = acao.nextActionNote || '';
+    formSnapshot.value = JSON.stringify({
+      ...JSON.parse(formSnapshot.value || '{}'),
+      nextActionType: nextActionType.value,
+      nextActionAt: nextActionAt.value,
+      nextActionNote: nextActionNote.value,
+    });
+    emit('updated', gravado);
+    return true;
+  } catch (error) {
+    saveError.value = getErrorMessage(
+      error,
+      t('KANBAN.OPPORTUNITY_DETAILS.SAVE_ERROR')
+    );
+    return false;
+  } finally {
+    isSaving.value = false;
+  }
+};
+
 const iniciarConclusao = () => {
   const tipo = nextActionType.value ? nextActionTypeDisplay.value : '';
   acaoEmConclusao.value = {
@@ -1621,7 +1667,7 @@ const avisarFalhaNaConclusao = () => {
 
 const confirmarConclusao = async resultado => {
   conclusaoErro.value = '';
-  const gravou = await saveCardWith({
+  const gravou = await gravarAcao({
     complete_next_action: true,
     next_action_completed_at: new Date().toISOString(),
     ...(resultado ? { next_action_completion_note: resultado } : {}),
@@ -1632,17 +1678,15 @@ const confirmarConclusao = async resultado => {
 
 const salvarProximaAcao = async ({ type, at, note }) => {
   conclusaoErro.value = '';
-  nextActionType.value = type;
-  nextActionAt.value = at;
-  nextActionNote.value = note;
-  if (await saveCardWith()) {
+  const gravou = await gravarAcao({
+    next_action_type: type || null,
+    next_action_at: toIso8601(at),
+    next_action_note: note?.trim() ? note : null,
+  });
+  if (gravou) {
     etapaConclusao.value = null;
     return;
   }
-  // Não gravou: a ficha volta a não ter próxima ação, como o servidor a deixou.
-  nextActionType.value = '';
-  nextActionAt.value = '';
-  nextActionNote.value = '';
   avisarFalhaNaConclusao();
 };
 
