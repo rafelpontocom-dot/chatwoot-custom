@@ -84,6 +84,18 @@ jobs:
         run: |
           node --test scripts/tests/raevo-upstream-audit.test.mjs
           node scripts/raevo-upstream-audit.mjs --check-contracts
+      # Todo ficheiro nativo do Chatwoot que o Raevo altera tem contrato com teste,
+      # ou está na lista de dívida — que só encolhe. Ver docs/raevo-chatwoot-upstream-maintenance.md.
+      - name: Native Chatwoot files stay inside the upgrade inventory
+        run: |
+          TAG=$(node -p "require('./config/raevo/upstream-contracts.json').upstreamBase")
+          git fetch --no-tags --depth=1 https://github.com/chatwoot/chatwoot.git "refs/tags/$TAG:refs/tags/$TAG"
+          if [ -n "$GITHUB_BASE_REF" ]; then
+            git fetch --no-tags --depth=1 origin "+refs/heads/$GITHUB_BASE_REF:refs/remotes/origin/$GITHUB_BASE_REF"
+            node scripts/raevo-upstream-audit.mjs --check-native-coverage --debt-base "origin/$GITHUB_BASE_REF"
+          else
+            node scripts/raevo-upstream-audit.mjs --check-native-coverage
+          fi
       - name: Design system — nenhuma cor literal no código do Raevo
         run: pnpm run raevo:design
       - name: Design system — tokens de acordo com design-system/raevo.tokens.json

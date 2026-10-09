@@ -14,6 +14,56 @@ Essa divisão preserva o valor das atualizações de segurança e canais do Chat
 - Não acoplar interface Raevo a seletores internos frágeis do dashboard quando uma API ou composable existe.
 - Cobrir todo contrato público novo com request spec e toda regra comercial com service spec.
 
+## Onde mexer: os três anéis
+
+Uma atualização do Chatwoot não apaga dados nem o que vive em ficheiros nossos. O que ela pode levar
+sem conflito é uma mudança **dentro de um ficheiro do Chatwoot**. Por isso, antes de alterar
+comportamento nativo, escolha o anel mais de fora que resolve:
+
+| Anel | O que é | Custo num upgrade |
+| --- | --- | --- |
+| **1. Nosso** | ficheiro que o Chatwoot não tem: módulos Kanban/Agenda/Financeiro, `components-next/raevo/`, serviços, listeners, os JSON de tradução próprios (`kanban.json`, `finance.json`…) | nenhum |
+| **2. Costura** | o ficheiro nativo ganha **um ponto de entrada** de 1–3 linhas — um `<RaevoAlgo />`, um `import`, um `Classe.prepend(Raevo::…)` — e toda a lógica fica no anel 1 | reaplicar 1–3 linhas, que o contrato aponta |
+| **3. Edição** | lógica nossa no meio do ficheiro nativo | resolver à mão, e o upstream pode reescrever sem conflito |
+
+Por camada:
+
+- **Servidor.** Onde a classe chama `prepend_mod_with`, o Chatwoot já procura extensões — inclusive
+  um namespace `Custom::` (`ChatwootApp.extensions`), mas a pasta `custom/` não é carregada por
+  `config/application.rb` e várias classes (`Label`, `LabelPolicy`, `Labels::*Service`) nem chamam
+  o gancho. O caminho de anel 2 é um initializer nosso com `Rails.application.config.to_prepare` que
+  faz `Classe.prepend(Raevo::ClasseExtension)` — zero linhas no ficheiro nativo. Rotas novas vão num
+  ficheiro nosso com `draw(:raevo)`: uma linha em `config/routes.rb`.
+- **Tela.** O componente nativo recebe só o ponto de entrada (`<RaevoConversationExtras />`, um slot,
+  um composable) e a lógica vive em `components-next/raevo/` ou no módulo. Substituir o ficheiro
+  inteiro por alias do Vite é o último recurso: congela a tela e perde as correções do upstream.
+- **Tradução.** Chave nova vai num JSON nosso. Editar `conversation.json` ou `settings.json` do
+  upstream é conflito garantido: o Crowdin reescreve-os em cada versão.
+- **Estilo.** Só tokens (`_raevo-tokens.scss`); markup nativo intocado.
+
+Anel 3 continua permitido quando não há costura possível — mas nasce com contrato e teste de
+comportamento, e é candidato a descer para o anel 2.
+
+## A porta do inventário
+
+`node scripts/raevo-upstream-audit.mjs --check-native-coverage` corre no CI (`custom_checks.yml`,
+job `lint-frontend`). Compara a árvore com a tag oficial em `upstreamBase`
+(`config/raevo/upstream-contracts.json`) e exige que **cada ficheiro nativo alterado ou apagado**
+esteja numa de três listas:
+
+1. **um contrato** em `upstream-contracts.json`, com teste que falha se a mudança se perder;
+2. **`regenerated`** — `Gemfile.lock`, `pnpm-lock.yaml`, `db/schema.rb`, que se regeneram com a
+   ferramenta e não se resolvem à mão;
+3. **a dívida** em `config/raevo/upstream-debt.json` — os ficheiros que já estavam alterados sem
+   contrato quando a porta nasceu (188 a 09/10/2026).
+
+A dívida **só encolhe**. Num PR, a porta compara-a com a do ramo base e recusa entradas novas;
+recusa também entradas que já têm contrato ou que deixaram de diferir do upstream. Ficheiro nativo
+novo, portanto, só entra com contrato.
+
+**No upgrade:** muda-se `upstreamBase` para a tag nova no mesmo PR do merge. A porta passa a medir
+contra ela; o que o upstream tiver absorvido sai da dívida.
+
 ## Ciclo de atualização
 
 1. Adicionar ou atualizar o remoto `upstream` para `chatwoot/chatwoot`.

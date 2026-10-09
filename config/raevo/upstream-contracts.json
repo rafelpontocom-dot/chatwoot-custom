@@ -1,5 +1,11 @@
 {
   "version": 1,
+  "upstreamBase": "v4.18.0",
+  "regenerated": [
+    "Gemfile.lock",
+    "db/schema.rb",
+    "pnpm-lock.yaml"
+  ],
   "contracts": [
     {
       "id": "contact-addressing-visibility",
