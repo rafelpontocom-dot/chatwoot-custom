@@ -1633,7 +1633,10 @@
         "PHONE_REQUIRED": "O telefone é obrigatório.",
         "CREATE": "Criar contacto",
         "CREATING": "A criar...",
-        "ERROR": "Não foi possível criar o contacto. Tente novamente."
+        "ERROR": "Não foi possível criar o contacto. Tente novamente.",
+        "OPEN": "Contacto novo",
+        "SAVED_AS": "Fica gravado como {number}",
+        "PHONE_EXAMPLE": "Exemplo: {example}"
       }
     },
     "CARD": {

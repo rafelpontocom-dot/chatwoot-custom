@@ -1626,7 +1626,10 @@
         "PHONE_REQUIRED": "A phone number is required.",
         "CREATE": "Create contact",
         "CREATING": "Creating...",
-        "ERROR": "The contact could not be created. Try again."
+        "ERROR": "The contact could not be created. Try again.",
+        "OPEN": "New contact",
+        "SAVED_AS": "Saved as {number}",
+        "PHONE_EXAMPLE": "Example: {example}"
       }
     },
     "CARD": {

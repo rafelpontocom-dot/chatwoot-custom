@@ -2,7 +2,8 @@
 import { computed, nextTick, ref, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import camelcaseKeys from 'camelcase-keys';
-import parsePhoneNumber from 'libphonenumber-js';
+import parsePhoneNumber, { getExampleNumber } from 'libphonenumber-js';
+import phoneExamples from 'libphonenumber-js/examples.mobile.json';
 import countries from 'shared/constants/countries';
 import { getActiveCountryCode } from 'shared/components/PhoneInput/helper';
 import { debounce } from '@chatwoot/utils';
@@ -51,6 +52,40 @@ const novoContactoPais = ref(
 );
 const novoContactoErro = ref('');
 const estaACriarContacto = ref(false);
+// 123jpnbcg1e: o formulário só aparecia depois de uma pesquisa sem resultados.
+// Agora abre-se a qualquer momento; o que se escreveu na pesquisa vem junto.
+const novoContactoAberto = ref(false);
+const PARECE_TELEFONE = /^\+?[\d\s().-]{6,}$/;
+const telefoneNovo = computed(() => {
+  const telefone = novoContactoTelefone.value.trim();
+  if (!telefone) return null;
+  const phone = parsePhoneNumber(telefone, {
+    defaultCountry: novoContactoPais.value,
+    extract: false,
+  });
+  return phone?.isValid() ? phone : null;
+});
+// O exemplo do país escolhido, e, quando o número vale, como fica gravado:
+// `+5581912345678` é o formato em que o Chatwoot reconhece o contato.
+const dicaTelefone = computed(() => {
+  if (telefoneNovo.value) {
+    return t('KANBAN.ADD_ITEM.NEW_CONTACT.SAVED_AS', {
+      number: telefoneNovo.value.number,
+    });
+  }
+  const exemplo = getExampleNumber(novoContactoPais.value, phoneExamples);
+  return exemplo
+    ? t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_EXAMPLE', {
+        example: exemplo.formatInternational(),
+      })
+    : t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_HINT');
+});
+const formatarTelefoneNovo = () => {
+  const phone = telefoneNovo.value;
+  if (!phone) return;
+  if (phone.country) novoContactoPais.value = phone.country;
+  novoContactoTelefone.value = phone.formatInternational();
+};
 const pickerRevision = ref(0);
 const phoneCountries = computed(() => {
   const displayNames = new Intl.DisplayNames(
@@ -65,6 +100,23 @@ const phoneCountries = computed(() => {
 const contactSearchError = ref(false);
 const contactSearchController = ref(null);
 const contactSearchMinimumLength = 3;
+const mostraContactoNovo = computed(
+  () =>
+    novoContactoAberto.value ||
+    (hasSearchedContacts.value &&
+      !isSearchingContacts.value &&
+      !contactSearchError.value &&
+      !contactSearchResults.value.length)
+);
+const abrirContactoNovo = () => {
+  const pesquisa = contactSearchQuery.value.trim();
+  if (PARECE_TELEFONE.test(pesquisa)) {
+    novoContactoTelefone.value ||= pesquisa;
+  } else if (pesquisa) {
+    novoContactoNome.value ||= pesquisa;
+  }
+  novoContactoAberto.value = true;
+};
 
 const contactableInboxes = ref([]);
 const isLoadingInboxes = ref(false);
@@ -143,7 +195,11 @@ const searchContacts = async query => {
 
     contactSearchResults.value = camelcaseKeys(payload || [], { deep: true });
     if (!contactSearchResults.value.length) {
-      novoContactoNome.value = trimmedQuery;
+      if (PARECE_TELEFONE.test(trimmedQuery)) {
+        novoContactoTelefone.value = trimmedQuery;
+      } else {
+        novoContactoNome.value = trimmedQuery;
+      }
     }
   } catch (error) {
     if (!isAbortError(error)) {
@@ -201,6 +257,7 @@ const defaultSubjectFor = contact => contactDisplayName(contact);
 
 const onContactSearchInput = () => {
   pickerRevision.value += 1;
+  novoContactoAberto.value = false;
   novoContactoNome.value = '';
   novoContactoTelefone.value = '';
   novoContactoErro.value = '';
@@ -224,6 +281,7 @@ const onContactSearchInput = () => {
 
 const resetPicker = () => {
   pickerRevision.value += 1;
+  novoContactoAberto.value = false;
   novoContactoNome.value = '';
   novoContactoTelefone.value = '';
   novoContactoErro.value = '';
@@ -395,6 +453,7 @@ const criarContactoEContinuar = async () => {
       phone_number: phone.number,
     });
     if (revision !== pickerRevision.value) return;
+    novoContactoAberto.value = false;
     novoContactoNome.value = '';
     novoContactoTelefone.value = '';
     selectContact(camelcaseKeys(contact, { deep: true }));
@@ -793,15 +852,24 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <div
+      <p
         v-else-if="hasSearchedContacts"
         data-testid="kanban-contact-search-empty"
-        class="grid gap-3"
+        class="mb-0 text-sm text-n-slate-11"
       >
-        <p class="mb-0 text-sm text-n-slate-11">
-          {{ t('KANBAN.ADD_ITEM.NO_CONTACTS') }}
-        </p>
-        <div class="grid gap-3 rounded-lg border border-n-weak p-3">
+        {{ t('KANBAN.ADD_ITEM.NO_CONTACTS') }}
+      </p>
+
+      <!--
+        123jpnbcg1e: o contato novo deixou de esperar por uma pesquisa vazia —
+        a pessoa pode não estar entre os resultados, ou nem ter sido procurada.
+      -->
+      <template v-if="!selectedContact">
+        <div
+          v-if="mostraContactoNovo"
+          data-testid="kanban-new-contact-form"
+          class="mt-3 grid gap-3 rounded-lg border border-n-weak p-3"
+        >
           <RaevoField compact :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.NAME')">
             <template #default="{ controlClass, fieldId }">
               <input
@@ -840,7 +908,7 @@ onUnmounted(() => {
             compact
             required
             :label="t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE')"
-            :hint="t('KANBAN.ADD_ITEM.NEW_CONTACT.PHONE_HINT')"
+            :hint="dicaTelefone"
             :error="novoContactoErro"
           >
             <template #default="{ controlClass, fieldId }">
@@ -849,15 +917,17 @@ onUnmounted(() => {
                 v-model="novoContactoTelefone"
                 type="tel"
                 inputmode="tel"
+                autocomplete="tel"
                 :class="controlClass"
                 data-testid="kanban-new-contact-phone"
+                @blur="formatarTelefoneNovo"
               />
             </template>
           </RaevoField>
           <button
             type="button"
             data-testid="kanban-new-contact-create"
-            class="flex min-h-9 items-center justify-center justify-self-start rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex min-h-9 items-center justify-center justify-self-start rounded-lg bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="estaACriarContacto"
             @click="criarContactoEContinuar"
           >
@@ -868,7 +938,17 @@ onUnmounted(() => {
             }}
           </button>
         </div>
-      </div>
+        <button
+          v-else
+          type="button"
+          data-testid="kanban-new-contact-open"
+          class="mt-2 flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+          @click="abrirContactoNovo"
+        >
+          <i aria-hidden="true" class="i-lucide-user-plus size-4" />
+          {{ t('KANBAN.ADD_ITEM.NEW_CONTACT.OPEN') }}
+        </button>
+      </template>
     </div>
   </div>
 </template>

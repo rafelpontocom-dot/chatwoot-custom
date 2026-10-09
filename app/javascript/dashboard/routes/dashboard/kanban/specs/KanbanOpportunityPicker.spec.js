@@ -13,6 +13,7 @@ vi.mock('vue-i18n', () => ({
       const translations = {
         'KANBAN.ADD_ITEM.CONTACT_FALLBACK': 'Contact #{id}',
         'KANBAN.ADD_ITEM.INBOX_FALLBACK': 'Inbox #{id}',
+        'KANBAN.ADD_ITEM.NEW_CONTACT.SAVED_AS': 'Saved as {number}',
       };
 
       return Object.entries(params).reduce(
@@ -122,6 +123,77 @@ describe('KanbanOpportunityPicker', () => {
       vi.advanceTimersByTime(600);
       await flushPromises();
     };
+
+    // 123jpnbcg1e: o formulário só aparecia depois de uma pesquisa vazia.
+    it('offers a new contact before any search, with the typed name', async () => {
+      const wrapper = mountPicker();
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-phone"]').exists()
+      ).toBe(false);
+
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('Ri');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-name"]').element.value
+      ).toBe('Ri');
+    });
+
+    it('puts a number typed in the search in the phone field', async () => {
+      // Relógio falso: a pesquisa com atraso não pode cair no teste seguinte.
+      vi.useFakeTimers();
+      const wrapper = mountPicker();
+      await wrapper
+        .find('[data-testid="kanban-contact-search-input"]')
+        .setValue('81 91234-5678');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-phone"]').element.value
+      ).toBe('81 91234-5678');
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-name"]').element.value
+      ).toBe('');
+    });
+
+    it('shows how the phone will be saved, in the format Chatwoot reads', async () => {
+      const wrapper = mountPicker();
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-country"]')
+        .setValue('BR');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-phone"]')
+        .setValue('81 91234-5678');
+
+      expect(wrapper.text()).toContain('Saved as +5581912345678');
+    });
+
+    it('formats the phone on leaving it and follows the country of a + number', async () => {
+      const wrapper = mountPicker();
+      await wrapper
+        .find('[data-testid="kanban-new-contact-open"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="kanban-new-contact-country"]')
+        .setValue('BR');
+      const phone = wrapper.find('[data-testid="kanban-new-contact-phone"]');
+      await phone.setValue('+351912345678');
+      await phone.trigger('blur');
+
+      expect(
+        wrapper.find('[data-testid="kanban-new-contact-country"]').element.value
+      ).toBe('PT');
+      expect(phone.element.value).toBe('+351 912 345 678');
+    });
 
     it('offers the form where the search came back empty', async () => {
       vi.useFakeTimers();
