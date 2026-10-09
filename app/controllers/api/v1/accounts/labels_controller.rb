@@ -72,7 +72,11 @@ class Api::V1::Accounts::LabelsController < Api::V1::Accounts::BaseController
   end
 
   def label_attributes(current: nil)
-    permitted_params.to_h.symbolize_keys.merge(clamped_visibility(current: current))
+    atributos = permitted_params.to_h.symbolize_keys.merge(clamped_visibility(current: current))
+    # «Somente eu» é quem faz a mudança. As etiquetas anteriores à visibilidade
+    # não têm autor, e uma pessoal precisa de um (09/10: dava «Ocorreu um erro»).
+    atributos[:created_by] = Current.user if atributos[:visibility].to_s == 'personal'
+    atributos
   end
 
   # «Só o administrador cria de todos; o agente cria só para ele» — decisão do

@@ -131,6 +131,22 @@ RSpec.describe 'Label API', type: :request do
       expect(Label.find_by(title: 'de-todos')).to have_attributes(visibility: 'global', created_by_id: admin.id)
     end
 
+    # 09/10: as etiquetas que existiam antes da visibilidade não têm autor, e uma
+    # pessoal precisa de um. Mudar uma delas para «Somente eu» dava «Ocorreu um
+    # erro». «Somente eu» é quem faz a mudança: passa a ser dela.
+    it 'lets an administrator make an old global label personal, and it becomes theirs' do
+      admin = create(:user, account: account, role: :administrator)
+      antiga = create(:label, account: account, visibility: :global, created_by: nil)
+
+      patch "/api/v1/accounts/#{account.id}/labels/#{antiga.id}",
+            headers: admin.create_new_auth_token, params: { visibility: 'personal' }, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(antiga.reload).to have_attributes(visibility: 'personal', created_by_id: admin.id)
+      expect(labels_for(admin)).to include(antiga.title)
+      expect(labels_for(owner)).not_to include(antiga.title)
+    end
+
     it 'lets an administrator create a label for one team' do
       admin = create(:user, account: account, role: :administrator)
 
