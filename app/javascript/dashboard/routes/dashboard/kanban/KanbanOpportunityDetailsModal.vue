@@ -15,6 +15,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
+import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
 import { isRequiredFieldEmpty } from 'dashboard/helper/kanbanRequiredFields';
 import RaevoTimeline from 'dashboard/components-next/raevo/RaevoTimeline.vue';
 import { getRandomColor } from 'dashboard/helper/labelColor';
@@ -33,6 +34,7 @@ import {
   RAEVO_AI_FIELD_LABEL_KEYS,
 } from './raevoAiOpportunityDisplay';
 import KanbanOpportunityPipelineMenu from './KanbanOpportunityPipelineMenu.vue';
+import KanbanNextActionCompletion from './KanbanNextActionCompletion.vue';
 import FinancePaymentDialog from '../finance/FinancePaymentDialog.vue';
 import FinancePaymentDetailsDialog from '../finance/FinancePaymentDetailsDialog.vue';
 import FormsInvitationDialog from '../forms/FormsInvitationDialog.vue';
@@ -201,6 +203,10 @@ const isLoadingLabels = ref(false);
 const isSavingLabels = ref(false);
 const loadError = ref('');
 const saveError = ref('');
+// RAEVO (09/10, 123jpnbcb5h): concluir a ação em dois passos — null | 'result' | 'next'.
+const etapaConclusao = ref(null);
+const conclusaoErro = ref('');
+const acaoEmConclusao = ref({ label: '', note: '', type: '' });
 const formSnapshot = ref('');
 const showUnsavedChanges = ref(false);
 const keepEditingButton = ref(null);
@@ -552,8 +558,12 @@ const rotuloDaOpcao = (opcoes, valor) =>
 const ownerDisplay = computed(() =>
   rotuloDaOpcao(props.ownerOptions || [], ownerId.value)
 );
+// Sem tipo, a linha diz «—» como as outras; o rótulo da opção vazia
+// («Selecionar ação») lia-se como um valor.
 const nextActionTypeDisplay = computed(() =>
-  rotuloDaOpcao(nextActionTypeOptions.value, nextActionType.value)
+  nextActionType.value
+    ? rotuloDaOpcao(nextActionTypeOptions.value, nextActionType.value)
+    : ''
 );
 const dataLocal = valor => {
   if (!valor) return '';
@@ -1529,7 +1539,7 @@ const buildCardPayload = extraPayload => ({
 });
 
 const saveCardWith = async (extraPayload = {}) => {
-  if (isSaving.value) return;
+  if (isSaving.value) return false;
 
   const trimmedSubject = subject.value.trim();
   subjectError.value = '';
@@ -1537,14 +1547,14 @@ const saveCardWith = async (extraPayload = {}) => {
 
   if (!trimmedSubject) {
     subjectError.value = t('KANBAN.OPPORTUNITY_DETAILS.REQUIRED_TITLE');
-    return;
+    return false;
   }
 
   if (selectedStageIsLost.value && !String(lostReason.value || '').trim()) {
     lostReasonError.value = t(
       'KANBAN.OPPORTUNITY_DETAILS.LOST_REASON_REQUIRED'
     );
-    return;
+    return false;
   }
 
   if (missingRequiredDefinitions.value.length) {
@@ -1555,7 +1565,7 @@ const saveCardWith = async (extraPayload = {}) => {
         .join(', '),
     });
     await revelarCamposEmFalta();
-    return;
+    return false;
   }
 
   isSaving.value = true;
@@ -1569,11 +1579,13 @@ const saveCardWith = async (extraPayload = {}) => {
     const updatedCard = normalizeCard(response.data || {});
     setFormState(updatedCard);
     emit('updated', updatedCard);
+    return true;
   } catch (error) {
     saveError.value = getErrorMessage(
       error,
       t('KANBAN.OPPORTUNITY_DETAILS.SAVE_ERROR')
     );
+    return false;
   } finally {
     isSaving.value = false;
   }
@@ -1581,11 +1593,68 @@ const saveCardWith = async (extraPayload = {}) => {
 
 const saveCard = () => saveCardWith();
 
-const completeNextAction = () =>
-  saveCardWith({
+const iniciarConclusao = () => {
+  const tipo = nextActionType.value ? nextActionTypeDisplay.value : '';
+  acaoEmConclusao.value = {
+    label: [tipo, nextActionAtDisplay.value].filter(Boolean).join(' · '),
+    note: nextActionNote.value,
+    type: tipo,
+  };
+  conclusaoErro.value = '';
+  etapaConclusao.value = 'result';
+};
+
+// Junto do botão que falhou diz-se que o texto ficou; o motivo concreto (campo
+// obrigatório, resposta do servidor) continua no rodapé da ficha, como em
+// qualquer outra gravação.
+const avisarFalhaNaConclusao = () => {
+  conclusaoErro.value = t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.ERROR');
+};
+
+const confirmarConclusao = async resultado => {
+  conclusaoErro.value = '';
+  const gravou = await saveCardWith({
     complete_next_action: true,
     next_action_completed_at: new Date().toISOString(),
+    ...(resultado ? { next_action_completion_note: resultado } : {}),
   });
+  if (gravou) etapaConclusao.value = 'next';
+  else avisarFalhaNaConclusao();
+};
+
+const salvarProximaAcao = async ({ type, at, note }) => {
+  conclusaoErro.value = '';
+  nextActionType.value = type;
+  nextActionAt.value = at;
+  nextActionNote.value = note;
+  if (await saveCardWith()) {
+    etapaConclusao.value = null;
+    return;
+  }
+  // Não gravou: a ficha volta a não ter próxima ação, como o servidor a deixou.
+  nextActionType.value = '';
+  nextActionAt.value = '';
+  nextActionNote.value = '';
+  avisarFalhaNaConclusao();
+};
+
+// Estado vazio da maquete: nada marcado no que está gravado.
+const semProximaAcao = computed(
+  () =>
+    !card.value?.nextActionAt &&
+    !card.value?.nextActionType &&
+    !card.value?.nextActionNote
+);
+
+const marcarProximaAcao = () => {
+  conclusaoErro.value = '';
+  etapaConclusao.value = 'schedule';
+};
+
+const fecharConclusao = () => {
+  etapaConclusao.value = null;
+  conclusaoErro.value = '';
+};
 
 const transferPipelineStage = async ({
   boardId,
@@ -2190,8 +2259,49 @@ watch(invitationPendingRevocation, async invitation => {
                   data-testid="kanban-opportunity-next-action-section"
                   class="grid gap-2"
                 >
+                  <KanbanNextActionCompletion
+                    v-if="etapaConclusao"
+                    :step="etapaConclusao"
+                    :action-label="acaoEmConclusao.label"
+                    :action-note="acaoEmConclusao.note"
+                    :action-type="acaoEmConclusao.type"
+                    :type-options="nextActionTypeOptions"
+                    :saving="isSaving"
+                    :error="conclusaoErro"
+                    @cancel="fecharConclusao"
+                    @confirm="confirmarConclusao"
+                    @save-next="salvarProximaAcao"
+                    @skip-next="fecharConclusao"
+                  />
                   <div
-                    v-if="nextActionAt && !card.nextActionCompletedAt"
+                    v-else-if="semProximaAcao"
+                    data-testid="kanban-opportunity-next-action-empty"
+                    class="grid justify-items-start gap-2"
+                  >
+                    <RaevoStamp
+                      variant="warning"
+                      :label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.EMPTY')
+                      "
+                    />
+                    <p class="mb-0 text-sm text-n-slate-11">
+                      {{
+                        t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.EMPTY_HINT')
+                      }}
+                    </p>
+                    <NextButton
+                      type="button"
+                      sm
+                      data-testid="kanban-opportunity-schedule-next-action"
+                      :label="
+                        t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.SCHEDULE')
+                      "
+                      :disabled="isSaving"
+                      @click="marcarProximaAcao"
+                    />
+                  </div>
+                  <div
+                    v-else-if="nextActionAt && !card.nextActionCompletedAt"
                     class="flex items-center justify-end gap-3"
                   >
                     <NextButton
@@ -2206,10 +2316,10 @@ watch(invitationPendingRevocation, async invitation => {
                         t('KANBAN.OPPORTUNITY_DETAILS.COMPLETE_NEXT_ACTION')
                       "
                       :disabled="isSaving"
-                      @click="completeNextAction"
+                      @click="iniciarConclusao"
                     />
                   </div>
-                  <div class="grid">
+                  <div v-if="!etapaConclusao && !semProximaAcao" class="grid">
                     <div class="grid">
                       <RaevoFieldRow
                         stacked
@@ -2298,6 +2408,13 @@ watch(invitationPendingRevocation, async invitation => {
                       <span v-if="historyItem.note">{{
                         historyItem.note
                       }}</span>
+                      <span
+                        v-if="historyItem.completion_note"
+                        data-testid="kanban-opportunity-next-action-result"
+                        class="break-words text-n-slate-12"
+                      >
+                        {{ historyItem.completion_note }}
+                      </span>
                     </div>
                   </div>
                 </section>

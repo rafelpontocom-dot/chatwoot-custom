@@ -143,6 +143,11 @@ vi.mock('vue-i18n', () => ({
         'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.KEEP_EDITING':
           'Keep editing',
         'KANBAN.OPPORTUNITY_DETAILS.UNSAVED_CHANGES.DISCARD': 'Discard',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.QUICK_ANSWERED': 'Answered',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.DONE': '{type} completed',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.ERROR':
+          'Could not complete. What you wrote is still here.',
+        'KANBAN.OPPORTUNITY_DETAILS.COMPLETE_FLOW.RETRY': 'Try again',
       };
 
       return Object.entries(params).reduce(
@@ -1810,16 +1815,30 @@ describe('KanbanOpportunityDetailsModal', () => {
     );
   });
 
+  // RAEVO 5h: concluir pergunta «Como foi?» antes de gravar, e abre logo a
+  // próxima ação. O clique no botão já não grava sozinho.
+  const concluirAcao = async (wrapper, resultado = '') => {
+    await wrapper
+      .find('[data-testid="kanban-opportunity-complete-next-action"]')
+      .trigger('click');
+    if (resultado) {
+      await wrapper
+        .find('[data-testid="kanban-completion-result"]')
+        .setValue(resultado);
+    }
+    await wrapper
+      .find('[data-testid="kanban-completion-confirm"]')
+      .trigger('click');
+    await flushPromises();
+  };
+
   it('marks the current next action as completed', async () => {
     KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
       data: buildCard({ nextActionCompletedAt: '2026-07-21T16:00:00.000Z' }),
     });
     const wrapper = await mountModal();
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-complete-next-action"]')
-      .trigger('click');
-    await flushPromises();
+    await concluirAcao(wrapper);
 
     expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
       10,
@@ -1829,6 +1848,249 @@ describe('KanbanOpportunityDetailsModal', () => {
         complete_next_action: true,
       })
     );
+  });
+
+  it('asks how the action went before completing it', async () => {
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-complete-next-action"]')
+      .trigger('click');
+    await flushPromises();
+
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('result');
+    expect(
+      fluxo.find('[data-testid="kanban-completion-action"]').text()
+    ).toContain('Enviar proposta');
+    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-at"]').exists()
+    ).toBe(false);
+  });
+
+  it('sends the result written with the quick answer to the history', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({ nextActionCompletedAt: '2026-07-21T16:00:00.000Z' }),
+    });
+    const wrapper = await mountModal();
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-complete-next-action"]')
+      .trigger('click');
+    const atendeu = wrapper.find(
+      '[data-testid="kanban-completion-quick-answered"]'
+    );
+    await atendeu.trigger('click');
+    expect(atendeu.attributes('aria-pressed')).toBe('true');
+    const resultado = wrapper.find('[data-testid="kanban-completion-result"]');
+    await resultado.setValue(
+      `${resultado.element.value}Quer avaliar na sexta.`
+    );
+    await wrapper
+      .find('[data-testid="kanban-completion-confirm"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).toMatchObject({
+      complete_next_action: true,
+      next_action_completion_note: 'Answered. Quer avaliar na sexta.',
+    });
+  });
+
+  it('opens the next action right after completing and saves it', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValueOnce({
+      data: buildCard({
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValueOnce({
+      data: buildCard({
+        nextActionType: 'Ligar',
+        nextActionAt: '2026-10-10T12:00:00.000Z',
+        nextActionNote: 'Confirmar presença na véspera.',
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper);
+
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('next');
+    expect(fluxo.find('[data-testid="kanban-completion-done"]').text()).toBe(
+      'Enviar proposta completed'
+    );
+
+    const tipo = fluxo.find('[data-testid="kanban-completion-next-type"]');
+    const primeiroTipo = tipo
+      .findAll('option')
+      .map(option => option.element.value)
+      .find(Boolean);
+    await tipo.setValue(primeiroTipo);
+    await fluxo
+      .find('[data-testid="kanban-completion-next-at"]')
+      .setValue('2026-10-10T09:00');
+    await fluxo
+      .find('[data-testid="kanban-completion-next-note"]')
+      .setValue('Confirmar presença na véspera.');
+    await fluxo
+      .find('[data-testid="kanban-completion-save-next"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledTimes(2);
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).toMatchObject({
+      next_action_type: primeiroTipo,
+      next_action_at: expect.any(String),
+      next_action_note: 'Confirmar presença na véspera.',
+    });
+    expect(
+      KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2]
+    ).not.toHaveProperty('complete_next_action');
+    expect(
+      wrapper.find('[data-testid="kanban-next-action-completion"]').exists()
+    ).toBe(false);
+  });
+
+  it('closes without saving again when there is no next action', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        nextActionCompletedAt: '2026-07-21T16:00:00.000Z',
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper);
+    await wrapper
+      .find('[data-testid="kanban-completion-skip"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledTimes(1);
+    expect(
+      wrapper.find('[data-testid="kanban-next-action-completion"]').exists()
+    ).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-next-action-empty"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('says there is no action set and opens the form to set one', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockResolvedValue({
+      data: buildCard({
+        nextActionType: 'Ligar',
+        nextActionAt: '2026-10-10T12:00:00.000Z',
+      }),
+    });
+    const wrapper = await mountModal({
+      card: buildCard({
+        nextActionType: null,
+        nextActionAt: null,
+        nextActionNote: null,
+      }),
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-next-action-empty"]')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-at"]').exists()
+    ).toBe(false);
+
+    await wrapper
+      .find('[data-testid="kanban-opportunity-schedule-next-action"]')
+      .trigger('click');
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('schedule');
+    expect(fluxo.find('[data-testid="kanban-completion-done"]').exists()).toBe(
+      false
+    );
+    expect(fluxo.find('[data-testid="kanban-completion-skip"]').exists()).toBe(
+      false
+    );
+
+    await fluxo
+      .find('[data-testid="kanban-completion-next-at"]')
+      .setValue('2026-10-10T09:00');
+    await fluxo
+      .find('[data-testid="kanban-completion-save-next"]')
+      .trigger('click');
+    await flushPromises();
+
+    const payload = KanbanBoardsAPI.updateCardDetailsById.mock.calls.at(-1)[2];
+    expect(payload).toMatchObject({ next_action_at: expect.any(String) });
+    expect(payload).not.toHaveProperty('complete_next_action');
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-at"]').exists()
+    ).toBe(true);
+  });
+
+  it('does not read the empty type option as the action type', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({ nextActionType: null }),
+    });
+
+    expect(
+      wrapper.find('[data-testid="kanban-row-next-action-type"]').text()
+    ).not.toContain('Select action');
+  });
+
+  it('keeps the written result and explains when completing fails', async () => {
+    KanbanBoardsAPI.updateCardDetailsById.mockRejectedValue(
+      new Error('Network Error')
+    );
+    const wrapper = await mountModal();
+
+    await concluirAcao(wrapper, 'Não atendeu. Caixa de mensagens.');
+
+    const fluxo = wrapper.find('[data-testid="kanban-next-action-completion"]');
+    expect(fluxo.attributes('data-step')).toBe('result');
+    expect(
+      fluxo.find('[data-testid="kanban-completion-result"]').element.value
+    ).toBe('Não atendeu. Caixa de mensagens.');
+    expect(fluxo.find('[role="alert"]').text()).toBe(
+      'Could not complete. What you wrote is still here.'
+    );
+    // O motivo concreto continua no rodapé da ficha.
+    expect(wrapper.text()).toContain('Network Error');
+    expect(fluxo.find('[data-testid="kanban-completion-confirm"]').text()).toBe(
+      'Try again'
+    );
+  });
+
+  it('shows the result of each completed action in the history', async () => {
+    const wrapper = await mountModal({
+      card: buildCard({
+        nextActionHistory: [
+          {
+            type: 'Ligar',
+            note: 'Confirmar avaliação',
+            completed_at: '2026-10-08T13:12:00.000Z',
+            completion_note: 'Atendeu. Quer avaliar na sexta.',
+          },
+        ],
+      }),
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-opportunity-next-action-result"]')
+        .text()
+    ).toBe('Atendeu. Quer avaliar na sexta.');
   });
 
   it('preserves the stored seconds when saving an unchanged next action date', async () => {
@@ -1860,10 +2122,7 @@ describe('KanbanOpportunityDetailsModal', () => {
     });
     const wrapper = await mountModal();
 
-    await wrapper
-      .find('[data-testid="kanban-opportunity-complete-next-action"]')
-      .trigger('click');
-    await flushPromises();
+    await concluirAcao(wrapper);
 
     expect(wrapper.vm.nextActionType).toBe('');
     expect(wrapper.vm.nextActionAt).toBe('');

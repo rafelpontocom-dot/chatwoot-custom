@@ -621,6 +621,31 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    # RAEVO (08/10, 123jpnbcb5h): concluir pede «Como foi?»; o resultado fica no histórico.
+    it 'keeps the result written when the action is completed' do
+      card = create_manual_card(
+        next_action_type: 'call',
+        next_action_at: Time.zone.parse('2026-07-20T18:00:00Z'),
+        next_action_note: 'Ligar para confirmar'
+      )
+
+      patch stable_card_url(card),
+            headers: agent.create_new_auth_token,
+            params: {
+              card: {
+                complete_next_action: true,
+                next_action_completed_at: '2026-07-20T18:10:00.000Z',
+                next_action_completion_note: 'Atendeu. Quer avaliar na sexta.'
+              }
+            },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(card.reload.next_action_history.last).to include(
+        'type' => 'call', 'completion_note' => 'Atendeu. Quer avaliar na sexta.'
+      )
+    end
+
     it 'does not interpret a false completion flag as a request to clear a retrospective action' do
       card = create_manual_card
 
