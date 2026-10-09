@@ -238,6 +238,15 @@
         "app/javascript/dashboard/components-next/NewConversation/components/specs/ComposeNewConversationForm.spec.js",
         "app/javascript/dashboard/components-next/NewConversation/specs/ComposeConversation.spec.js"
       ]
+    },
+    {
+      "id": "agenda-lead-tasks",
+      "paths": [
+        "config/routes.rb"
+      ],
+      "tests": [
+        "spec/controllers/api/v1/accounts/kanban_next_actions_controller_spec.rb"
+      ]
     }
   ]
 }

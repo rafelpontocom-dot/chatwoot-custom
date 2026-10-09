@@ -2,6 +2,10 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import { ref } from 'vue';
 import CalendarView from '../CalendarView.vue';
 import CalendarAPI from 'dashboard/api/calendar';
+import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
+import CalendarDayList from '../CalendarDayList.vue';
+import CalendarTaskChip from '../CalendarTaskChip.vue';
+import CalendarTasksBar from '../CalendarTasksBar.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -32,6 +36,16 @@ vi.mock('dashboard/api/calendar', () => ({
     createAppointment: vi.fn(),
     getSummary: vi.fn(),
   },
+}));
+
+// A conta entra nas ligações das tarefas para a oportunidade.
+vi.mock('dashboard/composables/store', async () => {
+  const { ref: refDeVue } = await import('vue');
+  return { useMapGetter: () => refDeVue(1) };
+});
+
+vi.mock('dashboard/api/kanbanBoards', () => ({
+  default: { getNextActions: vi.fn() },
 }));
 
 const abrirDialogo = vi.fn();
@@ -1118,5 +1132,175 @@ describe('CalendarView', () => {
       .find('[data-testid="calendar-google-notice-dismiss"]')
       .trigger('click');
     expect(trocaRota).toHaveBeenCalledWith({ query: {} });
+  });
+
+  // 5m: as tarefas dos leads (próximas ações das oportunidades) na grelha.
+  describe('lead tasks', () => {
+    const tarefa = (id, hora, extra = {}) => ({
+      kanban_card_id: id,
+      kanban_board_id: 1,
+      kanban_board_name: 'Captação',
+      kanban_stage_name: 'Lead',
+      subject: 'Gina — avaliação',
+      contact_name: 'Gina Torres',
+      next_action_type: 'Ligar',
+      next_action_note: null,
+      next_action_at: `2026-10-07T${hora}:00.000Z`,
+      ...extra,
+    });
+    const atrasadas = {
+      count: 1,
+      count_capped: false,
+      items: [tarefa(9, '08:00')],
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-10-08T12:00:00.000Z'));
+      KanbanBoardsAPI.getNextActions.mockResolvedValue({
+        data: { tasks: [tarefa(1, '10:00')], overdue: atrasadas },
+      });
+    });
+
+    const ligar = async wrapper => {
+      await wrapper
+        .find('[data-testid="calendar-tasks-toggle"]')
+        .setValue(true);
+      await flushPromises();
+    };
+
+    it('stays off until asked, and asks nothing of the server', async () => {
+      const wrapper = mountCalendar();
+      await flushPromises();
+
+      expect(KanbanBoardsAPI.getNextActions).not.toHaveBeenCalled();
+      expect(wrapper.findComponent(CalendarTasksBar).exists()).toBe(false);
+      expect(wrapper.findAllComponents(CalendarTaskChip)).toHaveLength(0);
+    });
+
+    it('brings my tasks of the visible week into their hour', async () => {
+      const wrapper = mountCalendar();
+      await flushPromises();
+      await ligar(wrapper);
+
+      expect(KanbanBoardsAPI.getNextActions).toHaveBeenCalledWith({
+        starts_at: wrapper.vm.visibleRange.startsAt.toISOString(),
+        ends_at: wrapper.vm.visibleRange.endsAt.toISOString(),
+        scope: undefined,
+      });
+      const [chip] = wrapper.findAllComponents(CalendarTaskChip);
+      expect(chip.props('task').kanban_card_id).toBe(1);
+      expect(
+        wrapper.vm.tasksForSlot(new Date('2026-10-07T10:00:00.000Z'), 10)
+      ).toHaveLength(1);
+      expect(wrapper.findComponent(CalendarTasksBar).props('overdue')).toEqual(
+        atrasadas
+      );
+    });
+
+    it('asks for the whole team when chosen', async () => {
+      const wrapper = mountCalendar();
+      await flushPromises();
+      await ligar(wrapper);
+
+      await wrapper
+        .find('[data-testid="calendar-tasks-scope"]')
+        .setValue('team');
+      await flushPromises();
+
+      expect(KanbanBoardsAPI.getNextActions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ scope: 'team' })
+      );
+    });
+
+    // A tarefa e a marcação da mesma hora ficam lado a lado; nenhuma tapa a
+    // outra.
+    it('sits beside an appointment of the same hour', async () => {
+      CalendarAPI.getAppointments.mockResolvedValue({
+        data: [
+          {
+            id: 5,
+            starts_at: '2026-10-07T10:00:00.000Z',
+            ends_at: '2026-10-07T11:00:00.000Z',
+            status: 'scheduled',
+            contact: { name: 'Carla Souza' },
+            procedure: { name: 'Avaliação' },
+            resources: [],
+          },
+        ],
+      });
+      const wrapper = mountCalendar();
+      await flushPromises();
+      await ligar(wrapper);
+
+      const dia = new Date('2026-10-07T10:00:00.000Z');
+      const [marcacao] = wrapper.vm.appointmentsForSlot(dia, 10);
+      const [tarefaNaHora] = wrapper.vm.tasksForSlot(dia, 10);
+      expect(marcacao.estilo).toMatchObject({ left: '0%', width: '50%' });
+      expect(tarefaNaHora.estilo).toMatchObject({ left: '50%', width: '50%' });
+    });
+
+    it('stretches the grid to an evening task', async () => {
+      KanbanBoardsAPI.getNextActions.mockResolvedValue({
+        data: { tasks: [tarefa(2, '19:30')], overdue: atrasadas },
+      });
+      const wrapper = mountCalendar();
+      await flushPromises();
+      await ligar(wrapper);
+
+      expect(wrapper.vm.hourSlots.at(-1)).toBe(19);
+    });
+
+    // No telemóvel a grelha dá lugar à lista do dia escolhido.
+    it('gives phones the chosen day as a list, by hour', async () => {
+      vi.setSystemTime(new Date('2026-10-07T12:00:00.000Z'));
+      CalendarAPI.getAppointments.mockResolvedValue({
+        data: [
+          {
+            id: 5,
+            starts_at: '2026-10-07T10:00:00.000Z',
+            ends_at: '2026-10-07T11:00:00.000Z',
+            status: 'scheduled',
+            contact: { name: 'Carla Souza' },
+            procedure: { name: 'Avaliação' },
+            resources: [],
+          },
+        ],
+      });
+      KanbanBoardsAPI.getNextActions.mockResolvedValue({
+        data: { tasks: [tarefa(1, '09:00')], overdue: atrasadas },
+      });
+      const wrapper = mountCalendar();
+      await flushPromises();
+      await ligar(wrapper);
+
+      const lista = wrapper.findComponent(CalendarDayList);
+      expect(lista.props('items').map(item => item.key)).toEqual([
+        'tarefa-1',
+        'consulta-5',
+      ]);
+
+      lista.vm.$emit('nextDay');
+      await flushPromises();
+      expect(wrapper.vm.selectedDate.getDate()).toBe(8);
+      expect(wrapper.findComponent(CalendarDayList).props('items')).toEqual([]);
+    });
+
+    it('says when the tasks could not load and tries again', async () => {
+      KanbanBoardsAPI.getNextActions.mockRejectedValueOnce(new Error('falhou'));
+      const wrapper = mountCalendar();
+      await flushPromises();
+      await ligar(wrapper);
+
+      const barra = wrapper.findComponent(CalendarTasksBar);
+      expect(barra.props('hasError')).toBe(true);
+      barra.vm.$emit('retry');
+      await flushPromises();
+
+      expect(KanbanBoardsAPI.getNextActions).toHaveBeenCalledTimes(2);
+      expect(wrapper.findComponent(CalendarTasksBar).props('hasError')).toBe(
+        false
+      );
+    });
   });
 });

@@ -1,5 +1,33 @@
 {
   "CALENDAR": {
+    "DAY_LIST": {
+      "LABEL": "Day",
+      "PREVIOUS": "Previous day",
+      "NEXT": "Next day",
+      "EMPTY": "Nothing booked for this day.",
+      "CONTACT_UNTIL": "{contact} · until {time}",
+      "TASK_WHERE": "Task · {board} › {stage}"
+    },
+    "TASKS": {
+      "TITLE": "Lead tasks",
+      "SHOW": "Show lead tasks",
+      "SCOPE": "Tasks of",
+      "SCOPE_MINE": "Only mine",
+      "SCOPE_TEAM": "The whole team",
+      "LEGEND": "Lead task",
+      "BAR_LABEL": "Lead tasks",
+      "LOADING": "Loading tasks… appointments are already on the grid.",
+      "ERROR": "Could not load the tasks. The appointments are correct.",
+      "RETRY": "Try again",
+      "OVERDUE": "{count} overdue task | {count} overdue tasks",
+      "OVERDUE_CAPPED": "More than {count} overdue tasks",
+      "MORE": "+{count}",
+      "ON_DATE": "({date})",
+      "NONE_OVERDUE": "No overdue tasks",
+      "EMPTY": "No lead tasks in this period. The ones you set in the opportunity appear here, on the day and time.",
+      "OPEN": "Task {type} · {contact}, {time}, {where}. Opens the opportunity.",
+      "UNTYPED": "no type"
+    },
     "EYEBROW": "Clinic",
     "TITLE": "Calendar",
     "PREVIOUS": "Previous period",

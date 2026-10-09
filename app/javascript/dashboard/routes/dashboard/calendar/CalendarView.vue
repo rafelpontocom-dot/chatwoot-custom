@@ -16,6 +16,11 @@ import CalendarAppointmentDetailsDialog from './CalendarAppointmentDetailsDialog
 import CalendarEventPopover from './CalendarEventPopover.vue';
 import CalendarQuickCreate from './CalendarQuickCreate.vue';
 import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
+// RAEVO (09/10, 123jpnbcb5m): as tarefas dos leads na Agenda.
+import CalendarDayList from './CalendarDayList.vue';
+import CalendarTaskChip from './CalendarTaskChip.vue';
+import CalendarTasksBar from './CalendarTasksBar.vue';
+import { useAgendaTasks } from './useAgendaTasks';
 
 const { t, locale } = useI18n();
 // Configurar a agenda é de administrador: o atalho não aparece para quem não pode.
@@ -116,6 +121,16 @@ const visibleRange = computed(() => {
   return { startsAt, endsAt };
 });
 
+const {
+  visible: tasksVisible,
+  scope: tasksScope,
+  tasks: agendaTasks,
+  overdue: overdueTasks,
+  isLoading: isLoadingTasks,
+  hasError: tasksError,
+  load: loadTasks,
+} = useAgendaTasks(visibleRange);
+
 const hourSlots = computed(() => {
   const appointmentHours = appointments.value.map(appointment =>
     new Date(appointment.starts_at).getHours()
@@ -132,11 +147,20 @@ const hourSlots = computed(() => {
       return endsAt.getMinutes() ? endsAt.getHours() : endsAt.getHours() - 1;
     })
     .filter(Number.isFinite);
-  const firstHour = Math.min(8, ...appointmentHours.filter(Number.isFinite));
+  // Uma tarefa às 19h também tem de caber na grelha.
+  const taskHours = tasksVisible.value
+    ? agendaTasks.value.map(task => new Date(task.next_action_at).getHours())
+    : [];
+  const firstHour = Math.min(
+    8,
+    ...appointmentHours.filter(Number.isFinite),
+    ...taskHours
+  );
   const lastHour = Math.max(
     17,
     ...appointmentHours.filter(Number.isFinite),
-    ...endHours
+    ...endHours,
+    ...taskHours
   );
 
   return Array.from(
@@ -457,6 +481,14 @@ const busySliceForDay = (block, day) => {
   return fim > inicio ? { inicio, fim } : null;
 };
 
+const TASK_MINUTES = 30;
+const tasksForDay = day =>
+  tasksVisible.value
+    ? agendaTasks.value.filter(task =>
+        isSameDay(new Date(task.next_action_at), day)
+      )
+    : [];
+
 const layoutForDay = day => {
   const consultas = appointments.value
     .filter(appointment => isSameDay(new Date(appointment.starts_at), day))
@@ -480,7 +512,17 @@ const layoutForDay = day => {
       },
     ];
   });
-  const doDia = [...consultas, ...doGoogle].sort(
+  // A tarefa disputa o espaço como uma consulta de meia hora: ao lado da
+  // marcação da mesma hora, e não por cima dela.
+  const tarefas = tasksForDay(day).map(task => {
+    const inicio = minutesOfDay(new Date(task.next_action_at));
+    return {
+      chave: `tarefa-${task.kanban_card_id}`,
+      inicio,
+      fim: inicio + TASK_MINUTES,
+    };
+  });
+  const doDia = [...consultas, ...doGoogle, ...tarefas].sort(
     (first, second) => first.inicio - second.inicio
   );
 
@@ -560,6 +602,28 @@ const appointmentsForSlot = (day, hour) => {
       };
     });
 };
+const tasksForSlot = (day, hour) => {
+  const posicoes = layoutForDay(day);
+
+  return tasksForDay(day)
+    .filter(task => new Date(task.next_action_at).getHours() === hour)
+    .map(task => {
+      const startsAt = new Date(task.next_action_at);
+      const { coluna = 0, colunas = 1 } =
+        posicoes.get(`tarefa-${task.kanban_card_id}`) || {};
+      const largura = 100 / colunas;
+      return {
+        task,
+        estilo: {
+          top: `${(startsAt.getMinutes() / 60) * 100}%`,
+          height: `${(TASK_MINUTES / 60) * 100}%`,
+          minHeight: MIN_APPOINTMENT_HEIGHT,
+          left: `${coluna * largura}%`,
+          width: `${largura}%`,
+        },
+      };
+    });
+};
 const appointmentsForDay = day =>
   appointments.value.filter(appointment => {
     const startsAt = new Date(appointment.starts_at);
@@ -581,6 +645,36 @@ const formatTime = value =>
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+
+// O telemóvel (5m): o dia escolhido numa lista, marcações e tarefas pela hora.
+const phoneDayLabel = computed(() =>
+  new Intl.DateTimeFormat(intlLocale.value, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+  }).format(selectedDate.value)
+);
+const phoneDayItems = computed(() =>
+  [
+    ...appointmentsForDay(selectedDate.value).map(appointment => ({
+      kind: 'appointment',
+      key: `consulta-${appointment.id}`,
+      at: new Date(appointment.starts_at),
+      time: formatTime(appointment.starts_at),
+      endsAt: appointment.ends_at ? formatTime(appointment.ends_at) : '',
+      appointment,
+      toneClass: appointmentToneClass(appointment),
+      accent: appointmentAccent(appointment),
+    })),
+    ...tasksForDay(selectedDate.value).map(task => ({
+      kind: 'task',
+      key: `tarefa-${task.kanban_card_id}`,
+      at: new Date(task.next_action_at),
+      time: formatTime(task.next_action_at),
+      task,
+    })),
+  ].sort((first, second) => first.at - second.at)
+);
 
 // De qual agenda veio o horário ocupado. Google e Feegow dividem a mesma grade;
 // «Ocupado» sozinho não diz onde ir mudar aquilo.
@@ -1111,6 +1205,36 @@ onMounted(() => {
       />
     </div>
 
+    <!--
+      Abaixo de 1024px a coluna lateral não existe: o interruptor das tarefas
+      vive aqui, como os indicadores vivem na banda de cima.
+    -->
+    <div
+      data-testid="calendar-tasks-filter-compact"
+      class="flex min-h-11 flex-wrap items-center gap-x-4 gap-y-1 border-b border-n-weak px-4 py-1 lg:hidden"
+    >
+      <label
+        class="flex cursor-pointer items-center gap-2 text-sm text-n-slate-12"
+      >
+        <input
+          v-model="tasksVisible"
+          type="checkbox"
+          data-testid="calendar-tasks-toggle-compact"
+          class="size-4 rounded border-n-strong text-n-brand focus-visible:ring-2 focus-visible:ring-n-brand"
+        />
+        {{ t('CALENDAR.TASKS.SHOW') }}
+      </label>
+      <select
+        v-if="tasksVisible"
+        v-model="tasksScope"
+        :aria-label="t('CALENDAR.TASKS.SCOPE')"
+        data-testid="calendar-tasks-scope-compact"
+        :class="RAEVO_SELECT_STANDALONE_CLASS"
+      >
+        <option value="mine">{{ t('CALENDAR.TASKS.SCOPE_MINE') }}</option>
+        <option value="team">{{ t('CALENDAR.TASKS.SCOPE_TEAM') }}</option>
+      </select>
+    </div>
     <div
       v-if="googleCalendarNotice"
       data-testid="calendar-google-notice"
@@ -1200,6 +1324,53 @@ onMounted(() => {
           </p>
         </div>
 
+        <!--
+          RAEVO (09/10, 123jpnbcb5m): as tarefas dos leads. Desligadas por
+          omissão e, ligadas, só as minhas (aprovação de 08/10).
+        -->
+        <div data-testid="calendar-tasks-filter" class="shrink-0">
+          <p class="mb-1.5 text-xs font-semibold text-n-slate-12">
+            {{ t('CALENDAR.TASKS.TITLE') }}
+          </p>
+          <label
+            class="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1.5 text-xs text-n-slate-11 hover:bg-n-alpha-1"
+          >
+            <input
+              v-model="tasksVisible"
+              type="checkbox"
+              data-testid="calendar-tasks-toggle"
+              class="size-3.5 rounded border-n-strong text-n-brand focus-visible:ring-2 focus-visible:ring-n-brand"
+            />
+            {{ t('CALENDAR.TASKS.SHOW') }}
+          </label>
+          <template v-if="tasksVisible">
+            <label
+              class="mb-1 mt-2 block px-1 text-xs text-n-slate-11"
+              for="calendar-tasks-scope"
+            >
+              {{ t('CALENDAR.TASKS.SCOPE') }}
+            </label>
+            <select
+              id="calendar-tasks-scope"
+              v-model="tasksScope"
+              data-testid="calendar-tasks-scope"
+              class="w-full"
+              :class="RAEVO_SELECT_STANDALONE_CLASS"
+            >
+              <option value="mine">{{ t('CALENDAR.TASKS.SCOPE_MINE') }}</option>
+              <option value="team">{{ t('CALENDAR.TASKS.SCOPE_TEAM') }}</option>
+            </select>
+            <p
+              class="mb-0 mt-2 flex items-center gap-1.5 px-1 text-xs text-n-slate-11"
+            >
+              <span
+                aria-hidden="true"
+                class="inline-block h-3 w-5 shrink-0 rounded-sm border border-dashed border-n-slate-9"
+              />
+              {{ t('CALENDAR.TASKS.LEGEND') }}
+            </p>
+          </template>
+        </div>
         <div class="shrink-0">
           <label
             class="mb-1.5 block text-xs font-semibold text-n-slate-12"
@@ -1325,298 +1496,346 @@ onMounted(() => {
         </div>
       </aside>
 
-      <section
-        class="relative flex min-h-0 flex-1 overflow-hidden rounded-lg border border-n-weak bg-n-solid-1"
-        :aria-label="t('CALENDAR.GRID_LABEL')"
-      >
-        <div
-          v-if="view !== 'month'"
-          class="grid w-full overflow-auto"
-          :class="gridClass"
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+        <CalendarTasksBar
+          v-if="tasksVisible"
+          :overdue="overdueTasks"
+          :has-tasks="agendaTasks.length > 0"
+          :is-loading="isLoadingTasks"
+          :has-error="tasksError"
+          :account-id="currentAccountId"
+          @retry="loadTasks"
+        />
+        <CalendarDayList
+          class="sm:hidden"
+          :day-label="phoneDayLabel"
+          :items="phoneDayItems"
+          :account-id="currentAccountId"
+          :has-error="loadError"
+          @previous-day="changeDay(-1)"
+          @next-day="changeDay(1)"
+          @open-appointment="openAppointment"
+          @retry="loadAppointments"
+        />
+        <section
+          class="relative hidden min-h-0 flex-1 overflow-hidden rounded-lg border border-n-weak bg-n-solid-1 sm:flex"
+          :aria-label="t('CALENDAR.GRID_LABEL')"
         >
           <div
-            class="sticky left-0 z-10 border-b border-r border-n-weak bg-n-solid-1"
-          />
-          <div
-            v-for="day in calendarDays"
-            :key="day.toISOString()"
-            data-testid="calendar-day-column"
-            class="min-h-14 border-b border-r border-n-weak bg-n-solid-1 px-3 py-2 last:border-r-0"
+            v-if="view !== 'month'"
+            class="grid w-full overflow-auto"
+            :class="gridClass"
           >
-            <span class="text-xs font-medium text-n-slate-11">
-              {{ formatDay(day) }}
-            </span>
-            <!--
+            <div
+              class="sticky left-0 z-10 border-b border-r border-n-weak bg-n-solid-1"
+            />
+            <div
+              v-for="day in calendarDays"
+              :key="day.toISOString()"
+              data-testid="calendar-day-column"
+              class="min-h-14 border-b border-r border-n-weak bg-n-solid-1 px-3 py-2 last:border-r-0"
+            >
+              <span class="text-xs font-medium text-n-slate-11">
+                {{ formatDay(day) }}
+              </span>
+              <!--
               Uma etiqueta por dia, numa linha: o cabeçalho tem altura fixa, e o
               texto inteiro quebrado em três linhas vazava para baixo da grade.
               O que não cabe vai no título e no rótulo acessível.
             -->
-            <span
-              v-if="allDayBusyForDay(day).length"
-              data-testid="calendar-busy-all-day"
-              role="note"
-              class="mt-1 flex w-fit max-w-full items-center gap-1 whitespace-nowrap rounded border border-dashed border-n-slate-8 bg-n-slate-2 px-1.5 py-px text-micro text-n-slate-11"
-              :title="allDayBusyLabel(day)"
-              :aria-label="allDayBusyLabel(day)"
-            >
-              <i
-                class="i-lucide-calendar-x size-3 shrink-0"
-                aria-hidden="true"
-              />
-              {{ t('CALENDAR.BUSY.ALL_DAY_SHORT') }}
-            </span>
-          </div>
-          <template v-for="hour in hourSlots" :key="hour">
-            <div
-              class="sticky left-0 z-10 border-b border-r border-n-weak bg-n-solid-1 px-2 py-2 text-right text-xs text-n-slate-11"
-            >
-              {{ `${hour}:00` }}
+              <span
+                v-if="allDayBusyForDay(day).length"
+                data-testid="calendar-busy-all-day"
+                role="note"
+                class="mt-1 flex w-fit max-w-full items-center gap-1 whitespace-nowrap rounded border border-dashed border-n-slate-8 bg-n-slate-2 px-1.5 py-px text-micro text-n-slate-11"
+                :title="allDayBusyLabel(day)"
+                :aria-label="allDayBusyLabel(day)"
+              >
+                <i
+                  class="i-lucide-calendar-x size-3 shrink-0"
+                  aria-hidden="true"
+                />
+                {{ t('CALENDAR.BUSY.ALL_DAY_SHORT') }}
+              </span>
             </div>
-            <div
-              v-for="day in calendarDays"
-              :key="`${hour}-${day.toISOString()}`"
-              class="relative h-20 border-b border-r border-n-weak bg-n-solid-1 last:border-r-0"
-              @dragover.prevent
-              @drop="assistedReschedule(day, hour)"
-            >
-              <button
-                type="button"
-                data-testid="calendar-slot"
-                class="absolute inset-0 z-0 flex items-center justify-center text-lg font-medium text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-2 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand"
-                :aria-label="
-                  t('CALENDAR.BOOK_SLOT_LABEL', {
-                    time: `${hour}:00`,
-                    day: formatDay(day),
-                  })
-                "
-                @click="startBookingAtSlot(day, hour, $event)"
+            <template v-for="hour in hourSlots" :key="hour">
+              <div
+                class="sticky left-0 z-10 border-b border-r border-n-weak bg-n-solid-1 px-2 py-2 text-right text-xs text-n-slate-11"
               >
-                <i class="i-lucide-plus size-4" aria-hidden="true" />
-              </button>
-              <button
-                v-for="{ appointment, estilo, compacto } in appointmentsForSlot(
-                  day,
-                  hour
-                )"
-                :key="appointment.id"
-                type="button"
-                data-testid="calendar-appointment"
-                draggable="true"
-                class="raevo-card absolute z-10 flex flex-col overflow-hidden rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
-                :class="appointmentToneClass(appointment)"
-                :style="estilo"
-                :aria-label="
-                  [
-                    t('CALENDAR.APPOINTMENT_LABEL', {
-                      time: formatTime(appointment.starts_at),
-                      contact: appointment.contact.name,
-                      procedure: appointment.procedure.name,
-                    }),
-                    awaitingPayment(appointment) &&
-                      t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT'),
-                  ]
-                    .filter(Boolean)
-                    .join(', ')
-                "
-                @click="openAppointment(appointment, $event)"
-                @dragstart="beginRescheduleDrag(appointment)"
-                @dragend="draggedAppointment = null"
+                {{ `${hour}:00` }}
+              </div>
+              <div
+                v-for="day in calendarDays"
+                :key="`${hour}-${day.toISOString()}`"
+                class="relative h-20 border-b border-r border-n-weak bg-n-solid-1 last:border-r-0"
+                @dragover.prevent
+                @drop="assistedReschedule(day, hour)"
               >
-                <span
-                  class="block truncate text-xs font-semibold text-n-slate-12"
-                >
-                  <i
-                    v-if="awaitingPayment(appointment)"
-                    class="i-lucide-hourglass inline-block size-3 align-[-2px] text-n-amber-11"
-                    data-testid="calendar-appointment-awaiting-payment"
-                    :title="t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT')"
-                  />
-                  {{
-                    t('CALENDAR.APPOINTMENT_CARD_TITLE', {
-                      time: formatTime(appointment.starts_at),
-                      contact: appointment.contact.name,
+                <button
+                  type="button"
+                  data-testid="calendar-slot"
+                  class="absolute inset-0 z-0 flex items-center justify-center text-lg font-medium text-n-slate-10 opacity-0 outline-none transition-opacity hover:bg-n-slate-2 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-n-brand"
+                  :aria-label="
+                    t('CALENDAR.BOOK_SLOT_LABEL', {
+                      time: `${hour}:00`,
+                      day: formatDay(day),
                     })
-                  }}
-                </span>
-                <span
-                  v-if="!compacto"
-                  class="block truncate text-xs text-n-slate-11"
+                  "
+                  @click="startBookingAtSlot(day, hour, $event)"
                 >
-                  {{ appointment.procedure.name }}
-                </span>
-                <!--
+                  <i class="i-lucide-plus size-4" aria-hidden="true" />
+                </button>
+                <button
+                  v-for="{
+                    appointment,
+                    estilo,
+                    compacto,
+                  } in appointmentsForSlot(day, hour)"
+                  :key="appointment.id"
+                  type="button"
+                  data-testid="calendar-appointment"
+                  draggable="true"
+                  class="raevo-card absolute z-10 flex flex-col overflow-hidden rounded-md border-s-[3px] px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
+                  :class="appointmentToneClass(appointment)"
+                  :style="estilo"
+                  :aria-label="
+                    [
+                      t('CALENDAR.APPOINTMENT_LABEL', {
+                        time: formatTime(appointment.starts_at),
+                        contact: appointment.contact.name,
+                        procedure: appointment.procedure.name,
+                      }),
+                      awaitingPayment(appointment) &&
+                        t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT'),
+                    ]
+                      .filter(Boolean)
+                      .join(', ')
+                  "
+                  @click="openAppointment(appointment, $event)"
+                  @dragstart="beginRescheduleDrag(appointment)"
+                  @dragend="draggedAppointment = null"
+                >
+                  <span
+                    class="block truncate text-xs font-semibold text-n-slate-12"
+                  >
+                    <i
+                      v-if="awaitingPayment(appointment)"
+                      class="i-lucide-hourglass inline-block size-3 align-[-2px] text-n-amber-11"
+                      data-testid="calendar-appointment-awaiting-payment"
+                      :title="t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT')"
+                    />
+                    {{
+                      t('CALENDAR.APPOINTMENT_CARD_TITLE', {
+                        time: formatTime(appointment.starts_at),
+                        contact: appointment.contact.name,
+                      })
+                    }}
+                  </span>
+                  <span
+                    v-if="!compacto"
+                    class="block truncate text-xs text-n-slate-11"
+                  >
+                    {{ appointment.procedure.name }}
+                  </span>
+                  <!--
                   Profissional e situação partilham a terceira linha: na largura
                   de uma coluna de semana, pô-los em linhas separadas fazia
                   quatro linhas e cortava o procedimento a meio da palavra.
                 -->
-                <span
-                  v-if="!compacto"
-                  class="block truncate text-micro text-n-slate-11"
-                >
                   <span
-                    v-if="appointment.resources?.length"
-                    data-testid="calendar-appointment-resource"
+                    v-if="!compacto"
+                    class="block truncate text-micro text-n-slate-11"
                   >
-                    {{
-                      appointment.resources
-                        .map(resource => resource.name)
-                        .join(', ')
-                    }}
-                    ·
+                    <span
+                      v-if="appointment.resources?.length"
+                      data-testid="calendar-appointment-resource"
+                    >
+                      {{
+                        appointment.resources
+                          .map(resource => resource.name)
+                          .join(', ')
+                      }}
+                      ·
+                    </span>
+                    <span
+                      data-testid="calendar-appointment-status"
+                      class="font-medium"
+                    >
+                      {{
+                        awaitingPayment(appointment)
+                          ? t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT')
+                          : statusLabel(appointment.status)
+                      }}
+                    </span>
                   </span>
-                  <span
-                    data-testid="calendar-appointment-status"
-                    class="font-medium"
-                  >
-                    {{
-                      awaitingPayment(appointment)
-                        ? t('CALENDAR.DETAIL.STATUS.AWAITING_PAYMENT')
-                        : statusLabel(appointment.status)
-                    }}
-                  </span>
-                </span>
-              </button>
-              <div
-                v-for="{
-                  block,
-                  estilo,
-                  compacto,
-                  horario,
-                } in busyBlocksForSlot(day, hour)"
-                :key="`google-${block.id}`"
-                data-testid="calendar-busy-block"
-                role="note"
-                :aria-label="
-                  t('CALENDAR.BUSY.ARIA', {
-                    time: horario,
-                    resource: resourceName(block.resource_id),
-                    source: busySourceLabel(block),
-                  })
-                "
-                :title="t('CALENDAR.BUSY.HINT')"
-                class="absolute z-10 flex cursor-not-allowed flex-col overflow-hidden rounded-md border border-dashed border-n-slate-8 bg-n-slate-2 px-2 py-1 text-left"
-                :style="estilo"
-              >
-                <span
-                  class="flex items-center gap-1 truncate text-xs font-semibold text-n-slate-11"
+                </button>
+                <div
+                  v-for="{ task, estilo } in tasksForSlot(day, hour)"
+                  :key="`tarefa-${task.kanban_card_id}`"
+                  class="absolute z-10 p-px"
+                  :style="estilo"
                 >
-                  <i
-                    class="i-lucide-calendar-x size-3 shrink-0"
-                    aria-hidden="true"
+                  <CalendarTaskChip
+                    class="h-full"
+                    :task="task"
+                    :account-id="currentAccountId"
+                    :time="formatTime(task.next_action_at)"
                   />
-                  {{ busySourceLabel(block) }}
-                </span>
-                <span
-                  v-if="!compacto"
-                  class="block truncate text-xs text-n-slate-11"
+                </div>
+                <div
+                  v-for="{
+                    block,
+                    estilo,
+                    compacto,
+                    horario,
+                  } in busyBlocksForSlot(day, hour)"
+                  :key="`google-${block.id}`"
+                  data-testid="calendar-busy-block"
+                  role="note"
+                  :aria-label="
+                    t('CALENDAR.BUSY.ARIA', {
+                      time: horario,
+                      resource: resourceName(block.resource_id),
+                      source: busySourceLabel(block),
+                    })
+                  "
+                  :title="t('CALENDAR.BUSY.HINT')"
+                  class="absolute z-10 flex cursor-not-allowed flex-col overflow-hidden rounded-md border border-dashed border-n-slate-8 bg-n-slate-2 px-2 py-1 text-left"
+                  :style="estilo"
                 >
-                  {{ horario }}
-                </span>
-                <span
-                  v-if="!compacto && resourceName(block.resource_id)"
-                  class="block truncate text-micro text-n-slate-10"
-                >
-                  {{ resourceName(block.resource_id) }}
-                </span>
+                  <span
+                    class="flex items-center gap-1 truncate text-xs font-semibold text-n-slate-11"
+                  >
+                    <i
+                      class="i-lucide-calendar-x size-3 shrink-0"
+                      aria-hidden="true"
+                    />
+                    {{ busySourceLabel(block) }}
+                  </span>
+                  <span
+                    v-if="!compacto"
+                    class="block truncate text-xs text-n-slate-11"
+                  >
+                    {{ horario }}
+                  </span>
+                  <span
+                    v-if="!compacto && resourceName(block.resource_id)"
+                    class="block truncate text-micro text-n-slate-10"
+                  >
+                    {{ resourceName(block.resource_id) }}
+                  </span>
+                </div>
               </div>
+            </template>
+          </div>
+          <div v-else class="grid w-full grid-cols-7 overflow-auto">
+            <div
+              v-for="weekday in 7"
+              :key="weekday"
+              class="border-b border-r border-n-weak bg-n-solid-1 px-2 py-2 text-xs font-medium text-n-slate-11 last:border-r-0"
+            >
+              {{ monthWeekdayLabel(weekday - 1) }}
             </div>
-          </template>
-        </div>
-        <div v-else class="grid w-full grid-cols-7 overflow-auto">
+            <div
+              v-for="day in monthDays"
+              :key="day.toISOString()"
+              data-testid="calendar-month-day"
+              class="min-h-28 border-b border-r border-n-weak p-1.5 last:border-r-0"
+              :class="isCurrentMonth(day) ? 'bg-n-solid-1' : 'bg-n-surface-2'"
+            >
+              <span class="mb-1 block text-xs text-n-slate-11">
+                {{ day.getDate() }}
+              </span>
+              <button
+                v-for="appointment in appointmentsForDay(day)"
+                :key="appointment.id"
+                type="button"
+                class="mb-1 block w-full truncate rounded border-s-[3px] px-1.5 py-1 text-left text-xs text-n-slate-12 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
+                :class="appointmentToneClass(appointment)"
+                @click="openAppointment(appointment, $event)"
+              >
+                {{ formatTime(appointment.starts_at) }}
+                {{ appointment.contact.name }}
+              </button>
+              <CalendarTaskChip
+                v-for="task in tasksForDay(day)"
+                :key="`tarefa-${task.kanban_card_id}`"
+                class="mb-1"
+                :task="task"
+                :account-id="currentAccountId"
+                :time="formatTime(task.next_action_at)"
+              />
+              <span
+                v-for="block in busyBlocksOverlappingDay(day)"
+                :key="`google-${block.id}`"
+                data-testid="calendar-month-busy"
+                class="mb-1 flex items-center gap-1 rounded border border-dashed border-n-slate-8 bg-n-slate-2 px-1.5 py-0.5 text-xs text-n-slate-11"
+              >
+                <i
+                  class="i-lucide-calendar-x size-3 shrink-0"
+                  aria-hidden="true"
+                />
+                <span class="min-w-0 truncate">
+                  {{
+                    block.all_day
+                      ? t('CALENDAR.BUSY.ALL_DAY')
+                      : `${formatTime(block.starts_at)} ${busySourceLabel(block)}`
+                  }}
+                </span>
+              </span>
+            </div>
+          </div>
+
           <div
-            v-for="weekday in 7"
-            :key="weekday"
-            class="border-b border-r border-n-weak bg-n-solid-1 px-2 py-2 text-xs font-medium text-n-slate-11 last:border-r-0"
+            v-if="isLoading"
+            class="pointer-events-none absolute inset-0 flex items-center justify-center bg-n-solid-1/80"
           >
-            {{ monthWeekdayLabel(weekday - 1) }}
+            <p class="text-sm text-n-slate-11">{{ t('CALENDAR.LOADING') }}</p>
           </div>
           <div
-            v-for="day in monthDays"
-            :key="day.toISOString()"
-            data-testid="calendar-month-day"
-            class="min-h-28 border-b border-r border-n-weak p-1.5 last:border-r-0"
-            :class="isCurrentMonth(day) ? 'bg-n-solid-1' : 'bg-n-surface-2'"
+            v-else-if="loadError"
+            class="absolute inset-0 flex items-center justify-center"
           >
-            <span class="mb-1 block text-xs text-n-slate-11">
-              {{ day.getDate() }}
-            </span>
-            <button
-              v-for="appointment in appointmentsForDay(day)"
-              :key="appointment.id"
-              type="button"
-              class="mb-1 block w-full truncate rounded border-s-[3px] px-1.5 py-1 text-left text-xs text-n-slate-12 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-n-brand"
-              :class="appointmentToneClass(appointment)"
-              @click="openAppointment(appointment, $event)"
+            <div
+              class="max-w-sm rounded-md border border-n-weak bg-n-solid-1 px-5 py-4 text-center shadow-sm"
             >
-              {{ formatTime(appointment.starts_at) }}
-              {{ appointment.contact.name }}
-            </button>
-            <span
-              v-for="block in busyBlocksOverlappingDay(day)"
-              :key="`google-${block.id}`"
-              data-testid="calendar-month-busy"
-              class="mb-1 flex items-center gap-1 rounded border border-dashed border-n-slate-8 bg-n-slate-2 px-1.5 py-0.5 text-xs text-n-slate-11"
+              <p class="mb-1 text-sm font-medium text-n-slate-12">
+                {{ t('CALENDAR.LOAD_ERROR_TITLE') }}
+              </p>
+              <button
+                type="button"
+                class="text-sm font-medium text-n-brand outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+                @click="loadAppointments"
+              >
+                {{ t('CALENDAR.RETRY') }}
+              </button>
+            </div>
+          </div>
+          <div
+            v-else-if="
+              appointments.length === 0 &&
+              busyBlocks.length === 0 &&
+              !(tasksVisible && agendaTasks.length)
+            "
+            class="pointer-events-none absolute inset-0 flex items-center justify-center"
+          >
+            <div
+              class="max-w-sm rounded-md border border-n-weak bg-n-solid-1 px-5 py-4 text-center shadow-sm"
             >
               <i
-                class="i-lucide-calendar-x size-3 shrink-0"
+                class="i-lucide-calendar-plus mx-auto mb-2 size-5 text-n-brand"
                 aria-hidden="true"
               />
-              <span class="min-w-0 truncate">
-                {{
-                  block.all_day
-                    ? t('CALENDAR.BUSY.ALL_DAY')
-                    : `${formatTime(block.starts_at)} ${busySourceLabel(block)}`
-                }}
-              </span>
-            </span>
+              <p class="mb-1 text-sm font-medium text-n-slate-12">
+                {{ t('CALENDAR.EMPTY_TITLE') }}
+              </p>
+              <p class="mb-0 text-sm text-n-slate-11">
+                {{ emptyDescription }}
+              </p>
+            </div>
           </div>
-        </div>
-
-        <div
-          v-if="isLoading"
-          class="pointer-events-none absolute inset-0 flex items-center justify-center bg-n-solid-1/80"
-        >
-          <p class="text-sm text-n-slate-11">{{ t('CALENDAR.LOADING') }}</p>
-        </div>
-        <div
-          v-else-if="loadError"
-          class="absolute inset-0 flex items-center justify-center"
-        >
-          <div
-            class="max-w-sm rounded-md border border-n-weak bg-n-solid-1 px-5 py-4 text-center shadow-sm"
-          >
-            <p class="mb-1 text-sm font-medium text-n-slate-12">
-              {{ t('CALENDAR.LOAD_ERROR_TITLE') }}
-            </p>
-            <button
-              type="button"
-              class="text-sm font-medium text-n-brand outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-              @click="loadAppointments"
-            >
-              {{ t('CALENDAR.RETRY') }}
-            </button>
-          </div>
-        </div>
-        <div
-          v-else-if="appointments.length === 0 && busyBlocks.length === 0"
-          class="pointer-events-none absolute inset-0 flex items-center justify-center"
-        >
-          <div
-            class="max-w-sm rounded-md border border-n-weak bg-n-solid-1 px-5 py-4 text-center shadow-sm"
-          >
-            <i
-              class="i-lucide-calendar-plus mx-auto mb-2 size-5 text-n-brand"
-              aria-hidden="true"
-            />
-            <p class="mb-1 text-sm font-medium text-n-slate-12">
-              {{ t('CALENDAR.EMPTY_TITLE') }}
-            </p>
-            <p class="mb-0 text-sm text-n-slate-11">
-              {{ emptyDescription }}
-            </p>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
 
     <KanbanCalendarBookingDialog

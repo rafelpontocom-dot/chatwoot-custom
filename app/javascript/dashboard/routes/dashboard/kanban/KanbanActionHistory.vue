@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
+import { iconForActionType } from 'dashboard/helper/kanbanActionIcon';
 
 // RAEVO (09/10, 123jpnbcb5j) — o histórico das ações, como na maquete aprovada:
 // a linha de números (ações, dias, prazo), cada ação com prevista/feita, quem a
@@ -39,19 +40,6 @@ const dataCurta = valor => formato.format(new Date(valor));
 const dias = count =>
   t('KANBAN.OPPORTUNITY_DETAILS.ACTION_HISTORY.DAYS', { count });
 
-// O tipo é texto livre do funil; o ícone é só um atalho de leitura.
-const iconeDoTipo = tipo => {
-  const texto = String(tipo || '').toLowerCase();
-  if (/liga|telefon|call/.test(texto)) return 'i-lucide-phone';
-  if (/whats|mensag|message|e-?mail/.test(texto)) {
-    return 'i-lucide-message-circle';
-  }
-  if (/consulta|avalia|visita|reuni|meeting/.test(texto)) {
-    return 'i-lucide-calendar';
-  }
-  return 'i-lucide-circle-check';
-};
-
 const acoes = computed(() =>
   props.history
     .slice()
@@ -65,7 +53,7 @@ const acoes = computed(() =>
       return {
         chave: `${entrada.completed_at}-${indice}`,
         tipo: entrada.type,
-        icone: iconeDoTipo(entrada.type),
+        icone: iconForActionType(entrada.type),
         quem: entrada.completed_by?.name || '',
         prevista: prevista ? dataCurta(prevista) : '',
         feita: dataCurta(feita),
