@@ -525,11 +525,13 @@
         "EMPTY_STATE": "There are no previous conversations associated to this contact"
       },
       "KANBAN": {
-        "EMPTY_STATE": "No opportunities linked to this contact",
+        "EMPTY_STATE": "This contact has no opportunities yet.",
+        "NEW": "New opportunity",
+        "COUNT": "{count} opportunity | {count} opportunities",
         "ERROR": "Could not load opportunities",
-        "DUE_DATE": "Due date",
-        "NOT_SET": "Not set",
-        "OPEN_CONVERSATION": "Open conversation"
+        "OPEN_CONVERSATION": "Open conversation",
+        "WHERE": "{board} › {stage}",
+        "EXPECTED_CLOSE": "Expected close date {date}"
       },
       "FORMS": {
         "EMPTY_STATE": "This contact has not answered any form yet",

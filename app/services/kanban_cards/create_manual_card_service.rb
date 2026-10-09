@@ -2,7 +2,7 @@ class KanbanCards::CreateManualCardService
   DUPLICATE_SUBJECT_ERROR = 'Manual opportunity with this subject already exists for this contact and inbox'.freeze
 
   # rubocop:disable Metrics/ParameterLists
-  def initialize(account:, user:, kanban_board:, kanban_stage:, contact:, inbox:, subject:, custom_field_values: nil)
+  def initialize(account:, user:, kanban_board:, kanban_stage:, contact:, inbox:, subject:, amount_cents: nil, custom_field_values: nil)
     @account = account
     @user = user
     @kanban_board = kanban_board
@@ -10,6 +10,7 @@ class KanbanCards::CreateManualCardService
     @contact = contact
     @inbox = inbox
     @subject = subject
+    @amount_cents = amount_cents
     @custom_field_values = custom_field_values
   end
   # rubocop:enable Metrics/ParameterLists
@@ -31,7 +32,7 @@ class KanbanCards::CreateManualCardService
 
   private
 
-  attr_reader :account, :user, :kanban_board, :kanban_stage, :contact, :inbox, :subject, :custom_field_values
+  attr_reader :account, :user, :kanban_board, :kanban_stage, :contact, :inbox, :subject, :amount_cents, :custom_field_values
 
   def validate_scope!
     validate_board!
@@ -72,6 +73,7 @@ class KanbanCards::CreateManualCardService
       inbox: inbox,
       conversation: permitted_conversation,
       subject: normalized_subject,
+      amount_cents: amount_cents,
       origin: 'manual',
       position: 1,
       active: true,

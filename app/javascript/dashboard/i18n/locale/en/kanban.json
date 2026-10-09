@@ -1400,6 +1400,27 @@
       "CONFIRM": "Remove",
       "CANCEL": "Cancel"
     },
+    "CONTACT_OPPORTUNITY": {
+      "TITLE": "New opportunity",
+      "THIS_CONTACT": "· this page's contact",
+      "BOARD": "Pipeline",
+      "STAGE": "Stage",
+      "SUBJECT": "Title",
+      "AMOUNT": "Value",
+      "AMOUNT_PLACEHOLDER": "0.00",
+      "AMOUNT_INVALID": "Write the value as a number, e.g. 1200.50.",
+      "INBOX": "Inbox",
+      "INBOX_HINT": "The one from the contact's last conversation.",
+      "INBOX_FALLBACK": "Inbox #{id}",
+      "NO_INBOX": "This contact is not in any inbox you can use.",
+      "CANCEL": "Cancel",
+      "CREATE": "Create opportunity",
+      "CREATING": "Creating…",
+      "LOAD_ERROR": "Could not load the pipelines. Close and try again.",
+      "CREATE_ERROR": "Could not create the opportunity. Your data is still in the form.",
+      "DUPLICATE": "«{subject}» already exists in {stage} for this contact and inbox. Change the title.",
+      "REQUIRED_PENDING": "This stage requires the fields above."
+    },
     "OPPORTUNITY_DETAILS": {
       "EXPECTED_CLOSE_DATE": "Expected close date",
       "TIMELINE": {

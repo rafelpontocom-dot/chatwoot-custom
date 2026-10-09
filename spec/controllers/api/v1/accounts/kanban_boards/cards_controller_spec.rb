@@ -33,6 +33,15 @@ RSpec.describe 'Kanban Cards API', type: :request do
       )
     end
 
+    # 5n: a nova oportunidade aberta a partir do contato leva o valor logo na
+    # criação; a moeda continua a ser a da conta.
+    it 'keeps the value given at creation' do
+      post_manual_card(params: manual_card_payload.merge(amount_cents: 120_000))
+
+      expect(response).to have_http_status(:created)
+      expect(KanbanCard.last).to have_attributes(amount_cents: 120_000, amount_currency: 'BRL')
+    end
+
     # O funil serializava `card.contact.label_list` sem filtro: o título de uma
     # etiqueta pessoal de outra pessoa viajava no cartão do contacto.
     it "does not send the title of another person's personal contact label" do

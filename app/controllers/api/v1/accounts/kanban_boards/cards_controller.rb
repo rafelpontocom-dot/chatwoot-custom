@@ -21,6 +21,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       contact: @contact,
       inbox: @inbox,
       subject: manual_card_params[:subject],
+      amount_cents: manual_card_params[:amount_cents],
       custom_field_values: manual_card_params[:custom_field_values]
     ).perform!
 
@@ -177,7 +178,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   # rubocop:enable Metrics/MethodLength
 
   def manual_card_params
-    params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject, custom_field_values: {})
+    params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject, :amount_cents, custom_field_values: {})
   end
 
   def bulk_params
