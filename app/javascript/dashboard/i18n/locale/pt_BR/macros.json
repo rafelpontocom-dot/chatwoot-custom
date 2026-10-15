@@ -109,7 +109,7 @@
       "SEND_ATTACHMENT": "Enviar Anexo",
       "SEND_MESSAGE": "Enviar uma Mensagem",
       "CHANGE_PRIORITY": "Alterar Prioridade",
-      "ADD_PRIVATE_NOTE": "Adicionar uma Nota Privada",
+      "ADD_PRIVATE_NOTE": "Adicionar mensagem interna",
       "SEND_WEBHOOK_EVENT": "Enviar evento de Webhook"
     },
     "PRIORITY_TYPES": {

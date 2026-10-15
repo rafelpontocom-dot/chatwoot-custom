@@ -32,7 +32,7 @@
     "FROM": "De",
     "EMAIL": "E-mail",
     "EMAIL_SUBJECT": "Assunto",
-    "PRIVATE": "Nota privada",
+    "PRIVATE": "Mensagem interna",
     "TRANSCRIPT": "Transcrição",
     "CREATED_AT": "criado {time}",
     "UPDATED_AT": "atualizado {time}",

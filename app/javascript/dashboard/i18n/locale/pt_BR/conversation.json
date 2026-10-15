@@ -228,7 +228,7 @@
     },
     "REPLYBOX": {
       "REPLY": "Responder",
-      "PRIVATE_NOTE": "Mensagem Privada",
+      "PRIVATE_NOTE": "Mensagem interna",
       "INTERNAL_NOTE": "Mensagem interna",
       "MODE_INTERNAL_ACTIVE": "Escrevendo mensagem interna, só a sua equipe vê. Trocar para resposta.",
       "MODE_REPLY_ACTIVE": "Escrevendo resposta ao cliente. Trocar para mensagem interna.",
@@ -278,7 +278,7 @@
         "EXPAND": "Expandir a prévia"
       }
     },
-    "VISIBLE_TO_AGENTS": "Mensagem Privada: Apenas visível para você e seu time",
+    "VISIBLE_TO_AGENTS": "Mensagem interna: só você e sua equipe veem",
     "CHANGE_STATUS": "Estado da conversa mudou",
     "CHANGE_STATUS_FAILED": "Mudança de status da conversa falhou",
     "CHANGE_AGENT": "Novo agente atribuído",

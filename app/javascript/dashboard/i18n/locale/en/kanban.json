@@ -1051,7 +1051,7 @@
           "HANDOFF_TEAM": "Conversation team",
           "HANDOFF_NOTE": "Context for the agent",
           "HANDOFF_HINT": "The handoff ends this automation so a human can take over.",
-          "NOTIFY_TEAM_HINT": "Adds a private note and mentions the selected teams. It never contacts the customer.",
+          "NOTIFY_TEAM_HINT": "Adds an internal note and mentions the selected teams. It never contacts the customer.",
           "NOTIFY_TEAM_DESTINATIONS": "Teams to notify",
           "NOTIFY_TEAM_CONTENT": "Internal message",
           "CREATE_OPPORTUNITY_HINT": "Creates another opportunity from the linked conversation in the same pipeline.",

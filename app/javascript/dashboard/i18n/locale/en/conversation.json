@@ -297,7 +297,7 @@
     },
     "REPLYBOX": {
       "REPLY": "Reply",
-      "PRIVATE_NOTE": "Private Note",
+      "PRIVATE_NOTE": "Internal note",
       "INTERNAL_NOTE": "Internal note",
       "MODE_INTERNAL_ACTIVE": "Writing an internal note, only your team sees it. Switch to reply.",
       "MODE_REPLY_ACTIVE": "Writing a reply to the customer. Switch to internal note.",
@@ -347,7 +347,7 @@
         "EXPAND": "Expand preview"
       }
     },
-    "VISIBLE_TO_AGENTS": "Private Note: Only visible to you and your team",
+    "VISIBLE_TO_AGENTS": "Internal note: only you and your team can see it",
     "CHANGE_STATUS": "Conversation status changed",
     "CHANGE_STATUS_FAILED": "Conversation status change failed",
     "CHANGE_AGENT": "Conversation Assignee changed",

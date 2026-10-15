@@ -1054,7 +1054,7 @@
           "HANDOFF_TEAM": "Equipe do atendimento",
           "HANDOFF_NOTE": "Contexto para o agente",
           "HANDOFF_HINT": "A transferência encerra esta automação para que o atendimento humano assuma.",
-          "NOTIFY_TEAM_HINT": "Adiciona uma nota privada e menciona as equipes escolhidas. Nunca entra em contato com o cliente.",
+          "NOTIFY_TEAM_HINT": "Adiciona uma mensagem interna e menciona as equipes escolhidas. Nunca entra em contato com o cliente.",
           "NOTIFY_TEAM_DESTINATIONS": "Equipes a notificar",
           "NOTIFY_TEAM_CONTENT": "Mensagem interna",
           "CREATE_OPPORTUNITY_HINT": "Cria outra oportunidade a partir da conversa vinculada, no mesmo funil.",
