@@ -5,6 +5,9 @@
       "CONFIRM_QUESTION": "Eliminar o áudio gravado?",
       "CONFIRM": "Eliminar",
       "CANCEL": "Manter"
+    },
+    "CONTACT_PANEL": {
+      "TOGGLE": "Ver contacto"
     }
   }
 }

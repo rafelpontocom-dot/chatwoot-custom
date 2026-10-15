@@ -5,6 +5,9 @@
       "CONFIRM_QUESTION": "Excluir o áudio gravado?",
       "CONFIRM": "Excluir",
       "CANCEL": "Manter"
+    },
+    "CONTACT_PANEL": {
+      "TOGGLE": "Ver contato"
     }
   }
 }

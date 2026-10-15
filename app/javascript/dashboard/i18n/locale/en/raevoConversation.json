@@ -5,6 +5,9 @@
       "CONFIRM_QUESTION": "Delete the recorded audio?",
       "CONFIRM": "Delete",
       "CANCEL": "Keep"
+    },
+    "CONTACT_PANEL": {
+      "TOGGLE": "Show contact"
     }
   }
 }

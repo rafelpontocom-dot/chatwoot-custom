@@ -332,6 +332,15 @@
       "tests": [
         "app/javascript/dashboard/components/widgets/WootWriter/specs/ReplyBottomPanelDiscardRecording.spec.js"
       ]
+    },
+    {
+      "id": "conversation-header-contact-avatar",
+      "paths": [
+        "app/javascript/dashboard/components/widgets/conversation/ConversationHeader.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/widgets/conversation/specs/ConversationHeaderContactToggle.spec.js"
+      ]
     }
   ]
 }
