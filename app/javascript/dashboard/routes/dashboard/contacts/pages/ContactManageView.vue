@@ -9,15 +9,9 @@ import { useRoute, useRouter } from 'vue-router';
 import ContactsDetailsLayout from 'dashboard/components-next/Contacts/ContactsDetailsLayout.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import ContactDetails from 'dashboard/components-next/Contacts/Pages/ContactDetails.vue';
-import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
-import ContactNotes from 'dashboard/components-next/Contacts/ContactsSidebar/ContactNotes.vue';
-import ContactHistory from 'dashboard/components-next/Contacts/ContactsSidebar/ContactHistory.vue';
-import ContactMedia from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMedia.vue';
-import ContactKanbanCards from 'dashboard/components-next/Contacts/ContactsSidebar/ContactKanbanCards.vue';
-import ContactFormSubmissions from 'dashboard/components-next/Contacts/ContactsSidebar/ContactFormSubmissions.vue';
 import FormsSubmissionDetailsDialog from 'dashboard/routes/dashboard/forms/FormsSubmissionDetailsDialog.vue';
-import ContactMerge from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMerge.vue';
-import ContactCustomAttributes from 'dashboard/components-next/Contacts/ContactsSidebar/ContactCustomAttributes.vue';
+// RAEVO (15/10, 123jpnbcxpd): secções que abrem e fecham em vez de abas.
+import RaevoContactSections from '../components/RaevoContactSections.vue';
 
 const store = useStore();
 const { isAdmin } = useAdmin();
@@ -27,8 +21,6 @@ const router = useRouter();
 const contact = useMapGetter('contacts/getContactById');
 const uiFlags = useMapGetter('contacts/getUIFlags');
 
-const activeTab = ref('attributes');
-const contactMergeRef = ref(null);
 const submissionDialogRef = ref(null);
 
 // Ler a resposta é o que faz a série servir para alguma coisa: sem isto fica
@@ -48,60 +40,6 @@ const showSpinner = computed(
 
 const { t } = useI18n();
 
-const CONTACT_TABS_OPTIONS = [
-  { value: 'attributes' },
-  { value: 'history' },
-  { value: 'kanban' },
-  { value: 'notes' },
-  { value: 'media' },
-  { value: 'merge' },
-];
-
-const tabs = computed(() => {
-  return [
-    {
-      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.ATTRIBUTES'),
-      value: 'attributes',
-    },
-    {
-      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.HISTORY'),
-      value: 'history',
-    },
-    {
-      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.KANBAN'),
-      value: 'kanban',
-    },
-    // A ficha de respostas é de administração, como em `FormSubmissionPolicy`:
-    // um agente atende conversas, não lê fichas de pacientes.
-    ...(isAdmin.value
-      ? [
-          {
-            label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.FORMS'),
-            value: 'forms',
-          },
-        ]
-      : []),
-    {
-      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.NOTES'),
-      value: 'notes',
-    },
-    {
-      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.MEDIA'),
-      value: 'media',
-    },
-    {
-      label: t('CONTACTS_LAYOUT.SIDEBAR.TABS.MERGE'),
-      value: 'merge',
-    },
-  ];
-});
-
-// Sobre as abas efetivamente visíveis: `forms` só existe para administração, e
-// um índice sobre a lista fixa apontaria para a aba errada sem ela.
-const activeTabIndex = computed(() => {
-  return tabs.value.findIndex(v => v.value === activeTab.value);
-});
-
 const goToContactsList = () => {
   if (window.history.state?.back || window.history.length > 1) {
     router.back();
@@ -118,10 +56,6 @@ const fetchActiveContact = async () => {
       route.params.contactId
     );
   }
-};
-
-const handleTabChange = tab => {
-  activeTab.value = tab.value;
 };
 
 const fetchContactNotes = () => {
@@ -197,21 +131,6 @@ onMounted(() => {
         :selected-contact="selectedContact"
         @go-to-contacts-list="goToContactsList"
       />
-      <template #sidebarHeader>
-        <!--
-          As abas ficam com a largura do próprio nome. Forçar `w-full` em cada
-          botão dividia a coluna por sete e o `truncate` deixava «C…» em todas.
-          Quando não cabem, a barra rola na horizontal.
-        -->
-        <div class="overflow-x-auto px-6 pt-6 pb-3">
-          <TabBar
-            :tabs="tabs"
-            :initial-active-tab="activeTabIndex"
-            class="bg-n-alpha-black2"
-            @tab-changed="handleTabChange"
-          />
-        </div>
-      </template>
       <template #sidebar>
         <div
           v-if="isFetchingItem"
@@ -219,31 +138,13 @@ onMounted(() => {
         >
           <Spinner />
         </div>
-        <template v-else>
-          <ContactCustomAttributes
-            v-if="activeTab === 'attributes'"
-            :selected-contact="selectedContact"
-          />
-          <ContactKanbanCards
-            v-if="activeTab === 'kanban' && selectedContact"
-            :contact-id="selectedContact.id"
-          />
-          <ContactFormSubmissions
-            v-if="activeTab === 'forms' && selectedContact"
-            :contact-id="selectedContact.id"
-            @open-submission="openSubmission"
-          />
-          <ContactNotes v-if="activeTab === 'notes'" />
-          <ContactHistory v-if="activeTab === 'history'" />
-          <ContactMedia v-if="activeTab === 'media'" />
-          <ContactMerge
-            v-if="activeTab === 'merge'"
-            ref="contactMergeRef"
-            :selected-contact="selectedContact"
-            @go-to-contacts-list="goToContactsList"
-            @reset-tab="handleTabChange(CONTACT_TABS_OPTIONS[0])"
-          />
-        </template>
+        <RaevoContactSections
+          v-else
+          :selected-contact="selectedContact"
+          :show-forms="isAdmin"
+          @go-to-contacts-list="goToContactsList"
+          @open-submission="openSubmission"
+        />
       </template>
     </ContactsDetailsLayout>
     <FormsSubmissionDetailsDialog ref="submissionDialogRef" />
