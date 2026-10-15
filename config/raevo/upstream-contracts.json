@@ -167,14 +167,24 @@
       ]
     },
     {
-      "id": "unread-title",
+      "id": "unread-tab-dot",
       "paths": [
-        "app/javascript/dashboard/composables/useUnreadTabTitle.js",
+        "app/javascript/dashboard/composables/useUnreadFavicon.js",
+        "app/javascript/dashboard/store/modules/conversationUnreadCounts.js",
+        "app/javascript/dashboard/store/modules/specs/conversationUnreadCounts/mutations.spec.js",
         "app/javascript/dashboard/routes/dashboard/Dashboard.vue",
-        "app/services/conversations/unread_counts"
+        "app/services/conversations/unread_counts",
+        "app/controllers/api/v1/accounts/conversations/unread_counts_controller.rb",
+        "spec/controllers/api/v1/accounts/conversations_controller_spec.rb",
+        "app/services/raevo/unread_mine_count.rb",
+        "app/controllers/concerns/raevo/unread_counts_with_mine.rb",
+        "config/initializers/raevo_extensions.rb"
       ],
       "tests": [
-        "app/javascript/dashboard/composables/spec/useUnreadTabTitle.spec.js",
+        "app/javascript/dashboard/composables/spec/useUnreadFavicon.spec.js",
+        "app/javascript/dashboard/store/modules/specs/conversationUnreadCounts/mutations.spec.js",
+        "spec/services/raevo/unread_mine_count_spec.rb",
+        "spec/controllers/api/v1/accounts/conversations_controller_spec.rb",
         "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
       ]
     },
@@ -312,6 +322,45 @@
         "spec/policies/kanban_board_policy_spec.rb",
         "spec/policies/kanban_card_policy_spec.rb",
         "spec/policies/finance_module_setting_policy_spec.rb"
+      ]
+    },
+    {
+      "id": "reply-discard-recording",
+      "paths": [
+        "app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/widgets/WootWriter/specs/ReplyBottomPanelDiscardRecording.spec.js"
+      ]
+    },
+    {
+      "id": "conversation-header-contact-avatar",
+      "paths": [
+        "app/javascript/dashboard/components/widgets/conversation/ConversationHeader.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/widgets/conversation/specs/ConversationHeaderContactToggle.spec.js"
+      ]
+    },
+    {
+      "id": "resolve-shortcut-hints",
+      "paths": [
+        "app/javascript/dashboard/components/buttons/ResolveAction.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/buttons/specs/ResolveActionShortcuts.spec.js"
+      ]
+    },
+    {
+      "id": "internal-note-wording",
+      "paths": [
+        "app/javascript/dashboard/i18n/locale/en/automation.json",
+        "app/javascript/dashboard/i18n/locale/en/macros.json",
+        "app/javascript/dashboard/i18n/locale/en/search.json",
+        "app/javascript/dashboard/i18n/locale/pt_BR/search.json"
+      ],
+      "tests": [
+        "app/javascript/dashboard/i18n/specs/internalNoteWording.spec.js"
       ]
     }
   ]

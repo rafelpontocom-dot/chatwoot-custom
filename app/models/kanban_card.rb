@@ -183,6 +183,10 @@ class KanbanCard < ApplicationRecord
   validate :validate_account_consistency
 
   scope :active, -> { where(active: true) }
+  # Excluir uma oportunidade só a arquiva: fica restaurável durante este prazo e
+  # depois `KanbanCards::PurgeDeletedJob` apaga-a de vez.
+  DELETED_RETENTION = 30.days
+  scope :purgeable, -> { where(active: false).where(archived_at: ...DELETED_RETENTION.ago) }
   scope :ordered, -> { order(position: :asc, created_at: :asc, id: :asc) }
   scope :open_opportunities, -> { active.where(won_at: nil, lost_at: nil) }
 

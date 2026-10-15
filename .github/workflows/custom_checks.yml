@@ -130,7 +130,7 @@ jobs:
             helper/specs/sidebarSort.spec.js \
             routes/dashboard/settings/inbox/settingsPage/specs/ConfigurationPage.spec.js \
             composables/spec/useSidebarFocus.spec.js \
-            composables/spec/useUnreadTabTitle.spec.js
+            composables/spec/useUnreadFavicon.spec.js
 
   backend-tests:
     runs-on: ubuntu-latest

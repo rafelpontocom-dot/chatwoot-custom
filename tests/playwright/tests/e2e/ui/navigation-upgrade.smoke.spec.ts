@@ -61,7 +61,13 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     .first()
     .click();
   await page.waitForURL(/\/app\/accounts\/\d+\//);
-  await expect(page).toHaveTitle(/^\(1\) /);
+  // 123jpnbcxh5: o título não leva número, e a conversa por ler da semente não
+  // é de ninguém — o ícone da guia fica o da marca, sem o ponto.
+  await expect(page).not.toHaveTitle(/^\(\d+\+?\) /);
+  await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute(
+    'href',
+    '/brand-assets/raevo-favicon.svg'
+  );
 
   const sidebar = page.locator('aside[aria-expanded]');
   await expect(sidebar).toBeVisible();
@@ -190,7 +196,15 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     .filter({ visible: true })
     .first()
     .click();
+  // A ficha abre com a secção Oportunidades aberta (123jpnbcxpd), que pede as
+  // oportunidades do contato. Sair antes da resposta cancela o pedido — o
+  // componente aborta ao desmontar, e bem —, e o cancelamento contava como falha.
+  const contactCards = page.waitForResponse(response =>
+    /\/contacts\/\d+\/kanban_cards$/.test(new URL(response.url()).pathname)
+  );
   await page.getByText('Pedro Raevo Smoke', { exact: true }).first().click();
+  expect((await contactCards).ok()).toBe(true);
+  await expect(page.getByTestId('raevo-contact-section-kanban')).toBeVisible();
   await expect(
     page.locator('input[size]').filter({ visible: true }).first()
   ).toBeVisible();

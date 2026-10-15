@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import {
+  isRequiredFieldEmpty,
   requiredFieldInputType,
   requiredFieldOptions,
   requiredFieldType,
@@ -21,6 +22,12 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
   /** prefixo do data-testid de cada controlo, que os specs já localizavam */
   testidPrefix: { type: String, required: true },
+  /**
+   * Quem chama liga isto depois de uma tentativa de gravar: os vazios ficam
+   * marcados e dizem porquê. Antes o botão ficava cinzento e ninguém sabia o
+   * que faltava (123jpnbcxh3).
+   */
+  showErrors: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -30,6 +37,11 @@ const definir = (key, value) =>
   emit('update:modelValue', { ...props.modelValue, [key]: value });
 
 const tipoDe = definition => requiredFieldType(definition);
+const erroDe = definition =>
+  props.showErrors && isRequiredFieldEmpty(props.modelValue[definition.key])
+    ? t('KANBAN.REQUIRED_FIELDS.MISSING')
+    : '';
+const invalido = definition => (erroDe(definition) ? 'true' : undefined);
 const eSelect = definition =>
   ['select', 'boolean'].includes(tipoDe(definition));
 const eMultipla = definition => tipoDe(definition) === 'multiselect';
@@ -65,6 +77,8 @@ const escolherVarias = (definition, event) =>
     v-for="definition in definitions"
     :key="definition.key"
     :label="definition.label || definition.key"
+    required
+    :error="erroDe(definition)"
     :variant="variante(definition)"
     :hint="
       eMultipla(definition) ? t('KANBAN.REQUIRED_FIELDS.MULTISELECT_HINT') : ''
@@ -78,6 +92,7 @@ const escolherVarias = (definition, event) =>
         :data-testid="`${testidPrefix}${definition.key}`"
         :class="controlClass"
         :aria-describedby="describedBy"
+        :aria-invalid="invalido(definition)"
         @change="escolher(definition, $event)"
       >
         <option value="" disabled>
@@ -98,6 +113,7 @@ const escolherVarias = (definition, event) =>
         :data-testid="`${testidPrefix}${definition.key}`"
         :class="controlClass"
         :aria-describedby="describedBy"
+        :aria-invalid="invalido(definition)"
         @change="escolherVarias(definition, $event)"
       >
         <option
@@ -117,6 +133,7 @@ const escolherVarias = (definition, event) =>
         :data-testid="`${testidPrefix}${definition.key}`"
         :class="controlClass"
         :aria-describedby="describedBy"
+        :aria-invalid="invalido(definition)"
         @input="definir(definition.key, $event.target.value)"
       />
       <input
@@ -127,6 +144,7 @@ const escolherVarias = (definition, event) =>
         :data-testid="`${testidPrefix}${definition.key}`"
         :class="controlClass"
         :aria-describedby="describedBy"
+        :aria-invalid="invalido(definition)"
         @input="definir(definition.key, $event.target.value)"
       />
     </template>

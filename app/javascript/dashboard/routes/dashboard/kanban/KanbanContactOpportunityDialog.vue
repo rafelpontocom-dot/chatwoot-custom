@@ -10,6 +10,7 @@ import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import {
   emptyRequiredFieldValue,
+  focusFirstMissingField,
   isRequiredFieldEmpty,
   mergeRequiredFields,
   requiredFieldsForStage,
@@ -83,6 +84,7 @@ const centavos = computed(() => valorEmCentavos(amount.value));
 const valorInvalido = computed(
   () => amount.value.trim().length > 0 && centavos.value === null
 );
+const showRequiredErrors = ref(false);
 const camposPorPreencher = computed(() =>
   requiredFieldDefinitions.value.some(definition =>
     isRequiredFieldEmpty(requiredFieldValues.value[definition.key])
@@ -95,7 +97,6 @@ const podeCriar = computed(
     inboxId.value &&
     subject.value.trim() &&
     !valorInvalido.value &&
-    !camposPorPreencher.value &&
     !isCreating.value
 );
 
@@ -195,6 +196,18 @@ const trocarFunil = async () => {
 
 const criar = async () => {
   if (!podeCriar.value) return;
+
+  if (camposPorPreencher.value) {
+    showRequiredErrors.value = true;
+    createError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
+    await nextTick();
+    focusFirstMissingField(
+      requiredFieldDefinitions.value,
+      requiredFieldValues.value,
+      'kanban-contact-opportunity-field-'
+    );
+    return;
+  }
   isCreating.value = true;
   createError.value = '';
   const card = {
@@ -419,6 +432,7 @@ defineExpose({ open });
           v-model="requiredFieldValues"
           :definitions="requiredFieldDefinitions"
           testid-prefix="kanban-contact-opportunity-field-"
+          :show-errors="showRequiredErrors"
         />
 
         <div

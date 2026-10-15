@@ -616,8 +616,10 @@ const tasksForSlot = (day, hour) => {
         task,
         estilo: {
           top: `${(startsAt.getMinutes() / 60) * 100}%`,
-          height: `${(TASK_MINUTES / 60) * 100}%`,
-          minHeight: MIN_APPOINTMENT_HEIGHT,
+          // Cresce para caber o texto: numa coluna de 100px, «Ligar ·
+          // +351967564016» pede três linhas e meia hora só tem duas. Cortar
+          // escondia os últimos dígitos do telefone (123jpnbcxp8).
+          minHeight: `max(${(TASK_MINUTES / 60) * 100}%, ${MIN_APPOINTMENT_HEIGHT})`,
           left: `${coluna * largura}%`,
           width: `${largura}%`,
         },
@@ -1672,11 +1674,11 @@ onMounted(() => {
                 <div
                   v-for="{ task, estilo } in tasksForSlot(day, hour)"
                   :key="`tarefa-${task.kanban_card_id}`"
-                  class="absolute z-10 p-px"
+                  class="absolute z-10 flex p-px"
                   :style="estilo"
                 >
                   <CalendarTaskChip
-                    class="h-full"
+                    class="w-full"
                     :task="task"
                     :account-id="currentAccountId"
                     :time="formatTime(task.next_action_at)"

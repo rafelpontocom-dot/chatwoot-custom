@@ -5,9 +5,9 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
 }));
 
-const montar = (definitions, modelValue = {}) =>
+const montar = (definitions, modelValue = {}, extra = {}) =>
   mount(KanbanRequiredFields, {
-    props: { definitions, modelValue, testidPrefix: 'campo-' },
+    props: { definitions, modelValue, testidPrefix: 'campo-', ...extra },
   });
 
 describe('KanbanRequiredFields', () => {
@@ -50,5 +50,27 @@ describe('KanbanRequiredFields', () => {
     expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([
       { consentimento: false },
     ]);
+  });
+
+  // 123jpnbcxh3: o botão ficava cinzento e ninguém sabia o que faltava.
+  it('marks every field as required and, after a try, says which ones are empty', () => {
+    const definitions = [
+      { key: 'fonte', label: 'Fonte da lista', fieldType: 'text' },
+      { key: 'segmento', label: 'Segmento', fieldType: 'text' },
+    ];
+    const valores = { fonte: 'Google Maps', segmento: '' };
+
+    const antes = montar(definitions, valores);
+    expect(antes.findAll('label span[aria-hidden="true"]')).toHaveLength(2);
+    expect(antes.find('[aria-invalid="true"]').exists()).toBe(false);
+
+    const depois = montar(definitions, valores, { showErrors: true });
+    expect(
+      depois.find('[data-testid="campo-segmento"]').attributes('aria-invalid')
+    ).toBe('true');
+    expect(
+      depois.find('[data-testid="campo-fonte"]').attributes('aria-invalid')
+    ).toBeUndefined();
+    expect(depois.text()).toContain('KANBAN.REQUIRED_FIELDS.MISSING');
   });
 });

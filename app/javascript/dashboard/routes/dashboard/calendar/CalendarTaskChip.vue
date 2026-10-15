@@ -14,11 +14,18 @@ const props = defineProps({
 
 const { t } = useI18n();
 
+// Contacto que chegou pelo WAHA sem nome fica com o identificador do WhatsApp
+// («351967564016@c.us»): uma palavra só, que partia em três linhas e saía da
+// caixa. O que interessa a quem liga é o número.
+const WHATSAPP_ID = /^(\d{6,})@(c\.us|s\.whatsapp\.net|lid)$/i;
+
 // «Gina T.»: o nome inteiro não cabe numa coluna de um dia da semana.
 const shortName = computed(() => {
-  const [first, ...rest] = String(props.task.contact_name || '')
-    .trim()
-    .split(/\s+/);
+  const name = String(props.task.contact_name || '').trim();
+  const whatsappNumber = name.match(WHATSAPP_ID)?.[1];
+  if (whatsappNumber) return `+${whatsappNumber}`;
+
+  const [first, ...rest] = name.split(/\s+/);
   const last = rest.at(-1);
   return last ? `${first} ${last[0]}.` : first || '';
 });
@@ -45,11 +52,11 @@ const label = computed(() =>
         where: `${task.kanban_board_name} › ${task.kanban_stage_name}`,
       })
     "
-    class="flex min-w-0 items-center gap-1 rounded-md border border-dashed border-n-slate-9 bg-n-solid-1 px-1.5 py-0.5 text-xs text-n-slate-12 no-underline outline-none hover:bg-n-slate-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+    class="flex min-w-0 items-start gap-1 rounded-md border border-dashed border-n-slate-9 bg-n-solid-1 px-1.5 py-0.5 text-xs text-n-slate-12 no-underline outline-none hover:bg-n-slate-2 focus-visible:ring-2 focus-visible:ring-n-brand"
   >
     <i
       aria-hidden="true"
-      class="size-3 shrink-0 text-n-slate-11"
+      class="mt-0.5 size-3 shrink-0 text-n-slate-11"
       :class="iconForActionType(task.next_action_type)"
     />
     <span class="min-w-0 break-words leading-4">{{ label }}</span>

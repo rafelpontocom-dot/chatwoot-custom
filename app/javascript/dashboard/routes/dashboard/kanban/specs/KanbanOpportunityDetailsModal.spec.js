@@ -2374,6 +2374,83 @@ describe('KanbanOpportunityDetailsModal', () => {
     ]);
   });
 
+  // 123jpnbcxpa: a etapa do outro funil exigia um campo que esta ficha não tem,
+  // e a única resposta era «Complete the required fields…», em inglês.
+  it('asks for the fields the destination stage requires and retries the transfer with them', async () => {
+    KanbanBoardsAPI.transferCardById
+      .mockRejectedValueOnce({
+        response: {
+          data: {
+            missing_fields: ['numero_contrato'],
+            field_definitions: [
+              {
+                key: 'numero_contrato',
+                label: 'Número do contrato',
+                field_type: 'text',
+              },
+            ],
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: buildCard({ kanbanBoardId: 22, kanbanStageId: 23 }),
+      });
+    const wrapper = await mountModal({
+      boards: [
+        { id: 10, name: 'Sales funnel', stages_summary: [] },
+        {
+          id: 22,
+          name: 'Onboarding',
+          stages_summary: [{ id: 23, name: 'Activation' }],
+        },
+      ],
+    });
+
+    await wrapper
+      .findComponent({ name: 'KanbanOpportunityPipelineMenu' })
+      .vm.$emit('selectStage', { boardId: 22, stageId: 23 });
+    await flushPromises();
+
+    const dialogo = wrapper.find(
+      '[data-testid="kanban-opportunity-transfer-fields"]'
+    );
+    expect(dialogo.text()).toContain('Número do contrato');
+    expect(
+      wrapper.find('[data-testid="kanban-opportunity-save-error"]').exists()
+    ).toBe(false);
+
+    const confirmar = wrapper.find(
+      '[data-testid="kanban-opportunity-confirm-transfer-fields"]'
+    );
+    await confirmar.trigger('click');
+    await flushPromises();
+    expect(KanbanBoardsAPI.transferCardById).toHaveBeenCalledTimes(1);
+    expect(
+      wrapper
+        .find('[data-testid="kanban-transfer-field-numero_contrato"]')
+        .attributes('aria-invalid')
+    ).toBe('true');
+
+    await wrapper
+      .find('[data-testid="kanban-transfer-field-numero_contrato"]')
+      .setValue('C-42');
+    await confirmar.trigger('click');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.transferCardById).toHaveBeenLastCalledWith(
+      10,
+      501,
+      expect.objectContaining({
+        kanban_board_id: 22,
+        kanban_stage_id: 23,
+        custom_field_values: { numero_contrato: 'C-42' },
+      })
+    );
+    expect(wrapper.emitted('transferred')).toEqual([
+      [expect.objectContaining({ boardId: 22 })],
+    ]);
+  });
+
   it('asks for the loss reason before transferring an opportunity to a lost stage in another pipeline', async () => {
     KanbanBoardsAPI.transferCardById.mockResolvedValue({
       data: buildCard({ kanbanBoardId: 22, kanbanStageId: 24 }),

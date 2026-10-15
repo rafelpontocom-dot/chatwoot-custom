@@ -258,15 +258,17 @@
       }
     },
     "ARCHIVE": {
-      "OPEN": "Oportunidades arquivadas",
-      "TITLE": "Oportunidades arquivadas",
-      "LOADING": "Carregando oportunidades arquivadas...",
-      "EMPTY": "Não há oportunidades arquivadas.",
+      "OPEN": "Oportunidades excluídas",
+      "TITLE": "Oportunidades excluídas",
+      "LOADING": "A carregar oportunidades excluídas...",
+      "EMPTY": "Não há oportunidades excluídas.",
       "RESTORE": "Restaurar oportunidade",
       "RESTORE_SUCCESS": "Oportunidade restaurada.",
       "RESTORE_ERROR": "Não foi possível restaurar a oportunidade.",
-      "LOAD_ERROR": "Não foi possível carregar as oportunidades arquivadas.",
-      "STAGE_SEPARATOR": "na etapa"
+      "LOAD_ERROR": "Não foi possível carregar as oportunidades excluídas.",
+      "STAGE_SEPARATOR": "na etapa",
+      "HINT": "Ficam aqui 30 dias e depois são apagadas definitivamente.",
+      "PURGE_IN": "apagada hoje | apagada amanhã | apagada em {n} dias"
     },
     "STAGE": {
       "CAPACITY_ALERT": "Esta etapa está acima do limite de alerta de cards.",
@@ -285,10 +287,10 @@
       "MARK_WON": "Marcar como ganha",
       "MARK_LOST": "Marcar como perdida",
       "LOST_REASON": "Motivo da perda",
-      "ARCHIVE": "Arquivar selecionadas",
+      "ARCHIVE": "Excluir selecionadas",
       "CLEAR": "Limpar seleção",
-      "ARCHIVE_TITLE": "Arquivar oportunidades",
-      "ARCHIVE_MESSAGE": "Arquivar {count} oportunidades selecionadas? Elas poderão ser restauradas depois.",
+      "ARCHIVE_TITLE": "Excluir oportunidades",
+      "ARCHIVE_MESSAGE": "Excluir {count} oportunidades selecionadas? Ficam 30 dias em Excluídas, onde podem ser restauradas, e depois são apagadas definitivamente.",
       "SUCCESS": "Oportunidades atualizadas.",
       "SUCCESS_WITH_COUNT": "{count} oportunidades atualizadas. Falhas: {errors}.",
       "ERROR": "Não foi possível atualizar as oportunidades selecionadas.",
@@ -1122,7 +1124,7 @@
           "NO": "Não",
           "CREATE_TASK": "Criar próxima ação",
           "MOVE_STAGE": "Mover oportunidade",
-          "ARCHIVE": "Arquivar oportunidade",
+          "ARCHIVE": "Excluir oportunidade",
           "NODE_HINT": "Este nó inicia ou conclui o fluxo.",
           "CONDITION_HINT": "Crie saídas ordenadas. Cada saída avalia suas próprias condições e a última cobre o caso contrário.",
           "FILTER_HINT": "Deixe o fluxo seguir apenas quando as condições abaixo forem atendidas.",
@@ -1265,7 +1267,7 @@
           "WON": "Oportunidade ganha",
           "LOST": "Oportunidade perdida",
           "REOPENED": "Oportunidade reaberta",
-          "ARCHIVED": "Oportunidade arquivada",
+          "ARCHIVED": "Oportunidade excluída",
           "RESTORED": "Oportunidade restaurada",
           "MANUAL_STARTED": "Iniciada manualmente"
         },
@@ -1277,7 +1279,7 @@
           "SET_FIELD": "Preencher campo",
           "INCREMENT_FIELD": "Incrementar campo",
           "CLEAR_FIELD": "Limpar campo",
-          "ARCHIVE_CARD": "Arquivar oportunidade",
+          "ARCHIVE_CARD": "Excluir oportunidade",
           "ENROLL_CADENCE": "Inscrever em cadência",
           "ADD_LABEL": "Adicionar etiqueta",
           "REMOVE_LABEL": "Remover etiqueta",
@@ -1624,7 +1626,12 @@
       "AMOUNT_HEADLINE_RECEIVED": "{value} recebidos",
       "AMOUNT_HEADLINE_EMPTY": "sem valor ainda",
       "REQUIRED_IN_STAGE": "Obrigatório nesta etapa",
-      "REQUIRED_FIELDS_MISSING": "Preencha antes de guardar: {fields}."
+      "REQUIRED_FIELDS_MISSING": "Preencha antes de guardar: {fields}.",
+      "TRANSFER_FIELDS": {
+        "TITLE": "Esta etapa pede mais alguns campos",
+        "DESCRIPTION": "Preencha-os para mover a oportunidade para o outro funil.",
+        "CONFIRM": "Mover oportunidade"
+      }
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",
@@ -1813,7 +1820,8 @@
       "RETRY": "Tentar outra vez"
     },
     "REQUIRED_FIELDS": {
-      "MULTISELECT_HINT": "Mantenha Ctrl ou ⌘ para escolher mais do que uma."
+      "MULTISELECT_HINT": "Mantenha Ctrl ou ⌘ para escolher mais do que uma.",
+      "MISSING": "Obrigatório nesta etapa."
     }
   }
 }

@@ -30,6 +30,9 @@ const BASE =
   'text-sm text-n-slate-12 ' +
   'outline-none transition-colors placeholder:text-n-slate-10 ' +
   'focus:border-n-brand focus:ring-2 focus:ring-n-brand/20 ' +
+  // Campo recusado: a borda acompanha a mensagem que o RaevoField escreve por
+  // baixo. Nunca é o único sinal — o texto do erro diz o que falta.
+  'aria-[invalid=true]:border-n-ruby-9 ' +
   'disabled:cursor-not-allowed disabled:opacity-60';
 
 /**

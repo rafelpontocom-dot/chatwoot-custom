@@ -13,6 +13,7 @@ import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import {
   emptyRequiredFieldValue,
+  focusFirstMissingField,
   isRequiredFieldEmpty,
   mergeRequiredFields,
   requiredFieldsForStage,
@@ -153,6 +154,7 @@ const valoresVazios = definitions =>
 const requiredFieldDefinitions = ref(camposDaEtapa());
 const requiredFieldValues = ref(valoresVazios(requiredFieldDefinitions.value));
 
+const showRequiredErrors = ref(false);
 const hasUnfilledRequiredField = computed(() =>
   requiredFieldDefinitions.value.some(definition =>
     isRequiredFieldEmpty(requiredFieldValues.value[definition.key])
@@ -486,7 +488,14 @@ const createManualOpportunity = async () => {
   }
 
   if (hasUnfilledRequiredField.value) {
+    showRequiredErrors.value = true;
     creationError.value = t('KANBAN.ADD_ITEM.REQUIRED_FIELDS_PENDING');
+    await nextTick();
+    focusFirstMissingField(
+      requiredFieldDefinitions.value,
+      requiredFieldValues.value,
+      'kanban-manual-card-field-'
+    );
     return;
   }
 
@@ -744,6 +753,7 @@ onUnmounted(() => {
               v-model="requiredFieldValues"
               :definitions="requiredFieldDefinitions"
               testid-prefix="kanban-manual-card-field-"
+              :show-errors="showRequiredErrors"
             />
           </div>
           <p

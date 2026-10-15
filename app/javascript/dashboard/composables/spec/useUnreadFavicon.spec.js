@@ -2,23 +2,27 @@ import { nextTick, ref } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { useUnreadFavicon } from '../useUnreadFavicon';
 
-const unread = ref(0);
+const mineUnread = ref(0);
+const getters = [];
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: () => unread,
+  useMapGetter: key => {
+    getters.push(key);
+    return mineUnread;
+  },
 }));
 
 // jsdom não desenha: o canvas devolve um contexto falso e o PNG é um marcador.
-const drawn = [];
+const drawn = { dots: 0, labels: [] };
 HTMLCanvasElement.prototype.getContext = () => ({
   drawImage: () => {},
-  measureText: () => ({ width: 10 }),
   beginPath: () => {},
-  roundRect: () => {},
+  arc: () => {
+    drawn.dots += 1;
+  },
   fill: () => {},
-  fillText: label => drawn.push(label),
+  fillText: label => drawn.labels.push(label),
 });
-HTMLCanvasElement.prototype.toDataURL = () =>
-  'data:image/png;base64,COM-NUMERO';
+HTMLCanvasElement.prototype.toDataURL = () => 'data:image/png;base64,PONTO';
 global.Image = class {
   set src(_) {
     setTimeout(() => this.onload());
@@ -30,57 +34,60 @@ const icons = () =>
     link.getAttribute('href')
   );
 
+const settle = async () => {
+  await nextTick();
+  await vi.runAllTimersAsync();
+  await flushPromises();
+};
+
 describe('useUnreadFavicon', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     document.head.innerHTML = `
       <link class="favicon" rel="icon" sizes="32x32" href="/favicon-32x32.png">
       <link rel="icon" type="image/svg+xml" href="/brand-assets/raevo-favicon.svg">`;
-    unread.value = 0;
-    drawn.length = 0;
+    mineUnread.value = 0;
+    drawn.dots = 0;
+    drawn.labels.length = 0;
+    getters.length = 0;
   });
 
+  let wrapper;
   afterEach(() => {
+    wrapper?.unmount();
     vi.useRealTimers();
   });
 
-  const mountFavicon = () =>
-    mount({ setup: () => useUnreadFavicon(), template: '<i />' });
+  const mountFavicon = () => {
+    wrapper = mount({ setup: () => useUnreadFavicon(), template: '<i />' });
+  };
 
-  it('draws the count on every tab icon, the Raevo SVG included', async () => {
+  // 123jpnbcxh5: o ponto acende pelo que é de quem está ligado, não por tudo.
+  it('reads only the unread conversations assigned to the current agent', () => {
     mountFavicon();
-    unread.value = 3;
-    await nextTick();
-    await flushPromises();
-    await vi.runAllTimersAsync();
-    await flushPromises();
 
-    expect(icons()).toEqual([
-      'data:image/png;base64,COM-NUMERO',
-      'data:image/png;base64,COM-NUMERO',
-    ]);
-    expect(drawn.at(-1)).toBe('3');
+    expect(getters).toEqual(['conversationUnreadCounts/getMineUnreadCount']);
   });
 
-  it('caps the label at 99+', async () => {
+  it('draws a dot, and no number, on every tab icon, the Raevo SVG included', async () => {
     mountFavicon();
-    unread.value = 140;
-    await nextTick();
-    await vi.runAllTimersAsync();
-    await flushPromises();
+    mineUnread.value = 140;
+    await settle();
 
-    expect(drawn.at(-1)).toBe('99+');
+    expect(icons()).toEqual([
+      'data:image/png;base64,PONTO',
+      'data:image/png;base64,PONTO',
+    ]);
+    expect(drawn.dots).toBe(1);
+    expect(drawn.labels).toEqual([]);
   });
 
   it('puts the original icons back when nothing is left to read', async () => {
     mountFavicon();
-    unread.value = 2;
-    await nextTick();
-    await vi.runAllTimersAsync();
-    await flushPromises();
-    unread.value = 0;
-    await nextTick();
-    await flushPromises();
+    mineUnread.value = 2;
+    await settle();
+    mineUnread.value = 0;
+    await settle();
 
     expect(icons()).toEqual([
       '/favicon-32x32.png',

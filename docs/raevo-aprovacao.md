@@ -373,6 +373,21 @@ da gaveta é `hidden lg:block` desde antes disto. Empilhar não o resolve.
 
 ---
 
+### A ficha do contato troca as abas por secções · 15/10/2026
+
+**Aprovada pelo Pedro a 15/10**, sobre o pedido do Alysson e do Thiago (cartões `123jpnbcxpd` e
+`123jpnbcb54`): «atributos, históricos, oportunidades, respostas… ser o menu de expandir, como é no
+menu lateral do contato dentro do chat», e os atributos escondidos como no Kommo.
+
+| | Antes | Depois |
+| --- | --- | --- |
+| Forma | tira de sete abas com `overflow-x-auto`, que rolava sem dizer que rolava | uma secção por assunto, empilhadas, com o `AccordionItem` da lateral da conversa |
+| Aberto por omissão | Atributos | Oportunidades e Histórico; Atributos, Notas, Mídia, Respostas e Mesclar fechados |
+| Memória | nenhuma: voltava sempre a Atributos | o que cada pessoa abre ou fecha fica nas definições dela (`raevo_contact_sections`) |
+
+**O que se perdeu:** uma aba de cada vez escondia o resto; agora a coluna pode ficar longa com
+várias secções abertas. É a troca que a lateral da conversa já faz.
+
 ### Quatro propostas aprovadas · 08/10/2026
 
 **Aprovadas pelo Pedro na mesma noite**, sobre as maquetes abaixo. As perguntas em aberto não

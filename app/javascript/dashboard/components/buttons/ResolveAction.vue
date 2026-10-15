@@ -19,6 +19,8 @@ import {
 import ButtonGroup from 'dashboard/components-next/buttonGroup/ButtonGroup.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
+// RAEVO (123jpnbcxpe): os atalhos na dica dos botões.
+import { shortcutKeys } from 'dashboard/helper/raevoShortcutHints';
 
 const store = useStore();
 const getters = useStoreGetters();
@@ -26,6 +28,7 @@ const { t } = useI18n();
 const { checkMissingAttributes } = useConversationRequiredAttributes();
 
 const arrowDownButtonRef = ref(null);
+const keys = shortcutKeys();
 const isLoading = ref(false);
 const resolveAttributesModalRef = ref(null);
 
@@ -183,7 +186,9 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
     >
       <Button
         v-if="isOpen"
+        v-tooltip.bottom="t('RAEVO_CONVERSATION.SHORTCUTS.RESOLVE_HINT', keys)"
         :label="t('CONVERSATION.HEADER.RESOLVE_ACTION')"
+        aria-keyshortcuts="Alt+E Control+Alt+E Meta+Alt+E"
         size="sm"
         color="slate"
         no-animation
@@ -213,6 +218,9 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
       <Button
         v-if="showAdditionalActions"
         ref="arrowDownButtonRef"
+        v-tooltip.bottom="t('RAEVO_CONVERSATION.SHORTCUTS.MORE_ACTIONS', keys)"
+        :aria-label="t('RAEVO_CONVERSATION.SHORTCUTS.MORE_ACTIONS', keys)"
+        aria-keyshortcuts="Alt+M"
         icon="i-lucide-chevron-down"
         :disabled="isLoading"
         size="sm"

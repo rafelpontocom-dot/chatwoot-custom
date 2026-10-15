@@ -258,15 +258,17 @@
       }
     },
     "ARCHIVE": {
-      "OPEN": "Archived opportunities",
-      "TITLE": "Archived opportunities",
-      "LOADING": "Loading archived opportunities...",
-      "EMPTY": "There are no archived opportunities.",
+      "OPEN": "Deleted opportunities",
+      "TITLE": "Deleted opportunities",
+      "LOADING": "Loading deleted opportunities...",
+      "EMPTY": "There are no deleted opportunities.",
       "RESTORE": "Restore opportunity",
       "RESTORE_SUCCESS": "Opportunity restored.",
       "RESTORE_ERROR": "Could not restore the opportunity.",
-      "LOAD_ERROR": "Could not load archived opportunities.",
-      "STAGE_SEPARATOR": "in"
+      "LOAD_ERROR": "Could not load deleted opportunities.",
+      "STAGE_SEPARATOR": "in",
+      "HINT": "They stay here for 30 days, then they are deleted for good.",
+      "PURGE_IN": "deleted for good today | deleted for good tomorrow | deleted for good in {n} days"
     },
     "STAGE": {
       "CAPACITY_ALERT": "This stage is above its card alert limit.",
@@ -285,10 +287,10 @@
       "MARK_WON": "Mark as won",
       "MARK_LOST": "Mark as lost",
       "LOST_REASON": "Lost reason",
-      "ARCHIVE": "Archive selected",
+      "ARCHIVE": "Delete selected",
       "CLEAR": "Clear selection",
-      "ARCHIVE_TITLE": "Archive opportunities",
-      "ARCHIVE_MESSAGE": "Archive {count} selected opportunities? They can be restored later.",
+      "ARCHIVE_TITLE": "Delete opportunities",
+      "ARCHIVE_MESSAGE": "Delete {count} selected opportunities? They stay in Deleted for 30 days, where you can restore them, and are then deleted for good.",
       "SUCCESS": "Opportunities updated.",
       "SUCCESS_WITH_COUNT": "{count} opportunities updated. Failures: {errors}.",
       "ERROR": "Could not update the selected opportunities.",
@@ -1119,7 +1121,7 @@
           "NO": "No",
           "CREATE_TASK": "Create next action",
           "MOVE_STAGE": "Move opportunity",
-          "ARCHIVE": "Archive opportunity",
+          "ARCHIVE": "Delete opportunity",
           "NODE_HINT": "This node starts or completes the workflow.",
           "CONDITION_HINT": "Create ordered outputs. Each output evaluates its own conditions and the last one covers the otherwise case.",
           "FILTER_HINT": "Let the workflow continue only when the conditions below are met.",
@@ -1262,7 +1264,7 @@
           "WON": "Opportunity won",
           "LOST": "Opportunity lost",
           "REOPENED": "Opportunity reopened",
-          "ARCHIVED": "Opportunity archived",
+          "ARCHIVED": "Opportunity deleted",
           "RESTORED": "Opportunity restored",
           "MANUAL_STARTED": "Started manually"
         },
@@ -1274,7 +1276,7 @@
           "SET_FIELD": "Set field",
           "INCREMENT_FIELD": "Increment field",
           "CLEAR_FIELD": "Clear field",
-          "ARCHIVE_CARD": "Archive opportunity",
+          "ARCHIVE_CARD": "Delete opportunity",
           "ENROLL_CADENCE": "Enroll in cadence",
           "ADD_LABEL": "Add label",
           "REMOVE_LABEL": "Remove label",
@@ -1617,7 +1619,12 @@
       "AMOUNT_HEADLINE_RECEIVED": "{value} received",
       "AMOUNT_HEADLINE_EMPTY": "no amount yet",
       "REQUIRED_IN_STAGE": "Required in this stage",
-      "REQUIRED_FIELDS_MISSING": "Fill in before saving: {fields}."
+      "REQUIRED_FIELDS_MISSING": "Fill in before saving: {fields}.",
+      "TRANSFER_FIELDS": {
+        "TITLE": "This stage needs a few more fields",
+        "DESCRIPTION": "Fill them in to move the opportunity to the other funnel.",
+        "CONFIRM": "Move opportunity"
+      }
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",
@@ -1806,7 +1813,8 @@
       "RETRY": "Try again"
     },
     "REQUIRED_FIELDS": {
-      "MULTISELECT_HINT": "Hold Ctrl or ⌘ to choose more than one."
+      "MULTISELECT_HINT": "Hold Ctrl or ⌘ to choose more than one.",
+      "MISSING": "Required in this stage."
     }
   }
 }
