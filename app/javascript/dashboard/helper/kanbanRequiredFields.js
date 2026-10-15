@@ -46,6 +46,21 @@ export const isRequiredFieldEmpty = value =>
   value === '' ||
   (Array.isArray(value) && value.length === 0);
 
+/**
+ * Leva o foco ao primeiro campo obrigatório vazio. Quem chama espera pelo
+ * `nextTick`: o aviso de erro só existe depois de o estado mudar.
+ */
+export const focusFirstMissingField = (definitions, values, testidPrefix) => {
+  const emFalta = definitions.find(definition =>
+    isRequiredFieldEmpty(values[definition.key])
+  );
+  if (!emFalta) return;
+
+  document
+    .querySelector(`[data-testid="${testidPrefix}${emFalta.key}"]`)
+    ?.focus();
+};
+
 export const emptyRequiredFieldValue = definition =>
   requiredFieldType(definition) === 'multiselect' ? [] : '';
 

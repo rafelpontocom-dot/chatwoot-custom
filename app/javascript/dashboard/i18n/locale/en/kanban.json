@@ -1619,7 +1619,12 @@
       "AMOUNT_HEADLINE_RECEIVED": "{value} received",
       "AMOUNT_HEADLINE_EMPTY": "no amount yet",
       "REQUIRED_IN_STAGE": "Required in this stage",
-      "REQUIRED_FIELDS_MISSING": "Fill in before saving: {fields}."
+      "REQUIRED_FIELDS_MISSING": "Fill in before saving: {fields}.",
+      "TRANSFER_FIELDS": {
+        "TITLE": "This stage needs a few more fields",
+        "DESCRIPTION": "Fill them in to move the opportunity to the other funnel.",
+        "CONFIRM": "Move opportunity"
+      }
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Preview opportunity as a drawer",
@@ -1808,7 +1813,8 @@
       "RETRY": "Try again"
     },
     "REQUIRED_FIELDS": {
-      "MULTISELECT_HINT": "Hold Ctrl or ⌘ to choose more than one."
+      "MULTISELECT_HINT": "Hold Ctrl or ⌘ to choose more than one.",
+      "MISSING": "Required in this stage."
     }
   }
 }

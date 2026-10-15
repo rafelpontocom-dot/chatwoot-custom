@@ -1626,7 +1626,12 @@
       "AMOUNT_HEADLINE_RECEIVED": "{value} recebidos",
       "AMOUNT_HEADLINE_EMPTY": "sem valor ainda",
       "REQUIRED_IN_STAGE": "Obrigatório nesta etapa",
-      "REQUIRED_FIELDS_MISSING": "Preencha antes de guardar: {fields}."
+      "REQUIRED_FIELDS_MISSING": "Preencha antes de guardar: {fields}.",
+      "TRANSFER_FIELDS": {
+        "TITLE": "Esta etapa pede mais alguns campos",
+        "DESCRIPTION": "Preencha-os para mover a oportunidade para o outro funil.",
+        "CONFIRM": "Mover oportunidade"
+      }
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",
@@ -1815,7 +1820,8 @@
       "RETRY": "Tentar outra vez"
     },
     "REQUIRED_FIELDS": {
-      "MULTISELECT_HINT": "Mantenha Ctrl ou ⌘ para escolher mais do que uma."
+      "MULTISELECT_HINT": "Mantenha Ctrl ou ⌘ para escolher mais do que uma.",
+      "MISSING": "Obrigatório nesta etapa."
     }
   }
 }

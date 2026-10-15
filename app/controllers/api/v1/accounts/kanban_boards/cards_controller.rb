@@ -457,7 +457,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def transfer_params
-    params.require(:transfer).permit(:kanban_board_id, :kanban_stage_id, :lost_reason, :lock_version)
+    params.require(:transfer).permit(:kanban_board_id, :kanban_stage_id, :lost_reason, :lock_version, custom_field_values: {})
   end
 
   def transfer_target_stage
@@ -472,7 +472,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       target_board: @transfer_target_board,
       target_stage: target_stage,
       actor: Current.user,
-      lost_reason: transfer_params[:lost_reason]
+      lost_reason: transfer_params[:lost_reason],
+      custom_field_values: transfer_params[:custom_field_values].to_h
     ).perform!
   end
 

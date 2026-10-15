@@ -21,6 +21,7 @@ import {
 } from 'dashboard/helper/kanbanStageColors';
 import {
   emptyRequiredFieldValue,
+  focusFirstMissingField,
   isRequiredFieldEmpty,
 } from 'dashboard/helper/kanbanRequiredFields';
 import { emitter } from 'shared/helpers/mitt';
@@ -1270,6 +1271,7 @@ const assistedMoveDefinitions = computed(() =>
   )
 );
 
+const showAssistedErrors = ref(false);
 const hasUnfilledAssistedField = computed(() =>
   assistedMoveDefinitions.value.some(definition =>
     isRequiredFieldEmpty(assistedMoveValues.value[definition.key])
@@ -1281,6 +1283,7 @@ const hasUnfilledAssistedField = computed(() =>
 // movimento novo — um refresco do quadro com o diálogo aberto não apaga o que
 // já foi escrito.
 watch(pendingAssistedMove, () => {
+  showAssistedErrors.value = false;
   assistedMoveValues.value = Object.fromEntries(
     assistedMoveDefinitions.value.map(definition => [
       definition.key,
@@ -1292,6 +1295,17 @@ watch(pendingAssistedMove, () => {
 const confirmAssistedMove = async () => {
   const move = pendingAssistedMove.value;
   if (!move || isPersistingCardDrag.value) return;
+
+  if (hasUnfilledAssistedField.value) {
+    showAssistedErrors.value = true;
+    await nextTick();
+    focusFirstMissingField(
+      assistedMoveDefinitions.value,
+      assistedMoveValues.value,
+      'kanban-assisted-field-'
+    );
+    return;
+  }
 
   const cardPayload = {
     kanban_stage_id: move.targetStageId,
@@ -3074,6 +3088,7 @@ onUnmounted(() => {
           v-model="assistedMoveValues"
           :definitions="assistedMoveDefinitions"
           testid-prefix="kanban-assisted-field-"
+          :show-errors="showAssistedErrors"
         />
         <div class="flex justify-end gap-2">
           <button
@@ -3087,7 +3102,7 @@ onUnmounted(() => {
             type="button"
             data-testid="kanban-assisted-move-confirm"
             class="rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand-hover focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
-            :disabled="isPersistingCardDrag || hasUnfilledAssistedField"
+            :disabled="isPersistingCardDrag"
             @click="confirmAssistedMove"
           >
             {{ t('KANBAN.ASSISTED_MOVE.CONFIRM') }}

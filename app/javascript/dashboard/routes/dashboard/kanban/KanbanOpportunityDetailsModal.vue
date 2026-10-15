@@ -16,7 +16,12 @@ import Label from 'dashboard/components-next/label/Label.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import RaevoFieldRow from 'dashboard/components-next/raevo/RaevoFieldRow.vue';
 import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
-import { isRequiredFieldEmpty } from 'dashboard/helper/kanbanRequiredFields';
+import {
+  emptyRequiredFieldValue,
+  focusFirstMissingField,
+  isRequiredFieldEmpty,
+} from 'dashboard/helper/kanbanRequiredFields';
+import KanbanRequiredFields from './KanbanRequiredFields.vue';
 import RaevoTimeline from 'dashboard/components-next/raevo/RaevoTimeline.vue';
 import { getRandomColor } from 'dashboard/helper/labelColor';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
@@ -240,6 +245,11 @@ onClickOutside(labelsPopoverRef, closeLabelsPopover, {
 });
 const isCreatingLabel = ref(false);
 const pendingPipelineTransfer = ref(null);
+// Mudar de funil pode cair numa etapa que exige campos que este funil nem tem.
+// O servidor diz quais; a ficha pede-os aqui e repete a mudança com eles.
+// Antes devolvia «Complete the required fields…» cru, em inglês (123jpnbcxpa).
+const pendingTransferFields = ref(null);
+const showTransferFieldErrors = ref(false);
 
 // Secções da ficha: abrem e fecham. Nascem abertas a próxima ação e o Geral —
 // o que se trabalha; o resto consulta-se quando é preciso (a maquete aprovada).
@@ -1712,6 +1722,7 @@ const transferPipelineStage = async ({
   boardId,
   stageId: targetStageId,
   lostReason: transferLostReason,
+  customFieldValues: transferFieldValues,
 }) => {
   isSaving.value = true;
   saveError.value = '';
@@ -1724,14 +1735,44 @@ const transferPipelineStage = async ({
         kanban_stage_id: targetStageId,
         lock_version: card.value?.lockVersion,
         lost_reason: transferLostReason || undefined,
+        custom_field_values: transferFieldValues,
       }
     );
     pendingPipelineTransfer.value = null;
+    pendingTransferFields.value = null;
     emit('transferred', {
       boardId,
       card: normalizeCard(response.data || {}),
     });
   } catch (error) {
+    const data = error?.response?.data;
+    const camposEmFalta = (data?.missing_fields || []).filter(
+      key => key !== 'lost_reason'
+    );
+    if (camposEmFalta.length) {
+      const definitions = camposEmFalta.map(
+        key =>
+          (data.field_definitions || []).find(item => item.key === key) || {
+            key,
+            label: key,
+          }
+      );
+      pendingTransferFields.value = {
+        boardId,
+        stageId: targetStageId,
+        lostReason: transferLostReason,
+        definitions,
+        values: Object.fromEntries(
+          definitions.map(definition => [
+            definition.key,
+            transferFieldValues?.[definition.key] ??
+              emptyRequiredFieldValue(definition),
+          ])
+        ),
+      };
+      showTransferFieldErrors.value = false;
+      return;
+    }
     saveError.value = getErrorMessage(
       error,
       t('KANBAN.OPPORTUNITY_DETAILS.SAVE_ERROR')
@@ -1739,6 +1780,33 @@ const transferPipelineStage = async ({
   } finally {
     isSaving.value = false;
   }
+};
+
+const confirmTransferFields = async () => {
+  const pending = pendingTransferFields.value;
+  if (!pending || isSaving.value) return;
+
+  if (
+    pending.definitions.some(definition =>
+      isRequiredFieldEmpty(pending.values[definition.key])
+    )
+  ) {
+    showTransferFieldErrors.value = true;
+    await nextTick();
+    focusFirstMissingField(
+      pending.definitions,
+      pending.values,
+      'kanban-transfer-field-'
+    );
+    return;
+  }
+
+  await transferPipelineStage({
+    boardId: pending.boardId,
+    stageId: pending.stageId,
+    lostReason: pending.lostReason,
+    customFieldValues: { ...pending.values },
+  });
 };
 
 const selectPipelineStage = async ({
@@ -3730,6 +3798,55 @@ watch(invitationPendingRevocation, async invitation => {
             @click="confirmPipelineTransfer"
           >
             {{ t('KANBAN.OPPORTUNITY_DETAILS.TRANSFER_LOSS.CONFIRM') }}
+          </button>
+        </div>
+      </section>
+    </div>
+    <div
+      v-if="pendingTransferFields"
+      class="absolute inset-0 z-20 grid place-items-center bg-black/20 p-4"
+      role="presentation"
+    >
+      <section
+        data-testid="kanban-opportunity-transfer-fields"
+        class="grid max-h-full w-full max-w-sm gap-4 overflow-y-auto rounded-lg border border-n-weak bg-n-solid-1 p-5 shadow-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="kanban-transfer-fields-title"
+      >
+        <div>
+          <h3
+            id="kanban-transfer-fields-title"
+            class="mb-1 text-base font-semibold text-n-slate-12"
+          >
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.TRANSFER_FIELDS.TITLE') }}
+          </h3>
+          <p class="mb-0 text-sm text-n-slate-11">
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.TRANSFER_FIELDS.DESCRIPTION') }}
+          </p>
+        </div>
+        <KanbanRequiredFields
+          v-model="pendingTransferFields.values"
+          :definitions="pendingTransferFields.definitions"
+          testid-prefix="kanban-transfer-field-"
+          :show-errors="showTransferFieldErrors"
+        />
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-md px-3 py-2 text-sm font-medium text-n-slate-11 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-n-brand/40"
+            @click="pendingTransferFields = null"
+          >
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.CANCEL') }}
+          </button>
+          <button
+            type="button"
+            data-testid="kanban-opportunity-confirm-transfer-fields"
+            class="rounded-md bg-n-brand px-3 py-2 text-sm font-medium text-white outline-none hover:bg-n-brand-hover focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
+            :disabled="isSaving"
+            @click="confirmTransferFields"
+          >
+            {{ t('KANBAN.OPPORTUNITY_DETAILS.TRANSFER_FIELDS.CONFIRM') }}
           </button>
         </div>
       </section>

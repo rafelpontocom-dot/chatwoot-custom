@@ -15,6 +15,7 @@ import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import { getKanbanStageColorClass } from 'dashboard/helper/kanbanStageColors';
 import {
   emptyRequiredFieldValue,
+  focusFirstMissingField,
   isRequiredFieldEmpty,
   mergeRequiredFields,
   requiredFieldsForStage,
@@ -76,6 +77,7 @@ const createError = ref('');
 const boardFieldDefinitions = ref([]);
 const requiredFieldDefinitions = ref([]);
 const requiredFieldValues = ref({});
+const showRequiredErrors = ref(false);
 const hasPendingRealtimeRefresh = ref(false);
 
 const kanbanCardRealtimeEvents = new Set([
@@ -133,11 +135,7 @@ watch([selectedStageId, boardFieldDefinitions], () => {
 });
 
 const canSubmit = computed(
-  () =>
-    selectedBoardId.value &&
-    selectedStageId.value &&
-    !isCreating.value &&
-    !hasUnfilledRequiredField.value
+  () => selectedBoardId.value && selectedStageId.value && !isCreating.value
 );
 
 const contactId = computed(() => currentChat.value?.meta?.sender?.id);
@@ -218,6 +216,7 @@ const resetFormState = () => {
   boardFieldDefinitions.value = [];
   requiredFieldDefinitions.value = [];
   requiredFieldValues.value = {};
+  showRequiredErrors.value = false;
 };
 
 const conversationIdFromRealtimeData = data =>
@@ -433,6 +432,20 @@ const nextActionAtPayload = () => {
 const submitForm = async () => {
   if (!canSubmit.value) return;
 
+  if (hasUnfilledRequiredField.value) {
+    showRequiredErrors.value = true;
+    createError.value = t(
+      'CONVERSATION_SIDEBAR.KANBAN.REQUIRED_FIELDS_PENDING'
+    );
+    await nextTick();
+    focusFirstMissingField(
+      requiredFieldDefinitions.value,
+      requiredFieldValues.value,
+      'kanban-create-field-'
+    );
+    return;
+  }
+
   createAbortController.value?.abort();
   const controller = new AbortController();
   createAbortController.value = controller;
@@ -477,6 +490,7 @@ const submitForm = async () => {
       );
       requiredFieldDefinitions.value = juntos.definitions;
       requiredFieldValues.value = juntos.values;
+      showRequiredErrors.value = true;
       createError.value = t(
         'CONVERSATION_SIDEBAR.KANBAN.REQUIRED_FIELDS_PENDING'
       );
@@ -728,6 +742,7 @@ onBeforeUnmount(() => {
           v-model="requiredFieldValues"
           :definitions="requiredFieldDefinitions"
           testid-prefix="kanban-create-field-"
+          :show-errors="showRequiredErrors"
         />
       </div>
 
