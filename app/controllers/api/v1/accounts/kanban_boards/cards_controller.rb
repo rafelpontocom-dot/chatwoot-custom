@@ -571,6 +571,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       stage_name: card.kanban_stage.name,
       contact_name: card.contact.name,
       archived_at: card.archived_at.iso8601,
+      purge_at: (card.archived_at + KanbanCard::DELETED_RETENTION).iso8601,
       archived_by: card.archived_by && { id: card.archived_by_id, name: card.archived_by.name }
     }
   end

@@ -6,6 +6,7 @@ class Internal::TriggerDailyScheduledItemsJob < ApplicationJob
     # across the day without changing its slot on deploys or restarts.
     schedule_version_check
     schedule_clinical_retention
+    schedule_deleted_opportunities_purge
   end
 
   private
@@ -20,6 +21,12 @@ class Internal::TriggerDailyScheduledItemsJob < ApplicationJob
     return unless Rails.env.production?
 
     Forms::ProcessClinicalRetentionJob.set(wait_until: retention_run_at).perform_later
+  end
+
+  def schedule_deleted_opportunities_purge
+    return unless Rails.env.production?
+
+    KanbanCards::PurgeDeletedJob.set(wait_until: retention_run_at).perform_later
   end
 
   def version_check_run_at

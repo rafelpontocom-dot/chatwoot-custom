@@ -83,6 +83,11 @@ const showRenameSavedFilterForm = ref(false);
 const savedFilterRename = ref('');
 const showDeleteSavedFilterConfirmation = ref(false);
 const archivedCards = ref([]);
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+// O servidor diz quando a oportunidade excluída é apagada de vez; aqui só se
+// conta quanto falta, para quem restaura saber se ainda vai a tempo.
+const daysUntilPurge = card =>
+  Math.max(0, Math.ceil((Date.parse(card.purgeAt) - Date.now()) / DAY_IN_MS));
 const showArchivedCards = ref(false);
 const isLoadingArchivedCards = ref(false);
 const restoringCardId = ref(null);
@@ -1990,7 +1995,7 @@ onUnmounted(() => {
                       class="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-n-slate-12 outline-none hover:bg-n-alpha-2 focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                       @click="openArchivedCards"
                     >
-                      <i class="i-lucide-archive size-4 text-n-slate-10" />
+                      <i class="i-lucide-trash-2 size-4 text-n-slate-10" />
                       {{ t('KANBAN.ARCHIVE.OPEN') }}
                     </button>
                     <button
@@ -2568,7 +2573,7 @@ onUnmounted(() => {
           :title="t('KANBAN.BULK.ARCHIVE')"
           @click="showBulkArchiveConfirmation = true"
         >
-          <i class="i-lucide-archive size-4" />
+          <i class="i-lucide-trash-2 size-4" />
         </button>
         <button
           type="button"
@@ -2962,6 +2967,9 @@ onUnmounted(() => {
             <h2 class="mb-0 text-base font-medium text-n-slate-12">
               {{ t('KANBAN.ARCHIVE.TITLE') }}
             </h2>
+            <p class="mb-0 text-xs text-n-slate-11">
+              {{ t('KANBAN.ARCHIVE.HINT') }}
+            </p>
             <p
               v-if="selectedArchivedCardIds.length"
               class="mb-0 text-xs text-n-slate-11"
@@ -3023,6 +3031,8 @@ onUnmounted(() => {
                 {{ card.contactName }}
                 {{ t('KANBAN.ARCHIVE.STAGE_SEPARATOR') }}
                 {{ card.stageName }}
+                ·
+                {{ t('KANBAN.ARCHIVE.PURGE_IN', daysUntilPurge(card)) }}
               </p>
             </div>
             <button
