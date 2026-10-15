@@ -350,6 +350,18 @@
       "tests": [
         "app/javascript/dashboard/components/buttons/specs/ResolveActionShortcuts.spec.js"
       ]
+    },
+    {
+      "id": "internal-note-wording",
+      "paths": [
+        "app/javascript/dashboard/i18n/locale/en/automation.json",
+        "app/javascript/dashboard/i18n/locale/en/macros.json",
+        "app/javascript/dashboard/i18n/locale/en/search.json",
+        "app/javascript/dashboard/i18n/locale/pt_BR/search.json"
+      ],
+      "tests": [
+        "app/javascript/dashboard/i18n/specs/internalNoteWording.spec.js"
+      ]
     }
   ]
 }

@@ -196,7 +196,15 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     .filter({ visible: true })
     .first()
     .click();
+  // A ficha abre com a secção Oportunidades aberta (123jpnbcxpd), que pede as
+  // oportunidades do contato. Sair antes da resposta cancela o pedido — o
+  // componente aborta ao desmontar, e bem —, e o cancelamento contava como falha.
+  const contactCards = page.waitForResponse(response =>
+    /\/contacts\/\d+\/kanban_cards$/.test(new URL(response.url()).pathname)
+  );
   await page.getByText('Pedro Raevo Smoke', { exact: true }).first().click();
+  expect((await contactCards).ok()).toBe(true);
+  await expect(page.getByTestId('raevo-contact-section-kanban')).toBeVisible();
   await expect(
     page.locator('input[size]').filter({ visible: true }).first()
   ).toBeVisible();

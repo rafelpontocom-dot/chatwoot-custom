@@ -132,8 +132,12 @@ onMounted(() => {
         @go-to-contacts-list="goToContactsList"
       />
       <template #sidebar>
+        <!--
+          Só sem contato carregado: recarregar o mesmo contato desmontava as
+          secções, cancelava o pedido das oportunidades e repetia-o.
+        -->
         <div
-          v-if="isFetchingItem"
+          v-if="isFetchingItem && !selectedContact"
           class="flex items-center justify-center py-10 text-n-slate-11"
         >
           <Spinner />
