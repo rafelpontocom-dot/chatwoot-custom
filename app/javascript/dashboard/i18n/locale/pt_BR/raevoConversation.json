@@ -1,0 +1,10 @@
+{
+  "RAEVO_CONVERSATION": {
+    "RECORDING": {
+      "DISCARD": "Excluir áudio",
+      "CONFIRM_QUESTION": "Excluir o áudio gravado?",
+      "CONFIRM": "Excluir",
+      "CANCEL": "Manter"
+    }
+  }
+}

@@ -323,6 +323,15 @@
         "spec/policies/kanban_card_policy_spec.rb",
         "spec/policies/finance_module_setting_policy_spec.rb"
       ]
+    },
+    {
+      "id": "reply-discard-recording",
+      "paths": [
+        "app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/widgets/WootWriter/specs/ReplyBottomPanelDiscardRecording.spec.js"
+      ]
     }
   ]
 }

@@ -12,6 +12,8 @@ import RequestContactInfoButton from '../RequestContactInfoButton.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { mapGetters } from 'vuex';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+// RAEVO (123jpnbcxpg): excluir o áudio gravado.
+import RaevoDiscardRecording from 'dashboard/components-next/raevo/RaevoDiscardRecording.vue';
 
 export default {
   name: 'ReplyBottomPanel',
@@ -20,6 +22,7 @@ export default {
     FileUpload,
     VideoCallButton,
     RequestContactInfoButton,
+    RaevoDiscardRecording,
   },
   mixins: [inboxMixin],
   props: {
@@ -336,6 +339,10 @@ export default {
         sm
         :label="recordingAudioDurationText"
         @click="toggleAudioRecorderPlayPause"
+      />
+      <RaevoDiscardRecording
+        v-if="showAudioPlayStopButton"
+        @discard="toggleAudioRecorder"
       />
       <NextButton
         v-if="showMessageSignatureButton"

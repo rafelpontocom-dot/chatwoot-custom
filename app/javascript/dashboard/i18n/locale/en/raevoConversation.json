@@ -1,0 +1,10 @@
+{
+  "RAEVO_CONVERSATION": {
+    "RECORDING": {
+      "DISCARD": "Delete audio",
+      "CONFIRM_QUESTION": "Delete the recorded audio?",
+      "CONFIRM": "Delete",
+      "CANCEL": "Keep"
+    }
+  }
+}
