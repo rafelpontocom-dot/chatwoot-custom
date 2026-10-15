@@ -50,6 +50,21 @@ describe('CalendarTaskChip', () => {
     expect(wrapper.attributes('aria-label')).toContain('Gina Maria Torres');
     expect(wrapper.find('i').classes()).toContain('i-lucide-phone');
   });
+
+  // 123jpnbcxp8: «351967564016@c.us» partia em três linhas e saía da caixa.
+  it('shows the number of a contact that only has a WhatsApp id', () => {
+    const wrapper = mount(CalendarTaskChip, {
+      props: {
+        task: tarefa(8, { contact_name: '351967564016@c.us' }),
+        accountId: 1,
+        time: '14:00',
+      },
+      global,
+    });
+
+    expect(wrapper.text()).toBe('Ligar · +351967564016');
+    expect(wrapper.attributes('aria-label')).toContain('351967564016@c.us');
+  });
 });
 
 describe('CalendarTasksBar', () => {
