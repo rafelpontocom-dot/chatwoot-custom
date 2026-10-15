@@ -341,6 +341,15 @@
       "tests": [
         "app/javascript/dashboard/components/widgets/conversation/specs/ConversationHeaderContactToggle.spec.js"
       ]
+    },
+    {
+      "id": "resolve-shortcut-hints",
+      "paths": [
+        "app/javascript/dashboard/components/buttons/ResolveAction.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/buttons/specs/ResolveActionShortcuts.spec.js"
+      ]
     }
   ]
 }

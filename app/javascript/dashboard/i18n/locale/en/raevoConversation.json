@@ -8,6 +8,10 @@
     },
     "CONTACT_PANEL": {
       "TOGGLE": "Show contact"
+    },
+    "SHORTCUTS": {
+      "RESOLVE_HINT": "Resolve: {resolve} · Resolve and open the next one: {resolveNext}",
+      "MORE_ACTIONS": "More actions — pending, snooze: {moreActions}"
     }
   }
 }
