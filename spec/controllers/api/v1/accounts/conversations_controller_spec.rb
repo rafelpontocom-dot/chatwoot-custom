@@ -144,7 +144,9 @@ RSpec.describe 'Conversations API', type: :request do
             'all_count' => 1,
             'inboxes' => { visible_inbox.id.to_s => 1 },
             'labels' => { label.id.to_s => 1 },
-            'teams' => {}
+            'teams' => {},
+            # RAEVO (123jpnbcxh5): as por ler atribuídas a quem pede — nenhuma aqui.
+            'mine_count' => 0
           )
         end
 

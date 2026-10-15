@@ -167,14 +167,24 @@
       ]
     },
     {
-      "id": "unread-title",
+      "id": "unread-tab-dot",
       "paths": [
-        "app/javascript/dashboard/composables/useUnreadTabTitle.js",
+        "app/javascript/dashboard/composables/useUnreadFavicon.js",
+        "app/javascript/dashboard/store/modules/conversationUnreadCounts.js",
+        "app/javascript/dashboard/store/modules/specs/conversationUnreadCounts/mutations.spec.js",
         "app/javascript/dashboard/routes/dashboard/Dashboard.vue",
-        "app/services/conversations/unread_counts"
+        "app/services/conversations/unread_counts",
+        "app/controllers/api/v1/accounts/conversations/unread_counts_controller.rb",
+        "spec/controllers/api/v1/accounts/conversations_controller_spec.rb",
+        "app/services/raevo/unread_mine_count.rb",
+        "app/controllers/concerns/raevo/unread_counts_with_mine.rb",
+        "config/initializers/raevo_extensions.rb"
       ],
       "tests": [
-        "app/javascript/dashboard/composables/spec/useUnreadTabTitle.spec.js",
+        "app/javascript/dashboard/composables/spec/useUnreadFavicon.spec.js",
+        "app/javascript/dashboard/store/modules/specs/conversationUnreadCounts/mutations.spec.js",
+        "spec/services/raevo/unread_mine_count_spec.rb",
+        "spec/controllers/api/v1/accounts/conversations_controller_spec.rb",
         "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
       ]
     },

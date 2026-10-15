@@ -61,7 +61,13 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     .first()
     .click();
   await page.waitForURL(/\/app\/accounts\/\d+\//);
-  await expect(page).toHaveTitle(/^\(1\) /);
+  // 123jpnbcxh5: o título não leva número, e a conversa por ler da semente não
+  // é de ninguém — o ícone da guia fica o da marca, sem o ponto.
+  await expect(page).not.toHaveTitle(/^\(\d+\+?\) /);
+  await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute(
+    'href',
+    '/brand-assets/raevo-favicon.svg'
+  );
 
   const sidebar = page.locator('aside[aria-expanded]');
   await expect(sidebar).toBeVisible();
