@@ -52,7 +52,7 @@ const label = computed(() =>
         where: `${task.kanban_board_name} › ${task.kanban_stage_name}`,
       })
     "
-    class="flex min-w-0 items-start gap-1 overflow-hidden rounded-md border border-dashed border-n-slate-9 bg-n-solid-1 px-1.5 py-0.5 text-xs text-n-slate-12 no-underline outline-none hover:bg-n-slate-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+    class="flex min-w-0 items-start gap-1 rounded-md border border-dashed border-n-slate-9 bg-n-solid-1 px-1.5 py-0.5 text-xs text-n-slate-12 no-underline outline-none hover:bg-n-slate-2 focus-visible:ring-2 focus-visible:ring-n-brand"
   >
     <i
       aria-hidden="true"
