@@ -1,6 +1,7 @@
 import { computed, watch } from 'vue';
 import { useWindowSize } from '@vueuse/core';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useMapGetter } from 'dashboard/composables/store';
 import wootConstants from 'dashboard/constants/globals';
 
 // RAEVO (123jpnbd3by) — o painel do contacto e o do copiloto partilham a
@@ -38,9 +39,16 @@ export function useRaevoContactPanel() {
 export function useRaevoContactPanelAutoOpen(conversationId) {
   const { isOpen, setOpen } = useRaevoContactPanel();
   const { width } = useWindowSize();
+  const currentUserId = useMapGetter('getCurrentUserID');
+
+  // Só depois de o utilizador carregar: antes disso as preferências ainda vêm a
+  // caminho do servidor e escreveriam «fechado» por cima do que se abriu aqui.
+  const conversaPronta = computed(() =>
+    currentUserId.value ? conversationId.value : null
+  );
 
   watch(
-    conversationId,
+    conversaPronta,
     id => {
       if (!id || isOpen.value) return;
       if (width.value < wootConstants.SMALL_SCREEN_BREAKPOINT) return;

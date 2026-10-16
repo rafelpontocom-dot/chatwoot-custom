@@ -18,9 +18,13 @@ vi.mock('@vueuse/core', async () => ({
   ...(await vi.importActual('@vueuse/core')),
   useWindowSize: () => ({ width: larguraDaJanela }),
 }));
+const utilizadorCarregado = ref(7);
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: name =>
-    name === 'getCurrentAccountId' ? ref(1) : ref(() => captainAtivo.value),
+  useMapGetter: name => {
+    if (name === 'getCurrentUserID') return utilizadorCarregado;
+    if (name === 'getCurrentAccountId') return ref(1);
+    return ref(() => captainAtivo.value);
+  },
 }));
 vi.mock('dashboard/composables/useKeyboardEvents', () => ({
   useKeyboardEvents: events => {
@@ -50,7 +54,7 @@ describe('RaevoConversationPanelToggles (123jpnbd3by)', () => {
     expect(botao.attributes('aria-label')).toBe(
       'RAEVO_CONVERSATION.CONTACT_PANEL.SHOW'
     );
-    expect(botao.html()).toContain('i-lucide-arrow-right-to-line');
+    expect(botao.html()).toContain('i-lucide-arrow-left-to-line');
 
     await botao.trigger('click');
 
@@ -62,7 +66,7 @@ describe('RaevoConversationPanelToggles (123jpnbd3by)', () => {
     expect(botao.attributes('aria-label')).toBe(
       'RAEVO_CONVERSATION.CONTACT_PANEL.HIDE'
     );
-    expect(botao.html()).toContain('i-lucide-arrow-left-to-line');
+    expect(botao.html()).toContain('i-lucide-arrow-right-to-line');
   });
 
   it('keeps the Alt+O shortcut of the floating switch it replaces', () => {
@@ -109,6 +113,7 @@ describe('useRaevoContactPanelAutoOpen (decisão de 16/10)', () => {
     uiSettings.value = {};
     updateUISettings.mockClear();
     larguraDaJanela.value = 1280;
+    utilizadorCarregado.value = 7;
   });
 
   it('opens the contact panel when a conversation opens', () => {
@@ -145,6 +150,21 @@ describe('useRaevoContactPanelAutoOpen (decisão de 16/10)', () => {
     comConversa(55);
 
     expect(updateUISettings).not.toHaveBeenCalled();
+  });
+
+  // A corrida que a jornada no browser apanhou: abrir antes de o perfil chegar
+  // deixava o servidor gravar «fechado» por cima.
+  it('waits for the user to load before opening the panel', async () => {
+    utilizadorCarregado.value = null;
+    comConversa(55);
+    expect(updateUISettings).not.toHaveBeenCalled();
+
+    utilizadorCarregado.value = 7;
+    await nextTick();
+
+    expect(updateUISettings).toHaveBeenCalledWith(
+      expect.objectContaining({ is_contact_sidebar_open: true })
+    );
   });
 
   it('does nothing without a conversation', () => {

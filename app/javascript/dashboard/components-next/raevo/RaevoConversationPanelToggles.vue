@@ -9,7 +9,8 @@ import { useRaevoContactPanel } from './useRaevoContactPanel';
 
 // RAEVO (123jpnbd3by) — o acesso ao painel do contacto sai do ícone flutuante à
 // direita da conversa e passa para o topo, ao lado dos ⋮. O ícone é o mesmo de
-// «Alternar layout» da lista. O copiloto, quando a conta o tem, fica aqui ao lado.
+// «Alternar layout» da lista, e mostra a acção: aberto, →| empurra o painel para
+// fora; fechado, |← trá-lo. O copiloto, quando a conta o tem, fica aqui ao lado.
 const { t } = useI18n();
 const { isOpen, isCopilotOpen, toggle, toggleCopilot } = useRaevoContactPanel();
 
@@ -52,7 +53,7 @@ useKeyboardEvents({ 'Alt+KeyO': { action: toggle } });
       variant="ghost"
       color="slate"
       :icon="
-        isOpen ? 'i-lucide-arrow-left-to-line' : 'i-lucide-arrow-right-to-line'
+        isOpen ? 'i-lucide-arrow-right-to-line' : 'i-lucide-arrow-left-to-line'
       "
       class="rounded-md rtl:rotate-180"
       :class="{ 'bg-n-alpha-2': isOpen }"

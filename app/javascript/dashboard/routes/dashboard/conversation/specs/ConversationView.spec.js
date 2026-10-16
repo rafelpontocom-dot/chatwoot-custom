@@ -18,6 +18,10 @@ vi.mock('dashboard/composables/useUISettings', () => ({
   }),
 }));
 
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: () => ref(7),
+}));
+
 vi.mock('dashboard/composables/useAccount', () => ({
   useAccount: () => ({ accountId: ref(8) }),
 }));
