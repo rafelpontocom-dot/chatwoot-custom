@@ -1,8 +1,7 @@
 <script setup>
-import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Avatar from 'next/avatar/Avatar.vue';
-import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useRaevoContactPanel } from './useRaevoContactPanel';
 
 // RAEVO (123jpnbcxh2) — clicar no avatar do contacto, no topo da conversa, abre o
 // painel do contacto. O único caminho era o ícone flutuante à direita, que
@@ -15,17 +14,7 @@ defineProps({
 });
 
 const { t } = useI18n();
-const { uiSettings, updateUISettings } = useUISettings();
-
-const isOpen = computed(() =>
-  Boolean(uiSettings.value.is_contact_sidebar_open)
-);
-
-const toggle = () =>
-  updateUISettings({
-    is_contact_sidebar_open: !isOpen.value,
-    is_copilot_panel_open: false,
-  });
+const { isOpen, toggle } = useRaevoContactPanel();
 </script>
 
 <template>
