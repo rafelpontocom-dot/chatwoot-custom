@@ -685,6 +685,15 @@
       "tests": [
         "spec/enterprise/config/raevo_premium_installation_config_spec.rb"
       ]
+    },
+    {
+      "id": "inbox-view-no-floating-switch",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/inbox/InboxView.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/inbox/specs/InboxView.spec.js"
+      ]
     }
   ]
 }

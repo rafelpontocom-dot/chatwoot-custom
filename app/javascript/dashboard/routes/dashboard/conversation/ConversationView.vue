@@ -1,4 +1,5 @@
 <script>
+import { toRef } from 'vue';
 import { mapGetters } from 'vuex';
 import { useWindowSize } from '@vueuse/core';
 import { useUISettings } from 'dashboard/composables/useUISettings';
@@ -10,7 +11,8 @@ import wootConstants from 'dashboard/constants/globals';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBarConversationSnooze.vue';
 import { emitter } from 'shared/helpers/mitt';
-import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
+// RAEVO (123jpnbd3by): o contacto abre com a conversa; o botão mora no cabeçalho.
+import { useRaevoContactPanelAutoOpen } from 'dashboard/components-next/raevo/useRaevoContactPanel';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
 
 export default {
@@ -18,7 +20,6 @@ export default {
     ChatList,
     ConversationBox,
     CmdBarConversationSnooze,
-    SidepanelSwitch,
     ConversationSidebar,
   },
   beforeRouteLeave(to, from, next) {
@@ -55,12 +56,13 @@ export default {
       default: 0,
     },
   },
-  setup() {
+  setup(props) {
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
     const { accountId } = useAccount();
     const { width: windowWidth } = useWindowSize();
     const { setSidebarFocus } = useRequestSidebarFocus();
+    useRaevoContactPanelAutoOpen(toRef(props, 'conversationId'));
 
     return {
       uiSettings,
@@ -226,9 +228,7 @@ export default {
       v-if="showMessageView"
       :inbox-id="inboxId"
       :is-on-expanded-layout="isOnExpandedLayout"
-    >
-      <SidepanelSwitch v-if="currentChat.id" />
-    </ConversationBox>
+    />
     <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
     <CmdBarConversationSnooze />
   </section>

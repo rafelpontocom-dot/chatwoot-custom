@@ -7,7 +7,9 @@
       "CANCEL": "Keep"
     },
     "CONTACT_PANEL": {
-      "TOGGLE": "Show contact"
+      "TOGGLE": "Show contact",
+      "SHOW": "Show contact",
+      "HIDE": "Hide contact"
     },
     "SHORTCUTS": {
       "RESOLVE_HINT": "Resolve: {resolve} · Resolve and open the next one: {resolveNext}",

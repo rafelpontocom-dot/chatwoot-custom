@@ -10,10 +10,11 @@ vi.mock('@vueuse/core', async () => {
   return { ...actual, useWindowSize: () => ({ width: larguraDaJanela }) };
 });
 
+const atualizarPreferencias = vi.fn();
 vi.mock('dashboard/composables/useUISettings', () => ({
   useUISettings: () => ({
     uiSettings: ref({ conversation_display_type: 'condensed' }),
-    updateUISettings: vi.fn(),
+    updateUISettings: atualizarPreferencias,
   }),
 }));
 
@@ -34,7 +35,6 @@ const mountView = (props = {}) =>
         ConversationBox: { template: '<div><slot /></div>' },
         ConversationSidebar: true,
         CmdBarConversationSnooze: true,
-        SidepanelSwitch: true,
       },
       mocks: {
         $store: {
@@ -53,6 +53,7 @@ describe('ConversationView', () => {
   beforeEach(() => {
     larguraDaJanela.value = 1280;
     definirFoco.mockClear();
+    atualizarPreferencias.mockClear();
   });
 
   // Decisão de 09/10: a lista fica com a conversa aberta, a qualquer largura.
@@ -94,5 +95,25 @@ describe('ConversationView', () => {
     await wrapper.vm.$nextTick();
 
     expect(definirFoco).toHaveBeenLastCalledWith(false);
+  });
+
+  // 123jpnbd3by, decisão de 16/10: abrir uma conversa abre o contacto, sempre.
+  it('opens the contact panel when a conversation opens', () => {
+    mountView();
+
+    expect(atualizarPreferencias).toHaveBeenCalledWith({
+      is_contact_sidebar_open: true,
+      is_copilot_panel_open: false,
+    });
+  });
+
+  // O botão do contacto passou para o cabeçalho; o ícone flutuante não volta.
+  it('no longer floats the side panel switch over the conversation', () => {
+    const wrapper = mountView();
+
+    expect(wrapper.html()).not.toContain('sidepanel-switch');
+    expect(wrapper.findComponent({ name: 'SidepanelSwitch' }).exists()).toBe(
+      false
+    );
   });
 });

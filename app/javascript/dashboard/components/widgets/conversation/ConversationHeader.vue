@@ -8,6 +8,8 @@ import InboxName from '../InboxName.vue';
 import MoreActions from './MoreActions.vue';
 // RAEVO (123jpnbcxh2): o avatar abre o painel do contacto.
 import RaevoContactAvatarToggle from 'dashboard/components-next/raevo/RaevoContactAvatarToggle.vue';
+// RAEVO (123jpnbd3by): o botão do contacto, no lugar do ícone flutuante.
+import RaevoConversationPanelToggles from 'dashboard/components-next/raevo/RaevoConversationPanelToggles.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import ConversationCallButton from './ConversationCallButton.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -173,6 +175,7 @@ const copyConversationId = async () => {
       />
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
       <MoreActions :conversation-id="currentChat.id" />
+      <RaevoConversationPanelToggles />
     </div>
   </div>
 </template>
