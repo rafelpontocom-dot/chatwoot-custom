@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { iconForActionType } from 'dashboard/helper/kanbanActionIcon';
+import { taskContactName } from './taskContactName';
 
 // RAEVO (09/10, 123jpnbcb5m) — uma tarefa de lead na grelha da Agenda. Contorno
 // tracejado e ícone, sem o fundo de cor das marcações: uma tarefa não ocupa a
@@ -14,16 +15,10 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-// Contacto que chegou pelo WAHA sem nome fica com o identificador do WhatsApp
-// («351967564016@c.us»): uma palavra só, que partia em três linhas e saía da
-// caixa. O que interessa a quem liga é o número.
-const WHATSAPP_ID = /^(\d{6,})@(c\.us|s\.whatsapp\.net|lid)$/i;
-
 // «Gina T.»: o nome inteiro não cabe numa coluna de um dia da semana.
 const shortName = computed(() => {
-  const name = String(props.task.contact_name || '').trim();
-  const whatsappNumber = name.match(WHATSAPP_ID)?.[1];
-  if (whatsappNumber) return `+${whatsappNumber}`;
+  const name = taskContactName(props.task.contact_name);
+  if (name.startsWith('+')) return name;
 
   const [first, ...rest] = name.split(/\s+/);
   const last = rest.at(-1);

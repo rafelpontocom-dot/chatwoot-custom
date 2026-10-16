@@ -1,4 +1,5 @@
 <script setup>
+import { taskContactName } from './taskContactName';
 import { useI18n } from 'vue-i18n';
 import { iconForActionType } from 'dashboard/helper/kanbanActionIcon';
 
@@ -131,7 +132,10 @@ const { t } = useI18n();
           <span class="grid min-w-0 gap-0.5">
             <span class="break-words text-sm font-medium">
               {{
-                [item.task.next_action_type, item.task.contact_name]
+                [
+                  item.task.next_action_type,
+                  taskContactName(item.task.contact_name),
+                ]
                   .filter(Boolean)
                   .join(' · ')
               }}
