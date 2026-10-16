@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { withoutWhatsappAddressing } from 'dashboard/helper/contactAttributes';
 
 import ContactCustomAttributeItem from 'dashboard/components-next/Contacts/ContactsSidebar/ContactCustomAttributeItem.vue';
 
@@ -19,7 +20,12 @@ const { uiSettings } = useUISettings();
 
 const searchQuery = ref('');
 
-const contactAttributes = useMapGetter('attributes/getContactAttributes') || [];
+const todosOsAtributos = useMapGetter('attributes/getContactAttributes') || [];
+
+// Regra única em `helper/contactAttributes` — ver o porquê lá.
+const contactAttributes = computed(() =>
+  withoutWhatsappAddressing(todosOsAtributos.value)
+);
 
 const hasContactAttributes = computed(
   () => contactAttributes.value?.length > 0

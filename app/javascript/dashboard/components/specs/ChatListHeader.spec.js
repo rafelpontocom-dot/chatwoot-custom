@@ -98,4 +98,26 @@ describe('ChatListHeader', () => {
     expect(wrapper.find('[icon="i-lucide-pen-line"]').exists()).toBe(true);
     expect(wrapper.find('[icon="i-lucide-trash-2"]').exists()).toBe(true);
   });
+
+  // Contrato `conversation-list-preferences`: fixar o filtro que abre o painel.
+  it('pins and unpins the open folder as the one the panel opens with', async () => {
+    const solto = mountHeader({
+      hasAppliedFilters: true,
+      hasActiveFolders: true,
+    });
+    const fixar = solto.find('[data-testid="toggle-default-folder"]');
+
+    expect(fixar.attributes('icon')).toBe('i-lucide-pin');
+    await fixar.trigger('click');
+    expect(solto.emitted('toggleDefaultFolder')).toHaveLength(1);
+
+    const fixado = mountHeader({
+      hasAppliedFilters: true,
+      hasActiveFolders: true,
+      isDefaultFolder: true,
+    });
+    expect(
+      fixado.find('[data-testid="toggle-default-folder"]').attributes('icon')
+    ).toBe('i-lucide-pin-off');
+  });
 });

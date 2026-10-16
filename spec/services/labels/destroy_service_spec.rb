@@ -22,6 +22,20 @@ describe Labels::DestroyService do
   end
 
   describe '#perform' do
+    # Contrato de upgrade `labels-on-opportunities`: apagar a etiqueta tira-a também
+    # das oportunidades do Raevo.
+    it 'removes the label from the account opportunities too' do
+      card = create(:kanban_card, account: account)
+      card.label_list.add(label.title)
+      card.label_list.add('vip')
+      card.save!
+      set_label_tagging_created_at(card, label_deleted_at - 1.minute)
+
+      described_class.new(label_title: label.title, account_id: account.id, label_deleted_at: label_deleted_at).perform
+
+      expect(card.reload.label_list).to eq(['vip'])
+    end
+
     it 'removes label from associated conversations and contacts' do
       described_class.new(
         label_title: label.title,

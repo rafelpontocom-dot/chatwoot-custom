@@ -62,6 +62,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /**
+   * Em linha, mas com o rótulo EM CIMA — a linha empilhada da ficha, como o
+   * painel do Chatwoot. O rótulo fica no mesmo degrau e peso do repouso e o
+   * controle continua sem casca: abrir o campo não mexe na geometria.
+   */
+  stacked: {
+    type: Boolean,
+    default: false,
+  },
   /** Campo compacto das configurações da agenda (36px, canto 11px, 13px). */
   compact: {
     type: Boolean,
@@ -106,11 +115,13 @@ const describedBy = computed(() => {
   <div
     class="grid"
     :class="
-      inline
-        ? `grid-cols-[8.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 ${
-            variant === 'textarea' ? 'items-start' : 'items-center'
-          }`
-        : 'min-w-0 content-start gap-1.5'
+      inline && stacked
+        ? 'min-w-0 content-start gap-0.5'
+        : inline
+          ? `grid-cols-[8.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 ${
+              variant === 'textarea' ? 'items-start' : 'items-center'
+            }`
+          : 'min-w-0 content-start gap-1.5'
     "
   >
     <!--
@@ -122,9 +133,11 @@ const describedBy = computed(() => {
       v-if="label"
       :for="fieldId"
       :class="
-        inline
-          ? 'text-sm leading-5 text-n-slate-11'
-          : 'text-xs font-medium leading-4 text-n-slate-11'
+        inline && stacked
+          ? 'text-sm font-medium leading-5 text-n-slate-12'
+          : inline
+            ? 'text-sm leading-5 text-n-slate-11'
+            : 'text-xs font-medium leading-4 text-n-slate-11'
       "
     >
       {{ label }}
@@ -155,7 +168,7 @@ const describedBy = computed(() => {
       :id="`${fieldId}-error`"
       :data-testid="errorTestid"
       class="mb-0 text-xs text-n-ruby-11"
-      :class="inline && 'col-start-2'"
+      :class="inline && !stacked && 'col-start-2'"
       role="alert"
     >
       {{ error }}
@@ -164,7 +177,7 @@ const describedBy = computed(() => {
       v-else-if="hint"
       :id="`${fieldId}-hint`"
       class="mb-0 text-xs text-n-slate-11"
-      :class="inline && 'col-start-2'"
+      :class="inline && !stacked && 'col-start-2'"
     >
       {{ hint }}
     </p>

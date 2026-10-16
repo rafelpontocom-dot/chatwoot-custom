@@ -36,6 +36,31 @@ describe('RaevoFieldRow', () => {
     expect(wrapper.find('input').exists()).toBe(false);
   });
 
+  // O erro só se via ao editar: a ficha recusava gravar um campo exigido e a
+  // linha, em repouso, não dizia qual era.
+  it('says what is wrong while at rest, tied to the row for screen readers', () => {
+    const wrapper = montar({ value: '', error: 'Obrigatório nesta etapa' });
+    const linha = wrapper.find('[data-testid="raevo-field-row-read"]');
+    const aviso = wrapper.find(`#${linha.attributes('aria-describedby')}`);
+
+    expect(aviso.text()).toBe('Obrigatório nesta etapa');
+    wrapper.unmount();
+  });
+
+  it('keeps the hint for editing unless the caller asks for it at rest', () => {
+    const calada = montar({ value: '', hint: 'Previsão da venda' });
+    expect(calada.text()).not.toContain('Previsão da venda');
+    calada.unmount();
+
+    const falante = montar({
+      value: '',
+      hint: 'Previsão da venda',
+      hintAtRest: true,
+    });
+    expect(falante.text()).toContain('Previsão da venda');
+    falante.unmount();
+  });
+
   it('shows a dash for an empty value instead of blank space', () => {
     const wrapper = montar({ value: '' });
 

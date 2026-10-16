@@ -72,8 +72,9 @@ const onClick = event => {
       >
         {{ label }}
       </span>
+      <!-- RAEVO (08/10, 123jpnbc242): também num grupo fechado; aberto, o filho mostra -->
       <span
-        v-if="dynamicCount && !expandable"
+        v-if="dynamicCount && (!expandable || !isExpanded)"
         class="inline-grid h-5 min-w-5 place-items-center rounded-full bg-n-slate-4 px-1 text-xxs font-medium leading-3 text-n-slate-12 dark:bg-n-slate-5 flex-shrink-0"
       >
         {{ count }}

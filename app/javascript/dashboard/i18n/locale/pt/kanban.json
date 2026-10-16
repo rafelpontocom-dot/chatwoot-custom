@@ -258,15 +258,17 @@
       }
     },
     "ARCHIVE": {
-      "OPEN": "Oportunidades arquivadas",
-      "TITLE": "Oportunidades arquivadas",
-      "LOADING": "Carregando oportunidades arquivadas...",
-      "EMPTY": "Não há oportunidades arquivadas.",
+      "OPEN": "Oportunidades excluídas",
+      "TITLE": "Oportunidades excluídas",
+      "LOADING": "A carregar oportunidades excluídas...",
+      "EMPTY": "Não há oportunidades excluídas.",
       "RESTORE": "Restaurar oportunidade",
       "RESTORE_SUCCESS": "Oportunidade restaurada.",
       "RESTORE_ERROR": "Não foi possível restaurar a oportunidade.",
-      "LOAD_ERROR": "Não foi possível carregar as oportunidades arquivadas.",
-      "STAGE_SEPARATOR": "na etapa"
+      "LOAD_ERROR": "Não foi possível carregar as oportunidades excluídas.",
+      "STAGE_SEPARATOR": "na etapa",
+      "HINT": "Ficam aqui 30 dias e depois são apagadas definitivamente.",
+      "PURGE_IN": "apagada hoje | apagada amanhã | apagada em {n} dias"
     },
     "STAGE": {
       "CAPACITY_ALERT": "Esta etapa está acima do limite de alerta de cards.",
@@ -285,10 +287,10 @@
       "MARK_WON": "Marcar como ganha",
       "MARK_LOST": "Marcar como perdida",
       "LOST_REASON": "Motivo da perda",
-      "ARCHIVE": "Arquivar selecionadas",
+      "ARCHIVE": "Excluir selecionadas",
       "CLEAR": "Limpar seleção",
-      "ARCHIVE_TITLE": "Arquivar oportunidades",
-      "ARCHIVE_MESSAGE": "Arquivar {count} oportunidades selecionadas? Elas poderão ser restauradas depois.",
+      "ARCHIVE_TITLE": "Excluir oportunidades",
+      "ARCHIVE_MESSAGE": "Excluir {count} oportunidades selecionadas? Ficam 30 dias em Excluídas, onde podem ser restauradas, e depois são apagadas definitivamente.",
       "SUCCESS": "Oportunidades atualizadas.",
       "SUCCESS_WITH_COUNT": "{count} oportunidades atualizadas. Falhas: {errors}.",
       "ERROR": "Não foi possível atualizar as oportunidades selecionadas.",
@@ -368,6 +370,11 @@
       "NEWEST_FIRST": "Mais recentes",
       "HIGHEST_VALUE": "Maior valor",
       "LONGEST_IN_STAGE": "Mais tempo na etapa",
+      "LONGEST_WAITING": "Mais tempo sem resposta",
+      "WAITING_LABEL": "Sem resposta há",
+      "WAITING_ANY": "Qualquer tempo",
+      "WAITING_DAYS": "1 dia ou mais | {count} dias ou mais",
+      "ACTIVE_FILTERS_COUNT": "1 filtro | {count} filtros",
       "SAVED_FILTERS": "Filtros guardados",
       "SAVE_FILTER": "Guardar filtros atuais",
       "SAVED_NAME_PROMPT": "Nome do filtro",
@@ -853,7 +860,9 @@
         "PREVIEW_HIDDEN": "{count} campos condicionais só aparecem quando a condição se cumpre.",
         "PREVIEW_CALCULATED": "calculado",
         "PREVIEW_HALF_MARK": "½",
-        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade"
+        "FIELD_SCOPE_OPPORTUNITY": "Campos da oportunidade",
+        "PANEL_ORDER_TITLE": "Ordem no painel",
+        "PANEL_ORDER_HELP": "A ordem das secções na ficha da oportunidade, igual para toda a equipa. Na ficha já não se reordena."
       },
       "AUTOMATIONS": {
         "TITLE": "Automações",
@@ -1115,7 +1124,7 @@
           "NO": "Não",
           "CREATE_TASK": "Criar próxima ação",
           "MOVE_STAGE": "Mover oportunidade",
-          "ARCHIVE": "Arquivar oportunidade",
+          "ARCHIVE": "Excluir oportunidade",
           "NODE_HINT": "Este nó inicia ou conclui o fluxo.",
           "CONDITION_HINT": "Crie saídas ordenadas. Cada saída avalia suas próprias condições e a última cobre o caso contrário.",
           "FILTER_HINT": "Deixe o fluxo seguir apenas quando as condições abaixo forem atendidas.",
@@ -1258,7 +1267,7 @@
           "WON": "Oportunidade ganha",
           "LOST": "Oportunidade perdida",
           "REOPENED": "Oportunidade reaberta",
-          "ARCHIVED": "Oportunidade arquivada",
+          "ARCHIVED": "Oportunidade excluída",
           "RESTORED": "Oportunidade restaurada",
           "MANUAL_STARTED": "Iniciada manualmente"
         },
@@ -1270,7 +1279,7 @@
           "SET_FIELD": "Preencher campo",
           "INCREMENT_FIELD": "Incrementar campo",
           "CLEAR_FIELD": "Limpar campo",
-          "ARCHIVE_CARD": "Arquivar oportunidade",
+          "ARCHIVE_CARD": "Excluir oportunidade",
           "ENROLL_CADENCE": "Inscrever em cadência",
           "ADD_LABEL": "Adicionar etiqueta",
           "REMOVE_LABEL": "Remover etiqueta",
@@ -1396,6 +1405,27 @@
       "CONFIRM": "Remover",
       "CANCEL": "Cancelar"
     },
+    "CONTACT_OPPORTUNITY": {
+      "TITLE": "Nova oportunidade",
+      "THIS_CONTACT": "· contacto desta página",
+      "BOARD": "Funil",
+      "STAGE": "Etapa",
+      "SUBJECT": "Título",
+      "AMOUNT": "Valor",
+      "AMOUNT_PLACEHOLDER": "0,00",
+      "AMOUNT_INVALID": "Escreva o valor em número, por exemplo 1200,50.",
+      "INBOX": "Caixa de entrada",
+      "INBOX_HINT": "A da última conversa do contacto.",
+      "INBOX_FALLBACK": "Caixa #{id}",
+      "NO_INBOX": "Este contacto não está em nenhuma caixa a que tenha acesso.",
+      "CANCEL": "Cancelar",
+      "CREATE": "Criar oportunidade",
+      "CREATING": "A criar…",
+      "LOAD_ERROR": "Não foi possível carregar os funis. Feche e tente de novo.",
+      "CREATE_ERROR": "Não foi possível criar a oportunidade. Os dados continuam no formulário.",
+      "DUPLICATE": "Já existe «{subject}» em {stage} para este contacto e caixa. Mude o título.",
+      "REQUIRED_PENDING": "Esta etapa exige os campos acima."
+    },
     "OPPORTUNITY_DETAILS": {
       "EXPECTED_CLOSE_DATE": "Previsão de fechamento",
       "TIMELINE": {
@@ -1480,7 +1510,45 @@
       "NEXT_ACTION_NOTE": "Observação da ação",
       "NEXT_ACTION_NOTE_PLACEHOLDER": "Ex.: ligar depois das 14h para confirmar o orçamento",
       "COMPLETE_NEXT_ACTION": "Concluir próxima ação",
-      "NEXT_ACTION_HISTORY": "Ações concluídas",
+      "ACTION_HISTORY": {
+        "ACTIONS": "Ações",
+        "OPEN_FOR": "Em aberto",
+        "TO_WIN": "Até ganhar",
+        "TO_LOSE": "Até perder",
+        "ON_TIME": "No prazo",
+        "ON_TIME_VALUE": "{done} de {total}",
+        "DAYS": "{count} dia | {count} dias",
+        "ACTIONS_COUNT": "{count} ação | {count} ações",
+        "WON_SUMMARY": "Fechou com {actions} em {days}.",
+        "SCHEDULED": "Prevista {date}",
+        "DONE": "feita",
+        "DONE_ONLY": "Feita {date}",
+        "LATE": "{date} — {days} depois",
+        "SHOW_OLDER": "Ver a anterior | Ver as {count} anteriores",
+        "EMPTY": "Ainda nenhuma ação concluída. Cada ação que concluir na secção «Próxima ação» fica aqui, com o resultado.",
+        "CHANGES": "Alterações"
+      },
+      "COMPLETE_FLOW": {
+        "STEP": "Passo {n} de 2",
+        "HOW_WAS_IT": "Como foi?",
+        "QUICK_ANSWERED": "Atendeu",
+        "QUICK_NOT_ANSWERED": "Não atendeu",
+        "QUICK_CALL_BACK": "Pediu retorno",
+        "RESULT": "Resultado",
+        "RESULT_HINT": "Fica no histórico da oportunidade.",
+        "CANCEL": "Cancelar",
+        "CONFIRM": "Concluir e marcar a próxima",
+        "CONCLUDING": "A concluir…",
+        "RETRY": "Tentar de novo",
+        "DONE": "{type} concluída",
+        "DONE_UNTYPED": "Ação concluída",
+        "NO_NEXT": "Sem próxima ação",
+        "SAVE_NEXT": "Guardar próxima ação",
+        "ERROR": "Não foi possível concluir. O que escreveu continua aqui — tente de novo.",
+        "EMPTY": "Sem ação marcada",
+        "EMPTY_HINT": "Esta oportunidade não tem próxima ação. Aparece no filtro «Sem ação» do Pipeline.",
+        "SCHEDULE": "Marcar próxima ação"
+      },
       "ACTION_TYPES": {
         "NONE": "Selecionar ação",
         "CALL_BACK": "Chamar novamente",
@@ -1531,6 +1599,8 @@
       },
       "MANAGE_FIELDS": "Configurar campos da oportunidade",
       "ADD_TAB": "Criar aba da oportunidade",
+      "MOVE_SECTION_UP": "Mover {section} para cima",
+      "MOVE_SECTION_DOWN": "Mover {section} para baixo",
       "GROUPS": {
         "COMMERCIAL": "Comercial"
       },
@@ -1548,11 +1618,20 @@
       },
       "OWNER_NONE": "Sem responsável",
       "FIELD_AMOUNT_HINT": "Previsão da venda, não a cobrança.",
+      "SHOW_MORE_FIELDS": "Mostrar mais {count} campos",
+      "SHOW_FEWER_FIELDS": "Mostrar menos campos",
       "BOOLEAN_YES": "Sim",
       "BOOLEAN_NO": "Não",
       "AMOUNT_HEADLINE_ESTIMATE": "estimativa",
       "AMOUNT_HEADLINE_RECEIVED": "{value} recebidos",
-      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda"
+      "AMOUNT_HEADLINE_EMPTY": "sem valor ainda",
+      "REQUIRED_IN_STAGE": "Obrigatório nesta etapa",
+      "REQUIRED_FIELDS_MISSING": "Preencha antes de guardar: {fields}.",
+      "TRANSFER_FIELDS": {
+        "TITLE": "Esta etapa pede mais alguns campos",
+        "DESCRIPTION": "Preencha-os para mover a oportunidade para o outro funil.",
+        "CONFIRM": "Mover oportunidade"
+      }
     },
     "DRAWER_PREVIEW": {
       "OPEN": "Visualizar oportunidade como drawer",
@@ -1594,12 +1673,14 @@
       "LOADING_INBOXES": "Carregando caixas de entrada do contacto...",
       "INBOXES_ERROR": "Não foi possível carregar as caixas de entrada. Tente novamente.",
       "NO_INBOXES": "Nenhuma caixa de entrada disponível para este contacto.",
-      "SUBJECT": "Assunto",
+      "SUBJECT": "Nome da oportunidade",
       "QUICK_CREATE_DESCRIPTION": "Comece pelo contacto e pela caixa de entrada. Você poderá completar os detalhes depois da criação.",
       "CREATE_OPPORTUNITY": "Criar oportunidade",
       "SAVING": "Salvando...",
-      "SUBJECT_REQUIRED": "Informe um assunto para criar a oportunidade.",
+      "SUBJECT_REQUIRED": "Dê um nome à oportunidade para a criar.",
       "CREATION_ERROR": "Não foi possível criar a oportunidade. Tente novamente.",
+      "REQUIRED_FIELDS_HELP": "Esta etapa exige mais alguns campos.",
+      "REQUIRED_FIELDS_PENDING": "Preencha os campos obrigatórios para criar esta oportunidade.",
       "LEGACY_UNAVAILABLE": "Oportunidades manuais não estão disponíveis para quadros em modo legado.",
       "CLEAR_CONTACT": "Limpar contacto selecionado",
       "CLOSE": "Fechar seletor de item",
@@ -1607,7 +1688,22 @@
       "INBOX_FALLBACK": "Caixa de entrada #{id}",
       "INBOX_LABEL": "Caixa de entrada",
       "NO_INBOXES_HINT": "Este contacto ainda não tem caixa de entrada associada, por isso não é possível abrir uma oportunidade para ele. Associe o contacto a uma caixa em Contactos, ou escolha outro contacto.",
-      "NO_INBOXES_ACTION": "Escolher outro contacto"
+      "NO_INBOXES_ACTION": "Escolher outro contacto",
+      "NEW_CONTACT": {
+        "COUNTRY": "País do telefone",
+        "PHONE_INVALID": "Indique um telefone válido para o país selecionado ou inclua o indicativo internacional.",
+        "NAME": "Nome",
+        "PHONE": "Telefone",
+        "PHONE_HINT": "Necessário para o contacto poder ser alcançado num canal.",
+        "NAME_REQUIRED": "Indique o nome do contacto.",
+        "PHONE_REQUIRED": "O telefone é obrigatório.",
+        "CREATE": "Criar contacto",
+        "CREATING": "A criar...",
+        "ERROR": "Não foi possível criar o contacto. Tente novamente.",
+        "OPEN": "Contacto novo",
+        "SAVED_AS": "Fica gravado como {number}",
+        "PHONE_EXAMPLE": "Exemplo: {example}"
+      }
     },
     "CARD": {
       "SELECT": "Selecionar oportunidade",
@@ -1722,6 +1818,10 @@
       "LOADING": "A ler o funil",
       "ERROR": "Não foi possível ler o funil",
       "RETRY": "Tentar outra vez"
+    },
+    "REQUIRED_FIELDS": {
+      "MULTISELECT_HINT": "Mantenha Ctrl ou ⌘ para escolher mais do que uma.",
+      "MISSING": "Obrigatório nesta etapa."
     }
   }
 }

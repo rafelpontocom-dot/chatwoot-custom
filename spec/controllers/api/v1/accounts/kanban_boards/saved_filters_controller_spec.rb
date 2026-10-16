@@ -15,7 +15,7 @@ RSpec.describe 'Kanban saved filters API', type: :request do
          params: {
            saved_filter: {
              name: 'Atrasadas de alto valor',
-             filters: { next_action: 'overdue', sort: 'amount_desc', search: 'Premium' }
+             filters: { next_action: 'overdue', sort: 'waiting_desc', search: 'Premium', waiting_days: '3' }
            }
          },
          as: :json
@@ -23,7 +23,7 @@ RSpec.describe 'Kanban saved filters API', type: :request do
     expect(response).to have_http_status(:created)
     expect(response.parsed_body).to include(
       'name' => 'Atrasadas de alto valor',
-      'filters' => include('next_action' => 'overdue', 'sort' => 'amount_desc', 'search' => 'Premium')
+      'filters' => include('next_action' => 'overdue', 'sort' => 'waiting_desc', 'search' => 'Premium', 'waiting_days' => '3')
     )
 
     get path, headers: agent.create_new_auth_token, as: :json

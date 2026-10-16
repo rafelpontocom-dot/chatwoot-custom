@@ -173,6 +173,19 @@ RSpec.describe 'Kanban board settings API', type: :request do
       )
     end
 
+    # «Reordenar somente nas configurações» (Pedro, 07/10): a ordem das secções
+    # da ficha é do funil, igual para toda a equipa.
+    it 'updates the order of the opportunity sections for the whole funnel' do
+      patch settings_url(board),
+            headers: administrator.create_new_auth_token,
+            params: { kanban_board: { opportunity_section_order: %w[timeline next-action details] } },
+            as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(board.reload.opportunity_section_order).to eq(%w[timeline next-action details])
+      expect(response.parsed_body['opportunity_section_order']).to eq(%w[timeline next-action details])
+    end
+
     it 'configures the appointment reminder lead time' do
       patch settings_url(board),
             headers: administrator.create_new_auth_token,

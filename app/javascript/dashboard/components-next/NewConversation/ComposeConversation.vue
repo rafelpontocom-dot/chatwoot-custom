@@ -173,19 +173,56 @@ const discardCompose = () => {
   closeCompose();
 };
 
-const createConversation = async ({ payload, isFromWhatsApp }) => {
+// RAEVO (08/10, 123jpnbcb50): com «Enviar também por», a mesma mensagem segue por
+// cada caixa a mais — uma conversa em cada. A primeira decide o sucesso; das
+// outras, o aviso diz por quais não seguiu, para se reenviar só essas.
+const sendAlsoVia = (payload, isFromWhatsApp, alsoVia) =>
+  Promise.allSettled(
+    alsoVia.map(inbox =>
+      store.dispatch('contactConversations/create', {
+        params: { ...payload, inboxId: inbox.id, sourceId: inbox.sourceId },
+        isFromWhatsApp,
+      })
+    )
+  );
+
+const createConversation = async ({
+  payload,
+  isFromWhatsApp,
+  alsoVia = [],
+}) => {
   try {
     const data = await store.dispatch('contactConversations/create', {
       params: payload,
       isFromWhatsApp,
     });
+    const extras = await sendAlsoVia(payload, isFromWhatsApp, alsoVia);
+    const failed = alsoVia.filter(
+      (_, index) => extras[index].status === 'rejected'
+    );
     const action = {
       type: 'link',
       to: `/app/accounts/${data.account_id}/conversations/${data.id}`,
       message: t('COMPOSE_NEW_CONVERSATION.FORM.GO_TO_CONVERSATION'),
     };
     discardCompose();
-    useAlert(t('COMPOSE_NEW_CONVERSATION.FORM.SUCCESS_MESSAGE'), action);
+    if (failed.length) {
+      useAlert(
+        t('COMPOSE_NEW_CONVERSATION.FORM.ALSO_SEND_VIA.PARTIAL', {
+          failed: failed.map(inbox => inbox.name).join(', '),
+        }),
+        action
+      );
+    } else if (alsoVia.length) {
+      useAlert(
+        t('COMPOSE_NEW_CONVERSATION.FORM.ALSO_SEND_VIA.SUCCESS', {
+          count: alsoVia.length + 1,
+        }),
+        action
+      );
+    } else {
+      useAlert(t('COMPOSE_NEW_CONVERSATION.FORM.SUCCESS_MESSAGE'), action);
+    }
     return true; // Return success
   } catch (error) {
     useAlert(

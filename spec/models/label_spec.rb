@@ -5,6 +5,59 @@ RSpec.describe Label do
     it { is_expected.to belong_to(:account) }
   end
 
+  describe 'visibility' do
+    let(:account) { create(:account) }
+    let(:user) { create(:user, account: account) }
+
+    it 'defaults to global, so a label created without a stated visibility stays visible to everyone' do
+      expect(create(:label, account: account).visibility).to eq('global')
+    end
+
+    # Uma etiqueta pessoal sem autor é uma etiqueta que ninguém consegue ver.
+    it 'refuses a personal label without an author' do
+      label = build(:label, account: account, visibility: :personal, created_by: nil)
+
+      expect(label).not_to be_valid
+      expect(label.errors[:created_by]).to be_present
+    end
+
+    it 'refuses a team label without a team' do
+      label = build(:label, account: account, visibility: :team, team: nil)
+
+      expect(label).not_to be_valid
+      expect(label.errors[:team]).to be_present
+    end
+
+    it 'refuses a team from another account' do
+      label = build(:label, account: account, visibility: :team, team: create(:team))
+
+      expect(label).not_to be_valid
+    end
+
+    describe '.visible_to' do
+      it 'returns the global ones, the user own personal ones and the ones of their teams' do
+        team = create(:team, account: account)
+        create(:team_member, team: team, user: user)
+        global = create(:label, account: account, title: 'de-todos')
+        mine = create(:label, account: account, title: 'minha', visibility: :personal, created_by: user)
+        team_label = create(:label, account: account, title: 'do-time', visibility: :team, team: team)
+        other = create(:label, account: account, title: 'de-outro', visibility: :personal, created_by: create(:user, account: account))
+        other_team = create(:label, account: account, title: 'de-outro-time', visibility: :team, team: create(:team, account: account))
+
+        visiveis = account.labels.visible_to(user)
+
+        expect(visiveis).to include(global, mine, team_label)
+        expect(visiveis).not_to include(other, other_team)
+      end
+
+      it 'shows no team label to a user without teams' do
+        team_label = create(:label, account: account, title: 'do-time', visibility: :team, team: create(:team, account: account))
+
+        expect(account.labels.visible_to(user)).not_to include(team_label)
+      end
+    end
+  end
+
   describe 'title validations' do
     it 'would not let you start title without numbers or letters' do
       label = FactoryBot.build(:label, title: '_12')

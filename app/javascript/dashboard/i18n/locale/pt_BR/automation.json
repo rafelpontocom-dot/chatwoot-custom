@@ -198,7 +198,7 @@
       "SEND_WEBHOOK_EVENT": "Enviar evento de Webhook",
       "SEND_ATTACHMENT": "Enviar Anexo",
       "SEND_MESSAGE": "Enviar Mensagem",
-      "ADD_PRIVATE_NOTE": "Adicionar uma Nota Privada",
+      "ADD_PRIVATE_NOTE": "Adicionar mensagem interna",
       "CHANGE_PRIORITY": "Alterar Prioridade",
       "ADD_SLA": "Adicionar SLA",
       "OPEN_CONVERSATION": "Abrir conversa",
@@ -217,7 +217,7 @@
     },
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Tipo da Mensagem",
-      "PRIVATE_NOTE": "Mensagem Privada",
+      "PRIVATE_NOTE": "Mensagem interna",
       "MESSAGE_CONTAINS": "Conteúdo da mensagem",
       "EMAIL": "E-mail",
       "INBOX": "Caixa de Entrada",

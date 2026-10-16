@@ -21,6 +21,7 @@
 #  lost_reason_options                        :jsonb            not null
 #  name                                       :string           not null
 #  next_action_types                          :jsonb            not null
+#  opportunity_section_order                  :jsonb            not null
 #  position                                   :integer          default(0), not null
 #  stale_stage_thresholds                     :jsonb            not null
 #  use_opportunity_card_reads                 :boolean          default(TRUE), not null
@@ -49,6 +50,8 @@ class KanbanBoard < ApplicationRecord
   INBOX_SCOPE_MODES = %w[all_inboxes selected_inboxes].freeze
   VISIBILITY_MODES = %w[all_agents selected_agents].freeze
   CUSTOM_FIELD_TYPES = %w[text textarea select multiselect integer decimal currency date datetime boolean url formula].freeze
+  # Quantas secções a ficha pode ordenar. Folga larga para as que a clínica cria.
+  OPPORTUNITY_SECTION_LIMIT = 50
   CUSTOM_FIELD_LAYOUT_WIDTHS = %w[full half third].freeze
   FORMULA_RESULT_TYPES = %w[number date datetime].freeze
   RESERVED_CUSTOM_FIELD_SECTION_KEYS = %w[timeline].freeze
@@ -238,11 +241,18 @@ class KanbanBoard < ApplicationRecord
     self.next_action_types = normalize_string_list(next_action_types)
     self.lost_reason_options = normalize_string_list(lost_reason_options)
     self.custom_field_definitions = normalize_custom_field_definitions(custom_field_definitions)
+    normalize_layout_configuration
+    self.stale_stage_thresholds = normalize_stale_stage_thresholds(stale_stage_thresholds)
+    normalize_calendar_configuration
+  end
+
+  # Como a oportunidade se arruma: secções de campos, campos do cartão e do
+  # contacto, e a ordem das secções na ficha (das Configurações do funil).
+  def normalize_layout_configuration
     self.custom_field_sections = normalize_custom_field_sections(custom_field_sections)
     self.compact_card_field_keys = normalize_compact_card_field_keys(compact_card_field_keys)
     self.contact_field_keys = normalize_contact_field_keys(contact_field_keys)
-    self.stale_stage_thresholds = normalize_stale_stage_thresholds(stale_stage_thresholds)
-    normalize_calendar_configuration
+    self.opportunity_section_order = normalize_string_list(opportunity_section_order).first(OPPORTUNITY_SECTION_LIMIT)
   end
 
   def normalize_calendar_configuration

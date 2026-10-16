@@ -1,7 +1,6 @@
 <script>
 import { ref } from 'vue';
 import { mapGetters } from 'vuex';
-import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useConversationLabels } from 'dashboard/composables/useConversationLabels';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import Spinner from 'shared/components/Spinner.vue';
@@ -15,8 +14,6 @@ export default {
     AddLabel,
   },
   setup() {
-    const { isAdmin } = useAdmin();
-
     const {
       savedLabels,
       activeLabels,
@@ -53,7 +50,6 @@ export default {
     };
     useKeyboardEvents(keyboardEvents);
     return {
-      isAdmin,
       savedLabels,
       activeLabels,
       accountLabels,
@@ -109,11 +105,17 @@ export default {
           }"
           class="border rounded-lg bg-n-alpha-3 top-6 backdrop-blur-[100px] absolute w-full shadow-lg border-n-strong dark:border-n-strong p-2 box-border z-[9999]"
         >
+          <!--
+            RAEVO (07/10, cartão 123jpnbcb5p). O agente também cria. A etiqueta dele nasce pessoal, e quem o
+            garante é o servidor (LabelsController#clamped_visibility). Sem este
+            atalho o agente não tinha onde criar: Definições › Etiquetas é só
+            do administrador.
+          -->
           <LabelDropdown
             v-if="showSearchDropdownLabel"
             :account-labels="accountLabels"
             :selected-labels="savedLabels"
-            :allow-creation="isAdmin"
+            allow-creation
             @add="addLabelToConversation"
             @remove="removeLabelFromConversation"
           />

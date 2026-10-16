@@ -175,6 +175,12 @@
         "NEXT_WEEK": "Next week"
       }
     },
+    "WHATSAPP_GROUP_MENTION": {
+      "ALL": "Everyone in the group",
+      "SEARCH_PLACEHOLDER": "Search by name or number",
+      "EMPTY": "Nobody has written in this group yet",
+      "FROM_HISTORY": "Listed because they wrote in this group"
+    },
     "MENTION": {
       "AGENTS": "Agents",
       "TEAMS": "Teams"
@@ -291,7 +297,7 @@
     },
     "REPLYBOX": {
       "REPLY": "Reply",
-      "PRIVATE_NOTE": "Private Note",
+      "PRIVATE_NOTE": "Internal note",
       "INTERNAL_NOTE": "Internal note",
       "MODE_INTERNAL_ACTIVE": "Writing an internal note, only your team sees it. Switch to reply.",
       "MODE_REPLY_ACTIVE": "Writing a reply to the customer. Switch to internal note.",
@@ -341,7 +347,7 @@
         "EXPAND": "Expand preview"
       }
     },
-    "VISIBLE_TO_AGENTS": "Private Note: Only visible to you and your team",
+    "VISIBLE_TO_AGENTS": "Internal note: only you and your team can see it",
     "CHANGE_STATUS": "Conversation status changed",
     "CHANGE_STATUS_FAILED": "Conversation status change failed",
     "CHANGE_AGENT": "Conversation Assignee changed",
@@ -490,7 +496,7 @@
       "LOADING": "Loading opportunities",
       "EMPTY": "No opportunities linked to this conversation",
       "ERROR": "Could not load opportunities",
-      "ADD": "Add to Kanban",
+      "ADD": "Create opportunity",
       "CREATE_TITLE": "Create opportunity",
       "BOARD": "Board",
       "SUBJECT": "Subject",
@@ -503,6 +509,8 @@
       "EMPTY_BOARDS": "No active boards available",
       "EMPTY_STAGES": "No active stages available",
       "CREATE_ERROR": "Could not create opportunity",
+      "SELECT_VALUE": "Select a value",
+      "REQUIRED_FIELDS_PENDING": "Fill in the fields this stage requires.",
       "CREATED": "Opportunity created",
       "CANCEL": "Cancel",
       "CREATE": "Create",
@@ -511,6 +519,7 @@
       "UPDATE_ERROR": "Could not update opportunity",
       "UPDATED": "Opportunity updated",
       "OPEN_IN_BOARD": "Open opportunity in board",
+      "OPEN_CARD_IN_BOARD": "Open {subject} in the board",
       "GENERAL_FIELDS": "Other fields",
       "MARKETING_FIELDS": "Marketing",
       "NEXT_ACTION": "Next action",

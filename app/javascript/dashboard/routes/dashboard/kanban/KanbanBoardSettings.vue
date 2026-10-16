@@ -32,6 +32,11 @@ import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 import KanbanContactFieldManager from './KanbanContactFieldManager.vue';
 import { RAEVO_CONTROL_CLASS } from 'dashboard/components-next/raevo/raevoControl';
+import {
+  moveOpportunitySection,
+  opportunityPanelSections,
+  resolveOpportunitySectionOrder,
+} from 'dashboard/helper/kanbanOpportunitySections';
 
 const raevoControlClass = RAEVO_CONTROL_CLASS;
 
@@ -78,6 +83,7 @@ const escoposDeCampo = computed(() => [
     label: t('KANBAN.SETTINGS.SALES.FIELD_SCOPE_OPPORTUNITY'),
   },
   { key: 'contact', label: t('KANBAN.SETTINGS.CONTACT_FIELDS.TITLE') },
+  { key: 'panel', label: t('KANBAN.SETTINGS.SALES.PANEL_ORDER_TITLE') },
 ]);
 const loadError = ref('');
 const saveError = ref('');
@@ -236,6 +242,7 @@ const form = reactive({
   customFieldSections: [],
   compactCardFieldKeys: [],
   contactFieldKeys: [],
+  opportunitySectionOrder: [],
   staleStageThresholds: {},
   appointmentReminderHours: '',
   calendarEnabled: false,
@@ -448,6 +455,7 @@ const settingsFingerprint = () =>
     customFieldSections: form.customFieldSections,
     compactCardFieldKeys: form.compactCardFieldKeys,
     contactFieldKeys: form.contactFieldKeys,
+    opportunitySectionOrder: form.opportunitySectionOrder,
     staleStageThresholds: form.staleStageThresholds,
     appointmentReminderHours: form.appointmentReminderHours,
     calendarEnabled: form.calendarEnabled,
@@ -1273,6 +1281,7 @@ const applySettings = payload => {
       ];
   form.compactCardFieldKeys = settings.compactCardFieldKeys || [];
   form.contactFieldKeys = settings.contactFieldKeys || [];
+  form.opportunitySectionOrder = settings.opportunitySectionOrder || [];
   form.staleStageThresholds = settings.staleStageThresholds || {};
   form.appointmentReminderHours = settings.appointmentReminderHours ?? '';
   form.calendarEnabled = Boolean(settings.calendarEnabled);
@@ -1925,6 +1934,52 @@ const activeCustomFieldSection = computed(() => {
   return section?.builtIn ? null : customSectionByKey(section?.key);
 });
 
+/**
+ * A ordem das secções na ficha da oportunidade, para toda a equipa.
+ *
+ * Decisão do Pedro, noite de 07/10: «reordenar somente nas configurações». A
+ * ficha deixou de ter setas; muda-se aqui, uma vez, por funil. As regras de
+ * reconciliação — secção nova vai para o fim, secção apagada sai — estão em
+ * `helper/kanbanOpportunitySections.js`, partilhadas com a ficha.
+ */
+const PANEL_SECTION_LABEL_KEYS = {
+  'next-action': 'KANBAN.OPPORTUNITY_DETAILS.QUESTIONS.NEXT_ACTION',
+  'contact-details': 'KANBAN.OPPORTUNITY_DETAILS.CONTACT',
+  calendar: 'KANBAN.OPPORTUNITY_DETAILS.TABS.CALENDAR',
+  finance: 'FINANCE.TITLE',
+  forms: 'FORMS.TITLE',
+  timeline: 'KANBAN.OPPORTUNITY_DETAILS.TABS.TIMELINE',
+};
+const panelSectionOrder = computed(() =>
+  resolveOpportunitySectionOrder(
+    form.opportunitySectionOrder,
+    opportunityPanelSections(
+      customFieldLayoutSections.value.map(section => section.key)
+    )
+  )
+);
+const panelSectionLabel = key =>
+  customFieldLayoutSections.value.find(section => section.key === key)?.label ||
+  t(PANEL_SECTION_LABEL_KEYS[key]);
+const panelOrderList = ref(null);
+const movePanelSection = async (key, offset) => {
+  form.opportunitySectionOrder = moveOpportunitySection(
+    panelSectionOrder.value,
+    key,
+    offset
+  );
+  // Mover troca o nó de lugar e o browser tira-lhe o foco: volta ao mesmo
+  // botão. Na ponta o botão fica `aria-disabled`, não `disabled` — continua
+  // focável e o Enter não faz nada. Saltar para o botão contrário fazia o
+  // Enter seguinte desfazer o movimento (visto no browser na noite de 07/10).
+  await nextTick();
+  panelOrderList.value
+    ?.querySelector(
+      `[data-testid="kanban-settings-panel-section-${offset < 0 ? 'up' : 'down'}-${key}"]`
+    )
+    ?.focus();
+};
+
 const moveCustomFieldSection = (sectionKey, direction) => {
   const sectionIndex = form.customFieldSections.findIndex(
     section => section.key === sectionKey
@@ -2436,6 +2491,9 @@ const buildPayload = () => ({
     custom_field_sections: customFieldSectionsPayload(),
     compact_card_field_keys: form.compactCardFieldKeys,
     contact_field_keys: form.contactFieldKeys,
+    // Só a ordem que alguém mexeu. Gravar a de origem congelava-a: uma secção
+    // criada depois ia para o fim, em vez de ficar com as outras de campos.
+    opportunity_section_order: form.opportunitySectionOrder,
     stale_stage_thresholds: normalizedStaleStageThresholds(),
     appointment_reminder_hours:
       form.appointmentReminderHours === ''
@@ -4553,6 +4611,72 @@ onMounted(async () => {
               {{ escopo.label }}
             </button>
           </div>
+
+          <section
+            v-show="escopoDeCampo === 'panel'"
+            data-testid="kanban-settings-panel-order"
+            class="grid max-w-xl content-start gap-3"
+          >
+            <p class="mb-0 text-sm text-n-slate-11">
+              {{ t('KANBAN.SETTINGS.SALES.PANEL_ORDER_HELP') }}
+            </p>
+            <ol ref="panelOrderList" class="m-0 grid list-none gap-1 p-0">
+              <li
+                v-for="(secao, indice) in panelSectionOrder"
+                :key="secao"
+                :data-testid="`kanban-settings-panel-section-${secao}`"
+                class="flex min-h-10 items-center gap-2 rounded-lg border border-solid border-n-weak bg-n-surface-1 pe-1 ps-3"
+              >
+                <span
+                  class="min-w-0 flex-1 break-words text-sm text-n-slate-12"
+                >
+                  {{ panelSectionLabel(secao) }}
+                </span>
+                <button
+                  type="button"
+                  :data-testid="`kanban-settings-panel-section-up-${secao}`"
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg p-0 text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                  :disabled="isSaving"
+                  :aria-disabled="indice === 0 ? 'true' : undefined"
+                  :aria-label="
+                    t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_UP', {
+                      section: panelSectionLabel(secao),
+                    })
+                  "
+                  :title="
+                    t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_UP', {
+                      section: panelSectionLabel(secao),
+                    })
+                  "
+                  @click="movePanelSection(secao, -1)"
+                >
+                  <i aria-hidden="true" class="i-lucide-arrow-up size-4" />
+                </button>
+                <button
+                  type="button"
+                  :data-testid="`kanban-settings-panel-section-down-${secao}`"
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg p-0 text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                  :disabled="isSaving"
+                  :aria-disabled="
+                    indice === panelSectionOrder.length - 1 ? 'true' : undefined
+                  "
+                  :aria-label="
+                    t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_DOWN', {
+                      section: panelSectionLabel(secao),
+                    })
+                  "
+                  :title="
+                    t('KANBAN.OPPORTUNITY_DETAILS.MOVE_SECTION_DOWN', {
+                      section: panelSectionLabel(secao),
+                    })
+                  "
+                  @click="movePanelSection(secao, 1)"
+                >
+                  <i aria-hidden="true" class="i-lucide-arrow-down size-4" />
+                </button>
+              </li>
+            </ol>
+          </section>
 
           <KanbanContactFieldManager
             v-show="escopoDeCampo === 'contact'"

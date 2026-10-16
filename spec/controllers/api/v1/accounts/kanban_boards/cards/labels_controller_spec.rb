@@ -36,6 +36,17 @@ RSpec.describe 'Kanban Card Labels API', type: :request do
       )
     end
 
+    # A pessoal de outra pessoa continua no cartão, mas o título não viaja.
+    it "does not send another person's personal label" do
+      outra = create(:user, account: account, role: :agent)
+      create(:label, account: account, title: 'so-da-outra', visibility: :personal, created_by: outra)
+      card.update_labels([hot_label.title, 'so-da-outra'])
+
+      get labels_url(card), headers: agent.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['payload'].pluck('title')).to contain_exactly('hot')
+    end
+
     it 'rejects unauthorized card access' do
       agent.inbox_members.destroy_all
 
@@ -70,6 +81,34 @@ RSpec.describe 'Kanban Card Labels API', type: :request do
   end
 
   describe 'PUT /api/v1/accounts/{account.id}/kanban_boards/{kanban_board.id}/cards/by_id/{card.id}/labels' do
+    context "with another person's personal label on the card" do
+      let(:outra) { create(:user, account: account, role: :agent) }
+
+      before do
+        create(:label, account: account, title: 'so-da-outra', visibility: :personal, created_by: outra)
+        enterprise_label
+        card.update_labels([hot_label.title, 'so-da-outra'])
+      end
+
+      # Quem grava não a vê, logo não a manda. Substituir a lista apagava-a.
+      it 'keeps it when someone who cannot see it saves the labels' do
+        put labels_url(card), params: { labels: ['enterprise'] }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(card.reload.label_list).to contain_exactly('enterprise', 'so-da-outra')
+        expect(response.parsed_body['payload'].pluck('title')).to contain_exactly('enterprise')
+      end
+
+      it 'does not let anyone apply it by guessing its title' do
+        card.update_labels([])
+
+        put labels_url(card), params: { labels: ['so-da-outra'] }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(card.reload.label_list).to be_empty
+      end
+    end
+
     it 'replaces the complete label set' do
       card.update_labels([hot_label.title])
       enterprise_label

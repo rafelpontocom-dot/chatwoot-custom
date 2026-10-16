@@ -1,5 +1,5 @@
 import { shallowMount, flushPromises } from '@vue/test-utils';
-import { computed } from 'vue';
+import { computed, reactive } from 'vue';
 import MarketingView from '../MarketingView.vue';
 
 const apiMocks = vi.hoisted(() => ({
@@ -26,6 +26,7 @@ const apiMocks = vi.hoisted(() => ({
 }));
 const boardsMocks = vi.hoisted(() => ({ get: vi.fn(), getSettings: vi.fn() }));
 const storeMocks = vi.hoisted(() => ({
+  commit: vi.fn(),
   currentAccount: { id: 7, permissions: ['administrator'] },
   inboxes: [{ id: 3, name: 'WhatsApp' }],
 }));
@@ -36,12 +37,20 @@ vi.mock('vue-i18n', () => ({
 vi.mock('dashboard/api/marketing', () => ({ default: apiMocks }));
 vi.mock('dashboard/api/kanbanBoards', () => ({ default: boardsMocks }));
 vi.mock('dashboard/composables/store', () => ({
+  useStore: () => ({ commit: storeMocks.commit }),
   useMapGetter: key =>
-    computed(() =>
-      key === 'inboxes/getInboxes'
+    computed(() => {
+      if (key === 'accounts/getAccount') {
+        return () => ({
+          id: 7,
+          name: 'Clinic',
+          marketing_module_enabled: true,
+        });
+      }
+      return key === 'inboxes/getInboxes'
         ? storeMocks.inboxes
-        : storeMocks.currentAccount
-    ),
+        : storeMocks.currentAccount;
+    }),
 }));
 
 // `shallowMount` stuba os filhos e o conteúdo dos slots some — inclusive o
@@ -64,7 +73,10 @@ const montar = () => shallowMount(MarketingView, { global: { stubs } });
 
 describe('MarketingView', () => {
   beforeEach(() => {
-    storeMocks.currentAccount = { id: 7, permissions: ['administrator'] };
+    storeMocks.currentAccount = reactive({
+      id: 7,
+      permissions: ['administrator'],
+    });
     apiMocks.getModule.mockResolvedValue({ data: { enabled: true } });
     apiMocks.getIntakeSources.mockResolvedValue({ data: { payload: [] } });
     apiMocks.getIntakeDeliveries.mockResolvedValue({
@@ -231,6 +243,15 @@ describe('MarketingView', () => {
     expect(apiMocks.updateModule).toHaveBeenCalledWith({
       marketing_module: { enabled: false, confirm_disable: true },
     });
+    await flushPromises();
+    expect(storeMocks.commit).toHaveBeenLastCalledWith(
+      'accounts/EDIT_ACCOUNT',
+      expect.objectContaining({
+        id: 7,
+        name: 'Clinic',
+        marketing_module_enabled: false,
+      })
+    );
   });
 
   it('says so when the data cannot be loaded', async () => {
@@ -242,6 +263,52 @@ describe('MarketingView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('boom');
+  });
+
+  it('loads configuration catalogs when an administrator enables the module without reloading', async () => {
+    apiMocks.getModule.mockResolvedValue({ data: { enabled: false } });
+    apiMocks.updateModule.mockResolvedValue({ data: { enabled: true } });
+    const wrapper = montar();
+    await flushPromises();
+    expect(apiMocks.getConnections).not.toHaveBeenCalled();
+
+    await wrapper
+      .get('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper.get('[data-testid="marketing-toggle-module"]').setValue(true);
+    await flushPromises();
+
+    expect(apiMocks.getConnections).toHaveBeenCalledOnce();
+    expect(apiMocks.getIntakeSources).toHaveBeenCalledOnce();
+    expect(storeMocks.commit).toHaveBeenLastCalledWith(
+      'accounts/EDIT_ACCOUNT',
+      expect.objectContaining({ id: 7, marketing_module_enabled: true })
+    );
+  });
+
+  it('does not synchronize a late module response after switching accounts', async () => {
+    let finishUpdate;
+    apiMocks.updateModule.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          finishUpdate = resolve;
+        })
+    );
+    const wrapper = montar();
+    await flushPromises();
+    storeMocks.commit.mockClear();
+
+    await wrapper
+      .get('[data-testid="marketing-toggle-settings"]')
+      .trigger('click');
+    await wrapper
+      .get('[data-testid="marketing-toggle-module"]')
+      .setValue(false);
+    storeMocks.currentAccount.id = 8;
+    finishUpdate({ data: { enabled: false } });
+    await flushPromises();
+
+    expect(storeMocks.commit).not.toHaveBeenCalled();
   });
 
   it('offers Meta and marks the other platforms as not ready yet', async () => {

@@ -25,7 +25,7 @@ const emit = defineEmits(['changeFilter']);
 const store = useStore();
 const { t } = useI18n();
 
-const { updateUISettings } = useUISettings();
+const { uiSettings, updateUISettings } = useUISettings();
 
 const chatStatusFilter = useMapGetter('getChatStatusFilter');
 const chatSortFilter = useMapGetter('getChatSortFilter');
@@ -120,6 +120,31 @@ const activeChatSortLabel = computed(
     ''
 );
 
+// Com que aba a lista abre. «O último que usei» é uma opção como as outras —
+// é o que faz lembrar e eleger não brigarem: são a mesma preferência.
+const defaultTabOptions = computed(() => [
+  { label: t('CHAT_LIST.DEFAULT_TAB.LAST_USED'), value: 'last_used' },
+  { label: t('CHAT_LIST.ASSIGNEE_TYPE_TABS.me'), value: 'me' },
+  { label: t('CHAT_LIST.ASSIGNEE_TYPE_TABS.unassigned'), value: 'unassigned' },
+  { label: t('CHAT_LIST.ASSIGNEE_TYPE_TABS.all'), value: 'all' },
+]);
+
+const defaultTab = computed(
+  () => uiSettings.value.conversations_default_assignee_tab || 'last_used'
+);
+
+const activeDefaultTabLabel = computed(
+  () =>
+    defaultTabOptions.value.find(option => option.value === defaultTab.value)
+      ?.label || ''
+);
+
+const handleDefaultTabChange = value => {
+  updateUISettings({
+    conversations_default_assignee_tab: value === 'last_used' ? null : value,
+  });
+};
+
 const saveSelectedFilter = (type, value) => {
   updateUISettings({
     conversations_filter_by: {
@@ -189,6 +214,19 @@ const handleSortChange = value => {
           :label="activeChatSortLabel"
           :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
           @update:model-value="handleSortChange"
+        />
+      </div>
+      <div class="flex items-center justify-between gap-2 mt-4">
+        <span class="text-sm truncate text-n-slate-12">
+          {{ $t('CHAT_LIST.DEFAULT_TAB.LABEL') }}
+        </span>
+        <SelectMenu
+          :model-value="defaultTab"
+          :options="defaultTabOptions"
+          :label="activeDefaultTabLabel"
+          data-testid="conversation-default-tab"
+          :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
+          @update:model-value="handleDefaultTabChange"
         />
       </div>
     </div>

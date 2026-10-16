@@ -5,12 +5,15 @@ class KanbanCards::VisibleStageCardsQuery
 
   DEFAULT_LIMIT = 20
   MAX_LIMIT = 50
-  SORT_OPTIONS = %w[next_action_asc created_desc amount_desc stage_time_desc].freeze
+  SORT_OPTIONS = %w[next_action_asc created_desc amount_desc stage_time_desc waiting_desc].freeze
+  # Dias sem resposta: `conversations.waiting_since`, desde quando o paciente espera por nós.
+  WAITING_DAYS_OPTIONS = [1, 3, 7, 15, 30].freeze
 
   # rubocop:disable Metrics/ParameterLists
   def initialize(account:, user:, kanban_board:, kanban_stage:, limit: DEFAULT_LIMIT, cursor: nil, visible_inbox_ids: nil,
                  visible_team_ids: nil, account_user: nil, filtered_inbox_ids: nil, filtered_assignee_ids: nil,
-                 filtered_next_action_status: nil, filtered_opportunity_status: nil, search: nil, sort: nil)
+                 filtered_next_action_status: nil, filtered_opportunity_status: nil, search: nil, sort: nil,
+                 filtered_waiting_days: nil)
     @account = account
     @user = user
     @kanban_board = kanban_board
@@ -28,6 +31,7 @@ class KanbanCards::VisibleStageCardsQuery
     @filtered_opportunity_status = filtered_opportunity_status.presence
     @search = search.to_s.strip.presence
     @sort = SORT_OPTIONS.include?(sort) ? sort : nil
+    @filtered_waiting_days = WAITING_DAYS_OPTIONS.find { |days| days.to_s == filtered_waiting_days.to_s }
   end
   # rubocop:enable Metrics/ParameterLists
 
@@ -52,7 +56,7 @@ class KanbanCards::VisibleStageCardsQuery
 
   attr_reader :account, :user, :kanban_board, :kanban_stage, :limit, :cursor,
               :filtered_inbox_ids, :filtered_assignee_ids, :filtered_next_action_status, :filtered_opportunity_status,
-              :search, :sort
+              :filtered_waiting_days, :search, :sort
 
   def empty_result
     Result.new(cards: [], has_more: false, next_cursor: nil, total_count: 0)
@@ -72,6 +76,7 @@ class KanbanCards::VisibleStageCardsQuery
                        .then { |scope| apply_assignee_filter(scope) }
                        .then { |scope| apply_opportunity_status_filter(scope) }
                        .then { |scope| apply_next_action_filter(scope) }
+                       .then { |scope| apply_waiting_filter(scope) }
                        .then { |scope| apply_search(scope) }
   end
 
@@ -85,6 +90,10 @@ class KanbanCards::VisibleStageCardsQuery
 
   def apply_inbox_filter(scope)
     filtered_inbox_ids.nil? ? scope : scope.where(inbox_id: filtered_inbox_ids)
+  end
+
+  def apply_waiting_filter(scope)
+    filtered_waiting_days.nil? ? scope : scope.where(conversations: { waiting_since: ..filtered_waiting_days.days.ago })
   end
 
   def apply_assignee_filter(scope)
@@ -157,6 +166,8 @@ class KanbanCards::VisibleStageCardsQuery
       visible_cards.order(Arel.sql('amount_cents DESC NULLS LAST, id ASC'))
     when 'stage_time_desc'
       visible_cards.order(stage_entered_at: :asc, id: :asc)
+    when 'waiting_desc'
+      visible_cards.order(Arel.sql('conversations.waiting_since ASC NULLS LAST, kanban_cards.id ASC'))
     else
       visible_cards.ordered
     end

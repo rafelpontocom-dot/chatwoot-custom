@@ -113,13 +113,19 @@ const DEFAULT_ICON_LINE = 'i-ri-chat-1-line';
 
 // Facebook, Instagram, TikTok, and X initialize the editable inbox name from
 // the provider account name; their opaque routing IDs should not be displayed.
+//
+// A caixa de API fica de fora pela mesma razão, e levou mais tempo a sair: o
+// `inbox_identifier` é um token de encaminhamento, e no WAHA cada canal aparecia
+// como «ALYSSON · UjM5S8yDTzgv85v…» na barra lateral. Quem lê a lista quer saber
+// de quem é o canal; o token não ajuda e come a largura do nome. Continua a
+// servir a busca (`searchInboxes` procura por `channel_identifier`), só não se
+// desenha.
 const INBOX_IDENTIFIER_RESOLVERS = {
   [INBOX_TYPES.WEB]: inbox => inbox.website_url,
   [INBOX_TYPES.EMAIL]: inbox => inbox.email,
   [INBOX_TYPES.WHATSAPP]: inbox => inbox.phone_number,
   [INBOX_TYPES.SMS]: inbox => inbox.phone_number,
   [INBOX_TYPES.LINE]: inbox => inbox.line_channel_id,
-  [INBOX_TYPES.API]: inbox => inbox.inbox_identifier,
   [INBOX_TYPES.TWILIO]: inbox =>
     inbox.phone_number?.replace(/^whatsapp:/, '') ||
     inbox.messaging_service_sid ||

@@ -14,6 +14,7 @@ import {
 import CannedResponse from '../conversation/CannedResponse.vue';
 import KeyboardEmojiSelector from './keyboardEmojiSelector.vue';
 import TagAgents from '../conversation/TagAgents.vue';
+import WhatsappGroupMentions from '../conversation/WhatsappGroupMentions.vue';
 import VariableList from '../conversation/VariableList.vue';
 import MacroList from '../conversation/MacroList.vue';
 import TagTools from '../conversation/TagTools.vue';
@@ -81,6 +82,10 @@ const props = defineProps({
   placeholder: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
   isPrivate: { type: Boolean, default: false },
+  // RAEVO (08/10, 123jpnbcb4w): numa resposta a um grupo de WhatsApp, o @ lista
+  // os participantes e o @all (WhatsappGroupMentions) em vez das ferramentas.
+  whatsappGroup: { type: Boolean, default: false },
+  whatsappGroupParticipants: { type: Array, default: () => [] },
   enableSuggestions: { type: Boolean, default: true },
   overrideLineBreaks: { type: Boolean, default: false },
   updateSelectionWith: { type: String, default: '' },
@@ -271,6 +276,12 @@ const shouldShowUserMentions = computed(() => {
   return showUserMentions.value && props.isPrivate;
 });
 
+// RAEVO (08/10, 123jpnbcb4w)
+const isGroupReply = () => props.whatsappGroup && !props.isPrivate;
+const shouldShowGroupMentions = computed(
+  () => showUserMentions.value && isGroupReply()
+);
+
 // The picker owns the search field, so it takes focus while open. Dismissing it hands
 // focus back; selecting one does so through the insert itself. The suggestion stays
 // active in the document, so the picker only reopens once the trigger is typed afresh.
@@ -346,14 +357,15 @@ const plugins = computed(() => {
       trigger: '@',
       showMenu: showToolsMenu,
       searchTerm: toolSearchKey,
-      isAllowed: () => props.enableCaptainTools,
+      isAllowed: () => props.enableCaptainTools && !isGroupReply(), // RAEVO
       interceptEnter: true,
     }),
     createSuggestionPlugin({
       trigger: '@',
       showMenu: showUserMentions,
       searchTerm: mentionSearchKey,
-      isAllowed: () => props.isPrivate || !props.enableCaptainTools,
+      isAllowed: () =>
+        props.isPrivate || !props.enableCaptainTools || isGroupReply(), // RAEVO
     }),
     createSuggestionPlugin({
       trigger: '/',
@@ -760,6 +772,18 @@ function insertContentIntoEditor(content, defaultFrom = 0) {
  * @param {string} type - The type of special content to insert. Possible values: 'mention', 'canned_response', 'variable', 'emoji'.
  * @param {Object|string} content - The content to insert, depending on the type.
  */
+// RAEVO (08/10, 123jpnbcb4w): texto simples, que o WAHA transforma em menção.
+function insertGroupMention(mention) {
+  if (!editorView || !range.value) return;
+
+  const { from, to } = range.value;
+  const end = Math.min(to, editorView.state.doc.content.size);
+  editorView.dispatch(editorView.state.tr.insertText(`${mention} `, from, end));
+  showUserMentions.value = false;
+  emitOnChange();
+  editorView.focus();
+}
+
 function insertSpecialContent(type, content) {
   if (!editorView) {
     return;
@@ -961,6 +985,15 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       @close="dismissUserMentions"
       @remove-trigger="removeSuggestionTrigger"
       @select-agent="content => insertSpecialContent('mention', content)"
+    />
+    <WhatsappGroupMentions
+      v-if="shouldShowGroupMentions"
+      :caret-position="caretPosition"
+      :search-key="mentionSearchKey"
+      :participants="whatsappGroupParticipants"
+      @close="dismissUserMentions"
+      @remove-trigger="removeSuggestionTrigger"
+      @select="insertGroupMention"
     />
     <CannedResponse
       v-if="shouldShowCannedResponses"

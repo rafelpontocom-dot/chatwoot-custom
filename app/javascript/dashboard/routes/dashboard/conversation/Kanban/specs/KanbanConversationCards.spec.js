@@ -4,7 +4,6 @@ import KanbanConversationCards from '../KanbanConversationCards.vue';
 import KanbanBoardsAPI from 'dashboard/api/kanbanBoards';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
-import { messageStamp } from 'shared/helpers/timeHelper';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 
@@ -12,10 +11,6 @@ const mockPush = vi.fn();
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush }),
-}));
-
-vi.mock('shared/helpers/timeHelper', () => ({
-  messageStamp: vi.fn(() => 'Jun 7, 2026 6:00 PM'),
 }));
 
 vi.mock('vue-i18n', () => ({
@@ -182,10 +177,6 @@ const openForm = async wrapper => {
   await flushPromises();
 };
 
-const openEditForm = async () => {
-  await flushPromises();
-};
-
 const findButtonByText = (wrapper, text) =>
   wrapper.findAll('button').find(button => button.text() === text);
 
@@ -193,24 +184,20 @@ const emitKanbanRealtimeEvent = payload => {
   emitter.emit(BUS_EVENTS.KANBAN_REALTIME_EVENT, payload);
 };
 
+// Os campos passaram ao `RaevoField`, cujo rótulo é o próprio `<label>`; o
+// bloco das etiquetas continua a pôr o texto num `<span>` dentro dele.
 const formLabels = wrapper =>
   wrapper
-    .findAll('label span')
-    .map(node => node.text())
+    .findAll('form label')
+    .map(node =>
+      (node.find('span').exists() ? node.find('span') : node).text().trim()
+    )
     .filter(Boolean);
-
-const localDateTimeInputValue = value => {
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-
-  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
-};
 
 describe('KanbanConversationCards', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     emitter.all.clear();
-    messageStamp.mockReturnValue('Jun 7, 2026 6:00 PM');
 
     useStore.mockReturnValue(store);
     useMapGetter.mockImplementation(key => {
@@ -294,7 +281,7 @@ describe('KanbanConversationCards', () => {
     resolvers[0]({ data: { payload: [buildCard({ subject: 'Stale card' })] } });
     await flushPromises();
 
-    expect(wrapper.find('input[type="text"]').element.value).toBe('Fresh card');
+    expect(wrapper.text()).toContain('Fresh card');
     expect(wrapper.text()).not.toContain('Stale card');
   });
 
@@ -339,9 +326,7 @@ describe('KanbanConversationCards', () => {
     const wrapper = mountComponent();
     await flushPromises();
 
-    await wrapper
-      .find('[data-testid="kanban-open-linked-card"]')
-      .trigger('click');
+    await wrapper.find('[data-testid="kanban-linked-card"]').trigger('click');
 
     expect(mockPush).toHaveBeenCalledWith({
       name: 'kanban_board_show',
@@ -465,118 +450,15 @@ describe('KanbanConversationCards', () => {
     resolvers[0]({ data: { payload: [buildCard({ subject: 'Fresh card' })] } });
     await flushPromises();
 
-    expect(KanbanBoardsAPI.getConversationCards).toHaveBeenCalledTimes(2);
+    // O segundo evento ficou adiado enquanto o primeiro pedido corria; acabado
+    // esse, corre UMA vez — não uma por evento.
+    expect(KanbanBoardsAPI.getConversationCards).toHaveBeenCalledTimes(3);
 
-    expect(wrapper.find('input[type="text"]').element.value).toBe('Fresh card');
-  });
-
-  it('renders editable card fields in the requested order', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard()] },
-    });
-
-    const wrapper = mountComponent();
+    resolvers[1]({ data: { payload: [buildCard({ subject: 'Fresh card' })] } });
     await flushPromises();
 
-    const editLabels = wrapper
-      .findAll('li form > div p.text-xs, li form > label > span.text-xs')
-      .map(node => node.text());
-
-    expect(editLabels).toEqual([
-      'Board',
-      'Subject',
-      'Opportunity stage',
-      'Action type',
-      'Action date',
-      'Labels',
-    ]);
-  });
-
-  it('renders linked card metadata in editable fields', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard()] },
-    });
-
-    const wrapper = mountComponent();
-    await flushPromises();
-
-    expect(wrapper.text()).toContain('Sales');
-    expect(wrapper.find('input[type="text"]').element.value).toBe(
-      'Maria Silva - Sales Inbox'
-    );
-    expect(wrapper.text()).toContain('New');
-    expect(wrapper.find('select').element.value).toBe('20');
-    expect(wrapper.find('input[type="datetime-local"]').element.value).toBe(
-      localDateTimeInputValue('2026-06-07T18:00:00-03:00')
-    );
-    expect(wrapper.text()).toContain('urgente');
-    expect(wrapper.text()).toContain('vendas');
-  });
-
-  it('opens linked cards in edit mode for unexpected stage colors', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: {
-        payload: [
-          buildCard({ kanban_stage: { id: 20, name: 'New', color: 'legacy' } }),
-        ],
-      },
-    });
-
-    const wrapper = mountComponent();
-    await flushPromises();
-
-    expect(wrapper.find('input[type="text"]').element.value).toBe(
-      'Maria Silva - Sales Inbox'
-    );
-  });
-
-  // O cartão ligado só se lê em repouso quando o formulário de criação está
-  // aberto — de outro modo o primeiro entra em edição sozinho.
-  it('says the next action is unset once, not twice', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: {
-        payload: [buildCard({ next_action_type: '', next_action_at: null })],
-      },
-    });
-
-    const wrapper = mountComponent();
-    await flushPromises();
-    await openForm(wrapper);
-
-    const cartao = wrapper.find('[data-testid="kanban-linked-card"]').text();
-
-    expect(cartao.match(/Not set/g)).toHaveLength(1);
-  });
-
-  it('shows the action type and its date on their own lines', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard()] },
-    });
-
-    const wrapper = mountComponent();
-    await flushPromises();
-    await openForm(wrapper);
-
-    const cartao = wrapper.find('[data-testid="kanban-linked-card"]').text();
-
-    expect(cartao).toContain('Cobrar retorno');
-    expect(cartao).not.toContain('Not set');
-  });
-
-  it('renders an empty next action and labels in editable fields', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: {
-        payload: [
-          buildCard({ next_action_type: '', next_action_at: null, labels: [] }),
-        ],
-      },
-    });
-
-    const wrapper = mountComponent();
-    await flushPromises();
-
-    expect(wrapper.find('input[type="datetime-local"]').element.value).toBe('');
-    expect(wrapper.findAll('.rounded-md.bg-n-slate-3')).toHaveLength(0);
+    expect(KanbanBoardsAPI.getConversationCards).toHaveBeenCalledTimes(3);
+    expect(wrapper.text()).toContain('Fresh card');
   });
 
   it('opens the creation form from the Add to Kanban button', async () => {
@@ -774,6 +656,86 @@ describe('KanbanConversationCards', () => {
     );
   });
 
+  // Criar numa etapa que exige campos era impossível a partir da conversa: o
+  // servidor recusava e o painel não tinha onde preencher.
+  it('offers the fields the stage requires and resends them', async () => {
+    KanbanBoardsAPI.createConversationCard.mockRejectedValueOnce({
+      response: {
+        data: {
+          missing_fields: ['procedimento'],
+          field_definitions: [
+            {
+              key: 'procedimento',
+              label: 'Procedimento',
+              field_type: 'select',
+              options: ['Avaliação', 'Retorno'],
+            },
+          ],
+        },
+      },
+    });
+    const wrapper = mountComponent();
+    await flushPromises();
+    await openForm(wrapper);
+
+    await wrapper.find('form').trigger('submit.prevent');
+    await flushPromises();
+
+    const campo = wrapper.find(
+      '[data-testid="kanban-create-field-procedimento"]'
+    );
+    expect(campo.exists()).toBe(true);
+    expect(campo.element.tagName).toBe('SELECT');
+
+    KanbanBoardsAPI.createConversationCard.mockResolvedValue({ data: {} });
+    await campo.setValue('Retorno');
+    await wrapper.find('form').trigger('submit.prevent');
+    await flushPromises();
+
+    expect(KanbanBoardsAPI.createConversationCard).toHaveBeenLastCalledWith(
+      456,
+      {
+        card: expect.objectContaining({
+          custom_field_values: { procedimento: 'Retorno' },
+        }),
+      },
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
+  // Os campos só apareciam depois da recusa do servidor; a etapa já diz no
+  // cliente o que exige, nas definições do funil que vêm com as etapas.
+  it('shows the fields the chosen stage requires before the first attempt', async () => {
+    KanbanBoardsAPI.showBoard.mockResolvedValue({
+      data: {
+        stages: [buildStage(), buildStage({ id: 22, name: 'Avaliação' })],
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: ['Avaliação', 'Retorno'],
+            required_stage_ids: [22],
+          },
+        ],
+      },
+    });
+    const wrapper = mountComponent();
+    await flushPromises();
+    await openForm(wrapper);
+
+    const campo = () =>
+      wrapper.find('[data-testid="kanban-create-field-procedimento"]');
+    expect(campo().exists()).toBe(false);
+
+    // o segundo select do formulário é o da etapa
+    await wrapper.findAll('form select')[1].setValue(22);
+    await flushPromises();
+
+    expect(campo().exists()).toBe(true);
+    expect(KanbanBoardsAPI.createConversationCard).not.toHaveBeenCalled();
+  });
+
   it('blocks duplicate submit while pending', async () => {
     KanbanBoardsAPI.createConversationCard.mockImplementation(
       () => new Promise(() => {})
@@ -835,182 +797,40 @@ describe('KanbanConversationCards', () => {
     expect(wrapper.text()).not.toContain('Create opportunity');
   });
 
-  it('opens an inline edit form automatically for an existing card', async () => {
+  // Decisão do Pedro, 07/10: na conversa só se cria. A oportunidade que já
+  // existe é uma linha que leva ao cartão no funil — nem a ficha inteira, nem o
+  // formulário em linha que a substituiu.
+  it('shows a linked opportunity as one line with its board and stage', async () => {
     KanbanBoardsAPI.getConversationCards.mockResolvedValue({
       data: { payload: [buildCard()] },
     });
     const wrapper = mountComponent();
     await flushPromises();
 
-    expect(store.dispatch).toHaveBeenCalledWith('labels/get');
-    expect(KanbanBoardsAPI.showBoard).toHaveBeenCalledWith(10, {
-      signal: expect.any(AbortSignal),
-    });
-    expect(wrapper.find('input[type="text"]').element.value).toBe(
-      'Maria Silva - Sales Inbox'
-    );
-    expect(wrapper.find('select').element.value).toBe('20');
+    const linha = wrapper.find('[data-testid="kanban-linked-card"]');
+    expect(linha.element.tagName).toBe('BUTTON');
+    expect(linha.text()).toContain('Maria Silva - Sales Inbox');
+    expect(linha.text()).toContain('Sales');
+    expect(linha.text()).toContain('New');
+    expect(wrapper.find('input').exists()).toBe(false);
     expect(wrapper.findComponent({ name: 'LabelDropdown' }).exists()).toBe(
-      true
-    );
-  });
-
-  it('does not render an explicit edit button or pencil icon', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard()] },
-    });
-    const wrapper = mountComponent();
-    await flushPromises();
-
-    expect(wrapper.find('button[aria-label="Edit opportunity"]').exists()).toBe(
       false
     );
-    expect(wrapper.find('.i-lucide-pencil').exists()).toBe(false);
   });
 
-  it('automatically saves inline card details and labels with PATCH requests', async () => {
+  it('goes to the funnel instead of opening anything to edit here', async () => {
     KanbanBoardsAPI.getConversationCards.mockResolvedValue({
       data: { payload: [buildCard()] },
     });
     const wrapper = mountComponent();
     await flushPromises();
 
-    await openEditForm(wrapper);
-    KanbanBoardsAPI.updateCardDetailsById.mockClear();
-    await wrapper.find('input[type="text"]').setValue('  Updated renewal  ');
-    await flushPromises();
-    await wrapper.find('select').setValue('20');
-    await flushPromises();
-    await wrapper
-      .find('input[type="datetime-local"]')
-      .setValue('2026-06-08T10:30');
-    await flushPromises();
-    await wrapper
-      .findComponent({ name: 'LabelDropdown' })
-      .vm.$emit('remove', 'urgente');
+    await wrapper.find('[data-testid="kanban-linked-card"]').trigger('click');
     await flushPromises();
 
-    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
-      10,
-      123,
-      {
-        kanban_stage_id: 20,
-        subject: 'Updated renewal',
-        next_action_type: 'Cobrar retorno',
-        next_action_at: new Date('2026-06-08T10:30').toISOString(),
-        labels: ['vendas'],
-        custom_field_values: {},
-      }
-    );
-    expect(KanbanBoardsAPI.updateCardLabels).not.toHaveBeenCalled();
-  });
-
-  it('edits custom fields inside collapsed opportunity groups', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: {
-        payload: [
-          buildCard({ custom_field_values: { procedimento: 'Avaliação' } }),
-        ],
-      },
-    });
-    KanbanBoardsAPI.showBoard.mockResolvedValue({
-      data: {
-        stages: [buildStage()],
-        custom_field_definitions: [
-          {
-            key: 'procedimento',
-            label: 'Procedimento',
-            field_type: 'select',
-            options: ['Avaliação', 'Retorno'],
-            layout: { section: 'details', group: 'consulta', position: 1 },
-          },
-        ],
-        custom_field_sections: [
-          {
-            key: 'details',
-            label: 'Geral',
-            groups: [{ key: 'consulta', label: 'Consulta', color: 'blue' }],
-          },
-        ],
-      },
-    });
-    const wrapper = mountComponent();
-    await flushPromises();
-
-    const group = wrapper.find(
-      '[data-testid="kanban-opportunity-field-group-details-consulta"]'
-    );
-    expect(group.exists()).toBe(true);
-    expect(
-      group
-        .find('[data-testid="kanban-opportunity-field-procedimento"]')
-        .exists()
-    ).toBe(false);
-
-    await group.find('button').trigger('click');
-    await group
-      .find('[data-testid="kanban-opportunity-field-procedimento"]')
-      .setValue('Retorno');
-    await flushPromises();
-
-    expect(KanbanBoardsAPI.updateCardDetailsById).toHaveBeenCalledWith(
-      10,
-      123,
-      expect.objectContaining({
-        custom_field_values: { procedimento: 'Retorno' },
-      })
-    );
-  });
-
-  it('keeps inline edit values when saving fails', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard()] },
-    });
-    KanbanBoardsAPI.updateCardDetailsById.mockRejectedValue({
-      response: { data: { message: 'Invalid stage' } },
-    });
-    const wrapper = mountComponent();
-    await flushPromises();
-
-    await openEditForm(wrapper);
-    await wrapper.find('input[type="text"]').setValue('Custom edit');
-    await flushPromises();
-
-    expect(wrapper.text()).toContain('Invalid stage');
-    expect(wrapper.find('input[type="text"]').element.value).toBe(
-      'Custom edit'
-    );
-  });
-
-  it('preserves the edit form during realtime refresh', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard()] },
-    });
-    const wrapper = mountComponent();
-    await flushPromises();
-    await openEditForm(wrapper);
-    await wrapper.find('input[type="text"]').setValue('Draft edit');
-
-    emitKanbanRealtimeEvent({
-      event: 'kanban.card.updated',
-      data: { card_id: 123, conversation_id: 456 },
-    });
-    await flushPromises();
-
-    expect(KanbanBoardsAPI.getConversationCards).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('input[type="text"]').element.value).toBe('Draft edit');
-  });
-
-  it('does not save just by opening the inline edit form', async () => {
-    KanbanBoardsAPI.getConversationCards.mockResolvedValue({
-      data: { payload: [buildCard()] },
-    });
-    const wrapper = mountComponent();
-    await flushPromises();
-
-    await openEditForm(wrapper);
-
-    expect(KanbanBoardsAPI.updateCardDetailsById).not.toHaveBeenCalled();
-    expect(wrapper.find('input[type="text"]').exists()).toBe(true);
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('input').exists()).toBe(false);
+    expect(wrapper.find('select').exists()).toBe(false);
+    expect(KanbanBoardsAPI.showBoard).not.toHaveBeenCalled();
   });
 });

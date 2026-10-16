@@ -95,7 +95,7 @@ const mountComponent = () =>
         'woot-feature-toggle': {
           template: '<div><slot /></div>',
         },
-        KanbanConversationOpportunity: {
+        KanbanConversationCards: {
           props: ['conversationId'],
           template:
             '<div data-testid="kanban-conversation-opportunity">{{ conversationId }}</div>',

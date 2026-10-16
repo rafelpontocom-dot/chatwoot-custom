@@ -2,16 +2,16 @@
   "FILTER": {
     "TITLE": "Filtrar conversas",
     "SUBTITLE": "Adicione seus filtros abaixo e clique em 'Aplicar filtros' para reduzir a desordem na conversa.",
-    "EDIT_CUSTOM_FILTER": "Editar Pasta",
-    "CUSTOM_VIEWS_SUBTITLE": "Adicione ou remova filtros e atualize sua pasta.",
+    "EDIT_CUSTOM_FILTER": "Editar filtro",
+    "CUSTOM_VIEWS_SUBTITLE": "Adicione ou remova critérios e atualize o filtro.",
     "ADD_NEW_FILTER": "Adicionar filtro",
     "FILTER_DELETE_ERROR": "Ops! Parece que não podemos salvar nada! Por favor, adicione pelo menos um filtro para salvá-lo.",
     "SUBMIT_BUTTON_LABEL": "Aplicar filtros",
-    "UPDATE_BUTTON_LABEL": "Atualizar pasta",
+    "UPDATE_BUTTON_LABEL": "Atualizar filtro",
     "CANCEL_BUTTON_LABEL": "Cancelar",
     "CLEAR_BUTTON_LABEL": "Limpar filtros",
-    "FOLDER_LABEL": "Nome da pasta",
-    "FOLDER_QUERY_LABEL": "Consulta de Pasta",
+    "FOLDER_LABEL": "Nome do filtro",
+    "FOLDER_QUERY_LABEL": "Critérios do filtro",
     "EMPTY_VALUE_ERROR": "Valor obrigatório.",
     "TOOLTIP_LABEL": "Filtrar conversas",
     "QUERY_DROPDOWN_LABELS": {
@@ -87,8 +87,8 @@
         "SAVE_BUTTON": "Salvar filtro",
         "CANCEL_BUTTON": "Cancelar",
         "API_FOLDERS": {
-          "SUCCESS_MESSAGE": "Pasta criada com sucesso.",
-          "ERROR_MESSAGE": "Erro ao criar pasta."
+          "SUCCESS_MESSAGE": "Filtro criado.",
+          "ERROR_MESSAGE": "Não foi possível criar o filtro."
         },
         "API_SEGMENTS": {
           "SUCCESS_MESSAGE": "Segmento criado com sucesso.",
@@ -96,7 +96,7 @@
         }
       },
       "EDIT": {
-        "EDIT_BUTTON": "Alterar Pasta"
+        "EDIT_BUTTON": "Alterar filtro"
       },
       "DELETE": {
         "DELETE_BUTTON": "Excluir filtro",
@@ -109,13 +109,17 @@
           }
         },
         "API_FOLDERS": {
-          "SUCCESS_MESSAGE": "Pasta excluída com sucesso.",
-          "ERROR_MESSAGE": "Erro ao excluir pasta."
+          "SUCCESS_MESSAGE": "Filtro excluído.",
+          "ERROR_MESSAGE": "Não foi possível excluir o filtro."
         },
         "API_SEGMENTS": {
           "SUCCESS_MESSAGE": "Segmento apagado com sucesso.",
           "ERROR_MESSAGE": "Erro ao excluir segmento."
         }
+      },
+      "DEFAULT": {
+        "SET": "Abrir o painel neste filtro",
+        "UNSET": "Deixar de abrir o painel neste filtro"
       }
     },
     "MULTI_VALUE_INPUT_PLACEHOLDER": "Digite um valor e pressione Enter para adicionar mais",

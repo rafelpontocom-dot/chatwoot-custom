@@ -1,0 +1,19 @@
+{
+  "RAEVO_CONVERSATION": {
+    "RECORDING": {
+      "DISCARD": "Eliminar áudio",
+      "CONFIRM_QUESTION": "Eliminar o áudio gravado?",
+      "CONFIRM": "Eliminar",
+      "CANCEL": "Manter"
+    },
+    "CONTACT_PANEL": {
+      "TOGGLE": "Ver contacto",
+      "SHOW": "Ver contacto",
+      "HIDE": "Esconder contacto"
+    },
+    "SHORTCUTS": {
+      "RESOLVE_HINT": "Resolver: {resolve} · Resolver e abrir a seguinte: {resolveNext}",
+      "MORE_ACTIONS": "Mais ações — pendente, adiar: {moreActions}"
+    }
+  }
+}

@@ -3,6 +3,8 @@ import types from '../mutation-types';
 
 export const state = {
   allCount: 0,
+  // RAEVO (123jpnbcxh5): por ler e atribuídas a quem está ligado — o ponto da guia.
+  mineCount: 0,
   inboxes: {},
   labels: {},
   teams: {},
@@ -31,6 +33,9 @@ const normalizeCounts = counts => {
 export const getters = {
   getAllUnreadCount($state) {
     return $state.allCount;
+  },
+  getMineUnreadCount($state) {
+    return $state.mineCount;
   },
   getInboxUnreadCount: $state => inboxId => {
     return $state.inboxes[String(inboxId)] || 0;
@@ -84,6 +89,7 @@ export const actions = {
 export const mutations = {
   [types.SET_CONVERSATION_UNREAD_COUNTS]($state, payload = {}) {
     $state.allCount = normalizeCount(payload.all_count);
+    $state.mineCount = normalizeCount(payload.mine_count);
     $state.inboxes = normalizeCounts(payload.inboxes);
     $state.labels = normalizeCounts(payload.labels);
     $state.teams = normalizeCounts(payload.teams);

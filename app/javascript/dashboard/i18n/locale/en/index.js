@@ -35,6 +35,7 @@ import login from './login.json';
 import macros from './macros.json';
 import report from './report.json';
 import raevoAi from './raevoAi.json';
+import raevoConversation from './raevoConversation.json';
 import resetPassword from './resetPassword.json';
 import search from './search.json';
 import setNewPassword from './setNewPassword.json';
@@ -89,6 +90,7 @@ export default {
   ...macros,
   ...report,
   ...raevoAi,
+  ...raevoConversation,
   ...resetPassword,
   ...search,
   ...setNewPassword,

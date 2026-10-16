@@ -79,6 +79,48 @@ RSpec.describe KanbanCard do
     end
   end
 
+  # RAEVO (08/10, 123jpnbcb5d): a previsão nasce do tempo médio até ganhar no mesmo funil.
+  describe 'expected close date prediction' do
+    let(:board) { create(:kanban_board) }
+    let(:stage) { create(:kanban_stage, account: board.account, kanban_board: board) }
+
+    it 'fills a new open card with today plus the average days to win on the same board' do
+      travel_to Time.zone.parse('2026-10-08 12:00') do
+        create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                             created_at: 40.days.ago, won_at: 30.days.ago)
+        create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                             created_at: 50.days.ago, won_at: 30.days.ago)
+
+        card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage)
+
+        expect(card.expected_close_date).to eq(Date.new(2026, 10, 23))
+      end
+    end
+
+    it 'keeps a date the person chose' do
+      create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                           created_at: 20.days.ago, won_at: 10.days.ago)
+
+      card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                                  expected_close_date: Date.new(2026, 12, 1))
+
+      expect(card.expected_close_date).to eq(Date.new(2026, 12, 1))
+    end
+
+    it 'leaves the date empty without wins on this board in the last twelve months' do
+      other_board = create(:kanban_board, account: board.account)
+      create(:kanban_card, account: board.account, kanban_board: other_board,
+                           kanban_stage: create(:kanban_stage, account: board.account, kanban_board: other_board),
+                           created_at: 20.days.ago, won_at: 10.days.ago)
+      create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                           created_at: 2.years.ago, won_at: 2.years.ago + 5.days)
+
+      card = create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage)
+
+      expect(card.expected_close_date).to be_nil
+    end
+  end
+
   describe 'commercial custom fields' do
     it 'normalizes currency and multiselect values' do
       board = create(
@@ -100,6 +142,44 @@ RSpec.describe KanbanCard do
       card.valid?
 
       expect(card.custom_field_values).to eq('orcamento' => 1250.5, 'produtos' => %w[Plano Curso])
+    end
+
+    # Quem muda as opções de uma lista nas configurações não pode deixar presos os
+    # cartões que guardam a opção antiga: todo gravar respondia 422, até concluir
+    # a próxima ação. O valor guardado fica como está até alguém o trocar.
+    context 'when a select option stored on the card is removed from the board' do
+      let(:board) do
+        create(:kanban_board, custom_field_definitions: [
+                 { key: 'origem', label: 'Origem', field_type: 'select', options: ['Meta Ads', 'Google'] },
+                 { key: 'canais', label: 'Canais', field_type: 'multiselect', options: %w[Instagram Facebook] }
+               ])
+      end
+      let(:stage) { create(:kanban_stage, account: board.account, kanban_board: board) }
+      let!(:card) do
+        create(:kanban_card, account: board.account, kanban_board: board, kanban_stage: stage,
+                             custom_field_values: { origem: 'Meta Ads', canais: ['Instagram'] })
+      end
+
+      before do
+        board.update!(custom_field_definitions: [
+                        { key: 'origem', label: 'Origem', field_type: 'select', options: ['Mídia Paga', 'Google'] },
+                        { key: 'canais', label: 'Canais', field_type: 'multiselect', options: %w[Facebook] }
+                      ])
+        card.reload
+      end
+
+      it 'still saves other changes and keeps the stored values' do
+        card.update!(next_action_note: 'Ligar de volta', custom_field_values: card.custom_field_values)
+
+        expect(card.reload.custom_field_values).to eq('origem' => 'Meta Ads', 'canais' => ['Instagram'])
+      end
+
+      it 'refuses writing a value that is not an option' do
+        card.custom_field_values = { origem: 'Outra coisa', canais: ['Instagram'] }
+
+        expect(card).not_to be_valid
+        expect(card.errors[:custom_field_values]).to eq(['origem is invalid'])
+      end
     end
 
     it 'preserves false as a filled boolean value' do
@@ -424,6 +504,66 @@ RSpec.describe KanbanCard do
           'completed_at' => '2026-07-21T16:00:00.000Z'
         }
       )
+    end
+
+    # 5j: o histórico diz quem fez cada ação, pelo nome que a equipa vê no
+    # Chatwoot. O evento já guardava o autor; o histórico das ações, que é o que
+    # a ficha lista, não.
+    it 'records who completed the next action' do
+      user = create(:user, name: 'Alysson Lima', display_name: 'Alysson')
+      card = create(:kanban_card, next_action_type: 'Ligar', next_action_at: 1.day.ago)
+      Current.user = user
+
+      card.update!(complete_next_action: true, next_action_completed_at: Time.current)
+
+      expect(card.next_action_history.last['completed_by']).to eq('id' => user.id, 'name' => 'Alysson')
+    ensure
+      Current.reset
+    end
+
+    # Concluída, a ação é histórico. Os campos ficavam preenchidos com o que
+    # acabou de ser feito, e quem ia marcar a seguinte tinha de apagar três
+    # campos antes de escrever — ou gravava sem reparar, e a «próxima ação»
+    # era a anterior outra vez.
+    it 'empties the next action fields once the action is completed' do
+      card = create(
+        :kanban_card,
+        next_action_type: 'Enviar proposta',
+        next_action_at: Time.zone.parse('2026-07-21 15:00:00 UTC'),
+        next_action_note: 'Enviar no WhatsApp'
+      )
+
+      card.update!(next_action_completed_at: Time.zone.parse('2026-07-21 16:00:00 UTC'))
+
+      expect(card.next_action_type).to be_nil
+      expect(card.next_action_at).to be_nil
+      expect(card.next_action_note).to be_nil
+      # e o que foi feito não se perde
+      expect(card.next_action_history.last).to include('type' => 'Enviar proposta')
+      expect(card.kanban_card_events.where(event_type: %w[next_action_scheduled next_action_completed]).pluck(:event_type))
+        .to eq(['next_action_completed'])
+    end
+
+    it 'keeps the completed action out of the way of the one scheduled next' do
+      card = create(:kanban_card, next_action_type: 'Ligar', next_action_at: 1.day.ago)
+      card.update!(next_action_completed_at: Time.current)
+
+      card.update!(next_action_type: 'Enviar proposta', next_action_at: 3.days.from_now)
+
+      expect(card.next_action_completed_at).to be_nil
+      expect(card.next_action_history.length).to eq(1)
+      expect(card.next_action_status).to eq(KanbanCard::NEXT_ACTION_STATUS_FUTURE)
+    end
+
+    it 'consumes explicit completion intent without clearing a later retrospective entry' do
+      card = create(:kanban_card, next_action_type: 'Ligar', next_action_at: 1.day.ago)
+      card.update!(complete_next_action: true, next_action_note: 'Done', next_action_completed_at: Time.current)
+      expect(card.next_action_type).to be_nil
+      expect(card.complete_next_action).to be(false)
+
+      card.update!(next_action_type: 'Past action', next_action_at: 2.days.ago, next_action_completed_at: 1.day.ago)
+      expect(card.next_action_type).to eq('Past action')
+      expect(card.next_action_history.size).to eq(2)
     end
 
     it 'treats a completed next action as missing until another action is scheduled' do

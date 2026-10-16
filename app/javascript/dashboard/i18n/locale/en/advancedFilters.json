@@ -118,6 +118,10 @@
           "SUCCESS_MESSAGE": "Segment deleted successfully.",
           "ERROR_MESSAGE": "Error while deleting segment."
         }
+      },
+      "DEFAULT": {
+        "SET": "Open the panel on this filter",
+        "UNSET": "Stop opening the panel on this filter"
       }
     }
   }

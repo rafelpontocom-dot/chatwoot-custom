@@ -189,6 +189,25 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
     end
   end
 
+  # Uma etiqueta pessoal de outro agente não pode viajar no payload do cartão: a
+  # etiqueta continua aplicada, mas quem não a pode ver não recebe o título.
+  it 'leaves out of the card payload a personal label of somebody else' do
+    card = create_conversation_card
+    other_agent = create(:user, account: account, role: :agent)
+    create(:inbox_member, user: other_agent, inbox: inbox)
+    mine = create(:label, account: account, title: 'minha-etiqueta', visibility: :personal, created_by: agent)
+    shared = create(:label, account: account, title: 'de-todos')
+    card.update_labels([mine.title, shared.title])
+
+    def titulos_para(user, conversation)
+      get conversation_kanban_cards_url(conversation), headers: user.create_new_auth_token, as: :json
+      response.parsed_body['payload'].flat_map { |payload| payload['labels'].pluck('title') }
+    end
+
+    expect(titulos_para(agent, conversation)).to include('minha-etiqueta', 'de-todos')
+    expect(titulos_para(other_agent, conversation)).to contain_exactly('de-todos')
+  end
+
   describe 'POST /api/v1/accounts/{account.id}/conversations/{conversation.display_id}/kanban_cards' do
     it 'creates a conversation-origin card at position 1' do
       expect do
@@ -197,6 +216,49 @@ RSpec.describe 'Conversation Kanban Cards API', type: :request do
 
       expect(response).to have_http_status(:created)
       expect(KanbanCard.last).to have_attributes(origin: 'conversation', position: 1)
+    end
+
+    # A etapa que exige campos tornava a criação IMPOSSÍVEL a partir da conversa:
+    # a resposta dizia «procedimento is required» e o painel não tinha onde o
+    # preencher.
+    it 'returns the required custom fields instead of only refusing the creation' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'select',
+            options: %w[Avaliação Retorno],
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect { post_conversation_kanban_card }.not_to change(KanbanCard.conversation, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['missing_fields']).to eq(['procedimento'])
+      expect(response.parsed_body['field_definitions'].first).to include('key' => 'procedimento', 'field_type' => 'select')
+    end
+
+    it 'creates the card when the required fields come with the payload' do
+      kanban_board.update!(
+        custom_field_definitions: [
+          {
+            key: 'procedimento',
+            label: 'Procedimento',
+            field_type: 'text',
+            required_stage_ids: [stage.id]
+          }
+        ]
+      )
+
+      expect do
+        post_conversation_kanban_card(params: valid_card_payload.merge(custom_field_values: { procedimento: 'Retorno' }))
+      end.to change(KanbanCard.conversation, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      expect(KanbanCard.last.custom_field_values).to eq('procedimento' => 'Retorno')
     end
 
     it 'shifts existing active cards by one' do

@@ -3,6 +3,7 @@ import ContactManageView from '../ContactManageView.vue';
 
 const mockDispatch = vi.fn(() => Promise.resolve());
 let mockRole = 'administrator';
+let mockUISettings = {};
 const mockRouterBack = vi.fn();
 const mockRouterPush = vi.fn();
 
@@ -36,6 +37,7 @@ vi.mock('dashboard/composables/store', () => ({
   // `useAdmin` lê o papel daqui: sem isto a vista nem monta.
   useStoreGetters: () => ({
     getCurrentRole: { value: mockRole },
+    getUISettings: { value: mockUISettings },
   }),
   useMapGetter: name => {
     if (name === 'contacts/getContactById') {
@@ -71,17 +73,14 @@ const mountComponent = () =>
         },
         Spinner: true,
         ContactDetails: true,
-        TabBar: {
-          props: ['tabs'],
-          template:
-            '<nav><span v-for="tab in tabs" :key="tab.value">{{ tab.label }}</span></nav>',
-        },
+        FluentIcon: true,
+        EmojiOrIcon: true,
         ContactNotes: true,
-        ContactHistory: true,
+        ContactHistory: { template: '<p data-testid="history" />' },
         ContactMedia: true,
         ContactMerge: true,
-        ContactCustomAttributes: true,
-        ContactKanbanCards: true,
+        ContactCustomAttributes: { template: '<p data-testid="attributes" />' },
+        ContactKanbanCards: { template: '<p data-testid="kanban" />' },
         ContactFormSubmissions: true,
         FormsSubmissionDetailsDialog: true,
       },
@@ -92,9 +91,10 @@ describe('ContactManageView', () => {
   beforeEach(() => {
     mockDispatch.mockClear();
     mockRole = 'administrator';
+    mockUISettings = {};
   });
 
-  it('includes kanban opportunities in the contact sidebar tabs', () => {
+  it('includes kanban opportunities in the contact sidebar sections', () => {
     const wrapper = mountComponent();
 
     expect(wrapper.text()).toContain('Opportunities');
@@ -102,17 +102,57 @@ describe('ContactManageView', () => {
 
   // A ficha de respostas é de administração, como em `FormSubmissionPolicy`:
   // um agente atende conversas, não lê fichas de pacientes.
-  it('offers the form responses tab to an administrator', () => {
+  it('offers the form responses section to an administrator', () => {
     const wrapper = mountComponent();
 
     expect(wrapper.text()).toContain('CONTACTS_LAYOUT.SIDEBAR.TABS.FORMS');
   });
 
-  it('keeps the form responses tab away from an agent', () => {
+  it('keeps the form responses section away from an agent', () => {
     mockRole = 'agent';
 
     const wrapper = mountComponent();
 
     expect(wrapper.text()).not.toContain('CONTACTS_LAYOUT.SIDEBAR.TABS.FORMS');
+  });
+
+  // 123jpnbcxpd: a tira de sete abas rolava sem avisar; agora são secções que
+  // abrem e fecham, como a lateral do contacto na conversa.
+  it('stacks the sections, with the opportunities and the history open', () => {
+    const wrapper = mountComponent();
+
+    expect(
+      wrapper.findAll('[data-testid^="raevo-contact-section-"]')
+    ).toHaveLength(7);
+    expect(wrapper.find('[data-testid="kanban"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="history"]').exists()).toBe(true);
+  });
+
+  // 123jpnbcb54: os atributos ficam escondidos até alguém os abrir, como no Kommo.
+  it('keeps the attributes closed until someone opens them', async () => {
+    const wrapper = mountComponent();
+
+    expect(wrapper.find('[data-testid="attributes"]').exists()).toBe(false);
+
+    await wrapper
+      .find('[data-testid="raevo-contact-section-attributes"] button')
+      .trigger('click');
+
+    expect(mockDispatch).toHaveBeenCalledWith('updateUISettings', {
+      uiSettings: expect.objectContaining({
+        raevo_contact_sections: expect.objectContaining({ attributes: true }),
+      }),
+    });
+  });
+
+  it('remembers what each person opened', () => {
+    mockUISettings = {
+      raevo_contact_sections: { attributes: true, kanban: false },
+    };
+
+    const wrapper = mountComponent();
+
+    expect(wrapper.find('[data-testid="attributes"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="kanban"]').exists()).toBe(false);
   });
 });

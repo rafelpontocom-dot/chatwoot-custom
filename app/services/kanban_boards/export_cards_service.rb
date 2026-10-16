@@ -6,7 +6,8 @@ class KanbanBoards::ExportCardsService
     'next_action_asc' => :next_action_sort_key,
     'created_desc' => :created_sort_key,
     'amount_desc' => :amount_sort_key,
-    'stage_time_desc' => :stage_time_sort_key
+    'stage_time_desc' => :stage_time_sort_key,
+    'waiting_desc' => :waiting_sort_key
   }.freeze
 
   def initialize(account:, user:, board:, filters: {})
@@ -61,6 +62,7 @@ class KanbanBoards::ExportCardsService
       filtered_assignee_ids: filters[:assignee_ids],
       filtered_next_action_status: filters[:next_action],
       filtered_opportunity_status: filters[:status],
+      filtered_waiting_days: filters[:waiting_days],
       search: filters[:search],
       sort: filters[:sort],
       visible_inbox_ids: visible_inbox_ids,
@@ -90,6 +92,11 @@ class KanbanBoards::ExportCardsService
 
   def stage_time_sort_key(card)
     [card.stage_entered_at || Time.zone.at(0), card.id]
+  end
+
+  def waiting_sort_key(card)
+    waiting_since = card.conversation&.waiting_since
+    [waiting_since.nil? ? 1 : 0, waiting_since || Time.zone.at(0), card.id]
   end
 
   def headers

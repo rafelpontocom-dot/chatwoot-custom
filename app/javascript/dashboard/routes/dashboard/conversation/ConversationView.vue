@@ -1,4 +1,5 @@
 <script>
+import { toRef } from 'vue';
 import { mapGetters } from 'vuex';
 import { useWindowSize } from '@vueuse/core';
 import { useUISettings } from 'dashboard/composables/useUISettings';
@@ -10,7 +11,8 @@ import wootConstants from 'dashboard/constants/globals';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBarConversationSnooze.vue';
 import { emitter } from 'shared/helpers/mitt';
-import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
+// RAEVO (123jpnbd3by): o contacto abre com a conversa; o botão mora no cabeçalho.
+import { useRaevoContactPanelAutoOpen } from 'dashboard/components-next/raevo/useRaevoContactPanel';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
 
 export default {
@@ -18,7 +20,6 @@ export default {
     ChatList,
     ConversationBox,
     CmdBarConversationSnooze,
-    SidepanelSwitch,
     ConversationSidebar,
   },
   beforeRouteLeave(to, from, next) {
@@ -55,12 +56,13 @@ export default {
       default: 0,
     },
   },
-  setup() {
+  setup(props) {
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
     const { accountId } = useAccount();
     const { width: windowWidth } = useWindowSize();
     const { setSidebarFocus } = useRequestSidebarFocus();
+    useRaevoContactPanelAutoOpen(toRef(props, 'conversationId'));
 
     return {
       uiSettings,
@@ -82,15 +84,15 @@ export default {
       currentChat: 'getSelectedChat',
     }),
     /**
-     * Abaixo desta largura não cabem as quatro colunas: navegação, lista,
-     * conversa e oportunidade. A 1280px sobravam 380px para a conversa.
+     * Abaixo desta largura as quatro colunas não cabem com a navegação aberta:
+     * a 1280px sobravam 380px para a conversa, a 1536px 504px. Com a conversa
+     * aberta a navegação recolhe a ícones e a lista fica — trocar de conversa
+     * é o trabalho da tela, e esconder a lista obrigava a voltar atrás.
      */
-    isCompactWorkspace() {
-      return Boolean(this.conversationId) && this.windowWidth < 1440;
+    shouldCollapseNavigation() {
+      return Boolean(this.conversationId) && this.windowWidth < 1600;
     },
     showConversationList() {
-      if (this.isCompactWorkspace) return false;
-
       return this.isOnExpandedLayout ? !this.conversationId : true;
     },
     showMessageView() {
@@ -111,10 +113,10 @@ export default {
     },
     // Recolher a navegação a ícones é estado de momento: não grava por cima da
     // largura que a pessoa escolheu, e volta sozinho quando há espaço.
-    isCompactWorkspace: {
+    shouldCollapseNavigation: {
       immediate: true,
-      handler(compact) {
-        this.setSidebarFocus(compact);
+      handler(collapse) {
+        this.setSidebarFocus(collapse);
       },
     },
   },
@@ -219,16 +221,14 @@ export default {
       :team-id="teamId"
       :conversation-type="conversationType"
       :folders-id="foldersId"
-      :is-on-expanded-layout="isOnExpandedLayout || isCompactWorkspace"
+      :is-on-expanded-layout="isOnExpandedLayout"
       @conversation-load="onConversationLoad"
     />
     <ConversationBox
       v-if="showMessageView"
       :inbox-id="inboxId"
-      :is-on-expanded-layout="isOnExpandedLayout || isCompactWorkspace"
-    >
-      <SidepanelSwitch v-if="currentChat.id" />
-    </ConversationBox>
+      :is-on-expanded-layout="isOnExpandedLayout"
+    />
     <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
     <CmdBarConversationSnooze />
   </section>

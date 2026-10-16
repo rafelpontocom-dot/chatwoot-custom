@@ -5,6 +5,8 @@ import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useTrack } from 'dashboard/composables';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
+import { useMapGetter } from 'dashboard/composables/store';
+import { useWhatsappGroupMentions } from 'dashboard/composables/useWhatsappGroupMentions';
 
 import ReplyToMessage from './ReplyToMessage.vue';
 import AttachmentPreview from 'dashboard/components/widgets/AttachmentsPreview.vue';
@@ -101,6 +103,11 @@ export default {
     const copilot = useCopilotReply();
     const macroExecution = useMacroExecution();
     const shortcutKey = useKbd(['$mod', '+', 'enter']);
+    // RAEVO (08/10, 123jpnbcb4w): o @ dos grupos de WhatsApp.
+    const {
+      isGroup: isWhatsappGroup,
+      participants: whatsappGroupParticipants,
+    } = useWhatsappGroupMentions(useMapGetter('getSelectedChat'));
 
     // Options API state and methods live on the instance proxy
     const { proxy } = getCurrentInstance();
@@ -148,6 +155,8 @@ export default {
       copilot,
       shortcutKey,
       macroExecution,
+      isWhatsappGroup,
+      whatsappGroupParticipants,
     };
   },
   data() {
@@ -1422,6 +1431,8 @@ export default {
           :editor-id="editorStateId"
           class="input popover-prosemirror-menu"
           :is-private="isOnPrivateNote"
+          :whatsapp-group="isWhatsappGroup"
+          :whatsapp-group-participants="whatsappGroupParticipants"
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"
           :min-height="4"

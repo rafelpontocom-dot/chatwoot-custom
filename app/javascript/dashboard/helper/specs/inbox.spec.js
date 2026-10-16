@@ -27,11 +27,22 @@ describe('#Inbox Helpers', () => {
       [INBOX_TYPES.SMS, { phone_number: '+15555550101' }, '+15555550101'],
       [INBOX_TYPES.TELEGRAM, { bot_name: 'support_bot' }, '@support_bot'],
       [INBOX_TYPES.LINE, { line_channel_id: 'line-123' }, 'line-123'],
-      [INBOX_TYPES.API, { inbox_identifier: 'api-123' }, 'api-123'],
     ])('returns the identifier for %s', (channelType, attributes, expected) => {
       expect(
         getInboxIdentifier({ channel_type: channelType, ...attributes })
       ).toBe(expected);
+    });
+
+    // O token de encaminhamento da caixa de API não se desenha: no WAHA cada
+    // canal aparecia como «ALYSSON · UjM5S8yDTzgv85v…» na barra lateral, e o
+    // token comia a largura do nome sem dizer nada a quem lê.
+    it('draws no identifier for an API inbox', () => {
+      expect(
+        getInboxIdentifier({
+          channel_type: INBOX_TYPES.API,
+          inbox_identifier: 'UjM5S8yDTzgv85v',
+        })
+      ).toBe('');
     });
 
     it('normalizes the Twilio WhatsApp prefix', () => {

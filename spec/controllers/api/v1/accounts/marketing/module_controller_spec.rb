@@ -13,6 +13,30 @@ RSpec.describe 'Marketing module API', type: :request do
     expect(response.parsed_body).to include('enabled' => false)
   end
 
+  # O menu lateral decide por aqui se mostra a entrada Marketing. Sem este campo
+  # ela aparecia a toda a gente, e quem não usa os campos caía numa tela sem
+  # conteúdo — foi o relato do Pedro no cartão 123jpnbcb5f.
+  describe 'the account payload the sidebar reads' do
+    let(:account_path) { "/api/v1/accounts/#{account.id}" }
+
+    it 'says the module is off when nobody turned it on' do
+      get account_path, headers: administrator.create_new_auth_token, as: :json
+
+      expect(response.parsed_body).to include('marketing_module_enabled' => false)
+    end
+
+    it 'says it is on once it is turned on' do
+      patch module_path,
+            headers: administrator.create_new_auth_token,
+            params: { marketing_module: { enabled: true } },
+            as: :json
+
+      get account_path, headers: administrator.create_new_auth_token, as: :json
+
+      expect(response.parsed_body).to include('marketing_module_enabled' => true)
+    end
+  end
+
   it 'records who turned it on' do
     patch module_path,
           headers: administrator.create_new_auth_token,

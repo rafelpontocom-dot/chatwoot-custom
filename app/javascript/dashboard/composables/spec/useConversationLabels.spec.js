@@ -70,6 +70,54 @@ describe('useConversationLabels', () => {
     });
   });
 
+  // Com visibilidade de etiquetas, a conversa pode carregar a etiqueta pessoal de
+  // outro agente, que esta pessoa NÃO vê. Partir da lista visível apagava-a sem
+  // aviso ao acrescentar ou remover outra.
+  it('keeps labels this user cannot see when adding one', () => {
+    store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
+      'Label 1',
+      'etiqueta-de-outro-agente',
+    ]);
+    const { addLabelToConversation } = useConversationLabels();
+
+    addLabelToConversation({ title: 'Label 2' });
+
+    expect(store.dispatch).toHaveBeenCalledWith('conversationLabels/update', {
+      conversationId: 1,
+      labels: ['Label 1', 'etiqueta-de-outro-agente', 'Label 2'],
+    });
+  });
+
+  it('keeps labels this user cannot see when removing one', () => {
+    store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
+      'Label 1',
+      'etiqueta-de-outro-agente',
+      'Label 2',
+    ]);
+    const { removeLabelFromConversation } = useConversationLabels();
+
+    removeLabelFromConversation('Label 2');
+
+    expect(store.dispatch).toHaveBeenCalledWith('conversationLabels/update', {
+      conversationId: 1,
+      labels: ['Label 1', 'etiqueta-de-outro-agente'],
+    });
+  });
+
+  it('does not duplicate a label that is already on the conversation', () => {
+    store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
+      'Label 1',
+    ]);
+    const { addLabelToConversation } = useConversationLabels();
+
+    addLabelToConversation({ title: 'Label 1' });
+
+    expect(store.dispatch).toHaveBeenCalledWith('conversationLabels/update', {
+      conversationId: 1,
+      labels: ['Label 1'],
+    });
+  });
+
   it('should remove a label from the conversation', () => {
     store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
       'Label 1',

@@ -1,7 +1,8 @@
 class KanbanCards::TransferCardService
   attr_reader :source_stage
 
-  def initialize(card:, target_board:, target_stage:, actor:, lost_reason: nil)
+  # rubocop:disable Metrics/ParameterLists -- Mirrors the transfer request contract.
+  def initialize(card:, target_board:, target_stage:, actor:, lost_reason: nil, custom_field_values: {})
     @card = card
     @source_board = card.kanban_board
     @source_stage = card.kanban_stage
@@ -9,7 +10,12 @@ class KanbanCards::TransferCardService
     @target_stage = target_stage
     @actor = actor
     @lost_reason = lost_reason.to_s.strip.presence
+    # Os campos que a etapa de destino exige e o cartão ainda não tem. Só os do
+    # funil de destino: o resto da ficha muda-se em PATCH, não numa mudança de funil.
+    target_keys = target_board.custom_field_definitions.pluck('key')
+    @custom_field_values = custom_field_values.to_h.stringify_keys.slice(*target_keys)
   end
+  # rubocop:enable Metrics/ParameterLists
 
   def perform!
     validate_target!
@@ -18,6 +24,7 @@ class KanbanCards::TransferCardService
       lock_transfer_records!
       normalize_positions!
       transfer_card!
+      fill_required_fields!
       normalize_positions!
       create_transfer_event!
     end
@@ -49,11 +56,29 @@ class KanbanCards::TransferCardService
   def validate_required_fields!
     @card.kanban_board = @target_board
     @card.kanban_stage = @target_stage
+    @card.custom_field_values = merged_custom_field_values
     missing_field_keys = @card.missing_required_custom_field_keys
     return if missing_field_keys.blank?
 
     missing_field_keys.each { |field_key| @card.errors.add(:custom_field_values, "#{field_key} is required") }
     raise ActiveRecord::RecordInvalid, @card
+  end
+
+  # Grava com validações: o valor de um campo de escolha tem de ser uma das
+  # opções, e é o modelo que o sabe. Mas o modelo só guarda os campos do funil
+  # em que o cartão está, e gravar apagava os do funil de origem («Fonte da
+  # lista», visto em produção a 16/10). Uma mudança sem campos em falta não os
+  # toca; com campos em falta também não pode, e por isso voltam a juntar-se.
+  def fill_required_fields!
+    return if @custom_field_values.blank?
+
+    source_values = @card.custom_field_values.to_h
+    @card.update!(custom_field_values: merged_custom_field_values)
+    @card.update_column(:custom_field_values, source_values.merge(@card.custom_field_values)) # rubocop:disable Rails/SkipsModelValidations
+  end
+
+  def merged_custom_field_values
+    @card.custom_field_values.to_h.merge(@custom_field_values)
   end
 
   def lock_transfer_records!

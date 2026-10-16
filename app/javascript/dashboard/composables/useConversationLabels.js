@@ -69,24 +69,30 @@ export function useConversationLabels() {
 
   /**
    * Adds a label to the current conversation
+   *
+   * Parte de `savedLabels` — TODAS as etiquetas da conversa — e não de
+   * `activeLabels`, que são só as que esta pessoa consegue ver. Com etiquetas de
+   * visibilidade (pessoal, de time), `activeLabels` deixa de fora a etiqueta
+   * pessoal de outro agente; partir dela significava APAGAR-LHE a etiqueta ao
+   * acrescentar outra, sem aviso e sem rasto.
+   *
    * @param {Object} value - The label object to be added
    * @param {string} value.title - The title of the label to be added
    */
   const addLabelToConversation = value => {
-    const result = activeLabels.value.map(item => item.title);
-    result.push(value.title);
-    onUpdateLabels(result);
+    onUpdateLabels([...new Set([...savedLabels.value, value.title])]);
   };
 
   /**
    * Removes a label from the current conversation
+   *
+   * Pela mesma razão do `addLabelToConversation`: remove-se uma, mantêm-se as que
+   * esta pessoa não vê.
+   *
    * @param {string} value - The title of the label to be removed
    */
   const removeLabelFromConversation = value => {
-    const result = activeLabels.value
-      .map(label => label.title)
-      .filter(label => label !== value);
-    onUpdateLabels(result);
+    onUpdateLabels(savedLabels.value.filter(label => label !== value));
   };
 
   return {

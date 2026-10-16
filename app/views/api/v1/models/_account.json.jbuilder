@@ -1,3 +1,7 @@
+# O menu lateral precisa de saber se o módulo de Marketing está ligado para
+# não oferecer uma tela que a clínica não usa. Sem isto, a entrada aparecia
+# sempre e quem clicava caía numa tela sem conteúdo.
+json.marketing_module_enabled resource.marketing_module_setting&.enabled || false
 json.settings resource.settings
 json.created_at resource.created_at
 if resource.custom_attributes.present?

@@ -2,6 +2,7 @@
 import { frontendURL } from '../../../helper/URLHelper';
 import store from '../../../store';
 import ConversationView from './ConversationView.vue';
+import { defaultFolderOnEntry } from '../../../helper/conversationFilterPreferences';
 
 const CONVERSATION_PERMISSIONS = [
   'administrator',
@@ -42,6 +43,30 @@ const redirectFolderConversationIfUnavailable = async (to, _from, next) => {
   });
 };
 
+// Abrir as Conversas no filtro que o agente elegeu. O filtro é um dos que ele
+// guardou — não uma combinação solta de aba e estado — e por isso o destino é a
+// rota do próprio filtro: a lista, a contagem e o endereço ficam todos certos,
+// e partilhar o link leva a pessoa ao mesmo sítio.
+//
+// Só redireciona quando se entra no painel de raiz. Quem clicar noutro sítio da
+// barra lateral vai para onde clicou: o padrão é por onde se começa, não uma
+// prisão.
+const redirectToDefaultFolder = async (to, from, next) => {
+  const folderId = defaultFolderOnEntry({
+    fromName: from?.name,
+    folderId: store.getters.getUISettings?.conversations_default_folder_id,
+  });
+  if (!folderId || !(await isFolderAvailable(folderId))) {
+    next();
+    return;
+  }
+
+  next({
+    name: 'folder_conversations',
+    params: { accountId: to.params.accountId, id: String(folderId) },
+  });
+};
+
 export default {
   routes: [
     {
@@ -50,6 +75,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
+      beforeEnter: redirectToDefaultFolder,
       component: ConversationView,
       props: () => {
         return { inboxId: 0 };

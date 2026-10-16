@@ -16,6 +16,7 @@ class Api::V1::Accounts::KanbanBoards::Stages::CardsController < Api::V1::Accoun
       filtered_assignee_ids: sanitized_assignee_filter_ids,
       filtered_next_action_status: params[:next_action].presence,
       filtered_opportunity_status: params[:status].presence,
+      filtered_waiting_days: params[:waiting_days],
       search: params[:search],
       sort: params[:sort]
     ).call

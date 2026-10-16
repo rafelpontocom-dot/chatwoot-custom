@@ -6,10 +6,12 @@ import { getRandomColor } from 'dashboard/helper/labelColor';
 import { useVuelidate } from '@vuelidate/core';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import LabelVisibilityField from './LabelVisibilityField.vue';
 
 export default {
   components: {
     NextButton,
+    LabelVisibilityField,
   },
   props: {
     prefillTitle: {
@@ -27,6 +29,8 @@ export default {
       description: '',
       title: '',
       showOnSidebar: true,
+      visibility: 'global',
+      teamId: null,
     };
   },
   validations,
@@ -54,10 +58,16 @@ export default {
           description: this.description,
           title: this.title.toLowerCase(),
           show_on_sidebar: this.showOnSidebar,
+          visibility: this.visibility,
+          team_id: this.visibility === 'team' ? this.teamId : null,
         });
         useAlert(this.$t('LABEL_MGMT.ADD.API.SUCCESS_MESSAGE'));
         this.onClose();
       } catch (error) {
+        if (error.code === 'title_taken') {
+          useAlert(this.$t('LABEL_MGMT.FORM.NAME.TAKEN_ERROR'));
+          return;
+        }
         const errorMessage =
           error.message || this.$t('LABEL_MGMT.ADD.API.ERROR_MESSAGE');
         useAlert(errorMessage);
@@ -103,6 +113,10 @@ export default {
           <woot-color-picker v-model="color" />
         </label>
       </div>
+      <LabelVisibilityField
+        v-model:visibility="visibility"
+        v-model:team-id="teamId"
+      />
       <div class="flex items-center w-full gap-2">
         <input v-model="showOnSidebar" type="checkbox" :value="true" />
         <label for="conversation_creation">
@@ -121,7 +135,11 @@ export default {
           type="submit"
           data-testid="label-submit"
           :label="$t('LABEL_MGMT.FORM.CREATE')"
-          :disabled="v$.title.$invalid || uiFlags.isCreating"
+          :disabled="
+            v$.title.$invalid ||
+            uiFlags.isCreating ||
+            (visibility === 'team' && !teamId)
+          "
           :is-loading="uiFlags.isCreating"
         />
       </div>

@@ -10,11 +10,16 @@ vi.mock('@vueuse/core', async () => {
   return { ...actual, useWindowSize: () => ({ width: larguraDaJanela }) };
 });
 
+const atualizarPreferencias = vi.fn();
 vi.mock('dashboard/composables/useUISettings', () => ({
   useUISettings: () => ({
     uiSettings: ref({ conversation_display_type: 'condensed' }),
-    updateUISettings: vi.fn(),
+    updateUISettings: atualizarPreferencias,
   }),
+}));
+
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: () => ref(7),
 }));
 
 vi.mock('dashboard/composables/useAccount', () => ({
@@ -34,7 +39,6 @@ const mountView = (props = {}) =>
         ConversationBox: { template: '<div><slot /></div>' },
         ConversationSidebar: true,
         CmdBarConversationSnooze: true,
-        SidepanelSwitch: true,
       },
       mocks: {
         $store: {
@@ -53,23 +57,18 @@ describe('ConversationView', () => {
   beforeEach(() => {
     larguraDaJanela.value = 1280;
     definirFoco.mockClear();
+    atualizarPreferencias.mockClear();
   });
 
-  // A 1280px a conversa ficava com 380px: navegação, lista e oportunidade
-  // comiam o resto. Com a conversa aberta, a lista sai da frente.
-  it('hides the conversation list while a conversation is open on a narrow screen', () => {
-    const wrapper = mountView();
-
-    expect(wrapper.vm.showConversationList).toBe(false);
-    expect(wrapper.vm.isCompactWorkspace).toBe(true);
-  });
-
-  it('keeps the list when there is room for everything', () => {
-    larguraDaJanela.value = 1600;
+  // Decisão de 09/10: a lista fica com a conversa aberta, a qualquer largura.
+  // Escondê-la (16/09) obrigava a voltar atrás para abrir a conversa seguinte.
+  it('keeps the conversation list while a conversation is open on a narrow screen', () => {
     const wrapper = mountView();
 
     expect(wrapper.vm.showConversationList).toBe(true);
-    expect(wrapper.vm.isCompactWorkspace).toBe(false);
+    expect(
+      wrapper.findComponent({ name: 'ChatList' }).props('isOnExpandedLayout')
+    ).toBe(false);
   });
 
   it('keeps the list when no conversation is open, whatever the width', () => {
@@ -78,9 +77,10 @@ describe('ConversationView', () => {
     expect(wrapper.vm.showConversationList).toBe(true);
   });
 
-  // Recolher não é esconder: os módulos continuam à distância de um clique, e a
-  // largura que a pessoa escolheu para a barra não é gravada por cima.
-  it('collapses the navigation to icons only while the workspace is compact', async () => {
+  // O espaço vem da navegação: recolhe a ícones (56px) com a conversa aberta.
+  // A 1536px — 1920 com zoom de 125% — a conversa ficava com 504px.
+  it('collapses the navigation to icons while a conversation is open below 1600px', async () => {
+    larguraDaJanela.value = 1536;
     const wrapper = mountView();
     await wrapper.vm.$nextTick();
 
@@ -90,5 +90,34 @@ describe('ConversationView', () => {
     await wrapper.vm.$nextTick();
 
     expect(definirFoco).toHaveBeenLastCalledWith(false);
+  });
+
+  // Recolher não é esconder, e só vale enquanto há conversa: na lista sozinha a
+  // navegação fica com a largura que a pessoa escolheu.
+  it('leaves the navigation alone when no conversation is open', async () => {
+    const wrapper = mountView({ conversationId: 0 });
+    await wrapper.vm.$nextTick();
+
+    expect(definirFoco).toHaveBeenLastCalledWith(false);
+  });
+
+  // 123jpnbd3by, decisão de 16/10: abrir uma conversa abre o contacto, sempre.
+  it('opens the contact panel when a conversation opens', () => {
+    mountView();
+
+    expect(atualizarPreferencias).toHaveBeenCalledWith({
+      is_contact_sidebar_open: true,
+      is_copilot_panel_open: false,
+    });
+  });
+
+  // O botão do contacto passou para o cabeçalho; o ícone flutuante não volta.
+  it('no longer floats the side panel switch over the conversation', () => {
+    const wrapper = mountView();
+
+    expect(wrapper.html()).not.toContain('sidepanel-switch');
+    expect(wrapper.findComponent({ name: 'SidepanelSwitch' }).exists()).toBe(
+      false
+    );
   });
 });

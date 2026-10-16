@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import CustomAttribute from 'dashboard/components/CustomAttribute.vue';
+import { withoutWhatsappAddressing } from 'dashboard/helper/contactAttributes';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
@@ -44,8 +45,12 @@ const dragging = ref(false);
 const [showAllAttributes, toggleShowAllAttributes] = useToggle(false);
 
 const currentChat = computed(() => getters.getSelectedChat.value);
+// RAEVO (08/10, 123jpnbcb5e): sem o endereçamento do WAHA (JID/LID/Chat ID),
+// como na ficha do contato e na da oportunidade — este painel tinha ficado de fora.
 const attributes = computed(() =>
-  getters['attributes/getAttributesByModel'].value(props.attributeType)
+  withoutWhatsappAddressing(
+    getters['attributes/getAttributesByModel'].value(props.attributeType)
+  )
 );
 
 const contactIdentifier = computed(

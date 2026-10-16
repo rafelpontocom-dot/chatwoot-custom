@@ -137,6 +137,14 @@ RSpec.describe KanbanBoard do
       expect(board.errors[:inbox_scope_mode]).to be_present
     end
 
+    it 'normalizes the order of the opportunity sections' do
+      board = build(:kanban_board, opportunity_section_order: [' timeline ', '', 'details', 'timeline', nil])
+
+      board.valid?
+
+      expect(board.opportunity_section_order).to eq(%w[timeline details])
+    end
+
     it 'normalizes sales option lists' do
       board = build(
         :kanban_board,

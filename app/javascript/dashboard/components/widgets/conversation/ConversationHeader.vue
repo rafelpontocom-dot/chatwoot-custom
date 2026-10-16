@@ -6,7 +6,10 @@ import { useElementSize } from '@vueuse/core';
 import BackButton from '../BackButton.vue';
 import InboxName from '../InboxName.vue';
 import MoreActions from './MoreActions.vue';
-import Avatar from 'next/avatar/Avatar.vue';
+// RAEVO (123jpnbcxh2): o avatar abre o painel do contacto.
+import RaevoContactAvatarToggle from 'dashboard/components-next/raevo/RaevoContactAvatarToggle.vue';
+// RAEVO (123jpnbd3by): o botão do contacto, no lugar do ícone flutuante.
+import RaevoConversationPanelToggles from 'dashboard/components-next/raevo/RaevoConversationPanelToggles.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import ConversationCallButton from './ConversationCallButton.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -120,12 +123,10 @@ const copyConversationId = async () => {
         :back-url="backButtonUrl"
         class="me-2"
       />
-      <Avatar
+      <RaevoContactAvatarToggle
         :name="currentContact.name"
         :src="currentContact.thumbnail"
-        :size="32"
         :status="currentContact.availability_status"
-        hide-offline-status
       />
       <div class="flex flex-col items-start min-w-0 ms-2 overflow-hidden">
         <div class="flex flex-row items-center max-w-full gap-1 p-0 m-0">
@@ -174,6 +175,7 @@ const copyConversationId = async () => {
       />
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
       <MoreActions :conversation-id="currentChat.id" />
+      <RaevoConversationPanelToggles />
     </div>
   </div>
 </template>

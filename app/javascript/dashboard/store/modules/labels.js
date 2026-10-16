@@ -73,7 +73,10 @@ export const actions = {
       commit(types.ADD_LABEL, response.data);
     } catch (error) {
       const errorMessage = error?.response?.data?.message;
-      throw new Error(errorMessage);
+      // O código deixa o ecrã dizer na língua de quem usa porque falhou.
+      throw Object.assign(new Error(errorMessage), {
+        code: error?.response?.data?.code,
+      });
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isCreating: false });
     }
@@ -86,16 +89,31 @@ export const actions = {
       AnalyticsHelper.track(LABEL_EVENTS.UPDATE);
       commit(types.EDIT_LABEL, response.data);
     } catch (error) {
-      throw new Error(error);
+      throw Object.assign(new Error(error), {
+        code: error?.response?.data?.code,
+      });
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isUpdating: false });
     }
   },
 
-  reorder: async function reorderLabels({ commit }, labelIds) {
+  reorder: async function reorderLabels(
+    { commit, state: { records: previous } },
+    labelIds
+  ) {
+    // RAEVO (08/10, 123jpnbc243): a etiqueta arrastada fica logo no sítio novo;
+    // se o servidor não gravar, volta ao antigo e quem chamou mostra o erro.
+    const byId = new Map(previous.map(label => [label.id, label]));
+    commit(
+      types.SET_LABELS,
+      labelIds.map(id => byId.get(id))
+    );
     commit(types.SET_LABEL_UI_FLAG, { isUpdating: true });
     try {
-      await LabelsAPI.reorder(labelIds);
+      await LabelsAPI.reorder(labelIds).catch(error => {
+        commit(types.SET_LABELS, previous);
+        throw error;
+      });
       // A cópia local das etiquetas só se renova pelo aviso em tempo real, e
       // `cache_keys` é servido de cache até 5 minutos: sem isto, recarregar a
       // página devolvia a ordem antiga a quem acabou de a mudar.

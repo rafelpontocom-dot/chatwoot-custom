@@ -357,7 +357,7 @@
     "MACROS": "Macros",
     "TEAMS": "Times",
     "BILLING": "Cobrança",
-    "CUSTOM_VIEWS_FOLDER": "Pastas",
+    "CUSTOM_VIEWS_FOLDER": "Filtros",
     "CUSTOM_VIEWS_SEGMENTS": "Segmentos",
     "ALL_CONTACTS": "Todos os Contatos",
     "TAGGED_WITH": "Marcado com",
@@ -697,7 +697,7 @@
       "GO_TO_REPORTS_SIDEBAR": "Ir para a barra lateral de Relatórios",
       "MOVE_TO_NEXT_TAB": "Mover para a próxima aba da lista de conversas",
       "GO_TO_SETTINGS": "Ir para Configurações",
-      "SWITCH_TO_PRIVATE_NOTE": "Mudar para Nota Privada",
+      "SWITCH_TO_PRIVATE_NOTE": "Mudar para mensagem interna",
       "SWITCH_TO_REPLY": "Mudar para resposta",
       "TOGGLE_SNOOZE_DROPDOWN": "Ativar/desativar soneca"
     }

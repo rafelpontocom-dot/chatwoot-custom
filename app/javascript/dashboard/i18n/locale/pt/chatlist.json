@@ -143,6 +143,10 @@
     "MESSAGE_READ": "Lida",
     "SENDING": "Enviando",
     "UNREAD_COUNT_OVERFLOW": "9+",
-    "FETCH_ERROR": "Couldn't load conversations. Please try again."
+    "FETCH_ERROR": "Couldn't load conversations. Please try again.",
+    "DEFAULT_TAB": {
+      "LABEL": "Abrir em",
+      "LAST_USED": "O último que usei"
+    }
   }
 }

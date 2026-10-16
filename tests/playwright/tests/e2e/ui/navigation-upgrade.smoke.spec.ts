@@ -12,9 +12,20 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     if (isApiUrl(request.url())) pendingApiRequests.add(request);
   });
   page.on('requestfinished', request => pendingApiRequests.delete(request));
+  // `cache_keys` é servido com `stale_while_revalidate` (upstream). Quando a
+  // cópia guardada tem entre 10s e 5 min, o Chrome devolve-a e revalida em
+  // segundo plano, por iniciativa SUA — sem pilha JavaScript — e cancela as
+  // revalidações repetidas que três stores pedem ao mesmo tempo. Esse aborto
+  // não é falha da aplicação: a resposta já foi entregue, da cache. Fazia este
+  // smoke falhar ao acaso desde 07/10, em commits que só mexiam em docs.
+  // Tudo o resto conta: 4xx/5xx de `cache_keys` incluídos (ver `response`).
+  const isBrowserRevalidationAbort = (request: Request) =>
+    request.method() === 'GET' &&
+    /\/cache_keys$/.test(new URL(request.url()).pathname) &&
+    request.failure()?.errorText === 'net::ERR_ABORTED';
   page.on('requestfailed', request => {
     pendingApiRequests.delete(request);
-    if (isApiUrl(request.url())) {
+    if (isApiUrl(request.url()) && !isBrowserRevalidationAbort(request)) {
       failedApiResponses.push(
         `Network failure ${new URL(request.url()).pathname}`
       );
@@ -50,7 +61,13 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     .first()
     .click();
   await page.waitForURL(/\/app\/accounts\/\d+\//);
-  await expect(page).toHaveTitle(/^\(1\) /);
+  // 123jpnbcxh5: o título não leva número, e a conversa por ler da semente não
+  // é de ninguém — o ícone da guia fica o da marca, sem o ponto.
+  await expect(page).not.toHaveTitle(/^\(\d+\+?\) /);
+  await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute(
+    'href',
+    '/brand-assets/raevo-favicon.svg'
+  );
 
   const sidebar = page.locator('aside[aria-expanded]');
   await expect(sidebar).toBeVisible();
@@ -135,12 +152,59 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
     contentType: 'image/png',
   });
 
+  await page.getByText('Oportunidade smoke', { exact: true }).first().click();
+  const completedResponse = page.waitForResponse(
+    response =>
+      /\/cards\/by_id\/\d+$/.test(response.url()) &&
+      response.request().method() === 'PATCH'
+  );
+  // Desde o 5h, concluir pergunta «Como foi?» antes de gravar: o primeiro
+  // clique abre o passo do resultado, e é o «Concluir» que faz o PATCH.
+  await page.getByTestId('kanban-opportunity-complete-next-action').click();
+  await page.getByTestId('kanban-completion-quick-answered').click();
+  await page.getByTestId('kanban-completion-confirm').click();
+  const completion = await completedResponse;
+  expect(completion.status()).toBe(200);
+  expect(completion.request().postDataJSON().card).toMatchObject({
+    complete_next_action: true,
+    next_action_completion_note: expect.any(String),
+  });
+  expect(completion.request().postDataJSON().card).not.toHaveProperty(
+    'next_action_at'
+  );
+  const completedCard = await completion.json();
+  expect(completedCard).toMatchObject({
+    next_action_type: null,
+    next_action_at: null,
+    next_action_note: null,
+  });
+  expect(completedCard.next_action_history.at(-1)).toMatchObject({
+    type: 'Ligar',
+    scheduled_at: '2026-10-07T13:30:47.123Z',
+    note: 'Acao para validar conclusao',
+    completion_note: completion.request().postDataJSON().card
+      .next_action_completion_note,
+  });
+  await page.getByTestId('kanban-completion-skip').click();
+  await expect(
+    page.getByTestId('kanban-opportunity-next-action-empty')
+  ).toBeVisible();
+  await page.getByTestId('kanban-opportunity-close').click();
+
   await sidebar
     .getByTitle(/^Contatos$/, { exact: true })
     .filter({ visible: true })
     .first()
     .click();
+  // A ficha abre com a secção Oportunidades aberta (123jpnbcxpd), que pede as
+  // oportunidades do contato. Sair antes da resposta cancela o pedido — o
+  // componente aborta ao desmontar, e bem —, e o cancelamento contava como falha.
+  const contactCards = page.waitForResponse(response =>
+    /\/contacts\/\d+\/kanban_cards$/.test(new URL(response.url()).pathname)
+  );
   await page.getByText('Pedro Raevo Smoke', { exact: true }).first().click();
+  expect((await contactCards).ok()).toBe(true);
+  await expect(page.getByTestId('raevo-contact-section-kanban')).toBeVisible();
   await expect(
     page.locator('input[size]').filter({ visible: true }).first()
   ).toBeVisible();
@@ -252,6 +316,46 @@ test('keeps Pipeline and the sidebar through click navigation after an upstream 
   await page.reload();
   await expect(labelRows.first()).toContainText('zulu-smoke');
   await testInfo.attach('Etiquetas com ordem persistida', {
+    body: await page.screenshot({ animations: 'disabled' }),
+    contentType: 'image/png',
+  });
+
+  const operationalMarketing = sidebar.locator(
+    'nav > ul > li > a[title="Marketing"]'
+  );
+  await expect(operationalMarketing).toBeVisible();
+  await operationalMarketing.click();
+  await expect(
+    page.locator('[data-testid="marketing-capture-rate"]')
+  ).toBeVisible();
+  await page.getByTestId('marketing-toggle-settings').click();
+  await page.getByTestId('marketing-toggle-module').uncheck();
+  await expect(operationalMarketing).toHaveCount(0);
+  const settingsMarketing = sidebar.getByTitle('Marketing', { exact: true });
+  if (!(await settingsMarketing.isVisible())) {
+    await sidebar
+      .getByTitle(/^Configurações$/, { exact: true })
+      .filter({ visible: true })
+      .first()
+      .click();
+  }
+  await settingsMarketing.click();
+  await expect(page).toHaveURL(/\/marketing$/);
+  await page.reload();
+  await expect(page.getByTestId('marketing-capture-rate')).toHaveCount(0);
+  await expect(page.getByTestId('marketing-toggle-settings')).toBeVisible();
+  await page.getByTestId('marketing-toggle-settings').click();
+  await page.getByTestId('marketing-toggle-module').check();
+  await sidebar.getByTitle('Pipeline', { exact: true }).first().click();
+  await expect(operationalMarketing).toBeVisible();
+  await operationalMarketing.click();
+  const marketingSettings = page.getByTestId('marketing-toggle-settings');
+  if ((await marketingSettings.getAttribute('aria-pressed')) === 'true') {
+    await marketingSettings.click();
+  }
+  await expect(page.getByTestId('marketing-capture-rate')).toBeVisible();
+  await expect.poll(() => pendingApiRequests.size).toBe(0);
+  await testInfo.attach('Marketing ligado e reativado', {
     body: await page.screenshot({ animations: 'disabled' }),
     contentType: 'image/png',
   });

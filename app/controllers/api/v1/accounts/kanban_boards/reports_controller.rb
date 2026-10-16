@@ -84,7 +84,8 @@ class Api::V1::Accounts::KanbanBoards::ReportsController < Api::V1::Accounts::Ba
       next_action: params[:next_action].presence,
       status: params[:status].presence,
       search: params[:search].presence,
-      sort: params[:sort].presence
+      sort: params[:sort].presence,
+      waiting_days: params[:waiting_days].presence
     }
   end
 

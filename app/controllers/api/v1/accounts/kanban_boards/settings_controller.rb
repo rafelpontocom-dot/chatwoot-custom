@@ -102,6 +102,7 @@ class Api::V1::Accounts::KanbanBoards::SettingsController < Api::V1::Accounts::B
       lost_reason_options: [],
       compact_card_field_keys: [],
       contact_field_keys: [],
+      opportunity_section_order: [],
       custom_field_sections: [:key, :label, :color, { groups: [:key, :label, :color] }],
       stale_stage_thresholds: {},
       custom_field_definitions: [

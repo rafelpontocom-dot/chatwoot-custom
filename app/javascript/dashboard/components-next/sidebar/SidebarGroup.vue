@@ -9,6 +9,8 @@ import SidebarGroupLeaf from './SidebarGroupLeaf.vue';
 import SidebarSubGroup from './SidebarSubGroup.vue';
 import SidebarGroupEmptyLeaf from './SidebarGroupEmptyLeaf.vue';
 import SidebarCollapsedPopover from './SidebarCollapsedPopover.vue';
+import SidebarUnreadBadge from './SidebarUnreadBadge.vue';
+import { useMapGetter } from 'dashboard/composables/store.js';
 
 const props = defineProps({
   name: { type: String, required: true },
@@ -20,6 +22,9 @@ const props = defineProps({
   getterKeys: { type: Object, default: () => ({}) },
   navigateOnExpand: { type: Boolean, default: true },
 });
+
+// RAEVO (08/10, 123jpnbc242): na barra só de ícones, o número do grupo no ícone.
+const collapsedCount = useMapGetter(props.getterKeys.count);
 
 const {
   expandedItem,
@@ -274,6 +279,10 @@ watch(
           @click="hasChildren ? handleCollapsedClick() : undefined"
         >
           <Icon v-if="icon" :icon="icon" class="size-4" />
+          <SidebarUnreadBadge
+            :count="collapsedCount"
+            class="absolute -top-1 ltr:-right-1 rtl:-left-1"
+          />
         </component>
         <SidebarCollapsedPopover
           v-if="hasChildren && isPopoverOpen"

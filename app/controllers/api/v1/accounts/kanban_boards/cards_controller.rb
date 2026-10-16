@@ -20,7 +20,9 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       kanban_stage: @kanban_stage,
       contact: @contact,
       inbox: @inbox,
-      subject: manual_card_params[:subject]
+      subject: manual_card_params[:subject],
+      amount_cents: manual_card_params[:amount_cents],
+      custom_field_values: manual_card_params[:custom_field_values]
     ).perform!
 
     render :create_manual, status: :created
@@ -160,6 +162,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       :next_action_at,
       :next_action_note,
       :next_action_completed_at,
+      :next_action_completion_note,
+      :complete_next_action,
       :won_at,
       :lost_at,
       :lost_reason,
@@ -174,7 +178,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   # rubocop:enable Metrics/MethodLength
 
   def manual_card_params
-    params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject)
+    params.require(:card).permit(:kanban_stage_id, :contact_id, :inbox_id, :subject, :amount_cents, custom_field_values: {})
   end
 
   def bulk_params
@@ -221,8 +225,19 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
 
   def render_manual_creation_error(error)
     duplicate = possible_duplicate_card(error)
-    raise error unless duplicate
+    return render_possible_duplicate(error, duplicate) if duplicate
 
+    # Uma etapa que exige campos tornava a criação IMPOSSÍVEL por aqui: a mensagem
+    # dizia «procedimento is required» e o diálogo não tinha onde o preencher.
+    # Devolvemos quais faltam e como se desenham, como já se faz ao mover.
+    assisted = assisted_fields_payload(error.record)
+    raise error if assisted.blank?
+
+    render json: assisted.merge(message: 'Complete the required fields before creating this opportunity.'),
+           status: :unprocessable_entity
+  end
+
+  def render_possible_duplicate(error, duplicate)
     render json: {
       message: error.record.errors.full_messages.to_sentence,
       code: 'possible_duplicate',
@@ -268,11 +283,22 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       raise ActiveRecord::Rollback if invalid_label_titles.present?
 
       reorder_card_if_needed
+      @kanban_card.recording_next_action_only = next_action_only_update?
       @kanban_card.update!(stable_card_update_params)
       @kanban_card.update_labels(label_titles) if labels_param_present?
     end
 
     invalid_label_titles
+  end
+
+  # A ficha conclui a ação e marca a seguinte só com estes campos (ver
+  # KanbanCard#recording_next_action_only).
+  NEXT_ACTION_PARAMS = %w[next_action_type next_action_at next_action_note next_action_completed_at
+                          next_action_completion_note complete_next_action lock_version].freeze
+
+  def next_action_only_update?
+    keys = card_params.keys.map(&:to_s)
+    keys.any? && (keys - NEXT_ACTION_PARAMS).empty?
   end
 
   def reorder_card_if_needed
@@ -344,6 +370,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
         :next_action_at,
         :next_action_note,
         :next_action_completed_at,
+        :next_action_completion_note,
+        :complete_next_action,
         :won_at,
         :lost_at,
         :lost_reason,
@@ -429,7 +457,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def transfer_params
-    params.require(:transfer).permit(:kanban_board_id, :kanban_stage_id, :lost_reason, :lock_version)
+    params.require(:transfer).permit(:kanban_board_id, :kanban_stage_id, :lost_reason, :lock_version, custom_field_values: {})
   end
 
   def transfer_target_stage
@@ -444,7 +472,8 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       target_board: @transfer_target_board,
       target_stage: target_stage,
       actor: Current.user,
-      lost_reason: transfer_params[:lost_reason]
+      lost_reason: transfer_params[:lost_reason],
+      custom_field_values: transfer_params[:custom_field_values].to_h
     ).perform!
   end
 
@@ -491,14 +520,24 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
   end
 
   def render_assisted_move_fields(card, board: @kanban_board)
-    missing_fields = card.missing_required_custom_field_keys
-    raise ActiveRecord::RecordInvalid, card if missing_fields.blank?
+    assisted = assisted_fields_payload(card, board: board)
+    raise ActiveRecord::RecordInvalid, card if assisted.blank?
 
-    render json: {
-      message: 'Complete the required fields before moving this opportunity.',
+    render json: assisted.merge(message: 'Complete the required fields before moving this opportunity.'),
+           status: :unprocessable_entity
+  end
+
+  # Quais campos obrigatórios faltam, e o suficiente para os desenhar. Partilhado
+  # entre mover e criar: uma lista só de chaves obrigava o cliente a adivinhar o
+  # tipo de controlo, e um `select` desenhado como texto livre não é preenchível.
+  def assisted_fields_payload(card, board: @kanban_board)
+    missing_fields = card.missing_required_custom_field_keys
+    return if missing_fields.blank?
+
+    {
       missing_fields: missing_fields,
       field_definitions: board.custom_field_definitions.select { |definition| missing_fields.include?(definition['key']) }
-    }, status: :unprocessable_entity
+    }
   end
 
   def timeline_event_payload(event)
@@ -533,6 +572,7 @@ class Api::V1::Accounts::KanbanBoards::CardsController < Api::V1::Accounts::Base
       stage_name: card.kanban_stage.name,
       contact_name: card.contact.name,
       archived_at: card.archived_at.iso8601,
+      purge_at: (card.archived_at + KanbanCard::DELETED_RETENTION).iso8601,
       archived_by: card.archived_by && { id: card.archived_by_id, name: card.archived_by.name }
     }
   end

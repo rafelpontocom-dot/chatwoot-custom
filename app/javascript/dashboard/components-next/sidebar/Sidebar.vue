@@ -18,7 +18,7 @@ import SidebarProfileMenu from './SidebarProfileMenu.vue';
 import SidebarChangelogCard from './SidebarChangelogCard.vue';
 import SidebarChangelogButton from './SidebarChangelogButton.vue';
 import ChannelLeaf from './ChannelLeaf.vue';
-import { useUnreadTabTitle } from 'dashboard/composables/useUnreadTabTitle';
+import { useUnreadFavicon } from 'dashboard/composables/useUnreadFavicon';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import EmojiIcon from 'next/emoji-icon-picker/EmojiIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
@@ -71,9 +71,11 @@ const isMobile = computed(() => windowWidth.value < 768);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
+const currentAccount = useMapGetter('getCurrentAccount');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
+const getAccountById = useMapGetter('accounts/getAccount');
 
 const hasAdvancedAssignment = computed(() => {
   return isFeatureEnabledonAccount.value(
@@ -105,6 +107,12 @@ const hasFilteredUnreadCounts = computed(() => {
     )
   );
 });
+
+// Marketing não é funcionalidade de toda clínica: quem não usa os campos via a
+// entrada no menu e caía numa tela sem conteúdo. A conta diz se está ligado.
+const hasMarketing = computed(
+  () => getAccountById.value(accountId.value)?.marketing_module_enabled === true
+);
 
 const hasDataImport = computed(() => {
   return isFeatureEnabledonAccount.value(
@@ -139,7 +147,8 @@ const toggleShortcutModalFn = show => {
 
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
 
-useUnreadTabTitle();
+// RAEVO (123jpnbcxh5): o ponto vermelho no ícone da guia.
+useUnreadFavicon();
 
 const { isSidebarFocused } = useSidebarFocus();
 const { setSidebarFocus } = useRequestSidebarFocus();
@@ -446,6 +455,9 @@ const menuItems = computed(() => {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',
+      // RAEVO (08/10, 123jpnbc242): o número ao lado de «Conversas» com o grupo
+      // fechado e na barra só de ícones — aberto, já está em «Todas as conversas».
+      getterKeys: { count: 'conversationUnreadCounts/getAllUnreadCount' },
       children: [
         {
           name: 'All',
@@ -903,6 +915,19 @@ const menuItems = computed(() => {
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('general_settings_index'),
         },
+        ...(!hasMarketing.value &&
+        currentAccount.value?.permissions?.some(permission =>
+          ['administrator', 'marketing_configure'].includes(permission)
+        )
+          ? [
+              {
+                name: 'Settings Marketing',
+                label: t('SIDEBAR.MARKETING'),
+                icon: 'i-lucide-megaphone',
+                to: accountScopedRoute('marketing_index'),
+              },
+            ]
+          : []),
         // {
         //   name: 'Settings Captain',
         //   label: t('SIDEBAR.CAPTAIN_AI'),
@@ -1060,7 +1085,9 @@ const menuItems = computed(() => {
         },
       ],
     },
-  ].filter(item => item.name !== 'Captain' || hasCaptain.value);
+  ]
+    .filter(item => item.name !== 'Captain' || hasCaptain.value)
+    .filter(item => item.name !== 'Marketing' || hasMarketing.value);
 });
 </script>
 

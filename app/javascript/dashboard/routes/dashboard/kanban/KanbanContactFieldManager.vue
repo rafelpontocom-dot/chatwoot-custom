@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
+import { withoutWhatsappAddressing } from 'dashboard/helper/contactAttributes';
 
 /**
  * Raevo — quais campos do contato aparecem na ficha.
@@ -27,8 +28,8 @@ const { t } = useI18n();
 const store = useStore();
 const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
 
-const definicoes = computed(
-  () => getAttributesByModel.value('contact_attribute') || []
+const definicoes = computed(() =>
+  withoutWhatsappAddressing(getAttributesByModel.value('contact_attribute'))
 );
 const rotuloDe = definicao =>
   definicao.attribute_display_name || definicao.attribute_key;
@@ -44,9 +45,11 @@ const disponiveis = computed(() =>
 
 const mover = (index, passo) => {
   const destino = index + passo;
-  if (destino < 0 || destino >= props.modelValue.length) return;
+  if (destino < 0 || destino >= colocados.value.length) return;
+  const origem = props.modelValue.indexOf(colocados.value[index].attribute_key);
+  const alvo = props.modelValue.indexOf(colocados.value[destino].attribute_key);
   const proximo = [...props.modelValue];
-  [proximo[index], proximo[destino]] = [proximo[destino], proximo[index]];
+  [proximo[origem], proximo[alvo]] = [proximo[alvo], proximo[origem]];
   emit('update:modelValue', proximo);
 };
 const colocar = key => {

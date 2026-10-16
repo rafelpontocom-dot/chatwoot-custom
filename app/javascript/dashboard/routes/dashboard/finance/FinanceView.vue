@@ -570,6 +570,37 @@ const saveMarket = async () => {
   }
 };
 
+const verifyAsaasConnection = async () => {
+  if (!asaasConnection.value) return;
+
+  isVerifyingConnection.value = true;
+  error.value = '';
+
+  try {
+    const { data } = await FinanceAPI.verifyProviderConnection(
+      asaasConnection.value.id
+    );
+    connections.value = connections.value.map(connection =>
+      connection.id === data.id ? data : connection
+    );
+  } catch (requestError) {
+    error.value =
+      requestError.response?.data?.message || t('FINANCE.ERROR.VERIFY');
+    // 123jpnbcb5q: o 422 só sai depois de o servidor gravar `error` com esta
+    // mensagem; sem espelhar, o cartão continuava a dizer «Validação pendente».
+    if (requestError.response?.status === 422) {
+      const failedId = asaasConnection.value.id;
+      connections.value = connections.value.map(connection =>
+        connection.id === failedId
+          ? { ...connection, status: 'error', last_error: error.value }
+          : connection
+      );
+    }
+  } finally {
+    isVerifyingConnection.value = false;
+  }
+};
+
 const saveAsaasConnection = async () => {
   if (!hasAsaasCredential.value) return;
 
@@ -602,6 +633,9 @@ const saveAsaasConnection = async () => {
     ];
     asaasApiKey.value = '';
     asaasWebhookToken.value = '';
+    // 123jpnbcb5q: gravar sem validar deixava a ligação «pendente» — fora do
+    // diálogo de cobrança, que então só oferecia a manual, sem link.
+    await verifyAsaasConnection();
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || t('FINANCE.ERROR.CONNECTION');
@@ -691,27 +725,6 @@ const copyAsaasWebhookUrl = async () => {
   window.setTimeout(() => {
     webhookUrlCopied.value = false;
   }, 2000);
-};
-
-const verifyAsaasConnection = async () => {
-  if (!asaasConnection.value) return;
-
-  isVerifyingConnection.value = true;
-  error.value = '';
-
-  try {
-    const { data } = await FinanceAPI.verifyProviderConnection(
-      asaasConnection.value.id
-    );
-    connections.value = connections.value.map(connection =>
-      connection.id === data.id ? data : connection
-    );
-  } catch (requestError) {
-    error.value =
-      requestError.response?.data?.message || t('FINANCE.ERROR.VERIFY');
-  } finally {
-    isVerifyingConnection.value = false;
-  }
 };
 
 const disconnectAsaasConnection = async () => {

@@ -26,7 +26,10 @@ vi.mock('dashboard/composables/useUISettings', () => ({
   useUISettings: () => ({ fetchSignatureFlagFromUISettings: vi.fn() }),
 }));
 
-vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+const useAlert = vi.fn();
+vi.mock('dashboard/composables', () => ({
+  useAlert: (...args) => useAlert(...args),
+}));
 
 const fetchContactableInboxes = vi.fn();
 vi.mock(
@@ -43,7 +46,12 @@ vi.mock(
 const mountCompose = (props = {}) =>
   shallowMount(ComposeConversation, {
     props,
-    global: { stubs: { Popover: { template: '<div><slot /></div>' } } },
+    global: {
+      stubs: {
+        // O Popover verdadeiro tem `hide()`: enviar chama-o para fechar.
+        Popover: { template: '<div><slot /></div>', methods: { hide() {} } },
+      },
+    },
   });
 
 const abrir = async wrapper => {
@@ -108,5 +116,78 @@ describe('ComposeConversation', () => {
     await abrir(wrapper);
 
     expect(wrapper.vm.selectedContact.name).toBe('Pedro');
+  });
+
+  // RAEVO (08/10, 123jpnbcb50): contrato «compose-also-send-via».
+  describe('also send via more inboxes', () => {
+    const payload = {
+      inboxId: 7,
+      sourceId: 'a',
+      contactId: 42,
+      message: { content: 'Olá' },
+    };
+    const alsoVia = [
+      { id: 8, sourceId: 'b', name: 'WhatsApp 2' },
+      { id: 9, sourceId: 'c', name: 'WhatsApp 3' },
+    ];
+    const created = () =>
+      dispatch.mock.calls
+        .filter(([action]) => action === 'contactConversations/create')
+        .map(([, { params }]) => [params.inboxId, params.sourceId]);
+
+    it('creates one conversation per inbox with the same message', async () => {
+      dispatch.mockResolvedValue({ id: 1, account_id: 1 });
+      const wrapper = mountCompose();
+
+      await wrapper.vm.createConversation({
+        payload,
+        isFromWhatsApp: false,
+        alsoVia,
+      });
+
+      expect(created()).toEqual([
+        [7, 'a'],
+        [8, 'b'],
+        [9, 'c'],
+      ]);
+      expect(useAlert).toHaveBeenCalledWith(
+        'COMPOSE_NEW_CONVERSATION.FORM.ALSO_SEND_VIA.SUCCESS',
+        expect.anything()
+      );
+    });
+
+    it('says which inbox did not send, so only that one is sent again', async () => {
+      dispatch.mockImplementation((action, { params } = {}) =>
+        params?.inboxId === 9
+          ? Promise.reject(new Error('fora da janela'))
+          : Promise.resolve({ id: 1, account_id: 1 })
+      );
+      const wrapper = mountCompose();
+
+      const ok = await wrapper.vm.createConversation({
+        payload,
+        isFromWhatsApp: false,
+        alsoVia,
+      });
+
+      expect(ok).toBe(true);
+      expect(useAlert).toHaveBeenCalledWith(
+        'COMPOSE_NEW_CONVERSATION.FORM.ALSO_SEND_VIA.PARTIAL',
+        expect.anything()
+      );
+    });
+
+    it('keeps the single-inbox message when nothing else was chosen', async () => {
+      dispatch.mockResolvedValue({ id: 1, account_id: 1 });
+      const wrapper = mountCompose();
+
+      await wrapper.vm.createConversation({ payload, isFromWhatsApp: false });
+
+      expect(created()).toEqual([[7, 'a']]);
+      expect(useAlert).toHaveBeenCalledWith(
+        'COMPOSE_NEW_CONVERSATION.FORM.SUCCESS_MESSAGE',
+        expect.anything()
+      );
+    });
   });
 });

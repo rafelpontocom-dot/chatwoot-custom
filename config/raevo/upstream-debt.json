@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "note": "Ficheiros nativos do Chatwoot que o Raevo alterou e que ainda não têm contrato com teste em upstream-contracts.json. Um upgrade pode reescrevê-los sem conflito e levar a mudança sem ninguém dar por isso. A lista só encolhe: a porta do CI recusa entradas novas (proteja o ficheiro com um contrato) e obriga a tirar daqui o que deixou de diferir do upstream ou passou a ter contrato.",
+  "files": {}
+}

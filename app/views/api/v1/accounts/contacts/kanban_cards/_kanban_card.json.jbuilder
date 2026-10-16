@@ -7,6 +7,9 @@ inbox_label = kanban_card.inbox.name.presence || "Inbox ##{kanban_card.inbox_id}
 json.subject kanban_card.subject.presence || "#{contact_label} - #{inbox_label}"
 if include_metadata
   json.due_at kanban_card.due_at&.iso8601
+  json.amount_cents kanban_card.amount_cents
+  json.amount_currency kanban_card.amount_currency
+  json.expected_close_date kanban_card.expected_close_date&.iso8601
   card_labels = kanban_card.labels.map(&:name).filter_map { |title| labels_by_title[title] }
   json.labels card_labels do |label|
     json.extract! label, :id, :title, :color, :description

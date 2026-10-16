@@ -149,7 +149,11 @@ do iOS são reversíveis; as de criação de tabela são aditivas.
 
 Ordem para ligar numa conta:
 
-1. Ativar o módulo em Marketing → engrenagem.
+1. Ativar o módulo em Configurações → Marketing → engrenagem. Quando ligado,
+   Marketing aparece no menu operacional; quando desligado, somente utilizadores
+   com permissão de configuração veem o acesso em Configurações. A resposta da API
+   sincroniza o estado da conta na barra lateral e carrega os catálogos ao ativar,
+   sem exigir recarregar a página.
 2. Criar as origens de entrada e repontar a landing para o `POST /intake`.
 3. Preencher `MARKETING_META_*` no Super Admin (app Meta **separado** — o
    Messenger já ocupa o callback do `FB_APP_ID`).
