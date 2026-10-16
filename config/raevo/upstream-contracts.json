@@ -559,6 +559,38 @@
         "spec/controllers/api/v1/accounts/custom_attribute_definitions_controller_spec.rb",
         "spec/lib/integrations/cloudflare/realtime_kit_credentials_validator_spec.rb"
       ]
+    },
+    {
+      "id": "native-server-extensions",
+      "paths": [
+        "app/controllers/api/v1/accounts/conversations_controller.rb",
+        "app/controllers/api/v1/accounts_controller.rb",
+        "app/controllers/dashboard_controller.rb",
+        "app/dispatchers/async_dispatcher.rb",
+        "app/helpers/application_helper.rb",
+        "app/helpers/super_admin/features.yml",
+        "app/mailers/administrator_notifications/integrations_notification_mailer.rb",
+        "app/models/concerns/account_settings_schema.rb",
+        "app/models/conversation.rb",
+        "app/views/layouts/vueapp.html.erb",
+        "enterprise/config/premium_installation_config.yml",
+        "lib/events/types.rb",
+        "config/initializers/languages.rb",
+        "config/installation_config.yml"
+      ],
+      "tests": [
+        "spec/raevo/native_server_extensions_spec.rb",
+        "spec/jobs/marketing/flag_expiring_connections_job_spec.rb"
+      ]
+    },
+    {
+      "id": "navigation-smoke-environment",
+      "paths": [
+        "config/environments/test.rb"
+      ],
+      "tests": [
+        "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
+      ]
     }
   ]
 }
