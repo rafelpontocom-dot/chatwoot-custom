@@ -78,6 +78,21 @@ describe('CalendarTasksBar', () => {
       global,
     });
 
+  // Visto em produção a 16/10: a grelha já mostrava o número, a faixa não.
+  it('shows the number of a contact that only has a WhatsApp id', () => {
+    const wrapper = montar({
+      overdue: {
+        count: 1,
+        count_capped: false,
+        items: [tarefa(4, { contact_name: '351967564016@c.us' })],
+      },
+    });
+
+    const item = wrapper.find('[data-testid="calendar-tasks-overdue-item"]');
+    expect(item.text()).toContain('+351967564016');
+    expect(item.text()).not.toContain('@c.us');
+  });
+
   it('names the first overdue tasks and offers the rest', async () => {
     const wrapper = montar({
       overdue: {

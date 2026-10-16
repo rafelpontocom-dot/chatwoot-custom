@@ -1,4 +1,5 @@
 <script setup>
+import { taskContactName } from './taskContactName';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -90,7 +91,9 @@ const day = value =>
         }"
       >
         {{
-          [item.next_action_type, item.contact_name].filter(Boolean).join(' · ')
+          [item.next_action_type, taskContactName(item.contact_name)]
+            .filter(Boolean)
+            .join(' · ')
         }}
         <span class="text-n-slate-11">
           {{ t('CALENDAR.TASKS.ON_DATE', { date: day(item.next_action_at) }) }}

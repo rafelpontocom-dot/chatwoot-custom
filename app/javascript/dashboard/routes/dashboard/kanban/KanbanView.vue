@@ -3024,7 +3024,15 @@ onUnmounted(() => {
         >
           {{ t('KANBAN.ARCHIVE.EMPTY') }}
         </p>
-        <div v-else class="grid max-h-96 gap-2 overflow-y-auto">
+        <!--
+          `grid-cols-[minmax(0,1fr)]`: a coluna implícita de uma grelha mede o
+          conteúdo mais largo, e um título com `truncate` não encolhe. As linhas
+          saíam do modal e o botão de restaurar ficava fora da vista.
+        -->
+        <div
+          v-else
+          class="grid max-h-96 grid-cols-[minmax(0,1fr)] gap-2 overflow-y-auto"
+        >
           <article
             v-for="card in archivedCards"
             :key="card.id"
@@ -3037,15 +3045,16 @@ onUnmounted(() => {
               class="size-4 flex-none rounded border-n-weak text-n-brand focus:ring-n-brand"
               @change="toggleArchivedCardSelection(card, $event.target.checked)"
             />
-            <div class="min-w-0">
-              <p class="mb-0 truncate text-sm font-medium text-n-slate-12">
+            <div class="min-w-0 flex-1">
+              <p class="mb-0 break-words text-sm font-medium text-n-slate-12">
                 {{ card.subject }}
               </p>
-              <p class="mb-0 truncate text-xs text-n-slate-11">
+              <p class="mb-0 break-words text-xs text-n-slate-11">
                 {{ card.contactName }}
                 {{ t('KANBAN.ARCHIVE.STAGE_SEPARATOR') }}
                 {{ card.stageName }}
-                ·
+              </p>
+              <p class="mb-0 text-xs text-n-slate-11">
                 {{ t('KANBAN.ARCHIVE.PURGE_IN', daysUntilPurge(card)) }}
               </p>
             </div>

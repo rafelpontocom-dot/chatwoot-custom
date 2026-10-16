@@ -1360,7 +1360,9 @@ RSpec.describe 'Kanban Cards API', type: :request do
           { key: 'numero_contrato', label: 'Número do contrato', field_type: 'text', required_stage_ids: [target_stage.id] }
         ]
       )
+      kanban_board.update!(custom_field_definitions: [{ key: 'fonte_lista', label: 'Fonte da lista', field_type: 'text' }])
       card = create_manual_card(position: 1)
+      card.update!(custom_field_values: { fonte_lista: 'Google Maps' })
 
       patch "#{stable_card_url(card)}/transfer",
             headers: agent.create_new_auth_token,
@@ -1372,6 +1374,8 @@ RSpec.describe 'Kanban Cards API', type: :request do
       expect(card.reload).to have_attributes(kanban_board_id: target_board.id, kanban_stage_id: target_stage.id)
       expect(card.custom_field_values).to include('numero_contrato' => 'C-42')
       expect(card.custom_field_values).not_to have_key('campo_alheio')
+      # Visto em produção a 16/10: gravar os campos do destino apagava os da origem.
+      expect(card.custom_field_values).to include('fonte_lista' => 'Google Maps')
     end
 
     it 'emits kanban.card.reordered with source and target stage IDs for cross-stage reorder' do
