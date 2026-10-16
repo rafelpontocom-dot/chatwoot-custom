@@ -183,5 +183,4 @@ const handleDelete = attribute => {
       @upgrade="goToBillingSettings"
     />
   </div>
-  <div v-else class="hidden" />
 </template>

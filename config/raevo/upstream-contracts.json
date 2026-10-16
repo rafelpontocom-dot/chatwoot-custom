@@ -591,6 +591,59 @@
       "tests": [
         "tests/playwright/tests/e2e/ui/navigation-upgrade.smoke.spec.ts"
       ]
+    },
+    {
+      "id": "native-dashboard-shell",
+      "paths": [
+        "app/javascript/dashboard/assets/scss/_woot.scss",
+        "app/javascript/dashboard/featureFlags.js",
+        "app/javascript/dashboard/helper/scriptHelpers.js",
+        "app/javascript/dashboard/store/index.js",
+        "app/javascript/dashboard/store/mutation-types.js",
+        "app/javascript/entrypoints/v3app.js",
+        "app/javascript/shared/store/globalConfig.js",
+        "app/javascript/v3/App.vue",
+        "app/javascript/v3/views/login/Index.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/specs/raevoNativeShell.spec.js"
+      ]
+    },
+    {
+      "id": "modal-dialog-focus",
+      "paths": [
+        "app/javascript/dashboard/components/Modal.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/specs/ModalFocus.spec.js"
+      ]
+    },
+    {
+      "id": "tag-multiselect-immutable",
+      "paths": [
+        "app/javascript/dashboard/components-next/combobox/TagMultiSelectComboBox.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components-next/combobox/specs/TagMultiSelectComboBox.spec.js"
+      ]
+    },
+    {
+      "id": "update-banner-installation-switch",
+      "paths": [
+        "app/javascript/dashboard/components/app/UpdateBanner.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/app/specs/UpdateBanner.spec.js"
+      ]
+    },
+    {
+      "id": "editor-mode-internal-message",
+      "paths": [
+        "app/javascript/dashboard/components/widgets/WootWriter/EditorModeToggle.vue"
+      ],
+      "tests": [
+        "app/javascript/dashboard/components/widgets/WootWriter/specs/EditorModeToggle.spec.js"
+      ]
     }
   ]
 }
