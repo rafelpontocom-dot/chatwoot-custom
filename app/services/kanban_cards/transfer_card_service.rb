@@ -65,11 +65,16 @@ class KanbanCards::TransferCardService
   end
 
   # Grava com validações: o valor de um campo de escolha tem de ser uma das
-  # opções, e é o modelo que o sabe.
+  # opções, e é o modelo que o sabe. Mas o modelo só guarda os campos do funil
+  # em que o cartão está, e gravar apagava os do funil de origem («Fonte da
+  # lista», visto em produção a 16/10). Uma mudança sem campos em falta não os
+  # toca; com campos em falta também não pode, e por isso voltam a juntar-se.
   def fill_required_fields!
     return if @custom_field_values.blank?
 
+    source_values = @card.custom_field_values.to_h
     @card.update!(custom_field_values: merged_custom_field_values)
+    @card.update_column(:custom_field_values, source_values.merge(@card.custom_field_values)) # rubocop:disable Rails/SkipsModelValidations
   end
 
   def merged_custom_field_values
