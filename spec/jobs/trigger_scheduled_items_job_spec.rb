@@ -35,6 +35,31 @@ RSpec.describe TriggerScheduledItemsJob do
     described_class.perform_now
   end
 
+  it 'triggers KanbanCadences::ProcessDueJob' do
+    expect(KanbanCadences::ProcessDueJob).to receive(:perform_later).once
+    described_class.perform_now
+  end
+
+  it 'triggers KanbanCalendar::ExpireHoldsJob' do
+    expect(KanbanCalendar::ExpireHoldsJob).to receive(:perform_later).once
+    described_class.perform_now
+  end
+
+  it 'triggers KanbanAppointmentReminders::ProcessDueJob' do
+    expect(KanbanAppointmentReminders::ProcessDueJob).to receive(:perform_later).once
+    described_class.perform_now
+  end
+
+  it 'triggers KanbanBoards::ScheduleAppointmentRemindersJob' do
+    expect(KanbanBoards::ScheduleAppointmentRemindersJob).to receive(:perform_later).once
+    described_class.perform_now
+  end
+
+  it 'triggers KanbanBirthdayAutomations::ProcessJob' do
+    expect(KanbanBirthdayAutomations::ProcessJob).to receive(:perform_later).once
+    described_class.perform_now
+  end
+
   it 'triggers KanbanCalendar::ImportAllGoogleCalendarsJob' do
     expect(KanbanCalendar::ImportAllGoogleCalendarsJob).to receive(:perform_later).once
     described_class.perform_now

@@ -48,7 +48,8 @@
       "paths": [
         "app/javascript/dashboard/components-next/Contacts",
         "app/models/contact.rb",
-        "app/controllers/api/v1/accounts/contacts_controller.rb"
+        "app/controllers/api/v1/accounts/contacts_controller.rb",
+        "spec/controllers/api/v1/accounts/contacts_controller_spec.rb"
       ],
       "tests": [
         "app/javascript/dashboard/components-next/Contacts/ContactsForm/specs/ContactsForm.spec.js",
@@ -81,7 +82,8 @@
         "app/controllers/api/v1/accounts/labels_controller.rb",
         "app/javascript/dashboard/store/modules/labels.js",
         "app/javascript/dashboard/helper/sidebarSort.js",
-        "app/javascript/dashboard/routes/dashboard/settings/labels"
+        "app/javascript/dashboard/routes/dashboard/settings/labels",
+        "app/javascript/dashboard/store/modules/specs/labels/actions.spec.js"
       ],
       "tests": [
         "spec/controllers/api/v1/accounts/labels_controller_spec.rb",
@@ -108,11 +110,14 @@
         "app/controllers/super_admin",
         "app/views/super_admin",
         "app/dashboards/account_dashboard.rb",
-        "app/models/account.rb"
+        "app/models/account.rb",
+        "spec/models/account_spec.rb",
+        "spec/controllers/super_admin/accounts_controller_spec.rb"
       ],
       "tests": [
         "spec/controllers/super_admin/accounts_controller_spec.rb",
-        "spec/controllers/super_admin/app_config_controller_spec.rb"
+        "spec/controllers/super_admin/app_config_controller_spec.rb",
+        "spec/models/account_spec.rb"
       ]
     },
     {
@@ -204,7 +209,8 @@
     {
       "id": "contact-whatsapp-broadcast-blocked",
       "paths": [
-        "app/models/contact.rb"
+        "app/models/contact.rb",
+        "spec/models/contact_spec.rb"
       ],
       "tests": [
         "spec/models/contact_spec.rb"
@@ -451,6 +457,107 @@
       "tests": [
         "spec/raevo/translation_overrides_spec.rb",
         "app/javascript/dashboard/i18n/specs/raevoNamespaces.spec.js"
+      ]
+    },
+    {
+      "id": "scheduled-jobs-raevo",
+      "paths": [
+        "app/jobs/trigger_scheduled_items_job.rb",
+        "app/jobs/internal/trigger_daily_scheduled_items_job.rb",
+        "app/jobs/internal/trigger_hourly_scheduled_items_job.rb",
+        "spec/jobs/trigger_scheduled_items_job_spec.rb",
+        "spec/jobs/internal/trigger_daily_scheduled_items_job_spec.rb",
+        "spec/jobs/internal/trigger_hourly_scheduled_items_job_spec.rb"
+      ],
+      "tests": [
+        "spec/jobs/trigger_scheduled_items_job_spec.rb",
+        "spec/jobs/internal/trigger_daily_scheduled_items_job_spec.rb",
+        "spec/jobs/internal/trigger_hourly_scheduled_items_job_spec.rb"
+      ]
+    },
+    {
+      "id": "inbox-identifier-hidden",
+      "paths": [
+        "app/javascript/dashboard/helper/inbox.js",
+        "app/javascript/dashboard/helper/specs/inbox.spec.js"
+      ],
+      "tests": [
+        "app/javascript/dashboard/helper/specs/inbox.spec.js"
+      ]
+    },
+    {
+      "id": "raevo-home-landing",
+      "paths": [
+        "app/javascript/dashboard/helper/routeHelpers.js",
+        "app/javascript/dashboard/helper/specs/routeHelpers.spec.js"
+      ],
+      "tests": [
+        "app/javascript/dashboard/helper/specs/routeHelpers.spec.js"
+      ]
+    },
+    {
+      "id": "conversation-sidebar-kanban-item",
+      "paths": [
+        "app/javascript/dashboard/composables/useUISettings.js",
+        "app/javascript/dashboard/composables/spec/useUISettings.spec.js"
+      ],
+      "tests": [
+        "app/javascript/dashboard/composables/spec/useUISettings.spec.js"
+      ]
+    },
+    {
+      "id": "message-webhook-status",
+      "paths": [
+        "app/models/message.rb",
+        "spec/models/message_spec.rb"
+      ],
+      "tests": [
+        "spec/models/message_spec.rb"
+      ]
+    },
+    {
+      "id": "contact-llm-prompt-order",
+      "paths": [
+        "app/services/llm_formatter/contact_llm_formatter.rb",
+        "spec/services/llm_formatter/contact_llm_formatter_spec.rb"
+      ],
+      "tests": [
+        "spec/services/llm_formatter/contact_llm_formatter_spec.rb"
+      ]
+    },
+    {
+      "id": "kanban-card-import",
+      "paths": [
+        "app/models/data_import.rb",
+        "app/jobs/data_import_job.rb",
+        "spec/models/data_import_spec.rb"
+      ],
+      "tests": [
+        "spec/models/data_import_spec.rb",
+        "spec/jobs/data_import_job_spec.rb"
+      ]
+    },
+    {
+      "id": "contact-inbox-one-conversation",
+      "paths": [
+        "app/builders/contact_inbox_builder.rb",
+        "spec/builders/contact_inbox_builder_spec.rb"
+      ],
+      "tests": [
+        "spec/builders/contact_inbox_builder_spec.rb"
+      ]
+    },
+    {
+      "id": "raevo-adapted-native-specs",
+      "paths": [
+        "spec/builders/v2/reports/label_summary_builder_spec.rb",
+        "spec/controllers/api/v1/accounts/custom_attribute_definitions_controller_spec.rb",
+        "spec/lib/integrations/cloudflare/realtime_kit_credentials_validator_spec.rb"
+      ],
+      "tests": [
+        "spec/builders/v2/reports/label_summary_builder_spec.rb",
+        "spec/controllers/api/v1/accounts/custom_attribute_definitions_controller_spec.rb",
+        "spec/lib/integrations/cloudflare/realtime_kit_credentials_validator_spec.rb"
       ]
     }
   ]
