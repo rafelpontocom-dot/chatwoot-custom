@@ -644,6 +644,39 @@
       "tests": [
         "app/javascript/dashboard/components/widgets/WootWriter/specs/EditorModeToggle.spec.js"
       ]
+    },
+    {
+      "id": "raevo-build-config",
+      "paths": [
+        "tailwind.config.js",
+        "theme/colors.js",
+        "package.json"
+      ],
+      "tests": [
+        "app/javascript/dashboard/specs/raevoBuildConfig.spec.js"
+      ]
+    },
+    {
+      "id": "raevo-repository-config",
+      "paths": [
+        ".bundler-audit.yml",
+        ".dockerignore",
+        ".env.example",
+        ".github/workflows/deploy_check.yml",
+        ".github/workflows/run_foss_spec.yml",
+        ".gitignore",
+        ".rubocop.yml",
+        "AGENTS.md",
+        "Gemfile",
+        "public/manifest.json",
+        "tests/playwright/.env.example",
+        "tests/playwright/components/ui/login.component.ts",
+        "tests/playwright/playwright.config.ts",
+        "tests/playwright/tsconfig.json"
+      ],
+      "tests": [
+        "spec/raevo/repository_configuration_spec.rb"
+      ]
     }
   ]
 }

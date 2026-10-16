@@ -11,7 +11,7 @@ especialmente **Passo a passo obrigatório**. Gere o relatório de sobreposiçã
 `scripts/raevo-upstream-audit.mjs` e mantenha o inventário em
 `config/raevo/upstream-contracts.json`. Um merge sem conflito não comprova compatibilidade.
 **Mexeu num ficheiro nativo do Chatwoot?** O CI falha até ele ter contrato com teste — a dívida em
-`config/raevo/upstream-debt.json` só encolhe. Antes, veja se a mudança cabe num anel mais de fora
+`config/raevo/upstream-debt.json` está vazia desde 16/10/2026 e não volta a crescer. Antes, veja se a mudança cabe num anel mais de fora
 («Onde mexer: os três anéis», no mesmo documento).
 Não copie versões antigas de arquivos nativos por cima das novas. Contratos compartilhados
 precisam de teste com os componentes reais; navegação precisa de router real e smoke por

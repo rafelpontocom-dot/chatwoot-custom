@@ -55,9 +55,12 @@ esteja numa de três listas:
 2. **`regenerated`** — `Gemfile.lock`, `pnpm-lock.yaml`, `db/schema.rb`, que se regeneram com a
    ferramenta e não se resolvem à mão;
 3. **a dívida** em `config/raevo/upstream-debt.json` — os ficheiros que já estavam alterados sem
-   contrato quando a porta nasceu (188 a 09/10/2026; 171 depois da primeira ronda da camada 2).
+   contrato quando a porta nasceu (188 a 09/10/2026; 171 depois da primeira ronda da camada 2;
+   **zero a 16/10/2026**). Desses 171, 154 ganharam contrato e 17 voltaram ao upstream porque o
+   diff não mudava comportamento (limpeza de avisos de lint, espaços, comentários).
 
-A dívida **só encolhe**. Num PR, a porta compara-a com a do ramo base e recusa entradas novas;
+A dívida **só encolhe**, e hoje está vazia: qualquer ficheiro nativo alterado precisa de contrato
+no mesmo PR. Num PR, a porta compara-a com a do ramo base e recusa entradas novas;
 recusa também entradas que já têm contrato ou que deixaram de diferir do upstream. Ficheiro nativo
 novo, portanto, só entra com contrato.
 
