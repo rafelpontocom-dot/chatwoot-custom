@@ -96,25 +96,18 @@ const sendersAndBotList = computed(() => [
   ...mapToOptions(senderList.value, 'id', 'name'),
 ]);
 
+const getErrorMessage = (field, errorKey) => {
+  const baseKey = 'CAMPAIGN.LIVE_CHAT.CREATE.FORM';
+  return v$.value[field].$error ? t(`${baseKey}.${errorKey}.ERROR`) : '';
+};
+
 const formErrors = computed(() => ({
-  title: v$.value.title.$error
-    ? t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.TITLE.ERROR')
-    : '',
-  message: v$.value.message.$error
-    ? t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.MESSAGE.ERROR')
-    : '',
-  inbox: v$.value.inboxId.$error
-    ? t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.INBOX.ERROR')
-    : '',
-  endPoint: v$.value.endPoint.$error
-    ? t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.END_POINT.ERROR')
-    : '',
-  timeOnPage: v$.value.timeOnPage.$error
-    ? t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.TIME_ON_PAGE.ERROR')
-    : '',
-  sender: v$.value.senderId.$error
-    ? t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.SENT_BY.ERROR')
-    : '',
+  title: getErrorMessage('title', 'TITLE'),
+  message: getErrorMessage('message', 'MESSAGE'),
+  inbox: getErrorMessage('inboxId', 'INBOX'),
+  endPoint: getErrorMessage('endPoint', 'END_POINT'),
+  timeOnPage: getErrorMessage('timeOnPage', 'TIME_ON_PAGE'),
+  sender: getErrorMessage('senderId', 'SENT_BY'),
 }));
 
 const resetState = () => Object.assign(state, initialState);
@@ -319,9 +312,7 @@ defineExpose({ prepareCampaignDetails, isSubmitDisabled });
       <Button
         type="submit"
         :label="
-          mode === 'edit'
-            ? t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.BUTTONS.EDIT')
-            : t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.BUTTONS.CREATE')
+          t(`CAMPAIGN.LIVE_CHAT.CREATE.FORM.BUTTONS.${mode.toUpperCase()}`)
         "
         class="w-full"
         :is-loading="isCreating"
