@@ -573,7 +573,6 @@
         "app/models/concerns/account_settings_schema.rb",
         "app/models/conversation.rb",
         "app/views/layouts/vueapp.html.erb",
-        "enterprise/config/premium_installation_config.yml",
         "lib/events/types.rb",
         "config/initializers/languages.rb",
         "config/installation_config.yml"
@@ -676,6 +675,15 @@
       ],
       "tests": [
         "spec/raevo/repository_configuration_spec.rb"
+      ]
+    },
+    {
+      "id": "premium-installation-branding",
+      "paths": [
+        "enterprise/config/premium_installation_config.yml"
+      ],
+      "tests": [
+        "spec/enterprise/config/raevo_premium_installation_config_spec.rb"
       ]
     }
   ]

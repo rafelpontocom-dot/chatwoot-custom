@@ -119,16 +119,6 @@ RSpec.describe 'Raevo changes inside native server files', type: :request do
     end
   end
 
-  describe 'enterprise/config/premium_installation_config.yml' do
-    it 'brands the installation as RAEVO CRM' do
-      config = YAML.safe_load(Rails.root.join('enterprise/config/premium_installation_config.yml').read)
-      values = config.to_h { |item| [item['name'], item['value']] }
-
-      expect(values).to include('INSTALLATION_NAME' => 'RAEVO CRM', 'BRAND_URL' => 'https://crm.raevo.io',
-                                'LOGO' => '/brand-assets/raevo-logo.svg')
-    end
-  end
-
   describe 'lib/events/types.rb' do
     %w[
       KANBAN_BOARD_UPDATED KANBAN_STAGE_CREATED KANBAN_STAGE_UPDATED KANBAN_STAGE_DELETED KANBAN_STAGE_REORDERED
