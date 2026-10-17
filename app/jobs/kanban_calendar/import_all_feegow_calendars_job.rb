@@ -3,7 +3,7 @@ class KanbanCalendar::ImportAllFeegowCalendarsJob < ApplicationJob
   queue_as :scheduled_jobs
 
   def perform
-    KanbanCalendarFeegowConnection.where(status: 'connected').find_each do |connection|
+    KanbanCalendarFeegowConnection.importable.find_each do |connection|
       KanbanCalendar::ImportFeegowCalendarJob.perform_later(connection.id)
     end
   end

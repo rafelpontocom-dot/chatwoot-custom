@@ -1108,7 +1108,14 @@ deu por ela em produção: para abrir a conversa seguinte era preciso voltar atr
 conversa é o trabalho desta tela.
 
 Decidido pelo dono do produto: **a lista fica sempre; o espaço vem da navegação**, que recolhe
-a ícones (56px) enquanto há conversa aberta, **abaixo de 1600px**. Largura da conversa,
+a ícones (56px) enquanto há conversa aberta, **abaixo de 1600px**.
+
+**Revisto a 17/10 pelo dono do produto:** recolhe **a qualquer largura** quando há uma
+conversa específica aberta; na lista sozinha (ao entrar em Conversas) fica como estava. Num
+ecrã de 2016px a navegação ficava expandida ao lado da lista, da conversa e do contacto, que
+desde 16/10 abre sempre (123jpnbd3by). A tabela abaixo é a medição da decisão de 09/10.
+
+Largura da conversa,
 medida no browser com a coluna da oportunidade aberta:
 
 | Ecrã | Chatwoot original | 16/09 (sem lista) | Agora |

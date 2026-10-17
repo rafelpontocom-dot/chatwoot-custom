@@ -78,18 +78,14 @@ describe('ConversationView', () => {
   });
 
   // O espaço vem da navegação: recolhe a ícones (56px) com a conversa aberta.
-  // A 1536px — 1920 com zoom de 125% — a conversa ficava com 504px.
-  it('collapses the navigation to icons while a conversation is open below 1600px', async () => {
-    larguraDaJanela.value = 1536;
-    const wrapper = mountView();
-    await wrapper.vm.$nextTick();
+  // Decisão de 17/10: a qualquer largura — num ecrã de 2016px ela ficava aberta
+  // ao lado da lista, da conversa e do contacto.
+  it('collapses the navigation to icons while a conversation is open, at any width', async () => {
+    larguraDaJanela.value = 2016;
+    mountView();
+    await Promise.resolve();
 
     expect(definirFoco).toHaveBeenLastCalledWith(true);
-
-    larguraDaJanela.value = 1600;
-    await wrapper.vm.$nextTick();
-
-    expect(definirFoco).toHaveBeenLastCalledWith(false);
   });
 
   // Recolher não é esconder, e só vale enquanto há conversa: na lista sozinha a

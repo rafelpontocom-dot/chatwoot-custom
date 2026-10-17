@@ -17,7 +17,7 @@ class KanbanCalendar::GoogleCalendarImportService
   end
 
   def perform!
-    return unless @connection.connected?
+    return unless @connection.importable?
 
     response = @client.list_events(time_min: @now - PAST_WINDOW, time_max: @now + FUTURE_WINDOW)
     replace_blocks(busy_blocks(response[:items], response[:time_zone]))

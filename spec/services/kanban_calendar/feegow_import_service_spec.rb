@@ -114,4 +114,16 @@ RSpec.describe KanbanCalendar::FeegowImportService do
       status: 'error', last_error: 'Feegow could not be reached (ConnectionFailed)'
     )
   end
+
+  # A falha de 08/10 deixava a ligação em «error» para sempre. Agora a próxima
+  # importação tenta de novo e, se o Feegow responder, volta a «connected».
+  it 'recovers a connection left in error by an earlier failure' do
+    connection.update!(status: 'error', last_error: 'Feegow could not be reached (ConnectionFailed)')
+    resource = agenda('Dra. Anna', { 'professional_id' => 9 })
+
+    import(9 => [consulta(501, '18-09-2026', '10:00')])
+
+    expect(connection.reload).to have_attributes(status: 'connected', last_error: nil)
+    expect(resource.kanban_calendar_external_busy_blocks.count).to eq(1)
+  end
 end

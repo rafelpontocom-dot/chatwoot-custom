@@ -41,8 +41,18 @@ class KanbanCalendarGoogleConnection < ApplicationRecord
   validates :access_token, :refresh_token, :expires_at, presence: true, if: :connected?
   validate :resource_belongs_to_account
 
+  # Em «error» volta a tentar no ciclo seguinte do agendador. Antes de 17/10 só
+  # «connected» importava: uma falha passageira (o Feegow da Dra. Anna a 08/10)
+  # deixava a agenda parada nove dias, até alguém sincronizar à mão. Desligada
+  # fica de fora, e sem credenciais não há o que tentar.
+  scope :importable, -> { where(status: %w[connected error]).where.not(refresh_token: nil) }
+
   def connected?
     status == 'connected'
+  end
+
+  def importable?
+    %w[connected error].include?(status) && refresh_token.present?
   end
 
   def token_expired?

@@ -105,14 +105,19 @@ describe('RaevoKpiCard', () => {
     );
   });
 
-  // A nota é a única coisa que sobrevive ao corte do rodapé, e só em linha: é o
-  // qualificador que anda colado ao número quando a variação não ocupa aquele
-  // lugar. Em cartão e em faixa o rodapé já faz esse trabalho, e uma nota ali
-  // seria uma segunda voz a dizer o mesmo.
-  it('carries the note beside the number, and only in inline density', () => {
+  // A nota é a única coisa que sobrevive ao corte do rodapé, em linha e em
+  // lista: é o qualificador que anda com o número quando a variação não ocupa
+  // aquele lugar. Em cartão e em faixa o rodapé já faz esse trabalho, e uma nota
+  // ali seria uma segunda voz a dizer o mesmo.
+  it('carries the note in inline and list density only', () => {
     const comNota = { note: '3 por confirmar' };
 
     expect(montar({ ...comNota, density: 'inline' }).text()).toContain(
+      '3 por confirmar'
+    );
+    // Sem isto, no computador a Agenda dizia «Marcações hoje 0» com o dia
+    // cheio de bloqueios do Google: a coluna lateral usa `list` (17/10).
+    expect(montar({ ...comNota, density: 'list' }).text()).toContain(
       '3 por confirmar'
     );
     expect(montar({ ...comNota, density: 'strip' }).text()).not.toContain(

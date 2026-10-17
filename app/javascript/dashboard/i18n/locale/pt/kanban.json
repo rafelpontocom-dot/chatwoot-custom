@@ -281,7 +281,7 @@
       "HEALTH_STUCK": "Parado"
     },
     "BULK": {
-      "SELECTED": "{count} selecionadas",
+      "SELECTED": "{count} selecionada | {count} selecionadas",
       "MOVE": "Mover para etapa",
       "ASSIGN": "Atribuir responsável",
       "MARK_WON": "Marcar como ganha",

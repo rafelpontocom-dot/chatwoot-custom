@@ -281,7 +281,7 @@
       "HEALTH_STUCK": "Stalled"
     },
     "BULK": {
-      "SELECTED": "{count} selected",
+      "SELECTED": "{count} selected | {count} selected",
       "MOVE": "Move to stage",
       "ASSIGN": "Assign owner",
       "MARK_WON": "Mark as won",

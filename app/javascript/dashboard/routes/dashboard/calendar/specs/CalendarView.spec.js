@@ -147,10 +147,14 @@ describe('CalendarView', () => {
       const wrapper = mountCalendar();
       await flushPromises();
 
-      // A nota vive na faixa `inline` (a de baixo dos 1024px). A coluna lateral
-      // usa `list`, que por decisão do design system não desenha rodapé nem nota.
+      // Na faixa `inline` (abaixo dos 1024px) e na coluna lateral, que é o que
+      // se vê no computador. Só na faixa, o computador lia «Marcações hoje 0»
+      // com o dia cheio de bloqueios (17/10).
       expect(
         wrapper.get('[data-testid="calendar-kpi-today"]').text()
+      ).toContain('CALENDAR.INDICATORS.BUSY_BLOCKS');
+      expect(
+        wrapper.get('[data-testid="calendar-kpi-filter-today"]').text()
       ).toContain('CALENDAR.INDICATORS.BUSY_BLOCKS');
     });
 

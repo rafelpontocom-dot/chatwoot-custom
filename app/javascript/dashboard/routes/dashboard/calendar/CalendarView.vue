@@ -1427,6 +1427,7 @@ onMounted(() => {
               :value="indicador.value"
               :delta="indicador.delta"
               :delta-is-good="indicador.deltaIsGood"
+              :note="indicador.note"
               :aria-pressed="indicadorAtivo(indicador.filtro)"
               :class="
                 indicadorAtivo(indicador.filtro)

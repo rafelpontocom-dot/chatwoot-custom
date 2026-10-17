@@ -90,7 +90,7 @@ const props = defineProps({
   /** Rótulo acessível do canto — obrigatório com `to`: é controlo só de ícone. */
   toLabel: { type: String, default: '' },
   /**
-   * Um qualificador curto que anda colado ao número, e só em `inline`. Existe
+   * Um qualificador curto que anda com o número, em `inline` e em `list`. Existe
    * para o caso em que a variação NÃO ocupa aquele lugar — «Marcações hoje» não
    * compara com mês nenhum — e onde a informação que o rodapé levava é a que se
    * age sobre: «3 por confirmar» é o que faz alguém pegar no telefone.
@@ -98,6 +98,10 @@ const props = defineProps({
    * Não é o rodapé de volta. O rodapé é contexto que explica o número; isto é
    * uma parte do número que não cabe no número. Use com parcimónia: cada um
    * custa largura à linha, e a linha existe para não custar altura.
+   *
+   * Em `list` vai numa linha própria, por baixo do número. Foi a falta dela que
+   * deixou a Agenda a dizer «Marcações hoje 0» no computador com o dia cheio de
+   * bloqueios do Google: a nota existia, mas só na banda `lg:hidden` (17/10).
    */
   note: { type: String, default: '' },
   /** `card`, `strip`, `inline` ou `list`. Ver o bloco acima: a escolha é uma regra. */
@@ -233,6 +237,14 @@ const display = computed(() =>
         <span class="text-xs text-n-slate-10">{{ note }}</span>
       </template>
     </component>
+    <!--
+      Em lista a nota desce para baixo do número: a coluna é estreita e, ao lado,
+      partia a linha do número. `-11` pelo mesmo motivo do rótulo: há fundo em
+      hover e no estado activo.
+    -->
+    <span v-if="note && emLista" class="break-words text-xs text-n-slate-11">
+      {{ note }}
+    </span>
 
     <!--
       Em faixa o rodapé não leva filete: quatro filetes curtos lado a lado, um
