@@ -250,7 +250,8 @@ variação; o rodapé não é desenhado. É a troca que a faz caber no canto de 
 existe, e quem a usa aceita que «R$ 54,7k no mês passado» e «33,3% do mês» deixem de aparecer.
 
 **A exceção é `note`**, e tem regra própria. Um qualificador curto que anda colado ao número,
-só em `inline`, e só onde a variação NÃO ocupa aquele lugar — «Marcações hoje» não compara com
+em `inline` e em `list` (onde desce para uma linha própria, por baixo do número — desde 17/10,
+porque só em `inline` a nota nunca chegava ao computador), e só onde a variação NÃO ocupa aquele lugar — «Marcações hoje» não compara com
 mês nenhum. Existe para o caso em que o rodapé levava a única informação daquela fila sobre a
 qual se **age**: «3 por confirmar» é o que faz alguém pegar no telefone, e não existe em mais
 lado nenhum do produto (a Agenda não tem faixa de resumo). Separa-se do número por um ponto

@@ -3,7 +3,7 @@ class KanbanCalendar::ImportAllGoogleCalendarsJob < ApplicationJob
   queue_as :scheduled_jobs
 
   def perform
-    KanbanCalendarGoogleConnection.where(status: 'connected').find_each do |connection|
+    KanbanCalendarGoogleConnection.importable.find_each do |connection|
       KanbanCalendar::ImportGoogleCalendarEventsJob.perform_later(connection.id)
     end
   end

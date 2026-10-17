@@ -2506,11 +2506,23 @@ onUnmounted(() => {
         v-if="selectedCardsCount"
         data-testid="kanban-bulk-toolbar"
         role="region"
-        :aria-label="t('KANBAN.BULK.SELECTED', { count: selectedCardsCount })"
+        :aria-label="
+          t(
+            'KANBAN.BULK.SELECTED',
+            { count: selectedCardsCount },
+            selectedCardsCount
+          )
+        "
         class="flex flex-wrap items-center gap-2 border-b border-n-weak bg-n-surface-2 px-6 py-2"
       >
         <strong class="text-sm text-n-slate-12">
-          {{ t('KANBAN.BULK.SELECTED', { count: selectedCardsCount }) }}
+          {{
+            t(
+              'KANBAN.BULK.SELECTED',
+              { count: selectedCardsCount },
+              selectedCardsCount
+            )
+          }}
         </strong>
         <select
           data-testid="kanban-bulk-stage-select"
@@ -2989,9 +3001,11 @@ onUnmounted(() => {
               class="mb-0 text-xs text-n-slate-11"
             >
               {{
-                t('KANBAN.BULK.SELECTED', {
-                  count: selectedArchivedCardIds.length,
-                })
+                t(
+                  'KANBAN.BULK.SELECTED',
+                  { count: selectedArchivedCardIds.length },
+                  selectedArchivedCardIds.length
+                )
               }}
             </p>
           </div>

@@ -3,7 +3,7 @@ class KanbanCalendar::ImportGoogleCalendarEventsJob < ApplicationJob
 
   def perform(connection_id)
     connection = KanbanCalendarGoogleConnection.find_by(id: connection_id)
-    return unless connection&.connected?
+    return unless connection&.importable?
 
     KanbanCalendar::GoogleCalendarImportService.new(connection: connection).perform!
   rescue KanbanCalendar::GoogleCalendarApiError

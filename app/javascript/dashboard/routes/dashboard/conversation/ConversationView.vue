@@ -1,7 +1,6 @@
 <script>
 import { toRef } from 'vue';
 import { mapGetters } from 'vuex';
-import { useWindowSize } from '@vueuse/core';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useRequestSidebarFocus } from 'dashboard/composables/useSidebarFocus';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -60,7 +59,6 @@ export default {
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
     const { accountId } = useAccount();
-    const { width: windowWidth } = useWindowSize();
     const { setSidebarFocus } = useRequestSidebarFocus();
     useRaevoContactPanelAutoOpen(toRef(props, 'conversationId'));
 
@@ -69,7 +67,6 @@ export default {
       updateUISettings,
       isOnExpandedLayout,
       accountId,
-      windowWidth,
       setSidebarFocus,
     };
   },
@@ -84,13 +81,14 @@ export default {
       currentChat: 'getSelectedChat',
     }),
     /**
-     * Abaixo desta largura as quatro colunas não cabem com a navegação aberta:
-     * a 1280px sobravam 380px para a conversa, a 1536px 504px. Com a conversa
-     * aberta a navegação recolhe a ícones e a lista fica — trocar de conversa
-     * é o trabalho da tela, e esconder a lista obrigava a voltar atrás.
+     * Com uma conversa aberta a navegação recolhe a ícones e a lista fica —
+     * trocar de conversa é o trabalho da tela, e esconder a lista obrigava a
+     * voltar atrás. Até 17/10 só recolhia abaixo de 1600px; desde que o
+     * contacto abre sempre com a conversa (123jpnbd3by), recolhe a qualquer
+     * largura. Na lista sozinha a navegação fica como a pessoa a deixou.
      */
     shouldCollapseNavigation() {
-      return Boolean(this.conversationId) && this.windowWidth < 1600;
+      return Boolean(this.conversationId);
     },
     showConversationList() {
       return this.isOnExpandedLayout ? !this.conversationId : true;

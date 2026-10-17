@@ -22,7 +22,7 @@ class KanbanCalendar::FeegowImportService
   end
 
   def perform!
-    return unless @connection.connected?
+    return unless @connection.importable?
 
     mapped_resources.each { |resource| import_resource(resource) }
     @connection.update!(status: 'connected', last_error: nil, last_imported_at: Time.current)

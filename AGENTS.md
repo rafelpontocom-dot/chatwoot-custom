@@ -164,8 +164,10 @@ fila: 45px por item numa coluna.)
 o selo de variação, e o rodapé não é desenhado. É a troca que a faz caber no canto
 de um cabeçalho que já existe.
 
-**A exceção é a prop `note`**: um qualificador curto colado ao número, só em
-`inline`, e só onde a variação não ocupa aquele lugar. Serve o caso em que o
+**A exceção é a prop `note`**: um qualificador curto colado ao número, em
+`inline` e em `list` (em `list` desce para uma linha própria), e só onde a variação não
+ocupa aquele lugar. Até 17/10 era só `inline`, e a Agenda no computador dizia «Marcações
+hoje 0» com o dia cheio de bloqueios do Google: a nota existia, mas só na banda `lg:hidden`. Serve o caso em que o
 rodapé levava a única coisa daquela fila sobre a qual se **age** — «3 por
 confirmar», na Agenda, que não existe em mais lado nenhum do produto. Só aparece
 quando tem o que dizer. **Uma nota por fila, no máximo:** cada uma custa largura,
