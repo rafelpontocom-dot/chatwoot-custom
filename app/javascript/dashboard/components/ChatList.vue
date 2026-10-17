@@ -14,7 +14,10 @@ import ConversationFilter from 'next/filter/ConversationFilter.vue';
 import SaveCustomView from 'next/filter/SaveCustomView.vue';
 import ChatTypeTabs from './widgets/ChatTypeTabs.vue';
 import DeleteCustomViews from 'dashboard/routes/dashboard/customviews/DeleteCustomViews.vue';
-import ConversationBulkActions from './widgets/conversation/conversationBulkActions/Index.vue';
+// RAEVO (17/10, 123jpnbcxh4): a barra de ações em massa passa ao topo da lista e
+// age também sobre o filtro inteiro. A nativa (conversationBulkActions) deixa de montar.
+import RaevoConversationBulkBar from 'dashboard/components-next/raevo/conversations/RaevoConversationBulkBar.vue';
+import { raevoConversationBulkScope } from 'dashboard/components-next/raevo/conversations/raevoConversationBulkScope';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
 
@@ -111,7 +114,6 @@ const getConversationById = useMapGetter('getConversationById');
 
 const {
   selectedConversations,
-  selectedInboxes,
   selectConversation,
   deSelectConversation,
   selectAllConversations,
@@ -257,6 +259,14 @@ const conversationFilters = computed(() => {
   };
 });
 
+const raevoBulkScope = computed(() =>
+  raevoConversationBulkScope({
+    folderQuery: hasActiveFolders.value ? activeFolder.value?.query : null,
+    appliedFiltersQuery: hasAppliedFilters.value ? foldersQuery.value : null,
+    filters: conversationFilters.value,
+  })
+);
+
 const activeTeam = computed(() => {
   if (props.teamId) {
     return getTeamFn.value(props.teamId);
@@ -357,19 +367,6 @@ const showEndOfListMessage = computed(() => {
     hasCurrentPageEndReached.value &&
     !chatListLoading.value
   );
-});
-
-const allConversationsSelected = computed(() => {
-  return (
-    conversationList.value.length === selectedConversations.value.length &&
-    conversationList.value.every(el =>
-      selectedConversations.value.includes(el.id)
-    )
-  );
-});
-
-const uniqueInboxes = computed(() => {
-  return [...new Set(selectedInboxes.value)];
 });
 
 // ---------------------- Methods -----------------------
@@ -815,13 +812,6 @@ function handleResolveWithAttributes({ attributes, context }) {
   }
 }
 
-function allSelectedConversationsStatus(status) {
-  if (!selectedConversations.value.length) return false;
-  return selectedConversations.value.every(item => {
-    return getConversationById.value(item)?.status === status;
-  });
-}
-
 function toggleSelectAll(check) {
   selectAllConversations(check, conversationList);
 }
@@ -967,15 +957,12 @@ watch(appliedFilters, () => resetBulkActions());
     >
       {{ $t('CHAT_LIST.LIST.404') }}
     </p>
-    <ConversationBulkActions
-      :conversations="selectedConversations"
-      :all-conversations-selected="allConversationsSelected"
-      :selected-inboxes="uniqueInboxes"
-      :show-open-action="allSelectedConversationsStatus('open')"
-      :show-resolved-action="allSelectedConversationsStatus('resolved')"
-      :show-snoozed-action="allSelectedConversationsStatus('snoozed')"
-      :class="isOnExpandedLayout && 'sm:!w-[24rem] !w-full'"
+    <RaevoConversationBulkBar
+      :conversation-list="conversationList"
+      :selected-conversations="selectedConversations"
+      :scope="raevoBulkScope"
       @select-all-conversations="toggleSelectAll"
+      @clear="resetBulkActions"
     />
     <ConversationList
       :conversation-list="conversationList"

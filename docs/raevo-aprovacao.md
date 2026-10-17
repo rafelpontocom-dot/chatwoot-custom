@@ -1279,6 +1279,24 @@ por sublinhado, não por ser azul.
 
 ---
 
+### Conversas — ações em massa · 17/10/2026
+
+Decidido pelo dono do produto entre três propostas com mockup
+([Ações em massa nas Conversas](https://claude.ai/artifact/Et4tM6Uyj2gc9mfuHPzFJG)), cartão
+`123jpnbcxh4`. Ficou a **B**:
+
+- A primeira linha da lista é «Selecionar todas», sempre visível; a foto do contacto continua a
+  selecionar uma a uma (é do cartão nativo, não muda).
+- As ações aparecem logo abaixo, **no topo** da lista: **Resolver, Adiar e Pendente** à vista;
+  «Mais ações» com o resto, agrupado como o clique direito (reabrir, lida/não lida, prioridade,
+  etiquetas, agente, time; abrir em nova aba e copiar link só com uma).
+- Com a página inteira marcada, oferece «Selecionar as N do filtro», e a ação vale para o recorte
+  inteiro — com confirmação do número. Excluir pede sempre confirmação e é **só de administradores**.
+
+O que se perdeu: a lista perde uma linha (~40px) de altura, e a barra flutuante nativa de baixo
+deixa de montar. O que se ganhou: seleção que se descobre sem hover (trackpad, telemóvel) e limpar
+um filtro inteiro de uma vez, que a nativa não fazia — só marcava as 25 carregadas.
+
 ## Antes de marcar uma tela como implementada
 
 ```bash

@@ -549,6 +549,10 @@ Para qualquer mudança em Kanban, oportunidade, Agenda, Financeiro, Formulários
 3. `accessibility-compliance`: valide rótulos, foco, teclado, contraste, mensagens de erro próximas ao campo e alternativa a qualquer gesto de arrastar.
 4. `agentic-browser-testing`: execute uma jornada real com dados de teste, incluindo criação, alteração, erro e recuperação.
 5. `visual-testing`: registre screenshot de desktop 1280px antes/depois e investigue sobreposição, corte de texto, vazio excessivo e regressão visual.
+6. **Print do resultado final na tarefa.** Toda tarefa do ClickUp entregue leva anexada uma captura
+   do resultado final (de produção quando já subiu, senão do ambiente local), com uma linha a dizer
+   de onde é e a que largura. Sem resultado visível, anexa-se a evidência equivalente. Nunca com dado
+   real de paciente. Regra do Pedro, 17/10/2026.
 
 As skills desta porta vivem em `.claude/skills/`, que é ignorado pelo git. O que é
 versionado é o `skills-lock.json`. Numa máquina nova — Codex incluído — instale-as antes

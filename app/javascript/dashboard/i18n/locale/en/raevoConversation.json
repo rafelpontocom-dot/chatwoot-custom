@@ -14,6 +14,53 @@
     "SHORTCUTS": {
       "RESOLVE_HINT": "Resolve: {resolve} · Resolve and open the next one: {resolveNext}",
       "MORE_ACTIONS": "More actions — pending, snooze: {moreActions}"
+    },
+    "BULK": {
+      "SELECT_ALL": "Select all",
+      "SELECTED": "{count} selected | {count} selected",
+      "CLEAR": "Clear",
+      "PAGE_SELECTED": "The {count} loaded conversations are selected.",
+      "SELECT_FILTER": "Select all {count} in this filter",
+      "FILTER_SELECTED": "All {count} conversations in this filter are selected.",
+      "RESOLVE": "Resolve",
+      "SNOOZE": "Snooze",
+      "PENDING": "Pending",
+      "MORE": "More actions",
+      "BACK": "Back",
+      "ONLY_ONE": "one only",
+      "LABEL_SEARCH": "Search labels",
+      "NONE": "None",
+      "CONFIRM_TITLE": "{action}: {count} conversations?",
+      "CONFIRM_BODY": "This applies to every conversation in the filter, not only the ones on screen.",
+      "CONFIRM_DELETE_TITLE": "Delete {count} conversation? | Delete {count} conversations?",
+      "CONFIRM_DELETE_BODY": "This cannot be undone. The messages are deleted too.",
+      "CONFIRM": "Apply",
+      "DONE": "{count} conversation updated. | {count} conversations updated.",
+      "SKIPPED": "{count} left out because required attributes are missing.",
+      "FAILED": "Could not apply the action. Try again.",
+      "LINK_COPIED": "Conversation link copied",
+      "GROUPS": {
+        "STATUS": "Status",
+        "READ": "Reading",
+        "ORGANIZE": "Organize",
+        "ONE": "One conversation only"
+      },
+      "OPERATIONS": {
+        "resolve": "Resolve",
+        "pending": "Mark as pending",
+        "snooze": "Snooze",
+        "reopen": "Reopen",
+        "read": "Mark as read",
+        "unread": "Mark as unread",
+        "priority": "Priority",
+        "add_labels": "Add label",
+        "remove_labels": "Remove label",
+        "assign_agent": "Assign agent",
+        "assign_team": "Assign team",
+        "open_tab": "Open in new tab",
+        "copy_link": "Copy conversation link",
+        "delete": "Delete"
+      }
     }
   }
 }

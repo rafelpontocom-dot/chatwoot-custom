@@ -141,4 +141,20 @@ describe('ChatList — o que o Raevo acrescenta à lista nativa', () => {
       conversations_default_folder_id: null,
     });
   });
+
+  // 123jpnbcxh4, proposta B (17/10): a barra de ações em massa é a do Raevo, no
+  // topo da lista, e recebe o recorte da lista para «selecionar as N do filtro».
+  it('mounts the Raevo bulk bar with the scope of the list', async () => {
+    const wrapper = montar({ conversationInbox: 4, label: 'retorno' });
+    await flushPromises();
+
+    const barra = wrapper.findComponent({ name: 'RaevoConversationBulkBar' });
+    expect(barra.exists()).toBe(true);
+    expect(barra.props('scope')).toEqual({
+      filters: expect.objectContaining({ inbox_id: 4, labels: ['retorno'] }),
+    });
+    expect(
+      wrapper.findComponent({ name: 'ConversationBulkActions' }).exists()
+    ).toBe(false);
+  });
 });
