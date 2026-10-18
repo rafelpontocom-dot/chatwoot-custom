@@ -1293,6 +1293,11 @@ Decidido pelo dono do produto entre três propostas com mockup
 - Com a página inteira marcada, oferece «Selecionar as N do filtro», e a ação vale para o recorte
   inteiro — com confirmação do número. Excluir pede sempre confirmação e é **só de administradores**.
 
+Atalhos (pedidos a 17/10): **X** ou **Alt+X** marca a conversa aberta (Alt+X funciona com o cursor
+no editor; com Alt+J/Alt+K, nativos, marca-se uma a uma sem largar o teclado); **Shift+clique** na
+foto marca o intervalo, pela ordem da lista; **Esc** limpa, salvo com um menu aberto ou a escrever.
+Ficam numa dica na linha «Selecionar todas».
+
 O que se perdeu: a lista perde uma linha (~40px) de altura, e a barra flutuante nativa de baixo
 deixa de montar. O que se ganhou: seleção que se descobre sem hover (trackpad, telemóvel) e limpar
 um filtro inteiro de uma vez, que a nativa não fazia — só marcava as 25 carregadas.
