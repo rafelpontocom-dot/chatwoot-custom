@@ -12,6 +12,7 @@ import { findSnoozeTime } from 'dashboard/helper/snoozeHelpers';
 import wootConstants from 'dashboard/constants/globals';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import BulkActionsAPI from 'dashboard/api/raevoConversationBulkActions';
+import { useRaevoConversationSelectionShortcuts } from './useRaevoConversationSelectionShortcuts';
 
 // RAEVO (17/10, 123jpnbcxh4) — seleção e ações em massa nas Conversas, proposta B
 // aprovada pelo Pedro: a primeira linha da lista é «Selecionar todas», e as ações
@@ -45,6 +46,7 @@ const confirmDialog = ref(null);
 const menuRef = ref(null);
 
 const loaded = computed(() => props.conversationList.length);
+
 const marked = computed(() => props.selectedConversations.length);
 const selectedCount = computed(() =>
   filterAll.value ? filterCount.value || 0 : marked.value
@@ -100,6 +102,13 @@ const clear = () => {
   menuView.value = null;
   emit('clear');
 };
+
+useRaevoConversationSelectionShortcuts({
+  conversationList: computed(() => props.conversationList),
+  selectedConversations: computed(() => props.selectedConversations),
+  clear,
+  isMenuOpen: computed(() => Boolean(menuView.value)),
+});
 
 const closeMenu = () => {
   menuView.value = null;
@@ -359,8 +368,10 @@ const choose = item => {
   >
     <div class="flex min-h-10 items-center gap-2 px-4 py-1.5">
       <label
+        v-tooltip.bottom="t('RAEVO_CONVERSATION.BULK.SHORTCUTS_HINT')"
         class="flex cursor-pointer items-center gap-2 text-sm text-n-slate-12"
         data-testid="raevo-bulk-select-all"
+        :aria-description="t('RAEVO_CONVERSATION.BULK.SHORTCUTS_HINT')"
       >
         <Checkbox
           :model-value="allLoadedMarked || filterAll"

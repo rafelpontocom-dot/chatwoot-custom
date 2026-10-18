@@ -60,7 +60,8 @@
         "open_tab": "Open in new tab",
         "copy_link": "Copy conversation link",
         "delete": "Delete"
-      }
+      },
+      "SHORTCUTS_HINT": "Shortcuts: X or Alt+X marks the open conversation · Shift+click a photo marks a range · Esc clears"
     }
   }
 }
