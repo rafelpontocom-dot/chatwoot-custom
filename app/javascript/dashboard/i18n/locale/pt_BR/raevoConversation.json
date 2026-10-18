@@ -14,6 +14,53 @@
     "SHORTCUTS": {
       "RESOLVE_HINT": "Resolver: {resolve} · Resolver e abrir a próxima: {resolveNext}",
       "MORE_ACTIONS": "Mais ações — pendente, adiar: {moreActions}"
+    },
+    "BULK": {
+      "SELECT_ALL": "Selecionar todas",
+      "SELECTED": "{count} selecionada | {count} selecionadas",
+      "CLEAR": "Limpar",
+      "PAGE_SELECTED": "As {count} conversas carregadas estão selecionadas.",
+      "SELECT_FILTER": "Selecionar as {count} do filtro",
+      "FILTER_SELECTED": "As {count} conversas do filtro estão selecionadas.",
+      "RESOLVE": "Resolver",
+      "SNOOZE": "Adiar",
+      "PENDING": "Pendente",
+      "MORE": "Mais ações",
+      "BACK": "Voltar",
+      "ONLY_ONE": "só com uma",
+      "LABEL_SEARCH": "Pesquisar etiquetas",
+      "NONE": "Nenhum",
+      "CONFIRM_TITLE": "{action}: {count} conversas?",
+      "CONFIRM_BODY": "Vale para todas as conversas do filtro, não só as que estão na tela.",
+      "CONFIRM_DELETE_TITLE": "Excluir {count} conversa? | Excluir {count} conversas?",
+      "CONFIRM_DELETE_BODY": "Não dá para desfazer. As mensagens também são apagadas.",
+      "CONFIRM": "Aplicar",
+      "DONE": "{count} conversa atualizada. | {count} conversas atualizadas.",
+      "SKIPPED": "{count} ficaram de fora por atributos obrigatórios em falta.",
+      "FAILED": "Não foi possível aplicar. Tente de novo.",
+      "LINK_COPIED": "Link da conversa copiado",
+      "GROUPS": {
+        "STATUS": "Estado",
+        "READ": "Leitura",
+        "ORGANIZE": "Organizar",
+        "ONE": "Só com uma conversa"
+      },
+      "OPERATIONS": {
+        "resolve": "Resolver",
+        "pending": "Deixar pendente",
+        "snooze": "Adiar",
+        "reopen": "Reabrir",
+        "read": "Marcar como lida",
+        "unread": "Marcar como não lida",
+        "priority": "Prioridade",
+        "add_labels": "Atribuir etiqueta",
+        "remove_labels": "Remover etiqueta",
+        "assign_agent": "Atribuir agente",
+        "assign_team": "Atribuir time",
+        "open_tab": "Abrir em nova aba",
+        "copy_link": "Copiar link da conversa",
+        "delete": "Excluir"
+      }
     }
   }
 }

@@ -148,6 +148,10 @@ Rails.application.routes.draw do
           resource :audit_logs, only: [:show]
           resource :birthday_automation, only: [:show, :update], controller: 'birthday_automation'
           resource :raevo_home, only: [:show], controller: 'raevo_home'
+          # RAEVO (17/10, 123jpnbcxh4): ações em massa nas Conversas, também sobre o filtro inteiro.
+          resources :raevo_conversation_bulk_actions, only: [:create] do
+            post :count, on: :collection
+          end
           # RAEVO (09/10, 123jpnbcb5m): as tarefas dos leads na Agenda.
           resources :kanban_next_actions, only: [:index]
           namespace :raevo_ai do
