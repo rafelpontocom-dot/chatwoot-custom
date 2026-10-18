@@ -90,7 +90,25 @@
       }
     },
     "EMPTY_STALE": "No opportunity is stuck past its stage limit.",
-    "EMPTY_PAYMENTS": "No overdue payments."
+    "EMPTY_PAYMENTS": "No overdue payments.",
+    "INSIGHTS": {
+      "PIPELINE_VALUE": "Pipeline value",
+      "PIPELINE_FOOTER": "open right now",
+      "CLOSE_RATE": "Close rate",
+      "CLOSE_RATE_FOOTER": "{count} closed this month",
+      "WON_MONTH": "Won this month",
+      "FIRST_RESPONSE": "First response today",
+      "FIRST_RESPONSE_FOOTER": "week: {week}",
+      "ATTENDANCE": "Attendance this month",
+      "ATTENDANCE_FOOTER": "{noShow} no-shows · {canceled} cancelled",
+      "AI_OPPORTUNITIES": "Opportunities created by AI",
+      "AI_FOOTER": "last {days} days",
+      "WAITING_24H": "Waiting over 24 h",
+      "WAITING_FOOTER": "our turn to reply",
+      "SECONDS": "{count} s",
+      "MINUTES": "{count} min",
+      "HOURS": "{hours} h {minutes} min"
+    }
   },
   "KANBAN": {
     "EYEBROW": "Sales",

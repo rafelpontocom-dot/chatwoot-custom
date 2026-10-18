@@ -18,7 +18,8 @@ class Raevo::HomeLayout
   WIDGETS = {
     'kpi-conversations' => :kpi, 'kpi-actions' => :kpi, 'kpi-agenda' => :kpi, 'kpi-payments' => :kpi,
     'today-appointments' => :list, 'open-conversations' => :list, 'overdue-actions' => :list,
-    'overdue-payments' => :list, 'stale-opportunities' => :list
+    'overdue-payments' => :list, 'stale-opportunities' => :list,
+    **Raevo::HomeInsights::KEYS.index_with(:kpi)
   }.freeze
 
   class Invalid < StandardError; end

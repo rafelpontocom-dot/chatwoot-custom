@@ -155,4 +155,19 @@ describe('raevoHomeLayout', () => {
       );
     });
   });
+
+  it('adds an insight, which is not in the default Home, at an indicator size', () => {
+    const items = addItem(DEFAULT_HOME_LAYOUT, 'kpi-waiting-24h');
+
+    expect(byId(items, 'kpi-waiting-24h')).toMatchObject({ w: 3, h: 2 });
+  });
+
+  it('fills the first gap a block fits in before growing the Home', () => {
+    const withGap = removeItem(DEFAULT_HOME_LAYOUT, 'kpi-agenda').map(item =>
+      item.id === 'kpi-payments' ? { ...item, x: 9 } : item
+    );
+    const items = addItem(withGap, 'kpi-waiting-24h');
+
+    expect(byId(items, 'kpi-waiting-24h')).toMatchObject({ x: 6, y: 0 });
+  });
 });

@@ -14,7 +14,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 vi.mock('dashboard/api/raevoHome', () => ({
-  default: { get: vi.fn(), saveTeamLayout: vi.fn() },
+  default: { get: vi.fn(), saveTeamLayout: vi.fn(), getInsights: vi.fn() },
 }));
 const mockUISettings = ref({});
 const mockUpdateUISettings = vi.fn();
@@ -591,6 +591,85 @@ describe('RaevoHomeView', () => {
       expect(
         wrapper.find('[data-testid="home-catalog-add-kpi-agenda"]').exists()
       ).toBe(false);
+    });
+  });
+
+  // Entrega 2 (18/10): os insights entram pelo «+» e só se calculam se
+  // estiverem no Início de quem abre a tela.
+  describe('the insights', () => {
+    const withInsights = available =>
+      RaevoHomeAPI.get.mockResolvedValue({
+        data: {
+          open_conversations_count: 0,
+          open_conversations: [],
+          overdue_actions: [],
+          overdue_actions_count: 0,
+          filters: { inboxes: [], boards: [] },
+          layout: { team: null, can_set_team: false, insights: available },
+        },
+      });
+
+    beforeEach(() => {
+      mockUISettings.value = {};
+      RaevoHomeAPI.getInsights.mockReset();
+      RaevoHomeAPI.getInsights.mockResolvedValue({
+        data: { insights: { 'kpi-waiting-24h': { count: 17 } } },
+      });
+    });
+
+    it('asks for nothing while no insight is on the Home', async () => {
+      withInsights(['kpi-waiting-24h']);
+      mountHome();
+      await flushPromises();
+
+      expect(RaevoHomeAPI.getInsights).not.toHaveBeenCalled();
+    });
+
+    it('asks only for the insights the person placed, and shows them', async () => {
+      mockUISettings.value = {
+        raevo_home_layout: {
+          3: {
+            version: 1,
+            items: [{ id: 'kpi-waiting-24h', x: 0, y: 0, w: 3, h: 2 }],
+          },
+        },
+      };
+      withInsights(['kpi-waiting-24h', 'kpi-close-rate']);
+      const wrapper = mountHome();
+      await flushPromises();
+
+      expect(RaevoHomeAPI.getInsights).toHaveBeenCalledWith(
+        expect.objectContaining({ keys: ['kpi-waiting-24h'] })
+      );
+      expect(
+        wrapper.get('[data-testid="home-kpi-waiting-24h"]').text()
+      ).toContain('17');
+    });
+
+    it('offers in the catalog only the insights the person may see', async () => {
+      withInsights(['kpi-waiting-24h']);
+      const wrapper = mountHome();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      await wrapper.get('[data-testid="home-add-widget"]').trigger('click');
+
+      expect(
+        wrapper
+          .find('[data-testid="home-catalog-add-kpi-waiting-24h"]')
+          .exists()
+      ).toBe(true);
+      expect(
+        wrapper
+          .find('[data-testid="home-catalog-add-kpi-first-response"]')
+          .exists()
+      ).toBe(false);
+
+      await wrapper
+        .get('[data-testid="home-catalog-add-kpi-waiting-24h"]')
+        .trigger('click');
+      await flushPromises();
+      expect(RaevoHomeAPI.getInsights).toHaveBeenCalledTimes(1);
     });
   });
 });

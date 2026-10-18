@@ -90,7 +90,25 @@
       }
     },
     "EMPTY_STALE": "Nenhuma oportunidade parada além do prazo da etapa.",
-    "EMPTY_PAYMENTS": "Nenhuma cobrança vencida."
+    "EMPTY_PAYMENTS": "Nenhuma cobrança vencida.",
+    "INSIGHTS": {
+      "PIPELINE_VALUE": "Valor em funil",
+      "PIPELINE_FOOTER": "em aberto agora",
+      "CLOSE_RATE": "Taxa de fecho",
+      "CLOSE_RATE_FOOTER": "{count} fechadas no mês",
+      "WON_MONTH": "Ganhas no mês",
+      "FIRST_RESPONSE": "1ª resposta hoje",
+      "FIRST_RESPONSE_FOOTER": "semana: {week}",
+      "ATTENDANCE": "Comparecimento no mês",
+      "ATTENDANCE_FOOTER": "{noShow} faltas · {canceled} canceladas",
+      "AI_OPPORTUNITIES": "Oportunidades criadas pela IA",
+      "AI_FOOTER": "últimos {days} dias",
+      "WAITING_24H": "Sem resposta há +24 h",
+      "WAITING_FOOTER": "a vez de responder é nossa",
+      "SECONDS": "{count} s",
+      "MINUTES": "{count} min",
+      "HOURS": "{hours} h {minutes} min"
+    }
   },
   "KANBAN": {
     "EYEBROW": "Comercial",

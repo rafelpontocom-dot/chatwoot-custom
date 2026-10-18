@@ -194,7 +194,7 @@ RSpec.describe 'Raevo home API', type: :request do
 
       get "/api/v1/accounts/#{account.id}/raevo_home", headers: agent.create_new_auth_token, as: :json
 
-      expect(response.parsed_body['layout']).to eq(
+      expect(response.parsed_body['layout']).to include(
         'team' => account.internal_attributes['raevo_home_layout'], 'can_set_team' => false
       )
     end
@@ -202,7 +202,7 @@ RSpec.describe 'Raevo home API', type: :request do
     it 'tells an administrator that they can set it' do
       get "/api/v1/accounts/#{account.id}/raevo_home", headers: administrator.create_new_auth_token, as: :json
 
-      expect(response.parsed_body['layout']).to eq('team' => nil, 'can_set_team' => true)
+      expect(response.parsed_body['layout']).to include('team' => nil, 'can_set_team' => true)
     end
 
     it 'does not let an agent change the Home of the whole team' do
@@ -229,6 +229,32 @@ RSpec.describe 'Raevo home API', type: :request do
         expect(response).to have_http_status(:unprocessable_entity)
       end
       expect(account.reload.internal_attributes).not_to have_key('raevo_home_layout')
+    end
+  end
+
+  describe 'GET /api/v1/accounts/:account_id/raevo_home/insights' do
+    let(:agent) { create(:user, account: account, role: :agent) }
+
+    it 'tells each person which insights they can add' do
+      get "/api/v1/accounts/#{account.id}/raevo_home", headers: agent.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['layout']['insights']).to include('kpi-waiting-24h', 'kpi-close-rate')
+      expect(response.parsed_body['layout']['insights']).not_to include('kpi-first-response')
+    end
+
+    it 'computes only the insights asked for' do
+      get "/api/v1/accounts/#{account.id}/raevo_home/insights",
+          params: { keys: %w[kpi-waiting-24h kpi-first-response] }, headers: agent.create_new_auth_token
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['insights'].keys).to eq(['kpi-waiting-24h'])
+    end
+
+    it 'refuses a key that does not exist' do
+      get "/api/v1/accounts/#{account.id}/raevo_home/insights",
+          params: { keys: %w[kpi-waiting-24h kpi-anything] }, headers: administrator.create_new_auth_token
+
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 end
