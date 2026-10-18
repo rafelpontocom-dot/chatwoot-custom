@@ -183,6 +183,13 @@ escala muda aqui primeiro.
 | Título de item | `text-base` | 16px | nome de card, título de seção |
 | Título de tela | `text-xl` | 20px | cabeçalho de página |
 | Destaque | `text-3xl` | 30px | número grande, pergunta do formulário guiado |
+| Número amplo | `text-display` | 48px | **só** o número de `RaevoKpiCard size="lg"` — indicador em bloco amplo do Início editável (18/10). Nunca título nem texto |
+
+**O número acompanha o bloco, em degraus.** No Início editável o bloco tem o tamanho que a
+pessoa lhe deu, e o conteúdo mede-o (`RaevoHomeWidget`): pequeno `text-xl`, normal `text-3xl`,
+amplo `text-display`; o rótulo e o rodapé passam de `text-xs` a `text-sm` no amplo, e as
+listas de `text-xs` a `text-base`. É a mesma escala — nunca um zoom contínuo aos píxeis, que
+corta o número e inventa degraus.
 
 **Nada abaixo de 11px, nunca.** `text-micro` existe só para caixa alta e números curtos; texto
 corrido em 11px não passa numa jornada de oito horas.

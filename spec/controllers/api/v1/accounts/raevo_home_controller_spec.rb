@@ -174,4 +174,61 @@ RSpec.describe 'Raevo home API', type: :request do
       )
     end
   end
+
+  # O Início editável (18/10): o layout que um administrador aplica a quem nunca
+  # arrumou o seu. O de cada pessoa vive em `ui_settings` e não passa por aqui.
+  describe 'PUT /api/v1/accounts/:account_id/raevo_home/team_layout' do
+    let(:agent) { create(:user, account: account, role: :agent) }
+    let(:layout) do
+      { version: 1, items: [{ id: 'overdue-actions', x: 0, y: 0, w: 12, h: 4, title: 'Atrasos' },
+                            { id: 'kpi-conversations', x: 0, y: 4, w: 3, h: 2 }] }
+    end
+
+    it 'saves the team layout and serves it with the home' do
+      put "/api/v1/accounts/#{account.id}/raevo_home/team_layout",
+          params: { layout: layout }, headers: administrator.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(account.reload.internal_attributes['raevo_home_layout']['items'].first)
+        .to eq('id' => 'overdue-actions', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4, 'title' => 'Atrasos')
+
+      get "/api/v1/accounts/#{account.id}/raevo_home", headers: agent.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['layout']).to eq(
+        'team' => account.internal_attributes['raevo_home_layout'], 'can_set_team' => false
+      )
+    end
+
+    it 'tells an administrator that they can set it' do
+      get "/api/v1/accounts/#{account.id}/raevo_home", headers: administrator.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['layout']).to eq('team' => nil, 'can_set_team' => true)
+    end
+
+    it 'does not let an agent change the Home of the whole team' do
+      put "/api/v1/accounts/#{account.id}/raevo_home/team_layout",
+          params: { layout: layout }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(account.reload.internal_attributes).not_to have_key('raevo_home_layout')
+    end
+
+    it 'refuses a layout outside the documented shape' do
+      bad_layouts = [
+        { version: 2, items: [] },
+        { version: 1, items: [{ id: 'arbitrary', x: 0, y: 0, w: 3, h: 2 }] },
+        { version: 1, items: [{ id: 'kpi-actions', x: 11, y: 0, w: 3, h: 2 }] },
+        { version: 1, items: [{ id: 'overdue-actions', x: 0, y: 0, w: 2, h: 1 }] },
+        { version: 1, items: [{ id: 'kpi-actions', x: 0, y: 0, w: 3, h: 2 }, { id: 'kpi-actions', x: 3, y: 0, w: 3, h: 2 }] }
+      ]
+
+      bad_layouts.each do |bad|
+        put "/api/v1/accounts/#{account.id}/raevo_home/team_layout",
+            params: { layout: bad }, headers: administrator.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+      expect(account.reload.internal_attributes).not_to have_key('raevo_home_layout')
+    end
+  end
 end

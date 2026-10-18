@@ -279,6 +279,10 @@ const tailwindConfig = {
       // `ui` (13px) é o corpo das telas de configuração densa da agenda, aprovado
       // no mockup (decisão D7 do PRD da nova agenda). Não usar fora delas.
       ui: ['13px', '18px'],
+      // `display` (48px) é o número de um indicador em bloco amplo do Início
+      // editável — aprovado a 18/10. Só para número curto em `RaevoKpiCard`
+      // `size="lg"`; nunca para título nem texto.
+      display: ['48px', '52px'],
     },
     colors: {
       transparent: 'transparent',

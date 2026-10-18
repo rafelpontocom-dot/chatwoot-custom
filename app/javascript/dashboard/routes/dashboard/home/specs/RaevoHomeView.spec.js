@@ -14,8 +14,17 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 vi.mock('dashboard/api/raevoHome', () => ({
-  default: { get: vi.fn() },
+  default: { get: vi.fn(), saveTeamLayout: vi.fn() },
 }));
+const mockUISettings = ref({});
+const mockUpdateUISettings = vi.fn();
+vi.mock('dashboard/composables/useUISettings', () => ({
+  useUISettings: () => ({
+    uiSettings: mockUISettings,
+    updateUISettings: mockUpdateUISettings,
+  }),
+}));
+vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
 const mountHome = () =>
   shallowMount(RaevoHomeView, {
@@ -27,6 +36,18 @@ const mountHome = () =>
         RaevoStamp: true,
         // Stubado por omissão, o cartão engole rótulo, valor e rodapé.
         // Ver AGENTS.md, «Armadilha conhecida em testes».
+        // A grelha e a moldura são reais: stubadas, engoliam os blocos todos.
+        RaevoHomeGrid: false,
+        RaevoHomeWidget: false,
+        // O `Dialog` real abre um `<dialog>` nativo que o jsdom não tem. O stub
+        // guarda o título para se distinguir o catálogo da confirmação.
+        Dialog: {
+          props: ['title'],
+          emits: ['confirm'],
+          methods: { open() {}, close() {} },
+          template:
+            '<div :data-dialog="title"><slot /><button class="confirm" @click="$emit(\'confirm\')" /></div>',
+        },
         RaevoKpiCard: {
           props: ['label', 'value', 'footer'],
           template:
@@ -93,8 +114,7 @@ describe('RaevoHomeView', () => {
       const wrapper = mountHome();
       await flushPromises();
 
-      const fila = wrapper.get('[data-testid="home-indicators"]');
-      expect(fila.findAll('[data-testid^="home-kpi-"]')).toHaveLength(2);
+      expect(wrapper.findAll('[data-testid^="home-kpi-"]')).toHaveLength(2);
       expect(wrapper.find('[data-testid="home-kpi-agenda"]').exists()).toBe(
         false
       );
@@ -384,5 +404,193 @@ describe('RaevoHomeView', () => {
     expect(
       wrapper.find('[data-testid="home-see-all-conversations"]').exists()
     ).toBe(true);
+  });
+
+  // O Início editável (proposta A, 18/10). O que se testa é o contrato com quem
+  // grava: de quem é o layout que se desenha, e o que vai para `ui_settings`.
+  describe('the editable layout', () => {
+    const layout = items => ({ version: 1, items });
+    const widgetOrder = wrapper =>
+      wrapper
+        .findAll('[data-widget-id]')
+        .map(node => node.attributes('data-widget-id'));
+    const withLayout = (team = null, canSetTeam = false) =>
+      RaevoHomeAPI.get.mockResolvedValue({
+        data: {
+          open_conversations_count: 0,
+          open_conversations: [],
+          overdue_actions: [],
+          overdue_actions_count: 0,
+          filters: { inboxes: [], boards: [] },
+          layout: { team, can_set_team: canSetTeam },
+        },
+      });
+    const mine = layout([
+      { id: 'overdue-actions', x: 0, y: 0, w: 12, h: 4 },
+      { id: 'kpi-conversations', x: 0, y: 4, w: 3, h: 2 },
+    ]);
+
+    beforeEach(() => {
+      mockUISettings.value = {};
+      mockUpdateUISettings.mockClear();
+      RaevoHomeAPI.saveTeamLayout.mockReset();
+    });
+
+    it('draws the layout the person saved for this account', async () => {
+      mockUISettings.value = { raevo_home_layout: { 3: mine } };
+      withLayout();
+      const wrapper = mountHome();
+      await flushPromises();
+
+      expect(widgetOrder(wrapper)).toEqual([
+        'overdue-actions',
+        'kpi-conversations',
+      ]);
+    });
+
+    it('falls back to the team layout only for someone who never arranged theirs', async () => {
+      const team = layout([{ id: 'kpi-actions', x: 0, y: 0, w: 4, h: 2 }]);
+      withLayout(team);
+      const wrapper = mountHome();
+      await flushPromises();
+      expect(widgetOrder(wrapper)).toEqual(['kpi-actions']);
+
+      mockUISettings.value = { raevo_home_layout: { 3: mine } };
+      await flushPromises();
+      expect(widgetOrder(wrapper)).toEqual([
+        'overdue-actions',
+        'kpi-conversations',
+      ]);
+    });
+
+    it('saves nothing until Done, and Cancel throws the changes away', async () => {
+      mockUISettings.value = { raevo_home_layout: { 3: mine } };
+      withLayout();
+      const wrapper = mountHome();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      await wrapper.get('[data-testid="home-widget-remove"]').trigger('click');
+      expect(widgetOrder(wrapper)).toEqual(['kpi-conversations']);
+
+      await wrapper.get('[data-testid="home-cancel-edit"]').trigger('click');
+      expect(mockUpdateUISettings).not.toHaveBeenCalled();
+      expect(widgetOrder(wrapper)).toEqual([
+        'overdue-actions',
+        'kpi-conversations',
+      ]);
+    });
+
+    it('undoes a removal and saves the arrangement under this account', async () => {
+      mockUISettings.value = { raevo_home_layout: { 3: mine, 9: mine } };
+      withLayout();
+      const wrapper = mountHome();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      await wrapper.get('[data-testid="home-widget-remove"]').trigger('click');
+      await wrapper.get('[data-testid="home-undo-remove"]').trigger('click');
+      expect(widgetOrder(wrapper)).toEqual([
+        'overdue-actions',
+        'kpi-conversations',
+      ]);
+
+      await wrapper
+        .findAll('[data-testid="home-widget-remove"]')[1]
+        .trigger('click');
+      await wrapper.get('[data-testid="home-finish-edit"]').trigger('click');
+      await flushPromises();
+
+      const saved = mockUpdateUISettings.mock.calls[0][0].raevo_home_layout;
+      expect(saved[9]).toEqual(mine);
+      expect(saved[3].items.map(item => item.id)).toEqual(['overdue-actions']);
+      expect(RaevoHomeAPI.saveTeamLayout).not.toHaveBeenCalled();
+    });
+
+    it('keeps the place of a block whose module is switched off', async () => {
+      mockUISettings.value = {
+        raevo_home_layout: {
+          3: layout([
+            ...mine.items,
+            { id: 'overdue-payments', x: 0, y: 6, w: 6, h: 3 },
+          ]),
+        },
+      };
+      withLayout();
+      const wrapper = mountHome();
+      await flushPromises();
+      expect(widgetOrder(wrapper)).not.toContain('overdue-payments');
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      await wrapper.get('[data-testid="home-finish-edit"]').trigger('click');
+      await flushPromises();
+
+      const saved = mockUpdateUISettings.mock.calls[0][0].raevo_home_layout[3];
+      expect(saved.items.map(item => item.id)).toContain('overdue-payments');
+    });
+
+    it('restoring the default makes the person follow the team again', async () => {
+      mockUISettings.value = { raevo_home_layout: { 3: mine } };
+      withLayout();
+      const wrapper = mountHome();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      await wrapper
+        .get('[data-dialog="HOME.LAYOUT.RESET_TITLE"] .confirm')
+        .trigger('click');
+      await wrapper.get('[data-testid="home-finish-edit"]').trigger('click');
+      await flushPromises();
+
+      const saved = mockUpdateUISettings.mock.calls[0][0].raevo_home_layout;
+      expect(saved).not.toHaveProperty('3');
+    });
+
+    it('applies to the team only when an administrator asks for it', async () => {
+      withLayout(null, true);
+      RaevoHomeAPI.saveTeamLayout.mockResolvedValue({
+        data: { team_layout: mine },
+      });
+      const wrapper = mountHome();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      await wrapper.get('[data-testid="home-apply-team"]').setValue(true);
+      await wrapper.get('[data-testid="home-finish-edit"]').trigger('click');
+      await flushPromises();
+
+      expect(RaevoHomeAPI.saveTeamLayout).toHaveBeenCalledWith(
+        expect.objectContaining({ version: 1 })
+      );
+    });
+
+    it('does not offer the team option to someone who is not an administrator', async () => {
+      withLayout(null, false);
+      const wrapper = mountHome();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      expect(wrapper.find('[data-testid="home-apply-team"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('brings a removed block back from the catalog', async () => {
+      mockUISettings.value = { raevo_home_layout: { 3: mine } };
+      withLayout();
+      const wrapper = mountHome();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="home-edit"]').trigger('click');
+      await wrapper.get('[data-testid="home-add-widget"]').trigger('click');
+      await wrapper
+        .get('[data-testid="home-catalog-add-open-conversations"]')
+        .trigger('click');
+
+      expect(widgetOrder(wrapper)).toContain('open-conversations');
+      expect(
+        wrapper.find('[data-testid="home-catalog-add-kpi-agenda"]').exists()
+      ).toBe(false);
+    });
   });
 });

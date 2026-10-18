@@ -287,8 +287,9 @@ const lerDoCodigo = () => {
       },
     },
     typography: {
-      // Seis degraus. A auditoria contou 27 em uso antes do sistema existir.
-      scale: ['micro', 'xs', 'sm', 'base', 'xl', '3xl'],
+      // Seis degraus de texto, mais `display` (18/10) só para o número de um
+      // indicador amplo. A auditoria contou 27 em uso antes do sistema existir.
+      scale: ['micro', 'xs', 'sm', 'base', 'xl', '3xl', 'display'],
       extras: fontSize,
       fontStack: claro.raevo['font-sans']?.value ?? null,
     },
@@ -541,7 +542,7 @@ const referencia = (t, origem = P.tokens) => `<!doctype html>
   </table>
 
   <h2>Tipografia</h2>
-  <p class="meta">Seis degraus. Nunca <code>text-[Npx]</code>.</p>
+  <p class="meta">Seis degraus de texto e <code>display</code> para número de indicador amplo. Nunca <code>text-[Npx]</code>.</p>
   <table><tr><th>Classe</th><th>Amostra</th></tr>
   ${t.typography.scale
     .map(n => {
