@@ -29,6 +29,15 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
     render json: payload
   end
 
+  # O Início de quem nunca arrumou o seu. Quem já arrumou não é tocado — o
+  # painel lê primeiro o layout da pessoa, e só cai neste se ela não tiver.
+  def team_layout
+    authorize Current.account, :update?
+    render json: { team_layout: Raevo::HomeLayout.save!(Current.account, team_layout_params) }
+  rescue Raevo::HomeLayout::Invalid
+    render json: { error: 'invalid_layout' }, status: :unprocessable_entity
+  end
+
   private
 
   def payload
@@ -44,8 +53,17 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
       today_appointments: today_appointments,
       overdue_payments: overdue_payments,
       stale_opportunities: stale_opportunities,
-      filters: filter_options
+      filters: filter_options,
+      layout: layout_payload
     }
+  end
+
+  def layout_payload
+    { team: Raevo::HomeLayout.for(Current.account), can_set_team: Current.account_user&.administrator? || false }
+  end
+
+  def team_layout_params
+    params.require(:layout).permit(:version, items: %i[id x y w h title]).to_h
   end
 
   def filter_options

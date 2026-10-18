@@ -12,6 +12,11 @@ class RaevoHomeAPI extends ApiClient {
   get(params = {}) {
     return axios.get(this.url, { params });
   }
+
+  // O Início que um administrador aplica a quem ainda não arrumou o seu.
+  saveTeamLayout(layout) {
+    return axios.put(`${this.url}/team_layout`, { layout });
+  }
 }
 
 export default new RaevoHomeAPI();

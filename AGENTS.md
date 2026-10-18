@@ -125,7 +125,8 @@ a proposta C · Órbita não é o modo escuro de A — ver `docs/raevo-aprovacao
    referência não redefine um único degrau de tipo — a densidade dela vem da caixa,
    não do tipo.) Seis degraus: `text-micro` (11px, piso, só caixa alta e
    número curto) · `text-xs` (12) · `text-sm` (14) · `text-base` (16) · `text-xl` (20) ·
-   `text-3xl` (30). **Nunca `text-[Npx]`** — a auditoria achou 27 degraus distintos em uso
+   `text-3xl` (30). Mais **`text-display` (48)**, desde 18/10, só para o número de um
+   indicador amplo do Início editável (`RaevoKpiCard size="lg"`). **Nunca `text-[Npx]`** — a auditoria achou 27 degraus distintos em uso
    porque cada tela inventou o seu. Ver `docs/raevo-design-system.md` §4.
 
 7. **Campo de formulário é sempre `RaevoField`.** Nunca escreva `<label>` + `<input>` com

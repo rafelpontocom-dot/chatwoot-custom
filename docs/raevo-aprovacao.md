@@ -499,7 +499,7 @@ ainda por tomar vem no fim.
 | --- | --- | --- | --- | --- | --- |
 | 1 | Pipeline (quadro) | Kanban | 37 `.vue` no módulo | **aprovada 20/09, fechada 21/09** — [ver](https://claude.ai/artifact/8QXUMLHhsJDUSdMsjPgJbw) | quadro, lista, filtros e gaveta implementados; o atalho de teclado do cartão também |
 | 2 | Oportunidade aberta (gaveta) | Kanban | `KanbanOpportunityDetailsModal.vue` | **aprovada 20/09, implementada 26/09; refeita em lista a 08/10** — [26/09](https://claude.ai/artifact/QcWYpjBJq9kKkjGCFEiqxx) · [lista, 07/10](https://claude.ai/artifact/Hq4UgCxH6DMcDRwdFGXpLS) | desde 08/10 é a **ficha empilhada**: secções que abrem e fecham, rótulo em cima, vazios atrás de «Mostrar mais». Saíram as abas e a manchete do valor a 30px — ver «A ficha empilhada» acima |
-| 3 | Início | Home | 1 | **apresentada 20/09, indicadores em 26/09** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. A fila de quatro indicadores entrou; sem setas, porque o controlador não guarda histórico |
+| 3 | Início | Home | 1 | **apresentada 20/09, indicadores em 26/09, editável em 18/10** — [ver](https://claude.ai/artifact/DLSQZn7N2pW3xmWwuUKCr1) | não é painel: é fila de trabalho. A fila de quatro indicadores entrou; sem setas, porque o controlador não guarda histórico |
 | 4 | Financeiro | Finance | 3 | **sem artefacto, corrigida 21/09, indicadores em 25/09** | a permissão limitada foi adiada por decisão do produto. O estado com cor+ícone faltava no detalhe; a fila de quatro substituiu a faixa de três células |
 | 5 | Agenda | Calendar | 30 | **decidido — ver abaixo** | vista atual fica; a nova é alternativa |
 | 6 | Formulários | Forms | 10 | **sem artefacto, migrados 21–25/09** | os 81 controlos passam pelo primitivo; teal deixou de ser cor de ação |
@@ -552,6 +552,34 @@ Dois achados menores no mesmo ecrã:
   mesmo selo com a cor da etapa.
 - O estado sem resultados é uma frase centrada, sem saída. Quase sempre é filtro a
   mais. Proposta: dizer quantos grupos estão ativos e oferecer *Limpar filtros*.
+
+### Início editável — grelha livre, cada pessoa arruma o seu · 18/10/2026
+
+Pedido: o Início em blocos que cada pessoa escolhe, move e redimensiona, com «Editar» e um
+espaço pontilhado com «+» no fim. Três propostas — [ver](https://claude.ai/artifact/VKZht7hy4jcDHFWXaJYDT8):
+A grelha livre, B três tamanhos, C colunas. **Escolhida a A**, com três acrescentos:
+
+- **O conteúdo acompanha o bloco** em degraus da escala (`sm`/`md`/`lg`), não em zoom. O
+  degrau amplo pediu o `text-display` (48px), aprovado na mesma decisão.
+- **O layout é de quem tem a sessão**, por conta, em `users.ui_settings.raevo_home_layout`.
+- **«Aplicar a toda a equipa»**, só para administrador, grava o padrão da conta em
+  `accounts.internal_attributes`. **Não passa por cima de quem já arrumou o seu** — vale só
+  para quem nunca editou, e «Restaurar padrão» volta a segui-lo.
+
+Visto no Kommo (painel em edição, 18/10): grelha de quadrados fixos, sem redimensionar, número
+que escala com a largura, título renomeável no lugar e «aplicar a todos». Copiámos estes três;
+não copiámos o escurecer dos números em edição (ilegível), o fundo fotográfico nem o caixote
+sem desfazer.
+
+O que se ganhou: cada função vê o que usa; os blocos de módulo desligado saem e voltam ao
+mesmo sítio. O que se perdeu: a grelha livre pode ficar com buracos — é o preço da liberdade
+que se pediu, e o «Restaurar padrão» é a saída. Editar só em ecrã ≥1024px; abaixo de 768px
+os blocos empilham pela ordem de leitura. Arrastar tem sempre alternativa: painel «Ajustar»
+com botões e setas / Shift + setas no bloco focado (WCAG 2.2, 2.5.7).
+
+Fica para depois: os insights novos — primeiro os que já têm dados (funil em números, tempo de
+1.ª resposta, comparecimento, IA no atendimento, sem resposta há mais de 24 h), depois os de
+consulta nova.
 
 ### Início — a fila prometia um painel que o servidor não alimenta · 20/09/2026
 

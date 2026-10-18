@@ -995,7 +995,8 @@
       "sm",
       "base",
       "xl",
-      "3xl"
+      "3xl",
+      "display"
     ],
     "extras": {
       "xxxs": "0.5rem",
@@ -1007,6 +1008,10 @@
       "ui": [
         "13px",
         "18px"
+      ],
+      "display": [
+        "48px",
+        "52px"
       ]
     },
     "fontStack": "'Plus Jakarta Sans', 'Inter', -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"

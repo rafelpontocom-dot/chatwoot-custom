@@ -110,6 +110,18 @@ const props = defineProps({
     default: 'card',
     validator: valor => ['card', 'strip', 'inline', 'list'].includes(valor),
   },
+  /**
+   * Só em `card`: o degrau do número. Existe para o Início editável (18/10),
+   * onde o cartão muda de tamanho com o bloco e o número acompanha — `sm`
+   * text-xl, `md` text-3xl (o de sempre), `lg` text-display, e em `lg` o
+   * rótulo e o rodapé sobem de text-xs para text-sm. São degraus da escala,
+   * não zoom: a regra 6 não deixa um número crescer aos píxeis.
+   */
+  size: {
+    type: String,
+    default: 'md',
+    validator: valor => ['sm', 'md', 'lg'].includes(valor),
+  },
 });
 
 // Só `list` emite: é a única densidade que é um controlo.
@@ -171,7 +183,10 @@ const display = computed(() =>
     <p
       v-else
       :class="{
-        'col-start-1 text-xs text-n-slate-10': density === 'card',
+        'col-start-1 text-xs text-n-slate-10':
+          density === 'card' && size !== 'lg',
+        'col-start-1 text-sm text-n-slate-10':
+          density === 'card' && size === 'lg',
         'col-start-1 text-micro font-bold uppercase tracking-[0.12em] text-n-slate-10':
           density === 'strip',
         'text-micro font-bold uppercase tracking-[0.12em] text-n-slate-10':
@@ -214,7 +229,9 @@ const display = computed(() =>
       <span
         class="whitespace-nowrap font-semibold tracking-tight tabular-nums text-n-slate-12"
         :class="{
-          'text-3xl': density === 'card',
+          'text-xl': density === 'card' && size === 'sm',
+          'text-3xl': density === 'card' && size === 'md',
+          'text-display': density === 'card' && size === 'lg',
           'text-base': density === 'strip',
           'text-sm': emLinha || emLista,
         }"
@@ -260,11 +277,13 @@ const display = computed(() =>
     <p
       v-if="footer && !emLinha && !emLista"
       class="col-start-1"
-      :class="
-        emCartao
-          ? 'border-t border-solid border-n-weak pt-cell text-xs text-n-slate-10'
-          : 'text-xs text-n-slate-10'
-      "
+      :class="{
+        'border-t border-solid border-n-weak pt-cell text-xs text-n-slate-10':
+          emCartao && size !== 'lg',
+        'border-t border-solid border-n-weak pt-cell text-sm text-n-slate-10':
+          emCartao && size === 'lg',
+        'text-xs text-n-slate-10': !emCartao,
+      }"
     >
       {{ footer }}
     </p>

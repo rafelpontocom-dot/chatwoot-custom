@@ -147,7 +147,10 @@ Rails.application.routes.draw do
           resources :assignable_agents, only: [:index]
           resource :audit_logs, only: [:show]
           resource :birthday_automation, only: [:show, :update], controller: 'birthday_automation'
-          resource :raevo_home, only: [:show], controller: 'raevo_home'
+          resource :raevo_home, only: [:show], controller: 'raevo_home' do
+            # RAEVO (18/10): o Início que um administrador aplica a toda a equipa.
+            put :team_layout
+          end
           # RAEVO (17/10, 123jpnbcxh4): ações em massa nas Conversas, também sobre o filtro inteiro.
           resources :raevo_conversation_bulk_actions, only: [:create] do
             post :count, on: :collection

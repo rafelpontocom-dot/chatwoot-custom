@@ -1,11 +1,24 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import RaevoHomeAPI from 'dashboard/api/raevoHome';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
 import RaevoKpiCard from 'dashboard/components-next/raevo/RaevoKpiCard.vue';
 import RaevoStamp from 'dashboard/components-next/raevo/RaevoStamp.vue';
+import RaevoHomeGrid from 'dashboard/components-next/raevo/home/RaevoHomeGrid.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useAlert } from 'dashboard/composables';
+import {
+  HOME_WIDGETS,
+  addItem,
+  layoutToSave,
+  removeItem,
+  renameItem,
+  resolveLayout,
+  visibleLayout,
+} from 'dashboard/components-next/raevo/home/raevoHomeLayout';
 
 const { t, locale } = useI18n();
 const route = useRoute();
@@ -117,12 +130,14 @@ const overduePaymentsTotal = computed(() => {
 const homeIndicators = computed(() => {
   const cards = [
     {
+      widget: 'kpi-conversations',
       chave: 'conversations',
       label: t('HOME.OPEN_CONVERSATIONS'),
       value: String(data.value.open_conversations_count ?? 0),
       footer: periodLabel.value,
     },
     {
+      widget: 'kpi-actions',
       chave: 'actions',
       label: t('HOME.OVERDUE_ACTIONS'),
       value: overdueActionsLabel.value,
@@ -134,6 +149,7 @@ const homeIndicators = computed(() => {
   // O cartão não aparece, em vez de mostrar zero e sugerir que está vazio.
   if (todayAppointments.value) {
     cards.push({
+      widget: 'kpi-agenda',
       chave: 'agenda',
       label: t('HOME.TODAY_APPOINTMENTS'),
       value: String(todayAppointments.value.count ?? 0),
@@ -142,6 +158,7 @@ const homeIndicators = computed(() => {
   }
   if (overduePayments.value) {
     cards.push({
+      widget: 'kpi-payments',
       chave: 'overdue-payments',
       label: t('HOME.OVERDUE_PAYMENTS'),
       value: overduePaymentsTotal.value,
@@ -153,6 +170,185 @@ const homeIndicators = computed(() => {
 
   return cards;
 });
+
+const indicatorByWidget = computed(() =>
+  Object.fromEntries(homeIndicators.value.map(card => [card.widget, card]))
+);
+
+// --- O Início editável (proposta A, 18/10) -----------------------------------
+// Cada pessoa arruma o seu. O layout grava-se em `ui_settings`, por conta; quem
+// nunca arrumou vê o da equipa, se um administrador o definiu, e senão o de
+// origem. A geometria toda está em `raevoHomeLayout.js`.
+const { uiSettings, updateUISettings } = useUISettings();
+const accountKey = computed(() => String(route.params.accountId));
+const savedLayouts = computed(() => uiSettings.value?.raevo_home_layout || {});
+const teamLayout = computed(() => data.value.layout?.team || null);
+const canSetTeam = computed(() => Boolean(data.value.layout?.can_set_team));
+const baseLayout = computed(() =>
+  resolveLayout({
+    user: savedLayouts.value[accountKey.value],
+    account: teamLayout.value,
+  })
+);
+
+// Um bloco só existe se o módulo dele está em uso: `null` do servidor quer
+// dizer «não mostrar». Sai do Início e do catálogo, e volta quando o acesso
+// voltar — o lugar dele fica gravado.
+const availableIds = computed(() =>
+  Object.keys(HOME_WIDGETS).filter(id => {
+    if (id === 'kpi-agenda' || id === 'today-appointments') {
+      return Boolean(todayAppointments.value);
+    }
+    if (id === 'kpi-payments' || id === 'overdue-payments') {
+      return Boolean(overduePayments.value);
+    }
+    if (id === 'stale-opportunities') return Boolean(staleOpportunities.value);
+    return true;
+  })
+);
+
+const widgetLabels = computed(() => ({
+  'kpi-conversations': t('HOME.OPEN_CONVERSATIONS'),
+  'kpi-actions': t('HOME.OVERDUE_ACTIONS'),
+  'kpi-agenda': t('HOME.TODAY_APPOINTMENTS'),
+  'kpi-payments': t('HOME.OVERDUE_PAYMENTS'),
+  'today-appointments': t('HOME.TODAY_APPOINTMENTS'),
+  'open-conversations': t('HOME.OPEN_CONVERSATIONS'),
+  'overdue-actions': t('HOME.OVERDUE_ACTIONS'),
+  'overdue-payments': t('HOME.OVERDUE_PAYMENTS'),
+  'stale-opportunities': t('HOME.STALE_OPPORTUNITIES'),
+}));
+
+const editing = ref(false);
+const draft = ref([]);
+// «Restaurar padrão» volta a seguir o Início da equipa: ao concluir, o layout
+// da pessoa apaga-se em vez de gravar uma cópia que deixaria de acompanhar.
+const followDefault = ref(false);
+const applyToTeam = ref(false);
+const lastRemoved = ref(null);
+const isSaving = ref(false);
+const catalogDialog = ref(null);
+const resetDialog = ref(null);
+
+const shownLayout = computed(() =>
+  editing.value
+    ? draft.value
+    : visibleLayout(baseLayout.value, availableIds.value)
+);
+
+const catalog = computed(() =>
+  availableIds.value
+    .filter(id => !draft.value.some(item => item.id === id))
+    .map(id => ({
+      id,
+      label: widgetLabels.value[id],
+      kind: t(`HOME.LAYOUT.KIND.${HOME_WIDGETS[id].kind}`),
+    }))
+);
+
+const startEditing = () => {
+  draft.value = visibleLayout(baseLayout.value, availableIds.value);
+  followDefault.value = false;
+  applyToTeam.value = false;
+  lastRemoved.value = null;
+  editing.value = true;
+};
+
+const stopEditing = () => {
+  editing.value = false;
+  lastRemoved.value = null;
+};
+
+// Qualquer mudança depois de uma remoção tira o «Desfazer»: desfazer agora
+// repunha um estado anterior e deitava fora o que se fez entretanto.
+const changeLayout = items => {
+  draft.value = items;
+  followDefault.value = false;
+  lastRemoved.value = null;
+};
+
+const widgetName = id =>
+  draft.value.find(item => item.id === id)?.title || widgetLabels.value[id];
+
+const removeWidget = id => {
+  const removed = { items: draft.value, name: widgetName(id) };
+  changeLayout(removeItem(draft.value, id));
+  lastRemoved.value = removed;
+};
+
+const undoRemove = () => changeLayout(lastRemoved.value.items);
+
+const renameWidget = (id, title) =>
+  changeLayout(renameItem(draft.value, id, title));
+
+const addWidget = async id => {
+  changeLayout(addItem(draft.value, id));
+  catalogDialog.value?.close();
+  await nextTick();
+  document.querySelector(`[data-widget-id="${id}"]`)?.focus();
+};
+
+const confirmReset = () => {
+  draft.value = visibleLayout(
+    resolveLayout({ account: teamLayout.value }),
+    availableIds.value
+  );
+  followDefault.value = true;
+  lastRemoved.value = null;
+  resetDialog.value?.close();
+};
+
+const finishEditing = async () => {
+  isSaving.value = true;
+  const layout = layoutToSave(
+    draft.value,
+    baseLayout.value,
+    availableIds.value
+  );
+  const layouts = { ...savedLayouts.value };
+  if (followDefault.value) delete layouts[accountKey.value];
+  else layouts[accountKey.value] = layout;
+  updateUISettings({ raevo_home_layout: layouts });
+
+  if (applyToTeam.value && canSetTeam.value) {
+    try {
+      const response = await RaevoHomeAPI.saveTeamLayout(layout);
+      data.value = {
+        ...data.value,
+        layout: { ...data.value.layout, team: response.data.team_layout },
+      };
+    } catch {
+      useAlert(t('HOME.LAYOUT.SAVE_ERROR'));
+    }
+  }
+
+  isSaving.value = false;
+  stopEditing();
+  useAlert(t('HOME.LAYOUT.SAVED'));
+};
+
+// Quantas linhas cabem no bloco. A altura vem medida da moldura; o cabeçalho
+// da secção mede ≈49px e cada linha tem a altura do seu degrau. Empilhado, no
+// telemóvel, a altura é a do conteúdo e cabe tudo o que o servidor mandou.
+const SECTION_HEADER_PX = 49;
+const ROW_PX = {
+  conversation: { sm: 52, md: 62, lg: 68 },
+  payment: { sm: 66, md: 80, lg: 88 },
+  appointment: { sm: 84, md: 96, lg: 104 },
+};
+const rowsThatFit = (slot, row) =>
+  slot.stacked
+    ? Infinity
+    : Math.max(
+        1,
+        Math.floor((slot.height - SECTION_HEADER_PX) / ROW_PX[row][slot.tier])
+      );
+const APPOINTMENT_MIN_COLUMN_PX = 160;
+const appointmentsThatFit = slot =>
+  slot.stacked
+    ? Infinity
+    : Math.max(1, Math.floor(slot.width / APPOINTMENT_MIN_COLUMN_PX)) *
+      rowsThatFit(slot, 'appointment');
 
 const loadHome = async () => {
   isLoading.value = true;
@@ -305,6 +501,7 @@ onMounted(loadHome);
       >
         <template #actions>
           <button
+            v-if="!editing"
             type="button"
             class="inline-flex size-9 items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-n-brand/40"
             :aria-label="t('HOME.REFRESH')"
@@ -312,6 +509,21 @@ onMounted(loadHome);
             @click="loadHome"
           >
             <i class="i-lucide-refresh-cw size-4" aria-hidden="true" />
+          </button>
+          <!--
+            Editar só em ecrã de computador: abaixo de 1024px a grelha empilha
+            numa coluna e não há o que arrumar ao lado.
+          -->
+          <button
+            v-if="!editing && !isLoading && !hasError"
+            type="button"
+            data-testid="home-edit"
+            class="hidden h-9 items-center gap-2 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-n-brand/40 lg:inline-flex"
+            :title="t('HOME.LAYOUT.EDIT_HINT')"
+            @click="startEditing"
+          >
+            <i class="i-lucide-pencil size-4" aria-hidden="true" />
+            {{ t('HOME.LAYOUT.EDIT') }}
           </button>
         </template>
       </RaevoPageHeader>
@@ -404,89 +616,184 @@ onMounted(loadHome);
         </div>
 
         <!--
-        A fila de indicadores do sistema aprovado, logo depois dos filtros que a
-        determinam: o número sem o âmbito não diz de quando é. Agenda e
-        Financeiro só aparecem se o módulo estiver em uso — `null` do servidor
-        quer dizer «não mostrar», e um zero ali sugeriria que está vazio.
+        A barra de edição fica por baixo dos filtros e nunca por cima de um
+        bloco: o foco de quem arruma por teclado não pode ficar tapado (WCAG
+        2.2, 2.4.11). Nada se grava antes de «Concluir».
       -->
         <div
-          v-if="homeIndicators.length"
-          data-testid="home-indicators"
-          class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          v-if="editing"
+          data-testid="home-edit-bar"
+          class="flex flex-wrap items-center gap-2 rounded-xl border border-solid border-n-weak bg-n-solid-2 px-3 py-2 text-sm text-n-slate-12"
         >
-          <RaevoKpiCard
-            v-for="indicador in homeIndicators"
-            :key="indicador.chave"
-            :data-testid="`home-kpi-${indicador.chave}`"
-            :label="indicador.label"
-            :value="indicador.value"
-            :footer="indicador.footer"
+          <i
+            class="i-lucide-layout-dashboard size-4 text-n-slate-11"
+            aria-hidden="true"
           />
+          <span role="status" class="min-w-0 flex-1">
+            {{
+              lastRemoved
+                ? t('HOME.LAYOUT.REMOVED', { name: lastRemoved.name })
+                : t('HOME.LAYOUT.EDITING')
+            }}
+          </span>
+          <button
+            v-if="lastRemoved"
+            type="button"
+            data-testid="home-undo-remove"
+            class="h-8 rounded-lg px-2 font-medium text-n-slate-12 underline hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-n-brand/40"
+            @click="undoRemove"
+          >
+            {{ t('HOME.LAYOUT.UNDO') }}
+          </button>
+          <label
+            v-if="canSetTeam"
+            class="inline-flex items-center gap-2 text-n-slate-12"
+            :title="t('HOME.LAYOUT.APPLY_TEAM_HINT')"
+          >
+            <input
+              v-model="applyToTeam"
+              data-testid="home-apply-team"
+              type="checkbox"
+              class="size-4"
+            />
+            {{ t('HOME.LAYOUT.APPLY_TEAM') }}
+          </label>
+          <button
+            type="button"
+            data-testid="home-reset-layout"
+            class="h-8 rounded-lg px-2 font-medium text-n-slate-12 hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-n-brand/40"
+            @click="resetDialog.open()"
+          >
+            {{ t('HOME.LAYOUT.RESET') }}
+          </button>
+          <button
+            type="button"
+            data-testid="home-cancel-edit"
+            class="h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-3 font-medium text-n-slate-12 hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-n-brand/40"
+            @click="stopEditing"
+          >
+            {{ t('HOME.LAYOUT.CANCEL') }}
+          </button>
+          <button
+            type="button"
+            data-testid="home-finish-edit"
+            class="h-8 rounded-lg bg-n-brand px-3 font-medium text-n-solid-1 focus:outline-none focus:ring-2 focus:ring-n-brand/40 disabled:opacity-50"
+            :disabled="isSaving"
+            @click="finishEditing"
+          >
+            {{ t('HOME.LAYOUT.DONE') }}
+          </button>
         </div>
-        <!--
-        A agenda é a única lista com forma de tempo, e é o que a secretaria vê
-        primeiro de manhã. Por isso é faixa no topo e não mais um cartão.
-      -->
-        <section
-          v-if="todayAppointments"
-          data-testid="home-today-appointments"
-          class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
-        >
-          <div
-            class="flex items-center justify-between gap-2 border-b border-n-weak px-4 py-3"
-          >
-            <div class="flex min-w-0 items-center gap-2">
-              <i
-                class="i-lucide-calendar size-4 text-n-slate-11"
-                aria-hidden="true"
-              />
-              <h2 class="text-sm font-semibold text-n-slate-12">
-                {{ t('HOME.TODAY_APPOINTMENTS') }}
-              </h2>
-              <RaevoStamp :label="String(todayAppointments.count)" size="sm" />
-            </div>
-          </div>
-          <ul
-            v-if="todayAppointments.items.length"
-            class="grid divide-y divide-n-weak sm:grid-cols-3 sm:divide-y-0 xl:grid-cols-6"
-          >
-            <li
-              v-for="appointment in todayAppointments.items"
-              :key="appointment.id"
-              class="flex min-w-0 flex-col gap-0.5 px-4 py-3 sm:border-e sm:border-n-weak"
-            >
-              <span
-                class="text-base font-semibold tabular-nums text-n-slate-12"
-                :title="formatDateTime(appointment.starts_at)"
-              >
-                {{ formatTime(appointment.starts_at) }}
-              </span>
-              <span class="break-words text-sm text-n-slate-12">
-                {{ appointment.procedure_name }}
-              </span>
-              <span class="break-words text-xs text-n-slate-11">
-                {{ appointment.contact_name }}
-              </span>
-              <span class="text-micro uppercase tracking-wide text-n-slate-10">
-                {{
-                  t(
-                    `HOME.APPOINTMENT_STATUS.${appointment.status.toUpperCase()}`
-                  )
-                }}
-              </span>
-            </li>
-          </ul>
-          <p v-else class="px-4 py-6 text-center text-sm text-n-slate-10">
-            {{ t('HOME.EMPTY_APPOINTMENTS') }}
-          </p>
-        </section>
 
-        <div
-          class="grid items-start gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]"
+        <!--
+        Os blocos vivem numa grelha que cada pessoa arruma (18/10). O conteúdo
+        de cada um acompanha o tamanho em três degraus — `tier` sm/md/lg — e as
+        listas mostram as linhas que cabem. Agenda e Financeiro só existem se o
+        módulo estiver em uso: `null` do servidor quer dizer «não mostrar».
+      -->
+        <RaevoHomeGrid
+          :items="shownLayout"
+          :editing="editing"
+          :labels="widgetLabels"
+          @update:items="changeLayout"
+          @remove="removeWidget"
+          @rename="renameWidget"
+          @add="catalogDialog.open()"
         >
-          <div class="flex min-w-0 flex-col gap-4">
+          <template #widget="{ item, ...slot }">
+            <RaevoKpiCard
+              v-if="indicatorByWidget[item.id]"
+              :data-testid="`home-kpi-${indicatorByWidget[item.id].chave}`"
+              class="h-full content-start overflow-hidden"
+              :size="slot.tier"
+              :label="item.title || indicatorByWidget[item.id].label"
+              :value="indicatorByWidget[item.id].value"
+              :footer="
+                slot.tier === 'sm' ? '' : indicatorByWidget[item.id].footer
+              "
+            />
+
+            <!--
+            A agenda é a única lista com forma de tempo: colunas por hora, tantas
+            quantas a largura do bloco deixar.
+          -->
             <section
-              class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
+              v-else-if="item.id === 'today-appointments' && todayAppointments"
+              data-testid="home-today-appointments"
+              class="flex h-full flex-col overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
+            >
+              <div
+                class="flex items-center justify-between gap-2 border-b border-n-weak px-4 py-3"
+              >
+                <div class="flex min-w-0 items-center gap-2">
+                  <i
+                    class="i-lucide-calendar size-4 text-n-slate-11"
+                    aria-hidden="true"
+                  />
+                  <h2
+                    class="font-semibold text-n-slate-12"
+                    :class="slot.tier === 'lg' ? 'text-base' : 'text-sm'"
+                  >
+                    {{ item.title || t('HOME.TODAY_APPOINTMENTS') }}
+                  </h2>
+                  <RaevoStamp
+                    :label="String(todayAppointments.count)"
+                    size="sm"
+                  />
+                </div>
+              </div>
+              <ul
+                v-if="todayAppointments.items.length"
+                class="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] content-start divide-y divide-n-weak overflow-hidden sm:divide-y-0"
+              >
+                <li
+                  v-for="appointment in todayAppointments.items.slice(
+                    0,
+                    appointmentsThatFit(slot)
+                  )"
+                  :key="appointment.id"
+                  class="flex min-w-0 flex-col gap-0.5 px-4 py-3 sm:border-e sm:border-n-weak"
+                >
+                  <span
+                    class="font-semibold tabular-nums text-n-slate-12"
+                    :class="{
+                      'text-sm': slot.tier === 'sm',
+                      'text-base': slot.tier === 'md',
+                      'text-xl': slot.tier === 'lg',
+                    }"
+                    :title="formatDateTime(appointment.starts_at)"
+                  >
+                    {{ formatTime(appointment.starts_at) }}
+                  </span>
+                  <span
+                    class="break-words text-n-slate-12"
+                    :class="slot.tier === 'sm' ? 'text-xs' : 'text-sm'"
+                  >
+                    {{ appointment.procedure_name }}
+                  </span>
+                  <span class="break-words text-xs text-n-slate-11">
+                    {{ appointment.contact_name }}
+                  </span>
+                  <span
+                    class="text-micro uppercase tracking-wide text-n-slate-10"
+                  >
+                    {{
+                      t(
+                        `HOME.APPOINTMENT_STATUS.${appointment.status.toUpperCase()}`
+                      )
+                    }}
+                  </span>
+                </li>
+              </ul>
+              <p v-else class="px-4 py-6 text-center text-sm text-n-slate-10">
+                {{ t('HOME.EMPTY_APPOINTMENTS') }}
+              </p>
+            </section>
+
+            <section
+              v-else-if="item.id === 'open-conversations'"
+              data-testid="home-open-conversations"
+              class="flex h-full flex-col overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
             >
               <div
                 class="flex items-center justify-between border-b border-n-weak px-4 py-3"
@@ -496,12 +803,16 @@ onMounted(loadHome);
                     class="i-lucide-message-circle size-4 text-n-brand"
                     aria-hidden="true"
                   />
-                  <h2 class="text-sm font-semibold text-n-slate-12">
-                    {{ t('HOME.OPEN_CONVERSATIONS') }}
+                  <h2
+                    class="font-semibold text-n-slate-12"
+                    :class="slot.tier === 'lg' ? 'text-base' : 'text-sm'"
+                  >
+                    {{ item.title || t('HOME.OPEN_CONVERSATIONS') }}
                   </h2>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                   <select
+                    v-if="slot.tier !== 'sm'"
                     v-model="conversationSort"
                     data-testid="home-sort-conversations"
                     class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
@@ -521,16 +832,20 @@ onMounted(loadHome);
               </div>
               <div
                 v-if="openConversations.length"
-                class="divide-y divide-n-weak"
+                class="min-h-0 flex-1 divide-y divide-n-weak overflow-hidden"
               >
                 <button
-                  v-for="conversation in openConversations"
+                  v-for="conversation in openConversations.slice(
+                    0,
+                    rowsThatFit(slot, 'conversation')
+                  )"
                   :key="conversation.id"
                   type="button"
                   class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                   @click="openConversation(conversation)"
                 >
                   <span
+                    v-if="slot.tier !== 'sm'"
                     class="grid size-8 shrink-0 place-items-center rounded-full bg-n-blue-3 text-n-blue-11"
                   >
                     <i
@@ -540,7 +855,12 @@ onMounted(loadHome);
                   </span>
                   <span class="min-w-0 flex-1">
                     <span
-                      class="block break-words text-sm font-medium text-n-slate-12"
+                      class="block break-words font-medium text-n-slate-12"
+                      :class="{
+                        'text-xs': slot.tier === 'sm',
+                        'text-sm': slot.tier === 'md',
+                        'text-base': slot.tier === 'lg',
+                      }"
                     >
                       {{
                         conversation.contact_name || t('HOME.UNKNOWN_CONTACT')
@@ -579,14 +899,12 @@ onMounted(loadHome);
               </p>
             </section>
 
-            <!--
-        «Parada» é um sinal mais lento que o resto. Fica na coluna larga, o que
-        também equilibra as duas alturas.
-      -->
             <section
-              v-if="staleOpportunities && staleOpportunities.items.length"
+              v-else-if="
+                item.id === 'stale-opportunities' && staleOpportunities
+              "
               data-testid="home-stale-opportunities"
-              class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
+              class="flex h-full flex-col overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
             >
               <div
                 class="flex items-center gap-2 border-b border-n-weak px-4 py-3"
@@ -595,8 +913,11 @@ onMounted(loadHome);
                   class="i-lucide-circle-pause size-4 text-n-amber-11"
                   aria-hidden="true"
                 />
-                <h2 class="text-sm font-semibold text-n-slate-12">
-                  {{ t('HOME.STALE_OPPORTUNITIES') }}
+                <h2
+                  class="font-semibold text-n-slate-12"
+                  :class="slot.tier === 'lg' ? 'text-base' : 'text-sm'"
+                >
+                  {{ item.title || t('HOME.STALE_OPPORTUNITIES') }}
                 </h2>
                 <RaevoStamp
                   variant="warning"
@@ -604,15 +925,28 @@ onMounted(loadHome);
                   size="sm"
                 />
               </div>
-              <div class="divide-y divide-n-weak">
+              <div
+                v-if="staleOpportunities.items.length"
+                class="min-h-0 flex-1 divide-y divide-n-weak overflow-hidden"
+              >
                 <button
-                  v-for="card in staleOpportunities.items"
+                  v-for="card in staleOpportunities.items.slice(
+                    0,
+                    rowsThatFit(slot, 'conversation')
+                  )"
                   :key="card.kanban_card_id"
                   type="button"
                   class="flex w-full flex-col gap-0.5 px-4 py-3 text-left hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                   @click="openOpportunity(card)"
                 >
-                  <span class="break-words text-sm font-medium text-n-slate-12">
+                  <span
+                    class="break-words font-medium text-n-slate-12"
+                    :class="{
+                      'text-xs': slot.tier === 'sm',
+                      'text-sm': slot.tier === 'md',
+                      'text-base': slot.tier === 'lg',
+                    }"
+                  >
                     {{ card.subject }}
                   </span>
                   <span class="break-words text-xs text-n-slate-10">
@@ -626,12 +960,15 @@ onMounted(loadHome);
                   </span>
                 </button>
               </div>
+              <p v-else class="px-4 py-10 text-center text-sm text-n-slate-10">
+                {{ t('HOME.EMPTY_STALE') }}
+              </p>
             </section>
-          </div>
 
-          <div class="flex min-w-0 flex-col gap-4">
             <section
-              class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
+              v-else-if="item.id === 'overdue-actions'"
+              data-testid="home-overdue-actions"
+              class="flex h-full flex-col overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
             >
               <div
                 class="flex items-center justify-between border-b border-n-weak px-4 py-3"
@@ -641,12 +978,16 @@ onMounted(loadHome);
                     class="i-lucide-clock-alert size-4 text-n-ruby-11"
                     aria-hidden="true"
                   />
-                  <h2 class="text-sm font-semibold text-n-slate-12">
-                    {{ t('HOME.OVERDUE_ACTIONS') }}
+                  <h2
+                    class="font-semibold text-n-slate-12"
+                    :class="slot.tier === 'lg' ? 'text-base' : 'text-sm'"
+                  >
+                    {{ item.title || t('HOME.OVERDUE_ACTIONS') }}
                   </h2>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                   <select
+                    v-if="slot.tier !== 'sm'"
                     v-model="actionSort"
                     data-testid="home-sort-actions"
                     class="reset-base mb-0 h-8 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-2 text-xs text-n-slate-11"
@@ -667,22 +1008,34 @@ onMounted(loadHome);
                   />
                 </div>
               </div>
-              <div v-if="overdueActions.length" class="divide-y divide-n-weak">
+              <div
+                v-if="overdueActions.length"
+                class="min-h-0 flex-1 divide-y divide-n-weak overflow-hidden"
+              >
                 <button
-                  v-for="action in overdueActions"
+                  v-for="action in overdueActions.slice(
+                    0,
+                    rowsThatFit(slot, 'conversation')
+                  )"
                   :key="action.kanban_card_id"
                   type="button"
                   class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                   @click="openOpportunity(action)"
                 >
                   <span
+                    v-if="slot.tier !== 'sm'"
                     class="grid size-8 shrink-0 place-items-center rounded-full bg-n-ruby-3 text-n-ruby-11"
                   >
                     <i class="i-lucide-clock-alert size-4" aria-hidden="true" />
                   </span>
                   <span class="min-w-0 flex-1">
                     <span
-                      class="block break-words text-sm font-medium text-n-slate-12"
+                      class="block break-words font-medium text-n-slate-12"
+                      :class="{
+                        'text-xs': slot.tier === 'sm',
+                        'text-sm': slot.tier === 'md',
+                        'text-base': slot.tier === 'lg',
+                      }"
                     >
                       {{ action.subject }}
                     </span>
@@ -711,14 +1064,13 @@ onMounted(loadHome);
             </section>
 
             <!--
-        O Financeiro é opt-in por conta e exige permissão para ver cobranças. Sem
-        as duas coisas o servidor devolve nil e o cartão não existe — não aparece
-        vazio, que seria pior.
-      -->
+            O Financeiro é opt-in por conta e exige permissão para ver cobranças.
+            Sem as duas coisas o servidor devolve nil e o bloco não existe.
+          -->
             <section
-              v-if="overduePayments && overduePayments.items.length"
+              v-else-if="item.id === 'overdue-payments' && overduePayments"
               data-testid="home-overdue-payments"
-              class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
+              class="flex h-full flex-col overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
             >
               <div
                 class="flex items-center gap-2 border-b border-n-weak px-4 py-3"
@@ -727,8 +1079,11 @@ onMounted(loadHome);
                   class="i-lucide-receipt-text size-4 text-n-ruby-11"
                   aria-hidden="true"
                 />
-                <h2 class="text-sm font-semibold text-n-slate-12">
-                  {{ t('HOME.OVERDUE_PAYMENTS') }}
+                <h2
+                  class="font-semibold text-n-slate-12"
+                  :class="slot.tier === 'lg' ? 'text-base' : 'text-sm'"
+                >
+                  {{ item.title || t('HOME.OVERDUE_PAYMENTS') }}
                 </h2>
                 <RaevoStamp
                   variant="danger"
@@ -736,9 +1091,15 @@ onMounted(loadHome);
                   size="sm"
                 />
               </div>
-              <div class="divide-y divide-n-weak">
+              <div
+                v-if="overduePayments.items.length"
+                class="min-h-0 flex-1 divide-y divide-n-weak overflow-hidden"
+              >
                 <button
-                  v-for="payment in overduePayments.items"
+                  v-for="payment in overduePayments.items.slice(
+                    0,
+                    rowsThatFit(slot, 'payment')
+                  )"
                   :key="payment.id"
                   type="button"
                   class="flex w-full flex-col gap-0.5 px-4 py-3 text-left hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40 disabled:cursor-default disabled:hover:bg-transparent"
@@ -750,7 +1111,14 @@ onMounted(loadHome);
                   "
                   @click="openPayment(payment)"
                 >
-                  <span class="break-words text-sm font-medium text-n-slate-12">
+                  <span
+                    class="break-words font-medium text-n-slate-12"
+                    :class="{
+                      'text-xs': slot.tier === 'sm',
+                      'text-sm': slot.tier === 'md',
+                      'text-base': slot.tier === 'lg',
+                    }"
+                  >
                     {{ payment.contact_name }}
                   </span>
                   <span
@@ -770,9 +1138,54 @@ onMounted(loadHome);
                   </span>
                 </button>
               </div>
+              <p v-else class="px-4 py-10 text-center text-sm text-n-slate-10">
+                {{ t('HOME.EMPTY_PAYMENTS') }}
+              </p>
             </section>
-          </div>
-        </div>
+          </template>
+        </RaevoHomeGrid>
+
+        <Dialog
+          ref="catalogDialog"
+          :title="t('HOME.LAYOUT.CATALOG_TITLE')"
+          :show-confirm-button="false"
+          :cancel-button-label="t('HOME.LAYOUT.CLOSE')"
+        >
+          <ul v-if="catalog.length" class="grid gap-2">
+            <li
+              v-for="entry in catalog"
+              :key="entry.id"
+              class="flex items-center justify-between gap-3 rounded-lg border border-solid border-n-weak px-3 py-2"
+            >
+              <span class="grid min-w-0">
+                <span class="break-words text-sm font-medium text-n-slate-12">
+                  {{ entry.label }}
+                </span>
+                <span class="text-xs text-n-slate-11">{{ entry.kind }}</span>
+              </span>
+              <button
+                type="button"
+                :data-testid="`home-catalog-add-${entry.id}`"
+                class="h-8 shrink-0 rounded-lg border border-solid border-n-weak bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-n-brand/40"
+                @click="addWidget(entry.id)"
+              >
+                {{ t('HOME.LAYOUT.CATALOG_ADD') }}
+              </button>
+            </li>
+          </ul>
+          <p v-else class="text-sm text-n-slate-11">
+            {{ t('HOME.LAYOUT.CATALOG_EMPTY') }}
+          </p>
+        </Dialog>
+
+        <Dialog
+          ref="resetDialog"
+          type="alert"
+          :title="t('HOME.LAYOUT.RESET_TITLE')"
+          :description="t('HOME.LAYOUT.RESET_BODY')"
+          :confirm-button-label="t('HOME.LAYOUT.RESET')"
+          @confirm="confirmReset"
+        />
       </div>
     </main>
   </div>
