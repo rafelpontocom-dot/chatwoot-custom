@@ -409,12 +409,15 @@ const choose = item => {
 
     <OnClickOutside v-if="selectedCount" @trigger="closeMenu">
       <div
-        class="flex flex-wrap items-center gap-2 px-4 pb-2"
+        class="flex flex-wrap items-center gap-1.5 px-4 pb-2"
         data-testid="raevo-bulk-actions"
       >
+        <!--
+          Sem ícone nos três: com ele, a 340px de lista, o «⋯» descia para uma
+          segunda linha. O texto já diz a ação.
+        -->
         <Button
           :label="t('RAEVO_CONVERSATION.BULK.RESOLVE')"
-          icon="i-lucide-check"
           slate
           sm
           :disabled="busy"
@@ -423,7 +426,6 @@ const choose = item => {
         />
         <Button
           :label="t('RAEVO_CONVERSATION.BULK.SNOOZE')"
-          icon="i-lucide-alarm-clock"
           slate
           sm
           :disabled="busy"
@@ -434,15 +436,20 @@ const choose = item => {
         />
         <Button
           :label="t('RAEVO_CONVERSATION.BULK.PENDING')"
-          icon="i-lucide-circle-pause"
           slate
           sm
           :disabled="busy"
           data-testid="raevo-bulk-pending"
           @click="run('pending')"
         />
+        <!--
+          Só ícone: com rótulo, as quatro ações não cabiam numa linha na largura
+          da lista (340px) e a barra ficava com duas. Nome acessível e dica dizem
+          o que é.
+        -->
         <Button
-          :label="t('RAEVO_CONVERSATION.BULK.MORE')"
+          v-tooltip.top="t('RAEVO_CONVERSATION.BULK.MORE')"
+          :aria-label="t('RAEVO_CONVERSATION.BULK.MORE')"
           icon="i-lucide-ellipsis"
           slate
           faded
@@ -459,7 +466,7 @@ const choose = item => {
         v-if="menuView"
         ref="menuRef"
         role="menu"
-        class="absolute start-4 top-full z-40 mt-1 grid max-h-96 w-64 gap-px overflow-y-auto rounded-xl bg-n-solid-2 p-1 shadow-lg ring-1 ring-n-weak"
+        class="absolute start-4 top-full z-40 mt-1 grid max-h-[min(36rem,70vh)] w-64 gap-px overflow-y-auto rounded-xl bg-n-solid-2 p-1 shadow-lg ring-1 ring-n-weak"
         data-testid="raevo-bulk-menu"
         @keydown="onMenuKeydown"
       >
