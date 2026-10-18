@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import RaevoHomeAPI from 'dashboard/api/raevoHome';
@@ -12,6 +12,7 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
 import {
   HOME_WIDGETS,
+  INSIGHT_IDS,
   addItem,
   layoutToSave,
   removeItem,
@@ -171,10 +172,6 @@ const homeIndicators = computed(() => {
   return cards;
 });
 
-const indicatorByWidget = computed(() =>
-  Object.fromEntries(homeIndicators.value.map(card => [card.widget, card]))
-);
-
 // --- O Início editável (proposta A, 18/10) -----------------------------------
 // Cada pessoa arruma o seu. O layout grava-se em `ui_settings`, por conta; quem
 // nunca arrumou vê o da equipa, se um administrador o definiu, e senão o de
@@ -194,8 +191,10 @@ const baseLayout = computed(() =>
 // Um bloco só existe se o módulo dele está em uso: `null` do servidor quer
 // dizer «não mostrar». Sai do Início e do catálogo, e volta quando o acesso
 // voltar — o lugar dele fica gravado.
+const insightsAvailable = computed(() => data.value.layout?.insights || []);
 const availableIds = computed(() =>
   Object.keys(HOME_WIDGETS).filter(id => {
+    if (HOME_WIDGETS[id].insight) return insightsAvailable.value.includes(id);
     if (id === 'kpi-agenda' || id === 'today-appointments') {
       return Boolean(todayAppointments.value);
     }
@@ -217,6 +216,13 @@ const widgetLabels = computed(() => ({
   'overdue-actions': t('HOME.OVERDUE_ACTIONS'),
   'overdue-payments': t('HOME.OVERDUE_PAYMENTS'),
   'stale-opportunities': t('HOME.STALE_OPPORTUNITIES'),
+  'kpi-pipeline-value': t('HOME.INSIGHTS.PIPELINE_VALUE'),
+  'kpi-close-rate': t('HOME.INSIGHTS.CLOSE_RATE'),
+  'kpi-won-month': t('HOME.INSIGHTS.WON_MONTH'),
+  'kpi-first-response': t('HOME.INSIGHTS.FIRST_RESPONSE'),
+  'kpi-attendance': t('HOME.INSIGHTS.ATTENDANCE'),
+  'kpi-ai-opportunities': t('HOME.INSIGHTS.AI_OPPORTUNITIES'),
+  'kpi-waiting-24h': t('HOME.INSIGHTS.WAITING_24H'),
 }));
 
 const editing = ref(false);
@@ -234,6 +240,31 @@ const shownLayout = computed(() =>
   editing.value
     ? draft.value
     : visibleLayout(baseLayout.value, availableIds.value)
+);
+
+// Os insights só se calculam se estiverem no Início de quem abre a tela: quem
+// não os pôs não paga as consultas. Acrescentar um pelo «+» pede só esse.
+const insights = ref({});
+const loadInsights = async ({ reset = false } = {}) => {
+  if (reset) insights.value = {};
+  const keys = shownLayout.value
+    .map(item => item.id)
+    .filter(id => INSIGHT_IDS.includes(id) && !(id in insights.value));
+  if (!keys.length) return;
+  try {
+    const response = await RaevoHomeAPI.getInsights({
+      keys,
+      inbox_id: inboxId.value || undefined,
+      board_id: boardId.value || undefined,
+    });
+    insights.value = { ...insights.value, ...response.data.insights };
+  } catch {
+    // Sem o número o cartão mostra o travessão; o resto do Início não depende dele.
+  }
+};
+watch(
+  () => shownLayout.value.map(item => item.id).join(),
+  () => loadInsights()
 );
 
 const catalog = computed(() =>
@@ -343,6 +374,17 @@ const rowsThatFit = (slot, row) =>
         1,
         Math.floor((slot.height - SECTION_HEADER_PX) / ROW_PX[row][slot.tier])
       );
+// Quando há mais conversas do que linhas, a última linha é o «Ver todas»: sem
+// esta reserva o botão ficava cortado no fundo do bloco.
+const conversationRows = slot => {
+  const fit = rowsThatFit(slot, 'conversation');
+  const total = Number(data.value.open_conversations_count || 0);
+  const shown =
+    total > fit
+      ? openConversations.value.slice(0, Math.max(1, fit - 1))
+      : openConversations.value.slice(0, fit);
+  return { shown, hidden: Math.max(total - shown.length, 0) };
+};
 const APPOINTMENT_MIN_COLUMN_PX = 160;
 const appointmentsThatFit = slot =>
   slot.stacked
@@ -363,6 +405,7 @@ const loadHome = async () => {
       period: period.value || undefined,
     });
     data.value = response.data;
+    loadInsights({ reset: true });
   } catch {
     hasError.value = true;
   } finally {
@@ -407,6 +450,83 @@ const formatMoney = (cents, currency) =>
     style: 'currency',
     currency: currency || 'BRL',
   }).format((Number(cents) || 0) / 100);
+
+const formatPercent = value =>
+  value === null || value === undefined
+    ? null
+    : `${new Intl.NumberFormat(intlLocale.value, { maximumFractionDigits: 1 }).format(value)}%`;
+
+const MINUTE = 60;
+const HOUR = 3600;
+const formatDuration = seconds => {
+  if (seconds === null || seconds === undefined) return null;
+  if (seconds < MINUTE) return t('HOME.INSIGHTS.SECONDS', { count: seconds });
+  if (seconds < HOUR) {
+    return t('HOME.INSIGHTS.MINUTES', { count: Math.round(seconds / MINUTE) });
+  }
+  return t('HOME.INSIGHTS.HOURS', {
+    hours: Math.floor(seconds / HOUR),
+    minutes: Math.round((seconds % HOUR) / MINUTE),
+  });
+};
+
+// Cada insight vira um cartão de número como os outros. Enquanto não chega, o
+// valor é `null` e o cartão mostra o travessão — nunca um zero que mentiria.
+const INSIGHT_CARDS = {
+  'kpi-pipeline-value': v => ({
+    value: v && formatMoney(v.amount_cents, v.currency),
+    footer: t('HOME.INSIGHTS.PIPELINE_FOOTER'),
+  }),
+  'kpi-close-rate': v => ({
+    value: v && formatPercent(v.rate),
+    footer: v ? t('HOME.INSIGHTS.CLOSE_RATE_FOOTER', { count: v.closed }) : '',
+  }),
+  'kpi-won-month': v => ({
+    value: v && String(v.count),
+    footer: v ? formatMoney(v.amount_cents, v.currency) : '',
+  }),
+  'kpi-first-response': v => ({
+    value: v && formatDuration(v.today_seconds),
+    footer:
+      v && v.week_seconds !== null
+        ? t('HOME.INSIGHTS.FIRST_RESPONSE_FOOTER', {
+            week: formatDuration(v.week_seconds),
+          })
+        : '',
+  }),
+  'kpi-attendance': v => ({
+    value: v && formatPercent(v.rate),
+    footer: v
+      ? t('HOME.INSIGHTS.ATTENDANCE_FOOTER', {
+          noShow: v.no_show,
+          canceled: v.canceled,
+        })
+      : '',
+  }),
+  'kpi-ai-opportunities': v => ({
+    value: v && String(v.count),
+    footer: v ? t('HOME.INSIGHTS.AI_FOOTER', { days: v.window_days }) : '',
+  }),
+  'kpi-waiting-24h': v => ({
+    value: v && String(v.count),
+    footer: t('HOME.INSIGHTS.WAITING_FOOTER'),
+  }),
+};
+
+const indicatorByWidget = computed(() => ({
+  ...Object.fromEntries(homeIndicators.value.map(card => [card.widget, card])),
+  ...Object.fromEntries(
+    INSIGHT_IDS.map(id => [
+      id,
+      {
+        widget: id,
+        chave: id.replace('kpi-', ''),
+        label: widgetLabels.value[id],
+        ...INSIGHT_CARDS[id](insights.value[id]),
+      },
+    ])
+  ),
+}));
 
 const DAY_IN_MS = 86400000;
 const daysSince = value =>
@@ -457,14 +577,6 @@ const formatRelative = value => {
 
   return formatter.format(-amount, unit);
 };
-
-const hiddenConversationsCount = computed(() =>
-  Math.max(
-    Number(data.value.open_conversations_count || 0) -
-      openConversations.value.length,
-    0
-  )
-);
 
 const goToAllConversations = () => {
   router.push({
@@ -835,10 +947,7 @@ onMounted(loadHome);
                 class="min-h-0 flex-1 divide-y divide-n-weak overflow-hidden"
               >
                 <button
-                  v-for="conversation in openConversations.slice(
-                    0,
-                    rowsThatFit(slot, 'conversation')
-                  )"
+                  v-for="conversation in conversationRows(slot).shown"
                   :key="conversation.id"
                   type="button"
                   class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
@@ -885,13 +994,15 @@ onMounted(loadHome);
                   </span>
                 </button>
                 <button
-                  v-if="hiddenConversationsCount"
+                  v-if="conversationRows(slot).hidden"
                   type="button"
                   data-testid="home-see-all-conversations"
                   class="flex w-full items-center justify-center px-4 py-3 text-sm font-medium text-n-brand hover:bg-n-alpha-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-n-brand/40"
                   @click="goToAllConversations"
                 >
-                  {{ t('HOME.SEE_ALL', { count: hiddenConversationsCount }) }}
+                  {{
+                    t('HOME.SEE_ALL', { count: conversationRows(slot).hidden })
+                  }}
                 </button>
               </div>
               <p v-else class="px-4 py-10 text-center text-sm text-n-slate-10">

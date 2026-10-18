@@ -38,6 +38,15 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
     render json: { error: 'invalid_layout' }, status: :unprocessable_entity
   end
 
+  # Só os insights pedidos, e só os que a pessoa pode ver. Uma chave que não
+  # existe é pedido mal feito.
+  def insights
+    keys = Array(params[:keys]).map(&:to_s)
+    return render json: { error: 'unknown_insight' }, status: :unprocessable_entity unless (keys - Raevo::HomeInsights::KEYS).empty?
+
+    render json: { insights: home_insights.values(keys) }
+  end
+
   private
 
   def payload
@@ -59,7 +68,24 @@ class Api::V1::Accounts::RaevoHomeController < Api::V1::Accounts::BaseController
   end
 
   def layout_payload
-    { team: Raevo::HomeLayout.for(Current.account), can_set_team: Current.account_user&.administrator? || false }
+    {
+      team: Raevo::HomeLayout.for(Current.account),
+      can_set_team: Current.account_user&.administrator? || false,
+      insights: home_insights.available
+    }
+  end
+
+  def home_insights
+    @home_insights ||= Raevo::HomeInsights.new(
+      account: Current.account, user: Current.user, account_user: Current.account_user,
+      boards: insight_boards, inbox_id: selected_inbox_id
+    )
+  end
+
+  # O funil escolhido no filtro, ou todos os que a pessoa vê.
+  def insight_boards
+    scope = policy_scope(KanbanBoard).active
+    selected_board_id ? scope.where(id: selected_board_id) : scope
   end
 
   def team_layout_params

@@ -35,7 +35,24 @@ export const HOME_WIDGETS = Object.freeze({
   'overdue-actions': { kind: 'list' },
   'overdue-payments': { kind: 'list' },
   'stale-opportunities': { kind: 'list' },
+  // Os insights da entrega 2 (18/10): não estão no Início de origem, entram
+  // pelo «+». Os ids espelham `Raevo::HomeInsights::KEYS`.
+  'kpi-pipeline-value': { kind: 'kpi', insight: true },
+  'kpi-close-rate': { kind: 'kpi', insight: true },
+  'kpi-won-month': { kind: 'kpi', insight: true },
+  'kpi-first-response': { kind: 'kpi', insight: true },
+  'kpi-attendance': { kind: 'kpi', insight: true },
+  'kpi-ai-opportunities': { kind: 'kpi', insight: true },
+  'kpi-waiting-24h': { kind: 'kpi', insight: true },
 });
+
+export const INSIGHT_IDS = Object.keys(HOME_WIDGETS).filter(
+  id => HOME_WIDGETS[id].insight
+);
+
+// O tamanho com que entra um bloco que não está no Início de origem: o de um
+// indicador ou de uma lista da fila de hoje.
+const ADD_SIZE = Object.freeze({ kpi: { w: 3, h: 2 }, list: { w: 6, h: 4 } });
 
 // O Início de antes de 18/10, posto na grelha: quatro indicadores, a agenda a
 // toda a largura, conversas à esquerda e larga, ações e cobranças à direita.
@@ -131,15 +148,29 @@ export const renameItem = (items, id, title) =>
 export const removeItem = (items, id) =>
   compactLayout(items.filter(item => item.id !== id));
 
-// Um bloco acrescentado entra no fim, com o tamanho que tinha no Início de
-// origem: é o tamanho em que alguém já pensou para ele.
+// Um bloco acrescentado entra no primeiro espaço livre onde caiba, lido de
+// cima para baixo e da esquerda para a direita — os buracos que a grelha livre
+// deixa são o primeiro sítio a encher. Sem espaço, vai para o fim. O tamanho é
+// o que tinha no Início de origem, onde alguém já pensou nele; um insight, que
+// não estava lá, entra com o tamanho do seu tipo.
 export const addItem = (items, id) => {
   if (items.some(item => item.id === id)) return items;
-  const origin = DEFAULT_HOME_LAYOUT.find(item => item.id === id);
+  const origin =
+    DEFAULT_HOME_LAYOUT.find(item => item.id === id) ||
+    ADD_SIZE[HOME_WIDGETS[id].kind];
   const bottom = Math.max(0, ...items.map(item => item.y + item.h));
+  const candidate = { id, w: origin.w, h: origin.h };
+  for (let y = 0; y <= bottom; y += 1) {
+    for (let x = 0; x <= GRID_COLUMNS - origin.w; x += 1) {
+      const box = { ...candidate, x, y };
+      if (!items.some(item => collides(item, box))) {
+        return compactLayout([...items, clampItem(box)]);
+      }
+    }
+  }
   return compactLayout([
     ...items,
-    clampItem({ id, x: 0, y: bottom, w: origin.w, h: origin.h }),
+    clampItem({ ...candidate, x: 0, y: bottom }),
   ]);
 };
 
