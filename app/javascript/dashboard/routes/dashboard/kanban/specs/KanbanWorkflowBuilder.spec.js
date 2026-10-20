@@ -204,6 +204,79 @@ describe('KanbanWorkflowBuilder', () => {
     wrapper.unmount();
   });
 
+  // O painel passa a dizer se o que se configurou já está gravado, e a gravar de
+  // onde se está. Antes, quem mexia num nó e fechava o painel não tinha nada que
+  // lhe dissesse que a alteração continuava só na memória.
+  describe('inspector footer', () => {
+    const abrirNo = async props => {
+      const wrapper = shallowMount(KanbanWorkflowBuilder, {
+        props: { modelValue: {}, ...props },
+      });
+      wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+      await wrapper.vm.$nextTick();
+
+      return wrapper;
+    };
+
+    it('says the automation is saved and offers nothing to do', async () => {
+      const wrapper = await abrirNo({ hasUnsavedChanges: false });
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-workflow-inspector-save-state"]')
+          .text()
+      ).toBe('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.SAVED');
+      expect(
+        wrapper
+          .find('[data-testid="kanban-workflow-inspector-save"]')
+          .attributes('disabled')
+      ).toBeDefined();
+    });
+
+    it('says the change is not saved yet and asks the screen to save', async () => {
+      const wrapper = await abrirNo({ hasUnsavedChanges: true });
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-workflow-inspector-save-state"]')
+          .text()
+      ).toBe('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.UNSAVED');
+
+      await wrapper
+        .find('[data-testid="kanban-workflow-inspector-save"]')
+        .trigger('click');
+
+      expect(wrapper.emitted('save')).toHaveLength(1);
+    });
+
+    // Gravar é da automação inteira, não só deste nó. O rótulo da tela diz se é
+    // publicar ou guardar rascunho, e tem de chegar aqui — senão o painel
+    // promete uma coisa e o topo faz outra.
+    it('uses the label the screen gives it', async () => {
+      const wrapper = await abrirNo({
+        hasUnsavedChanges: true,
+        saveLabel: 'Publicar',
+      });
+
+      expect(
+        wrapper.find('[data-testid="kanban-workflow-inspector-save"]').text()
+      ).toContain('Publicar');
+    });
+
+    it('does not ask twice while the screen is saving', async () => {
+      const wrapper = await abrirNo({
+        hasUnsavedChanges: true,
+        isSaving: true,
+      });
+
+      expect(
+        wrapper
+          .find('[data-testid="kanban-workflow-inspector-save"]')
+          .attributes('disabled')
+      ).toBeDefined();
+    });
+  });
+
   it('opens configuration as a centered contextual dialog over the canvas', async () => {
     const wrapper = shallowMount(KanbanWorkflowBuilder, {
       props: { modelValue: {} },

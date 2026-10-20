@@ -1197,7 +1197,10 @@
             "TEST_TITLE": "Prévia deste nó",
             "TEST_EMPTY": "Configure o nó para ver o efeito previsto.",
             "HISTORY_TITLE": "Histórico deste nó",
-            "HISTORY_EMPTY": "Este nó ainda não possui execuções registradas."
+            "HISTORY_EMPTY": "Este nó ainda não possui execuções registradas.",
+            "UNSAVED": "Ainda por guardar",
+            "SAVED": "Guardado",
+            "SAVE": "Guardar automação"
           },
           "NODE_STATES": {
             "DRAFT": "Rascunho",

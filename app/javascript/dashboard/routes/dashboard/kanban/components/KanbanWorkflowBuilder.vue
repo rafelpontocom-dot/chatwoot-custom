@@ -36,6 +36,22 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  // O painel do nó grava a automação INTEIRA, porque é isso que existe: um nó
+  // não tem gravação própria no servidor. Sem isto, quem configurava um nó
+  // fechava o painel sem nada lhe dizer que a alteração ainda estava só na
+  // memória, e o botão que grava fica no topo do editor, longe.
+  hasUnsavedChanges: {
+    type: Boolean,
+    default: false,
+  },
+  isSaving: {
+    type: Boolean,
+    default: false,
+  },
+  saveLabel: {
+    type: String,
+    default: '',
+  },
   stages: {
     type: Array,
     default: () => [],
@@ -107,6 +123,7 @@ const emit = defineEmits([
   'update:triggerValue',
   'update:triggerConfig',
   'clearValidation',
+  'save',
 ]);
 const { t } = useI18n();
 const nodes = ref([]);
@@ -2492,6 +2509,41 @@ const handleBuilderKeydown = event => {
             {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.DELETE_CONNECTION') }}
           </button>
         </template>
+
+        <!--
+          Rodapé do painel: diz o estado e grava de onde se está.
+          Grava a automação inteira — é a única gravação que existe. Dizê-lo no
+          texto do botão evita a leitura errada de que só este nó é guardado.
+        -->
+        <footer
+          data-testid="kanban-workflow-inspector-footer"
+          class="sticky bottom-0 -mx-4 -mb-4 mt-2 flex items-center justify-between gap-3 border-t border-n-weak bg-n-surface-1 px-4 py-3 sm:-mx-5 sm:-mb-5 sm:px-5"
+        >
+          <span
+            data-testid="kanban-workflow-inspector-save-state"
+            class="min-w-0 truncate text-xs"
+            :class="hasUnsavedChanges ? 'text-n-amber-11' : 'text-n-slate-11'"
+          >
+            {{
+              hasUnsavedChanges
+                ? t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.UNSAVED')
+                : t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.SAVED')
+            }}
+          </span>
+          <button
+            type="button"
+            data-testid="kanban-workflow-inspector-save"
+            class="flex h-8 shrink-0 items-center gap-2 rounded-md bg-n-brand px-3 text-xs font-medium text-white outline-none hover:bg-n-brand/90 focus:ring-2 focus:ring-n-brand/40 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="isSaving || !hasUnsavedChanges"
+            @click="emit('save')"
+          >
+            <i class="i-lucide-save size-4" aria-hidden="true" />
+            {{
+              saveLabel ||
+              t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.SAVE')
+            }}
+          </button>
+        </footer>
       </KanbanWorkflowInspector>
     </KanbanWorkflowCanvas>
   </section>

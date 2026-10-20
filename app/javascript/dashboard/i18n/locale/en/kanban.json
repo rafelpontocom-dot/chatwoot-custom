@@ -1194,7 +1194,10 @@
             "TEST_TITLE": "Node preview",
             "TEST_EMPTY": "Configure the node to view its expected effect.",
             "HISTORY_TITLE": "Node history",
-            "HISTORY_EMPTY": "This node has no recorded executions yet."
+            "HISTORY_EMPTY": "This node has no recorded executions yet.",
+            "UNSAVED": "Not saved yet",
+            "SAVED": "Saved",
+            "SAVE": "Save automation"
           },
           "NODE_STATES": {
             "DRAFT": "Draft",

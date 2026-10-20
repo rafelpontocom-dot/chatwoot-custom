@@ -167,6 +167,17 @@ const ruleDraftStorageKey = ruleId =>
 
 const copyDraftForm = source => JSON.parse(JSON.stringify(source));
 
+/**
+ * O que já está gravado no servidor, para o painel do nó poder dizer a verdade.
+ *
+ * Não havia nada que distinguisse «configurei e gravei» de «configurei e ainda
+ * está só na memória». Quem mexia num nó e fechava o painel não tinha como
+ * saber. A impressão digital é do formulário inteiro porque a gravação também
+ * é: um nó não se grava sozinho.
+ */
+const formFingerprint = source => JSON.stringify(copyDraftForm(source));
+const savedFingerprint = ref(null);
+
 const restoreRuleDraft = rule => {
   if (!rule?.id || typeof window === 'undefined') return false;
 
@@ -913,6 +924,9 @@ const saveFlowLabel = computed(() =>
     ? t('KANBAN.AUTOMATIONS_WORKSPACE.PUBLISH')
     : t('KANBAN.AUTOMATIONS_WORKSPACE.SAVE_DRAFT')
 );
+const hasUnsavedChanges = computed(
+  () => showEditor.value && savedFingerprint.value !== formFingerprint(form)
+);
 const selectedRuleVersions = computed(() =>
   versionRuleId.value ? ruleVersions.value : []
 );
@@ -1199,12 +1213,14 @@ const applyRule = rule => {
 
 const openNewFlow = () => {
   resetForm();
+  savedFingerprint.value = null;
   form.flowDefinition = blankVisualFlow();
   activeTab.value = 'flows';
   showEditor.value = true;
 };
 const openTemplate = template => {
   resetForm();
+  savedFingerprint.value = null;
   form.name = template.defaultName || template.name;
   form.description = template.description;
   form.eventName = template.eventName;
@@ -1216,6 +1232,10 @@ const openTemplate = template => {
 };
 const openRule = rule => {
   applyRule(rule);
+  // A regra acabou de ser carregada do servidor: é este o estado gravado. Se a
+  // seguir se restaurar um rascunho local, o formulário passa a diferir — e o
+  // painel passa a dizer «por guardar», que é exatamente a verdade.
+  savedFingerprint.value = formFingerprint(form);
   showEditorTest.value = false;
   const restoredDraft = restoreRuleDraft(rule);
   activeTab.value = 'flows';
@@ -2152,6 +2172,7 @@ const save = async () => {
     else rules.value.splice(index, 1, saved);
     rules.value.sort((left, right) => left.position - right.position);
     clearRuleDraft(saved.id);
+    savedFingerprint.value = formFingerprint(form);
     closeEditor();
     activeTab.value = 'flows';
     useAlert(t('KANBAN.SETTINGS.AUTOMATIONS.RULES.SAVE_SUCCESS'));
@@ -3094,6 +3115,9 @@ onMounted(load);
       </div>
       <KanbanWorkflowBuilder
         v-model="form.flowDefinition"
+        :has-unsaved-changes="hasUnsavedChanges"
+        :is-saving="isSaving"
+        :save-label="saveFlowLabel"
         class="min-h-0 flex-1 rounded-none border-x-0 border-b-0"
         :stages="stages"
         :agents="agentOptions"
@@ -3104,6 +3128,7 @@ onMounted(load);
         :lost-reason-options="lostReasonOptions"
         :condition-fields="conditionFields"
         :date-fields="dateFields"
+        @save="save"
         :connections="connections"
         :trigger-options="eventOptions"
         :trigger-value="form.eventName"

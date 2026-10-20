@@ -19,6 +19,12 @@ const inspector = ref(null);
 // No telemóvel continua folha com véu: aí não há espaço para os dois, e o véu
 // passa a dizer a verdade. Por isso `aria-modal` acompanha — anunciá-lo modal
 // com a tela clicável por trás seria mentir ao leitor de ecrã.
+// A largura ACOMPANHA o ecrã: 320px a partir de 640, 384px a partir de 1024,
+// 448px a partir de 1280. Ficar nos 320px fixos deixava o nó de mensagem —
+// caixa de texto, caixa de entrada, variáveis e anexos — em ~280px úteis, os
+// mesmos num monitor de 2560px. Não cresce mais do que isto de propósito: a
+// tela por trás é o que se está a decidir, e um painel que a come deixa de ser
+// contextual.
 const CONSULTA = '(min-width: 640px)';
 const ancorado = ref(true);
 let consulta = null;
@@ -57,7 +63,7 @@ defineExpose({ focus, querySelector });
           ? 'kanban-workflow-node-drawer'
           : 'kanban-workflow-connection-dialog'
       "
-      class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 shadow-lg outline-none sm:inset-x-auto sm:left-auto sm:right-4 sm:w-80 sm:p-5"
+      class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 shadow-lg outline-none sm:inset-x-auto sm:left-auto sm:right-4 sm:w-80 sm:p-5 lg:w-96 xl:w-[28rem]"
       role="dialog"
       :aria-modal="String(!ancorado)"
       :aria-labelledby="ariaLabelledby"
