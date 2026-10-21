@@ -10,6 +10,8 @@ const props = defineProps({
   // O painel pode abrir largo a pedido de quem configura. A largura é do
   // PAINEL, não da janela — por isso vem por prop e não por `sm:`.
   wide: { type: Boolean, default: false },
+  // O que a automação respondeu por todos os nós de mensagem.
+  messageDefaults: { type: Object, default: () => ({}) },
   t: { type: Function, required: true },
 });
 
@@ -24,6 +26,62 @@ const contentInput = ref(null);
 const variableMenuOpen = ref(false);
 const variableQuery = ref('');
 const data = computed(() => props.node.data);
+
+/**
+ * O que ESTE nó está a herdar da automação, neste momento.
+ *
+ * Sem isto a herança é mágica: o campo fica em branco, há um valor a actuar por
+ * trás, e quem abre o nó não tem como saber. Um default invisível é pior do que
+ * nenhum — foi exatamente assim que o silêncio em branco deixava passar
+ * mensagem às 23h, só que ao contrário.
+ *
+ * Lista apenas o que está mesmo a herdar: o que o nó preenche não aparece.
+ */
+const ausente = value => value === undefined || value === null || value === '';
+
+const herdadoDaAutomacao = computed(() => {
+  const defaults = props.messageDefaults || {};
+  const quietHours = defaults.quiet_hours || {};
+  const nodeQuiet = data.value.quiet_hours || {};
+  const partes = [];
+
+  if (
+    (quietHours.start || quietHours.end) &&
+    ausente(nodeQuiet.start) &&
+    ausente(nodeQuiet.end)
+  ) {
+    partes.push(
+      props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INHERITED_QUIET', {
+        start: quietHours.start || '—',
+        end: quietHours.end || '—',
+      })
+    );
+  }
+
+  if (
+    !ausente(defaults.frequency_limit_hours) &&
+    ausente(data.value.frequency_limit_hours)
+  ) {
+    partes.push(
+      props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INHERITED_FREQUENCY', {
+        hours: defaults.frequency_limit_hours,
+      })
+    );
+  }
+
+  if (
+    !ausente(defaults.opt_in_attribute_key) &&
+    ausente(data.value.opt_in_attribute_key)
+  ) {
+    partes.push(
+      props.t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INHERITED_OPT_IN', {
+        key: defaults.opt_in_attribute_key,
+      })
+    );
+  }
+
+  return partes;
+});
 const attachment = computed(() => data.value.message_attachment || {});
 const attachmentUrl = computed(() => {
   if (!attachment.value.signed_id || !attachment.value.filename) return '';
@@ -144,6 +202,7 @@ const insert = value => {
             :id="fieldId"
             v-model="data.opt_in_attribute_key"
             type="text"
+            :placeholder="messageDefaults.opt_in_attribute_key || ''"
             :class="controlClass"
             @change="emit('update')"
           />
@@ -270,6 +329,22 @@ const insert = value => {
     >
       <summary class="cursor-pointer text-xs font-medium text-n-slate-12">
         {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADVANCED') }}
+        <!--
+          O resumo vive no `summary` de propósito: fechado é o estado normal
+          desta secção, e um aviso que só aparece depois de abrir não avisa
+          ninguém.
+        -->
+        <span
+          v-if="herdadoDaAutomacao.length"
+          data-testid="kanban-workflow-message-inherited"
+          class="mt-1 block font-normal text-n-slate-11"
+        >
+          {{
+            t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INHERITED', {
+              values: herdadoDaAutomacao.join(' · '),
+            })
+          }}
+        </span>
       </summary>
       <div class="mt-3 grid gap-3" :class="wide ? 'grid-cols-2' : ''">
         <label
@@ -335,6 +410,11 @@ const insert = value => {
             type="number"
             min="1"
             max="720"
+            :placeholder="
+              messageDefaults.frequency_limit_hours === undefined
+                ? ''
+                : String(messageDefaults.frequency_limit_hours)
+            "
             class="h-9 rounded-md border border-n-weak bg-n-surface-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
             @change="emit('update')"
         /></label>

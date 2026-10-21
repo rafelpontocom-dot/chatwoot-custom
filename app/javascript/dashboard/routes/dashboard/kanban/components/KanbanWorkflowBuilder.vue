@@ -52,6 +52,13 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  // As regras de envio respondidas na automação. O nó precisa delas para dizer
+  // o que está a herdar — um campo em branco que tem um default a actuar por
+  // trás é pior do que não ter default nenhum.
+  messageDefaults: {
+    type: Object,
+    default: () => ({}),
+  },
   stages: {
     type: Array,
     default: () => [],
@@ -2380,6 +2387,7 @@ const handleBuilderKeydown = event => {
           <KanbanWorkflowMessageInspector
             v-else-if="selectedNode.type === 'send_message'"
             :wide="inspectorWide"
+            :message-defaults="messageDefaults"
             :node="selectedNode"
             :variables="messageVariables"
             :inboxes="inboxes"

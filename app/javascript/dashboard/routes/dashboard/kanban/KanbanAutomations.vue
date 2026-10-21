@@ -2046,7 +2046,10 @@ const visualFlowValidationError = () => {
 
 // Só vai o que foi respondido. Uma chave vazia aqui significaria «herda isto»
 // e punha o nó a receber um valor em branco em vez de ficar com o seu.
-const messageDefaultsPayload = () => {
+//
+// É `computed` e não função porque o painel do nó também precisa dele, para
+// dizer o que está a herdar em vez de mostrar um campo em branco.
+const messageDefaults = computed(() => {
   const defaults = {};
   const start = form.messageQuietStart.trim();
   const end = form.messageQuietEnd.trim();
@@ -2065,7 +2068,7 @@ const messageDefaultsPayload = () => {
   if (optIn) defaults.opt_in_attribute_key = optIn;
 
   return defaults;
-};
+});
 
 const payload = () => ({
   kanban_automation_rule: {
@@ -2171,7 +2174,7 @@ const payload = () => ({
             action_params: actionParams(action),
           })),
     flow_definition: form.flowDefinition,
-    message_defaults: messageDefaultsPayload(),
+    message_defaults: messageDefaults.value,
   },
 });
 
@@ -3238,6 +3241,7 @@ onMounted(load);
       </details>
       <KanbanWorkflowBuilder
         v-model="form.flowDefinition"
+        :message-defaults="messageDefaults"
         :has-unsaved-changes="hasUnsavedChanges"
         :is-saving="isSaving"
         :save-label="saveFlowLabel"

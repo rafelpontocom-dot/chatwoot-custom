@@ -15,6 +15,82 @@ describe('KanbanWorkflowMessageInspector', () => {
     ).toBe('Opções avançadas');
   });
 
+  // Um default invisível é pior do que nenhum: o campo fica em branco, há um
+  // valor a actuar por trás, e quem abre o nó não tem como saber.
+  describe('what the node inherits from the automation', () => {
+    const montar = ({ nodeData = {}, messageDefaults = {} } = {}) =>
+      mount(KanbanWorkflowMessageInspector, {
+        props: {
+          node: {
+            data: {
+              channel: 'whatsapp',
+              content: 'Olá',
+              opt_in_attribute_key: '',
+              failure_mode: 'stop',
+              message_attachment: {},
+              whatsapp_template_params: {},
+              quiet_hours: {},
+              ...nodeData,
+            },
+          },
+          t: (key, params) =>
+            params ? `${key}:${JSON.stringify(params)}` : key,
+          messageDefaults,
+          variables: [],
+          timezones: [],
+        },
+      });
+
+    const aviso = wrapper =>
+      wrapper.find('[data-testid="kanban-workflow-message-inherited"]');
+
+    it('says nothing when the automation answered nothing', () => {
+      expect(aviso(montar()).exists()).toBe(false);
+    });
+
+    it('names each rule it is inheriting', () => {
+      const wrapper = montar({
+        messageDefaults: {
+          quiet_hours: { start: '21:00', end: '08:00' },
+          frequency_limit_hours: 24,
+          opt_in_attribute_key: 'aceita_whatsapp',
+        },
+      });
+
+      const texto = aviso(wrapper).text();
+
+      expect(texto).toContain('21:00');
+      expect(texto).toContain('08:00');
+      expect(texto).toContain('24');
+      expect(texto).toContain('aceita_whatsapp');
+    });
+
+    // O que o nó preenche não é herdado, e não pode aparecer como se fosse.
+    it('leaves out what the node answers for itself', () => {
+      const wrapper = montar({
+        nodeData: { frequency_limit_hours: 2 },
+        messageDefaults: {
+          frequency_limit_hours: 24,
+          opt_in_attribute_key: 'aceita_whatsapp',
+        },
+      });
+
+      const texto = aviso(wrapper).text();
+
+      expect(texto).toContain('aceita_whatsapp');
+      expect(texto).not.toContain('24');
+    });
+
+    it('stops showing the quiet hours once the node sets its own', () => {
+      const wrapper = montar({
+        nodeData: { quiet_hours: { start: '22:00' } },
+        messageDefaults: { quiet_hours: { start: '21:00', end: '08:00' } },
+      });
+
+      expect(aviso(wrapper).exists()).toBe(false);
+    });
+  });
+
   // Num painel de largura fixa, um breakpoint de ECRÃ é sempre a medida errada:
   // `sm:grid-cols-2` punha dois selects lado a lado dentro de 320px, ~140px
   // cada, em qualquer monitor. Quem manda passa a ser o painel.
