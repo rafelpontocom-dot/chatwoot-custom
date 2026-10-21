@@ -1197,7 +1197,9 @@
             "HISTORY_EMPTY": "This node has no recorded executions yet.",
             "UNSAVED": "Not saved yet",
             "SAVED": "Saved",
-            "SAVE": "Save automation"
+            "SAVE": "Save automation",
+            "WIDE": "Widen the panel",
+            "NARROW": "Narrow the panel"
           },
           "NODE_STATES": {
             "DRAFT": "Draft",

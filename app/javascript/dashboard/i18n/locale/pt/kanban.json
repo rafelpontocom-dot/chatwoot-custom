@@ -1200,7 +1200,9 @@
             "HISTORY_EMPTY": "Este nó ainda não possui execuções registradas.",
             "UNSAVED": "Ainda por guardar",
             "SAVED": "Guardado",
-            "SAVE": "Guardar automação"
+            "SAVE": "Guardar automação",
+            "WIDE": "Alargar o painel",
+            "NARROW": "Estreitar o painel"
           },
           "NODE_STATES": {
             "DRAFT": "Rascunho",

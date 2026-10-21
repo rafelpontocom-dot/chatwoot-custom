@@ -143,6 +143,11 @@ const {
 } = useKanbanWorkflowHistory();
 const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
+// Modo largo do painel: vive aqui e não no `ui_settings`, de propósito. É
+// estado do momento de trabalho — abre estreito, alarga enquanto se configura, e
+// atravessa a troca de nó sem sair do editor. Guardá-lo por utilizador faria o
+// painel abrir largo a tapar o canvas a quem só quer escrever uma frase.
+const inspectorWide = ref(false);
 const inspectorTab = ref('configure');
 const inspectorTabs = ['configure', 'test', 'history'];
 const timeNodeTypes = [
@@ -2156,6 +2161,7 @@ const handleBuilderKeydown = event => {
       <KanbanWorkflowInspector
         v-if="selectedNode || selectedEdge"
         ref="inspector"
+        :wide="inspectorWide && Boolean(selectedNode)"
         :node-selected="Boolean(selectedNode)"
         :aria-labelledby="
           selectedNode
@@ -2373,6 +2379,7 @@ const handleBuilderKeydown = event => {
 
           <KanbanWorkflowMessageInspector
             v-else-if="selectedNode.type === 'send_message'"
+            :wide="inspectorWide"
             :node="selectedNode"
             :variables="messageVariables"
             :inboxes="inboxes"
@@ -2519,17 +2526,44 @@ const handleBuilderKeydown = event => {
           data-testid="kanban-workflow-inspector-footer"
           class="sticky bottom-0 -mx-4 -mb-4 mt-2 flex items-center justify-between gap-3 border-t border-n-weak bg-n-surface-1 px-4 py-3 sm:-mx-5 sm:-mb-5 sm:px-5"
         >
-          <span
-            data-testid="kanban-workflow-inspector-save-state"
-            class="min-w-0 truncate text-xs"
-            :class="hasUnsavedChanges ? 'text-n-amber-11' : 'text-n-slate-11'"
-          >
-            {{
-              hasUnsavedChanges
-                ? t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.UNSAVED')
-                : t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.SAVED')
-            }}
-          </span>
+          <div class="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              data-testid="kanban-workflow-inspector-wide"
+              class="flex p-0 size-8 shrink-0 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
+              :aria-pressed="inspectorWide"
+              :aria-label="
+                inspectorWide
+                  ? t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.NARROW')
+                  : t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.WIDE')
+              "
+              :title="
+                inspectorWide
+                  ? t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.NARROW')
+                  : t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.WIDE')
+              "
+              @click="inspectorWide = !inspectorWide"
+            >
+              <i
+                aria-hidden="true"
+                class="size-4"
+                :class="
+                  inspectorWide ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'
+                "
+              />
+            </button>
+            <span
+              data-testid="kanban-workflow-inspector-save-state"
+              class="min-w-0 truncate text-xs"
+              :class="hasUnsavedChanges ? 'text-n-amber-11' : 'text-n-slate-11'"
+            >
+              {{
+                hasUnsavedChanges
+                  ? t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.UNSAVED')
+                  : t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.INSPECTOR.SAVED')
+              }}
+            </span>
+          </div>
           <button
             type="button"
             data-testid="kanban-workflow-inspector-save"

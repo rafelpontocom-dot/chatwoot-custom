@@ -15,6 +15,50 @@ describe('KanbanWorkflowMessageInspector', () => {
     ).toBe('Opções avançadas');
   });
 
+  // Num painel de largura fixa, um breakpoint de ECRÃ é sempre a medida errada:
+  // `sm:grid-cols-2` punha dois selects lado a lado dentro de 320px, ~140px
+  // cada, em qualquer monitor. Quem manda passa a ser o painel.
+  describe('two columns follow the panel, not the window', () => {
+    const montar = wide =>
+      mount(KanbanWorkflowMessageInspector, {
+        props: {
+          node: {
+            data: {
+              channel: 'whatsapp',
+              content: 'Olá',
+              opt_in_attribute_key: '',
+              failure_mode: 'stop',
+              message_attachment: {},
+              whatsapp_template_params: {},
+              quiet_hours: {},
+            },
+          },
+          t,
+          wide,
+          variables: [],
+          timezones: [],
+        },
+      });
+
+    it('stays one column while the panel is narrow', () => {
+      const classes = montar(false).find('section').classes();
+
+      expect(classes).not.toContain('grid-cols-2');
+    });
+
+    it('never uses a screen breakpoint for the panel layout', () => {
+      const html = montar(false).html();
+
+      expect(html).not.toContain('sm:grid-cols-2');
+    });
+
+    it('goes to two columns when the panel is widened', () => {
+      const classes = montar(true).find('section').classes();
+
+      expect(classes).toContain('grid-cols-2');
+    });
+  });
+
   it('keeps the message preview next to the essential composer controls', () => {
     const wrapper = mount(KanbanWorkflowMessageInspector, {
       props: {

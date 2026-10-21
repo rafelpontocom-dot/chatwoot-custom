@@ -40,11 +40,12 @@ config.global.stubs.KanbanWorkflowCanvas = {
 };
 
 config.global.stubs.KanbanWorkflowInspector = {
-  props: ['nodeSelected'],
+  props: ['nodeSelected', 'wide'],
   template: `
     <div>
       <div data-testid="kanban-workflow-inspector-backdrop" />
       <aside
+        :data-wide="String(wide)"
         :data-testid="nodeSelected ? 'kanban-workflow-node-drawer' : 'kanban-workflow-connection-dialog'"
         class="sm:left-1/2 sm:top-1/2 sm:w-[min(44rem,calc(100vw-4rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:bottom-auto"
         role="dialog"
@@ -261,6 +262,28 @@ describe('KanbanWorkflowBuilder', () => {
       expect(
         wrapper.find('[data-testid="kanban-workflow-inspector-save"]').text()
       ).toContain('Publicar');
+    });
+
+    // Escrever a mensagem quer o painel estreito, com o fluxo à vista; configurar
+    // tudo de uma vez quer duas colunas. Quem escolhe é quem está a trabalhar —
+    // nunca abre largo sozinho.
+    it('opens narrow and widens only when asked', async () => {
+      const wrapper = await abrirNo({});
+      const painel = () =>
+        wrapper.find('[data-testid="kanban-workflow-node-drawer"]');
+
+      expect(painel().attributes('data-wide')).toBe('false');
+
+      await wrapper
+        .find('[data-testid="kanban-workflow-inspector-wide"]')
+        .trigger('click');
+
+      expect(painel().attributes('data-wide')).toBe('true');
+      expect(
+        wrapper
+          .find('[data-testid="kanban-workflow-inspector-wide"]')
+          .attributes('aria-pressed')
+      ).toBe('true');
     });
 
     it('does not ask twice while the screen is saving', async () => {

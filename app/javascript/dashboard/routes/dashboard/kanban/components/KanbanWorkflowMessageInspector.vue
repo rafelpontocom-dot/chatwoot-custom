@@ -7,10 +7,19 @@ const props = defineProps({
   variables: { type: Array, default: () => [] },
   inboxes: { type: Array, default: () => [] },
   timezones: { type: Array, default: () => [] },
+  // O painel pode abrir largo a pedido de quem configura. A largura é do
+  // PAINEL, não da janela — por isso vem por prop e não por `sm:`.
+  wide: { type: Boolean, default: false },
   t: { type: Function, required: true },
 });
 
 const emit = defineEmits(['update', 'attachment', 'remove-attachment']);
+
+// Num painel de largura fixa, um breakpoint de ecrã é sempre a medida errada:
+// `sm:grid-cols-2` punha dois selects lado a lado dentro de 320px, ~140px cada,
+// em qualquer monitor. Quem manda é o painel.
+const spanAll = computed(() => (props.wide ? 'col-span-2' : ''));
+
 const contentInput = ref(null);
 const variableMenuOpen = ref(false);
 const variableQuery = ref('');
@@ -76,8 +85,11 @@ const insert = value => {
 
 <template>
   <!-- eslint-disable vue/html-closing-bracket-newline, vue/multiline-html-element-content-newline -->
-  <section class="grid gap-3">
-    <div class="rounded-lg border border-n-weak bg-n-surface-2 p-3">
+  <section class="grid gap-3" :class="wide ? 'grid-cols-2' : ''">
+    <div
+      class="rounded-lg border border-n-weak bg-n-surface-2 p-3"
+      :class="spanAll"
+    >
       <p class="m-0 text-sm font-semibold text-n-slate-12">
         {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.NODES.MESSAGE') }}
       </p>
@@ -86,7 +98,7 @@ const insert = value => {
       </p>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div :class="wide ? 'contents' : 'grid gap-3'">
       <RaevoField
         :label="t('KANBAN.SETTINGS.SALES.SYSTEM_FIELDS.INBOX')"
         variant="select"
@@ -139,7 +151,10 @@ const insert = value => {
       </RaevoField>
     </div>
 
-    <div class="grid gap-2 rounded-lg border border-n-weak bg-n-surface-2 p-3">
+    <div
+      class="grid gap-2 rounded-lg border border-n-weak bg-n-surface-2 p-3"
+      :class="spanAll"
+    >
       <label class="grid gap-1 text-xs font-medium text-n-slate-11">
         {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE') }}
         <textarea
@@ -249,12 +264,17 @@ const insert = value => {
       </button>
     </div>
 
-    <details class="rounded-md border border-n-weak bg-n-surface-2 p-3">
+    <details
+      class="rounded-md border border-n-weak bg-n-surface-2 p-3"
+      :class="spanAll"
+    >
       <summary class="cursor-pointer text-xs font-medium text-n-slate-12">
         {{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.ADVANCED') }}
       </summary>
-      <div class="mt-3 grid gap-3">
-        <label class="grid gap-1 text-xs font-medium text-n-slate-11"
+      <div class="mt-3 grid gap-3" :class="wide ? 'grid-cols-2' : ''">
+        <label
+          class="grid gap-1 text-xs font-medium text-n-slate-11"
+          :class="spanAll"
           >{{ t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.MESSAGE_FAILURE_POLICY')
           }}<select
             v-model="data.failure_mode"

@@ -4,6 +4,13 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 defineProps({
   nodeSelected: { type: Boolean, default: false },
   ariaLabelledby: { type: String, required: true },
+  // Modo largo, pedido por quem está a configurar. Escrever a mensagem quer o
+  // painel estreito, com o desenho do fluxo à vista; configurar tudo de uma vez
+  // quer duas colunas. São dois momentos, e quem escolhe é quem trabalha.
+  //
+  // Nunca abre largo sozinho: o AGENTS.md proíbe um inspetor permanente que
+  // encolha o canvas, e é por isso que isto é um pedido e não um default.
+  wide: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close', 'focusin', 'keydown']);
@@ -63,7 +70,10 @@ defineExpose({ focus, querySelector });
           ? 'kanban-workflow-node-drawer'
           : 'kanban-workflow-connection-dialog'
       "
-      class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 shadow-lg outline-none sm:inset-x-auto sm:left-auto sm:right-4 sm:w-80 sm:p-5 lg:w-96 xl:w-[28rem]"
+      class="fixed inset-x-4 bottom-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-auto content-start gap-4 overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 shadow-lg outline-none sm:inset-x-auto sm:left-auto sm:right-4 sm:p-5"
+      :class="
+        wide ? 'sm:w-[44rem] lg:w-[52rem]' : 'sm:w-80 lg:w-96 xl:w-[28rem]'
+      "
       role="dialog"
       :aria-modal="String(!ancorado)"
       :aria-labelledby="ariaLabelledby"
