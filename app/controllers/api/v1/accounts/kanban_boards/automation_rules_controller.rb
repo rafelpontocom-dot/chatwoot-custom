@@ -172,6 +172,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       :lock_version,
       :position,
       flow_definition: {},
+      message_defaults: {},
       conditions: condition_params,
       actions: [:action_name, { action_params: {} }]
     )
@@ -205,6 +206,7 @@ class Api::V1::Accounts::KanbanBoards::AutomationRulesController < Api::V1::Acco
       conditions: rule.conditions,
       actions: rule.actions,
       flow_definition: rule.flow_definition,
+      message_defaults: rule.message_defaults,
       executions_count: rule.kanban_automation_executions.count,
       waiting_executions_count: rule.kanban_automation_executions.waiting.count,
       last_execution: rule.kanban_automation_executions.order(created_at: :desc, id: :desc).first&.then { |execution| execution_payload(execution) }

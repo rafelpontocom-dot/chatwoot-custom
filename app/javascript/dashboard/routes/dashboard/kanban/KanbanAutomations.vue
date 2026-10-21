@@ -27,6 +27,7 @@ import {
   getKanbanWorkflowNodeLabel,
 } from './components/kanbanWorkflowNodeDefinitions';
 import RaevoPageHeader from 'dashboard/components-next/raevo/RaevoPageHeader.vue';
+import RaevoField from 'dashboard/components-next/raevo/RaevoField.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -160,6 +161,14 @@ const form = reactive({
   fieldValue: '',
   actions: [blankAction()],
   flowDefinition: {},
+  // Regras de envio respondidas UMA vez para a automação. Vazio é o estado de
+  // sempre: enquanto estiver vazio nada herda, e cada nó continua a mandar como
+  // mandava.
+  messageQuietStart: '',
+  messageQuietEnd: '',
+  messageQuietTimezone: '',
+  messageFrequencyHours: '',
+  messageOptInKey: '',
 });
 
 const ruleDraftStorageKey = ruleId =>
@@ -1143,6 +1152,11 @@ const resetForm = () => {
   form.fieldOperator = 'equals';
   form.fieldValue = '';
   form.flowDefinition = {};
+  form.messageQuietStart = '';
+  form.messageQuietEnd = '';
+  form.messageQuietTimezone = '';
+  form.messageFrequencyHours = '';
+  form.messageOptInKey = '';
   form.actions.splice(0, form.actions.length, blankAction());
 };
 
@@ -1208,6 +1222,20 @@ const applyRule = rule => {
   form.fieldOperator = field.operator || 'equals';
   form.fieldValue = field.value || '';
   form.flowDefinition = normalized.flowDefinition || {};
+  const messageDefaults = normalized.messageDefaults || {};
+  const quietHours =
+    messageDefaults.quietHours || messageDefaults.quiet_hours || {};
+  form.messageQuietStart = quietHours.start || '';
+  form.messageQuietEnd = quietHours.end || '';
+  form.messageQuietTimezone = quietHours.timezone || '';
+  form.messageFrequencyHours =
+    messageDefaults.frequencyLimitHours ??
+    messageDefaults.frequency_limit_hours ??
+    '';
+  form.messageOptInKey =
+    messageDefaults.optInAttributeKey ||
+    messageDefaults.opt_in_attribute_key ||
+    '';
   form.actions.splice(0, form.actions.length, ...(normalized.actions || []));
 };
 
@@ -2016,6 +2044,29 @@ const visualFlowValidationError = () => {
   };
 };
 
+// Só vai o que foi respondido. Uma chave vazia aqui significaria «herda isto»
+// e punha o nó a receber um valor em branco em vez de ficar com o seu.
+const messageDefaultsPayload = () => {
+  const defaults = {};
+  const start = form.messageQuietStart.trim();
+  const end = form.messageQuietEnd.trim();
+  const timezone = form.messageQuietTimezone.trim();
+  const hours = String(form.messageFrequencyHours).trim();
+  const optIn = form.messageOptInKey.trim();
+
+  if (start || end) {
+    defaults.quiet_hours = {
+      ...(start ? { start } : {}),
+      ...(end ? { end } : {}),
+      ...(timezone ? { timezone } : {}),
+    };
+  }
+  if (hours !== '') defaults.frequency_limit_hours = Number(hours);
+  if (optIn) defaults.opt_in_attribute_key = optIn;
+
+  return defaults;
+};
+
 const payload = () => ({
   kanban_automation_rule: {
     name: form.name.trim(),
@@ -2120,6 +2171,7 @@ const payload = () => ({
             action_params: actionParams(action),
           })),
     flow_definition: form.flowDefinition,
+    message_defaults: messageDefaultsPayload(),
   },
 });
 
@@ -3113,6 +3165,77 @@ onMounted(load);
           </select>
         </label>
       </div>
+      <!--
+        As regras de envio da automação: respondidas UMA vez, herdadas por todos
+        os nós de mensagem que não disserem o contrário. Fechada por omissão —
+        quem não preenche nada continua a configurar nó a nó, como antes.
+      -->
+      <details
+        data-testid="kanban-automation-message-defaults"
+        class="border-b border-n-weak bg-n-surface-1 px-4 py-3 lg:px-6"
+      >
+        <summary
+          class="cursor-pointer text-xs font-medium text-n-slate-12 marker:text-n-slate-10"
+        >
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.MESSAGE_DEFAULTS.TITLE') }}
+        </summary>
+        <p class="m-0 mt-2 text-xs text-n-slate-11">
+          {{ t('KANBAN.AUTOMATIONS_WORKSPACE.MESSAGE_DEFAULTS.HINT') }}
+        </p>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <RaevoField
+            :label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_START')"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="form.messageQuietStart"
+                data-testid="kanban-automation-default-quiet-start"
+                type="time"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField
+            :label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.QUIET_END')"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="form.messageQuietEnd"
+                data-testid="kanban-automation-default-quiet-end"
+                type="time"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField
+            :label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.FREQUENCY_LIMIT')"
+          >
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="form.messageFrequencyHours"
+                data-testid="kanban-automation-default-frequency"
+                type="number"
+                min="0"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+          <RaevoField :label="t('KANBAN.SETTINGS.AUTOMATIONS.WORKFLOW.OPT_IN')">
+            <template #default="{ controlClass, fieldId }">
+              <input
+                :id="fieldId"
+                v-model="form.messageOptInKey"
+                data-testid="kanban-automation-default-opt-in"
+                type="text"
+                :class="controlClass"
+              />
+            </template>
+          </RaevoField>
+        </div>
+      </details>
       <KanbanWorkflowBuilder
         v-model="form.flowDefinition"
         :has-unsaved-changes="hasUnsavedChanges"
@@ -3128,7 +3251,6 @@ onMounted(load);
         :lost-reason-options="lostReasonOptions"
         :condition-fields="conditionFields"
         :date-fields="dateFields"
-        @save="save"
         :connections="connections"
         :trigger-options="eventOptions"
         :trigger-value="form.eventName"
@@ -3136,6 +3258,7 @@ onMounted(load);
         :trigger-config="form"
         :invalid-node-ids="invalidNodeIds"
         :execution-history="selectedRuleExecutionHistory"
+        @save="save"
         @update:trigger-value="setFlowTriggerEvent"
         @update:trigger-config="updateFlowTriggerConfig"
         @clear-validation="clearFlowValidation"

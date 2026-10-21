@@ -10,6 +10,7 @@
 #  event_name         :string           not null
 #  flow_definition    :jsonb            not null
 #  lock_version       :integer          default(0), not null
+#  message_defaults   :jsonb            not null
 #  name               :string           not null
 #  position           :integer          default(0), not null
 #  reentry_enabled    :boolean          default(FALSE), not null
@@ -91,6 +92,32 @@ class KanbanAutomationRule < ApplicationRecord
   validate :actions_are_supported
   validate :references_belong_to_board
   validate :flow_definition_is_supported
+  validate :message_defaults_are_supported
+
+  # Regras de envio respondidas UMA vez para a automação, em vez de uma vez por
+  # nó de mensagem.
+  #
+  # `failure_mode` fica de FORA de propósito: não é lido só pelo serviço de
+  # mensagem — o `WorkflowService` lê `data['failure_mode']` diretamente para
+  # decidir encaminhamento, e em vários tipos de nó. Herdá-lo aqui mostraria na
+  # tela uma política que o encaminhador ignora.
+  MESSAGE_POLICY_KEYS = %w[quiet_hours frequency_limit_hours opt_in_attribute_key].freeze
+
+  # O que o nó diz GANHA sempre; ausente é que herda. E `0` em frequência é uma
+  # resposta — «sem limite» —, não uma ausência.
+  def message_node_data(node_data)
+    merged = node_data.to_h.deep_stringify_keys
+    defaults = message_defaults.to_h.deep_stringify_keys
+
+    MESSAGE_POLICY_KEYS.each do |key|
+      next unless policy_value_absent?(merged[key])
+      next if defaults[key].nil? || defaults[key] == ''
+
+      merged[key] = defaults[key]
+    end
+
+    merged
+  end
 
   def trigger_conditions
     conditions.to_h.with_indifferent_access
@@ -132,6 +159,32 @@ class KanbanAutomationRule < ApplicationRecord
   end
 
   private
+
+  def policy_value_absent?(value)
+    value.nil? || value == '' || value == {}
+  end
+
+  def message_defaults_are_supported
+    defaults = message_defaults.to_h
+    unsupported = defaults.keys.map(&:to_s) - MESSAGE_POLICY_KEYS
+    errors.add(:message_defaults, "unsupported keys: #{unsupported.to_sentence}") if unsupported.present?
+
+    hours = defaults['frequency_limit_hours'] || defaults[:frequency_limit_hours]
+    errors.add(:message_defaults, 'frequency_limit_hours must be zero or more') if hours.present? && hours.to_f.negative?
+
+    validate_default_quiet_hours(defaults['quiet_hours'] || defaults[:quiet_hours])
+  end
+
+  def validate_default_quiet_hours(quiet_hours)
+    return if quiet_hours.blank?
+    return errors.add(:message_defaults, 'quiet_hours must be an object') unless quiet_hours.respond_to?(:to_h)
+
+    quiet_hours.to_h.slice('start', 'end', :start, :end).each_value do |value|
+      next if value.blank? || value.to_s.match?(/\A([01]\d|2[0-3]):[0-5]\d\z/)
+
+      errors.add(:message_defaults, 'quiet_hours must use HH:MM')
+    end
+  end
 
   def board_belongs_to_account
     return if account.blank? || kanban_board.blank?

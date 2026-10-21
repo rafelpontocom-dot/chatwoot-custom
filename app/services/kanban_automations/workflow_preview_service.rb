@@ -161,7 +161,7 @@ class KanbanAutomations::WorkflowPreviewService
   end
 
   def preview_message_eligibility(node, steps)
-    result = KanbanAutomations::WorkflowMessageService.new(card: card, data: node.fetch('data', {}), now: now).eligibility
+    result = KanbanAutomations::WorkflowMessageService.new(card: card, data: rule.message_node_data(node.fetch('data', {})), now: now).eligibility
     branch = result['status'] == 'eligible' ? 'eligible' : 'otherwise'
     steps << result.except('conversation').merge('node_id' => node.fetch('id'), 'type' => 'message_eligibility', 'branch' => branch)
     next_node_id(node, source_handle: branch)
@@ -220,7 +220,7 @@ class KanbanAutomations::WorkflowPreviewService
     steps << data.slice('channel').merge(
       'node_id' => node.fetch('id'),
       'type' => 'send_message',
-      'rendered_content' => KanbanAutomations::WorkflowMessageService.new(card: card, data: data, now: now).preview_content
+      'rendered_content' => KanbanAutomations::WorkflowMessageService.new(card: card, data: rule.message_node_data(data), now: now).preview_content
     )
     next_node_id(node)
   end

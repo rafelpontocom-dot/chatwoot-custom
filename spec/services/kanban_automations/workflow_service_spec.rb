@@ -659,6 +659,38 @@ RSpec.describe KanbanAutomations::WorkflowService do
     )
   end
 
+  # O nó não diz nada sobre opt-in; a automação diz. Antes disto, a resposta
+  # tinha de ser repetida em cada nó de mensagem.
+  it 'gives a message node the delivery policy answered once for the automation' do
+    card = create(:kanban_card)
+    inbox = create(:channel_api, account: card.account).inbox
+    create(:conversation, account: card.account, contact: card.contact, inbox: inbox)
+    rule = create(
+      :kanban_automation_rule,
+      account: card.account,
+      kanban_board: card.kanban_board,
+      message_defaults: { 'opt_in_attribute_key' => 'aceita_whatsapp' },
+      flow_definition: {
+        nodes: [
+          { id: 'trigger', type: 'trigger', data: {} },
+          { id: 'message', type: 'send_message', data: { channel: 'whatsapp', content: 'Olá', inbox_id: inbox.id } },
+          { id: 'end', type: 'end', data: {} }
+        ],
+        edges: [
+          { source: 'trigger', target: 'message' },
+          { source: 'message', target: 'end' }
+        ]
+      }
+    )
+    execution = create(:kanban_automation_execution, account: card.account, kanban_automation_rule: rule)
+
+    result = described_class.new(execution: execution, rule: rule, card: card).perform!
+
+    expect(result[:action_results]).to include(
+      hash_including('node_id' => 'message', 'status' => 'skipped', 'reason' => 'opt_in_required')
+    )
+  end
+
   it 'waits at a message node when a delivery policy defers it' do
     card = create(:kanban_card)
     rule = create(

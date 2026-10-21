@@ -1,6 +1,98 @@
 require 'rails_helper'
 
 RSpec.describe KanbanAutomationRule do
+  # As regras de envio eram perguntadas uma vez por NÓ: três mensagens, três
+  # respostas, e nada a impedir que discordassem em silêncio.
+  describe '#message_node_data' do
+    it 'changes nothing while the automation has no defaults' do
+      rule = create(:kanban_automation_rule)
+      node = { 'content' => 'Oi', 'frequency_limit_hours' => 12 }
+
+      expect(rule.message_node_data(node)).to eq('content' => 'Oi', 'frequency_limit_hours' => 12)
+    end
+
+    it 'fills in what the node left blank' do
+      rule = create(
+        :kanban_automation_rule,
+        message_defaults: {
+          'quiet_hours' => { 'start' => '21:00', 'end' => '08:00' },
+          'frequency_limit_hours' => 24,
+          'opt_in_attribute_key' => 'aceita_whatsapp'
+        }
+      )
+
+      merged = rule.message_node_data('content' => 'Oi')
+
+      expect(merged).to include(
+        'quiet_hours' => { 'start' => '21:00', 'end' => '08:00' },
+        'frequency_limit_hours' => 24,
+        'opt_in_attribute_key' => 'aceita_whatsapp'
+      )
+    end
+
+    it 'lets the node win over the automation' do
+      rule = create(:kanban_automation_rule, message_defaults: { 'frequency_limit_hours' => 24 })
+
+      expect(rule.message_node_data('frequency_limit_hours' => 2)).to include('frequency_limit_hours' => 2)
+    end
+
+    # `0` é uma resposta — «sem limite» —, não uma ausência. Tratá-lo como
+    # ausente faria um nó deliberadamente sem limite começar a ser travado.
+    it 'treats zero as an answer, not as a gap' do
+      rule = create(:kanban_automation_rule, message_defaults: { 'frequency_limit_hours' => 24 })
+
+      expect(rule.message_node_data('frequency_limit_hours' => 0)).to include('frequency_limit_hours' => 0)
+    end
+
+    it 'treats an empty quiet-hours object as a gap' do
+      rule = create(
+        :kanban_automation_rule,
+        message_defaults: { 'quiet_hours' => { 'start' => '21:00', 'end' => '08:00' } }
+      )
+
+      expect(rule.message_node_data('quiet_hours' => {})).to include(
+        'quiet_hours' => { 'start' => '21:00', 'end' => '08:00' }
+      )
+    end
+
+    # O encaminhamento lê `failure_mode` direto do nó, fora do serviço de
+    # mensagem. Herdá-lo mostraria na tela uma política que ninguém aplica.
+    it 'does not inherit the failure mode' do
+      rule = build(:kanban_automation_rule, message_defaults: { 'failure_mode' => 'route' })
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:message_defaults].join).to include('failure_mode')
+    end
+  end
+
+  describe 'message defaults validation' do
+    it 'refuses a quiet-hours value that is not a clock time' do
+      rule = build(:kanban_automation_rule, message_defaults: { 'quiet_hours' => { 'start' => '9h' } })
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:message_defaults].join).to include('HH:MM')
+    end
+
+    it 'refuses a negative frequency limit' do
+      rule = build(:kanban_automation_rule, message_defaults: { 'frequency_limit_hours' => -1 })
+
+      expect(rule).not_to be_valid
+    end
+
+    it 'accepts the three supported keys' do
+      rule = build(
+        :kanban_automation_rule,
+        message_defaults: {
+          'quiet_hours' => { 'start' => '21:00', 'end' => '08:00' },
+          'frequency_limit_hours' => 24,
+          'opt_in_attribute_key' => 'aceita_whatsapp'
+        }
+      )
+
+      expect(rule).to be_valid
+    end
+  end
+
   it 'exposes a human-readable version from optimistic locking' do
     rule = create(:kanban_automation_rule)
 

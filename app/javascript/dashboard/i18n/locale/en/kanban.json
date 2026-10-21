@@ -127,6 +127,10 @@
       "EVENT_VERSION": "{event} · {version}",
       "SAVE_DRAFT": "Save draft",
       "PUBLISH": "Publish automation",
+      "MESSAGE_DEFAULTS": {
+        "TITLE": "Delivery rules for this automation",
+        "HINT": "Answered once here, and used by every message step that does not set its own. Leave blank to keep configuring step by step."
+      },
       "VERSIONS": {
         "OPEN": "Version history",
         "DESCRIPTION": "Restoring a version changes only future executions. In-progress executions keep their original snapshot.",

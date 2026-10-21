@@ -293,7 +293,7 @@ class KanbanAutomations::WorkflowService
   end
 
   def message_eligibility_node(node, results)
-    data = node.fetch('data', {})
+    data = rule.message_node_data(node.fetch('data', {}))
     result = KanbanAutomations::WorkflowMessageService.new(card: card, data: data, now: now).eligibility
     branch = result['status'] == 'eligible' ? 'eligible' : 'otherwise'
     results << result.merge('node_id' => node.fetch('id'), 'branch' => branch).except('conversation')
@@ -598,7 +598,7 @@ class KanbanAutomations::WorkflowService
   def send_message(node)
     result = KanbanAutomations::WorkflowMessageService.new(
       card: card,
-      data: node.fetch('data', {}),
+      data: rule.message_node_data(node.fetch('data', {})),
       event_data: workflow_state['event_data'],
       now: now
     ).perform!

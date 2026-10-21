@@ -106,6 +106,10 @@ const mountWorkspace = async ({
           template:
             '<header><slot name="actions" /><slot name="filters" /><slot name="tabs" /><slot /></header>',
         },
+        RaevoField: {
+          template:
+            '<label><slot :control-class="\'\'" :field-id="\'f\'" /></label>',
+        },
         RouterLink: true,
         Popover: {
           template: '<div><slot /><slot name="content" /></div>',
@@ -360,6 +364,83 @@ describe('KanbanAutomations', () => {
 
     expect(KanbanBoardsAPI.createAutomationRule).not.toHaveBeenCalled();
     expect(wrapper.vm.invalidNodeIds).toEqual([]);
+  });
+
+  // As regras de envio eram perguntadas uma vez por NÓ. Respondidas aqui, valem
+  // para todos os passos de mensagem que não disserem o contrário.
+  describe('delivery rules for the automation', () => {
+    const prepararEditor = async () => {
+      KanbanBoardsAPI.createAutomationRule.mockResolvedValue({
+        data: { id: 62, conditions: {}, actions: [], flow_definition: {} },
+      });
+      const wrapper = await mountWorkspace({
+        settings: {
+          stages: [{ id: 2, name: 'Agendado' }],
+          custom_field_definitions: [],
+          next_action_types: [],
+        },
+      });
+      await wrapper
+        .find('[data-testid="kanban-automations-new-flow"]')
+        .trigger('click');
+      await wrapper
+        .find('[data-testid="kanban-automations-flow-name"]')
+        .setValue('Mensagem de tráfego');
+
+      return wrapper;
+    };
+
+    const gravar = async wrapper => {
+      await wrapper
+        .find('[data-testid="kanban-automations-save-flow"]')
+        .trigger('click');
+      await flushPromises();
+
+      return KanbanBoardsAPI.createAutomationRule.mock.calls.at(-1)[1]
+        .kanban_automation_rule.message_defaults;
+    };
+
+    // Vazio tem de continuar vazio: é o que garante que nenhuma automação que
+    // já manda mensagem muda de comportamento ao ser gravada outra vez.
+    it('sends nothing when nobody answered', async () => {
+      const wrapper = await prepararEditor();
+
+      expect(await gravar(wrapper)).toEqual({});
+    });
+
+    it('sends what was answered', async () => {
+      const wrapper = await prepararEditor();
+
+      await wrapper
+        .find('[data-testid="kanban-automation-default-quiet-start"]')
+        .setValue('21:00');
+      await wrapper
+        .find('[data-testid="kanban-automation-default-quiet-end"]')
+        .setValue('08:00');
+      await wrapper
+        .find('[data-testid="kanban-automation-default-frequency"]')
+        .setValue('24');
+      await wrapper
+        .find('[data-testid="kanban-automation-default-opt-in"]')
+        .setValue('aceita_whatsapp');
+
+      expect(await gravar(wrapper)).toEqual({
+        quiet_hours: { start: '21:00', end: '08:00' },
+        frequency_limit_hours: 24,
+        opt_in_attribute_key: 'aceita_whatsapp',
+      });
+    });
+
+    // Zero é uma resposta — «sem limite» —, e tem de viajar como número.
+    it('keeps a deliberate zero', async () => {
+      const wrapper = await prepararEditor();
+
+      await wrapper
+        .find('[data-testid="kanban-automation-default-frequency"]')
+        .setValue('0');
+
+      expect(await gravar(wrapper)).toEqual({ frequency_limit_hours: 0 });
+    });
   });
 
   it('saves one stage automation for creation and entry into a selected stage', async () => {

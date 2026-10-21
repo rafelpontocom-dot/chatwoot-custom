@@ -127,6 +127,10 @@
       "EVENT_VERSION": "{event} · {version}",
       "SAVE_DRAFT": "Guardar rascunho",
       "PUBLISH": "Publicar automação",
+      "MESSAGE_DEFAULTS": {
+        "TITLE": "Regras de envio desta automação",
+        "HINT": "Respondidas uma vez aqui e usadas por todo o passo de mensagem que não definir as suas. Deixe em branco para continuar a configurar passo a passo."
+      },
       "VERSIONS": {
         "OPEN": "Histórico de versões",
         "DESCRIPTION": "Restaurar uma versão altera apenas as próximas execuções. As execuções em andamento mantêm o snapshot original.",
