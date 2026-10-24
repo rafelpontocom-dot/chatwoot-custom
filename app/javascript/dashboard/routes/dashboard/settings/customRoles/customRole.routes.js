@@ -20,9 +20,12 @@ export default {
           name: 'custom_roles_list',
           meta: {
             featureFlag: FEATURE_FLAGS.CUSTOM_ROLES,
+            // A nossa instalação é `community`: sem isto a tela ficava oculta
+            // mesmo com a funcionalidade ligada. Eram dois portões, não um.
             installationTypes: [
               INSTALLATION_TYPES.CLOUD,
               INSTALLATION_TYPES.ENTERPRISE,
+              INSTALLATION_TYPES.COMMUNITY,
             ],
             permissions: ['administrator'],
           },

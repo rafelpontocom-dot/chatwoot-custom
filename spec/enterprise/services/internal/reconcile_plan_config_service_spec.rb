@@ -24,6 +24,19 @@ RSpec.describe Internal::ReconcilePlanConfigService do
         expect(disable_branding_account.reload.enabled_features.keys).not_to include('disable_branding')
       end
 
+      # RAEVO — decisão do Pedro, 24/10/2026. `custom_roles` saiu do
+      # `premium_features.yml`: o job diário não a pode voltar a desligar,
+      # senão toda a função personalizada atribuída morre à meia-noite.
+      it 'leaves custom roles alone' do
+        account = create(:account)
+        account.enable_features!('custom_roles', 'audit_logs')
+
+        service.perform
+
+        expect(account.reload.enabled_features.keys).to include('custom_roles')
+        expect(account.reload.enabled_features.keys).not_to include('audit_logs')
+      end
+
       it 'creates a premium config reset warning if config was modified' do
         create(:installation_config, name: 'INSTALLATION_NAME', value: 'custom-name')
         service.perform

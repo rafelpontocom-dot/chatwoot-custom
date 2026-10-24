@@ -1,8 +1,17 @@
 # List of the premium features in EE edition
+#
+# RAEVO — `custom_roles` saiu desta lista por decisão do Pedro em 24/10/2026.
+# O `Internal::ReconcilePlanConfigService` corre todos os dias à meia-noite UTC
+# e desliga tudo o que estiver aqui quando o plano é `community`, que é o nosso.
+# Enquanto `custom_roles` esteve nesta lista, ligar a funcionalidade no Super
+# Admin durava até à meia-noite seguinte.
+#
+# Isto é usar um recurso que a Chatwoot vende, sem o plano. Fica escrito aqui
+# para quem ler o ficheiro daqui a um ano saber que foi deliberado, e não um
+# descuido de merge.
 - disable_branding
 - audit_logs
 - sla
-- custom_roles
 - captain_integration
 - captain_integration_v2
 - captain_document_auto_sync
