@@ -38,8 +38,12 @@ RSpec.describe Internal::ReconcilePlanConfigService do
         expect(account.reload.enabled_features.keys).not_to include('audit_logs')
       end
 
+      # RAEVO — estes exemplos criavam o `INSTALLATION_NAME` do zero. No CI o
+      # passo da semente do smoke de navegação grava-o na mesma base, e o
+      # `create` passou a rebentar com chave duplicada. Gravar por cima não
+      # depende de quem correu antes.
       it 'creates a premium config reset warning if config was modified' do
-        create(:installation_config, name: 'INSTALLATION_NAME', value: 'custom-name')
+        InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_NAME').update!(value: 'custom-name')
         service.perform
         expect(Redis::Alfred.get(Redis::Alfred::CHATWOOT_INSTALLATION_CONFIG_RESET_WARNING)).to eq('true')
       end
@@ -48,14 +52,14 @@ RSpec.describe Internal::ReconcilePlanConfigService do
       # nossa marca, e o teste continuou a comparar com «Chatwoot». Estava
       # vermelho desde então, por nossa causa.
       it 'will not create a premium config reset warning if config is not modified' do
-        create(:installation_config, name: 'INSTALLATION_NAME', value: 'RAEVO CRM')
+        InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_NAME').update!(value: 'RAEVO CRM')
         service.perform
         expect(Redis::Alfred.get(Redis::Alfred::CHATWOOT_INSTALLATION_CONFIG_RESET_WARNING)).to be_nil
       end
 
       it 'updates the premium configs to default' do
-        create(:installation_config, name: 'INSTALLATION_NAME', value: 'custom-name')
-        create(:installation_config, name: 'LOGO', value: '/custom-path/logo.svg')
+        InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_NAME').update!(value: 'custom-name')
+        InstallationConfig.find_or_initialize_by(name: 'LOGO').update!(value: '/custom-path/logo.svg')
         service.perform
         expect(InstallationConfig.find_by(name: 'INSTALLATION_NAME').value).to eq('RAEVO CRM')
         expect(InstallationConfig.find_by(name: 'LOGO').value).to eq('/brand-assets/raevo-logo.svg')
@@ -89,8 +93,8 @@ RSpec.describe Internal::ReconcilePlanConfigService do
       end
 
       it 'does not update the LOGO config' do
-        create(:installation_config, name: 'INSTALLATION_NAME', value: 'custom-name')
-        create(:installation_config, name: 'LOGO', value: '/custom-path/logo.svg')
+        InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_NAME').update!(value: 'custom-name')
+        InstallationConfig.find_or_initialize_by(name: 'LOGO').update!(value: '/custom-path/logo.svg')
         service.perform
         expect(InstallationConfig.find_by(name: 'INSTALLATION_NAME').value).to eq('custom-name')
         expect(InstallationConfig.find_by(name: 'LOGO').value).to eq('/custom-path/logo.svg')
