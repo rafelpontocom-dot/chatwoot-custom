@@ -556,6 +556,57 @@ describe('KanbanBoardSettings', () => {
     ).toBe(false);
   });
 
+  // O caso mais silencioso: com a Agenda desligada, o controlador público
+  // devolve nada E a secção de Agenda das configurações fica escondida atrás do
+  // interruptor. O paciente não vê consulta; a clínica não vê aviso, porque o
+  // aviso morava dentro da parte que o interruptor esconde.
+  it('warns when a booking page points here and the agenda is off', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 7,
+          name: 'Consulta de avaliação',
+          active: true,
+          public_booking_enabled: true,
+        },
+      ],
+    });
+    CalendarAPI.getBookingPage.mockResolvedValue({
+      data: { active: true, kanban_board_id: 10 },
+    });
+
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: { ...settingsPayload, calendar_enabled: false },
+      },
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-calendar-page-without-agenda"]')
+        .exists()
+    ).toBe(true);
+  });
+
+  it('stays quiet about the agenda when no booking page points here', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({ data: [] });
+    CalendarAPI.getBookingPage.mockResolvedValue({
+      data: { active: true, kanban_board_id: 99 },
+    });
+
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: { ...settingsPayload, calendar_enabled: false },
+      },
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-calendar-page-without-agenda"]')
+        .exists()
+    ).toBe(false);
+  });
+
   // Lista vazia quer dizer «aceita todos»: a página oferece o que estiver
   // publicado e não há avaria nenhuma a anunciar.
   it('stays quiet when the funnel accepts every procedure', async () => {

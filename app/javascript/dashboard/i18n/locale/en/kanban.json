@@ -694,6 +694,7 @@
         "PROCEDURES_HELP": "Without a selection, every active procedure can be used in this funnel.",
         "PROCEDURES_PUBLISHED_WARNING": "These procedures are published on the booking page but are not on this funnel's list, so nobody can book them: {procedimentos}.",
         "PROCEDURES_PAGE_EMPTY": "This funnel's booking page is live and has nothing to offer: none of the procedures on its list is published for booking. The patient opens the page and finds no appointment to make.",
+        "PAGE_WITHOUT_AGENDA": "A booking page points at this funnel, but its calendar is off — so the page opens with nothing for the patient to book. Turn the calendar on, or point the page at another funnel.",
         "PROCEDURES_PUBLISHED_ADD": "Add to the list",
         "LEGACY_FIELD": "Compatibility field",
         "LEGACY_FIELD_NONE": "Do not mirror to a field",

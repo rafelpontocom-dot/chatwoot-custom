@@ -553,6 +553,21 @@ const publicPageOffersNothing = computed(() => {
   );
 });
 
+/**
+ * A página pública aponta para este funil e a Agenda dele está DESLIGADA.
+ *
+ * Este é o caso mais silencioso dos dois: com a Agenda desligada, o controlador
+ * público devolve `scope.none` — a página abre sem nada — e aqui a secção
+ * inteira de Agenda está escondida atrás do `v-if` do interruptor. Resultado: o
+ * paciente não vê consulta nenhuma e a clínica não vê aviso nenhum, porque o
+ * aviso vive dentro da parte que o interruptor esconde.
+ *
+ * Por isso este mora FORA do `v-if`, colado ao interruptor.
+ */
+const publicPageWithoutCalendar = computed(
+  () => bookingPageUsesThisBoard.value && !form.calendarEnabled
+);
+
 const addProceduresOutsideBoard = () => {
   form.calendarProcedureIds = [
     ...form.calendarProcedureIds,
@@ -4155,6 +4170,14 @@ onMounted(async () => {
               }}</span>
             </span>
           </label>
+
+          <p
+            v-if="publicPageWithoutCalendar"
+            data-testid="kanban-settings-calendar-page-without-agenda"
+            class="rounded-lg border border-n-amber-5 bg-n-amber-2 px-3 py-2 text-xs font-medium text-n-slate-12"
+          >
+            {{ t('KANBAN.SETTINGS.CALENDAR.PAGE_WITHOUT_AGENDA') }}
+          </p>
 
           <template v-if="form.calendarEnabled">
             <div class="grid gap-2">
