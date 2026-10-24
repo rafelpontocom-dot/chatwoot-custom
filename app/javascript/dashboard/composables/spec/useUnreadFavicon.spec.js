@@ -45,7 +45,7 @@ describe('useUnreadFavicon', () => {
     vi.useFakeTimers();
     document.head.innerHTML = `
       <link class="favicon" rel="icon" sizes="32x32" href="/favicon-32x32.png">
-      <link rel="icon" type="image/svg+xml" href="/brand-assets/raevo-favicon.svg">`;
+      <link rel="icon" type="image/png" sizes="512x512" href="/brand-assets/raevo-favicon-512.png">`;
     mineUnread.value = 0;
     drawn.dots = 0;
     drawn.labels.length = 0;
@@ -91,7 +91,7 @@ describe('useUnreadFavicon', () => {
 
     expect(icons()).toEqual([
       '/favicon-32x32.png',
-      '/brand-assets/raevo-favicon.svg',
+      '/brand-assets/raevo-favicon-512.png',
     ]);
   });
 });

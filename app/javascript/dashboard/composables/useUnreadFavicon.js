@@ -14,7 +14,10 @@ import { useMapGetter } from 'dashboard/composables/store';
 // voltam ao original quando já não há nada por ler.
 const SIZE = 64;
 const DOT_RADIUS = 14;
-const BASE_ICON = '/brand-assets/raevo-favicon.svg';
+// PNG e não SVG: o desenho do ponto passa por `canvas.drawImage`, e um PNG com
+// tamanho declarado é previsível ali — um SVG sem largura intrínseca desenha
+// torto em alguns browsers.
+const BASE_ICON = '/brand-assets/raevo-favicon-512.png';
 
 const iconLinks = () => [...document.querySelectorAll('link[rel="icon"]')];
 
