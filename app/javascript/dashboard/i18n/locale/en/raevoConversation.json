@@ -62,6 +62,12 @@
         "delete": "Delete"
       },
       "SHORTCUTS_HINT": "Shortcuts: X or Alt+X marks the open conversation · Shift+click a photo marks a range · Esc clears"
+    },
+    "SEARCH": {
+      "PLACEHOLDER": "Search conversations",
+      "CLEAR": "Clear search",
+      "NEW": "Start a new conversation",
+      "EMPTY": "Nothing found for “{query}”."
     }
   }
 }

@@ -33,9 +33,14 @@ vi.mock('vue-i18n', () => ({
 const conversas = [{ id: 11 }, { id: 12 }, { id: 13 }];
 const scope = { filters: { status: 'open' } };
 
-const montar = (selectedConversations = []) =>
+const montar = (selectedConversations = [], filtered = true) =>
   mount(RaevoConversationBulkBar, {
-    props: { conversationList: conversas, selectedConversations, scope },
+    props: {
+      conversationList: conversas,
+      selectedConversations,
+      scope,
+      filtered,
+    },
     global: {
       stubs: {
         Dialog: {
@@ -59,6 +64,27 @@ describe('RaevoConversationBulkBar (123jpnbcxh4, proposta B)', () => {
       data: { count: 2, skipped: 0 },
     });
     BulkActionsAPI.count.mockReset().mockResolvedValue({ data: { count: 3 } });
+  });
+
+  // 24/10, pedido do Pedro: «Ninguém usa Selecionar todas. Vamos deixar
+  // somente para aparecer depois do filtro.» A seleção pela foto do contacto
+  // continua a ser o caminho sem filtro, e faz a barra nascer.
+  describe('when nothing is filtered', () => {
+    it('does not show the bar as the list opens', () => {
+      const wrapper = montar([], false);
+
+      expect(wrapper.find('[data-testid="raevo-bulk-bar"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('shows the bar as soon as one conversation is marked', () => {
+      const wrapper = montar([11], false);
+
+      expect(wrapper.find('[data-testid="raevo-bulk-bar"]').exists()).toBe(
+        true
+      );
+    });
   });
 
   it('shows «select all» on the first line before anything is selected', () => {

@@ -62,6 +62,12 @@
         "delete": "Excluir"
       },
       "SHORTCUTS_HINT": "Atalhos: X ou Alt+X marca a conversa aberta · Shift+clique numa foto marca um intervalo · Esc limpa"
+    },
+    "SEARCH": {
+      "PLACEHOLDER": "Pesquisar conversas",
+      "CLEAR": "Limpar a pesquisa",
+      "NEW": "Começar nova conversa",
+      "EMPTY": "Nada encontrado para “{query}”."
     }
   }
 }

@@ -17,6 +17,7 @@ import DeleteCustomViews from 'dashboard/routes/dashboard/customviews/DeleteCust
 // RAEVO (17/10, 123jpnbcxh4): a barra de ações em massa passa ao topo da lista e
 // age também sobre o filtro inteiro. A nativa (conversationBulkActions) deixa de montar.
 import RaevoConversationBulkBar from 'dashboard/components-next/raevo/conversations/RaevoConversationBulkBar.vue';
+import RaevoConversationSearch from 'dashboard/components-next/raevo/conversations/RaevoConversationSearch.vue';
 import { raevoConversationBulkScope } from 'dashboard/components-next/raevo/conversations/raevoConversationBulkScope';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
@@ -258,6 +259,10 @@ const conversationFilters = computed(() => {
     conversationType: props.conversationType || undefined,
   };
 });
+
+// 123jpnbd8y6 — enquanto a busca tem resultados, a lista normal sai da frente:
+// é a mesma coluna, como no WhatsApp, e não duas listas empilhadas.
+const raevoSearching = ref(false);
 
 const raevoBulkScope = computed(() =>
   raevoConversationBulkScope({
@@ -921,6 +926,7 @@ watch(appliedFilters, () => resetBulkActions());
       @reset-filters="resetAndFetchData"
       @basic-filter-change="onBasicFilterChange"
     />
+    <RaevoConversationSearch @update:searching="raevoSearching = $event" />
 
     <TeleportWithDirection
       v-if="showAddFoldersModal"
@@ -944,7 +950,7 @@ watch(appliedFilters, () => resetBulkActions());
     />
 
     <ChatTypeTabs
-      v-if="!hasAppliedFiltersOrActiveFolders"
+      v-if="!hasAppliedFiltersOrActiveFolders && !raevoSearching"
       :items="assigneeTabItems"
       :active-tab="activeAssigneeTab"
       is-compact
@@ -952,19 +958,22 @@ watch(appliedFilters, () => resetBulkActions());
     />
 
     <p
-      v-if="!chatListLoading && !conversationList.length"
+      v-if="!chatListLoading && !conversationList.length && !raevoSearching"
       class="flex overflow-auto justify-center items-center p-4"
     >
       {{ $t('CHAT_LIST.LIST.404') }}
     </p>
     <RaevoConversationBulkBar
+      v-if="!raevoSearching"
       :conversation-list="conversationList"
       :selected-conversations="selectedConversations"
       :scope="raevoBulkScope"
+      :filtered="hasAppliedFiltersOrActiveFolders"
       @select-all-conversations="toggleSelectAll"
       @clear="resetBulkActions"
     />
     <ConversationList
+      v-if="!raevoSearching"
       :conversation-list="conversationList"
       :is-loading="chatListLoading"
       :show-end-of-list-message="showEndOfListMessage"

@@ -25,6 +25,10 @@ const props = defineProps({
   selectedConversations: { type: Array, default: () => [] },
   // O recorte da lista — ver `raevoConversationBulkScope`.
   scope: { type: Object, default: () => ({}) },
+  // Há um filtro ou pasta aplicada? (24/10, pedido do Pedro) Sem filtro, a
+  // barra não nasce: «ninguém usa Selecionar todas» na lista como ela abre, e
+  // uma caixa de seleção no topo da tela de quem vem atender só distrai.
+  filtered: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['selectAllConversations', 'clear']);
@@ -47,7 +51,16 @@ const menuRef = ref(null);
 
 const loaded = computed(() => props.conversationList.length);
 
-const marked = computed(() => props.selectedConversations.length);
+const marcadas = computed(() => props.selectedConversations.length);
+
+// A barra aparece depois do filtro — ou assim que alguém marca uma conversa
+// pela foto do contacto, que é o outro caminho para a seleção e continua a
+// funcionar sem filtro nenhum.
+const visible = computed(
+  () => loaded.value > 0 && (props.filtered || marcadas.value > 0)
+);
+
+const marked = marcadas;
 const selectedCount = computed(() =>
   filterAll.value ? filterCount.value || 0 : marked.value
 );
@@ -362,7 +375,7 @@ const choose = item => {
 
 <template>
   <div
-    v-if="loaded"
+    v-if="visible"
     data-testid="raevo-bulk-bar"
     class="relative border-b border-n-weak"
   >
