@@ -76,7 +76,7 @@ RSpec.describe 'Raevo changes inside native server files', type: :request do
     it 'brands the installation as RAEVO CRM' do
       expect(config.transform_values { |item| item['value'] }).to include(
         'INSTALLATION_NAME' => 'RAEVO CRM', 'BRAND_NAME' => 'RAEVO CRM', 'BRAND_URL' => 'https://crm.raevo.io',
-        'LOGO' => '/brand-assets/raevo-logo.svg', 'LOGO_THUMBNAIL' => '/brand-assets/raevo-favicon.svg'
+        'LOGO' => '/brand-assets/raevo-logo.svg', 'LOGO_THUMBNAIL' => '/brand-assets/raevo-favicon-512.png'
       )
     end
 
@@ -114,7 +114,7 @@ RSpec.describe 'Raevo changes inside native server files', type: :request do
     it 'serves the Raevo favicon and theme colour' do
       get '/app/login'
 
-      expect(response.body).to include('/brand-assets/raevo-favicon.svg')
+      expect(response.body).to include('/brand-assets/raevo-favicon-512.png')
       expect(response.body).not_to include('#2781F6')
     end
   end

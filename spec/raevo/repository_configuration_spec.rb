@@ -44,7 +44,9 @@ RSpec.describe 'Raevo repository configuration' do # rubocop:disable RSpec/Descr
     manifest = JSON.parse(read('public/manifest.json'))
 
     expect(manifest).to include('name' => 'RAEVO CRM', 'short_name' => 'RAEVO CRM')
-    expect(manifest['icons'].pluck('src')).to eq(['/brand-assets/raevo-favicon.svg'])
+    expect(manifest['icons'].pluck('src')).to eq(
+      ['/brand-assets/raevo-favicon-192.png', '/brand-assets/raevo-favicon-512.png']
+    )
   end
 
   # A review app do Heroku é do upstream: aqui o job esperava 40 minutos e
