@@ -513,6 +513,83 @@ describe('KanbanBoardSettings', () => {
     ).toBe(false);
   });
 
+  // Conta 1, funil 2: a lista tinha um procedimento só, não público, e a página
+  // pública ficou no ar sem nada para oferecer. O paciente via uma página
+  // vazia; a clínica não via nada. O aviso de «publicado fora deste funil» é
+  // uma sugestão — este diz que a página está avariada.
+  it('says when the live booking page has nothing to offer', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          name: 'Reunião de Diagnóstico',
+          active: true,
+          public_booking_enabled: false,
+        },
+      ],
+    });
+    CalendarAPI.getBookingPage.mockResolvedValue({
+      data: { active: true, kanban_board_id: 10 },
+    });
+
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          calendar_enabled: true,
+          calendar_procedure_ids: [1],
+        },
+      },
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-calendar-page-empty-warning"]')
+        .exists()
+    ).toBe(true);
+    // Não há procedimento publicado nenhum para sugerir: sem este aviso a caixa
+    // inteira calava-se.
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-calendar-procedures-warning-add"]')
+        .exists()
+    ).toBe(false);
+  });
+
+  // Lista vazia quer dizer «aceita todos»: a página oferece o que estiver
+  // publicado e não há avaria nenhuma a anunciar.
+  it('stays quiet when the funnel accepts every procedure', async () => {
+    CalendarAPI.getProcedures.mockResolvedValue({
+      data: [
+        {
+          id: 7,
+          name: 'Consulta de avaliação',
+          active: true,
+          public_booking_enabled: true,
+        },
+      ],
+    });
+    CalendarAPI.getBookingPage.mockResolvedValue({
+      data: { active: true, kanban_board_id: 10 },
+    });
+
+    const { wrapper } = await mountSettings({
+      getSettingsResponse: {
+        data: {
+          ...settingsPayload,
+          calendar_enabled: true,
+          calendar_procedure_ids: [],
+        },
+      },
+    });
+
+    expect(
+      wrapper
+        .find('[data-testid="kanban-settings-calendar-page-empty-warning"]')
+        .exists()
+    ).toBe(false);
+  });
+
   it('keeps quiet when the booking page points at another funnel', async () => {
     CalendarAPI.getProcedures.mockResolvedValue({
       data: [

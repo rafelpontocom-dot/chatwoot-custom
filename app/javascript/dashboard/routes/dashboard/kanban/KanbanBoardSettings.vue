@@ -524,6 +524,35 @@ const publishedProceduresOutsideBoard = computed(() => {
   );
 });
 
+/**
+ * A página pública está no ar e não tem NADA para oferecer.
+ *
+ * O aviso de cima diz «há procedimentos publicados fora deste funil», que é uma
+ * sugestão. Este diz que a página está avariada — e é um caso diferente: pode
+ * não haver procedimento publicado nenhum para sugerir, e aí o aviso de cima
+ * cala-se enquanto a página continua a abrir vazia para o paciente.
+ *
+ * Foi exatamente isto na conta 1, funil 2: a lista do funil tinha um
+ * procedimento só, não público, e a página ficou sem nada. O paciente via uma
+ * página vazia; a clínica não via nada.
+ */
+const publicPageOffersNothing = computed(() => {
+  if (!form.calendarEnabled) return false;
+  if (!bookingPageUsesThisBoard.value) return false;
+
+  const chosen = form.calendarProcedureIds.map(Number);
+  // Lista vazia quer dizer «aceita todos» — a página oferece o que estiver
+  // publicado, e não há avaria.
+  if (chosen.length === 0) return false;
+
+  return !calendarProcedures.value.some(
+    procedure =>
+      procedure.active &&
+      procedure.public_booking_enabled &&
+      chosen.includes(Number(procedure.id))
+  );
+});
+
 const addProceduresOutsideBoard = () => {
   form.calendarProcedureIds = [
     ...form.calendarProcedureIds,
@@ -4181,11 +4210,24 @@ onMounted(async () => {
                 {{ t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_HELP') }}
               </p>
               <div
-                v-if="publishedProceduresOutsideBoard.length"
+                v-if="
+                  publicPageOffersNothing ||
+                  publishedProceduresOutsideBoard.length
+                "
                 data-testid="kanban-settings-calendar-procedures-warning"
                 class="grid gap-2 rounded-lg border border-n-amber-5 bg-n-amber-2 px-3 py-2"
               >
-                <p class="text-xs text-n-slate-12">
+                <p
+                  v-if="publicPageOffersNothing"
+                  data-testid="kanban-settings-calendar-page-empty-warning"
+                  class="text-xs font-medium text-n-slate-12"
+                >
+                  {{ t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_PAGE_EMPTY') }}
+                </p>
+                <p
+                  v-if="publishedProceduresOutsideBoard.length"
+                  class="text-xs text-n-slate-12"
+                >
                   {{
                     t('KANBAN.SETTINGS.CALENDAR.PROCEDURES_PUBLISHED_WARNING', {
                       procedimentos: publishedProceduresOutsideBoard
@@ -4195,6 +4237,7 @@ onMounted(async () => {
                   }}
                 </p>
                 <Button
+                  v-if="publishedProceduresOutsideBoard.length"
                   type="button"
                   variant="link"
                   size="sm"
