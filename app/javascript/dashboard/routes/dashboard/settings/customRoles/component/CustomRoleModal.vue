@@ -147,6 +147,20 @@ const handleCustomRole = async () => {
   }
 };
 
+// RAEVO (24/10, pedido do Pedro) — são 27 permissões, e o caminho comum é
+// querer quase todas e tirar duas ou três. Marcar uma a uma é trabalho à toa.
+const todasMarcadas = computed(
+  () =>
+    selectedPermissions.value.length ===
+    AVAILABLE_CUSTOM_ROLE_PERMISSIONS.length
+);
+
+const alternarTodas = () => {
+  selectedPermissions.value = todasMarcadas.value
+    ? []
+    : [...AVAILABLE_CUSTOM_ROLE_PERMISSIONS];
+};
+
 const isSubmitDisabled = computed(
   () => v$.value.$invalid || addCustomRole.showLoading
 );
@@ -186,9 +200,23 @@ const isSubmitDisabled = computed(
       </div>
 
       <div class="w-full">
-        <label :class="{ 'text-n-ruby-9': v$.selectedPermissions.$error }">
-          {{ $t('CUSTOM_ROLE.FORM.PERMISSIONS.LABEL') }}
-        </label>
+        <div class="flex items-center justify-between gap-2">
+          <label :class="{ 'text-n-ruby-9': v$.selectedPermissions.$error }">
+            {{ $t('CUSTOM_ROLE.FORM.PERMISSIONS.LABEL') }}
+          </label>
+          <button
+            type="button"
+            data-testid="custom-role-toggle-all"
+            class="text-sm text-n-blue-text hover:underline"
+            @click="alternarTodas"
+          >
+            {{
+              todasMarcadas
+                ? $t('CUSTOM_ROLE.FORM.PERMISSIONS.CLEAR_ALL')
+                : $t('CUSTOM_ROLE.FORM.PERMISSIONS.SELECT_ALL')
+            }}
+          </button>
+        </div>
         <div class="flex flex-col gap-2.5 mb-4 mt-2">
           <div
             v-for="permission in AVAILABLE_CUSTOM_ROLE_PERMISSIONS"

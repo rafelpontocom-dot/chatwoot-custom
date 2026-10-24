@@ -55,7 +55,11 @@
       "FINANCE_REFUND": "Solicitar estornos ao provedor",
       "FINANCE_CONFIGURE": "Configurar módulo e provedores financeiros",
       "MARKETING_VIEW": "Marketing — ver a origem dos leads",
-      "MARKETING_CONFIGURE": "Marketing — configurar conexões e entrada de leads"
+      "MARKETING_CONFIGURE": "Marketing — configurar conexões e entrada de leads",
+      "KANBAN_AUTOMATE": "Criar, editar e testar automações comerciais",
+      "KANBAN_AUTOMATION_PUBLISH": "Publicar automações comerciais",
+      "KANBAN_AUTOMATION_TEST": "Testar automações comerciais com segurança",
+      "KANBAN_AUTOMATION_EXECUTION": "Ver, repetir e cancelar execuções de automação"
     },
     "FORM": {
       "NAME": {
@@ -70,7 +74,9 @@
       },
       "PERMISSIONS": {
         "LABEL": "Permissões",
-        "ERROR": "Permissões são necessárias."
+        "ERROR": "Permissões são necessárias.",
+        "SELECT_ALL": "Selecionar todas",
+        "CLEAR_ALL": "Limpar seleção"
       },
       "CANCEL_BUTTON_TEXT": "Cancelar",
       "API": {

@@ -38,16 +38,16 @@ const mountHeader = props =>
 const contactFilter = { id: 7, name: 'Jane Doe' };
 
 describe('ChatListHeader', () => {
-  it('opens native conversation search', () => {
+  // 24/10, 123jpnbd8y6: a busca passou a viver na própria lista, no lugar de
+  // «Selecionar todas». A lupa daqui era a segunda entrada de pesquisa no
+  // mesmo cabeçalho, e saiu por decisão do Pedro. A tela completa continua
+  // acessível pela pesquisa da navegação lateral.
+  it('no longer carries a second search entry in the header', () => {
     const wrapper = mountHeader();
-    const searchLink = wrapper.find('[data-testid="conversation-search"]');
 
-    expect(searchLink.exists()).toBe(true);
-    expect(searchLink.attributes('aria-label')).toBe('CHAT_LIST.SEARCH.INPUT');
-    expect(wrapper.findComponent({ name: 'RouterLink' }).props('to')).toEqual({
-      name: 'search',
-      params: { tab: 'conversations' },
-    });
+    expect(wrapper.find('[data-testid="conversation-search"]').exists()).toBe(
+      false
+    );
   });
   it('renders the page title and the filter button without filters', () => {
     const wrapper = mountHeader();

@@ -708,6 +708,16 @@
         "spec/services/whatsapp/providers/whatsapp_cloud_service_raevo_spec.rb",
         "app/javascript/dashboard/routes/dashboard/settings/inbox/settingsPage/specs/ConfigurationPage.spec.js"
       ]
+    },
+    {
+      "id": "custom-role-permission-list",
+      "paths": [
+        "app/javascript/dashboard/routes/dashboard/settings/customRoles/component/CustomRoleModal.vue",
+        "app/javascript/dashboard/constants/permissions.js"
+      ],
+      "tests": [
+        "app/javascript/dashboard/routes/dashboard/settings/customRoles/component/specs/CustomRoleModal.spec.js"
+      ]
     }
   ]
 }

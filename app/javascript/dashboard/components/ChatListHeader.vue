@@ -111,15 +111,13 @@ const toggleConversationLayout = () => {
       </span>
     </div>
     <div class="flex items-center gap-1">
-      <RouterLink
-        data-testid="conversation-search"
-        :to="{ name: 'search', params: { tab: 'conversations' } }"
-        class="flex p-0 size-8 items-center justify-center rounded-md text-n-slate-11 outline-none hover:bg-n-alpha-2 hover:text-n-slate-12 focus:ring-2 focus:ring-n-brand/40"
-        :aria-label="$t('CHAT_LIST.SEARCH.INPUT')"
-        :title="$t('CHAT_LIST.SEARCH.INPUT')"
-      >
-        <i class="i-lucide-search size-4" aria-hidden="true" />
-      </RouterLink>
+      <!--
+        RAEVO (24/10, 123jpnbd8y6) — a lupa que levava à tela de pesquisa saiu
+        daqui: a busca passou a viver na própria lista, no lugar onde estava
+        «Selecionar todas». Duas entradas de pesquisa lado a lado no mesmo
+        cabeçalho era o que confundia. A tela completa continua a existir na
+        rota `search`, pela pesquisa da navegação lateral.
+      -->
       <template v-if="hasAppliedFilters && !hasActiveFolders">
         <div class="relative">
           <NextButton

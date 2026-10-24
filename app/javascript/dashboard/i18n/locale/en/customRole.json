@@ -55,7 +55,11 @@
       "FINANCE_REFUND": "Request provider refunds",
       "FINANCE_CONFIGURE": "Configure the finance module and providers",
       "MARKETING_VIEW": "Marketing — view lead origin",
-      "MARKETING_CONFIGURE": "Marketing — configure connections and lead intake"
+      "MARKETING_CONFIGURE": "Marketing — configure connections and lead intake",
+      "KANBAN_AUTOMATE": "Create, edit and test commercial automations",
+      "KANBAN_AUTOMATION_PUBLISH": "Publish commercial automations",
+      "KANBAN_AUTOMATION_TEST": "Test commercial automations safely",
+      "KANBAN_AUTOMATION_EXECUTION": "View, retry and cancel automation runs"
     },
     "FORM": {
       "NAME": {
@@ -70,7 +74,9 @@
       },
       "PERMISSIONS": {
         "LABEL": "Permissions",
-        "ERROR": "Permissions are required."
+        "ERROR": "Permissions are required.",
+        "SELECT_ALL": "Select all",
+        "CLEAR_ALL": "Clear selection"
       },
       "CANCEL_BUTTON_TEXT": "Cancel",
       "API": {
