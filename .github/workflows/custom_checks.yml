@@ -265,6 +265,8 @@ jobs:
           bundle exec rspec --format progress \
             spec/enterprise/models/custom_role_spec.rb \
             spec/enterprise/config/raevo_premium_installation_config_spec.rb \
+            spec/enterprise/services/internal/reconcile_plan_config_service_spec.rb \
+            spec/raevo/premium_gates_spec.rb \
             spec/policies/kanban_board_policy_spec.rb \
             spec/policies/kanban_card_policy_spec.rb \
             spec/policies/finance_module_setting_policy_spec.rb
