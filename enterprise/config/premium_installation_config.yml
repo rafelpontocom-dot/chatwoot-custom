@@ -2,7 +2,10 @@
 - name: INSTALLATION_NAME
   value: 'RAEVO CRM'
 - name: LOGO_THUMBNAIL
-  value: '/brand-assets/raevo-logo-thumbnail.svg'
+  # Tem de bater com o `config/installation_config.yml`: este ficheiro é
+  # reaplicado todas as noites pelo `ReconcilePlanConfigService`, e o que estiver
+  # aqui GANHA. Mudar o favicon só no outro ficheiro durava até à meia-noite.
+  value: '/brand-assets/raevo-favicon-512.png'
 - name: LOGO
   value: '/brand-assets/raevo-logo.svg'
 - name: LOGO_DARK

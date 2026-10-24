@@ -7,6 +7,20 @@ module SuperAdmin::AccountFeaturesHelper
     account_features.filter { |feature| feature['premium'] }.pluck('name')
   end
 
+  # As que o `Internal::ReconcilePlanConfigService` desliga todas as noites num
+  # plano `community` — que não é a mesma lista do `premium: true`.
+  #
+  # A caixa do Super Admin ficava cinzenta para TUDO o que fosse `premium`, e
+  # por isso era impossível ligar uma funcionalidade que o job já não volta a
+  # desligar. Cinzento deve dizer «não adianta, vai ser desfeito», e não «é
+  # pago»: a segunda leitura mentia depois de tirarmos `custom_roles` da lista.
+  def self.reconciled_premium_features
+    path = Rails.root.join('enterprise/config/premium_features.yml')
+    return account_premium_features unless File.exist?(path)
+
+    YAML.safe_load(path.read).freeze
+  end
+
   # Returns a hash mapping feature names to their display names
   def self.feature_display_names
     account_features.each_with_object({}) do |feature, hash|
