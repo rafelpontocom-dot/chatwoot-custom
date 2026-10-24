@@ -6,10 +6,13 @@
 # Enquanto `custom_roles` esteve nesta lista, ligar a funcionalidade no Super
 # Admin durava até à meia-noite seguinte.
 #
-# Isto é usar um recurso que a Chatwoot vende, sem o plano. Fica escrito aqui
+# `disable_branding` saiu pela mesma decisão, no mesmo dia: sem ela o rodapé
+# «Powered by Chatwoot» voltava ao portal de ajuda e ao widget todas as noites,
+# o que contraria o produto branco que o resto desta instalação já é.
+#
+# Isto é usar recursos que a Chatwoot vende, sem o plano. Fica escrito aqui
 # para quem ler o ficheiro daqui a um ano saber que foi deliberado, e não um
 # descuido de merge.
-- disable_branding
 - audit_logs
 - sla
 - captain_integration
