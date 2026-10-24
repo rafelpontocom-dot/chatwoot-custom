@@ -211,7 +211,15 @@ provideSidebarContext({
   expandedItem,
   setExpandedItem,
   isCollapsed: isEffectivelyCollapsed,
-  sidebarWidth,
+  // A LARGURA QUE A BARRA TEM, não a que está gravada.
+  //
+  // O popover do menu recolhido posiciona-se em `sidebarWidth + 8`. Recolher à
+  // mão grava a largura mínima e tudo batia certo; recolher por foco — que é o
+  // que acontece ao abrir uma conversa — deixa a preferência expandida em
+  // memória e desenha a barra no mínimo. O popover ia parar a 240px da
+  // esquerda, longe do ícone e por cima da lista de conversas. Daí o defeito só
+  // aparecer «quando as conversas estão abertas».
+  sidebarWidth: effectiveWidth,
   isResizing,
 });
 
@@ -1158,14 +1166,20 @@ const menuItems = computed(() => {
         <button
           type="button"
           data-testid="sidebar-collapse-toggle"
-          class="flex size-7 items-center justify-center rounded-lg text-n-slate-10 outline-none transition-colors hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+          class="flex p-0 size-9 items-center justify-center rounded-lg text-n-slate-10 outline-none transition-colors hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
           :aria-label="toggleCollapseLabel"
           :aria-expanded="!isEffectivelyCollapsed"
           :title="toggleCollapseLabel"
           @click="toggleCollapse"
         >
+          <!--
+            Era 28px de alvo com uma seta de 16px, encostada entre a logo e a
+            busca: pequena de ver e pequena de acertar. 36px de alvo com seta de
+            20px ainda cabe na barra recolhida e continua alinhada com os
+            vizinhos.
+          -->
           <span
-            class="size-4"
+            class="size-5"
             :class="
               isEffectivelyCollapsed
                 ? 'i-lucide-chevron-right'
